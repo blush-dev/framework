@@ -30,7 +30,10 @@ use Blush\Embed\EmbedConfig;
 use Blush\Extension\ExtensionName;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
-use Blush\Field\Control;
+use Blush\Field\Controls\Checkboxes;
+use Blush\Field\Controls\Code;
+use Blush\Field\Controls\Radios;
+use Blush\Field\Controls\ViewOnly;
 use Blush\Field\Field;
 use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\EnumField;
@@ -185,28 +188,28 @@ enum Setting: string
 			self::Name            => new TextField('name')->labeled('Site name')->required(),
 			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
 			self::Email           => new TextField('email')->labeled('Email address')->described(self::EMAIL_HELP)->required(),
-			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
-			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled('Untranslated pages')->described('What another language\'s address does for an entry not translated into it.')->control(Control::Radios)->required(),
+			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(new Code()),
+			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled('Untranslated pages')->described('What another language\'s address does for an entry not translated into it.')->control(new Radios())->required(),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
-			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP)->control(Control::Mono),
-			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP)->control(Control::Mono),
+			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP)->control(new Code()),
+			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP)->control(new Code()),
 			self::Signups         => new BoolField('signups')->labeled('Sign-ups')->described('Anyone can make an account on the site. Off, only someone who can add accounts makes them.'),
 			self::SignupRole      => new TextField('signupRole')->labeled('Role for new accounts')->described('The role an account made by signing up holds. Never the owner or an administrator.'),
 			self::Home            => self::homeChoices($types) === []
 				? new TextField('home')->labeled('Homepage')
 				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
-			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
+			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(new Checkboxes()),
 			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
-			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.')->control(Control::Readonly),
+			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.')->control(new ViewOnly()),
 			self::AddArtwork      => new BoolField('addArtwork')->labeled('Artwork from uploads')->described('A sound or video\'s artwork is added to the library as an image of its own when it\'s uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file\'s screen can still add it.'),
 			self::Mentions        => new BoolField('mentions')->labeled('Mentions')->described('@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.'),
 			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled('Smart punctuation')->described('Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.'),
 			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
 			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
-			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
+			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(new Radios())->required(),
 			self::Embeds          => new ListField('enabled')->labeled('Embeds turned on')->described('A site turned on plays its links on the page; the others keep their links as links.'),
 			self::Api             => new BoolField('enabled')->labeled('API')->described('An API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it without a token, and only a token may change content.'),
-			self::ApiAccess       => new EnumField('access', array_column(ApiAccess::cases(), 'value'))->labeled('Who can read it')->described('A token is made on Your Account, and acts as the account it belongs to.')->control(Control::Radios)->required(),
+			self::ApiAccess       => new EnumField('access', array_column(ApiAccess::cases(), 'value'))->labeled('Who can read it')->described('A token is made on Your Account, and acts as the account it belongs to.')->control(new Radios())->required(),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -214,8 +217,8 @@ enum Setting: string
 			self::Llms            => new BoolField('enabled')->labeled('Markdown copies')->described('A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.'),
 			self::Mcp             => new BoolField('enabled')->labeled('MCP server')->described('Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.'),
 			self::LlmsFull        => new BoolField('full')->labeled('llms-full.txt')->described('Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.'),
-			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.')->control(Control::Checks),
-			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
+			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.')->control(new Checkboxes()),
+			self::Theme           => new TextField('active')->labeled('Theme')->control(new Code()),
 			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
 			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on')
 		};

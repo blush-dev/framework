@@ -1051,12 +1051,25 @@ export interface FieldDescription {
 	integer?: boolean;
 	min?: number;
 	max?: number;
+	step?: number;
+	// What a text field's value must look like (D-766).
+	format?: 'url' | 'email' | 'icon';
+	// Whether a date has a time (D-766); left out, it does.
+	time?: boolean;
+	// What a text box says while it's empty (a control's option, D-766).
+	placeholder?: string;
+	// A group's fields, each with its control (D-768).
+	fields?: FieldDescription[];
+	// A repeating group's options (D-766): what each item is called, and
+	// the keys that sum an item up in a line.
+	itemLabel?: string;
+	summary?: string[];
 	// What a checkbox beside it says, or what an empty choice means.
 	caption?: string;
 	// More about each option (D-404): a sentence, and the machine names
 	// it covers.
 	details?: Record<string, { text: string; code: string }>;
-	// The control it's edited with (D-337): in a form's fields, always the
+	// The control it's edited with (D-766): in a form's fields, always the
 	// one to draw; in a type's definitions, only one chosen over the
 	// type's default.
 	control?: string;
@@ -1173,7 +1186,9 @@ export interface FieldSetSummary {
 	// The kind of place its targets are (`type`), and the slot it's in.
 	kind: string | null;
 	slot: string | null;
-	origin: 'extension' | 'data';
+	// Where it sits among a type's sets in the editor (D-768).
+	position: number;
+	origin: 'extension' | 'config' | 'data';
 	editable: boolean;
 	file: string | null;
 	targets: (FieldSetTargetOption & { found: boolean })[];
@@ -1185,7 +1200,10 @@ export interface FieldSetSummary {
  * and every place it could be added to.
  */
 export interface FieldSetDetail extends Omit<FieldSetSummary, 'fields'> {
+	// As forms take them, each with its control (D-769).
 	fields: FieldDescription[];
+	// How many entries have a value for each field, by name.
+	counts: Record<string, number>;
 	options: FieldSetTargetOption[];
 	kinds: FieldKindDescription[];
 }
@@ -1224,9 +1242,27 @@ export interface ControlDescription {
 }
 
 /**
- * A field type (`GET fields/types`, D-337): its key, its name for
- * people, what it holds, the controls it can be edited with (the first
- * is its default), and its own definition keys as JSON Schemas.
+ * A control in the catalog (`GET fields/controls`, D-766): its key and
+ * name, what it's for, the picker's section it's offered in (`null` for
+ * one the picker doesn't offer), the value type it stores (`null` for
+ * one that edits several), the type options it implies, and its own
+ * definition keys as JSON Schemas.
+ */
+export interface CatalogControl extends ControlDescription {
+	description: string;
+	section: { value: string; label: string } | null;
+	type: string | null;
+	// Controls of one shape store the same value (D-768).
+	shape: string;
+	implies: Record<string, unknown>;
+	options: Record<string, JsonSchema>;
+}
+
+/**
+ * A field type (`GET fields/controls`, D-766): its key, its name for
+ * people, what it holds, the controls that store it without implying
+ * options (the first is its default), and its own definition keys as
+ * JSON Schemas.
  */
 export interface FieldTypeDescription {
 	type: string;
@@ -1251,11 +1287,11 @@ export interface JsonSchema {
 }
 
 /**
- * The field types and every control (`GET fields/types`).
+ * Every control and field type (`GET fields/controls`).
  */
 export interface FieldTypeCatalog {
+	controls: CatalogControl[];
 	types: FieldTypeDescription[];
-	controls: ControlDescription[];
 }
 
 /**

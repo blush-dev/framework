@@ -92,7 +92,7 @@
  * it.
  */
 
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { debounced } from '../action';
 import { confirmAction } from '../confirm';
 import { confirmLeaving } from '../referrers';
@@ -127,7 +127,8 @@ import { bleedClasses, directiveIcon, directiveText, IMAGE_DIRECTIVE, imageVaria
 import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
-import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
+import { OPEN_LEVEL, type FieldLevel } from '../field-levels';
+import { childrenOf as fieldsInside, fromForm, humanize, inSentence, label, splitDate, stateAt, toForm, withStateAt, type FieldStep, type FormValue } from '../fields';
 import { siteDateTime } from '../dates';
 import { formatDay, formatWhen, formatWhenInline, plural, series, titleCase } from '../format';
 import { loadActivity, type ActivityChange } from '../activity';
@@ -135,7 +136,7 @@ import ActivityRows from '../components/ActivityRows.vue';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, CORE, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, shortName, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
-import { mediaName } from '../media';
+import { fieldValue, mediaName } from '../media';
 import { onPressOutside } from '../popover';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
 import { pickerMeta } from '../picker';
@@ -1567,7 +1568,9 @@ async function uploadFiles(files: File[]): Promise<void> {
 	insertFiles(added);
 }
 
-function pickForField(field: FieldDescription): void {
+// A field deep inside a group is picked for by its form field (`root`)
+// and the steps down to it (D-768).
+function pickForField(field: FieldDescription, root = field.name, steps: FieldStep[] = []): void {
 	// A field says which kind it takes; a featured image takes images.
 	const kind = field.kind ?? (field === imageField.value ? 'image' : undefined);
 
@@ -1577,7 +1580,8 @@ function pickForField(field: FieldDescription): void {
 		kind,
 		locked: kind !== undefined,
 		use: (file) => {
-			form.value[field.name] = file.reference;
+			// A media field holds the file's id (D-773).
+			form.value[root] = steps.length === 0 ? fieldValue(file) : withStateAt(form.value[root], steps, fieldValue(file));
 		}
 	};
 }
@@ -1903,9 +1907,70 @@ type Drill = 'outline' | 'linked' | 'archive' | 'activity';
 
 const drill = ref<Drill | null>(null);
 
-watch([caret, tab], () => {
-	drill.value = null;
+// A field group past the first level opens in the panel's place too, a
+// level at a time, each with a path back (D-768).
+const levels      = ref<FieldLevel[]>([]);
+const level       = computed(() => levels.value.at(-1) ?? null);
+const levelField  = computed(() => level.value === null ? null : fieldAt(level.value));
+const levelPrefix = computed(() => level.value === null ? 'field-' : `field-${[level.value.root, ...level.value.steps.slice(0, -1)].join('-')}-`);
+
+provide(OPEN_LEVEL, (at) => {
+	void openLevel(at);
 });
+
+watch([caret, tab], () => {
+	drill.value  = null;
+	levels.value = [];
+});
+
+// The field a level is: the form field, then down through its groups.
+function fieldAt(at: FieldLevel): FieldDescription | null {
+	let found = fields.value.find((field) => field.name === at.root) ?? null;
+
+	for (const step of at.steps) {
+		if (found !== null && typeof step === 'string') {
+			found = fieldsInside(found).find((child) => child.name === step) ?? null;
+		}
+	}
+
+	return found;
+}
+
+async function openLevel(at: FieldLevel): Promise<void> {
+	levels.value = [...levels.value, at];
+	await nextTick();
+	document.querySelector('.editor__side-inner')?.scrollTo({ top: 0 });
+	document.getElementById('editor-level-back')?.focus();
+}
+
+// The open level's state, read and written through its form field.
+const levelState = computed(() => level.value === null ? '' : stateAt(form.value[level.value.root], level.value.steps));
+
+function setLevel(value: FormValue): void {
+	const at = level.value;
+
+	if (at !== null) {
+		form.value[at.root] = withStateAt(form.value[at.root], at.steps, value);
+	}
+}
+
+function pickInLevel(target: FieldDescription, steps: FieldStep[]): void {
+	if (level.value !== null) {
+		pickForField(target, level.value.root, steps);
+	}
+}
+
+// Back a level, to the row that opened it.
+async function closeLevel(): Promise<void> {
+	const from = levels.value.at(-1);
+
+	levels.value = levels.value.slice(0, -1);
+	await nextTick();
+
+	if (from !== undefined) {
+		document.getElementById(`field-${[from.root, ...from.steps].join('-')}`)?.focus();
+	}
+}
 
 // The entry's last changes, loaded when its Activity row opens.
 const changes      = ref<ActivityChange[] | null>(null);
@@ -1967,7 +2032,10 @@ function showOutline(): Promise<void> {
 
 // Escape goes back from a level down.
 function leaveDrill(event: KeyboardEvent): void {
-	if (drill.value !== null) {
+	if (levels.value.length > 0) {
+		event.stopPropagation();
+		void closeLevel();
+	} else if (drill.value !== null) {
 		event.stopPropagation();
 		void closeDrill();
 	}
@@ -3005,7 +3073,7 @@ function fieldKey(field: FieldDescription): string {
 					</div>
 
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" class="editor__panel" role="tabpanel" aria-labelledby="editor-tab-document" @keydown.esc="leaveDrill">
-						<template v-if="drill === null">
+						<template v-if="drill === null && level === null">
 							<OptionsGroup heading="Publish">
 								<ImagePreview v-if="imageField && (!term || form[imageField.name])" :src="String(form[imageField.name] ?? '')" wide bare noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
 								<SummaryPopover v-if="summaryField" :id="`field-${summaryField.name}`" :model-value="String(form[summaryField.name] ?? '')" :error="errorFor(summaryField.name)" @update:model-value="form[summaryField.name] = $event" />
@@ -3136,16 +3204,16 @@ function fieldKey(field: FieldDescription): string {
 							</OptionsGroup>
 
 							<OptionsGroup v-if="otherFields.length" :heading="`${labels.singular} Fields`">
-								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)" />
 							</OptionsGroup>
 
 							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label">
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
-								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)" />
 							</OptionsGroup>
 
 							<OptionsGroup v-if="advancedFields.length" heading="Advanced" collapsible :open="advancedSet">
-								<FieldControl v-for="field in advancedFields" :key="fieldKey(field)" :field="field.type === 'list' ? { ...field, control: 'mono' } : field" :model-value="inline(field)" :error="errorFor(field.name)" @update:model-value="setInline(field, $event)" />
+								<FieldControl v-for="field in advancedFields" :key="fieldKey(field)" :field="field.type === 'list' ? { ...field, control: 'code' } : field" :model-value="inline(field)" :error="errorFor(field.name)" @update:model-value="setInline(field, $event)" />
 							</OptionsGroup>
 
 
@@ -3166,36 +3234,57 @@ function fieldKey(field: FieldDescription): string {
 						<!-- Pinned to the end of the tab, after every field (D-608):
 						     facts kept elsewhere, each opening a level down. -->
 						<div class="editor__pinned">
-							<button v-if="entry.introduces" id="editor-row-archive" type="button" class="editor__list-link" @click="openDrill('archive')">
+							<button v-if="entry.introduces" id="editor-row-archive" type="button" class="level-link" @click="openDrill('archive')">
 								<AdminIcon name="layers" />
-								<span class="editor__list-text"><strong>Archive Page</strong><span>{{ archiveLine }}</span></span>
-								<AdminIcon name="chevron-right" class="editor__list-go" />
+								<span class="level-link__text"><strong>Archive Page</strong><span>{{ archiveLine }}</span></span>
+								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
-							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="editor__list-link" :class="{ 'is-quiet': linkedTotal === 0 }" @click="openDrill('linked')">
+							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="level-link" :class="{ 'is-quiet': linkedTotal === 0 }" @click="openDrill('linked')">
 								<AdminIcon name="link" />
-								<span class="editor__list-text"><strong>Linked From</strong><span>{{ linkedLine }}</span></span>
-								<span class="editor__list-count mono">{{ linkedTotal }}</span>
-								<AdminIcon name="chevron-right" class="editor__list-go" />
+								<span class="level-link__text"><strong>Linked From</strong><span>{{ linkedLine }}</span></span>
+								<span class="level-link__count mono">{{ linkedTotal }}</span>
+								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
-							<button id="editor-row-outline" type="button" class="editor__list-link" @click="showOutline">
+							<button id="editor-row-outline" type="button" class="level-link" @click="showOutline">
 								<AdminIcon name="list" />
-								<span class="editor__list-text"><strong>Outline</strong></span>
-								<span class="editor__list-count mono">{{ items.length }}</span>
-								<AdminIcon name="chevron-right" class="editor__list-go" />
+								<span class="level-link__text"><strong>Outline</strong></span>
+								<span class="level-link__count mono">{{ items.length }}</span>
+								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
-							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="editor__list-link" :class="{ 'is-quiet': !entry.changedBy }" @click="openDrill('activity')">
+							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="level-link" :class="{ 'is-quiet': !entry.changedBy }" @click="openDrill('activity')">
 								<AdminIcon :name="entry.changedBy ? 'bot' : 'clock'" />
-								<span class="editor__list-text"><strong>Activity</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
-								<AdminIcon name="chevron-right" class="editor__list-go" />
+								<span class="level-link__text"><strong>Activity</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
+								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 						</div>
 					</template>
 
-					<template v-else>
-						<button id="editor-drill-back" type="button" class="editor__list-link editor__list-link--back" @click="closeDrill">
+					<template v-else-if="level !== null && levelField !== null">
+						<button id="editor-level-back" type="button" class="level-link level-link--back" @click="closeLevel">
 							<AdminIcon name="arrow-left" />
-							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page', activity: 'Activity' }[drill] }}</strong></span>
-							<span v-if="drill === 'outline' || drill === 'linked'" class="editor__list-count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
+							<span class="level-link__path"><template v-for="part in [typeName, ...level.trail.slice(0, -1)]" :key="part">{{ part }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> </template><strong>{{ level.trail.at(-1) }}</strong></span>
+						</button>
+						<OptionsGroup>
+							<FieldControl
+								:field="levelField"
+								:id-prefix="levelPrefix"
+								:model-value="levelState"
+								:error="errorFor(level.root)"
+								pickable
+								narrow
+								:nest="0"
+								:at="level"
+								@update:model-value="setLevel"
+								@pick="pickInLevel"
+							/>
+						</OptionsGroup>
+					</template>
+
+					<template v-else-if="drill !== null">
+						<button id="editor-drill-back" type="button" class="level-link level-link--back" @click="closeDrill">
+							<AdminIcon name="arrow-left" />
+							<span class="level-link__path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page', activity: 'Activity' }[drill] }}</strong></span>
+							<span v-if="drill === 'outline' || drill === 'linked'" class="level-link__count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
 						</button>
 
 						<OptionsGroup v-if="drill === 'outline'">
@@ -3798,7 +3887,7 @@ function fieldKey(field: FieldDescription): string {
 	border-bottom: 0;
 }
 
-.editor__pinned .editor__list-link:last-child {
+.editor__pinned .level-link:last-child {
 	border-bottom: 0;
 }
 
@@ -3877,74 +3966,6 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--fg-3);
 	font-size: var(--text-sm);
 	line-height: 1.6;
-}
-
-/* One quiet row, in the same place under every panel, to the list of
-   what's in the entry; the list has one back. */
-.editor__list-link {
-	display: flex;
-	align-items: center;
-	gap: var(--s-3);
-	width: 100%;
-	padding: var(--s-4) var(--s-5);
-	border: 0;
-	border-bottom: 1px solid var(--border);
-	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	text-align: left;
-	cursor: pointer;
-}
-
-.editor__list-link:hover {
-	background: var(--surface-2);
-	color: var(--fg);
-}
-
-.editor__list-link svg {
-	flex: none;
-	color: var(--fg-3);
-}
-
-.editor__list-count {
-	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-}
-
-.editor__list-link .editor__list-go {
-	width: 13px;
-	height: 13px;
-}
-
-/* A pinned row's name, and a line answering the quick question. */
-.editor__list-text {
-	display: grid;
-	flex: 1;
-	gap: 1px;
-	min-width: 0;
-}
-
-.editor__list-text strong {
-	color: var(--fg);
-	font-weight: 500;
-}
-
-.editor__list-text span {
-	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.editor__list-link.is-quiet .editor__list-text strong {
-	color: var(--fg-2);
-	font-weight: 400;
-}
-
-.editor__list-text + .editor__list-count {
-	margin-left: 0;
 }
 
 /* A level down: a note on where its facts are kept, then its groups. */
@@ -4198,15 +4219,6 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__group-note + .editor__group-note {
 	margin-top: -14px;
-}
-
-.editor__back-path {
-	color: var(--fg-3);
-}
-
-.editor__back-path strong {
-	color: var(--fg);
-	font-weight: 500;
 }
 
 .editor__problems {

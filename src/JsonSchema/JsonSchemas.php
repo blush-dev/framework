@@ -26,7 +26,7 @@ use Blush\Core\Framework;
 use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
-use Blush\Field\Control;
+use Blush\Field\ControlType;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldType;
 use Blush\Field\Schema;
@@ -667,9 +667,10 @@ final readonly class JsonSchemas
 			'label'       => ['type' => 'string', 'description' => 'A human-readable name.'],
 			'description' => ['type' => 'string', 'description' => 'Help text.'],
 			'control'     => [
-				'description' => 'How the admin edits the field, when not its type\'s default.',
-				'anyOf'       => array_map(static fn (Control $control): array => ['const' => $control->value, 'description' => $control->label()], Control::cases())
-			]
+				'description' => 'How the field is entered. Either `type` or `control` may be left out: a control names its type, and a type has a default control.',
+				'anyOf'       => array_map(static fn (ControlType $control): array => ['const' => $control->value, 'description' => $control->className()::label()], ControlType::cases())
+			],
+			...array_merge(...array_map(static fn (ControlType $control): array => $control->className()::definitionSchema(), ControlType::cases()))
 		];
 
 		$conditions = [];
@@ -678,7 +679,10 @@ final readonly class JsonSchemas
 			$class = $type->className();
 			$own   = [
 				...$class::definitionSchema($field),
-				'control' => ['enum' => array_map(static fn (Control $control): string => $control->value, $class::controls())]
+				'control' => ['enum' => [...array_values(array_map(
+					static fn (ControlType $control): string => $control->value,
+					array_filter(ControlType::cases(), static fn (ControlType $control): bool => in_array($type->value, $control->className()::stores(), true))
+				)), ControlType::Readonly->value]]
 			];
 
 			$conditions[] = [

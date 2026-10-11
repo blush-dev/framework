@@ -55,7 +55,7 @@ final class CreateEntry extends Tool
 				'type'     => ['type' => 'string', 'description' => 'The type\'s name, as list_types gives it.'],
 				'title'    => ['type' => 'string', 'minLength' => 1, 'maxLength' => 300],
 				'slug'     => ['type' => 'string', 'description' => 'The last part of its address: lowercase letters, numbers, and hyphens. Made from the title when left out.'],
-				'fields'   => ['type' => 'object', 'description' => 'Field values by name, as get_type lists them.'],
+				'fields'   => ['type' => 'object', 'description' => 'Field values by name, as get_type lists them. A media field, such as image, takes a media file\'s id.'],
 				'body'     => ['type' => 'string', 'description' => 'The body, in Markdown.'],
 				'parent'   => ['type' => 'string', 'description' => 'For a page of a tree, the slug path of the page to put it under, such as "about".'],
 				'language' => ['type' => 'string', 'description' => 'The language\'s code, when the site has several.']

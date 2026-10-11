@@ -63,7 +63,7 @@ use Blush\Http\Status;
  * has none.
  *
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
- * (`Field::toArray()`), the field `sets` attached to it (`name`,
+ * (as forms take them, `Field::toForm()`, each with its control), the field `sets` attached to it (`name`,
  * `label`, and how many `fields`, D-337), the `taxonomies` (term types)
  * that file it, its `relations` (every relation definition from or to
  * it, as `RelationsController` describes them, D-593), whether it's
@@ -170,7 +170,7 @@ final readonly class TypesController
 			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
 			'relations'    => array_values(array_map(fn (Relation $relation): array => RelationsController::describe($types, $relation, $this->config->dataTypes), $relations)),
-			'fields'       => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields)),
+			'fields'       => array_values(array_map(static fn (Field $field): array => $field->toForm(), $type->schema->fields)),
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
 			'folders'      => $type->folders?->pattern,

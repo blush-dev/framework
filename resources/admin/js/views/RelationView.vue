@@ -302,7 +302,7 @@ const storable    = computed(() => purpose.value === 'classify' ? fileable.value
 const storedField = computed<FieldDescription>(() => ({
 	name: 'from',
 	type: 'list',
-	control: 'checks',
+	control: 'checkboxes',
 	item: { name: 'type', type: 'choice', options: storable.value.map((item) => item.name), choices: Object.fromEntries(storable.value.map((item) => [item.name, item.labels.plural])) }
 }));
 

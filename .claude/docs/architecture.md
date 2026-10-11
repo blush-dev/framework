@@ -464,12 +464,39 @@ Implemented in M3 (D-073 to D-077).
   `/{code}`, ahead of the default's (`ContentRoutes::localized()`).
 - **Not yet:** a base path for subdirectory installs (open question).
 
-## Fields (D-337 to D-348)
-The value layer is `Blush\Field` (see Content → Types and schemas). Built
+## Fields (D-337 to D-348, D-766 to D-770)
+The value layer is `Blush\Field` (see Content → Types and schemas). Four
+terms (D-766): a **field** is a value's definition (its type is the
+authority on values), a **field set** groups fields for a place, a
+**control** is how one value is entered, and a **form** is controls
+bound to a submission (not built yet). Controls (stage 1 of the plan in
+`roadmap.md`, built): `Control` is the abstract base of a Type enum +
+Registry + Factory + Registrar (`ControlType`, `ControlRegistry`,
+`ControlFactory`, `ControlRegistrar`; core only for 2.x), with final
+classes in `Controls\*`. A control describes itself as data (`name()`,
+`label()`, `description()`, its picker `section()`, the value `type()`
+it stores, the type options it `implies()`, its own options and
+`definitionSchema()`), says whether it `fits()` a field, and `complete()`s
+a definition that names only it. `FieldFactory` runs every definition
+through `ControlFactory::complete()` and `apply()`; a definition stores
+`type` and `control`, either optional by hand (D-769). A field's
+`defaultControl()` is its type's (always accepted by `control()`), and
+`ControlFactory::switchesFor()` lists the offered controls that fit a
+field (D-768). Checks a control implies are type options: `TextField`'s
+`format` (`TextFormat`), `DateField`'s `time`, `NumberField`'s `step`,
+`ListField`'s `min` and `max`. There's no reference field type (D-767):
+`ReferenceField` is only the field a relation adds to a schema and a
+collection's `parent`. The admin (stages 2 and 3, D-772, D-774):
+`FieldControl` draws a field by its control, groups and repeating
+groups included (levels past the first open a level down, D-768);
+Structure → Fields and a type's own fields are `FieldTree` (over the
+shared `ItemTree`, which Menus uses too) with `FieldForm` under a row,
+`ControlPicker`, and `FieldSetSettings`. Media fields store ids
+(`MediaValues`, D-773). Built earlier
 (D-338): field types describe themselves (`typeLabel()`,
-`typeDescription()`, `controls()`); a field's `control`, checked by
-`canUse()`, with `editedWith()` the one used; `toForm()` for the admin's
-forms; `GET fields/types`, the catalog; definitions as a list or a map
+`typeDescription()`); `editedWith()` the control used; `toForm()` for
+the admin's forms, with the control's options; `GET fields/controls`,
+the catalog (D-766); definitions as a list or a map
 (`FieldFactory::definitions()`); and config types and media fields in
 array form built with the container's registry. Field sets on content
 types are built (D-339): `FieldSet`, `FieldTarget`, `ContentTypeTarget`,
@@ -492,7 +519,7 @@ declares (`FieldTargetSource::slots()`, `FieldSlot`; every kind offers
 only `details` for now, D-348), falling back to the kind's default
 (`FieldTargets::slotFor()`). Each admin screen maps slots to places; the
 entry editor keeps every set in its document panel, out of the writing
-area. The Fields API is paused (D-348): this is a baseline.
+area. The Fields API paused at D-348 and was picked up again (D-766).
 The design, with content types the only consumer until the API is
 right:
 
@@ -509,12 +536,11 @@ right:
   in `Content\Type`.
 - **A type's schema:** entry fields, its own fields, then its sets'
   fields by set name; a name used twice is a load error.
-- **`Control`:** the admin's fixed control vocabulary. Each field type
-  lists the controls it can use (the first is the default); a
-  definition picks one with `control`. No custom controls (yet).
-- **The catalog:** field classes describe themselves (label,
-  description, controls, definition schema), served as
-  `GET fields/types` for the admin's definition editor.
+- **`Control`:** how a value is entered, as classes (D-766, above);
+  core only for 2.x, the registry shaped so extensions can add
+  controls later.
+- **The catalog:** controls and field classes describe themselves,
+  served as `GET fields/controls` for the admin's editors.
 - **The admin:** Structure → Fields lists and edits sets (data sets
   only), a type's screen lists its sets, and the editor shows each set
   as a document panel group.

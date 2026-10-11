@@ -83,7 +83,7 @@ needed in practice. The built-in keys:
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words of the content's paragraphs and lists are used. (`excerpt` works too.) |
-| `image` | A featured image |
+| `image` | A featured image: a [media file's](media.md) id, which the admin writes when you choose one |
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
@@ -108,7 +108,7 @@ published: 2026-10-01 09:00:00 -05:00
 authors: jane
 tag: [news, releases]
 summary: "We're live. Here's what's new."
-image: /media/launch.jpg
+image: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
 ---
 
 Today's the day...
@@ -422,7 +422,7 @@ error. Types can't have a field named `id`.
 An entry names other entries by slug: its terms (`tag: [php, cms]`),
 its authors (`authors: jane`), the `parent` of an entry in a
 [nesting collection](content-types.md#nesting-and-order) (such as a category),
-and any reference field. A page of a tree is named by its path
+and the entries any other relation links. A page of a tree is named by its path
 (`about/team`). You can write an entry's id instead of its slug, and
 Blush reads it as that entry:
 
@@ -467,7 +467,7 @@ or use **Links Between Entries** in Site Health.
 
 `content:lint` reports an entry that names itself, a value that names
 entries of two types (write the id to say which), an id of the wrong
-type, and a reference field naming an entry that doesn't exist.
+type, and a relation naming an entry that doesn't exist.
 
 ## Only Markdown
 

@@ -62,4 +62,6 @@ enum ViolationKind: string
 	case Details = 'details';
 	// An audio or video file's cover art.
 	case Artwork = 'artwork';
+	// A media field written as a path, not its file's id (D-773).
+	case Media = 'media';
 }

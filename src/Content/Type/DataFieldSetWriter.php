@@ -52,7 +52,7 @@ final readonly class DataFieldSetWriter
 	 *
 	 * @var list<string>
 	 */
-	public const array KEYS = ['label', 'description', 'targets', 'slot', 'fields'];
+	public const array KEYS = ['label', 'description', 'targets', 'slot', 'position', 'fields'];
 
 	/**
 	 * @param Closure(): ContentTypeLoader $loader

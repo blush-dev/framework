@@ -200,7 +200,7 @@ function key(event: KeyboardEvent): void {
 .menu-fields {
 	display: grid;
 	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x) var(--s-4) calc(var(--pad-x) + var(--menu-indent, 0px));
+	padding: var(--s-4) var(--pad-x) var(--s-4) calc(var(--pad-x) + var(--tree-indent, 0px));
 	border-top: 1px solid var(--border);
 	background: var(--surface-2);
 }

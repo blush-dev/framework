@@ -81,7 +81,7 @@ final class GetMedia extends Tool
 
 		$used = [];
 
-		foreach ($this->usage->entries($record->key) as $found) {
+		foreach ($this->usage->entries($record->key, id: $record->id()) as $found) {
 			$entry = $found['id'] === null ? null : $this->content->find($found['id']);
 
 			if ($entry !== null && $this->entries->sees($context, $entry)) {

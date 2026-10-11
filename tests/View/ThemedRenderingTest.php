@@ -192,6 +192,9 @@ final class ThemedRenderingTest extends TestCase
 		$this->standardContent();
 		$this->writeTemporaryFile('user/content/about/photo.md', "---\nid: 9b92581d-f1d3-06c1-8620-92b9d7e0ec1b\ntitle: Photo\nimage: /user/media/me.jpg\nsummary: A *photo* of me.\n---\nBody");
 		$this->writeTemporaryFile('user/content/about/remote.md', "---\nid: bb40824a-2574-820b-0d26-5041e81bbe39\ntitle: Remote\nimage: https://cdn.example.com/me.jpg\n---\nBody");
+		$this->writeTemporaryFile('user/content/about/library.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000b2\ntitle: Library\nimage: 0199B6E2-7F3A-7C41-9D2E-0000000000B1\n---\nBody");
+		$this->writeTemporaryFile('user/media/2026/me.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='));
+		$this->writeTemporaryFile('user/data/media/2026/me.png.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-0000000000b1"}');
 
 		$app   = $this->site();
 		$photo = $this->body('/about/photo', $app);
@@ -200,6 +203,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<meta property="og:image" content="http://localhost/user/media/me.jpg">', $photo);
 		$this->assertStringContainsString('<meta name="twitter:card" content="summary_large_image">', $photo);
 		$this->assertStringContainsString('<meta property="og:image" content="https://cdn.example.com/me.jpg">', $this->body('/about/remote', $app));
+		$this->assertMatchesRegularExpression('#<meta property="og:image" content="http://localhost/[^"]*2026/me\.png">#', $this->body('/about/library', $app), 'A media file\'s id is its file\'s address (D-773).');
 	}
 
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void

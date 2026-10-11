@@ -699,10 +699,6 @@
 							"description": "Several values."
 						},
 						{
-							"const": "reference",
-							"description": "Other entries, by slug."
-						},
-						{
 							"const": "media",
 							"description": "A media file."
 						},
@@ -742,61 +738,112 @@
 					"description": "Help text."
 				},
 				"control": {
-					"description": "How the admin edits the field, when not its type's default.",
+					"description": "How the field is entered. Either `type` or `control` may be left out: a control names its type, and a type has a default control.",
 					"anyOf": [
 						{
+							"const": "group",
+							"description": "Group"
+						},
+						{
+							"const": "repeater",
+							"description": "Repeating Group"
+						},
+						{
 							"const": "text",
-							"description": "One line"
+							"description": "Text"
 						},
 						{
 							"const": "textarea",
-							"description": "Several lines"
+							"description": "Textarea"
 						},
 						{
-							"const": "mono",
-							"description": "Code"
+							"const": "markdown",
+							"description": "Formatted Text"
 						},
 						{
-							"const": "checkbox",
-							"description": "Checkbox"
+							"const": "link",
+							"description": "Link"
+						},
+						{
+							"const": "email",
+							"description": "Email"
+						},
+						{
+							"const": "select",
+							"description": "Select Dropdown"
+						},
+						{
+							"const": "radios",
+							"description": "Radio Buttons"
+						},
+						{
+							"const": "checkboxes",
+							"description": "Checkboxes"
+						},
+						{
+							"const": "multiselect",
+							"description": "Multi-Select"
+						},
+						{
+							"const": "toggle",
+							"description": "Toggle"
 						},
 						{
 							"const": "number",
 							"description": "Number"
 						},
 						{
-							"const": "select",
-							"description": "Menu"
-						},
-						{
-							"const": "radios",
-							"description": "Radio buttons"
-						},
-						{
-							"const": "checks",
-							"description": "Checkboxes"
-						},
-						{
 							"const": "date",
-							"description": "Date picker"
+							"description": "Date and Time"
 						},
 						{
-							"const": "lines",
-							"description": "One per line"
+							"const": "image",
+							"description": "Image"
+						},
+						{
+							"const": "video",
+							"description": "Video"
+						},
+						{
+							"const": "audio",
+							"description": "Audio"
+						},
+						{
+							"const": "file",
+							"description": "File"
+						},
+						{
+							"const": "icon",
+							"description": "Icon"
+						},
+						{
+							"const": "code",
+							"description": "Code"
 						},
 						{
 							"const": "reference",
-							"description": "Entry picker"
-						},
-						{
-							"const": "media",
-							"description": "Media picker"
+							"description": "Entry Picker"
 						},
 						{
 							"const": "readonly",
 							"description": "Read-only"
 						}
 					]
+				},
+				"itemLabel": {
+					"type": "string",
+					"description": "What each item is called, for \"Add Ingredient\"."
+				},
+				"summary": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "The keys of the fields that sum an item up in one line when it's closed."
+				},
+				"placeholder": {
+					"type": "string",
+					"description": "A prompt shown in the empty box. Never saved."
 				}
 			},
 			"allOf": [
@@ -813,11 +860,23 @@
 					},
 					"then": {
 						"properties": {
+							"format": {
+								"enum": [
+									"url",
+									"email",
+									"icon"
+								],
+								"description": "What the text must look like: a web address, an email address, or an icon name."
+							},
 							"control": {
 								"enum": [
 									"text",
 									"textarea",
-									"mono"
+									"link",
+									"email",
+									"icon",
+									"code",
+									"readonly"
 								]
 							}
 						}
@@ -838,7 +897,8 @@
 						"properties": {
 							"control": {
 								"enum": [
-									"textarea"
+									"markdown",
+									"readonly"
 								]
 							}
 						}
@@ -857,9 +917,15 @@
 					},
 					"then": {
 						"properties": {
+							"time": {
+								"type": "boolean",
+								"description": "Whether the value has a time; without one, only the day is kept.",
+								"default": true
+							},
 							"control": {
 								"enum": [
-									"date"
+									"date",
+									"readonly"
 								]
 							}
 						}
@@ -883,7 +949,8 @@
 							},
 							"control": {
 								"enum": [
-									"checkbox"
+									"toggle",
+									"readonly"
 								]
 							}
 						}
@@ -914,12 +981,18 @@
 								"type": "number",
 								"description": "The largest value allowed."
 							},
+							"step": {
+								"type": "number",
+								"exclusiveMinimum": 0,
+								"description": "How far apart values are, counted from the minimum (or zero)."
+							},
 							"default": {
 								"type": "number"
 							},
 							"control": {
 								"enum": [
-									"number"
+									"number",
+									"readonly"
 								]
 							}
 						}
@@ -940,9 +1013,27 @@
 						"properties": {
 							"options": {
 								"type": "array",
-								"description": "The values allowed.",
+								"description": "The values allowed, each a value or a value with a label for people.",
 								"items": {
-									"type": "string"
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"value": {
+													"type": "string"
+												},
+												"label": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"value"
+											]
+										}
+									]
 								},
 								"minItems": 1
 							},
@@ -952,7 +1043,8 @@
 							"control": {
 								"enum": [
 									"select",
-									"radios"
+									"radios",
+									"readonly"
 								]
 							}
 						}
@@ -975,45 +1067,25 @@
 								"$ref": "#/definitions/field",
 								"description": "A field definition for each value; text by default."
 							},
+							"min": {
+								"type": "integer",
+								"minimum": 0,
+								"description": "The fewest items a value may have."
+							},
+							"max": {
+								"type": "integer",
+								"minimum": 0,
+								"description": "The most items a value may have."
+							},
 							"default": {
 								"type": "array"
 							},
 							"control": {
 								"enum": [
-									"lines",
-									"checks",
+									"repeater",
+									"checkboxes",
+									"multiselect",
 									"readonly"
-								]
-							}
-						}
-					}
-				},
-				{
-					"if": {
-						"properties": {
-							"type": {
-								"const": "reference"
-							}
-						},
-						"required": [
-							"type"
-						]
-					},
-					"then": {
-						"properties": {
-							"to": {
-								"type": "string",
-								"description": "The content type the entries are of."
-							},
-							"multiple": {
-								"type": "boolean",
-								"description": "Whether the field holds several entries.",
-								"default": true
-							},
-							"control": {
-								"enum": [
-									"reference",
-									"mono"
 								]
 							}
 						}
@@ -1044,8 +1116,12 @@
 							},
 							"control": {
 								"enum": [
-									"media",
-									"mono"
+									"image",
+									"video",
+									"audio",
+									"file",
+									"code",
+									"readonly"
 								]
 							}
 						}
@@ -1066,7 +1142,8 @@
 						"properties": {
 							"control": {
 								"enum": [
-									"mono"
+									"code",
+									"readonly"
 								]
 							}
 						}
@@ -1110,6 +1187,7 @@
 							},
 							"control": {
 								"enum": [
+									"group",
 									"readonly"
 								]
 							}

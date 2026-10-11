@@ -374,6 +374,15 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Rewrites media fields written as paths to their files' ids (D-773),
+	 * in the entries (by id) the account may edit, as a job.
+	 */
+	public function rewriteMediaFields(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->queue($request, HealthFix::MediaFields);
+	}
+
+	/**
 	 * Migrates the data types still written as taxonomies (D-591), for an
 	 * account that may change content types.
 	 */
@@ -431,6 +440,7 @@ final readonly class HealthController
 		$paths = self::list($request, match ($fix) {
 			HealthFix::Terms   => 'terms',
 			HealthFix::Parents => 'parents',
+			HealthFix::MediaFields => 'ids',
 			default            => 'paths'
 		});
 

@@ -1,7 +1,8 @@
 /**
  * Media files as the editor finds them from what content writes: library
- * files by their address (`GET media/{path}`), each once; shared, so an image can be shown and its
- * library alt text offered (D-272).
+ * files by their address, or by the id a media field holds (D-773;
+ * `GET media/{path}` takes either), each once; shared, so an image can
+ * be shown and its library alt text offered (D-272).
  */
 
 import { ref, watch, type Ref } from 'vue';
@@ -14,17 +15,35 @@ import type { IconName } from './icons';
 
 const library = new Map<string, Promise<MediaItem | null>>();
 
+// A media file's id (D-487).
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * The media file an image's address names: a library file by its URL
+ * Whether a value is a media file's id, as a media field holds it.
+ */
+export function isMediaId(value: string): boolean {
+	return ID.test(value.trim());
+}
+
+/**
+ * What a media field writes for a file (D-773): its id, or its address
+ * for a file without one yet.
+ */
+export function fieldValue(file: Pick<MediaItem, 'id' | 'reference'>): string {
+	return file.id !== '' ? file.id : file.reference;
+}
+
+/**
+ * The media file a value names: a library file by its id or its URL
  * path; `null` for anything else (another site's address) or a file that
  * isn't there.
  */
 export async function mediaFile(src: string): Promise<MediaItem | null> {
-	const address = src.replace(/[?#].*$/, '');
+	const address = src.replace(/[?#].*$/, '').trim();
 	const prefix  = `${config.media.url}/`;
 
-	if (address.startsWith(prefix)) {
-		const path = address.slice(prefix.length);
+	if (isMediaId(address) || address.startsWith(prefix)) {
+		const path = isMediaId(address) ? address.toLowerCase() : address.slice(prefix.length);
 		let file   = library.get(path);
 
 		if (file === undefined) {
@@ -44,10 +63,15 @@ export async function mediaFile(src: string): Promise<MediaItem | null> {
 }
 
 /**
- * Forgets a library file, after its alt text or caption changes.
+ * Forgets a library file, after its alt text or caption changes: by its
+ * address, and by its id.
  */
-export function forgetFile(reference: string): void {
+export function forgetFile(reference: string, id = ''): void {
 	library.delete(reference.slice(config.media.url.length + 1));
+
+	if (id !== '') {
+		library.delete(id.toLowerCase());
+	}
 }
 
 /**

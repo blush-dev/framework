@@ -254,8 +254,11 @@ with `If-Match` revisions (D-762, D-763).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)
-is paused as a baseline: the author thinks there's more to get right,
-so build nothing more on it until it's picked up again (D-348).
+was paused as a baseline (D-348) and is picked up again from the
+fields sketch (`.claude/docs/admin-design/blush-fields.html`): fields,
+field sets, controls (core only for 2.x), and forms as four terms
+(D-766), with the sketch's answers (D-767 to D-769) and a staged plan
+in `roadmap.md`.
 Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.

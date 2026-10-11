@@ -15,6 +15,7 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Group;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -66,9 +67,9 @@ final class ObjectField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Readonly];
+		return new Group();
 	}
 
 	/**
@@ -138,6 +139,18 @@ final class ObjectField extends Field
 			new static($definition->string('name'), $factory->schema($definition->listOrMap('fields'), $definition->bool('closed'))),
 			$definition
 		);
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * Its fields are as forms take them too, each with its control, so
+	 * the admin draws a group's fields (D-768).
+	 */
+	#[Override]
+	public function toForm(): array
+	{
+		return [...parent::toForm(), 'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $this->schema->fields))];
 	}
 
 	/**

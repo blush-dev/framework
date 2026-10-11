@@ -18,6 +18,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Date;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -29,10 +30,13 @@ use Blush\Field\FieldFactory;
  * `2026-05-01T15:40:00Z`), timestamps, or date objects. A value without an
  * offset is read in the site timezone (D-045). Relative strings such as
  * `tomorrow` are refused, so a date can't change on its own.
+ *
+ * A field without a time (`time: false`) keeps only the day: its values
+ * are the start of that day in the site timezone.
  */
 final class DateField extends Field
 {
-	public function __construct(string $name = '')
+	public function __construct(string $name = '', public readonly bool $time = true)
 	{
 		$this->name = $name;
 	}
@@ -68,9 +72,9 @@ final class DateField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Date];
+		return new Date();
 	}
 
 	/**
@@ -80,11 +84,11 @@ final class DateField extends Field
 	public function normalize(mixed $value, FieldContext $context): mixed
 	{
 		if (is_int($value)) {
-			return $value;
+			return $this->time ? $value : $this->day(DateTimeImmutable::createFromTimestamp($value), $context);
 		}
 
 		if ($value instanceof DateTimeInterface) {
-			return $value->getTimestamp();
+			return $this->time ? $value->getTimestamp() : $this->day(DateTimeImmutable::createFromInterface($value), $context);
 		}
 
 		if (! is_string($value) || preg_match('/^\s*\d{4}-\d{2}-\d{2}/', $value) !== 1) {
@@ -92,10 +96,20 @@ final class DateField extends Field
 		}
 
 		try {
-			return new DateTimeImmutable(trim($value), $context->timezone)->getTimestamp();
+			$date = new DateTimeImmutable(trim($value), $context->timezone);
 		} catch (DateMalformedStringException) {
 			throw $this->invalid(sprintf('"%s" is not a valid date.', $value));
 		}
+
+		return $this->time ? $date->getTimestamp() : $this->day($date, $context);
+	}
+
+	/**
+	 * Returns the start of a date's day in the site timezone.
+	 */
+	private function day(DateTimeImmutable $date, FieldContext $context): int
+	{
+		return $date->setTimezone($context->timezone)->setTime(0, 0)->getTimestamp();
 	}
 
 	/**
@@ -128,6 +142,24 @@ final class DateField extends Field
 	{
 		$definition = self::definition($data);
 
-		return self::withShared(new static($definition->string('name')), $definition);
+		return self::withShared(new static($definition->string('name'), $definition->bool('time', true)), $definition);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return ['time' => ['type' => 'boolean', 'description' => 'Whether the value has a time; without one, only the day is kept.', 'default' => true]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function options(): array
+	{
+		return ['time' => $this->time ? null : false];
 	}
 }

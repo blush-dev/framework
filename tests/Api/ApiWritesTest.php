@@ -236,6 +236,7 @@ final class ApiWritesTest extends TestCase
 		$pictured = $this->json($this->send('PATCH', "/api/v1/entries/{$entry}?body=none", $author, ['image' => $id], self::text($read, 'revision')), 200);
 
 		$this->assertSame($id, is_array($pictured['image'] ?? null) ? ($pictured['image']['id'] ?? null) : null, 'Media by id.');
+		$this->assertStringContainsString("image: {$id}", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_post/2021-01-01.mine.md'), 'Kept by id (D-773).');
 	}
 
 	public function testPreflightsAllowWrites(): void

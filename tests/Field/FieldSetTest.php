@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
 use Blush\Field\FieldConfig;
+use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -37,7 +38,7 @@ final class FieldSetTest extends TestCase
 	{
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
-		$this->fields = new FieldFactory($registry);
+		$this->fields = new FieldFactory($registry, ControlFactory::core());
 	}
 
 	public function testReadsADefinition(): void
@@ -57,6 +58,20 @@ final class FieldSetTest extends TestCase
 		$this->assertTrue($set->attachesTo('type:post'));
 		$this->assertFalse($set->attachesTo('type:page'));
 		$this->assertEquals($set, FieldSet::fromArray($set->toArray(), $this->fields));
+	}
+
+	public function testHasAPosition(): void
+	{
+		$set = FieldSet::fromArray(['name' => 'seo', 'targets' => ['type:post'], 'position' => 5], $this->fields);
+
+		$this->assertSame(5, $set->position);
+		$this->assertSame(5, $set->toArray()['position'] ?? null);
+		$this->assertArrayNotHasKey('position', FieldSet::fromArray(['name' => 'seo'], $this->fields)->toArray(), 'The default is left out.');
+		$this->assertSame(FieldSet::POSITION, FieldSet::fromArray(['name' => 'seo'], $this->fields)->position);
+
+		$this->expectException(InvalidSchema::class);
+
+		FieldSet::fromArray(['name' => 'seo', 'position' => 1.5], $this->fields);
 	}
 
 	public function testNamesASlotOrLeavesItToItsKind(): void

@@ -23,6 +23,7 @@ use Blush\Content\Type\FolderPattern;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Profiles;
+use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -107,6 +108,6 @@ final class FolderPatternTest extends TestCase
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
 
-		ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'folders' => '{year}'], new FieldFactory($registry));
+		ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'folders' => '{year}'], new FieldFactory($registry, ControlFactory::core()));
 	}
 }

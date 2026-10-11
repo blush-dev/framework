@@ -34,6 +34,7 @@ use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
 use Blush\Content\Type\TypeLabels;
 use Blush\Content\Type\TypeUrls;
+use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -64,7 +65,7 @@ final class ContentTypeTest extends TestCase
 	{
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
-		$this->fields = new FieldFactory($registry);
+		$this->fields = new FieldFactory($registry, ControlFactory::core());
 	}
 
 	public function testDefaultsFollowThe1xRules(): void

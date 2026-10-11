@@ -4,7 +4,7 @@
  * wizard is its own screen): Basics (a collection, terms, or a tree,
  * D-386; names, key, description, icon), Behavior
  * (`TypeBehaviorFields`, and for terms the types they file), and Fields
- * (`FieldListEditor`), with What Gets Created beside them, updating as
+ * (`FieldTree`), with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
  * `user/data/types/{key}.json` (`POST types`), adds the index page when
  * asked, and opens the type's screen. Terms are a collection ordered by
@@ -22,7 +22,7 @@ import { computed, ref, watch } from 'vue';
 import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import FieldListEditor from '../components/FieldListEditor.vue';
+import FieldTree from '../components/FieldTree.vue';
 import TypeBasicsFields from '../components/TypeBasicsFields.vue';
 import TypeBehaviorFields from '../components/TypeBehaviorFields.vue';
 import { request, type ContentTypeDetail } from '../api';
@@ -225,7 +225,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 
 			<div v-else>
 				<p class="panel__body field__help">Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.</p>
-				<FieldListEditor v-model="form.fields" :types="types" id-prefix="new-field-" />
+				<FieldTree v-model="form.fields" heading-id="new-fields-heading" id-prefix="new-field-" bare />
 			</div>
 
 			<p v-if="failure" class="panel__body field__error" role="alert">{{ failure }}</p>

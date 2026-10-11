@@ -63,6 +63,7 @@ use Blush\Field\FieldSet;
 use Blush\Field\FieldTargets;
 use Blush\Field\Violation;
 use Blush\Http\Response;
+use Blush\Media\MediaValues;
 use Blush\Http\Status;
 
 /**
@@ -209,7 +210,8 @@ final readonly class EntryController
 		private Referrers $referrers,
 		private ArchivePages $archivePages,
 		private EntryEditor $editor,
-		private ActivityLog $activity
+		private ActivityLog $activity,
+		private MediaValues $media
 	) {}
 
 	/**
@@ -950,13 +952,13 @@ final readonly class EntryController
 				'relation' => self::relationLabel($group['relation']),
 				'count'    => $count,
 				'drafts'   => count(array_filter($entries, static fn (Entry $source): bool => ! $source->isPublished())),
-				'entries'  => array_map(static fn (Entry $source): array => [
+				'entries'  => array_map(fn (Entry $source): array => [
 					'id'     => $source->id,
 					'title'  => $source->title,
 					'status' => $source->status->value,
 					'type'   => $source->type->labels->singular,
 					'date'   => $source->published?->format('Y-m-d'),
-					'image'  => is_string($image = $source->field('image')) && $image !== '' ? $image : null
+					'image'  => $this->media->address($source->field('image'))
 				], array_slice($entries, 0, $count <= self::LISTED_WHOLE ? self::LISTED_WHOLE : self::LISTED))
 			];
 		}

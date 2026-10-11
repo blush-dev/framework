@@ -21,6 +21,7 @@ use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
+use Blush\Content\MediaFieldIds;
 use Blush\Content\EntryFolders;
 use Blush\Content\MissingParents;
 use Blush\Content\MissingTerms;
@@ -69,7 +70,8 @@ final class HealthFixJob extends Job
 		private readonly EntryFolders $folders,
 		private readonly MissingTerms $terms,
 		private readonly MissingParents $parents,
-		private readonly EntryRefs $refs
+		private readonly EntryRefs $refs,
+		private readonly MediaFieldIds $mediaFields
 	) {}
 
 	/**
@@ -106,7 +108,7 @@ final class HealthFixJob extends Job
 
 		[$did, $didFail] = $this->apply($fix, $type, array_slice($remaining, 0, self::CHUNK), $account);
 
-		$changed = $fix === HealthFix::Refs ? array_values([...$changed, ...$did]) : array_replace($changed, $did);
+		$changed = $fix === HealthFix::Refs || $fix === HealthFix::MediaFields ? array_values([...$changed, ...$did]) : array_replace($changed, $did);
 		$failed  = array_replace($failed, $didFail);
 		$rest    = array_slice($remaining, self::CHUNK);
 
@@ -144,6 +146,7 @@ final class HealthFixJob extends Job
 			HealthFix::FileNames  => array_map(static fn (FileNameRename $rename): string => $rename->path, $this->fileNames->report()->renames($type)),
 			HealthFix::Folders    => array_map(strval(...), array_keys($this->folders->report())),
 			HealthFix::Refs       => array_map(strval(...), array_keys($this->refs->report())),
+			HealthFix::MediaFields => $this->mediaFieldEntries(),
 			HealthFix::Terms      => $this->missingTerms(),
 			HealthFix::Parents    => $this->missingParents()
 		};
@@ -159,6 +162,18 @@ final class HealthFixJob extends Job
 	{
 		$entries = FixAccess::only($this->access->entries($account), $paths);
 		$media   = FixAccess::only($this->access->media($account), $paths);
+
+		if ($fix === HealthFix::MediaFields) {
+			$allowed = $this->access->entryIds($account);
+
+			try {
+				$done = $this->mediaFields->write(array_values(array_filter($paths, $allowed)));
+			} catch (MediaException $e) {
+				return [[], array_fill_keys($paths, $e->getMessage())];
+			}
+
+			return [$done['changed'], $done['failed']];
+		}
 
 		try {
 			$done = match ($fix) {
@@ -184,6 +199,20 @@ final class HealthFixJob extends Job
 		};
 
 		return [$changes, $done->failed];
+	}
+
+	/**
+	 * Returns the ids of the entries with media fields written as paths.
+	 *
+	 * @return list<string>
+	 */
+	private function mediaFieldEntries(): array
+	{
+		try {
+			return array_map(strval(...), array_keys($this->mediaFields->report()));
+		} catch (MediaException) {
+			return [];
+		}
 	}
 
 	/**

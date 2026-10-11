@@ -513,14 +513,19 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the field sets attached to a type, in name order.
+	 * Returns the field sets attached to a type, by position, then label.
 	 *
 	 * @return list<FieldSet>
 	 * @throws InvalidContentType When there's no such type.
 	 */
 	public function setsFor(string $name): array
 	{
-		return $this->sets->for(ContentTypeTarget::keyFor($this->get($name)->name));
+		$sets = $this->sets->for(ContentTypeTarget::keyFor($this->get($name)->name));
+
+		// In the order the editor shows them: by position, then label (D-768).
+		usort($sets, static fn (FieldSet $a, FieldSet $b): int => [$a->position, $a->label] <=> [$b->position, $b->label]);
+
+		return $sets;
 	}
 
 	/**

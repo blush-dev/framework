@@ -15,9 +15,14 @@ namespace Blush\Field;
 
 /**
  * Builds fields and schemas from definition arrays, looking up each
- * field's class by its `type` in the registry:
+ * field's class by its `type` in the registry, and its control by its
+ * `control` (`ControlFactory`):
  *
  *     $factory->fromArray(['name' => 'rating', 'type' => 'number', 'max' => 5]);
+ *
+ * A definition stores both (D-769), but either may be left out of one
+ * written by hand: without a `type`, the control's type is used, with
+ * the options it implies; without a `control`, the type's default.
  *
  * A `class` key naming a `Field` subclass wins over the registry. Compiled
  * caches use it for extension field types (see `Field::toArray()`).
@@ -27,8 +32,10 @@ namespace Blush\Field;
  */
 final readonly class FieldFactory
 {
-	public function __construct(private FieldRegistry $registry)
-	{}
+	public function __construct(
+		private FieldRegistry $registry,
+		private ControlFactory $controls
+	) {}
 
 	/**
 	 * Builds one field.
@@ -38,11 +45,19 @@ final readonly class FieldFactory
 	 */
 	public function fromArray(array $data): Field
 	{
+		$data  = $this->controls->complete($data);
 		$type  = $data['type'] ?? FieldType::Text->value;
 		$class = $data['class'] ?? null;
 		$class = is_string($class) && is_subclass_of($class, Field::class)
 			? $class
 			: (is_string($type) ? $this->registry->get($type) : null);
+
+		if ($class === null && $type === 'reference') {
+			throw new InvalidSchema(sprintf(
+				'Field "%s" is a reference, which isn\'t a field type; entries are linked by relationships (Structure → Relationships, or user/data/relations).',
+				is_string($data['name'] ?? null) ? $data['name'] : ''
+			));
+		}
 
 		if ($class === null) {
 			throw new InvalidSchema(sprintf(
@@ -52,7 +67,7 @@ final readonly class FieldFactory
 			));
 		}
 
-		return $class::fromArray($data, $this);
+		return $this->controls->apply($class::fromArray($data, $this), $data);
 	}
 
 	/**

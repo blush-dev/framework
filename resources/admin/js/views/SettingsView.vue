@@ -69,7 +69,7 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
 import { useAction } from '../action';
 import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
-import { choiceLabel, control, fromForm, toForm, type FormValue } from '../fields';
+import { choiceLabel, control, fromForm, isChoiceGroup, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { copyText, toast } from '../toast';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
@@ -265,7 +265,7 @@ function sourceNote(group: SettingGroup): string | null {
 // Whether a group is only switches, each drawn with its words first and
 // its switch at the row's end (the Writing sketch's, D-695).
 function onlySwitches(group: SettingGroup): boolean {
-	return group.items.every((item) => item.setting !== undefined && item.field !== undefined && kindOf(item) === 'checkbox');
+	return group.items.every((item) => item.setting !== undefined && item.field !== undefined && kindOf(item) === 'toggle');
 }
 
 // Whether a group is drawn as compact rows: only switches, or a group
@@ -394,14 +394,14 @@ function kindOf(item: SettingItem): string {
 function isGroup(item: SettingItem): boolean {
 	const kind = kindOf(item);
 
-	return kind === 'radios' || kind === 'checks';
+	return isChoiceGroup(kind);
 }
 
 // Whether a setting's control wants the row's width, its help under it.
 function isWide(item: SettingItem): boolean {
 	const kind = kindOf(item);
 
-	return kind === 'lines' || kind === 'textarea';
+	return kind === 'textarea';
 }
 
 // Text with backticks marking code, as parts.
@@ -523,12 +523,12 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item) && !compact(group), 'setting--switch': compact(group), 'is-off': locked(item) }">
 						<template v-if="item.setting !== undefined && item.field !== undefined">
 							<div class="setting__label">
-								<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
+								<label v-if="!isGroup(item) && kindOf(item) !== 'toggle'" :for="`setting-${item.key}`">{{ item.label }}</label>
 								<span v-else :id="`setting-${item.key}-label`">{{ item.label }}</span>
 							</div>
 
 							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
-								<div v-if="kindOf(item) === 'checkbox'" class="setting__switch">
+								<div v-if="kindOf(item) === 'toggle'" class="setting__switch">
 									<template v-if="compact(group)">
 										<span v-if="item.aside" class="setting__aside">{{ item.aside }}</span>
 										<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>

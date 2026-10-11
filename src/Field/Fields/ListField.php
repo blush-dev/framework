@@ -15,6 +15,9 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Checkboxes;
+use Blush\Field\Controls\Repeater;
+use Blush\Field\Controls\ViewOnly;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -32,9 +35,20 @@ use Blush\Field\InvalidSchema;
  */
 final class ListField extends Field
 {
-	public function __construct(string $name = '', public readonly Field $item = new TextField())
-	{
+	/**
+	 * @throws InvalidSchema When the limits are reversed or below zero.
+	 */
+	public function __construct(
+		string $name = '',
+		public readonly Field $item = new TextField(),
+		public readonly ?int $min = null,
+		public readonly ?int $max = null
+	) {
 		$this->name = $name;
+
+		if (($min !== null && $min < 0) || ($max !== null && $max < 0) || ($min !== null && $max !== null && $min > $max)) {
+			throw new InvalidSchema(sprintf('Field "%s" must have limits of zero or more, the fewest no more than the most.', $name));
+		}
 	}
 
 	/**
@@ -68,27 +82,12 @@ final class ListField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Lines, Control::Checks, Control::Readonly];
-	}
-
-	/**
-	 * @inheritDoc
-	 *
-	 * One per line takes items edited on one line (text, numbers, dates,
-	 * slugs, choices); checkboxes take choices.
-	 */
-	#[Override]
-	public function canUse(Control $control): bool
-	{
-		$oneLine = [Control::Text, Control::Mono, Control::Number, Control::Select, Control::Radios, Control::Date, Control::Reference, Control::Media];
-
-		return match ($control) {
-			Control::Lines    => ! $this->item instanceof self && in_array($this->item->editedWith(), $oneLine, true),
-			Control::Checks   => $this->item instanceof EnumField,
-			Control::Readonly => true,
-			default           => false
+		return match (true) {
+			$this->item instanceof EnumField   => new Checkboxes(),
+			new Repeater()->fits($this)        => new Repeater(),
+			default                            => new ViewOnly()
 		};
 	}
 
@@ -118,6 +117,14 @@ final class ListField extends Field
 			}
 		}
 
+		if ($this->min !== null && count($items) < $this->min) {
+			throw $this->invalid(sprintf('must have at least %d %s.', $this->min, $this->min === 1 ? 'item' : 'items'));
+		}
+
+		if ($this->max !== null && count($items) > $this->max) {
+			throw $this->invalid(sprintf('must have at most %d %s.', $this->max, $this->max === 1 ? 'item' : 'items'));
+		}
+
 		return $items;
 	}
 
@@ -140,6 +147,8 @@ final class ListField extends Field
 	{
 		return [
 			'item'    => [...$field, 'description' => 'A field definition for each value; text by default.'],
+			'min'     => ['type' => 'integer', 'minimum' => 0, 'description' => 'The fewest items a value may have.'],
+			'max'     => ['type' => 'integer', 'minimum' => 0, 'description' => 'The most items a value may have.'],
 			'default' => ['type' => 'array']
 		];
 	}
@@ -166,7 +175,12 @@ final class ListField extends Field
 		$item       = $definition->map('item');
 
 		return self::withShared(
-			new static($definition->string('name'), $item === [] ? new TextField() : $factory->fromArray($item)),
+			new static(
+				$definition->string('name'),
+				$item === [] ? new TextField() : $factory->fromArray($item),
+				self::count($definition->number('min'), 'min', $definition->string('name')),
+				self::count($definition->number('max'), 'max', $definition->string('name'))
+			),
 			$definition
 		);
 	}
@@ -179,6 +193,28 @@ final class ListField extends Field
 	#[Override]
 	protected function options(): array
 	{
-		return ['item' => $this->item->toArray()];
+		return ['item' => $this->item->toArray(), 'min' => $this->min, 'max' => $this->max];
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * Its item is as forms take it too, with its control, so the admin
+	 * draws a repeating group's fields (D-768).
+	 */
+	#[Override]
+	public function toForm(): array
+	{
+		return [...parent::toForm(), 'item' => $this->item->toForm()];
+	}
+
+	/**
+	 * Returns a limit as a whole number.
+	 *
+	 * @throws InvalidSchema
+	 */
+	private static function count(int|float|null $value, string $key, string $name): ?int
+	{
+		return $value === null || is_int($value) ? $value : throw new InvalidSchema(sprintf('Field "%s" "%s" must be a whole number.', $name, $key));
 	}
 }

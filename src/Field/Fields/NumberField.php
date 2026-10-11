@@ -15,6 +15,7 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Number;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -33,12 +34,17 @@ final class NumberField extends Field
 		string $name = '',
 		public readonly bool $integer = false,
 		public readonly int|float|null $min = null,
-		public readonly int|float|null $max = null
+		public readonly int|float|null $max = null,
+		public readonly int|float|null $step = null
 	) {
 		$this->name = $name;
 
 		if ($min !== null && $max !== null && $min > $max) {
 			throw new InvalidSchema(sprintf('Field "%s" has a minimum above its maximum.', $name));
+		}
+
+		if ($step !== null && $step <= 0) {
+			throw new InvalidSchema(sprintf('Field "%s" has a step that isn\'t above zero.', $name));
 		}
 	}
 
@@ -73,9 +79,9 @@ final class NumberField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Number];
+		return new Number();
 	}
 
 	/**
@@ -108,6 +114,10 @@ final class NumberField extends Field
 			throw $this->invalid(sprintf('must be at most %s.', $this->max));
 		}
 
+		if ($this->step !== null && ! $this->inStep($value)) {
+			throw $this->invalid(sprintf('must go in steps of %s from %s.', $this->step, $this->min ?? 0));
+		}
+
 		return $value;
 	}
 
@@ -121,6 +131,7 @@ final class NumberField extends Field
 			'integer' => ['type' => 'boolean', 'description' => 'Whether the value must be a whole number.'],
 			'min'     => ['type' => 'number', 'description' => 'The smallest value allowed.'],
 			'max'     => ['type' => 'number', 'description' => 'The largest value allowed.'],
+			'step'    => ['type' => 'number', 'exclusiveMinimum' => 0, 'description' => 'How far apart values are, counted from the minimum (or zero).'],
 			'default' => ['type' => 'number']
 		];
 	}
@@ -151,7 +162,8 @@ final class NumberField extends Field
 				$definition->string('name'),
 				integer: $definition->bool('integer'),
 				min: $definition->number('min'),
-				max: $definition->number('max')
+				max: $definition->number('max'),
+				step: $definition->number('step')
 			),
 			$definition
 		);
@@ -163,6 +175,17 @@ final class NumberField extends Field
 	#[Override]
 	protected function options(): array
 	{
-		return ['integer' => $this->integer ?: null, 'min' => $this->min, 'max' => $this->max];
+		return ['integer' => $this->integer ?: null, 'min' => $this->min, 'max' => $this->max, 'step' => $this->step];
+	}
+
+	/**
+	 * Returns whether a value is a whole number of steps from the minimum,
+	 * allowing for floating-point error.
+	 */
+	private function inStep(int|float $value): bool
+	{
+		$steps = ($value - ($this->min ?? 0)) / (float) $this->step;
+
+		return abs($steps - round($steps)) < 1e-9;
 	}
 }

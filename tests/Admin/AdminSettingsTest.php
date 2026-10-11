@@ -124,7 +124,7 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('config/content.php', $home['file'] ?? null);
 		$this->assertSame(['rss', 'atom', 'json'], $this->setting($reading, 'feeds', 'formats')['input'] ?? null);
 		$formats = $this->setting($reading, 'feeds', 'formats')['field'] ?? null;
-		$this->assertSame('checks', is_array($formats) ? $formats['control'] ?? null : null);
+		$this->assertSame('checkboxes', is_array($formats) ? $formats['control'] ?? null : null);
 		$this->assertSame(1, is_array($this->setting($reading, 'feeds', 'limit')['field'] ?? null) ? $this->setting($reading, 'feeds', 'limit')['field']['min'] ?? null : null);
 
 		$site = array_find(is_array($general['groups'] ?? null) ? $general['groups'] : [], static fn (mixed $group): bool => is_array($group) && ($group['key'] ?? null) === 'site');
@@ -170,7 +170,7 @@ final class AdminSettingsTest extends TestCase
 		$first = is_array($tools[0] ?? null) ? $tools[0] : [];
 		$this->assertSame(['name', 'title', 'description', 'needs'], array_keys($first));
 		$field = is_array($block['field'] ?? null) ? $block['field'] : [];
-		$this->assertSame('checks', $field['control'] ?? null);
+		$this->assertSame('checkboxes', $field['control'] ?? null);
 		$item = is_array($field['item'] ?? null) ? $field['item'] : [];
 		$this->assertSame('Training crawlers', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
 		$this->assertSame(['text' => 'Collect pages to train models.', 'code' => 'GPTBot · ClaudeBot · CCBot · Google-Extended · Applebot-Extended · Bytespider · meta-externalagent'], is_array($field['details'] ?? null) ? $field['details']['training'] ?? null : null);

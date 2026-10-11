@@ -1,7 +1,7 @@
 /**
- * The field types the site has (`GET fields/types`, D-337), built-in and
- * from extensions, loaded once and shared by the field definition editor
- * and the list of a type's fields.
+ * The controls and field types the site has (`GET fields/controls`,
+ * D-766), loaded once and shared by the field definition editor and the
+ * list of a type's fields.
  */
 
 import { ref } from 'vue';
@@ -15,7 +15,7 @@ let loading: Promise<FieldTypeCatalog> | null = null;
  * Loads the catalog, once.
  */
 export function loadFieldTypes(): Promise<FieldTypeCatalog> {
-	loading ??= request<FieldTypeCatalog>('GET', '/fields/types').then((loaded) => {
+	loading ??= request<FieldTypeCatalog>('GET', '/fields/controls').then((loaded) => {
 		catalog.value = loaded;
 
 		return loaded;

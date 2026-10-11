@@ -14,13 +14,12 @@ declare(strict_types=1);
 namespace Blush\Api;
 
 use Blush\Core\AppConfig;
-use Blush\Core\Paths;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaRecord;
 use Blush\Media\MediaDates;
 use Blush\Media\MediaException;
 use Blush\Media\MediaMetadata;
-use Blush\Media\MediaResolver;
+use Blush\Media\MediaValues;
 
 /**
  * Media files as the API sends them (D-736, D-738): public, all of
@@ -38,8 +37,7 @@ final readonly class MediaResource
 {
 	public function __construct(
 		private MediaLibrary $library,
-		private MediaResolver $resolver,
-		private Paths $paths,
+		private MediaValues $values,
 		private AppConfig $app
 	) {}
 
@@ -56,20 +54,15 @@ final readonly class MediaResource
 	}
 
 	/**
-	 * Returns the library file a stored reference names, which may be one
-	 * of an image's sizes, or `null` when the library has no such file.
+	 * Returns the library file a stored reference names (an id, or an
+	 * older path, which may be one of an image's sizes; D-773), or `null`
+	 * when the library has no such file.
 	 *
 	 * @throws MediaException
 	 */
 	public function referenced(mixed $reference): ?MediaRecord
 	{
-		$file = is_string($reference) ? $this->resolver->resolve($reference) : null;
-
-		if ($file === null || ! str_starts_with($file->path, $this->paths->media . '/')) {
-			return null;
-		}
-
-		return $this->library->find(substr($file->path, strlen($this->paths->media) + 1));
+		return $this->values->record($reference);
 	}
 
 	/**

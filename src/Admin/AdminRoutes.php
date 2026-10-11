@@ -68,8 +68,8 @@ use Blush\Session\StartSession;
  *     (`RelationsController`, D-593); `POST relations`, and `PATCH` and
  *     `DELETE relations/{name}` edit the ones in `user/data/relations`
  *     (`TypeEditController`).
- *   - `GET  fields/types`: the field types definitions can use, with
- *     their controls (`FieldTypesController`, D-337).
+ *   - `GET  fields/controls`: the controls and field types definitions
+ *     can use (`FieldControlsController`, D-766).
  *   - `GET  fields/sets`: the site's field sets, and `GET
  *     fields/sets/{name}` one; `POST fields/sets`, and `PATCH` and
  *     `DELETE fields/sets/{name}` edit the ones in `user/data/fields`
@@ -106,6 +106,8 @@ use Blush\Session\StartSession;
  *     entries into their folders (D-514, D-629), and `POST health/terms` to write
  *     the terms and profiles entries name with no file (D-584), `POST
  *     health/refs` to file links between entries with their ids
+ *     (`POST health/media-fields` rewrites media fields written as
+ *     paths to ids, by entry id, D-773)
  *     (D-596), `POST health/ignore` and `POST health/unignore` (D-613),
  *     and `POST health/taxonomies` to migrate data types still written as
  *     taxonomies (D-591), and `POST health/type-folders` to move data
@@ -220,7 +222,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/relations/{name:[a-z0-9_]+}', [TypeEditController::class, 'updateRelation'])->named('relation.update')->middleware(Authenticate::class),
 			Route::delete('/relations/{name:[a-z0-9_]+}', [TypeEditController::class, 'deleteRelation'])->named('relation.delete')->middleware(Authenticate::class),
 			Route::get('/directives', DirectivesController::class)->named('directives')->middleware(Authenticate::class),
-			Route::get('/fields/types', FieldTypesController::class)->named('fields.types')->middleware(Authenticate::class),
+			Route::get('/fields/controls', FieldControlsController::class)->named('fields.controls')->middleware(Authenticate::class),
 			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),
 			Route::post('/fields/sets', [FieldSetEditController::class, 'create'])->named('fields.set.create')->middleware(Authenticate::class),
 			Route::get('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetsController::class, 'show'])->named('fields.set')->middleware(Authenticate::class),
@@ -262,6 +264,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
 			Route::post('/health/parents', [HealthController::class, 'createParents'])->named('health.parents')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
+			Route::post('/health/media-fields', [HealthController::class, 'rewriteMediaFields'])->named('health.media-fields')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
 			Route::post('/health/type-folders', [HealthController::class, 'moveTypeFolders'])->named('health.type-folders')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),

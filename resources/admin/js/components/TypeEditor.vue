@@ -8,7 +8,7 @@
  * and which credit is its byline, D-602), Relationships (`TypeRelations`,
  * saved on their own, D-593), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
- * (`FieldListEditor`, with the field sets added to it below, D-337;
+ * (`FieldTree`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
  * together from the save bar, which counts the changes (D-508), with
  * **Save changes** (`PATCH types/{name}`, only what changed) or put back
@@ -26,7 +26,7 @@ import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import DangerZone from './DangerZone.vue';
-import FieldListEditor from './FieldListEditor.vue';
+import FieldTree from './FieldTree.vue';
 import SaveBar from './SaveBar.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
@@ -210,13 +210,13 @@ guardLeave(() => changed.value);
 			</div>
 		</section>
 
-		<section class="panel" aria-labelledby="fields-heading">
+		<FieldTree v-if="type.fieldsEditable" v-model="form.fields" heading-id="fields-heading" hint="Beside the title, slug, status, dates, and body every entry has" id-prefix="field-" :noun="type.labels.plural.toLowerCase()" />
+		<section v-else class="panel" aria-labelledby="fields-heading">
 			<header class="panel__header">
 				<h2 id="fields-heading">Fields</h2>
 				<p class="panel__hint">Beside the title, slug, status, dates, and body every entry has</p>
 			</header>
-			<FieldListEditor v-if="type.fieldsEditable" v-model="form.fields" :types="types" id-prefix="field-" />
-			<div v-else class="panel__body">
+			<div class="panel__body">
 				<ul class="type-editor__fields">
 					<li v-for="field in type.fields" :key="field.name">{{ label(field) }} <span class="mono">{{ field.type }}</span></li>
 				</ul>

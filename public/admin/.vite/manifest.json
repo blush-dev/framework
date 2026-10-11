@@ -55,12 +55,19 @@
       "js/admin.ts"
     ]
   },
+  "_FieldControl.css": {
+    "file": "css/FieldControl.css",
+    "src": "_FieldControl.css"
+  },
   "_FieldControl.js": {
     "file": "js/FieldControl.js",
     "name": "FieldControl",
     "imports": [
       "js/admin.ts",
       "_FieldInput.js"
+    ],
+    "css": [
+      "css/FieldControl.css"
     ]
   },
   "_FieldInput.css": {
@@ -73,44 +80,47 @@
     "imports": [
       "js/admin.ts",
       "_references.js",
-      "_AdminSelect.js"
+      "_AdminSelect.js",
+      "_IconField.js",
+      "_media.js",
+      "_ToggleSwitch.js"
     ],
     "css": [
       "css/FieldInput.css"
     ]
   },
-  "_FieldListEditor.css": {
-    "file": "css/FieldListEditor.css",
-    "src": "_FieldListEditor.css"
+  "_FieldSetSettings.css": {
+    "file": "css/FieldSetSettings.css",
+    "src": "_FieldSetSettings.css"
   },
-  "_FieldListEditor.js": {
-    "file": "js/FieldListEditor.js",
-    "name": "FieldListEditor",
+  "_FieldSetSettings.js": {
+    "file": "js/FieldSetSettings.js",
+    "name": "FieldSetSettings",
     "imports": [
       "js/admin.ts",
-      "_AdminSelect.js",
       "_type-form.js"
     ],
     "css": [
-      "css/FieldListEditor.css"
+      "css/FieldSetSettings.css"
     ]
   },
-  "_FieldSetEditor.css": {
-    "file": "css/FieldSetEditor.css",
-    "src": "_FieldSetEditor.css"
+  "_FieldTree.css": {
+    "file": "css/FieldTree.css",
+    "src": "_FieldTree.css"
   },
-  "_FieldSetEditor.js": {
-    "file": "js/FieldSetEditor.js",
-    "name": "FieldSetEditor",
+  "_FieldTree.js": {
+    "file": "js/FieldTree.js",
+    "name": "FieldTree",
     "imports": [
       "js/admin.ts",
-      "_DangerZone.js",
-      "_FieldListEditor.js",
+      "_AdminSelect.js",
+      "_FieldInput.js",
+      "_ToggleSwitch.js",
       "_type-form.js",
-      "_SaveBar.js"
+      "_ItemTree.js"
     ],
     "css": [
-      "css/FieldSetEditor.css"
+      "css/FieldTree.css"
     ]
   },
   "_IconField.css": {
@@ -121,25 +131,24 @@
     "file": "js/IconField.js",
     "name": "IconField",
     "imports": [
-      "js/admin.ts",
-      "_IconPicker.js"
+      "js/admin.ts"
     ],
     "css": [
       "css/IconField.css"
     ]
   },
-  "_IconPicker.css": {
-    "file": "css/IconPicker.css",
-    "src": "_IconPicker.css"
+  "_ItemTree.css": {
+    "file": "css/ItemTree.css",
+    "src": "_ItemTree.css"
   },
-  "_IconPicker.js": {
-    "file": "js/IconPicker.js",
-    "name": "IconPicker",
+  "_ItemTree.js": {
+    "file": "js/ItemTree.js",
+    "name": "ItemTree",
     "imports": [
       "js/admin.ts"
     ],
     "css": [
-      "css/IconPicker.css"
+      "css/ItemTree.css"
     ]
   },
   "_LinkPicker.css": {
@@ -196,7 +205,7 @@
     "name": "MediaPicker",
     "imports": [
       "js/admin.ts",
-      "_jobs.js",
+      "_media.js",
       "_drop.js"
     ],
     "css": [
@@ -305,8 +314,8 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_type-form.js",
-      "_IconField.js"
+      "_IconField.js",
+      "_type-form.js"
     ],
     "css": [
       "css/TypeBehaviorFields.css"
@@ -371,6 +380,14 @@
     "name": "jobs",
     "imports": [
       "js/admin.ts"
+    ]
+  },
+  "_media.js": {
+    "file": "js/media.js",
+    "name": "media",
+    "imports": [
+      "js/admin.ts",
+      "_jobs.js"
     ]
   },
   "_plugins.js": {
@@ -497,7 +514,6 @@
       "js/views/MenuView.vue",
       "js/views/MediaView.vue",
       "js/views/NewAccountView.vue",
-      "js/views/NewFieldSetView.vue",
       "js/views/NewRoleView.vue",
       "js/views/NewTypeView.vue",
       "js/views/PluginView.vue",
@@ -590,10 +606,11 @@
       "_homepage.js",
       "_RawValues.js",
       "_MarkdownEditor.js",
-      "_FieldInput.js",
       "_FieldControl.js",
+      "_FieldInput.js",
+      "_IconField.js",
+      "_media.js",
       "_MediaPicker.js",
-      "_IconPicker.js",
       "_ActivityRows.js"
     ],
     "css": [
@@ -628,11 +645,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_FieldListEditor.js",
-      "_FieldSetEditor.js"
-    ],
-    "css": [
-      "css/FieldSetView.css"
+      "_type-form.js",
+      "_FieldSetSettings.js",
+      "_FieldTree.js"
     ]
   },
   "js/views/FieldSetsView.vue": {
@@ -642,7 +657,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_SkeletonTable.js"
+      "_SkeletonTable.js",
+      "_FieldSetSettings.js"
     ],
     "css": [
       "css/FieldSetsView.css"
@@ -668,9 +684,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_DangerZone.js",
-      "_PreviousVersion.js",
       "_ToggleSwitch.js",
+      "_PreviousVersion.js",
+      "_DangerZone.js",
       "_icon-packs.js"
     ],
     "css": [
@@ -684,9 +700,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
+      "_ToggleSwitch.js",
       "_density.js",
       "_extensions.js",
-      "_ToggleSwitch.js",
       "_icon-packs.js",
       "_ExtensionCard.js",
       "_install.js"
@@ -704,6 +720,7 @@
       "js/admin.ts",
       "_RawValues.js",
       "_FieldControl.js",
+      "_media.js",
       "_MediaPicker.js",
       "_SaveBar.js"
     ],
@@ -719,6 +736,7 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
+      "_media.js",
       "_MediaPicker.js"
     ],
     "css": [
@@ -733,8 +751,9 @@
     "imports": [
       "js/admin.ts",
       "_references.js",
-      "_MenuDialog.js",
       "_IconField.js",
+      "_ItemTree.js",
+      "_MenuDialog.js",
       "_LinkPicker.js"
     ],
     "css": [
@@ -771,16 +790,6 @@
       "css/NewAccountView.css"
     ]
   },
-  "js/views/NewFieldSetView.vue": {
-    "file": "js/NewFieldSetView.js",
-    "name": "NewFieldSetView",
-    "src": "js/views/NewFieldSetView.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "js/admin.ts",
-      "_FieldSetEditor.js"
-    ]
-  },
   "js/views/NewRoleView.vue": {
     "file": "js/NewRoleView.js",
     "name": "NewRoleView",
@@ -801,8 +810,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_FieldListEditor.js",
       "_type-form.js",
+      "_FieldTree.js",
       "_TypeBehaviorFields.js"
     ],
     "css": [
@@ -816,9 +825,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_DangerZone.js",
-      "_PreviousVersion.js",
       "_ToggleSwitch.js",
+      "_PreviousVersion.js",
+      "_DangerZone.js",
       "_plugins.js"
     ],
     "css": [
@@ -832,8 +841,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_extensions.js",
       "_ToggleSwitch.js",
+      "_extensions.js",
       "_install.js",
       "_plugins.js"
     ],
@@ -884,9 +893,9 @@
       "js/admin.ts",
       "_AdminSelect.js",
       "_FieldInput.js",
-      "_DangerZone.js",
-      "_type-form.js",
       "_ToggleSwitch.js",
+      "_type-form.js",
+      "_DangerZone.js",
       "_relations.js"
     ],
     "css": [
@@ -956,8 +965,8 @@
       "js/admin.ts",
       "_AdminSelect.js",
       "_FieldInput.js",
-      "_SaveBar.js",
-      "_ToggleSwitch.js"
+      "_ToggleSwitch.js",
+      "_SaveBar.js"
     ],
     "css": [
       "css/SettingsView.css"
@@ -983,9 +992,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_DangerZone.js",
       "_extensions.js",
       "_PreviousVersion.js",
+      "_DangerZone.js",
       "_themes.js"
     ],
     "css": [
@@ -1047,9 +1056,9 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_DangerZone.js",
-      "_FieldListEditor.js",
       "_type-form.js",
+      "_FieldTree.js",
+      "_DangerZone.js",
       "_SaveBar.js",
       "_TypeBehaviorFields.js",
       "_relations.js"

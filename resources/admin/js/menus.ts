@@ -15,6 +15,7 @@ import { ref } from 'vue';
 import { request } from './api';
 import type { IconName } from './icons';
 import type { LinkOption } from './components/LinkPicker.vue';
+import type { Placed as TreePlaced, TreeNode } from './tree';
 
 export type LinkState = 'live' | 'draft' | 'scheduled' | 'hidden' | 'trash' | 'missing';
 
@@ -85,24 +86,15 @@ export interface MenuDetail {
 	locale: string;
 }
 
-export interface MenuNode {
-	id: string;
+export interface MenuNode extends TreeNode<MenuNode> {
 	item: StoredItem;
 	link: MenuLink | null;
-	children: MenuNode[];
-	open: boolean;
 }
 
 // An item's place in the tree.
-export interface Placed {
-	node: MenuNode;
-	depth: number;
-	parent: MenuNode | null;
-	list: MenuNode[];
-	index: number;
-}
+export type Placed = TreePlaced<MenuNode>;
 
-export type Move = 'up' | 'down' | 'in' | 'out';
+export { canMove, find, flatten, moveNode, moveTo, within, type Move } from './tree';
 
 export interface MenuDraft {
 	name: string;
@@ -164,106 +156,6 @@ export function toData(nodes: MenuNode[]): MenuNodeData[] {
  */
 export function toItems(nodes: MenuNode[]): StoredItem[] {
 	return nodes.map((node) => node.children.length ? { ...node.item, children: toItems(node.children) } : { ...node.item });
-}
-
-/**
- * Every item in order, at every level, or only those shown (under open
- * items) with `shown`.
- */
-export function flatten(nodes: MenuNode[], shown = false, depth = 0, parent: MenuNode | null = null, out: Placed[] = []): Placed[] {
-	nodes.forEach((node, index) => {
-		out.push({ node, depth, parent, list: nodes, index });
-
-		if (!shown || node.open) {
-			flatten(node.children, shown, depth + 1, node, out);
-		}
-	});
-
-	return out;
-}
-
-export function find(nodes: MenuNode[], id: string): Placed | undefined {
-	return flatten(nodes).find((placed) => placed.node.id === id);
-}
-
-/**
- * Whether an item can move: up or down among its siblings, in under the
- * one above it, or out beside its parent.
- */
-export function canMove(nodes: MenuNode[], id: string, move: Move): boolean {
-	const placed = find(nodes, id);
-
-	if (placed === undefined) {
-		return false;
-	}
-
-	return {
-		up: placed.index > 0,
-		in: placed.index > 0,
-		down: placed.index < placed.list.length - 1,
-		out: placed.parent !== null
-	}[move];
-}
-
-/**
- * Moves an item a step; answers whether it moved.
- */
-export function moveNode(nodes: MenuNode[], id: string, move: Move): boolean {
-	const placed = find(nodes, id);
-
-	if (placed === undefined || !canMove(nodes, id, move)) {
-		return false;
-	}
-
-	const { node, list, index, parent } = placed;
-
-	list.splice(index, 1);
-
-	if (move === 'up') {
-		list.splice(index - 1, 0, node);
-	} else if (move === 'down') {
-		list.splice(index + 1, 0, node);
-	} else if (move === 'in') {
-		const above = list[index - 1]!;
-
-		above.children.push(node);
-		above.open = true;
-	} else {
-		const outer = find(nodes, parent!.id)!;
-
-		outer.list.splice(outer.index + 1, 0, node);
-	}
-
-	return true;
-}
-
-/**
- * Moves an item before or after another, or in as its first child.
- */
-export function moveTo(nodes: MenuNode[], id: string, target: string, where: 'before' | 'after' | 'inside'): void {
-	const placed = find(nodes, id);
-
-	if (placed === undefined || id === target || within(placed.node, target)) {
-		return;
-	}
-
-	placed.list.splice(placed.index, 1);
-
-	const there = find(nodes, target)!;
-
-	if (where === 'inside') {
-		there.node.children.unshift(placed.node);
-		there.node.open = true;
-	} else {
-		there.list.splice(there.index + (where === 'after' ? 1 : 0), 0, placed.node);
-	}
-}
-
-/**
- * Whether an item is below another, at any depth.
- */
-export function within(node: MenuNode, id: string): boolean {
-	return node.children.some((child) => child.id === id || within(child, id));
 }
 
 /**

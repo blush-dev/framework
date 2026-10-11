@@ -1058,6 +1058,16 @@
 	font-weight: 400;
 }
 
+/* A toggle at the end of its label's line, its help under both. */
+.field--toggle {
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+}
+
+.field--toggle > :not(.field__label, .switch) {
+	grid-column: 1 / -1;
+}
+
 .field__help {
 	color: var(--fg-3);
 	font-size: var(--text-sm);
@@ -1759,6 +1769,92 @@
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;
+}
+
+/* A row that opens a level down in the side panel, in place of what's
+   there, with one back (D-608): the Document tab's pinned rows, and a
+   field group past the first level (D-768). `--back` is the way back,
+   its path in `__path`; `--boxed` is one inside a group's fields. */
+.level-link {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	width: 100%;
+	padding: var(--s-4) var(--s-5);
+	border: 0;
+	border-bottom: 1px solid var(--border);
+	background: none;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.level-link:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.level-link svg {
+	flex: none;
+	color: var(--fg-3);
+}
+
+.level-link__count {
+	margin-left: auto;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.level-link .level-link__go {
+	width: 13px;
+	height: 13px;
+}
+
+/* A pinned row's name, and a line answering the quick question. */
+.level-link__text {
+	display: grid;
+	flex: 1;
+	gap: 1px;
+	min-width: 0;
+}
+
+.level-link__text strong {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.level-link__text span {
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.level-link.is-quiet .level-link__text strong {
+	color: var(--fg-2);
+	font-weight: 400;
+}
+
+.level-link__text + .level-link__count {
+	margin-left: 0;
+}
+
+.level-link__path {
+	color: var(--fg-3);
+}
+
+.level-link__path strong {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.level-link--boxed {
+	padding: var(--s-3) var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
 }
 
 /* A group that folds under its heading (D-730): the heading is the
@@ -2683,6 +2779,124 @@ button.lnk {
 .fieldset legend {
 	margin-bottom: 7px;
 	padding: 0;
+}
+
+/* What a tree's row shows (`ItemTree`'s `pick` slot, D-509): a kind
+   tile, a title, and pills, as menus and field sets draw them. */
+.item-tree__kind {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.item-tree__item.is-selected .item-tree__kind {
+	border-color: var(--accent-line);
+	background: var(--surface);
+	color: var(--accent);
+}
+
+.item-tree__kind .icon {
+	width: 14px;
+	height: 14px;
+}
+
+.item-tree__title {
+	overflow: hidden;
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: var(--title-weight);
+	letter-spacing: var(--title-track);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.item-tree__pick .pill {
+	flex: none;
+}
+
+/* Choices that can be on together, each its own chip with a check that
+   shows when it's pressed (the fields sketch's, D-774): a field's default
+   for several choices, and a repeating group's summary keys. */
+.chip-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.chip-toggles button {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 26px;
+	padding: 0 9px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-2);
+	font: inherit;
+	font-size: var(--text-xs);
+	cursor: pointer;
+}
+
+.chip-toggles button:hover:not(:disabled) {
+	border-color: var(--border-strong);
+	color: var(--fg);
+}
+
+.chip-toggles button[aria-pressed="true"] {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-weight: 500;
+}
+
+.chip-toggles .icon {
+	width: 12px;
+	height: 12px;
+	opacity: 0;
+}
+
+.chip-toggles button[aria-pressed="true"] .icon {
+	opacity: 1;
+}
+
+/* A box of rows inside a form, with a head and a foot (the fields
+   sketch's options and a group's fields, D-774). */
+.nest {
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface);
+}
+
+.nest__foot {
+	padding: 6px;
+	border-top: 1px solid var(--border);
+}
+
+.nest__none {
+	padding: 15px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+/* A group control's fields (D-768): its heading over them, set apart
+   as a group's, not a field's. */
+.fieldset--group {
+	gap: var(--s-4);
+}
+
+.fieldset--group > legend {
+	margin-bottom: var(--s-3);
+	color: var(--fg);
+	font-weight: 600;
 }
 
 .field__label,

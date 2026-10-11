@@ -157,7 +157,8 @@ Every list has the same shape:
 - **`excerpt`** is plain text: the summary, or the start of the body.
 - **`fields`** holds the fields the entry's [type declares](content-types.md),
   each one, `null` when it's empty. Front matter the type doesn't
-  declare isn't sent. A media field is the file, as `image` is.
+  declare isn't sent. A media field is the file, as `image` is; writes
+  take its id, and the entry keeps the id.
 - **`relations`** lists what the entry links to, by the relationship's
   name, in order. A link to something the site doesn't show (a draft
   tag) is left out.

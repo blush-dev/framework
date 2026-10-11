@@ -25,6 +25,8 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Data\InvalidData;
+use Blush\Media\Index\MediaRecord;
+use Blush\Media\MediaException;
 use Blush\Menu\Menu;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
@@ -644,6 +646,27 @@ final class Template
 		$profile  = $profiles === null ? null : $this->views->services->content->term($profiles->name, $slug);
 
 		return $profile !== null && $profile->isPublished() && $profile->isRoutable() ? $profile : null;
+	}
+
+	/**
+	 * Returns the media file a media field names (D-773), or `null`: its
+	 * `url`, its `width` and `height`, and its details (`metadata()`, with
+	 * the alt text). A media field holds the file's id; an older value, a
+	 * path, is read too.
+	 *
+	 * ```php
+	 * <?php if ($image = $template->media($entry->field('image'))) : ?>
+	 * 	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>">
+	 * <?php endif ?>
+	 * ```
+	 */
+	public function media(mixed $value): ?MediaRecord
+	{
+		try {
+			return $this->views->services->media->record($value);
+		} catch (MediaException) {
+			return null;
+		}
 	}
 
 	/**

@@ -135,6 +135,7 @@ const KINDS: Record<string, { name: string; says: string; notice?: { name: strin
 	variant: { name: 'Variants the Theme Doesn\'t Have', says: 'Each renders as the component\'s Default.' },
 	details: { name: 'Details Not Read', says: 'These details describe a file that isn\'t there or isn\'t allowed, or another file\'s are read in their place.' },
 	artwork: { name: 'Cover Art That Can\'t Be Found', says: 'The file shows no cover art until it\'s chosen again.' },
+	media: { name: 'Media Named by Path', says: 'A media field names its file by id, so the file can be renamed or moved. Each path is still read; rewriting it changes nothing on the site.' },
 	alias: { name: 'Older Field Names', says: 'Each is read as the field it names now. Nothing on the site changes.' }
 };
 
@@ -184,13 +185,27 @@ function fileGroups(health: Health, area: 'content' | 'media'): HealthGroup[] {
 				groups.set(key, group);
 			}
 
+			// A media path that names a file is rewritten to its id (D-773);
+			// one that names none can only be chosen again.
+			const rewrite = kind === 'media' && entry?.id && !violation.message.includes('names no media file');
+
+			if (rewrite && group.fix === undefined) {
+				group.fix  = { path: '/health/media-fields', body: (rows) => ({ ids: [...new Set(rows.map((row) => row.entry?.id).filter((id): id is string => typeof id === 'string'))] }), noun: ['entry', 'entries'] };
+				group.bulk = {
+					label: (count) => `Rewrite ${count} Paths`,
+					title: (count) => `Rewrite ${plural(count, 'Path')} as IDs?`,
+					say: 'Each media field written as a path is rewritten to its file\'s id. A path to an image\'s size becomes the image\'s id.'
+				};
+			}
+
 			group.rows.push({
 				key: `${area}:files:${file.path}:${violation.field}:${violation.message}`,
 				severity: violation.severity,
 				path: file.path,
 				title: entry ? (entry.title || 'Untitled') : null,
 				entry: entry ? { type: entry.type, id: entry.id } : undefined,
-				...found(violation)
+				...found(violation),
+				...(rewrite ? { fix: { label: 'Rewrite as ID', change: 'the path rewritten as its file\'s id', done: 'Rewritten as its id.' } } : {})
 			});
 		});
 	}

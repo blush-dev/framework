@@ -48,6 +48,7 @@ use Blush\Media\MediaSchemas;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Media\MediaUsage;
+use Blush\Media\MediaValues;
 use Blush\Support\Filesystem;
 use Blush\Support\UrlPath;
 
@@ -71,7 +72,7 @@ use Blush\Support\UrlPath;
  *   upload; otherwise `null`.
  *
  * `GET {path}/api/media/{path}` (`show()`) describes one file, by its
- * path under `user/media`, with its metadata fields (D-287): the
+ * path under `user/media` or its id (as media fields name it, D-773), with its metadata fields (D-287): the
  * `fields` its kind has (`MediaSchemas`, described as a content type's
  * are), the field `sets` attached to its kind (D-341: `name`, `label`,
  * `description`, and the names of their `fields`, which the screen
@@ -220,6 +221,11 @@ final readonly class MediaListController
 
 		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+		}
+
+		// A media field names a file by its id (D-773).
+		if (MediaValues::isId($path)) {
+			$path = $this->library->findId($path)->key ?? $path;
 		}
 
 		[$file, $reference] = $this->libraryFile($path);
@@ -600,7 +606,7 @@ final readonly class MediaListController
 				'title' => $shown->metadata()->title,
 				'kind'  => $shown->kind()->value
 			], $this->library->withArtwork($metadata->id)),
-			'usedIn'     => $this->usage->entries($relative, ...array_map(static fn (MediaRecord $size): string => $size->key, $sizes)),
+			'usedIn'     => $this->usage->entries($relative, array_map(static fn (MediaRecord $size): string => $size->key, $sizes), $metadata->id),
 			'sizes'      => array_map(fn (MediaRecord $size): array => [
 				'path'      => $size->key,
 				'reference' => $size->url,

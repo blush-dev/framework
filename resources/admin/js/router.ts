@@ -38,7 +38,6 @@ const MenusView = () => import('./views/MenusView.vue');
 const MenuView = () => import('./views/MenuView.vue');
 const MediaView = () => import('./views/MediaView.vue');
 const NewAccountView = () => import('./views/NewAccountView.vue');
-const NewFieldSetView = () => import('./views/NewFieldSetView.vue');
 const NewRoleView = () => import('./views/NewRoleView.vue');
 const NewTypeView = () => import('./views/NewTypeView.vue');
 const PluginView = () => import('./views/PluginView.vue');
@@ -98,7 +97,6 @@ export const router = createRouter({
 		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: 'Menus', capability: 'menus.edit', area: 'structure' } },
 		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: 'Menu', capability: 'menus.edit', area: 'structure', parent: 'menus' } },
 		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'structure' } },
-		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'structure', parent: 'fields' } },
 		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'structure', parent: 'fields' } },
 		// The direction's Appearance, named Themes (D-327).
 		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'extensions.themes.view', area: 'extend' } },

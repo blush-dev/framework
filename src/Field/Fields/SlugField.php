@@ -15,6 +15,7 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Code;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -62,9 +63,9 @@ final class SlugField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Mono];
+		return new Code();
 	}
 
 	/**

@@ -593,6 +593,16 @@ The head prints root-relative links and scripts (`/feed`,
 paths as they are. Meta tag values print as given, so give `og:image`
 and the like a full URL.
 
+A media field, such as an entry's `image`, holds the file's id. Get the
+file with `$template->media()`, which also reads an older value written
+as a path, and returns `null` for none:
+
+```php
+<?php if ($image = $template->media($entry->field('image'))) : ?>
+	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>" width="<?= attr((string) $image->width) ?>" height="<?= attr((string) $image->height) ?>">
+<?php endif ?>
+```
+
 ### Scripts and styles
 
 Besides your theme's own `styles` and `scripts`, Blush, plugins, and

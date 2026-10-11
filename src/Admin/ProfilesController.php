@@ -35,6 +35,7 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Media\MediaValues;
 
 /**
  * Answers the profiles for linking accounts to them (D-356), for
@@ -80,7 +81,8 @@ final readonly class ProfilesController
 		private Permissions $permissions,
 		private Accounts $accounts,
 		private PeopleJson $json,
-		private AccountProfiles $names
+		private AccountProfiles $names,
+		private MediaValues $media
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -140,7 +142,7 @@ final readonly class ProfilesController
 				'slug'     => $profile->slug,
 				'title'    => $profile->title,
 				'subtitle' => self::text($profile->field('subtitle')),
-				'avatar'   => self::text($profile->field('avatar')),
+				'avatar'   => $this->media->address($profile->field('avatar')),
 				'status'   => $profile->status->value,
 				'path'     => $profile->path,
 				'id'       => $profile->id,

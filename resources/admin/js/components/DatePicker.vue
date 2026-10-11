@@ -7,6 +7,9 @@
  * Hours read 1 to 12, so noon and midnight are 12. The model stays the
  * form's `YYYY-MM-DDTHH:MM` (empty for none); the 12-hour clock is only
  * how it's shown and typed.
+ *
+ * A `dayOnly` picker (a date field without a time, D-766) has no time:
+ * its model is `YYYY-MM-DD`.
  */
 
 import { computed, nextTick, ref } from 'vue';
@@ -18,6 +21,7 @@ const props = defineProps<{
 	id: string;
 	describedBy?: string;
 	invalid?: boolean;
+	dayOnly?: boolean;
 }>();
 
 const model = defineModel<string>({ required: true });
@@ -30,13 +34,15 @@ function pad(value: number): string {
 
 // The model as a date, or `null`.
 const value = computed(() => {
-	const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(model.value);
+	const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(model.value);
 
-	return match === null ? null : new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]));
+	return match === null ? null : new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] ?? 0), Number(match[5] ?? 0));
 });
 
 function write(date: Date): void {
-	model.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+	const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+	model.value = props.dayOnly ? day : `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 const shown = computed(() => {
@@ -186,14 +192,14 @@ defineExpose({ show });
 	>
 		<template v-if="shown">
 			<span class="date__day-text">{{ shown.day }}</span>
-			<span class="date__time-text">{{ shown.time }}</span>
+			<span v-if="!dayOnly" class="date__time-text">{{ shown.time }}</span>
 		</template>
 		<span v-else class="date__day-text">Not set</span>
 		<AdminIcon name="chevron-down" class="date__caret" />
 	</button>
 
 	<Teleport :to="layer">
-		<div v-if="open" ref="panel" class="date-panel" role="dialog" aria-label="Choose a date and time" :style="place ?? { visibility: 'hidden' }" @keydown="keydown">
+		<div v-if="open" ref="panel" class="date-panel" role="dialog" :aria-label="dayOnly ? 'Choose a date' : 'Choose a date and time'" :style="place ?? { visibility: 'hidden' }" @keydown="keydown">
 			<div class="date-panel__head">
 				<button type="button" class="button button--ghost button--icon" @click="move(-1)">
 					<AdminIcon name="chevron-left" /><span class="visually-hidden">Previous month</span>
@@ -218,7 +224,7 @@ defineExpose({ show });
 					@click="pickDay(day.date)"
 				>{{ day.date.getDate() }}</button>
 			</div>
-			<div class="date-panel__time">
+			<div v-if="!dayOnly" class="date-panel__time">
 				<span class="date-panel__label">Time</span>
 				<input v-model="hourText" class="date-panel__field mono" type="text" inputmode="numeric" maxlength="2" aria-label="Hour" @change="commitTime" @keydown="timeKey" @focus="($event.target as HTMLInputElement).select()">
 				<span aria-hidden="true">:</span>
@@ -229,8 +235,8 @@ defineExpose({ show });
 				</span>
 			</div>
 			<div class="date-panel__quick">
-				<button type="button" class="button button--small" @click="quick('now')">Now</button>
-				<button type="button" class="button button--small" @click="quick('tomorrow')">Tomorrow, 9 am</button>
+				<button type="button" class="button button--small" @click="quick('now')">{{ dayOnly ? 'Today' : 'Now' }}</button>
+				<button type="button" class="button button--small" @click="quick('tomorrow')">{{ dayOnly ? 'Tomorrow' : 'Tomorrow, 9 am' }}</button>
 				<button type="button" class="button button--small" @click="quick('monday')">Next Monday</button>
 			</div>
 		</div>

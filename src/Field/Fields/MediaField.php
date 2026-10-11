@@ -15,16 +15,23 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Audio;
+use Blush\Field\Controls\File;
+use Blush\Field\Controls\Image;
+use Blush\Field\Controls\Video;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Media\MediaKind;
+use Blush\Support\Uuid;
 
 /**
- * A reference to a media file: a site path such as
- * `/user/media/2019/01/artemis.jpg`, or an absolute URL. It's stored as written; media resolution comes with the
- * media layer (M4c).
+ * A media file, by the id of its original (D-487, D-773), kept in lower
+ * case. A value written before ids, a path such as
+ * `/media/2019/01/artemis.jpg` (or an address elsewhere), is still taken
+ * and read (`MediaValues`), and `content:lint` and Site Health report it
+ * until `content:media-ids` rewrites it.
  *
  * A `kind` (`image`, `video`, `audio`, or `file`) says which kind of file
  * it takes (D-314): the admin's picker then offers only those. It isn't
@@ -68,9 +75,14 @@ final class MediaField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Media, Control::Mono];
+		return match ($this->kind) {
+			MediaKind::Image => new Image(),
+			MediaKind::Video => new Video(),
+			MediaKind::Audio => new Audio(),
+			default          => new File()
+		};
 	}
 
 	/**
@@ -80,10 +92,10 @@ final class MediaField extends Field
 	public function normalize(mixed $value, FieldContext $context): mixed
 	{
 		if (! is_string($value) || trim($value) === '') {
-			throw $this->invalid(sprintf('must be a media path or URL, not %s.', self::describe($value)));
+			throw $this->invalid(sprintf('must be a media file\'s id, not %s.', self::describe($value)));
 		}
 
-		return trim($value);
+		return Uuid::isValid(trim($value)) ? strtolower(trim($value)) : trim($value);
 	}
 
 	/**

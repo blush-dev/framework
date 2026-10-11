@@ -29,6 +29,8 @@ use Blush\Event\Dispatcher;
 use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
 use Blush\Llms\MarkdownPages;
+use Blush\Media\MediaException;
+use Blush\Media\MediaValues;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Events\PageRendering;
@@ -59,7 +61,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private MarkdownPages $markdown,
-		private Dispatcher $events
+		private Dispatcher $events,
+		private MediaValues $media
 	) {}
 
 	/**
@@ -256,11 +259,24 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			$head->meta('description', $description)->property('og:description', $description);
 		}
 
+		// The featured image is a media file's id (D-773); an older value
+		// may still be its path, or an address elsewhere.
 		$image = $entry->field('image');
 
-		if (is_string($image) && $image !== '') {
-			$url = preg_match('#^https?://#i', $image) === 1 ? $image : $this->app->absoluteUrl($image);
+		try {
+			$found = $this->media->url($image);
+		} catch (MediaException) {
+			$found = null;
+		}
 
+		$url = match (true) {
+			$found !== null                                                 => $this->app->absoluteUrl($found),
+			! is_string($image) || $image === '' || MediaValues::isId($image) => null,
+			preg_match('#^https?://#i', $image) === 1                       => $image,
+			default                                                         => $this->app->absoluteUrl($image)
+		};
+
+		if ($url !== null) {
 			$head->property('og:image', $url)->meta('twitter:card', 'summary_large_image');
 		}
 

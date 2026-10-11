@@ -56,7 +56,7 @@ final class UpdateEntry extends Tool
 			'properties'           => [
 				'id'       => ['type' => 'string'],
 				'revision' => ['type' => 'string', 'description' => 'The revision get_entry answered.'],
-				'fields'   => ['type' => 'object', 'description' => 'Field values to change, by name; null removes one.'],
+				'fields'   => ['type' => 'object', 'description' => 'Field values to change, by name; null removes one. A media field, such as image, takes a media file\'s id.'],
 				'body'     => ['type' => 'string', 'description' => 'The whole new body, in Markdown.'],
 				'slug'     => ['type' => 'string'],
 				'parent'   => ['type' => 'string', 'description' => 'For a page of a tree, the slug path of the page to move it under, or "" for the top.'],

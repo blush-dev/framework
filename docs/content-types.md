@@ -525,9 +525,8 @@ reference has neither by default, so a template lists them with
 naming another is related to it and the other to it. In a template,
 `$template->related($entry, 'related')` lists what an entry links to,
 and `$template->referencedBy($entry, 'related')` what links to it (see
-[Themes](themes.md)). A
-[`reference` field](#custom-fields) with `to` in a type's `fields`
-works as before; Blush reads it as a reference relation.
+[Themes](themes.md)). There's no reference field type: a link between
+entries is always a relation.
 
 ### Relation options
 
@@ -644,20 +643,28 @@ Field types:
 
 | Type        | Holds                  | Extra options                                                                                                       |
 |-------------|------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `text`      | A line of text         |                                                                                                                     |
+| `text`      | A line of text         | `format`: `url` (an `http` or `https` address, or a path on the site such as `/about`), `email`, or `icon` (a name with no spaces) |
 | `markdown`  | Formatted text         |                                                                                                                     |
-| `date`      | A date and time        |                                                                                                                     |
+| `date`      | A date and time        | `time`: `false` keeps only the day                                                                                  |
 | `bool`      | `true` or `false`      |                                                                                                                     |
-| `number`    | A number               | `integer`, `min`, `max`                                                                                             |
-| `enum`      | One of a set of values | `options`                                                                                                           |
-| `list`      | Several values         | `item` (a field definition for each value; text by default)                                                         |
-| `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`); read as a [reference relation](#linking-entries-to-other-entries)       |
-| `media`     | A media file           | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
+| `number`    | A number               | `integer`, `min`, `max`, `step` (values go in steps of it, counted from `min` or zero)                              |
+| `enum`      | One of a set of values | `options`: values, or values with labels for people (`{"value": "gf", "label": "Gluten free"}`), so a label can change without touching what entries keep |
+| `list`      | Several values         | `item` (a field definition for each value; text by default), `min` and `max` (the fewest and most items)            |
+| `media`     | A media file, by its id | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug`      | A URL-safe name        |                                                                                                                     |
 | `object`    | A group of fields      | `fields`, `closed`                                                                                                  |
 
-Every field also takes `required`, `default`, `aliases` (other keys it's
-read from), `label`, `description`, and `control`.
+Every field also takes `required` (a value is needed to publish),
+`default`, `aliases` (other keys it's read from), `label`,
+`description`, and `control`. There's no type for links to other
+entries: use a [relation](#linking-entries-to-other-entries).
+
+A `media` field holds the id of a file in the media library, as the
+featured `image` and a profile's `avatar` do, so the file can be
+renamed or moved without breaking anything. Older files may still name
+one by its path (`/media/2026/10/photo.jpg`); it's still read, and
+`content:lint` and Site Health list it until `bin/blush
+content:media-ids --write` rewrites it to the file's id.
 
 `fields` can also be a map of names to definitions, which some people
 find easier to read:
@@ -671,42 +678,58 @@ find easier to read:
 }
 ```
 
-### How the admin edits a field
+### How a field is entered
 
-Each field type has a control the admin edits it with. Some types can
-use another one instead: set `control` to pick it.
+A field's `type` says what its value is, and its `control` says how
+someone enters it. A field without a `control` uses its type's
+default. Some types can use another control instead: set `control` to
+pick it.
 
-| Type        | Controls (the first is the default)                                                   |
-|-------------|---------------------------------------------------------------------------------------|
-| `text`      | `text` (one line), `textarea` (several lines), `mono` (one line, for code)            |
-| `markdown`  | `textarea`                                                                            |
-| `date`      | `date` (a date picker)                                                                |
-| `bool`      | `checkbox`                                                                            |
-| `number`    | `number`                                                                              |
-| `enum`      | `select` (a menu), `radios` (radio buttons)                                           |
-| `list`      | `lines` (one per line), `checks` (checkboxes, for a list of `enum` items), `readonly` |
-| `reference` | `reference` (an entry picker, with `to`), `mono` (slugs typed with commas)            |
-| `media`     | `media` (a media picker), `mono` (a path typed in)                                    |
-| `slug`      | `mono`                                                                                |
-| `object`    | `readonly` (edited in the file for now)                                               |
+| Control       | Stores                                  | Is                                                        |
+|---------------|-----------------------------------------|-----------------------------------------------------------|
+| `group`       | `object`                                | A few fields under one heading                            |
+| `repeater`    | `list` of `object` items, or of values that fit on a line | A list of items, each with the same fields, or each one box (the default for both) |
+| `text`        | `text`                                  | One line (the default)                                    |
+| `textarea`    | `text`                                  | Several lines                                             |
+| `markdown`    | `markdown`                              | Formatted text (the default)                              |
+| `link`        | `text` with `format: url`               | A web address (the default for that format)               |
+| `email`       | `text` with `format: email`             | An email address (the default for that format)            |
+| `select`      | `enum`                                  | A menu (the default)                                      |
+| `radios`      | `enum`                                  | Radio buttons                                             |
+| `checkboxes`  | `list` of `enum` items                  | Checkboxes (the default)                                  |
+| `multiselect` | `list` of `enum` items                  | Several picked from a menu, shown as chips                |
+| `toggle`      | `bool`                                  | On or off (the default)                                   |
+| `number`      | `number`                                | A number (the default)                                    |
+| `date`        | `date`                                  | A date picker (the default)                               |
+| `image`, `video`, `audio` | `media` with that `kind`    | A file of that kind from the library (the default for it) |
+| `file`        | `media` of any other kind, or any kind  | A file from the library (the default for it)              |
+| `icon`        | `text` with `format: icon`              | An icon (the default for that format)                     |
+| `code`        | `text`, `slug`, or `media`              | One line in a code font (the default for `slug`)          |
+| `readonly`    | Anything                                | Shown, not edited                                         |
+
+Text-box controls (`text`, `textarea`, `markdown`, `link`, `email`,
+`number`) take a `placeholder`, a prompt shown while the box is empty.
+A `repeater` takes `itemLabel` (what each item is called, for "Add
+Ingredient") and `summary` (the keys that sum up an item in one line).
+
+You can name only the control, and the field gets the control's type:
 
 ```json
 {
 	"fields": [
 		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "control": "radios" },
-		{
-			"name": "diets",
-			"type": "list",
-			"control": "checks",
-			"item": { "type": "enum", "options": ["vegetarian", "vegan", "gluten-free"] }
-		}
+		{ "name": "diets", "control": "checkboxes", "options": ["vegetarian", "vegan", "gluten-free"] },
+		{ "name": "website", "control": "link", "placeholder": "https://" },
+		{ "name": "cover", "control": "image" }
 	]
 }
 ```
 
-A list's items need to fit on one line to be written one per line, so a
-list of `markdown` is shown read-only. The admin's field editor offers
-the controls a field can use under **Edited with**.
+`diets` is a `list` of `enum` items, `website` a `text` field with
+`format: url`, and `cover` a `media` field of images. A control that
+doesn't store its field's type is an error. A list's items need to fit
+on one line to be repeated a box each, so a list of `markdown` is shown
+read-only. For text written freely, use a `text` field with `textarea`.
 
 Keys you don't declare are still kept, and `content:lint --strict` lists
 them. Set `closed: true` on the type to make them errors instead.
@@ -740,7 +763,8 @@ media file, or Settings screens. A field means one thing on an entry and
 another in the site's settings, so make a set for each.
 
 In the admin's editor, each set is a group of its own in the document
-panel beside the text, after the type's own fields.
+panel beside the text, after the type's own fields, by `position`
+(lowest first; 10 when it's left out), then by label.
 
 - A type's fields come first, then each set's, with the sets in name
   order.

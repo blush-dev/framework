@@ -305,8 +305,8 @@ final readonly class EntryWritesController
 	}
 
 	/**
-	 * Returns a media file's reference, as front matter names it, from
-	 * its id.
+	 * Returns a media file's id, as front matter keeps it (D-773), once a
+	 * file has it.
 	 *
 	 * @throws ApiError
 	 * @throws MediaException
@@ -315,7 +315,7 @@ final readonly class EntryWritesController
 	{
 		$record = is_string($id) && Uuid::isValid($id) ? $this->media->find($id) : null;
 
-		return $record->url ?? throw ApiError::refused(EditRefused::unprocessable(sprintf('No media file has the id "%s".', is_scalar($id) ? (string) $id : '')), $field);
+		return $record?->id() ?? throw ApiError::refused(EditRefused::unprocessable(sprintf('No media file has the id "%s".', is_scalar($id) ? (string) $id : '')), $field);
 	}
 
 	/**

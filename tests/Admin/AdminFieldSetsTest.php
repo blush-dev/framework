@@ -104,6 +104,7 @@ final class AdminFieldSetsTest extends TestCase
 			'description' => '',
 			'kind'        => 'type',
 			'slot'        => 'details',
+			'position'    => 10,
 			'origin'      => 'data',
 			'editable'    => true,
 			'file'        => 'user/data/fields/kitchen.json',
@@ -122,7 +123,8 @@ final class AdminFieldSetsTest extends TestCase
 
 		$set = self::json($this->send('GET', '/fields/sets/kitchen'));
 
-		$this->assertSame([['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric']]], $set['fields'] ?? null);
+		$this->assertSame([['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric'], 'control' => 'select', 'choices' => ['gas' => 'gas', 'electric' => 'electric']]], $set['fields'] ?? null, 'As forms take them, with the control (D-769).');
+		$this->assertSame(['oven' => 0], $set['counts'] ?? null);
 		$this->assertSame(404, $this->send('GET', '/fields/sets/nope')->getStatusCode());
 
 		$type = self::json($this->send('GET', '/types/recipe'));
@@ -137,13 +139,13 @@ final class AdminFieldSetsTest extends TestCase
 		$response = $this->write('POST', '/fields/sets', ['name' => 'pantry', 'set' => [
 			'label'   => 'Pantry',
 			'targets' => ['type:recipe'],
-			'fields'  => [['name' => 'shelf', 'type' => 'text', 'control' => 'mono']]
+			'fields'  => [['name' => 'shelf', 'type' => 'text', 'control' => 'code']]
 		]]);
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame('pantry', self::json($response)['name'] ?? null);
 		$this->assertSame('details', self::json($response)['slot'] ?? null, 'The kind\'s default.');
-		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'mono']]], $this->saved('pantry.json'), 'A new set is JSON (D-490), and a label the name gives is left out.');
+		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'code']]], $this->saved('pantry.json'), 'A new set is JSON (D-490), and a label the name gives is left out.');
 	}
 
 	public function testChangesOnlyWhatChanged(): void
@@ -159,6 +161,30 @@ final class AdminFieldSetsTest extends TestCase
 			'fields'      => [['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric']]],
 			'description' => 'Where it\'s cooked.'
 		], $this->saved('kitchen.json'), 'Its other keys stay.');
+	}
+
+	public function testSavesAPositionAndLabeledOptions(): void
+	{
+		$this->site();
+
+		$response = $this->write('PATCH', '/fields/sets/kitchen', ['set' => [
+			'position' => 3,
+			'fields'   => [['name' => 'oven', 'type' => 'enum', 'control' => 'radios', 'options' => [['value' => 'gas', 'label' => 'Gas'], 'electric']]]
+		]]);
+
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$saved = $this->saved('kitchen.json');
+
+		$this->assertSame(3, $saved['position'] ?? null);
+		$this->assertSame([['name' => 'oven', 'type' => 'enum', 'options' => [['value' => 'gas', 'label' => 'Gas'], ['value' => 'electric', 'label' => 'electric']], 'control' => 'radios']], $saved['fields'] ?? null, 'Options with labels, each written with its own.');
+
+		$set = self::json($response);
+
+		$this->assertSame(3, $set['position'] ?? null);
+		$fields = is_array($set['fields'] ?? null) ? $set['fields'] : [];
+		$oven   = is_array($fields[0] ?? null) ? $fields[0] : [];
+
+		$this->assertSame(['gas' => 'Gas', 'electric' => 'electric'], $oven['choices'] ?? null);
 	}
 
 	public function testRefusesAFieldATargetAlreadyHas(): void

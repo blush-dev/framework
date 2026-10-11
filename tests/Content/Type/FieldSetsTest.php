@@ -20,6 +20,7 @@ use Blush\Content\Type\ContentTypeTarget;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Core\Application;
 use Blush\Field\FieldFactory;
+use Blush\Field\FieldSet;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldSetOrigin;
 use Blush\Tests\BootsScratchSite;
@@ -68,6 +69,16 @@ final class FieldSetsTest extends TestCase
 		$this->writeTemporaryFile('user/data/fields/apron.json', '{"targets": ["type:recipe"], "fields": [{"name": "apron"}]}');
 
 		$this->assertSame(['servings', 'apron', 'zest'], array_slice(array_keys($this->types()->schema('recipe')->fields), -3));
+	}
+
+	public function testATypesSetsGoByPositionThenLabel(): void
+	{
+		$this->recipes();
+		$this->writeTemporaryFile('user/data/fields/zest.json', '{"label": "Zest", "targets": ["type:recipe"], "position": 1, "fields": [{"name": "zest"}]}');
+		$this->writeTemporaryFile('user/data/fields/apron.json', '{"label": "Apron", "targets": ["type:recipe"], "fields": [{"name": "apron"}]}');
+		$this->writeTemporaryFile('user/data/fields/basil.json', '{"label": "Basil", "targets": ["type:recipe"], "fields": [{"name": "basil"}]}');
+
+		$this->assertSame(['zest', 'apron', 'basil'], array_map(static fn (FieldSet $set): string => $set->name, $this->types()->setsFor('recipe')), 'The editor\'s order (D-768).');
 	}
 
 	public function testASetCantReuseAFieldsName(): void

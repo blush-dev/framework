@@ -61,6 +61,7 @@ use Blush\Console\Commands\ReinstateAccount;
 use Blush\Console\Commands\RemoveAccount;
 use Blush\Console\Commands\RemoveSecret;
 use Blush\Console\Commands\RetryJobs;
+use Blush\Console\Commands\RewriteMediaIds;
 use Blush\Console\Commands\RotateSecrets;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
@@ -95,6 +96,7 @@ enum BuiltInCommand: string
 	case ContentIndex  = 'content:index';
 	case ContentLint   = 'content:lint';
 	case ContentList   = 'content:list';
+	case ContentMediaIds = 'content:media-ids';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
 	case ContentRelation = 'content:relation';
@@ -168,6 +170,7 @@ enum BuiltInCommand: string
 			self::ContentIndex  => IndexContent::class,
 			self::ContentLint   => LintContent::class,
 			self::ContentList   => ListContent::class,
+			self::ContentMediaIds => RewriteMediaIds::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
 			self::ContentRelation => ChangeRelation::class,

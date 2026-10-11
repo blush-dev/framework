@@ -18,6 +18,7 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use Blush\Content\EntryFields;
 use Blush\Content\EntryFolders;
+use Blush\Content\MediaFieldIds;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
@@ -45,6 +46,7 @@ use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
 use Blush\Routing\RouteTable;
+use Blush\Media\MediaException;
 use Blush\Media\MediaMetadataCheck;
 
 /**
@@ -93,7 +95,8 @@ final readonly class Linter
 		private FieldSetCheck $sets,
 		private FormatCheck $formats,
 		private AppConfig $app,
-		private Relations $relations
+		private Relations $relations,
+		private MediaFieldIds $mediaFields
 	) {}
 
 	/**
@@ -115,7 +118,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 			}
@@ -262,7 +265,7 @@ final readonly class Linter
 			$contents = $this->contentFiles->source()->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 		}
@@ -399,6 +402,30 @@ final readonly class Linter
 			$type->filename === null ? '' : sprintf(', beyond their file name pattern (%s) on files', $type->filename->pattern),
 			$suggested
 		), kind: ViolationKind::Prefix)];
+	}
+
+	/**
+	 * Checks that each media field names its file by id (D-773), not by
+	 * the path it was written with before ids.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkMedia(IndexRecord $record): array
+	{
+		try {
+			$paths = $this->mediaFields->paths($record->type, $record->values);
+		} catch (MediaException) {
+			return [];
+		}
+
+		return array_map(static fn (array $path): Violation => new Violation(
+			$path['field'],
+			$path['id'] === null
+				? sprintf('is a path (%s) that names no media file with an id; choose the file again.', $path['path'])
+				: 'is written as a path; media fields name their file by id. Rewrite it with content:media-ids, or on Site Health in the admin.',
+			Severity::Warning,
+			ViolationKind::Media
+		), $paths);
 	}
 
 	/**

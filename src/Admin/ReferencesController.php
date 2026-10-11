@@ -32,6 +32,7 @@ use Blush\Content\Type\Tree;
 use Blush\Content\Editing\ErrorPage;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
+use Blush\Media\MediaValues;
 use Blush\Support\Slug;
 
 /**
@@ -123,7 +124,8 @@ final readonly class ReferencesController
 		private Permissions $permissions,
 		private EntryLinks $links,
 		private Relations $relations,
-		private RelationLimits $limits
+		private RelationLimits $limits,
+		private MediaValues $media
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $type): ResponseInterface
@@ -464,7 +466,7 @@ final readonly class ReferencesController
 			'parent'  => $this->content->parentKey($entry->type->name, $entry->key),
 			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,
-			'image'   => is_string($image = $entry->field('image')) && $image !== '' ? $image : null,
+			'image'   => $this->media->address($entry->field('image')),
 			'date'    => $entry->published?->format('Y-m-d'),
 			'depth'   => null,
 			'taken'   => $taken === null ? null : $taken[(string) $entry->id] ?? 0,

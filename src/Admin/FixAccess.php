@@ -18,6 +18,7 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Entries;
 use Blush\Content\Index\EntryFiles;
 use Blush\Media\Index\MediaLibrary;
 
@@ -33,6 +34,7 @@ final readonly class FixAccess
 	public function __construct(
 		private Permissions $permissions,
 		private EntryFiles $files,
+		private Entries $content,
 		private MediaLibrary $library
 	) {}
 
@@ -56,6 +58,15 @@ final readonly class FixAccess
 	 *
 	 * @return Closure(string): bool
 	 */
+	public function entryIds(Account $account): Closure
+	{
+		return function (string $id) use ($account): bool {
+			$entry = $this->content->find($id);
+
+			return $entry !== null && $this->permissions->can($account, ContentAction::Edit, $entry);
+		};
+	}
+
 	public function media(Account $account): Closure
 	{
 		return function (string $key) use ($account): bool {

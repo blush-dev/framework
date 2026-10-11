@@ -12,7 +12,7 @@
 
 import { ref, watch } from 'vue';
 import type { MediaItem } from '../api';
-import { mediaFile } from '../media';
+import { isMediaId, mediaFile } from '../media';
 import AdminIcon from './AdminIcon.vue';
 
 const props = withDefaults(defineProps<{
@@ -31,8 +31,10 @@ const emit = defineEmits<{
 }>();
 
 // Where the image is shown from: its library file, or else its
-// address; `missing` once it fails to load.
+// address; `missing` once it fails to load. `shown` is what the line
+// under it names: the file's address, not the id a field holds (D-773).
 const url     = ref<string | null>(null);
+const shown   = ref('');
 const missing = ref(false);
 const size    = ref('');
 
@@ -58,9 +60,12 @@ async function resolve(): Promise<void> {
 	emit('resolved', found);
 
 	if (found !== null) {
-		url.value = found.url;
+		url.value   = found.url;
+		shown.value = found.reference;
 	} else {
-		url.value = src;
+		url.value   = isMediaId(src) ? '' : src;
+		shown.value = src;
+		missing.value = isMediaId(src);
 	}
 }
 
@@ -92,7 +97,7 @@ function loaded(event: Event): void {
 		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />Choose an Image</button>
 	</div>
 	<p v-if="src && !bare" class="field__help mono image-preview__about">
-		{{ src }}<template v-if="missing"> · not found</template><template v-else-if="size"> · {{ size }}</template>
+		{{ shown || src }}<template v-if="missing"> · not found</template><template v-else-if="size"> · {{ size }}</template>
 	</p>
 </template>
 

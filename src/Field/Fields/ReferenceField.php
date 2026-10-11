@@ -15,6 +15,8 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Code;
+use Blush\Field\Controls\Reference;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -74,21 +76,9 @@ final class ReferenceField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Reference, Control::Mono];
-	}
-
-	/**
-	 * @inheritDoc
-	 *
-	 * The entry picker needs the type it picks from (`to`); without one,
-	 * slugs are typed.
-	 */
-	#[Override]
-	public function canUse(Control $control): bool
-	{
-		return $control === Control::Mono || ($control === Control::Reference && $this->to !== '');
+		return $this->to === '' ? new Code() : new Reference();
 	}
 
 	/**

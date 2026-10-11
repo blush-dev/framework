@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
+use Blush\Content\Record\EntryTable;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
@@ -27,6 +28,8 @@ use Blush\Field\FieldTargetSource;
 use Blush\Field\InvalidSchema;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Storage\Record\RecordException;
+use Blush\Storage\Record\RecordStores;
 
 /**
  * Answers `GET {path}/api/fields/sets` (D-337): the site's field sets, for
@@ -45,8 +48,12 @@ use Blush\Http\Status;
  * (`{"name", "label", "description"}`, the first its default).
  *
  * `GET {path}/api/fields/sets/{name}` (`show()`) describes one set the
- * same way, with its `fields` as definitions (`Field::toArray()`, without
- * classes) in place of the count. `detail()` describes a set among any
+ * same way, with its `fields` as forms take them (`Field::toForm()`: each
+ * with its control, D-769, and a choice's option labels as `choices`) in
+ * place of the count, and `counts`: how many entries of its
+ * types have a value for each of its fields, by name (read from the
+ * content records, so removing a field or changing its key can say what
+ * it leaves behind). `detail()` describes a set among any
  * set of types, so a change can be answered with the types it made
  * (`FieldSetEditController`).
  */
@@ -56,7 +63,8 @@ final readonly class FieldSetsController
 		private ContentTypes $types,
 		private FieldConfig $config,
 		private DataFieldSetWriter $writer,
-		private FieldTargets $targets
+		private FieldTargets $targets,
+		private RecordStores $stores
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -91,10 +99,51 @@ final readonly class FieldSetsController
 	{
 		return [
 			...$this->summary($types, $set),
-			'fields'  => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $set->schema->fields)),
+			'fields'  => array_values(array_map(static fn (Field $field): array => $field->toForm(), $set->schema->fields)),
+			'counts'  => (object) $this->counts($set),
 			'options' => $this->targets(),
 			'kinds'   => $this->kinds()
 		];
+	}
+
+	/**
+	 * How many entries of a set's types have a value for each of its
+	 * fields (by its name or an alias), by name.
+	 *
+	 * @return array<string, int>
+	 */
+	private function counts(FieldSet $set): array
+	{
+		$types  = array_map(static fn (string $target): string => substr($target, 5), array_filter($set->targets, static fn (string $target): bool => str_starts_with($target, 'type:')));
+		$counts = array_fill_keys(array_map(static fn (Field $field): string => $field->name, array_values($set->schema->fields)), 0);
+
+		if ($types === []) {
+			return $counts;
+		}
+
+		try {
+			$records = $this->stores->query(EntryTable::table())->withoutContent()->get();
+		} catch (RecordException) {
+			return $counts;
+		}
+
+		foreach ($records as $record) {
+			$front = $record->fields['fields'] ?? null;
+
+			if (! in_array($record->fields['type'] ?? null, $types, true) || ! is_array($front)) {
+				continue;
+			}
+
+			foreach ($set->schema->fields as $field) {
+				$value = array_find([$field->name, ...$field->aliases], static fn (string $key): bool => ! in_array($front[$key] ?? null, [null, '', []], true));
+
+				if ($value !== null) {
+					$counts[$field->name]++;
+				}
+			}
+		}
+
+		return $counts;
 	}
 
 	/**
@@ -173,6 +222,7 @@ final readonly class FieldSetsController
 			'description' => $set->description,
 			'kind'        => $set->kind(),
 			'slot'        => $this->slot($set),
+			'position'    => $set->position,
 			'origin'      => $origin->value,
 			'editable'    => $file !== null && $this->config->dataSets,
 			'file'        => $file,

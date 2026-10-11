@@ -72,15 +72,14 @@ final class SiteRelationsTest extends TestCase
 			'types' => [
 				'post'     => ['routing' => ['prefix' => 'archives']],
 				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true],
-				'movie'    => ['urls' => ['prefix' => 'movies'], 'fields' => [
-					['name' => 'actors', 'type' => 'reference', 'to' => 'person'],
-					['name' => 'director', 'type' => 'reference', 'to' => 'person', 'multiple' => false, 'required' => true]
-				]],
+				'movie'    => ['urls' => ['prefix' => 'movies']],
 				'person'   => ['urls' => ['prefix' => 'people']]
 			],
 			'relations' => [
 				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
-				'authors'  => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]
+				'authors'  => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']],
+				'actors'   => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'ordered' => true],
+				'director' => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'multiple' => false, 'required' => true]
 			]
 		]);
 
@@ -142,7 +141,7 @@ final class SiteRelationsTest extends TestCase
 
 		$movie = $this->relations->for('movie');
 
-		$this->assertSame(['translation_of', 'actors', 'director'], array_keys($movie));
+		$this->assertSame(['actors', 'director', 'translation_of'], array_keys($movie));
 		$this->assertSame(RelationKind::Reference, $movie['director']->kind);
 		$this->assertFalse($movie['director']->multiple);
 		$this->assertTrue($movie['director']->isRequired());

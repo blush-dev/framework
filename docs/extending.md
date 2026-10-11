@@ -1658,10 +1658,9 @@ container gives you: `$site->get('tagline')`, or `$site->all()`.
 
 A plugin can add a field type for every place fields are defined:
 content types, media details, theme settings, and menu fields. Extend
-`Blush\Field\Field`, and describe the type for the admin with
-`typeLabel()`, `typeDescription()`, and `controls()`, the controls it can
-be edited with (the first is its default; one with no controls is shown
-read-only):
+`Blush\Field\Field`, describe the type for the admin with `typeLabel()`
+and `typeDescription()`, and give the control it's entered with by
+default in `defaultControl()` (without one, it's shown read-only):
 
 ```php
 <?php
@@ -1672,6 +1671,7 @@ namespace Acme\Colors;
 
 use Override;
 use Blush\Field\Control;
+use Blush\Field\Controls\Code;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -1696,9 +1696,9 @@ final class ColorField extends Field
 	}
 
 	#[Override]
-	public static function controls(): array
+	public function defaultControl(): Control
 	{
-		return [Control::Mono];
+		return new Code();
 	}
 
 	#[Override]
@@ -1733,9 +1733,10 @@ public function boot(): void
 ```
 
 Then `type: color` works in `user/data/types`, `user/data/fields`, and
-the rest, and the admin's field editor offers it. The admin has a fixed
-set of controls (`Blush\Field\Control`), so a field type picks from
-those; it can't bring its own. Options of its own, described by
+the rest, and the admin's field editor offers it. Controls
+(`Blush\Field\Controls\*`) come only from Blush for now, so a field
+type picks from those; it can't bring its own. A definition may name
+its default control, or another whose `fits()` takes the field. Options of its own, described by
 `definitionSchema()`, are offered in the field editor when they're
 text, numbers, true or false, a set of values, or a list of text.
 

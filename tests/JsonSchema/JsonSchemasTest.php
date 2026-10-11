@@ -19,6 +19,7 @@ use Blush\Core\Framework;
 use Blush\Plugin\PluginManifest;
 use Blush\Plugin\PluginSource;
 use Blush\Field\Field;
+use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -93,14 +94,16 @@ final class JsonSchemasTest extends TestCase
 	{
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
-		$factory = new FieldFactory($registry);
+		$factory = new FieldFactory($registry, ControlFactory::core());
 
 		$definitions = [
-			FieldType::Number->value    => ['integer' => true, 'min' => 1, 'max' => 5],
-			FieldType::Enum->value      => ['options' => ['a', 'b']],
-			FieldType::List->value      => ['item' => ['type' => 'number']],
-			FieldType::Reference->value => ['to' => 'post', 'multiple' => false],
-			FieldType::Object->value    => ['fields' => [['name' => 'a']], 'closed' => true]
+			FieldType::Text->value   => ['format' => 'url'],
+			FieldType::Date->value   => ['time' => false],
+			FieldType::Number->value => ['integer' => true, 'min' => 1, 'max' => 5, 'step' => 1],
+			FieldType::Enum->value   => ['options' => ['a', 'b']],
+			FieldType::List->value   => ['item' => ['type' => 'number'], 'min' => 1, 'max' => 3],
+			FieldType::Media->value  => ['kind' => 'image'],
+			FieldType::Object->value => ['fields' => [['name' => 'a']], 'closed' => true]
 		];
 
 		$shared = ['name', 'type', 'class', 'aliases', 'required', 'default', 'label', 'description'];

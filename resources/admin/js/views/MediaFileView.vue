@@ -395,7 +395,7 @@ async function save(): Promise<void> {
 			fill(answer);
 		}
 
-		forgetFile(file.value?.reference ?? '');
+		forgetFile(file.value?.reference ?? '', file.value?.id ?? '');
 		toast('Saved');
 	}, (caught) => {
 		// A field the server blamed says so under it, not above the form.
@@ -447,7 +447,7 @@ async function remove(): Promise<void> {
 
 	try {
 		await request('DELETE', address.value);
-		forgetFile(item.reference);
+		forgetFile(item.reference, item.id);
 		initial.value = { ...form.value };
 		toast(`Deleted ${mediaName(item)}`);
 		await router.push({ name: 'media' });

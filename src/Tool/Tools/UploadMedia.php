@@ -50,7 +50,7 @@ final class UploadMedia extends Tool
 	#[Override]
 	public function description(): string
 	{
-		return 'Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id and address, for a body\'s Markdown image or a field.';
+		return 'Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id, for a media field such as image, and its address, for a body\'s Markdown image.';
 	}
 
 	#[Override]

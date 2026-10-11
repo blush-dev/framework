@@ -668,6 +668,34 @@ The relation's settings shape the picker too:
   them (`translations: add`, such as credits), the original's beside its
   own.
 
+### Fields on the Document tab
+
+A type's own fields and its [field sets](content-types.md#field-sets)
+are groups on the Document tab, each field drawn by its control:
+
+- A **toggle** is a switch at the end of its label's line.
+- **Radio buttons** with up to four short options are one row of
+  buttons; choosing the chosen one again clears it, unless it's
+  required. Longer sets are a list of radio buttons.
+- A **multi-select** shows what's chosen as chips; **Add** lists the
+  rest, and a chip's × takes it out.
+- An **image** shows the picture itself, with **Replace** and
+  **Remove** on it; video, sound, and other files show their path and
+  **Choose**. Each opens the media library on its kind.
+- An **icon** opens the site's icons, and a **date** without a time
+  picks only the day.
+- A **group** is its heading with its fields under it.
+- A **repeating group** lists its items, one line each, summed up by
+  the fields it names (or its first fields). A list of plain values
+  (text, numbers, dates) is a repeating group too, each item one box. Click one to open it and
+  fill it in, move it up or down, or remove it; **Add** (with the item's
+  name, such as **Add Ingredient**) adds one and opens it.
+
+A group or repeating group inside another is a row saying what's in it
+("2 of 3 fields filled in", "4 ingredients") that opens a level down, in
+place of the tab, with the path back at the top; Escape goes back too.
+Any depth works this way.
+
 ### Rows at the end of the Document tab
 
 The Document tab ends in rows for what you can't change there, always
@@ -1228,34 +1256,68 @@ does it, with the default the choice that changes no files:
 ## Fields
 
 With `site.settings`, **Structure → Fields** lists every
-[field set](content-types.md#field-sets): groups of fields added to
-content types, to [media files' details](media.md#details-about-a-file),
-or to the [Settings](#settings) screens, beside their own. The list shows where each set is added (a place the
-site doesn't have is grayed), where it's defined, and how many fields it
-has.
+[field set](content-types.md#field-sets): groups of fields added to the
+entries of content types, beside their own. **All**, **This Site**, and
+**In Code** split the sets made here (in `user/data/fields`, edited on
+their screens) from those defined in `config/fields.php` and plugins
+(shown on their screens). Each row says the set's label and key, the
+types it's used on (**Type Is Off** for one the site doesn't have), where
+it's from, and how many fields it has; its menu opens it, or, for a set
+made here, opens its settings or deletes it.
 
-Sets in `user/data/fields` are edited on their screen; sets from
-`config/fields.php` and plugins are defined in code, so their screens
-only show them.
+**New Field Set** asks for a label (heading the set's fields in the
+editor), a key (made from the label; it's the file's name, so it can't
+change later), help shown under the label, the content types it's used
+on, and its **position**: where it sits among a type's sets in the
+editor's panel, lowest first, then by label. **Create** writes
+`user/data/fields/{key}.json` and opens it.
 
-**New Field Set** has a label (heading the set's fields in the editor),
-a key (made from the label; it's the file's name, so it can't change
-later), help shown under the label, the kind of place to add it to
-(content types; kinds of media file: images, videos, audio, documents, and other
-files; or the Settings screens; a set's places are all one kind), the
-places of that kind, and its fields, edited as a type's are. **Create
-Field Set** writes
-`user/data/fields/{key}.json`.
+### A set's screen
 
-A set's screen edits the same things; changes wait in the **save bar**:
-**Save Changes** writes them, or **Revert** puts them back. Only what you change is written,
-and the rest of the file stays as you wrote it, comments included. A set
-can't use a field name a type it's added to already has: that's refused
-with the reason, and the file is left as it was.
+Its facts sit under the title: key, how many fields, the types it's used
+on, and its position. **Settings** changes the label, help, types, and
+position. Below them are its fields, as a tree:
 
-**Delete This Field Set** removes its file, and its fields leave the
-types it was added to. Entries keep their values, shown as other front
-matter.
+- Each row is a field's control, its label, and **Required** when it's
+  required to publish. A group's row counts its fields; open it, and its
+  form holds them in a box, as rows of their own that move, drag, open,
+  and come out of the group from their menu, with **Add Field** at the
+  box's foot (a field added there is selected, not opened). A field
+  without a key yet says **No Key** on its row. Fields nest one level here: a group's fields can't be
+  groups (a set written by hand may nest deeper).
+- A row's buttons move it up or down (or press ⌥↑ or ⌥↓, or drag it),
+  and its menu adds a field above or below it (inside it, for a group),
+  moves it into a group beside it (or out of the group it's in),
+  duplicates it, or removes it, with Undo. Removing a field
+  entries have values for asks first; their files keep the values.
+- **Add Field** asks how the field is entered first: choose a control
+  from its sections, or search them.
+- Open a row (its pencil, a double click, or F2) to edit it under the
+  row: its label, its key (made from the label until you type one), its
+  control (a saved field changes only to a control that stores the same
+  value, such as Select Dropdown and Radio Buttons), a default, a
+  placeholder for a box, help, and whether it's required to publish. A
+  choice lists its options, each a label and a key (the key is what
+  entries keep, so a label can be reworded); a number has its lowest,
+  highest, and step, and whole numbers only; a date whether it has a
+  time; a repeating group what each item is called, the fewest and most
+  items, and the fields that sum an item up. **Advanced** lists older
+  keys the field still reads. What you change applies as you type, so
+  closing the row keeps it; **Cancel** puts back what the field was when
+  you opened it, and **Done** closes it. Nothing is written until you
+  save. Changing the key of a field entries have
+  values for asks, and keeps reading them from the old key unless you
+  say not to.
+
+Changes are saved together with **Update** (it says **Saved** when
+there's nothing to save); only what changed is written, and the rest of
+the file stays as you wrote it. The menu beside it has **Revert
+changes** and **Delete field set**, which removes its file; entries
+keep their values, shown as other front matter. A set can't use a field
+key a type it's used on already has: that's refused with the reason, and
+the file is left as it was.
+
+A content type's own fields are edited the same way on its screen.
 
 ## Menus
 
@@ -2146,7 +2208,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET logs/download` | The whole log file, to save, with `site.logs` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a directive's |
 | `GET media` | The media files an entry can use (see below) |
-| `GET media/{path}` | One file in the library, by its path under `user/media`, with its details (see below) |
+| `GET media/{path}` | One file in the library, by its path under `user/media` or its id (as media fields name it), with its details (see below) |
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `DELETE media/{path}` | Delete a library file, with its details (see below) |
@@ -2192,10 +2254,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
-| `GET fields/types` | The field types definitions can use, built in and from plugins: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
-| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension` (from a plugin), `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
-| `GET fields/sets/{name}` | One set, with its `fields` as definitions, `options`, every place it can be added to, and `kinds` |
-| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
+| `GET fields/controls` | The controls and field types definitions can use: `{"controls": [{"value", "label", "description", "section", "type", "implies", "options"}], "types": [{"type", "label", "description", "controls", "options"}]}`. A control's `section` is the picker's (`{"value", "label"}`, or `null` for one the picker doesn't offer), `type` the value type it stores (`null` for one that edits several), and `implies` the type options it writes. A type's `controls` are `{"value", "label"}`, the ones that store it without implying options, its default first. `options` are definition keys as JSON Schemas |
+| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "position", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension` (from a plugin), `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
+| `GET fields/sets/{name}` | One set, with its `fields` as forms take them (each with its `control`, and a choice's option labels as `choices`), `counts` (how many entries have a value for each field, by name), `options`, every place it can be added to, and `kinds` |
+| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, `position`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
 | `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set. A field a target already has is a `422` with the reason |
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
@@ -2206,6 +2268,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST health/type-folders` | Move each `user/data/types` type that still names its folder into `_` and its name, as `content:type-folders --write` does: `{"migrated", "failed"}`, how many files and folders moved for each type and why any couldn't be. `GET health`'s `typeFolders` lists the types left, each `{"name", "from", "to"}`. Needs `site.health` and `site.settings` |
 | `POST health/taxonomies` | Migrate each `user/data/types` type still written as a taxonomy to a collection and its classify relation, as `content:taxonomies --write` does: `{"migrated", "failed"}`, the files written for each type and why any couldn't be. `GET health`'s `taxonomies` names the types left. Needs `site.health` and `site.settings` |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one (or only `{"paths"}`): `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
+| `POST health/media-fields` | Rewrite media fields still written as a path to their files' ids, as `content:media-ids --write` does, in the entries the account may edit (or only `{"ids"}`, entry ids): `{"rewritten", "failed"}`. Content Files lists each such value as a problem of kind `media` |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |

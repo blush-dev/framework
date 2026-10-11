@@ -24239,3 +24239,389 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for the sketch to be built, modeled on the
   Writing screen; every row and tool description was full height, so
   the screen was long.
+
+### D-766: Fields, field sets, controls, and forms as four terms; core controls only
+- **Date:** 2026-10-11
+- **Supersedes:** D-337's `Control` as a fixed enum (its "no custom
+  controls" stands until after 2.x, below).
+- **Decision:** The author's calls, picking the Fields API up again
+  (D-348) before building from the fields sketch
+  (`.claude/docs/admin-design/blush-fields.html`). The terms:
+  - **Field:** the definition of one named, typed value (its shape,
+    rules, default, and older names), wherever values live: an entry's
+    front matter, media metadata, settings, a form's submission. The
+    stored data is the value, not the field. Fields are checked on the
+    server; they never know how they're drawn.
+  - **Field set:** fields grouped and attached to a place (D-337).
+  - **Control:** how a person enters one value: the input and its
+    options (label, placeholder, choices, help). Field types and
+    controls are many to many (a text field as one line, several
+    lines, or code; a choice as a menu or radio buttons), and a control
+    never knows where its value is stored. A control describes itself
+    as data that each side draws: the admin in Vue, a site's form in
+    PHP templates.
+  - **Form:** controls bound to a submission. An entry's panel is a
+    form built from a field set; a front-end form (comments, a form
+    builder) is one of a site's or a plugin's.
+  - **Core controls only for 2.x.** Controls become classes
+    (`Controls\…`) in place of the enum, shaped as an extensible
+    subsystem (the Type enum + Registry + Factory + Registrar pattern),
+    so extension controls can be opened after 2.x without changing the
+    API; until then only core registers them.
+- **Status:** Planned; the sketch's questions come first.
+- **Why:** the paused design (D-348) mixed what a value is with how
+  it's entered; controls will be wanted wherever a form is, not only in
+  the admin.
+
+### D-767: The fields sketch's first answers
+- **Date:** 2026-10-11
+- **Supersedes:** D-337's content types and media kinds and Settings
+  screens as targets in the admin (for now), and its `reference` field
+  type.
+- **Decision:** The author's answers to the questions on the fields
+  sketch (`.claude/docs/admin-design/blush-fields.html`):
+  - **The sketch's types are controls.** Link, Email, Color, Icon,
+    Multi-Select, Image, Video, Audio, and File are controls, not value
+    types; the picker is a picker of controls (D-766).
+  - **No reference field.** Entries are linked by relationships
+    (D-585 onward); `ReferenceField` goes.
+  - **Entries only, in the sidebar.** Structure → Fields adds fields to
+    entries through the UI and nothing else; media comes once that's
+    fleshed out. Entry fields belong in the entry editor's sidebar
+    (the document panel) for now. Types without a body, with another
+    editing experience, will come later.
+  - **Nesting:** any depth is fine in the API; how deeper levels are
+    drawn in the sidebar is still open.
+  - **Media fields store the id**, always; there's no path option.
+    (Featured images store a path today.)
+  - **Required means required to publish**, as it already does
+    (`EntryEditor::missing()`).
+  - **A field's type isn't changed** once it exists (refined in a
+    later entry if the sketch's questions settle it otherwise).
+  - **Range Slider and Color are core controls**, on the roadmap, not
+    built yet.
+  - **Field keys are unique per entry**: two sets on the same type
+    can't use the same key (D-337).
+- **Status:** Planned.
+
+### D-768: Switching controls, nesting in the sidebar, and a set's place
+- **Date:** 2026-10-11
+- **Refines:** D-767's "a field's type isn't changed" and its open
+  nesting question.
+- **Decision:** The author's answers:
+  - **A field's control can switch only to one that stores the same
+    value:** Select and Radio Buttons, Text and Textarea, Number and
+    Range Slider, Checkboxes and Multi-Select. Nothing else is
+    offered, so a stored value never stops fitting.
+  - **Nesting in the sidebar:** the first level draws inline (a Group
+    as a sub-heading, a Repeating Group as a list of items that open
+    and close); anything deeper is a row that opens its own level with
+    a back button, as the Document tab's rows do (D-608), so every
+    level keeps the panel's width.
+  - **Featured images keep storing a path** for now, to be moved to ids
+    later; new media fields store ids (D-767).
+  - **No Where It Appears setting:** every set is in the sidebar, and a
+    set's Position orders the sets there. The slot mechanism stays in
+    code (D-347, D-348).
+- **Status:** Planned.
+
+### D-769: A field definition stores its value type and its control
+- **Date:** 2026-10-11
+- **Decision:** Decided for the author, who asked whether it matters.
+  A definition stores both: `type`, the value type (what's stored and
+  how it's checked), and `control`, how it's entered:
+
+  ```json
+  { "name": "difficulty", "type": "enum", "control": "radio", "options": [ … ] }
+  ```
+
+  - **The type is the authority** for values. The control must be one
+    that stores that type; a mismatch is an error when types load.
+  - **The admin writes both.** People pick a control, and the admin
+    writes that control's type with it. A control can change only to
+    another with the same type (D-768).
+  - **Either may be left out of a file written by hand:** no `type`
+    means the control's type; no `control` means the type's default
+    control.
+- **Status:** Planned.
+- **Why:** values outlive how they're entered. The API, MCP, content
+  lint, and a database driver check and store values without loading
+  any controls. Once extension controls open after 2.x (D-766), a
+  plugin that's off would otherwise leave its fields with no type, so
+  their values couldn't be checked or edited. Writing the type down
+  costs one key per field.
+
+### D-770: Groups nest in the sidebar; the Fields screen stays one level
+- **Date:** 2026-10-11
+- **Decision:** The author's call. The entry editor's sidebar draws
+  groups inside groups at any depth (D-768's levels that open). The
+  Structure → Fields tree stays one level deep for now: a group's
+  fields can't be groups there. Deeper nesting on that screen waits for
+  a new design sketch. The API allows any depth (D-767), so a set
+  written by hand or in code can nest.
+- **Status:** Planned.
+
+### D-771: The Fields API, stage 1: controls as classes, as built
+- **Date:** 2026-10-11
+- **Decision:** Builds stage 1 of the plan (`roadmap.md`, D-766 to
+  D-770).
+  - **`Blush\Field\Control`** is an abstract base (consistent
+    constructor: only its own options, each with a default) with
+    `ControlType` (core keys, in the picker's order, each type's
+    default first), `ControlRegistry`, `ControlRegistrar`, and
+    `ControlFactory` (`complete()`, `apply()`, `switchesFor()`, and
+    `core()` for code outside the container). `ControlSection` names
+    the picker's sections. Final classes in `Controls\*`: `Group`,
+    `Repeater`, `Text`, `Textarea`, `Markdown`, `Link`, `Email`,
+    `Select`, `Radios`, `Checkboxes`, `MultiSelect`, `Toggle`,
+    `Number`, `Date`, `Image`, `Video`, `Audio`, `File`, `Icon`, and,
+    not offered in the picker, `Code`, `Lines`, `Reference` (the entry
+    picker for a relation's field and a collection's `parent`), and
+    `ViewOnly` (key `readonly`; `readonly` is a reserved word in PHP).
+    Abstract `TextBox` (a `placeholder`) and `ChoiceList` share what
+    repeats. `Repeater` has `itemLabel` and `summary`.
+  - **Control keys replace D-337's:** `checkbox` → `toggle`, `checks`
+    → `checkboxes`, `mono` → `code`, `media` → `image`, `video`,
+    `audio`, or `file` by kind; `radios`, `select`, `text`,
+    `textarea`, `number`, `date`, `lines`, `reference`, and `readonly`
+    stay. No back-compat (no 2.x sites exist); the trial's field sets
+    were updated.
+  - **A field's `defaultControl()`** is its type's, from its own
+    settings (a text field's format, a list's items, a media field's
+    kind), replacing `Field::controls()` and `canUse()`. `control()`
+    takes a control that `fits()` the field or is its default, so a
+    plugin's field type can name a core control that doesn't know it.
+    A control's options are written beside its key (`toArray()`), and
+    `toForm()` carries them.
+  - **Type options for what controls imply:** `TextField`'s `format`
+    (`TextFormat`: `url`, an `http` or `https` address or a path on
+    the site; `email`; `icon`, no spaces), `DateField`'s `time` (on by
+    default; off keeps the day's start in the site timezone),
+    `NumberField`'s `step` (from `min` or zero), and `ListField`'s
+    `min` and `max`.
+  - **No reference type:** `reference` left `FieldType`; a definition
+    naming it is refused with a pointer to relationships, and
+    `RelationCompiler` no longer reads reference fields as relations.
+  - **`GET fields/controls`** (`FieldControlsController`) replaces
+    `GET fields/types`; the editor JSON Schemas name controls and
+    their options.
+  - **The admin keeps working** on the new keys: `fields.ts`,
+    `FieldInput`, `FieldControl`, the Settings and Relationship
+    screens, and the old definition editor (its reference type gone).
+    The new controls draw as older ones until stage 2 (a toggle as a
+    checkbox, a multi-select as checkboxes, formatted text as a
+    textarea, the media kinds as the media picker, an icon as text,
+    groups read-only); link and email are typed boxes.
+- **Not done (later stages):** media fields storing ids (stage 2, with
+  the media controls), choice options with labels (stage 3, which the
+  sketch's options editor needs), and forms.
+- **Checked:** `composer check`; `npm run admin:build`; the trial's
+  `content:lint` (no new problems).
+
+### D-772: The Fields API, stage 2: drawing controls, as built
+- **Date:** 2026-10-11
+- **Decision:** Builds stage 2 of the plan (`roadmap.md`).
+  - **Nested state stays text:** a group's form state is its fields'
+    states, and a repeating group's a list of them, kept as JSON in one
+    string (`''` when empty), so the editor's comparing, keeping
+    unsaved changes, and restoring work as before (`fields.ts`:
+    `groupOf`, `itemsOf`, `fromGroup`, `fromItems`, `stateAt`,
+    `withStateAt`). Saving drops empty fields and items, and a group
+    keeps keys it doesn't declare. `ObjectField` and `ListField` give
+    their fields' `toForm()` too, so nested fields come with their
+    controls.
+  - **New shared components:** `FieldGroup` (a heading over its fields,
+    `.fieldset--group`), `FieldRepeater` (items one line each, summed
+    up by `summary` or the first fields, one open at a time, move,
+    remove, **Add {itemLabel}**, until `max`), and `ChoiceChips` (the
+    multi-select: chips in the token picker's box, an Add menu).
+    `FieldInput` draws a toggle as `ToggleSwitch`, an icon as
+    `IconField`, an image as `ImagePreview`, a date without a time
+    with `DatePicker`'s new `dayOnly`, and a text box's `placeholder`.
+    In a `narrow` panel (the Document tab), radio buttons with up to
+    four options of 14 characters or fewer and no details are one
+    `.segmented` row; elsewhere (Settings) they stay a list.
+  - **Levels (D-768, D-770):** a group or repeating group at the first
+    level draws in place; inside another, it's a row
+    (`.level-link--boxed`) that opens a level down where the screen
+    provides `OPEN_LEVEL` (`field-levels.ts`). The editor keeps a stack
+    of levels in the Document tab, each with a path back
+    (`#editor-level-back`, Escape, and focus back on the row); screens
+    without it draw every level in place. The media picker writes into
+    a nested field by its form field and steps.
+  - **Shared row:** the Document tab's rows that open a level down
+    moved from `EditorView` to `admin.css` as `.level-link` (with
+    `__text`, `__count`, `__go`, `__path`, `--back`, `--boxed`), used by
+    the editor and the field groups (D-509).
+  - **Fixed on the way:** Settings drew its switches for the old
+    `checkbox` key; it reads `toggle` now (broken since D-771).
+- **Not done:** media fields storing ids is a question for the author
+  (values are URL paths across the API, media usage, templates, and
+  `llms.txt`, and featured images keep paths, D-768); choice options
+  with labels wait for stage 3.
+- **Checked:** `composer check`; `npm run admin:build` (admin.js
+  213 KB, admin.css 92 KB).
+
+### D-773: Every media field stores its file's id, featured images included
+- **Date:** 2026-10-11
+- **Supersedes:** D-768's "featured images keep storing a path for
+  now".
+- **Decision:** The author's call (option 3 of three: ids for new
+  fields only, paths until everything moves, or everything to ids now).
+  Every media field's value is the id of a media original (D-487):
+  featured images, profiles' avatars, media fields in field sets and
+  types, and lists of media. Existing paths are rewritten to ids, and
+  everything that reads a media value resolves the id.
+- **Status:** Built (below).
+- **Scope:** front matter media fields only. The body's references
+  (Markdown images, directive attributes such as `{src=…}`) stay
+  paths, as links in the body do; menu items' `image` isn't a media
+  field and stays a path. An id names an original, never a size.
+- **As built:**
+  - **`MediaValues`** reads a value: an id, or an older path (which may
+    name a size): `record()`, `original()`, `url()`, `id()`, and
+    `address()` for showing one (a file's URL, an outside address as
+    written, nothing for an unknown id). `MediaResource::referenced()`
+    uses it, so the API reads both.
+  - **`MediaField`** keeps an id in lower case, and still takes an older
+    path so nothing breaks before it's rewritten.
+  - **Writers write ids:** the admin's pickers (`fieldValue()`: a file's
+    id, its address only for a file without one), the API's writes
+    (`EntryWritesController::mediaReference()`), and the MCP tools'
+    descriptions say a media field takes an id.
+  - **Readers resolve:** og:image (`ThemedPageRenderer`; an older path
+    outside the library still prints, as before), themes through the
+    new `$template->media()`, the admin's reference cards, Linked From
+    and a profile's avatar (sent as the file's address), the admin's
+    image preview and `MediaChoice` (a video, sound, or file by the
+    library's name for it), and `GET media/{path}`, which takes an id.
+  - **Usage:** `MediaUsage::entries()` also finds a file by its id (in
+    files; kept in a database, only the Markdown is searched, as before).
+  - **Rewriting:** `MediaFieldIds` (reads the content records, changes
+    entries through `Entries`, so it works however content is kept)
+    finds paths in every media field, lists of them, and groups, and
+    rewrites those that name a file with an id; `content:media-ids`
+    (`--write`), `content:lint` (`ViolationKind::Media`, a warning), and
+    Site Health's Content Files with **Rewrite as ID**
+    (`POST health/media-fields`, `HealthFix::MediaFields`).
+  - **The trial:** 387 values rewritten; one names a file that isn't
+    there (`films/index.md`) and is listed. Its themes (Second Proof's
+    hero, jtcom's and jtcom-blade's entry grid and head meta) use
+    `$template->media()`.
+- **Not done:** a front matter media value in database storage isn't
+  found by usage (as paths weren't); the API still sends media nested
+  in groups as written.
+- **Checked:** `composer check`; `npm run admin:build`; the trial's
+  `content:lint` and a rendered post (og:image is the file's address).
+- **Why:** one storage form, as links between entries are by id; a
+  file renamed or moved keeps every use of it.
+
+### D-774: The Fields API, stage 3: Structure → Fields, as built
+- **Date:** 2026-10-11
+- **Decision:** Builds stage 3 of the plan (`roadmap.md`) from the
+  fields sketch, with its departures in `departures.md`.
+  - **Server:** a field set's `position` (`FieldSet::POSITION`, 10 by
+    default, written only when it's another), kept by the writer, sent
+    in the list, and ordering a type's sets (`ContentTypes::setsFor()`:
+    position, then label), so the editor's panel follows it; a set's
+    screen gets its fields as forms take them (`toForm()`, each with its
+    control) and `counts` (entries with a value for each field, from the
+    content records); a type's screen gets its own fields the same way.
+    Choice options may have labels (`EnumField`'s `labels`: options
+    written as `{"value", "label"}`, `choices` in forms). Each control
+    says its `shape` in the catalog (controls of one shape store the same
+    value; `ChoiceList` and `Repeater` name theirs).
+  - **The shared tree:** `ItemTree` (generic over `tree.ts`'s
+    `TreeNode`, with the tree's own `accepts` rule, a `create` hook that
+    asks before adding, and `confirmRemove`) is Menus' tree pulled out;
+    `MenuTree` is now its panel. `.item-tree__kind` and
+    `.item-tree__title` are shared classes.
+  - **Fields:** `FieldTree` (a panel, or `bare` in the new type wizard)
+    edits a list of definitions through `field-tree.ts` nodes (one
+    level of nesting, D-770); `FieldForm` edits a field under its row;
+    `ControlPicker`, `ChoiceOptions`, and `FieldSetSettings` (New Field
+    Set and Settings) are new; `controls.ts` holds the catalog's
+    lookups, tile icons, and how a definition changes with its control.
+  - **Screens:** `FieldSetsView` (tabs, rows, menus, New Field Set as a
+    dialog) and `FieldSetView` (the Menus screen's frame). The New Field
+    Set route, `FieldSetEditor`, `FieldListEditor`, and
+    `FieldDefinitionEditor` are gone; a type's own fields use
+    `FieldTree` too.
+- **Checked:** `composer check`; `npm run admin:build`.
+
+### D-775: The Fields screens matched to the sketch
+- **Date:** 2026-10-11
+- **Refines:** D-774, after the author's review.
+- **Decision:** `ControlPicker` moves to the library pickers' modal shell
+  (`.modal`, `.modal__bar` with the search, `.modal__body` bordered under
+  it, `.modal__foot` with the description), with the sketch's tiles. In
+  `FieldForm`: the control box is drawn as the drawn select;
+  `ToggleSwitch` takes text in a slot, beside its track with a note
+  under it (Required to publish, Whole numbers only, Includes a time, On
+  by default); defaults are drawn as the sketch draws them; a group's
+  form has its fields' box with **Add Field** (the tree hides the
+  group's rows while it's open); and `ChoiceOptions` is the sketch's
+  options box, its inputs the shared `.input`. New shared classes:
+  `.chip-toggles` and `.nest` (with `__foot`, `__none`).
+- **Checked:** `npm run admin:build`.
+
+### D-776: No one-per-line control; groups' fields move in their box; edits apply as typed
+- **Date:** 2026-10-11
+- **Supersedes:** D-771's `Lines` control, and D-774's form that edits a
+  copy.
+- **Decision:** The author's calls, after a review of the Fields screens.
+  - **No one-per-line control.** A textarea of one value per line is a
+    poor way to enter data, and the sketch leaves it out. A list of
+    plain values (text, numbers, dates, slugs, files) is the `list`
+    control (`ValueList`, not offered in the picker), drawn as a box of
+    rows like a choice's options (`ValueListInput`: a grip, a box, a menu
+    to move or remove, **Add Item**). The form's state is still a value
+    a line.
+  - **A group's fields move in its box.** The set's tree is flat
+    (`ItemTree`'s `flat`: children counted on the row); an open group's
+    form holds a tree of its own fields (`FieldNodeTree` at depth 1) with
+    the same rows, moves, drag, menus, and forms, **Add Field** at its
+    foot, and **Move out of the group** in a row's menu. A field still
+    moves into the group above it, or is dropped on it, from the top.
+  - **Edits apply as they're typed.** `FieldForm` changes the field on
+    each edit (`update`), so closing a row keeps them; **Cancel** puts
+    back what the field was when it opened, and **Done** closes it. A
+    saved key changed and closed without Done keeps the old one as an
+    alias. A field added and never named goes when its row closes.
+  - **The picker closes on a click outside it** (`useModalDialog`'s
+    backdrop).
+- **Checked:** `composer check`; `npm run admin:build`.
+
+### D-777: A plain list is a repeating group; new fields stay; adding inside doesn't open
+- **Date:** 2026-10-11
+- **Supersedes:** D-776's `list` control, and its removal of a field
+  added and never named.
+- **Decision:** The author's calls.
+  - **No `list` control.** A list of plain values (text, numbers, dates,
+    slugs, files) is a repeating group whose items are one value each:
+    `Repeater` fits a list whose items fit on a line as well as a list of
+    groups, and is the default for both (`ListField::defaultControl()`).
+    The admin draws such an item as one box (`holdsValues()` in
+    `fields.ts`); stored values stay a plain list. In the set editor it
+    holds no fields of its own (`isContainer()`). Freeform text is a
+    `text` field with Textarea. `ValueList` and `ValueListInput` are gone.
+  - **A new field stays** when its row closes, named or not; its row says
+    **No Key** until it has one.
+  - **Adding a field inside a group selects it** rather than opening its
+    form (`ItemTree`'s `openAdded`, off below the top level).
+- **Checked:** `composer check`; `npm run admin:build`.
+
+### D-778: Fields move between levels only from a row's menu
+- **Date:** 2026-10-11
+- **Decision:** Decided for the author, who asked whether to keep moving
+  fields in and out of groups. In a flat tree (`ItemTree`'s `flat`: the
+  set's fields, and a group's own), nothing expands in place, so the
+  twist's space is gone, and rows move only up and down (buttons, ⌥↑ and
+  ⌥↓, drag before or after): indenting, outdenting, and dropping onto a
+  group would move a field out of sight, into a count. A field moves
+  between levels from its row's menu instead: **Move into {Group}** on a
+  top-level field (one item for each group beside it) and **Move out of
+  {Group}** on a group's field, each with a toast. A group's fields are
+  edited by opening the group (the author's preference). Menus' tree,
+  not flat, is unchanged.
+- **Checked:** `npm run admin:build`; `composer check`.

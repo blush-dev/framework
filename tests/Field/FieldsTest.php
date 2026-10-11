@@ -35,6 +35,7 @@ use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
+use Blush\Field\TextFormat;
 
 #[CoversClass(Field::class)]
 #[CoversClass(Definition::class)]
@@ -67,8 +68,13 @@ final class FieldsTest extends TestCase
 		return [
 			'text'                  => [new TextField('title'), 'Hello', 'Hello'],
 			'text from a number'    => [new TextField('title'), 404, '404'],
+			'web address'           => [new TextField('site', TextFormat::Url), ' https://example.com/a ', 'https://example.com/a'],
+			'path on the site'      => [new TextField('site', TextFormat::Url), '/about', '/about'],
+			'email address'         => [new TextField('email', TextFormat::Email), 'me@example.com', 'me@example.com'],
+			'icon name'             => [new TextField('badge', TextFormat::Icon), 'house', 'house'],
 			'markdown'              => [new MarkdownField('summary'), '*hi*', '*hi*'],
-			'media'                 => [new MediaField('image'), ' /user/media/a.jpg ', '/user/media/a.jpg'],
+			'media'                 => [new MediaField('image'), ' 019A2B3C-4D5E-7F60-8A9B-0C1D2E3F4A5B ', '019a2b3c-4d5e-7f60-8a9b-0c1d2e3f4a5b'],
+			'media path, from before ids' => [new MediaField('image'), ' /user/media/a.jpg ', '/user/media/a.jpg'],
 			'slug'                  => [new SlugField('slug'), 'about-me', 'about-me'],
 			'bool'                  => [new BoolField('featured'), true, true],
 			'bool from a string'    => [new BoolField('featured'), 'No', false],
@@ -81,6 +87,9 @@ final class FieldsTest extends TestCase
 			'ISO date'              => [new DateField('published'), '2007-03-31T04:17:00+00:00', 1175314620],
 			'timestamp'             => [new DateField('published'), 1175314620, 1175314620],
 			'date object'           => [new DateField('published'), new DateTimeImmutable('@1175314620'), 1175314620],
+			'date without a time'   => [new DateField('day', time: false), '2007-03-30 23:17:00 -5', 1175230800],
+			'number in steps'       => [new NumberField('hours', min: 0, step: 0.5), 1.5, 1.5],
+			'list within limits'    => [new ListField('tags', min: 1, max: 2), ['a'], ['a']],
 			'list'                  => [new ListField('class'), ['wide', '', 'dark'], ['wide', 'dark']],
 			'scalar as a list'      => [new ListField('class'), 'wide', ['wide']],
 			'list of numbers'       => [new ListField('scores', new NumberField()), [1, '2'], [1, 2]],
@@ -109,7 +118,14 @@ final class FieldsTest extends TestCase
 	{
 		return [
 			'text from a list'       => [new TextField('title'), ['a'], 'must be text, not a list.'],
-			'media without a path'   => [new MediaField('image'), ' ', 'must be a media path or URL'],
+			'not a web address'      => [new TextField('site', TextFormat::Url), 'example.com', 'must be a web address'],
+			'protocol-relative'      => [new TextField('site', TextFormat::Url), '//example.com', 'must be a web address'],
+			'not an email address'   => [new TextField('email', TextFormat::Email), 'nope', 'must be an email address'],
+			'icon name with spaces'  => [new TextField('badge', TextFormat::Icon), 'a house', 'must be an icon name'],
+			'number off its steps'   => [new NumberField('seats', min: 0, step: 5), 7, 'must go in steps of 5 from 0.'],
+			'too few items'          => [new ListField('tags', min: 2), ['a'], 'must have at least 2 items.'],
+			'too many items'         => [new ListField('tags', max: 1), ['a', 'b'], 'must have at most 1 item.'],
+			'media without a value'  => [new MediaField('image'), ' ', 'must be a media file\'s id'],
 			'slug with spaces'       => [new SlugField('slug'), 'About Me', '"About Me" is not a slug; try "about-me".'],
 			'bool from junk'         => [new BoolField('featured'), 'maybe', 'must be true or false, not "maybe".'],
 			'number from text'       => [new NumberField('rating'), 'five', 'must be a number, not string.'],
@@ -184,8 +200,9 @@ final class FieldsTest extends TestCase
 			new ListField('template')->aliases('view')->toArray()
 		);
 		$this->assertSame(
-			['name' => 'series', 'type' => 'reference', 'to' => 'series', 'multiple' => false],
-			new ReferenceField('series', 'series', multiple: false)->toArray()
+			['name' => 'series', 'type' => 'reference', 'class' => ReferenceField::class, 'to' => 'series', 'multiple' => false],
+			new ReferenceField('series', 'series', multiple: false)->toArray(),
+			'Not a registered type, so it names its class for compiled caches.'
 		);
 	}
 

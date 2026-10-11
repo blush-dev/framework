@@ -48,7 +48,12 @@ final readonly class FieldSet
 	 *
 	 * @var list<string>
 	 */
-	private const array KEYS = ['name', 'label', 'description', 'targets', 'slot', 'fields'];
+	private const array KEYS = ['name', 'label', 'description', 'targets', 'slot', 'position', 'fields'];
+
+	/**
+	 * Where a set without a `position` goes among the others.
+	 */
+	public const int POSITION = 10;
 
 	/**
 	 * The set's fields.
@@ -64,6 +69,7 @@ final readonly class FieldSet
 	 * @param  iterable<Field> $fields
 	 * @param  list<string>    $targets The places the set is attached to, all of one kind.
 	 * @param  ?string         $slot    The slot its kind's places show it in (D-347), or `null` for the kind's default.
+	 * @param  int             $position Where it goes among a place's sets, lowest first, then by label (D-768).
 	 * @throws InvalidSchema When the name, a target, the slot, or the fields aren't valid, or the targets mix kinds.
 	 */
 	public function __construct(
@@ -72,7 +78,8 @@ final readonly class FieldSet
 		public array $targets = [],
 		string $label = '',
 		public string $description = '',
-		public ?string $slot = null
+		public ?string $slot = null,
+		public int $position = self::POSITION
 	) {
 		if (preg_match(self::NAME_PATTERN, $name) !== 1) {
 			throw new InvalidSchema(sprintf('"%s" can\'t be a field set\'s name; use lowercase letters, digits, "_", and "-".', $name));
@@ -158,7 +165,8 @@ final readonly class FieldSet
 			$definition->strings('targets'),
 			$definition->string('label'),
 			$definition->string('description'),
-			$definition->nullableString('slot')
+			$definition->nullableString('slot'),
+			self::position($definition, $name)
 		);
 	}
 
@@ -166,7 +174,7 @@ final readonly class FieldSet
 	 * Returns the set as a definition that `fromArray()` accepts, leaving
 	 * out a label made from the name.
 	 *
-	 * @return array{name: string, label?: string, description?: string, targets: list<string>, slot?: string, fields: list<array<string, mixed>>}
+	 * @return array{name: string, label?: string, description?: string, targets: list<string>, slot?: string, position?: int, fields: list<array<string, mixed>>}
 	 */
 	public function toArray(): array
 	{
@@ -178,7 +186,24 @@ final readonly class FieldSet
 			...($this->description === '' ? [] : ['description' => $this->description]),
 			'targets' => $this->targets,
 			...($this->slot === null ? [] : ['slot' => $this->slot]),
+			...($this->position === self::POSITION ? [] : ['position' => $this->position]),
 			'fields'  => array_values(array_map(static fn (Field $field): array => $field->toArray(), $this->schema->fields))
 		];
+	}
+
+	/**
+	 * Reads a set's position, a whole number.
+	 *
+	 * @throws InvalidSchema
+	 */
+	private static function position(Definition $definition, string $name): int
+	{
+		$position = $definition->number('position');
+
+		return match (true) {
+			$position === null => self::POSITION,
+			is_int($position)  => $position,
+			default            => throw new InvalidSchema(sprintf('Field set "%s" "position" must be a whole number.', $name))
+		};
 	}
 }

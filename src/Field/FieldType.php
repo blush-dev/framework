@@ -21,27 +21,27 @@ use Blush\Field\Fields\MarkdownField;
 use Blush\Field\Fields\MediaField;
 use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\ObjectField;
-use Blush\Field\Fields\ReferenceField;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
 
 /**
  * The built-in field types, keyed by the `type` used in definitions (the
- * "Type enum" of the enum + registry pattern, D-019).
+ * "Type enum" of the enum + registry pattern, D-019). There's no
+ * reference type: entries are linked by relationships (D-767), and
+ * `ReferenceField` is only the field a relation adds to a schema.
  */
 enum FieldType: string
 {
-	case Text      = 'text';
-	case Markdown  = 'markdown';
-	case Date      = 'date';
-	case Bool      = 'bool';
-	case Number    = 'number';
-	case Enum      = 'enum';
-	case List      = 'list';
-	case Reference = 'reference';
-	case Media     = 'media';
-	case Slug      = 'slug';
-	case Object    = 'object';
+	case Text     = 'text';
+	case Markdown = 'markdown';
+	case Date     = 'date';
+	case Bool     = 'bool';
+	case Number   = 'number';
+	case Enum     = 'enum';
+	case List     = 'list';
+	case Media    = 'media';
+	case Slug     = 'slug';
+	case Object   = 'object';
 
 	/**
 	 * Returns the type's field class.
@@ -51,17 +51,16 @@ enum FieldType: string
 	public function className(): string
 	{
 		return match ($this) {
-			self::Text      => TextField::class,
-			self::Markdown  => MarkdownField::class,
-			self::Date      => DateField::class,
-			self::Bool      => BoolField::class,
-			self::Number    => NumberField::class,
-			self::Enum      => EnumField::class,
-			self::List      => ListField::class,
-			self::Reference => ReferenceField::class,
-			self::Media     => MediaField::class,
-			self::Slug      => SlugField::class,
-			self::Object    => ObjectField::class
+			self::Text     => TextField::class,
+			self::Markdown => MarkdownField::class,
+			self::Date     => DateField::class,
+			self::Bool     => BoolField::class,
+			self::Number   => NumberField::class,
+			self::Enum     => EnumField::class,
+			self::List     => ListField::class,
+			self::Media    => MediaField::class,
+			self::Slug     => SlugField::class,
+			self::Object   => ObjectField::class
 		};
 	}
 }

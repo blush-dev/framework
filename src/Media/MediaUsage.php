@@ -30,7 +30,9 @@ use Blush\Support\UrlPath;
  * what would break: every content document whose text names the file by
  * any address the resolver takes for it (the media URL, `/user/media`,
  * or `user/media`, written plainly or encoded), in its body or its front
- * matter. It reads the documents, so it's for one file at a time.
+ * matter, or by its id, as media fields name it (D-773). It reads the
+ * documents, so it's for one file at a time. Kept in a database, only
+ * the Markdown is searched.
  */
 final readonly class MediaUsage
 {
@@ -44,13 +46,15 @@ final readonly class MediaUsage
 
 	/**
 	 * The entries that use a file, by its path in `user/media`
-	 * (`2026/10/photo.jpg`), or any of `$also` (an image's sizes, D-488), each with its `id` (`null` without one), `path` (its document's path), `type` (the type's name), `typeLabel`,
+	 * (`2026/10/photo.jpg`), any of `$also` (an image's sizes, D-488), or
+	 * its `$id`, each with its `id` (`null` without one), `path` (its document's path), `type` (the type's name), `typeLabel`,
 	 * `title` (the document's path when it isn't indexed), and `type`
 	 * (the type's singular label, or `''`).
 	 *
+	 * @param  list<string> $also
 	 * @return list<array{id: ?string, path: string, title: string, type: string, typeLabel: string}>
 	 */
-	public function entries(string $relative, string ...$also): array
+	public function entries(string $relative, array $also = [], ?string $id = null): array
 	{
 		$paths = array_values(array_filter(array_map(static fn (string $path): string => trim($path, '/'), [$relative, ...$also]), static fn (string $path): bool => $path !== ''));
 
@@ -60,7 +64,9 @@ final readonly class MediaUsage
 
 		$names   = array_unique([...$paths, ...array_map(UrlPath::encode(...), $paths)]);
 		$prefix  = '(?:' . preg_quote($this->config->url, '#') . '|/?user/media)/';
-		$pattern = '#' . $prefix . '(?:' . implode('|', array_map(static fn (string $name): string => preg_quote($name, '#'), $names)) . ')(?![A-Za-z0-9._%~-])#';
+		$pattern = '#' . $prefix . '(?:' . implode('|', array_map(static fn (string $name): string => preg_quote($name, '#'), $names)) . ')(?![A-Za-z0-9._%~-])'
+			. ($id === null || $id === '' ? '' : '|(?i:(?<![0-9a-f-])' . preg_quote(strtolower($id), '#') . '(?![0-9a-f-]))')
+			. '#';
 		$found   = [];
 
 		if (! $this->contentFiles->kept()) {

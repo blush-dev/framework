@@ -1,0 +1,3435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A clickable sketch of the Blush admin's Fields screens: the field set list, a set's own screen with its field tree and in-place editing, and the entry editor it produces.">
+<!--
+  Blush — the Fields screens, 2026-10-11
+
+  A sketch, not an implementation: the data lives in the script and nothing is
+  saved anywhere. It is one self-contained file, so open it in any browser.
+
+  Two themes, two schemes. Set them on <html>:
+    data-admin-theme="editorial"   the warm, serif theme
+    data-theme="dark"              force dark; data-theme="light" forces light
+  Left alone it follows the system's light or dark setting.
+-->
+<title>Blush Fields</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* ---------------------------------------------------------------- neutral -- */
+/* Default admin theme. Cool gray chrome, cobalt accent, dense rows. */
+:root {
+  --bg:             #f5f6f9;
+  --surface:        #ffffff;
+  --surface-2:      #f0f2f6;
+  --surface-3:      #e7eaf0;
+
+  --border:         #e2e5ec;
+  --border-strong:  #ccd2dd;
+
+  --fg:             #11141b;
+  --fg-2:           #535b6b;
+  --fg-3:           #858d9d;
+
+  --accent:         #2f5fe0;
+  --accent-hover:   #2650c4;
+  --accent-fg:      #ffffff;
+  --accent-soft:    #e9effc;
+  --accent-line:    #bdcdf7;
+
+  --good:           #136b43;  --good-soft:   #e2f3e9;  --good-dot:   #1f9d5f;
+  --warn:           #8a5806;  --warn-soft:   #faf0d9;  --warn-dot:   #cf8d16;
+  --danger:         #a92420;  --danger-soft: #fbeae9;  --danger-dot: #d6403a;
+
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3: 0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+
+  --r-1: 6px;   --r-2: 10px;  --r-3: 16px;
+
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px;  --s-4: 18px;
+  --s-5: 26px; --s-6: 36px; --s-7: 52px;
+
+  --font-ui:      "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:   "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --base:         13px;
+  --h1:           26px;
+  --h1-track:     -.024em;
+  --title-size:   13.5px;
+  --title-weight: 500;
+  --title-track:  -.005em;
+
+  --pad-row:   14px;
+  --pad-panel: 17px;
+  --pad-x:     22px;
+  --ctl:       34px;
+  --ctl-sm:    30px;
+  --stat-v:    30px;
+
+  --railbar:   74px;
+  --rail:      262px;
+  --bar:       62px;
+  --work-max:  1400px;
+  --measure:   72ch;
+
+  /* A scrim darkens, so its agent is --fg in light and --bg in dark. There is
+     no token for it yet; filed in 50-open-questions.md. */
+  --scrim: rgba(17, 20, 27, .42);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"]) {
+    --bg:            #0b0d12;
+    --surface:       #13161d;
+    --surface-2:     #1a1e27;
+    --surface-3:     #222733;
+    --border:        #242936;
+    --border-strong: #353c4c;
+    --fg:            #e9ebf0;
+    --fg-2:          #a3abba;
+    --fg-3:          #747d8e;
+    --accent:        #7295f7;
+    --accent-hover:  #8aa8f9;
+    --accent-fg:     #0b0d12;
+    --accent-soft:   #182444;
+    --accent-line:   #2c3d68;
+    --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+    --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+    --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+    --shadow-1: none;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    --scrim: rgba(3, 4, 7, .58);
+    color-scheme: dark;
+  }
+}
+
+:root[data-color-scheme="dark"],
+:root[data-theme="dark"]:not([data-color-scheme="light"]) {
+  --bg:            #0b0d12;
+  --surface:       #13161d;
+  --surface-2:     #1a1e27;
+  --surface-3:     #222733;
+  --border:        #242936;
+  --border-strong: #353c4c;
+  --fg:            #e9ebf0;
+  --fg-2:          #a3abba;
+  --fg-3:          #747d8e;
+  --accent:        #7295f7;
+  --accent-hover:  #8aa8f9;
+  --accent-fg:     #0b0d12;
+  --accent-soft:   #182444;
+  --accent-line:   #2c3d68;
+  --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+  --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+  --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  --scrim: rgba(3, 4, 7, .58);
+  color-scheme: dark;
+}
+
+/* -------------------------------------------------------------- editorial -- */
+/* Second bundled theme. Warm paper, teal accent, serif titles, looser rows. */
+:root[data-admin-theme="editorial"] {
+  --bg:            #f6f2ec;
+  --surface:       #fffdfa;
+  --surface-2:     #f1ece3;
+  --surface-3:     #e7e0d4;
+  --border:        #e5ded2;
+  --border-strong: #cdc3b3;
+  --fg:            #23201b;
+  --fg-2:          #5d564c;
+  --fg-3:          #8e867a;
+  --accent:        #17595e;
+  --accent-hover:  #124a4e;
+  --accent-fg:     #fffdfa;
+  --accent-soft:   #e2eded;
+  --accent-line:   #b6d3d5;
+  --good:   #4c6d2c;  --good-soft:   #edf1e2;  --good-dot:   #6f9b45;
+  --warn:   #8a5a14;  --warn-soft:   #f8eeda;  --warn-dot:   #c58a2a;
+  --danger: #9c3327;  --danger-soft: #f8e7e2;  --danger-dot: #c2503f;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3: 0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --scrim: rgba(35, 32, 27, .42);
+
+  --r-1: 8px;  --r-2: 12px;  --r-3: 20px;
+
+  --font-ui:      "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:   "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+
+  --base: 13.5px;
+  --h1: 32px;  --h1-track: -.014em;
+  --title-size: 15.5px;  --title-weight: 500;  --title-track: 0;
+
+  --pad-row: 16px;  --pad-panel: 19px;  --pad-x: 26px;  --stat-v: 34px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"])[data-admin-theme="editorial"] {
+    --bg:            #15120e;
+    --surface:       #1d1915;
+    --surface-2:     #26211a;
+    --surface-3:     #322b22;
+    --border:        #302a21;
+    --border-strong: #463e31;
+    --fg:            #f0e9dd;
+    --fg-2:          #b4a996;
+    --fg-3:          #877c6c;
+    --accent:        #72bec2;
+    --accent-hover:  #8bcccf;
+    --accent-fg:     #15120e;
+    --accent-soft:   #113032;
+    --accent-line:   #1d4a4d;
+    --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+    --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+    --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+    --shadow-1: none;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    --scrim: rgba(8, 6, 4, .58);
+    color-scheme: dark;
+  }
+}
+
+:root[data-color-scheme="dark"][data-admin-theme="editorial"],
+:root[data-theme="dark"]:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:            #15120e;
+  --surface:       #1d1915;
+  --surface-2:     #26211a;
+  --surface-3:     #322b22;
+  --border:        #302a21;
+  --border-strong: #463e31;
+  --fg:            #f0e9dd;
+  --fg-2:          #b4a996;
+  --fg-3:          #877c6c;
+  --accent:        #72bec2;
+  --accent-hover:  #8bcccf;
+  --accent-fg:     #15120e;
+  --accent-soft:   #113032;
+  --accent-line:   #1d4a4d;
+  --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+  --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+  --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  --scrim: rgba(8, 6, 4, .58);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);
+  line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+[hidden]{display:none!important}
+.scrim-nav,dialog.modal::backdrop{background:var(--scrim)}
+.tag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:var(--r-1);
+  font-size:11px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);white-space:nowrap}
+
+/* --- reset and utilities (menus.css 100-110) --- */
+h1,h2,h3,p,ul,ol{margin:0;padding:0}
+ul,ol{list-style:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+code{font-family:var(--font-mono)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* --- shell (menus.css 125-167) --- */
+/* ================= shell ================= */
+.app{display:flex;flex:1;min-height:0}
+.railbar{width:var(--railbar);flex:none;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;padding:var(--s-3) 0;gap:var(--s-1);z-index:2}
+.rb-mark{width:34px;height:34px;border-radius:var(--r-2);background:var(--fg);color:var(--bg);display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:-.02em;margin-bottom:var(--s-3);flex:none}
+.rb{width:60px;padding:10px 2px 8px;border-radius:var(--r-2);display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:var(--fg-3);font-size:9.5px;font-weight:500;line-height:1.2;text-align:center}
+.rb .ic{width:19px;height:19px;stroke-width:1.5}
+.rb:hover{background:var(--surface-2);color:var(--fg-2)}
+.rb[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.rail{width:var(--rail);flex:none;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sec-head{display:flex;align-items:center;padding:var(--s-4);border-bottom:1px solid var(--border);min-height:var(--bar);flex:none}
+.sec-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sec-head .sub{display:block;font-size:11px;color:var(--fg-3);font-weight:400;font-family:var(--font-ui);letter-spacing:0;margin-top:2px}
+.nav{flex:1;overflow-y:auto;padding:var(--s-3);display:flex;flex-direction:column;gap:3px;min-height:0}
+.nav-group-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-5) var(--s-2) var(--s-2)}
+.nav-group-label:first-child{padding-top:var(--s-1)}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--r-1);color:var(--fg-2);width:100%;text-align:left;font-size:13px;position:relative}
+.nav-item:hover{background:var(--surface-2);color:var(--fg)}
+.nav-item .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item[aria-current="page"]{background:var(--surface-2);color:var(--fg);font-weight:500}
+.nav-item[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+.nav-count{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.nav-count.alert{color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:99px;font-weight:500}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.topbar{height:var(--bar);flex:none;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4)}
+.icon-btn{width:32px;height:32px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2);flex:none}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.burger{display:none}
+.crumbs{display:flex;align-items:center;gap:2px;min-width:0;font-size:13px;color:var(--fg-3)}
+.crumbs .sep{color:var(--border-strong);flex:none;padding:0 2px}
+.crumbs .crumb{flex:0 1 auto;min-width:0;padding:4px 7px;border-radius:var(--r-1);color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs .crumb:hover{background:var(--surface-2);color:var(--fg)}
+.crumbs .here{flex:none;padding:4px 2px;color:var(--fg);font-weight:500;white-space:nowrap}
+.topbar .spacer{flex:1}
+.kbar{display:flex;align-items:center;gap:8px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);color:var(--fg-3);background:var(--bg);min-width:220px}
+.kbar span{flex:1;text-align:left;font-size:12.5px}
+kbd{font-family:var(--font-mono);font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 4px;color:var(--fg-3);background:var(--surface)}
+.avatar{width:29px;height:29px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;flex:none}
+.work{flex:1;overflow-y:auto;min-height:0}
+.wrap{padding:var(--s-6) var(--s-6) 96px;max-width:var(--work-max);margin:0 auto}
+.scrim-nav{display:none}
+
+/* --- page parts, buttons, panel, pill, table (menus.css 169-227) --- */
+/* ================= page parts (as in the prototype) ================= */
+.page-head{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)}
+.page-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;letter-spacing:var(--h1-track);text-wrap:balance;line-height:1.2}
+.page-head .sub{color:var(--fg-2);font-size:13px;margin-top:7px;max-width:70ch;line-height:1.6}
+.page-head .sub code{font-size:12px}
+.page-head .sub.facts{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.page-head .acts{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center;padding-top:3px}
+.unsaved{font-size:11.5px;color:var(--fg-3);display:inline-flex;align-items:center;gap:6px}
+.unsaved .d{width:6px;height:6px;border-radius:99px;background:var(--warn-dot)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn-ghost:hover{background:var(--surface-2);border-color:transparent;color:var(--fg)}
+.btn-danger{color:var(--danger)}
+.btn-danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
+.btn-danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn-danger-fill:hover{background:var(--danger);opacity:.9}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn.icon{width:var(--ctl-sm);padding:0;justify-content:center}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3)}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border);min-height:58px;flex-wrap:wrap}
+.panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.panel-head .end{margin-left:auto;display:flex;align-items:center;gap:8px}
+.panel-body{padding:var(--s-4) var(--pad-x) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+.stack{display:flex;flex-direction:column;gap:var(--s-4)}
+.link{color:var(--accent);font-weight:500}
+.link:hover{text-decoration:underline}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px 0 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid transparent;vertical-align:middle}
+.pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.good .d{background:var(--good-dot)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.warn .d{background:var(--warn-dot)}
+.pill.danger{background:var(--danger-soft);color:var(--danger)} .pill.danger .d{background:var(--danger-dot)}
+.pill.neutral{background:var(--surface-2);color:var(--fg-2);border-color:var(--border)} .pill.neutral .d{background:var(--border-strong)}
+/* A location chip is a label, not a status: no dot. */
+.loc{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:var(--r-1);font-size:11px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);white-space:nowrap}
+.loc .ic{width:12px;height:12px;color:var(--fg-3)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:640px}
+thead th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);padding:13px var(--pad-x);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+.t-title{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-title:hover{color:var(--accent)}
+.t-slug{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px}
+.quiet{color:var(--fg-3);font-size:12px}
+.row-more{opacity:0;width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3)}
+tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opacity:1}
+.row-more:hover{background:var(--surface-3);color:var(--fg)}
+@media (hover:none){.row-more{opacity:1}}
+
+/* --- the drawn select, and menus (menus.css 239-263) --- */
+/* The drawn select: a button that names the value and opens a .menu. */
+.xs{display:flex;align-items:center;gap:var(--s-2);width:100%;height:var(--ctl);padding:0 10px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;color:var(--fg);text-align:left}
+.xs:hover{border-color:var(--border-strong)}
+.xs .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xs .v.def{color:var(--fg-2)}
+.xs .ic{color:var(--fg-3)}
+.xs[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* Menus and popovers */
+.menu{position:fixed;z-index:60;min-width:212px;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:7px}
+.menu button{display:flex;align-items:center;gap:11px;width:100%;padding:8px 11px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);text-align:left}
+.menu button:hover,.menu button:focus-visible{background:var(--surface-2);color:var(--fg);outline:0}
+.menu button.danger{color:var(--danger)}
+.menu button.danger:hover{background:var(--danger-soft)}
+.menu button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent)}
+.menu button .l{flex:1;min-width:0}
+.menu button .ds{display:block;font-size:11px;color:var(--fg-3);line-height:1.45;margin-top:1px}
+.menu button[aria-checked="true"] .ds{color:var(--accent)}
+.menu button .tail{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.menu.wide{min-width:288px}
+.menu.wide button{align-items:flex-start;padding:9px 11px}
+.menu.wide .ic{margin-top:2px}
+.menu .div{height:1px;background:var(--border);margin:7px -7px}
+.menu .sec{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:10px 11px 4px}
+.menu .sec:first-child{padding-top:4px}
+
+/* --- forms (menus.css 265-308) --- */
+/* Forms */
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field > label,.field > .lab{font-size:12px;color:var(--fg-2);font-weight:500;display:flex;align-items:center;gap:var(--s-2)}
+.field .hint{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.inp{height:var(--ctl);border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);padding:0 12px;font-size:12.5px;outline:none;width:100%;color:var(--fg)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.inp::placeholder{color:var(--fg-3)}
+.inp.mono{font-size:12px}
+textarea.inp{height:auto;padding:9px 12px;resize:vertical;min-height:64px;line-height:1.5}
+.inp[readonly]{background:var(--surface-2);color:var(--fg-2)}
+.inp-row{display:flex;gap:var(--s-2);align-items:center}
+.inp-row .inp{flex:1;min-width:0}
+.lang{display:inline-flex;margin-left:auto;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden}
+.lang button{font-family:var(--font-mono);font-size:10.5px;padding:1px 7px;color:var(--fg-3)}
+.lang button + button{border-left:1px solid var(--border)}
+.lang button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.lang button .fill{display:inline-block;width:4px;height:4px;border-radius:99px;background:var(--accent);margin-left:4px;vertical-align:2px}
+.ref{display:flex;align-items:center;gap:var(--s-3);padding:9px 10px 9px 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg)}
+.ref .ic{color:var(--fg-3)}
+.ref .rt{flex:1;min-width:0}
+.ref .rt b{display:block;font-weight:500;font-size:12.5px}
+.ref .rt code{display:block;font-size:10.5px;color:var(--fg-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.check{display:flex;align-items:flex-start;gap:11px;cursor:pointer;padding:3px 0}
+.check input{position:absolute;opacity:0;width:1px;height:1px}
+.check .box{width:16px;height:16px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;background:var(--surface);flex:none;margin-top:1px;color:transparent}
+.check .box .ic{width:11px;height:11px;stroke-width:2.6}
+.check input:checked + .box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.check input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.check .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.check .tx b{font-weight:500;font-size:12.5px}
+.check .tx span{font-size:11.5px;color:var(--fg-3);line-height:1.45}
+.fold{border-top:1px solid var(--border);padding-top:var(--s-3)}
+.fold > summary{cursor:pointer;font-size:12px;font-weight:500;color:var(--fg-2);display:flex;align-items:center;gap:6px;list-style:none}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary .ic{width:12px;height:12px;transition:transform .12s}
+.fold[open] > summary .ic{transform:rotate(90deg)}
+.fold > .fold-body{display:flex;flex-direction:column;gap:var(--s-4);padding-top:var(--s-4)}
+.fgroup{border:1px solid var(--border);border-radius:var(--r-2);padding:var(--s-3) var(--s-4) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.fgroup-h{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);display:flex;align-items:center;gap:6px}
+.fgroup-h .ic{width:12px;height:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+@media (max-width:520px){.two-col{grid-template-columns:1fr}}
+.snippet{display:flex;align-items:center;gap:var(--s-2);padding:6px 6px 6px 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2)}
+.snippet code{flex:1;min-width:0;font-size:12px;overflow-x:auto;white-space:nowrap}
+
+/* --- the item tree (menus.css 322-349) --- */
+/* --- the item tree: the one new component. Rows are flat; aria-level and the
+   indent carry the nesting, the way the Pages tree does. --- */
+.mtree{position:relative;padding:var(--s-2) 0;--limit:99;--indent:22px;--lead:calc(var(--pad-x) - 8px + 18px + var(--s-2))}
+.mt-item{position:relative;outline:0}
+.mt-row{display:flex;align-items:center;gap:var(--s-2);padding:10px var(--pad-x) 10px calc(var(--pad-x) - 8px);min-height:54px;position:relative;cursor:default;user-select:none}
+.mt-item:hover > .mt-row{background:var(--surface-2)}
+.mt-item[aria-selected="true"] > .mt-row{background:var(--accent-soft)}
+.mt-item:focus-visible > .mt-row{box-shadow:inset 0 0 0 2px var(--accent)}
+.mt-grip{width:18px;height:28px;display:grid;place-items:center;color:var(--fg-3);cursor:grab;flex:none;opacity:.55}
+.mt-item:hover .mt-grip,.mt-item[aria-selected="true"] .mt-grip{opacity:1}
+.mt-ind{flex:none;width:calc(var(--d) * var(--indent))}
+.twist{width:18px;height:18px;flex:none;display:grid;place-items:center;color:var(--fg-3);border-radius:4px}
+.twist:hover{background:var(--surface-3);color:var(--fg)}
+.twist .ic{width:12px;height:12px;transition:transform .12s}
+.twist[aria-expanded="true"] .ic{transform:rotate(90deg)}
+.twist.leaf{visibility:hidden}
+.mt-kind{width:26px;height:26px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);flex:none}
+.mt-item[aria-selected="true"] .mt-kind{background:var(--surface);border-color:var(--accent-line);color:var(--accent)}
+.mt-kind .ic{width:14px;height:14px}
+.mt-main{flex:1;min-width:0}
+.mt-t{display:flex;align-items:baseline;gap:var(--s-2);min-width:0}
+.mt-t .tt{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-t .tt.heading{text-transform:uppercase;font-family:var(--font-ui);font-size:11px;letter-spacing:.07em;font-weight:600;color:var(--fg-2)}
+.mt-t .ovr{flex:none;font-size:10.5px;color:var(--fg-3);border:1px dashed var(--border-strong);border-radius:4px;padding:0 5px;white-space:nowrap}
+.mt-s{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-3);margin-top:2px;min-width:0}
+.mt-s code{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mt-s s{text-decoration-thickness:1px}
+.mt-chips{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+
+/* --- drop indication while dragging (menus.css 358-364) --- */
+/* Drop indication while dragging. */
+.mt-item.drop-before > .mt-row::before,.mt-item.drop-after > .mt-row::after{content:"";position:absolute;left:calc(var(--lead) + var(--dd,0) * var(--indent));right:var(--pad-x);height:2px;background:var(--accent);border-radius:2px}
+.mt-item.drop-before > .mt-row::before{top:-1px}
+.mt-item.drop-after > .mt-row::after{bottom:-1px}
+.mt-item.drop-in > .mt-row{box-shadow:inset 0 0 0 2px var(--accent);background:var(--accent-soft)}
+.mt-item.dragging{opacity:.4}
+@media (max-width:640px){.mt-chips{display:none}.mtree{--indent:16px}}
+
+/* --- empty states (menus.css 389-404) --- */
+/* Empty states */
+.empty{padding:72px var(--s-5) 64px;text-align:center;color:var(--fg-2);display:flex;flex-direction:column;align-items:center}
+.empty > .ic{width:26px;height:26px;color:var(--fg-3);margin-bottom:var(--s-4)}
+.empty h3{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--fg);margin-bottom:7px}
+.empty p{font-size:12.5px;color:var(--fg-3);max-width:48ch;line-height:1.6}
+.empty .acts{display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:center;margin-top:var(--s-5)}
+.empty .or{margin-top:var(--s-6);padding-top:var(--s-4);border-top:1px solid var(--border);width:min(440px,100%);display:flex;flex-direction:column;gap:var(--s-2);align-items:stretch}
+.empty .or .k{font-size:11.5px;color:var(--fg-3)}
+.seed{display:flex;align-items:center;gap:var(--s-3);padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-2);text-align:left;background:var(--surface)}
+.seed:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.seed .ic{color:var(--fg-3)}
+.seed .l{flex:1;min-width:0}
+.seed .l b{display:block;font-size:12.5px;font-weight:500;color:var(--fg)}
+.seed .l span{font-size:11.5px;color:var(--fg-3)}
+.empty.compact{padding:var(--s-6) var(--s-5)}
+.empty.compact h3{font-size:14.5px}
+
+/* --- notice line (menus.css 406-408) --- */
+/* Notice line (theme details on an inactive theme) */
+.notice{display:flex;gap:var(--s-2);align-items:flex-start;padding:12px var(--pad-x);background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;color:var(--fg-2)}
+.notice .ic{width:14px;height:14px;margin-top:2px;color:var(--fg-3)}
+
+/* --- modal, pick list, search (menus.css 418-444) --- */
+/* Modal */
+dialog.modal{border:0;padding:0;background:var(--surface);color:var(--fg);border-radius:var(--r-3);box-shadow:var(--shadow-3);width:min(480px,calc(100vw - 32px));max-height:calc(100% - 48px)}
+dialog.modal::backdrop{background:rgba(17,20,27,.32)}
+.modal-h{padding:var(--s-5) var(--s-5) var(--s-2)}
+.modal-h h2{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.modal-h p{font-size:12.5px;color:var(--fg-2);margin-top:6px;line-height:1.55}
+.modal-b{padding:var(--s-3) var(--s-5) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+.modal-f{display:flex;gap:var(--s-2);justify-content:flex-end;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);background:var(--bg);border-radius:0 0 var(--r-3) var(--r-3);flex-wrap:wrap}
+.use-list{border:1px solid var(--border);border-radius:var(--r-2)}
+.use-h{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:10px 14px 6px}
+.use-row{display:flex;align-items:center;gap:var(--s-3);padding:9px 14px;border-top:1px solid var(--border);font-size:12.5px}
+.use-h + .use-row{border-top:0}
+.use-row .ic{color:var(--fg-3)}
+.use-row .l{flex:1;min-width:0}
+.use-row code{font-size:10.5px;color:var(--fg-3)}
+.pick-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);max-height:280px;overflow:auto}
+.pick-row{display:flex;align-items:center;gap:var(--s-3);padding:10px 12px;border-top:1px solid var(--border);text-align:left;width:100%}
+.pick-row:first-child{border-top:0}
+.pick-row:hover{background:var(--surface-2)}
+.pick-row[aria-checked="true"]{background:var(--accent-soft)}
+.pick-row .ic{color:var(--fg-3)}
+.pick-row .l{flex:1;min-width:0}
+.pick-row .l b{display:block;font-weight:500;font-size:12.5px}
+.pick-row .l code{font-size:10.5px;color:var(--fg-3)}
+.search{display:flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);color:var(--fg-3)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{border:0;background:none;outline:none;flex:1;min-width:0;font-size:12.5px;color:var(--fg)}
+
+/* --- toasts: the border is the countdown (menus.css 446-466) --- */
+/* Toasts: the border is the countdown. */
+.toasts{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;display:flex;flex-direction:column;gap:var(--s-2);align-items:flex-end;pointer-events:none}
+.toast{position:relative;pointer-events:auto;display:flex;align-items:center;gap:var(--s-3);background:var(--surface);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:11px 11px 11px 15px;font-size:12.5px;max-width:min(420px,calc(100vw - 32px))}
+.toast > .ic{color:var(--good-dot)}
+.toast.info > .ic{color:var(--accent)}
+.toast .msg{min-width:0;flex:1;line-height:1.45}
+.toast .div{flex:none;width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+.toast .undo{flex:none;display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px;border-radius:var(--r-1);font-size:12px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast-ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.toast-ring rect{x:.75px;y:.75px;width:calc(100% - 1.5px);height:calc(100% - 1.5px);rx:calc(var(--r-2) - .75px);fill:none;stroke-width:1.5}
+.toast-ring .track{stroke:var(--border)}
+.toast-ring .run{stroke:var(--good-dot);stroke-dasharray:100;stroke-dashoffset:0}
+.toast.info .toast-ring .run{stroke:var(--accent)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:rise .16s ease-out}
+  .toast-ring .run{animation:toast-run var(--life,2600ms) linear forwards}
+  .toast.held .toast-ring .run{animation-play-state:paused}
+}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes toast-run{to{stroke-dashoffset:100}}
+
+/* --- breakpoints (menus.css 468-484) --- */
+@media (max-width:860px){
+  .railbar,.rail{position:fixed;top:0;bottom:0;z-index:52;transform:translateX(-100%);transition:transform .18s ease}
+  .railbar{left:0}
+  .rail{left:var(--railbar);box-shadow:var(--shadow-3);transform:translateX(calc(-100% - var(--railbar)))}
+  .app.nav-open .railbar,.app.nav-open .rail{transform:translateX(0)}
+  .app.nav-open .scrim-nav{display:block;position:fixed;inset:0;z-index:51;background:rgba(17,20,27,.28)}
+  .burger{display:grid}
+}
+@media (max-width:640px){
+  .wrap{padding:var(--s-5) var(--s-4) 80px}
+  .kbar{min-width:0;width:var(--ctl);padding:0;justify-content:center}
+  .kbar span,.kbar kbd{display:none}
+  .crumbs .crumb-sec,.crumbs .crumb-sec + .sep{display:none}
+  .page-head h1{font-size:22px}
+  .panel-head .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* --- menu height (menus.css 487-487) --- */
+.menu{max-height:min(440px,70vh);overflow:auto}
+
+/* --- one line per row (menus.css 494-506) --- */
+/* One line per row. No address: the kind tile says what it is, the Item fields say where. */
+.mt-row{min-height:50px;padding-block:8px}
+.mt-pick{flex:1;min-width:0;display:flex;align-items:center;gap:var(--s-2);text-align:left;border-radius:var(--r-1);padding:2px 0;cursor:pointer}
+.mt-pick:focus-visible{outline:none}
+.mt-item:has(> .mt-row .mt-pick:focus-visible) > .mt-row,
+.mt-item:has(> .mt-row .rn-inp:focus) > .mt-row{box-shadow:inset 0 0 0 2px var(--accent)}
+.mt-item.sel > .mt-row{background:var(--accent-soft)}
+.mt-item.sel .mt-kind{background:var(--surface);border-color:var(--accent-line);color:var(--accent)}
+.mt-item:hover > .mt-row{background:var(--surface-2)}
+.mt-item.sel:hover > .mt-row{background:var(--accent-soft)}
+.mt-t{align-items:center;flex-wrap:nowrap}
+.mt-sub{flex:none;font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.mt-item.editing > .mt-row{background:var(--surface-2);border-bottom:1px dashed var(--border)}
+
+/* --- row buttons (menus.css 508-518) --- */
+/* Row buttons, with names that show on hover and on keyboard focus. */
+.rowctl{display:flex;gap:2px;flex:none;align-items:center}
+.rowctl .sp{width:1px;height:18px;background:var(--border);margin:0 4px}
+.rb2{position:relative;width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2)}
+.rb2:hover{background:var(--surface-3);color:var(--fg)}
+.rb2[disabled]{opacity:.32;pointer-events:none}
+.rb2[aria-expanded="true"]{background:var(--accent);color:var(--accent-fg)}
+.rb2[data-tip]:hover::after,.rb2[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);right:0;z-index:20;
+  white-space:nowrap;font-size:11px;font-weight:500;line-height:1.3;padding:5px 8px;border-radius:var(--r-1);background:var(--fg);color:var(--bg);pointer-events:none}
+.tree-hover .mt-item:not(.sel):not(.editing):not(:hover):not(:focus-within) .rowctl > *{visibility:hidden}
+@media (hover:none){.tree-hover .mt-item:not(.sel):not(.editing) .rowctl{display:none}}
+
+/* --- the form's footer (menus.css 546-548) --- */
+.ed-foot{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.ed-foot .hint{font-size:11.5px;color:var(--fg-3);margin-right:auto}
+.ins-row{display:flex;gap:var(--s-2);flex-wrap:wrap}
+
+/* --- one-column layout (menus.css 551-551) --- */
+.lay-one{max-width:920px;margin-inline:auto}
+
+/* --- back link, meta line (menus.css 636-649) --- */
+.lc-act{margin-top:var(--s-2);font-size:12px;font-weight:500;color:var(--accent)}
+
+/* The Roles screen's frame: back link, title, meta line. */
+.back{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--fg-2);margin-bottom:var(--s-3);padding:2px 4px 2px 0;border-radius:var(--r-1)}
+.back:hover{color:var(--fg)}
+.back .ic{width:14px;height:14px}
+.ph-ref{margin-bottom:var(--s-5)}
+.meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2) 0;margin-top:var(--s-3);font-size:12.5px;color:var(--fg-2)}
+.meta-line .mi{display:inline-flex;align-items:center;gap:6px;padding:0 var(--s-3);border-left:1px solid var(--border)}
+.meta-line .mi:first-child{padding-left:0;border-left:0}
+.meta-line .mi .ic{width:14px;height:14px;color:var(--fg-3)}
+.meta-line code{font-size:12px;color:var(--fg-2)}
+.link-btn{color:var(--accent);font-weight:500;font-size:12.5px}
+.link-btn:hover{text-decoration:underline}
+
+/* --- the open item is one unit (menus.css 713-765) --- */
+/* Actions stay at the top right; the meta line wraps under the title instead. */
+.ph-ref{flex-wrap:nowrap}
+.ph-ref .ph-main{flex:1;min-width:0}
+.ph-ref .acts{flex:none}
+@media (max-width:760px){.ph-ref{flex-wrap:wrap}.ph-ref .acts{margin-left:0}}
+
+/* The open item is one unit: its row and its fields share one tinted ground,
+   and the fields start under the item's title, at its level. */
+.mt-item.editing{background:var(--surface-2);border-block:1px solid var(--border)}
+.mt-item.editing > .mt-row,.mt-item.editing.sel > .mt-row,.mt-item.editing:hover > .mt-row{background:transparent;border-bottom:0}
+.mt-item.editing .mt-kind{background:var(--surface)}
+.mt-edit{margin:0;border:0;border-radius:0;background:transparent;display:block;
+  padding:var(--s-1) var(--pad-x) var(--s-5) calc(var(--pad-x) - 8px + 18px + 18px + 26px + 4 * var(--s-2) + var(--d) * var(--indent))}
+.ed-inner{max-width:680px;display:flex;flex-direction:column;gap:var(--s-4)}
+.ed-row{display:grid;gap:var(--s-4)}
+.ed-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ed-3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+.mt-edit .field{gap:6px}
+.mt-edit .inp{background:var(--surface)}
+.mt-edit .inp:focus{background:var(--surface)}
+.mt-edit textarea.inp{min-height:0}
+.ed-ref{height:var(--ctl);padding:0 4px 0 10px;gap:var(--s-2);background:var(--surface)}
+.ed-ref .rt{display:flex;align-items:baseline;gap:var(--s-2);min-width:0}
+.ed-ref .rt b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:60%}
+.ed-ref .rt code{margin:0;font-size:10.5px}
+.ed-ref .btn.sm{height:calc(var(--ctl) - 8px)}
+.ed-note{font-size:12px;color:var(--fg-3);line-height:1.5;min-height:var(--ctl);display:flex;align-items:center}
+.ed-pick{width:100%;justify-content:flex-start;background:var(--surface)}
+.ed-sub{display:flex;flex-direction:column;gap:var(--s-2);padding-top:var(--s-4);border-top:1px solid var(--border)}
+.ed-sub-h{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.ed-sub-h .ic{width:12px;height:12px}
+.ed-fold{border-top:1px solid var(--border);padding-top:var(--s-3)}
+.ed-fold > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg-2);padding:2px 0}
+.ed-fold > summary::-webkit-details-marker{display:none}
+.ed-fold > summary .ic{width:12px;height:12px;transition:transform .12s}
+.ed-fold[open] > summary .ic{transform:rotate(90deg)}
+.ed-fold > .ed-row{margin-top:var(--s-3)}
+.ed-foot{display:flex;align-items:center;gap:var(--s-3);padding-top:var(--s-1)}
+.ed-foot .hint{font-size:11.5px;color:var(--fg-3);margin-right:auto}
+@media (max-width:640px){
+  .mt-edit{padding-left:var(--pad-x)}
+  .ed-2,.ed-3{grid-template-columns:minmax(0,1fr)}
+}
+
+/* The first row sits straight under the panel head's border. */
+.mtree{padding:0}
+/* An open item: a full-width rule under its row and under its form; the form
+   uses the panel's full width. */
+.mt-item.editing{border-top:0;border-bottom:1px solid var(--border)}
+.mt-item.editing > .mt-row,.mt-item.editing.sel > .mt-row,.mt-item.editing:hover > .mt-row{border-bottom:1px solid var(--border);background:var(--accent-soft)}
+.mt-edit{padding:var(--s-4) var(--pad-x) var(--s-5)}
+.ed-inner{max-width:none}
+.mtree > .mt-item:last-child.editing{border-bottom:0}
+
+/* --- the first row, and the open item's rules (menus.css 757-766) --- */
+/* The first row sits straight under the panel head's border. */
+.mtree{padding:0}
+/* An open item: a full-width rule under its row and under its form; the form
+   uses the panel's full width. */
+.mt-item.editing{border-top:0;border-bottom:1px solid var(--border)}
+.mt-item.editing > .mt-row,.mt-item.editing.sel > .mt-row,.mt-item.editing:hover > .mt-row{border-bottom:1px solid var(--border);background:var(--accent-soft)}
+.mt-edit{padding:var(--s-4) var(--pad-x) var(--s-5)}
+.ed-inner{max-width:none}
+.mtree > .mt-item:last-child.editing{border-bottom:0}
+
+
+/* --- modal rule, kebab, save state, warn note (menus.css 783-812) --- */
+/* Modals: a rule under the heading, as under a panel head. A modal with no
+   body keeps one rule, not two. */
+dialog.modal .modal-h{padding:var(--s-5) var(--s-5) var(--s-4);border-bottom:1px solid var(--border)}
+dialog.modal .modal-b{padding-top:var(--s-4)}
+dialog.modal .modal-h + .modal-f{border-top:0}
+
+/* The overflow trigger: vertical ellipsis, after Save, background only on hover and focus. */
+.kebab{width:var(--ctl);height:var(--ctl);display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-2);background:transparent;border:0}
+.kebab:hover,.kebab:focus-visible,.kebab[aria-expanded="true"]{background:var(--surface-3);color:var(--fg)}
+.save-btn[disabled]{opacity:.5;cursor:default}
+
+/* The last row's ground follows the panel's rounded corners. */
+.mtree > .mt-item:last-child{border-radius:0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px)}
+.mtree > .mt-item:last-child:not(.editing) > .mt-row{border-radius:0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px)}
+.mtree > .mt-item:last-child.editing{border-bottom:0}
+
+/* Icon and Image are buttons, sized to their words. */
+.ed-pick{width:auto;align-self:flex-start}
+/* A rename's consequences, said where the name is changed. */
+.warn-note{display:flex;gap:var(--s-2);align-items:flex-start;margin-top:var(--s-2);padding:var(--s-3);border-radius:var(--r-1);background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.5}
+.warn-note > .ic{width:14px;height:14px;margin-top:2px;flex:none;color:var(--warn-dot)}
+.warn-note > div{display:flex;flex-direction:column;gap:var(--s-2)}
+.warn-note b{font-weight:600}
+.warn-note code{font-size:11px}
+.warn-note .check .tx b{color:var(--fg);font-weight:500}
+.warn-note .check .tx span{color:var(--fg-2)}
+.inp.bad{border-color:var(--danger-dot)}
+.err{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--danger)}
+.err .ic{width:12px;height:12px}
+
+
+/* --- row metrics and button grounds (menus.css 853-872) --- */
+/* Rows: grip, disclosure and kind sit close; the disclosure column stays so
+   titles at one level still line up. */
+.mt-row{gap:var(--s-2)}
+.mt-grip{width:16px}
+.mt-ind{margin-left:calc(var(--s-2) * -1)}
+.twist{width:16px;margin-right:calc(var(--s-1) - var(--s-2))}
+.mtree{--lead:calc(var(--pad-x) - 8px + 16px + var(--s-2))}
+
+/* Row buttons take their ground from the row: a translucent fill reads on
+   white, on the gray hover and on the selected blue alike. Pressed (Edit open,
+   menu open) is a stronger fill in the same ink, not the accent. */
+.rb2:hover,.rb2:focus-visible{background:color-mix(in srgb, var(--fg) 8%, transparent);color:var(--fg)}
+.rb2[aria-expanded="true"]{background:color-mix(in srgb, var(--fg) 12%, transparent);color:var(--fg)}
+.mt-item.sel .rb2{color:var(--accent)}
+.mt-item.sel .rb2[disabled]{color:var(--accent)}
+.mt-item.sel .rb2:hover,.mt-item.sel .rb2:focus-visible{background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent)}
+.mt-item.sel .rb2[aria-expanded="true"]{background:color-mix(in srgb, var(--accent) 22%, transparent);color:var(--accent)}
+.kebab[aria-expanded="true"]{background:color-mix(in srgb, var(--fg) 10%, transparent)}
+.kebab:hover,.kebab:focus-visible{background:color-mix(in srgb, var(--fg) 8%, transparent)}
+.loc-text{font-size:12.5px;color:var(--fg-2)}
+
+/* --- one line per row, always (menus.css 874-907) --- */
+/* One line per row, always. The row's buttons never wrap; the title area
+   measures itself and gives way: first the sub-items count, then the pills,
+   then the title truncates with an ellipsis. */
+@media (max-width:640px){
+  .mt-row{flex-wrap:nowrap}
+  .mt-row > .rowctl{flex-basis:auto;justify-content:flex-start;margin-left:0}
+  .rowctl .rb2{width:28px;height:28px}
+  .rowctl .sp{margin:0 2px}
+}
+.mt-pick{container-type:inline-size;container-name:rowtitle}
+.mt-main,.mt-t{min-width:0}
+.mt-t .tt{min-width:0;flex:0 1 auto}
+@container rowtitle (max-width: 240px){ .mt-sub{display:none} }
+@container rowtitle (max-width: 170px){ .mt-t .pill{display:none} }
+
+/* Narrow screens: the grip goes (dragging is a pointer gesture; the arrows do
+   the same job by touch), buttons tighten, and the title keeps a floor. */
+@media (max-width:640px){
+  .mt-row{padding-right:10px;gap:6px}
+  .mt-grip{display:none}
+  .mt-ind{margin-left:-6px}
+  .mtree{--indent:14px}
+  .rowctl{gap:0}
+  .rowctl .rb2{width:27px;height:30px}
+  .rowctl .sp{margin:0 1px}
+  .mt-pick{min-width:64px}
+  .ph-ref .ph-main{flex-basis:100%}
+  .ph-ref .acts{width:100%;justify-content:flex-end}
+}
+@container rowtitle (max-width: 120px){ .mt-kind{display:none} }
+@media (max-width:640px){ .mtree{--indent:12px} .mt-pick{min-width:44px} }
+
+/* Plain-text items show their label as written, like any other item. */
+.mt-t .tt.heading{text-transform:none;letter-spacing:var(--title-track);font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);color:var(--fg)}
+
+/* --- the icon picker (menus.css 832-851) --- */
+/* Icon, once one is chosen */
+.ico-set{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl);padding:0 4px 0 6px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);align-self:stretch}
+.ico-prev{width:24px;height:24px;border-radius:var(--r-1);display:grid;place-items:center;background:var(--surface-2);color:var(--fg)}
+.ico-set code{flex:1;font-size:12px;color:var(--fg-2)}
+.ico-set .btn.sm{height:calc(var(--ctl) - 8px)}
+.ico-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:var(--s-2);max-height:320px;overflow:auto}
+.ico-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 9px;border:1px solid var(--border);border-radius:var(--r-1);font-size:11px;color:var(--fg-2)}
+.ico-opt .ic{width:20px;height:20px;color:var(--fg)}
+.ico-opt:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.ico-opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+
+/* Icon: a preview tile you press to change, its name, and quiet actions. */
+.ico-pick{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl)}
+.ico-tile{width:var(--ctl);height:var(--ctl);flex:none;border-radius:var(--r-1);display:grid;place-items:center;border:1px dashed var(--border-strong);color:var(--fg-3);background:transparent;position:relative}
+.ico-tile:hover{border-color:var(--fg-3);color:var(--fg)}
+.ico-tile.set{border-style:solid;border-color:var(--border);background:var(--surface);color:var(--fg)}
+.ico-tile.set .ic{width:18px;height:18px}
+.ico-tile.set:hover{border-color:var(--accent);color:var(--accent)}
+.ico-name{font-family:var(--font-mono);font-size:12px;color:var(--fg);margin:0 var(--s-1) 0 2px}
+.ico-pick .btn-ghost.sm{padding:0 8px}
+
+
+/* ================= the Fields screens ================= */
+/* Everything above is lifted from the menus sketch. What follows is only what
+   these screens add: the type row and its picker, a repeating group's nested
+   field list, and the document panel's repeating control. */
+
+/* Tabs over a list, as the entry lists have them. */
+.tabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);margin-bottom:var(--s-5);flex-wrap:wrap}
+.tabs button{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;font-size:12.5px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);font-weight:600;border-bottom-color:var(--accent)}
+.tabs .n{font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.tabs button[aria-selected="true"] .n{color:var(--fg-2)}
+
+/* A row's second line: the type in plain words with its main option. */
+/* Required is a chip, not a glyph: it says the word rather than asking anyone
+   to know what an asterisk means. */
+.mt-req{display:inline-flex;align-items:center;height:20px;padding:0 7px;flex:none;
+  border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);
+  font-size:10.5px;font-weight:500;color:var(--fg-2);white-space:nowrap}
+.mt-item.sel .mt-req{border-color:var(--accent-line);color:var(--accent);background:var(--surface)}
+.mt-item:hover > .mt-row .mt-req{border-color:var(--border-strong)}
+/* The title gives way before the chip does: a long label truncates, and only
+   on a really narrow row does Required go. */
+@container rowtitle (max-width: 180px){ .mt-req{display:none} }
+
+/* The Type row in a field's form: what it is, and the way to change it. */
+/* The type box follows the drawn select: the box is the hit area, the chevron
+   says it opens something. */
+.ed-type{display:flex;align-items:center;gap:var(--s-2);width:100%;height:var(--ctl);padding:0 10px 0 12px;
+  border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);text-align:left}
+.ed-type .ic{color:var(--fg-3)}
+.ed-type b{font-weight:500;font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.ed-type:hover{border-color:var(--border-strong);background:var(--surface-2)}
+button.ed-type:hover .ic{color:var(--fg-2)}
+
+/* What a group is, said where someone looks for a default. */
+.ed-note-box{display:flex;gap:var(--s-2);align-items:flex-start;padding:var(--s-3);border-radius:var(--r-1);
+  background:var(--surface-2);color:var(--fg-2);font-size:12px;line-height:1.5}
+.ed-note-box > .ic{width:14px;height:14px;margin-top:2px;flex:none;color:var(--fg-3)}
+
+/* An open group's own fields, moved inside it. The rows are the tree's rows. */
+.kids{border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);overflow:hidden}
+.kids .mt-item{border:0}
+.kids .mt-item + .mt-item,.kids .kids-foot{border-top:1px solid var(--border)}
+.kids .mt-row{padding:6px 8px 6px 6px;min-height:46px}
+.kids .mt-item.editing{background:var(--surface-2)}
+.kids .mt-item.editing > .mt-row{background:var(--accent-soft)}
+.kids .mt-edit{padding:var(--s-3) var(--s-4) var(--s-4)}
+.kids .mt-edit .inp{background:var(--bg)}
+.kids-foot{padding:6px}
+.kids-none{padding:15px;font-size:12px;color:var(--fg-3);text-align:center}
+/* A group that only holds what is open is a frame, not a second open form. */
+.mt-item.holding > .mt-row,.mt-item.holding.sel > .mt-row,.mt-item.holding:hover > .mt-row{background:var(--surface-2)}
+.mt-item.holding{background:var(--surface-2);border-bottom:1px solid var(--border)}
+.mt-edit.slim{padding-top:0}
+
+/* The type picker: about fifteen tiles plus whatever plugins add, so it is a
+   modal with search rather than a menu. */
+.tsec{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-4) 0 var(--s-2)}
+.tsec:first-child{padding-top:0}
+/* An inserter, not a list: a glyph over a name, many to a row. A tile carries
+   no border of its own — pointing at one tints it, and only the one actually
+   chosen is outlined. */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:var(--s-2)}
+.topt{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:12px 8px;min-height:86px;border:1px solid transparent;border-radius:var(--r-2);
+  text-align:center;background:transparent;color:var(--fg)}
+.topt:hover,.topt:focus-visible{background:var(--accent-soft);color:var(--accent)}
+.topt:hover > .ic,.topt:focus-visible > .ic{color:var(--accent)}
+.topt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.topt > .ic{width:20px;height:20px;color:var(--fg-2)}
+.topt[aria-checked="true"] > .ic{color:var(--accent)}
+.topt .tn{font-size:11.5px;font-weight:500;line-height:1.3;text-wrap:balance;color:inherit}
+.topt .new-tag{position:absolute;top:5px;right:5px}
+.new-tag{font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 6px}
+
+/* What the footer says about whatever is under the pointer or the focus ring.
+   It keeps its height so the buttons beside it never move. */
+.tdesc{flex:1;min-width:0;margin-right:var(--s-3);display:flex;flex-direction:column;gap:1px;
+  min-height:34px;justify-content:center;font-size:12px;line-height:1.45}
+.tdesc b{font-weight:600;font-size:12.5px}
+.tdesc span{color:var(--fg-2)}
+.tdesc .q{color:var(--fg-3)}
+.tfoot{display:flex;align-items:flex-start;gap:var(--s-2);margin-top:var(--s-4);padding-top:var(--s-4);border-top:1px solid var(--border);font-size:12px;color:var(--fg-3);line-height:1.5}
+.tfoot .ic{width:14px;height:14px;margin-top:2px;flex:none}
+.tnone{padding:var(--s-5) 0;font-size:12.5px;color:var(--fg-3)}
+
+/* A repeating group's own field list, nested one level inside its form. */
+.nest{border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.nest-row{display:flex;align-items:center;gap:var(--s-2);padding:7px 8px 7px 6px;border-bottom:1px solid var(--border)}
+/* The row before the footer stops at the footer's rule rather than adding its
+   own. :last-of-type counted every div in the box, the footer included, so it
+   never matched the row it was meant to. */
+.nest-row:last-child,.nest-row:has(+ .nest-foot),.nest-row:has(+ .kids-foot){border-bottom:0}
+.nest-row:hover{background:var(--surface-2)}
+.nest-row .mt-kind{width:24px;height:24px}
+.nest-row .nm{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);flex:none}
+.nest-foot{padding:6px;border-top:1px solid var(--border)}
+.nest + .nest-add{margin-top:var(--s-2)}
+.sum-pick{display:flex;gap:6px;flex-wrap:wrap}
+.sum-pick button{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);font-size:11.5px;color:var(--fg-2)}
+.sum-pick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:500}
+.sum-pick .ic{width:12px;height:12px;opacity:0}
+.sum-pick button[aria-pressed="true"] .ic{opacity:1}
+
+/* ================= the entry editor ================= */
+
+.ed-screen{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:100%;min-height:0}
+.ed-screen[data-drawer="closed"]{grid-template-columns:minmax(0,1fr)}
+.ed-screen[data-drawer="closed"] .drawer{display:none}
+.ed-main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.ed-bar{height:50px;flex:none;display:flex;align-items:center;gap:var(--s-2);padding-inline:var(--s-5);border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+.ed-bar .sp{width:1px;height:20px;background:var(--border);margin-inline:var(--s-2);flex:none}
+.ed-bar .spacer{flex:1;min-width:var(--s-4)}
+.tb{width:36px;height:36px;border-radius:var(--r-1);display:inline-flex;align-items:center;justify-content:center;gap:2px;color:var(--fg-2);flex:none}
+.tb .ic{width:18px;height:18px}
+.tb:hover{background:var(--surface-2);color:var(--fg)}
+.tb[data-on]{background:var(--accent-soft);color:var(--accent)}
+.ed-col{overflow-y:auto;flex:1;padding:var(--s-6) var(--s-5)}
+.ed-doc{max-width:68ch;margin:0 auto}
+.ed-title{font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin-bottom:var(--s-5);text-wrap:balance}
+.src{font-family:var(--font-mono);font-size:13px;line-height:28px;white-space:pre-wrap}
+.src .sy{color:var(--fg-3)} .src .hd{font-weight:600} .src .dir{color:var(--accent)}
+.src .at{color:var(--fg-2)} .src .at .nm{color:var(--fg)} .src .cap{font-weight:500}
+.drawer{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.dtabs{display:flex;align-items:center;gap:var(--s-1);flex:none;border-bottom:1px solid var(--border);padding-right:var(--s-2)}
+.dtab{font-size:12.5px;color:var(--fg-2);padding:13px var(--s-3);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.dtab:first-child{padding-left:var(--pad-x)}
+.dtab[aria-selected="true"]{color:var(--fg);font-weight:600;border-bottom-color:var(--accent)}
+.dtabs .spacer{flex:1}
+.dbody{overflow-y:auto;padding-bottom:var(--s-6)}
+
+/* A set is a group in the document panel. Groups open and close. */
+.dgroup{border-bottom:1px solid var(--border)}
+.dgroup-h{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:var(--s-4) var(--pad-x);text-align:left}
+.dgroup-h:hover{background:var(--surface-2)}
+.dgroup-h .chev{width:13px;height:13px;color:var(--fg-3);transition:transform .12s}
+.dgroup-h[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.dgroup-h b{font-size:12.5px;font-weight:600;flex:1;min-width:0}
+.dgroup-h .n{font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.dgroup-b{padding:0 var(--pad-x) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+.dgroup.bad .dgroup-h b{color:var(--danger)}
+
+/* The repeating group control, which has to work in a 372px drawer. */
+.rep{border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.rep-row{display:flex;align-items:center;gap:6px;padding:7px 6px 7px 4px;border-bottom:1px solid var(--border);width:100%;text-align:left}
+.rep-row:hover{background:var(--surface-2)}
+.rep-row[aria-expanded="true"]{background:var(--accent-soft)}
+.rep-row .grip{width:16px;height:24px;display:grid;place-items:center;color:var(--fg-3);cursor:grab;flex:none;opacity:.55}
+.rep-row:hover .grip{opacity:1}
+.rep-sum{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.rep-sum.none{color:var(--fg-3)}
+.rep-more{width:26px;height:26px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3);flex:none}
+.rep-row:hover .rep-more,.rep-more[aria-expanded="true"]{background:color-mix(in srgb,var(--fg) 8%,transparent);color:var(--fg)}
+.rep-open{padding:var(--s-3);background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:var(--s-3)}
+.rep-open .inp{background:var(--surface)}
+.rep-foot{padding:6px}
+.rep-cap{font-size:11.5px;color:var(--fg-3);padding:0 6px 6px}
+
+/* A required field left empty blocks Publish, not Save Draft. */
+.fld-err{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--danger)}
+.fld-err .ic{width:12px;height:12px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;align-self:flex-start}
+.seg button{padding:0 11px;height:var(--ctl);font-size:12.5px;color:var(--fg-2)}
+.seg button + button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.wells{display:flex;gap:var(--s-3)}
+.wells > *{flex:1;min-width:0}
+
+/* The list screen's own bits. */
+.used{display:flex;gap:6px;flex-wrap:wrap}
+.from{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-2)}
+.from .ic{width:13px;height:13px;color:var(--fg-3)}
+.set-note{display:flex;align-items:flex-start;gap:var(--s-2);padding:11px var(--pad-x);border-bottom:1px solid var(--border);background:var(--surface-2);font-size:12px;color:var(--fg-2)}
+.set-note .ic{width:14px;height:14px;margin-top:2px;color:var(--fg-3);flex:none}
+.add-row{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border)}
+
+/* A switch: a real input, visually hidden, with a drawn track beside it. It
+   carries an On/Off word, because a fill alone is status by color. */
+.sw{display:flex;align-items:flex-start;gap:11px;cursor:pointer;padding:3px 0}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw .track{width:30px;height:18px;border-radius:99px;background:var(--surface-3);border:1px solid var(--border-strong);
+  flex:none;margin-top:1px;position:relative;transition:background .12s,border-color .12s}
+.sw .knob{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:99px;background:var(--surface);
+  box-shadow:0 1px 2px rgba(0,0,0,.18);transition:transform .12s}
+.sw input:checked + .track{background:var(--accent);border-color:var(--accent)}
+.sw input:checked + .track .knob{transform:translateX(12px)}
+.sw input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+.sw input:disabled + .track{opacity:.5}
+.sw .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sw .tx b{font-weight:500;font-size:12.5px;display:flex;align-items:baseline;gap:7px}
+.sw .tx span{font-size:11.5px;color:var(--fg-3);line-height:1.45}
+.sw.row{align-items:center}
+.sw.row .tx b{font-weight:400}
+
+/* A switch standing alone in the drawer, with its label above it. */
+.sw-solo{display:flex;align-items:center;gap:var(--s-3)}
+
+/* The key on a row: machine data, quiet, and the second thing to give way. */
+/* Three across, for Lowest / Highest / Step. */
+.three-col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-3)}
+@media (max-width:520px){.three-col{grid-template-columns:1fr}}
+
+/* A number edited as a slider: its ends labelled, its value read out. */
+.slider{display:flex;align-items:center;gap:var(--s-3)}
+.slider input[type="range"]{flex:1;min-width:0;accent-color:var(--accent);height:var(--ctl-sm)}
+.slider-end{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.slider-v{display:block;font-size:12.5px;font-weight:500;margin-top:2px}
+
+/* A modal's body scrolls; its footer stays. */
+dialog.modal{display:flex;flex-direction:column;min-height:0}
+.modal-h,.modal-f{flex:none}
+.modal-b{overflow-y:auto;min-height:0;flex:1}
+/* A search that filters the list belongs with the heading, not inside the
+   list it filters, so it sits in its own band above the scrolling body. */
+.modal-band{flex:none;padding:var(--s-4) var(--s-5) var(--s-3);border-bottom:1px solid var(--border)}
+.modal-band + .modal-b{padding-top:0}
+/* The pointer to Relationships belongs beside the footer's buttons, where
+   someone hunting for a Reference type will still see it. */
+.modal-f .tfoot{margin:0;padding:0;border:0;flex:1;min-width:0;margin-right:var(--s-3)}
+
+/* Choice options: a row each, with a label and a key. */
+.opt-head{display:grid;grid-template-columns:18px minmax(0,1.4fr) minmax(0,1fr) 26px;gap:var(--s-2);
+  padding:6px 8px 6px 6px;border-bottom:1px solid var(--border);
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.opt-row{display:grid;grid-template-columns:18px minmax(0,1.4fr) minmax(0,1fr) 26px;gap:var(--s-2);
+  align-items:center;padding:5px 8px 5px 6px;border-bottom:1px solid var(--border)}
+.opt-row:last-child,.opt-row:has(+ .nest-foot){border-bottom:0}
+.opt-row:hover{background:var(--surface-2)}
+.opt-row .inp{height:var(--ctl-sm);font-size:12px;padding-inline:9px}
+.opt-row .mt-grip{opacity:.55;cursor:grab}
+.opt-row:hover .mt-grip{opacity:1}
+.opt-row.dragging{opacity:.45}
+.opt-row.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.opt-row.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+
+/* The lifted row rules were written for a flat tree, so they reach descendants
+   by name alone: inside a group, the group's own selection was colouring its
+   children's tiles and buttons. A row inside the box answers for itself. */
+.kids .mt-item .mt-kind{background:var(--surface-2);border-color:var(--border);color:var(--fg-2)}
+.kids .mt-item.sel .mt-kind{background:var(--surface);border-color:var(--accent-line);color:var(--accent)}
+.kids .mt-item .rb2{color:var(--fg-2)}
+.kids .mt-item .rb2[disabled]{color:var(--fg-2)}
+.kids .mt-item.sel .rb2,.kids .mt-item.sel .rb2[disabled]{color:var(--accent)}
+.kids .mt-item .rb2:hover,.kids .mt-item .rb2:focus-visible{background:color-mix(in srgb, var(--fg) 8%, transparent);color:var(--fg)}
+.kids .mt-item.sel .rb2:hover,.kids .mt-item.sel .rb2:focus-visible{background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent)}
+.kids .mt-item .mt-req{border-color:var(--border);color:var(--fg-2)}
+.kids .mt-item.sel .mt-req{border-color:var(--accent-line);color:var(--accent)}
+.kids .mt-item .mt-grip{opacity:.55}
+.kids .mt-item:hover .mt-grip,.kids .mt-item.sel .mt-grip{opacity:1}
+
+/* A list held to a set, picked from a menu: the chosen values are tokens, and
+   the button offers what is left. */
+.tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.token{display:inline-flex;align-items:center;gap:2px;height:26px;padding:0 2px 0 9px;border-radius:var(--r-1);
+  border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:500}
+.tkx{width:20px;height:20px;border-radius:4px;display:grid;place-items:center;color:var(--accent)}
+.tkx .ic{width:11px;height:11px;stroke-width:2.2}
+.tkx:hover{background:color-mix(in srgb, var(--accent) 16%, transparent)}
+.token-add{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:var(--r-1);
+  border:1px dashed var(--border-strong);color:var(--fg-2);font-size:11.5px}
+.token-add .ic{width:12px;height:12px}
+.token-add:hover{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.token-add[disabled]{opacity:.45;pointer-events:none}
+.sum-pick button[disabled]{opacity:.55;pointer-events:none}
+
+/* In the author's form a required field is marked, not labelled: the word on
+   every label would shout, and the marker sits where one is looked for. */
+.req-mark{display:inline-flex;align-items:center;color:var(--fg-3);margin-left:5px}
+.req-mark .ic{width:11px;height:11px;stroke-width:2.4}
+
+/* A number box keeps its steppers, and its digits line up with the limits
+   beside it. */
+.num-inp{font-variant-numeric:tabular-nums}
+
+/* A field set can ask to sit in the content column instead of the panel. It
+   keeps the panel's shape there, at the width of what is being written. */
+.ed-slot{max-width:68ch;margin:0 auto;display:flex;flex-direction:column;gap:var(--s-5)}
+.ed-slot:empty{display:none}
+.ed-slot[data-slot="top"]{margin-bottom:var(--s-6)}
+.ed-slot[data-slot="main"]{margin-top:var(--s-6)}
+.ed-panel-b{gap:var(--s-5)}
+
+/* The Type control is a button sized to its words, not a box across the form:
+   the tile says which type, the word says it can be changed. */
+.ed-type{display:inline-flex;align-items:center;gap:var(--s-2);width:auto;align-self:flex-start;
+  height:var(--ctl);padding:0 12px 0 5px;border:1px solid var(--border);border-radius:var(--r-1);
+  background:var(--surface);text-align:left;max-width:100%}
+.ed-type .et-tile{width:24px;height:24px;flex:none;border-radius:5px;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--fg-2)}
+.ed-type .et-tile .ic{width:14px;height:14px}
+.ed-type b{font-weight:500;font-size:12.5px;flex:0 1 auto;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.ed-type .et-do{font-size:11.5px;color:var(--fg-3);padding-left:var(--s-2);margin-left:2px;
+  border-left:1px solid var(--border);flex:none}
+button.ed-type:hover{border-color:var(--accent);background:var(--accent-soft)}
+button.ed-type:hover b,button.ed-type:hover .et-do{color:var(--accent)}
+button.ed-type:hover .et-tile{background:var(--surface);color:var(--accent)}
+button.ed-type:hover .et-do{border-left-color:var(--accent-line)}
+
+/* A group in the author's form: its fields, indented under its heading. */
+.obj{display:flex;flex-direction:column;gap:var(--s-4);padding-left:var(--s-4);
+  border-left:2px solid var(--border);margin-top:2px}
+
+/* Label, Key and Type across one line: the three facts that say what a field
+   is, before anything about how it behaves. The first two share the room; the
+   type takes only what its name needs. */
+/* It shares the grid with the row under it, so the form reads as columns
+   rather than two rows that nearly line up. The type button sizes itself
+   inside its column instead of filling it. */
+.ed-ident{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+/* Narrow enough and three would crush each other, so Type drops under the
+   other two rather than squeezing them. */
+@media (max-width:900px){
+  .ed-ident,.ed-3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .ed-ident > .field:last-child,.ed-3 > *:nth-child(3){grid-column:1 / -1}
+}
+/* This sits after the lifted rules, so it has to restate the phone case or
+   the two-column rule above would outrank it. */
+@media (max-width:640px){
+  .ed-ident,.ed-2,.ed-3{grid-template-columns:minmax(0,1fr)}
+  .ed-ident > .field:last-child,.ed-3 > *:nth-child(3){grid-column:auto}
+}
+
+</style>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol><symbol id="i-entry" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 9H8" /> <path d="M16 13H8" /> <path d="M16 17H8" /></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></symbol><symbol id="i-config" viewBox="0 0 24 24"><path d="M10 5H3" /> <path d="M12 19H3" /> <path d="M14 3v4" /> <path d="M16 17v4" /> <path d="M21 12h-9" /> <path d="M21 19h-5" /> <path d="M21 5h-7" /> <path d="M8 10v4" /> <path d="M8 12H3" /></symbol><symbol id="i-fields" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /> <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" /></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16" /> <path d="M4 12h16" /> <path d="M4 19h16" /></symbol><symbol id="i-addon" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /> <path d="M12 22V12" /> <polyline points="3.29 7 12 12 20.71 7" /> <path d="m7.5 4.27 9 5.15" /></symbol><symbol id="i-media" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /> <circle cx="9" cy="9" r="2" /> <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /> <circle cx="12" cy="12" r="3" /></symbol><symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /> <circle cx="7.5" cy="7.5" r=".5" /></symbol><symbol id="i-page" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /> <path d="M3 9h18" /> <path d="M9 21V9" /></symbol><symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></symbol><symbol id="i-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5" /> <path d="M20 21a8 8 0 0 0-16 0" /></symbol><symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></symbol><symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol><symbol id="i-chev-u" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6" /></symbol><symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7" /> <path d="M19 12H5" /></symbol><symbol id="i-dots-v" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /> <circle cx="12" cy="5" r="1" /> <circle cx="12" cy="19" r="1" /></symbol><symbol id="i-dots-h" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /> <circle cx="19" cy="12" r="1" /> <circle cx="5" cy="12" r="1" /></symbol><symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1" /> <circle cx="9" cy="5" r="1" /> <circle cx="9" cy="19" r="1" /> <circle cx="15" cy="12" r="1" /> <circle cx="15" cy="5" r="1" /> <circle cx="15" cy="19" r="1" /></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14" /> <path d="M12 5v14" /></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6" /> <path d="M14 11v6" /> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /> <path d="M3 6h18" /> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /> <path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <path d="M12 16v-4" /> <path d="M12 8h.01" /></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /> <path d="m15 5 4 4" /></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> <path d="M12 9v4" /> <path d="M12 17h.01" /></symbol><symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" /></symbol><symbol id="i-required" viewBox="0 0 24 24"><path d="M12 5v14" /> <path d="m18.065 8.496-12.125 7" /> <path d="m5.94 8.504 12.125 7" /></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /> <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></symbol><symbol id="i-into" viewBox="0 0 24 24"><path d="m15 10 5 5-5 5" /> <path d="M4 4v7a4 4 0 0 0 4 4h12" /></symbol><symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /> <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" /></symbol><symbol id="i-text" viewBox="0 0 24 24"><path d="M12 4v16" /> <path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2" /> <path d="M9 20h6" /></symbol><symbol id="i-markdown" viewBox="0 0 24 24"><path d="M13 4v16" /> <path d="M17 4v16" /> <path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13" /></symbol><symbol id="i-url" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /> <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></symbol><symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /> <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></symbol><symbol id="i-choice" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /> <circle cx="12" cy="12" r="10" /></symbol><symbol id="i-bool" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /> <path d="m16 9-5.5 5.5L8 12" /></symbol><symbol id="i-number" viewBox="0 0 24 24"><line x1="4" x2="20" y1="9" y2="9" /> <line x1="4" x2="20" y1="15" y2="15" /> <line x1="10" x2="8" y1="3" y2="21" /> <line x1="16" x2="14" y1="3" y2="21" /></symbol><symbol id="i-date" viewBox="0 0 24 24"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></symbol><symbol id="i-color" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" /> <circle cx="13.5" cy="6.5" r=".5" /> <circle cx="17.5" cy="10.5" r=".5" /> <circle cx="6.5" cy="12.5" r=".5" /> <circle cx="8.5" cy="7.5" r=".5" /></symbol><symbol id="i-object" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></symbol><symbol id="i-items" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></symbol><symbol id="i-time" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></symbol><symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><circle cx="9" cy="12" r="3" /> <rect width="20" height="14" x="2" y="5" rx="7" /></symbol><symbol id="i-shapes" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z" /> <rect x="3" y="14" width="7" height="7" rx="1" /> <circle cx="17.5" cy="17.5" r="3.5" /></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /> <circle cx="9" cy="9" r="2" /> <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol><symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" /> <rect x="2" y="6" width="14" height="12" rx="2" /></symbol><symbol id="i-audio" viewBox="0 0 24 24"><path d="M2 10v3" /> <path d="M6 6v11" /> <path d="M10 3v18" /> <path d="M14 8v7" /> <path d="M18 5v13" /> <path d="M22 10v3" /></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /></symbol><symbol id="i-textarea" viewBox="0 0 24 24"><path d="M21 5H3" /> <path d="M15 12H3" /> <path d="M17 19H3" /></symbol><symbol id="i-select" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /> <path d="m16 10-4 4-4-4" /></symbol><symbol id="i-checks" viewBox="0 0 24 24"><path d="M13 5h8" /> <path d="M13 12h8" /> <path d="M13 19h8" /> <path d="m3 17 2 2 4-4" /> <path d="m3 7 2 2 4-4" /></symbol><symbol id="i-multi" viewBox="0 0 24 24"><path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z" /> <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193" /> <circle cx="10.5" cy="6.5" r=".5" /></symbol><symbol id="i-range" viewBox="0 0 24 24"><path d="m12 14 4-4" /> <path d="M3.34 19a10 10 0 1 1 17.32 0" /></symbol></svg>
+
+<div class="app">
+  <div class="railbar">
+    <div class="rb-mark" aria-hidden="true">B</div>
+    <button class="rb" type="button" data-sec="content"><svg class="ic" aria-hidden="true"><use href="#i-entry"/></svg><span>Content</span></button>
+    <button class="rb" type="button" data-sec="structure" aria-current="true"><svg class="ic" aria-hidden="true"><use href="#i-fields"/></svg><span>Structure</span></button>
+    <button class="rb" type="button" data-sec="users"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><span>Users</span></button>
+    <button class="rb" type="button" data-sec="config"><svg class="ic" aria-hidden="true"><use href="#i-config"/></svg><span>Config</span></button>
+  </div>
+
+  <div class="rail">
+    <div class="sec-head"><h2 id="sec-title">Structure</h2></div>
+    <nav class="nav" id="nav" aria-label="Section"></nav>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="icon-btn burger" id="burger" type="button" aria-label="Open the menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <div class="crumbs" id="crumbs"></div>
+      <span class="spacer"></span>
+      <button class="kbar" type="button"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search</span><kbd>&#8984;K</kbd></button>
+      <button class="avatar" id="account" type="button" aria-label="Your account" aria-expanded="false">JT</button>
+    </div>
+    <div class="work" id="work"></div>
+  </div>
+
+  <div class="scrim-nav"></div>
+</div>
+
+<div class="sr" role="status" aria-live="polite" id="live"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   Fields — the model
+
+   A field never stands alone: it belongs to a field set, a named ordered group
+   aimed at one or more content types. Linking entries is a relationship, not a
+   field, so there is no Reference type in the picker.
+   ========================================================================= */
+
+/* One type is one control over one shape of value. There is nothing to pick
+   after the type: a Textarea is a Textarea, a Radio Buttons field is radio
+   buttons. The picker carries the whole decision. */
+var TYPES = {
+  object:      { label: "Group", ic: "i-object", sec: "Structure",
+                 desc: "A few fields kept together under one heading." },
+  items:       { label: "Repeating group", ic: "i-items", sec: "Structure",
+                 desc: "A list of items, each with the same fields." },
+
+  text:        { label: "Text", ic: "i-text", sec: "Text", desc: "One line of plain text." },
+  textarea:    { label: "Textarea", ic: "i-textarea", sec: "Text",
+                 desc: "Several lines of plain text." },
+  markdown:    { label: "Formatted text", ic: "i-markdown", sec: "Text",
+                 desc: "Markdown, with links and emphasis." },
+  url:         { label: "Link", ic: "i-url", sec: "Text", desc: "A web address." },
+  email:       { label: "Email", ic: "i-at", sec: "Text", desc: "An email address." },
+
+  radio:       { label: "Radio Buttons", ic: "i-choice", sec: "Choices",
+                 desc: "One of a set, with every option in view." },
+  select:      { label: "Select Dropdown", ic: "i-select", sec: "Choices",
+                 desc: "One of a set, chosen from a menu." },
+  checkboxes:  { label: "Checkboxes", ic: "i-checks", sec: "Choices",
+                 desc: "Any number from a set, with every option in view." },
+  multiselect: { label: "Multi-Select", ic: "i-multi", sec: "Choices",
+                 desc: "Any number from a set, chosen from a menu." },
+  bool:        { label: "Toggle", ic: "i-toggle", sec: "Choices", desc: "On or off." },
+
+  number:      { label: "Number", ic: "i-number", sec: "Numbers, dates, and color",
+                 desc: "A number typed into a box." },
+  range:       { label: "Range Slider", ic: "i-range", sec: "Numbers, dates, and color",
+                 desc: "A number dragged between two limits." },
+  date:        { label: "Date and time", ic: "i-date", sec: "Numbers, dates, and color",
+                 desc: "A day, with a time if you want one." },
+  color:       { label: "Color", ic: "i-color", sec: "Numbers, dates, and color",
+                 desc: "A color, as hex." },
+
+  image:       { label: "Image", ic: "i-image", sec: "Media", desc: "One picture from the library." },
+  video:       { label: "Video", ic: "i-video", sec: "Media", desc: "One video from the library." },
+  audio:       { label: "Audio", ic: "i-audio", sec: "Media", desc: "One sound file from the library." },
+  file:        { label: "File", ic: "i-file", sec: "Media", desc: "Any other file, to download." },
+  icon:        { label: "Icon", ic: "i-shapes", sec: "Media", desc: "One glyph from the icon set." }
+};
+/* Structure first: what someone adds to a set is usually a field, but when it
+   is a shape they are after, it is the first thing they see. */
+var TSECS = ["Structure", "Text", "Choices", "Numbers, dates, and color", "Media", "From plugins"];
+
+/* A set of options behind the control. */
+var SETTED = ["radio", "select", "checkboxes", "multiselect"];
+function isSetted(f) { return SETTED.indexOf(f.type) > -1; }
+/* More than one value at a time. */
+function isMulti(f) { return f.type === "checkboxes" || f.type === "multiselect"; }
+/* The types that put a text box in front of someone, and so can suggest what
+   goes in it. */
+var PLACEHOLDS = ["text", "textarea", "markdown", "url", "email", "number", "color"];
+function takesPlaceholder(f) { return PLACEHOLDS.indexOf(f.type) > -1; }
+/* One kind of file per type, each able to save what it points at either way. */
+var MEDIA = { image: "picture", video: "video", audio: "sound file", file: "file" };
+function isMedia(f) { return !!MEDIA[f.type]; }
+function storesId(f) { return f.storeAs !== "path"; }
+
+function T(f) { return TYPES[f.type] || TYPES.text; }
+/* Options are rows, each with a label and a key. The key is what gets written. */
+function opts(f) { return Array.isArray(f.options) ? f.options : []; }
+function optPairs(f) { return opts(f).map(function (o) { return [o.key, o.label]; }); }
+/* The type in plain words. Each type is one control now, so the only thing
+   left to add is how many of something it holds. */
+function typeWords(f) {
+  var t = T(f);
+  if (f.type === "items") return t.label + " · " + (f.fields || []).length;
+  if (f.type === "object") return t.label + " · " + (f.fields || []).length;
+  if (f.type === "date" && f.withTime) return t.label + " · with a time";
+  if (isSetted(f)) return t.label + " · " + plural(opts(f).length, "option");
+  if (isMedia(f)) return t.label + " · " + (storesId(f) ? "ID" : "file path");
+  return t.label;
+}
+
+var SETS = [
+  { key: "recipe-details", name: "Recipe details", help: "What every recipe holds besides its title and text.",
+    from: "This site", on: ["Recipes"], slot: "sidebar", pos: 10,
+    fields: [
+      { key: "prep_time", label: "Prep time", type: "number", req: true, low: 0, whole: true, unit: "min",
+        help: "In minutes, before the oven is on." },
+      { key: "cook_time", label: "Cook time", type: "range",
+        low: 0, high: 240, step: 5, whole: true, unit: "min",
+        help: "In minutes, from the oven being on.", was: ["cooktime"] },
+      { key: "servings", label: "Servings", type: "number", req: true, low: 1, whole: true },
+      { key: "difficulty", label: "Difficulty", type: "radio", def: "easy",
+        options: [{ key: "easy", label: "Easy" }, { key: "medium", label: "Medium" },
+                  { key: "hard", label: "Hard" }] },
+      { key: "diet", label: "Dietary flags", type: "checkboxes",
+        help: "Shown as badges on the recipe.",
+        options: [{ key: "vegetarian", label: "Vegetarian" }, { key: "vegan", label: "Vegan" },
+                  { key: "gluten_free", label: "Gluten free" }, { key: "dairy_free", label: "Dairy free" },
+                  { key: "nut_free", label: "Nut free" }] },
+      { key: "ingredients", label: "Ingredients", type: "items", req: true,
+        itemName: "Ingredient", fewest: 1, most: "", sumWith: ["amount", "unit", "name"],
+        fields: [
+          { key: "amount", label: "Amount", type: "number" },
+          { key: "unit", label: "Unit", type: "select",
+            options: ["g", "kg", "ml", "cup", "tbsp", "tsp", "can", "lb"].map(function (u) {
+              return { key: u, label: u }; }) },
+          { key: "name", label: "Ingredient", type: "text", req: true },
+          { key: "note", label: "Note", type: "text" }
+        ] },
+      { key: "video", label: "Video", type: "video" },
+      { key: "badge", label: "Badge icon", type: "icon", help: "Shown beside the recipe in lists." }
+    ] },
+
+  { key: "sources", name: "Sources", help: "Where the recipe came from.",
+    from: "This site", on: ["Recipes", "Posts"], slot: "main", pos: 20,
+    fields: [
+      { key: "adapted_from", label: "Adapted from", type: "text", ph: "Cookbook, site, or person" },
+      { key: "source_url", label: "Source link", type: "url", ph: "https://" },
+      { key: "rights", label: "Rights", type: "object", help: "Who to credit, and under what terms.",
+        fields: [
+          { key: "holder", label: "Rights holder", type: "text" },
+          { key: "license", label: "License", type: "select",
+            options: [{ key: "all_rights", label: "All rights reserved" },
+                      { key: "cc_by", label: "CC BY" },
+                      { key: "public_domain", label: "Public domain" }] },
+          { key: "notes", label: "Terms", type: "textarea" }
+        ] }
+    ] },
+
+  { key: "event-details", name: "Event details", help: "When and where it happens.",
+    from: "This site", on: ["Events"], typeOff: true,
+    fields: [
+      { key: "venue", label: "Venue", type: "text", req: true },
+      { key: "starts", label: "Starts", type: "date", withTime: true, req: true },
+      { key: "capacity", label: "Capacity", type: "range",
+        low: 0, high: 300, step: 10, whole: true, unit: "seats" }
+    ] },
+
+  { key: "seo", name: "Search appearance", help: "How this shows in search results.",
+    from: "SEO plugin", locked: true, inCode: true, on: ["Posts", "Pages", "Recipes"],
+    slot: "sidebar", pos: 30,
+    fields: [
+      { key: "meta_title", label: "Title in search", type: "text" },
+      { key: "meta_description", label: "Description", type: "textarea" },
+      { key: "noindex", label: "Hide from search engines", type: "bool" }
+    ] }
+];
+
+var ALL_TYPES = ["Posts", "Pages", "Recipes", "Events", "Reviews"];
+/* Where a set sits on an entry's screen. A theme or a plugin can add slots;
+   these three are the ones this admin draws. */
+var SLOTS = [["sidebar", "Sidebar", "Beside the content, in the entry's panel."],
+             ["main", "Under the content", "Full width, below what is being written."],
+             ["top", "Above the content", "Full width, before the title."]];
+function slotOf(s) { return s.slot || "sidebar"; }
+function slotName(k) {
+  for (var i = 0; i < SLOTS.length; i++) if (SLOTS[i][0] === k) return SLOTS[i][1];
+  return k;
+}
+function posOf(s) { return s.pos == null || s.pos === "" ? 10 : Number(s.pos); }
+/* Lowest first, then by name, so two sets at the same number still have an
+   order someone can predict. */
+function bySlot(list, slot) {
+  return list.filter(function (s) { return slotOf(s) === slot; })
+    .sort(function (a, b) { return posOf(a) - posOf(b) || a.name.localeCompare(b.name); });
+}
+/* Counts come from the content index. "Values stay in files" means little
+   without a number. */
+var ENTRY_COUNTS = { prep_time: 41, cook_time: 38, servings: 44, difficulty: 31, diet: 22,
+                     ingredients: 46, video: 9,
+                     adapted_from: 12, source_url: 17, holder: 9, license: 9,
+                     venue: 18, starts: 18, capacity: 6 };
+
+function setOf(k) { for (var i = 0; i < SETS.length; i++) if (SETS[i].key === k) return SETS[i]; return null; }
+
+/* ------------------------------------------------------------------ util -- */
+
+function el(tag, cls, html) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (html != null) n.innerHTML = html;
+  return n;
+}
+function ic(n, c) { return '<svg class="ic ' + (c || "") + '"><use href="#' + n + '"/></svg>'; }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+  return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+function plural(n, w) { return n + " " + w + (n === 1 ? "" : "s"); }
+function slugify(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""); }
+function narrow() { return window.matchMedia("(max-width:860px)").matches; }
+
+function btn(label, cls, onClick) {
+  var b = el("button", "btn " + (cls || ""), label);
+  b.type = "button";
+  if (onClick) b.addEventListener("click", onClick);
+  return b;
+}
+function fieldBox(label, control, hint) {
+  var f = el("div", "field");
+  f.appendChild(el("div", "lab", label));
+  f.appendChild(control);
+  if (hint) f.appendChild(el("div", "hint", hint));
+  return f;
+}
+function inp(value, opts) {
+  opts = opts || {};
+  var i = el("input", "inp" + (opts.mono ? " mono" : "") + (opts.num ? " num-inp" : ""));
+  /* A box that takes a number says so: steppers, the right keypad on a phone,
+     and the browser's own guard against letters. */
+  if (opts.num) {
+    i.type = "number";
+    i.inputMode = "decimal";
+    if (opts.min != null) i.min = opts.min;
+    i.step = opts.step || "any";
+  }
+  i.value = value == null ? "" : value;
+  if (opts.ph) i.placeholder = opts.ph;
+  if (opts.ro) i.readOnly = true;
+  if (opts.label) i.setAttribute("aria-label", opts.label);
+  if (opts.id) i.id = opts.id;
+  return i;
+}
+/* A switch, not a checkbox: these read as settings, and a switch says its
+   state in a word as well as a fill. */
+function sw(checked, title, note, onChange, opts) {
+  opts = opts || {};
+  var l = el("label", "sw" + (opts.row ? " row" : ""));
+  l.innerHTML = '<input type="checkbox"' + (checked ? " checked" : "") + (opts.disabled ? " disabled" : "") +
+    '><span class="track"><span class="knob"></span></span>' +
+    '<span class="tx"><b>' + title + "</b>" +
+    (note ? "<span>" + note + "</span>" : "") + "</span>";
+  var i = l.querySelector("input");
+  i.addEventListener("change", function () { if (onChange) onChange(i.checked); });
+  return l;
+}
+var DRAG = null, ODRAG = null;
+function freeKey(s, base) {
+  var k = base, n = 2;
+  while (sameKey(s, k, null)) k = base + "_" + n++;
+  return k;
+}
+/* Several from a set. The pressed chips are the value — the same shape the
+   segmented control has for one, so a list reads as Choice's plural. */
+function multiPick(pairs, selected, onChange, ro) {
+  var w = el("div", "sum-pick");
+  pairs.forEach(function (p) {
+    var b = el("button", null, ic("i-check") + esc(p[1] || p[0]));
+    b.type = "button";
+    b.disabled = !!ro;
+    b.setAttribute("aria-pressed", String(selected.indexOf(p[0]) > -1));
+    b.addEventListener("click", function () {
+      var i = selected.indexOf(p[0]);
+      if (i > -1) selected.splice(i, 1); else selected.push(p[0]);
+      b.setAttribute("aria-pressed", String(i < 0));
+      if (onChange) onChange(selected);
+    });
+    w.appendChild(b);
+  });
+  if (!pairs.length) w.appendChild(el("span", "hint", "No options to pick from."));
+  return w;
+}
+
+function seg(options, value, onPick) {
+  var s = el("div", "seg");
+  options.forEach(function (o) {
+    var b = el("button", null, esc(o[1]));
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(o[0] === value));
+    b.addEventListener("click", function () {
+      s.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      onPick(o[0]);
+    });
+    s.appendChild(b);
+  });
+  return s;
+}
+
+/* ------------------------------------------------------------ menus, toasts -- */
+
+var openMenu = null;
+function closeMenu() {
+  if (!openMenu) return;
+  openMenu.trigger.setAttribute("aria-expanded", "false");
+  openMenu.node.remove();
+  openMenu = null;
+}
+/* Pressing an open menu's trigger closes it. */
+function menu(anchor, items) {
+  var mine = openMenu && openMenu.trigger === anchor;
+  closeMenu();
+  if (mine) return;
+  var m = el("div", "menu");
+  items.forEach(function (it) {
+    if (it === "-") { m.appendChild(el("div", "div")); return; }
+    if (it.sec) { m.appendChild(el("div", "sec", esc(it.sec))); return; }
+    var b = el("button", it.danger ? "danger" : null,
+      (it.ic ? ic(it.ic) : "") + '<span class="l">' + esc(it.label) +
+      (it.ds ? '<span class="ds">' + esc(it.ds) + "</span>" : "") + "</span>" +
+      (it.tail ? '<span class="tail">' + esc(it.tail) + "</span>" : ""));
+    b.type = "button";
+    if (it.disabled) b.disabled = true;
+    if (it.checked) b.setAttribute("aria-checked", "true");
+    b.addEventListener("click", function () { closeMenu(); if (it.run) it.run(); });
+    m.appendChild(b);
+  });
+  /* An open <dialog> sits in the top layer, above everything on the page, so a
+     menu parked on the body would open behind it. It belongs inside whatever
+     it was opened from. */
+  var host = anchor.closest("dialog[open]") || document.body;
+  host.appendChild(m);
+  var r = anchor.getBoundingClientRect(), mr = m.getBoundingClientRect();
+  var top = r.bottom + 5;
+  if (top + mr.height > innerHeight - 8) top = Math.max(8, r.top - mr.height - 5);
+  m.style.top = top + "px";
+  m.style.left = Math.max(8, Math.min(r.right - mr.width, innerWidth - mr.width - 8)) + "px";
+  anchor.setAttribute("aria-expanded", "true");
+  openMenu = { node: m, trigger: anchor };
+}
+
+function toast(msg, opts) {
+  opts = opts || {};
+  var wrap = document.getElementById("toasts");
+  var t = el("div", "toast" + (opts.info ? " info" : ""));
+  t.innerHTML = '<svg class="toast-ring" aria-hidden="true"><rect class="track"/><rect class="run"/></svg>' +
+    ic(opts.info ? "i-info" : "i-check") + '<div class="msg">' + msg + "</div>";
+  if (opts.undo) {
+    t.appendChild(el("div", "div"));
+    var u = el("button", "undo", ic("i-undo") + "Undo");
+    u.type = "button";
+    u.addEventListener("click", function () { opts.undo(); t.remove(); });
+    t.appendChild(u);
+  }
+  wrap.appendChild(t);
+  var life = opts.undo ? 6000 : 2600;
+  t.style.setProperty("--life", life + "ms");
+  var timer = setTimeout(function () { t.remove(); }, life);
+  /* Hovering or focusing holds the countdown. */
+  t.addEventListener("pointerenter", function () { clearTimeout(timer); t.classList.add("held"); });
+  t.addEventListener("focusin", function () { clearTimeout(timer); t.classList.add("held"); });
+  t.addEventListener("pointerleave", function () {
+    t.classList.remove("held"); timer = setTimeout(function () { t.remove(); }, 1200);
+  });
+}
+
+/* ------------------------------------------------------- the drawn select -- */
+/* The real select holds the value and fires change; a button draws the label
+   and opens a .menu, so the list is the admin's and not the system's. */
+
+function xsel(label, options, value, onPick) {
+  var wrap = el("span");
+  var sel = document.createElement("select");
+  sel.setAttribute("aria-label", label);
+  sel.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0)";
+  sel.tabIndex = -1;
+  options.forEach(function (o) {
+    var n = document.createElement("option");
+    n.value = o[0]; n.textContent = o[1];
+    if (String(o[0]) === String(value)) n.selected = true;
+    sel.appendChild(n);
+  });
+  var b = el("button", "xs", '<span class="v"></span>' + ic("i-chev-d"));
+  b.type = "button";
+  b.setAttribute("aria-haspopup", "listbox");
+  b.setAttribute("aria-expanded", "false");
+  b.setAttribute("aria-label", label);
+  function sync() {
+    var o = sel.options[sel.selectedIndex];
+    b.querySelector(".v").textContent = o ? o.textContent : "";
+  }
+  sync();
+  b.addEventListener("click", function () {
+    menu(b, options.map(function (o) {
+      return { label: o[1], checked: String(o[0]) === String(sel.value), run: function () {
+        sel.value = o[0]; sync(); if (onPick) onPick(o[0]);
+      } };
+    }));
+  });
+  wrap.appendChild(sel);
+  wrap.appendChild(b);
+  wrap.style.display = "block";
+  return wrap;
+}
+
+/* ----------------------------------------------------------------- shell -- */
+
+var SCREEN = "list", SECTION = "structure", TAB = "all";
+var S = { set: "recipe-details", sel: null, open: null, expand: {}, dirty: false };
+
+function crumbs(parts) {
+  var c = document.getElementById("crumbs");
+  c.innerHTML = "";
+  parts.forEach(function (p, i) {
+    if (i) c.appendChild(el("span", "sep", ic("i-chev-r")));
+    if (p.here) { c.appendChild(el("span", "here", esc(p.t))); return; }
+    var b = el("button", "crumb" + (p.section ? " crumb-sec" : ""), esc(p.t));
+    b.type = "button";
+    if (p.go) b.addEventListener("click", function () { leave(function () { go(p.go); }); });
+    c.appendChild(b);
+  });
+}
+
+var NAV = {
+  content: { title: "Content", sub: "Everything on the site", groups: [
+    ["Collections", [["Recipes", "48"], ["Posts", "248"], ["Pages", "16"], ["Events", "18"]]],
+    ["Library", [["Media", "612"]]]] },
+  structure: { title: "Structure", sub: "How content is shaped", groups: [
+    ["Shape", [["Content Types", "5"], ["Fields", String(SETS.length)], ["Relationships", "4"], ["Menus", "3"]]]] },
+  users: { title: "Users", sub: "People and permissions", groups: [
+    ["People", [["Accounts", "9"], ["Profiles", "7"], ["Roles", "4"]]]] },
+  config: { title: "Config", sub: "Site-wide settings", groups: [
+    ["Site", [["Settings", ""], ["Appearance", ""], ["Plugins", "4"]]]] }
+};
+
+function renderNav() {
+  var n = NAV[SECTION];
+  document.getElementById("sec-title").innerHTML =
+    esc(n.title) + '<span class="sub">' + esc(n.sub) + "</span>";
+  document.querySelectorAll(".rb").forEach(function (b) {
+    b.setAttribute("aria-current", b.dataset.sec === SECTION ? "true" : "false");
+  });
+  var nav = document.getElementById("nav");
+  nav.innerHTML = "";
+  var here = SCREEN === "editor" ? "Recipes" : "Fields";
+  n.groups.forEach(function (g) {
+    nav.appendChild(el("div", "nav-group-label", esc(g[0])));
+    g[1].forEach(function (it) {
+      var b = el("button", "nav-item",
+        '<span class="lbl">' + esc(it[0]) + "</span>" +
+        (it[1] ? '<span class="nav-count">' + it[1] + "</span>" : ""));
+      b.type = "button";
+      if (it[0] === here) b.setAttribute("aria-current", "page");
+      b.addEventListener("click", function () {
+        if (narrow()) document.querySelector(".app").classList.remove("nav-open");
+        if (it[0] === "Fields") leave(function () { go("list"); });
+        else if (it[0] === "Recipes") leave(function () { go("editor"); });
+      });
+      nav.appendChild(b);
+    });
+  });
+}
+
+document.querySelectorAll(".rb").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var s = b.dataset.sec;
+    /* The rail scopes; the panel navigates. */
+    SECTION = s;
+    if (narrow()) document.querySelector(".app").classList.add("nav-open");
+    renderNav();
+  });
+});
+document.getElementById("burger").addEventListener("click", function () {
+  document.querySelector(".app").classList.toggle("nav-open");
+});
+document.querySelector(".scrim-nav").addEventListener("click", function () {
+  document.querySelector(".app").classList.remove("nav-open");
+});
+document.addEventListener("pointerdown", function (e) {
+  if (openMenu && !openMenu.node.contains(e.target) && !openMenu.trigger.contains(e.target)) closeMenu();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    /* Escape closes the topmost layer. A dialog closes itself, so the handler
+       stands back rather than swallowing the key underneath it. */
+    if (openMenu) { e.stopPropagation(); closeMenu(); return; }
+    if (document.querySelector("dialog[open]")) return;
+    if (S.open) { e.stopPropagation(); closeRow(true); return; }
+  }
+  if (e.key === "F2" && SCREEN === "set" && S.sel && !document.querySelector("dialog[open]")) {
+    S.open = S.sel; snapshot();
+draw();
+  }
+});
+
+/* ---------------------------------------------------------- screen: list -- */
+
+function screenList() {
+  crumbs([{ t: "Structure", section: true }, { t: "Fields", here: true }]);
+  var w = el("div", "wrap");
+
+  var head = el("div", "page-head");
+  head.innerHTML = "<div><h1>Fields</h1>" +
+    '<p class="sub">Sets of fields added to a content type. Every entry of that type gets them.</p></div>';
+  var acts = el("div", "acts");
+  acts.appendChild(btn(ic("i-plus") + "New Field Set", "btn-primary", function () { setDialog(null); }));
+  head.appendChild(acts);
+  w.appendChild(head);
+
+  var counts = { all: SETS.length,
+    site: SETS.filter(function (s) { return !s.locked; }).length,
+    plugins: SETS.filter(function (s) { return s.locked; }).length };
+  var tabs = el("div", "tabs");
+  [["all", "All", counts.all], ["site", "This site", counts.site], ["plugins", "Plugins", counts.plugins]]
+    .forEach(function (t) {
+      var b = el("button", null, esc(t[1]) + '<span class="n">' + t[2] + "</span>");
+      b.type = "button";
+      b.setAttribute("aria-selected", String(TAB === t[0]));
+      b.addEventListener("click", function () { TAB = t[0]; draw(); });
+      tabs.appendChild(b);
+    });
+  w.appendChild(tabs);
+
+  var panel = el("div", "panel");
+  var tw = el("div", "table-wrap");
+  var rows = SETS.filter(function (s) {
+    return TAB === "all" || (TAB === "site" ? !s.locked : s.locked);
+  });
+  var table = el("table");
+  table.innerHTML = "<colgroup><col style='width:32%'><col style='width:30%'><col style='width:22%'>" +
+    "<col style='width:84px'><col style='width:56px'></colgroup>" +
+    "<thead><tr><th>Field set</th><th>Used on</th><th>From</th><th>Fields</th><th></th></tr></thead>";
+  var tb = el("tbody");
+  rows.forEach(function (s) {
+    var tr = el("tr");
+    var used = s.on.map(function (t) {
+      return '<span class="tag">' + esc(t) + "</span>";
+    }).join("") + (s.typeOff ? '<span class="pill warn"><span class="d"></span>Type is off</span>' : "") +
+      (s.inCode ? '<span class="quiet">In code</span>' : "");
+    tr.innerHTML =
+      '<td><span class="t-title">' + esc(s.name) + '</span><span class="t-slug">' + esc(s.key) + "</span></td>" +
+      '<td><div class="used">' + used + "</div></td>" +
+      '<td><span class="from">' + (s.locked ? ic("i-lock") : "") + esc(s.from) + "</span></td>" +
+      '<td class="num quiet">' + s.fields.length + "</td><td></td>";
+    var more = el("button", "row-more", ic("i-dots-h"));
+    more.type = "button";
+    more.setAttribute("aria-label", "Actions for " + s.name);
+    more.setAttribute("aria-expanded", "false");
+    more.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu(more, s.locked
+        ? [{ label: "Open", ic: "i-chev-r", run: function () { openSet(s.key); } }]
+        : [{ label: "Edit fields", ic: "i-pencil", run: function () { openSet(s.key); } },
+           { label: "Settings", ic: "i-settings", run: function () { openSet(s.key); setDialog(s); } },
+           "-",
+           { label: "Delete field set", ic: "i-trash", danger: true, run: function () { deleteSet(s); } }]);
+    });
+    tr.lastElementChild.appendChild(more);
+    tr.addEventListener("click", function () { openSet(s.key); });
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  tw.appendChild(table);
+  panel.appendChild(tw);
+  if (!rows.length) {
+    panel.innerHTML = '<div class="empty compact">' + ic("i-fields") +
+      "<h3>No field sets here</h3><p>Plugins can ship field sets. None are active on this site.</p></div>";
+  }
+  w.appendChild(panel);
+  return w;
+}
+
+/* ----------------------------------------------------------- screen: set -- */
+
+function markDirty() { if (!S.dirty) { S.dirty = true; paintSave(); } }
+function paintSave() {
+  var b = document.getElementById("save-btn");
+  if (!b) return;
+  b.textContent = S.dirty ? "Save" : "Saved";
+  b.disabled = !S.dirty;
+  var r = document.getElementById("revert-btn");
+  if (r) r.hidden = !S.dirty;
+}
+
+function screenSet(s) {
+  crumbs([{ t: "Structure", section: true }, { t: "Fields", go: "list" }, { t: s.name, here: true }]);
+  var w = el("div", "wrap");
+  var one = el("div", "lay-one");
+  w.appendChild(one);
+
+  var back = el("button", "back", ic("i-back") + "All field sets");
+  back.type = "button";
+  back.addEventListener("click", function () { leave(function () { go("list"); }); });
+  one.appendChild(back);
+
+  var head = el("div", "page-head ph-ref");
+  var main = el("div", "ph-main");
+  main.innerHTML = "<h1>" + esc(s.name) + "</h1>";
+  var meta = el("div", "meta-line");
+  meta.id = "meta";
+  meta.innerHTML = metaLine(s);
+  main.appendChild(meta);
+  head.appendChild(main);
+
+  var acts = el("div", "acts");
+  if (!s.locked) {
+    acts.appendChild(btn("Settings", "", function () { setDialog(s); }));
+    var sv = btn("Saved", "btn-primary save-btn", function () {
+      var before = S.snap;
+      S.dirty = false; snapshot(); paintSave();
+      toast("<b>" + esc(s.name) + "</b> saved.", { undo: function () {
+        var i = SETS.findIndex(function (x) { return x.key === S.set; });
+        if (i > -1) SETS[i] = JSON.parse(before);
+        S.snap = before; markDirty(); draw();
+      } });
+    });
+    sv.id = "save-btn";
+    sv.disabled = true;
+    acts.appendChild(sv);
+    var k = el("button", "kebab", ic("i-dots-v"));
+    k.type = "button";
+    k.setAttribute("aria-label", "More actions for " + s.name);
+    k.setAttribute("aria-expanded", "false");
+    k.addEventListener("click", function () {
+      menu(k, [{ label: "Revert changes", ic: "i-undo", disabled: !S.dirty,
+                 ds: S.dirty ? null : "Nothing has changed yet",
+                 run: function () { revert(); draw(); toast("Changes reverted.", { info: true }); } },
+               { label: "Duplicate", ic: "i-copy" },
+               { label: "Open in the editor", ic: "i-entry", run: function () { go("editor"); } },
+               "-",
+               { label: "Delete field set", ic: "i-trash", danger: true, run: function () { deleteSet(s); } }]);
+    });
+    acts.appendChild(k);
+  }
+  head.appendChild(acts);
+  one.appendChild(head);
+
+  var panel = el("div", "panel");
+  var ph = el("div", "panel-head");
+  ph.innerHTML = "<h2>Fields</h2>" + (s.help ? '<span class="hint">' + esc(s.help) + "</span>" : "");
+  var end = el("div", "end");
+  /* Collapse All / Expand All shows only when something has fields inside it. */
+  var groups = s.fields.filter(isGroup);
+  if (groups.length) {
+    var allOpen = groups.every(function (g) { return S.expand[g.key]; });
+    end.appendChild(btn(allOpen ? "Collapse All" : "Expand All", "btn-ghost sm", function () {
+      groups.forEach(function (g) { S.expand[g.key] = !allOpen; });
+      draw();
+    }));
+  }
+  if (!s.locked) end.appendChild(btn(ic("i-plus") + "Add Field", "sm",
+    function () { addField(s, s.fields, s.fields.length, null); }));
+  ph.appendChild(end);
+  panel.appendChild(ph);
+
+  if (s.locked) {
+    panel.appendChild(el("div", "set-note", ic("i-lock") +
+      "<div>From the <b>" + esc(s.from) + "</b>. Its fields can't be changed here" +
+      (s.on.length > 1 ? ", and it is also on " + esc(s.on.filter(function (t) { return t !== "Recipes"; }).join(", ")) : "") +
+      ".</div>"));
+  }
+  panel.appendChild(tree(s));
+  if (!s.fields.length) {
+    panel.appendChild(el("div", "empty compact", ic("i-fields") +
+      "<h3>No fields yet</h3><p>Add the first field and it shows on every entry of this type.</p>"));
+  }
+  one.appendChild(panel);
+  return w;
+}
+
+function metaLine(s) {
+  var bits = ['<span class="mi">' + ic("i-fields") + "<code>" + esc(s.key) + "</code></span>",
+              '<span class="mi">' + plural(s.fields.length, "field") + "</span>",
+              '<span class="mi">' + ic("i-page") + esc(s.on.join(", ")) + "</span>",
+              '<span class="mi">' + ic("i-into") + esc(slotName(slotOf(s))) +
+                ' <span class="num">' + posOf(s) + "</span></span>"];
+  if (s.locked) bits.push('<span class="mi">' + ic("i-lock") + esc(s.from) + "</span>");
+  return bits.join("");
+}
+function refreshHead(s) {
+  var h = document.querySelector(".ph-main h1");
+  if (h) h.textContent = s.name;
+  var m = document.getElementById("meta");
+  if (m) m.innerHTML = metaLine(s);
+  crumbs([{ t: "Structure", section: true }, { t: "Fields", go: "list" }, { t: s.name, here: true }]);
+}
+
+/* ------------------------------------------------------------- the tree -- */
+
+function rb2(glyph, tip, label, disabled, tab, extra, onClick) {
+  var b = el("button", "rb2", ic(glyph));
+  b.type = "button";
+  b.setAttribute("data-tip", tip);
+  b.setAttribute("aria-label", label);
+  if (!tab) b.tabIndex = -1;
+  if (disabled) b.disabled = true;
+  if (extra) Object.keys(extra).forEach(function (k) { b.setAttribute(k, extra[k]); });
+  if (onClick) b.addEventListener("click", function (e) { e.stopPropagation(); onClick(); });
+  return b;
+}
+function closeRow(focusEdit) {
+  var prev = S.open;
+  S.open = null;
+  draw();
+  if (focusEdit && prev) {
+    var b = document.querySelector('.mt-item[data-id="' + CSS.escape(prev) + '"] [data-edit]');
+    if (b) b.focus();
+  }
+}
+function move(list, i, d) {
+  var j = i + d;
+  if (j < 0 || j >= list.length) return;
+  list.splice(j, 0, list.splice(i, 1)[0]);
+  markDirty();
+}
+
+/* ===========================================================================
+   The field tree — the same component as the menus item tree.
+
+   Rows are flat: aria-level, aria-setsize and aria-posinset carry the nesting,
+   the way the Pages tree does. An id is the path of keys, so "inside" is a
+   prefix test and nothing has to hold a parent pointer.
+   ========================================================================= */
+
+function isGroup(f) { return f.type === "items" || f.type === "object"; }
+
+function find(s, id) {
+  var parts = String(id).split("."), list = s.fields, parent = null, node = null, i = -1, d = 0;
+  for (var p = 0; p < parts.length; p++) {
+    node = null;
+    for (var k = 0; k < list.length; k++) if (list[k].key === parts[p]) { node = list[k]; i = k; break; }
+    if (!node) return null;
+    if (p < parts.length - 1) { parent = node; list = node.fields || []; d++; }
+  }
+  return { n: node, i: i, list: list, parent: parent, d: d, id: id };
+}
+/* Visible rows, top to bottom. */
+function vis(s) {
+  var out = [];
+  (function walk(list, d, path) {
+    list.forEach(function (f, i) {
+      var id = path ? path + "." + f.key : f.key;
+      out.push({ n: f, d: d, i: i, list: list, id: id, size: list.length });
+      if (isGroup(f) && S.expand[id] && f.fields) walk(f.fields, d + 1, id);
+    });
+  })(s.fields, 0, "");
+  return out;
+}
+function inside(id, other) { return id === other || String(other).indexOf(id + ".") === 0; }
+function can(s, id, act) {
+  var x = find(s, id);
+  if (!x || s.locked) return false;
+  if (act === "up") return x.i > 0;
+  if (act === "down") return x.i < x.list.length - 1;
+  /* One level only: a group's fields can't be groups. */
+  if (act === "in") return x.i > 0 && x.d === 0 && !isGroup(x.n) && isGroup(x.list[x.i - 1]);
+  if (act === "out") return x.d > 0;
+  return false;
+}
+function where(s, id) {
+  var x = find(s, id);
+  return "level " + (x.d + 1) + ", " + (x.i + 1) + " of " + x.list.length +
+    (x.parent ? " inside " + x.parent.label : " in " + s.name);
+}
+function announce(m) {
+  var l = document.getElementById("live");
+  l.textContent = "";
+  requestAnimationFrame(function () { l.textContent = m; });
+}
+
+function act(s, id, a) {
+  var x = find(s, id);
+  if (!x || !can(s, id, a)) return;
+  if (a === "up" || a === "down") {
+    var j = x.i + (a === "up" ? -1 : 1);
+    x.list.splice(j, 0, x.list.splice(x.i, 1)[0]);
+  } else if (a === "in") {
+    var host = x.list[x.i - 1];
+    x.list.splice(x.i, 1);
+    host.fields = host.fields || [];
+    host.fields.push(x.n);
+    S.expand[host.key] = true;
+    id = host.key + "." + x.n.key;
+  } else if (a === "out") {
+    var parentId = id.slice(0, id.lastIndexOf("."));
+    var p = find(s, parentId);
+    x.list.splice(x.i, 1);
+    p.list.splice(p.i + 1, 0, x.n);
+    id = x.n.key;
+  }
+  markDirty();
+  S.sel = id;
+  draw();
+  focusRow(id);
+  announce("Moved " + x.n.label + ", " + where(s, id));
+}
+
+function moveTo(s, id, targetId, pos) {
+  var x = find(s, id);
+  var node = x.n;
+  x.list.splice(x.i, 1);
+  if (pos === "in") {
+    var t = find(s, targetId);
+    t.n.fields = t.n.fields || [];
+    t.n.fields.unshift(node);
+    S.expand[targetId] = true;
+    id = targetId + "." + node.key;
+  } else {
+    var t2 = find(s, targetId);
+    t2.list.splice(t2.i + (pos === "after" ? 1 : 0), 0, node);
+    id = (targetId.indexOf(".") > -1 ? targetId.slice(0, targetId.lastIndexOf(".")) + "." : "") + node.key;
+  }
+  markDirty();
+  S.sel = id;
+  draw();
+  focusRow(id);
+  announce("Moved " + node.label + ", " + where(s, id));
+}
+
+function focusRow(id, what) {
+  var li = document.querySelector('.mt-item[data-id="' + CSS.escape(id) + '"]');
+  if (!li) return;
+  var e = (what && li.querySelector(":scope > .mt-row " + what + ":not([disabled])")) ||
+          li.querySelector(":scope > .mt-row [data-pick]");
+  if (e) e.focus();
+}
+
+function tree(s) {
+  var t = el("div", "mtree tree-hover");
+  t.id = "tree";
+  t.setAttribute("role", "tree");
+  t.setAttribute("aria-label", "Fields in " + s.name);
+  /* Whatever is open has to be visible, so every group on the way to it is
+     expanded — and stays expanded once it closes, rather than swallowing the
+     field someone was just looking at. */
+  if (S.open) {
+    var acc = "";
+    String(S.open).split(".").forEach(function (p) { acc = acc ? acc + "." + p : p; S.expand[acc] = true; });
+  }
+  var rows = vis(s);
+  var made = {};
+
+  rows.forEach(function (x) {
+    var f = x.n, id = x.id;
+    var open = S.open === id, sel = S.sel === id, tab = sel;
+    /* A group whose own form is open, or that holds whatever is open, keeps its
+       fields inside itself. */
+    var hosting = isGroup(f) && S.open && inside(id, S.open);
+    var kids = isGroup(f);
+    var ty = T(f);
+
+    var item = el("div", "mt-item");
+    item.dataset.id = id;
+    item.style.setProperty("--d", x.d);
+    item.setAttribute("role", "treeitem");
+    item.setAttribute("aria-level", String(x.d + 1));
+    item.setAttribute("aria-posinset", String(x.i + 1));
+    item.setAttribute("aria-setsize", String(x.size));
+    if (kids) item.setAttribute("aria-expanded", String(hosting || !!S.expand[id]));
+    if (sel) { item.classList.add("sel"); item.setAttribute("aria-selected", "true"); }
+    if (open) item.classList.add("editing");
+    if (hosting && !open) item.classList.add("holding");
+    made[id] = item;
+
+    var r = el("div", "mt-row");
+    if (!s.locked) r.draggable = true;
+
+    var grip = el("span", "mt-grip", s.locked ? "" : ic("i-grip"));
+    grip.setAttribute("aria-hidden", "true");
+    r.appendChild(grip);
+    r.appendChild(el("span", "mt-ind"));
+
+    if (kids) {
+      var tw = el("button", "twist", ic("i-chev-r"));
+      tw.type = "button";
+      tw.tabIndex = -1;
+      tw.setAttribute("aria-expanded", String(!!S.expand[id]));
+      tw.setAttribute("aria-label", (S.expand[id] ? "Hide" : "Show") + " the fields in " + f.label);
+      tw.addEventListener("click", function (e) {
+        e.stopPropagation(); S.expand[id] = !S.expand[id]; draw(); focusRow(id);
+      });
+      r.appendChild(tw);
+    } else r.appendChild(el("span", "twist leaf"));
+
+    /* The row's focusable thing is one button carrying the whole title. The
+       tile already says what type it is and the key is a line in the form, so
+       the row carries the label and whether it has to be filled in. */
+    var pick = el("button", "mt-pick",
+      '<span class="mt-kind" title="' + esc(typeWords(f)) + '">' + ic(ty.ic) + "</span>" +
+      '<span class="mt-main"><span class="mt-t">' +
+      '<span class="tt">' + esc(f.label || "Untitled field") + "</span>" +
+      (f.req ? '<span class="mt-req">Required</span>' : "") +
+      "</span></span>" +
+      (kids && !S.expand[id] ? '<span class="mt-sub">' + plural((f.fields || []).length, "field") + "</span>" : ""));
+    pick.type = "button";
+    pick.setAttribute("data-pick", "");
+    if (!tab) pick.tabIndex = -1;
+    pick.addEventListener("click", function () { S.sel = id; draw(); focusRow(id); });
+    pick.addEventListener("dblclick", function () { S.sel = id; S.open = id; draw(); });
+    r.appendChild(pick);
+
+    var ctl = el("span", "rowctl");
+    [["up", "i-chev-u", "Move Up ⌥↑", "Move " + f.label + " up"],
+     ["down", "i-chev-d", "Move Down ⌥↓", "Move " + f.label + " down"],
+     ["out", "i-chev-l", "Outdent ⌥←", "Outdent " + f.label],
+     ["in", "i-chev-r", "Indent ⌥→", "Indent " + f.label]].forEach(function (a) {
+      ctl.appendChild(rb2(a[1], a[2], a[3], !can(s, id, a[0]), tab, null, function () { act(s, id, a[0]); }));
+    });
+    ctl.appendChild(el("span", "sp"));
+    ctl.appendChild(rb2("i-pencil", open ? "Close" : "Edit F2", (open ? "Close " : "Edit ") + f.label,
+      false, tab, { "aria-expanded": String(open), "data-edit": "" }, function () {
+        S.sel = id; S.open = open ? null : id; draw();
+        if (!open) {
+          var first = document.querySelector('.mt-item[data-id="' + CSS.escape(id) + '"] .mt-edit input');
+          if (first) { first.focus(); first.select(); }
+        } else focusRow(id, "[data-edit]");
+      }));
+    if (!s.locked) {
+      var more = rb2("i-dots-v", "More Actions", "More actions for " + f.label, false, tab,
+        { "aria-haspopup": "menu", "aria-expanded": "false" }, function () {
+          menu(more, [
+            { label: "Edit", ic: "i-pencil", run: function () { S.sel = id; S.open = id; draw(); } },
+            { label: "Add a field above", ic: "i-plus", run: function () { addField(s, x.list, x.i, id); } },
+            { label: "Add a field below", ic: "i-plus", run: function () { addField(s, x.list, x.i + 1, id); } },
+            { label: "Add a field inside", ic: "i-into", disabled: !isGroup(f),
+              ds: isGroup(f) ? null : "Only a group holds fields",
+              run: function () {
+                f.fields = f.fields || [];
+                S.expand[id] = true;
+                addField(s, f.fields, f.fields.length, id + ".x");
+              } },
+            { label: "Duplicate", ic: "i-copy", run: function () {
+              var c = JSON.parse(JSON.stringify(f));
+              c.label = f.label + " copy";
+              c.key = freeKey(s, slugify(c.label));
+              delete c._savedKey;
+              x.list.splice(x.i + 1, 0, c);
+              markDirty(); S.sel = (x.d ? id.slice(0, id.lastIndexOf(".")) + "." : "") + c.key; draw();
+              toast("Duplicated <b>" + esc(f.label) + "</b>.");
+            } },
+            { label: "Move to another set", ic: "i-into", disabled: x.d > 0,
+              ds: x.d > 0 ? "Only a set's own fields can move" : null,
+              run: function () { moveToSet(s, f, x.list, x.i); } },
+            "-",
+            { label: "Remove field", ic: "i-trash", danger: true,
+              run: function () { removeField(s, x.list, f, x.i); } }]);
+        });
+      ctl.appendChild(more);
+    }
+    r.appendChild(ctl);
+
+    /* Drag: thirds of a row. The middle third nests, and only into a group. */
+    if (!s.locked) {
+      r.addEventListener("dragstart", function (e) {
+        if (e.target.closest("input,textarea")) { e.preventDefault(); return; }
+        DRAG = id; item.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", id);
+      });
+      r.addEventListener("dragend", function () {
+        DRAG = null;
+        t.querySelectorAll(".mt-item").forEach(function (n) {
+          n.classList.remove("dragging", "drop-before", "drop-after", "drop-in");
+        });
+      });
+      r.addEventListener("dragover", function (e) {
+        if (!DRAG || inside(DRAG, id)) return;
+        var dragged = find(s, DRAG);
+        var b = r.getBoundingClientRect(), y = (e.clientY - b.top) / b.height;
+        var canIn = kids && !isGroup(dragged.n) && x.d === 0;
+        var pos = y < 0.3 ? "before" : y > 0.7 ? "after" : (canIn ? "in" : (y < 0.5 ? "before" : "after"));
+        /* A group can only live at the top level. */
+        if (isGroup(dragged.n) && x.d > 0) return;
+        e.preventDefault();
+        t.querySelectorAll(".mt-item").forEach(function (n) {
+          n.classList.remove("drop-before", "drop-after", "drop-in");
+        });
+        item.classList.add("drop-" + pos);
+        item.style.setProperty("--dd", x.d + (pos === "in" ? 1 : 0));
+        item.dataset.pos = pos;
+      });
+      r.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var pos = item.dataset.pos;
+        if (!DRAG || !pos) return;
+        var from = DRAG; DRAG = null;
+        moveTo(s, from, id, pos);
+      });
+    }
+
+    item.appendChild(r);
+    if (open || hosting) item.appendChild(form(s, f, find(s, id).parent, id, x.d, !open));
+    t.appendChild(item);
+  });
+
+  /* Move each hosting group's child rows into its own box. They are the same
+     elements, so their keys, menus, drag and keyboard all come with them. */
+  rows.forEach(function (x) {
+    if (!isGroup(x.n) || !S.open || !inside(x.id, S.open)) return;
+    var slot = made[x.id] && made[x.id].querySelector('[data-kids="' + CSS.escape(x.id) + '"]');
+    if (!slot) return;
+    var none = slot.querySelector(".kids-none");
+    var foot = slot.querySelector(".kids-foot");
+    (x.n.fields || []).forEach(function (c) {
+      var kid = made[x.id + "." + c.key];
+      if (!kid) return;
+      kid.style.setProperty("--d", 0);
+      if (none) { none.remove(); none = null; }
+      slot.insertBefore(kid, foot);
+    });
+  });
+
+  /* Keyboard: arrows move focus, Option-arrows move the field. */
+  t.addEventListener("keydown", function (e) {
+    /* Row keys come from the row. A relocated child sits inside its parent's
+       form, so "is it in a form" is no longer the test; "is it this row" is. */
+    var li = e.target.closest(".mt-item");
+    var rowEl = e.target.closest(".mt-row");
+    if (!li || !rowEl || rowEl.parentElement !== li) return;
+    var id = li.dataset.id;
+    var list = vis(s);
+    var at = list.findIndex(function (x) { return x.id === id; });
+    var cur = list[at];
+    var to = function (j) { e.preventDefault(); S.sel = list[j].id; draw(); focusRow(list[j].id); };
+
+    if (e.altKey && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.key) > -1) {
+      e.preventDefault();
+      act(s, id, { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "out", ArrowRight: "in" }[e.key]);
+      return;
+    }
+    if (e.key === "ArrowDown" && at < list.length - 1) to(at + 1);
+    else if (e.key === "ArrowUp" && at > 0) to(at - 1);
+    else if (e.key === "Home") to(0);
+    else if (e.key === "End") to(list.length - 1);
+    else if (e.key === "ArrowRight" && isGroup(cur.n)) {
+      e.preventDefault();
+      if (!S.expand[id]) { S.expand[id] = true; draw(); focusRow(id); } else if (at < list.length - 1) to(at + 1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (isGroup(cur.n) && S.expand[id]) { S.expand[id] = false; draw(); focusRow(id); }
+      else if (cur.d > 0) { var p = id.slice(0, id.lastIndexOf(".")); S.sel = p; draw(); focusRow(p); }
+    } else if (e.key === "F2" || e.key === "Enter") {
+      e.preventDefault(); S.sel = id; S.open = id; draw();
+      var fi = document.querySelector('.mt-item[data-id="' + CSS.escape(id) + '"] .mt-edit input');
+      if (fi) { fi.focus(); fi.select(); }
+    } else if ((e.key === "Delete" || e.key === "Backspace") && !s.locked) {
+      e.preventDefault();
+      removeField(s, cur.list, cur.n, cur.i);
+    }
+  });
+  return t;
+}
+
+
+/* ------------------------------------------------- the form under the row -- */
+/* Three parts: what every field has, what its type adds, and Advanced. */
+
+function form(s, f, parent, key, depth, slim) {
+  var box = el("div", "mt-edit" + (slim ? " slim" : ""));
+  box.style.setProperty("--d", depth);
+  var inner = el("div", "ed-inner");
+  var ro = !!s.locked;
+
+  /* Holding an open field, not open itself: only the fields box, so the group
+     is a frame around what is being edited rather than a second form. */
+  if (slim) {
+    inner.appendChild(kidsBox(s, f, key, ro));
+    box.appendChild(inner);
+    return box;
+  }
+
+  /* --- what every field has --- */
+  /* What the field is: its name, what it is saved as, and what it holds. One
+     line for the three, because everything under them is about behaviour. */
+  var r1 = el("div", "ed-row ed-ident");
+  var labIn = inp(f.label, { label: "Label", ro: ro });
+  var keyIn = inp(f.key, { mono: true, label: "Key", ro: ro, id: "k-" + key });
+  var keyErr = el("div", "err");
+  keyErr.hidden = true;
+  var touchedKey = !!ENTRY_COUNTS[f.key];
+  labIn.addEventListener("input", function () {
+    f.label = labIn.value;
+    var tt = document.querySelector('.mt-item[data-id="' + CSS.escape(key) + '"] .tt');
+    if (tt) tt.textContent = f.label || "Untitled field";
+    /* The key follows the label until it is changed by hand or saved. */
+    if (!f.keyTouched && !touchedKey) { f.key = slugify(labIn.value); keyIn.value = f.key;  }
+    markDirty();
+  });
+  keyIn.addEventListener("input", function () {
+    f.keyTouched = true;
+    var v = slugify(keyIn.value);
+    var clash = sameKey(s, v, f);
+    keyIn.classList.toggle("bad", !!clash);
+    keyErr.hidden = !clash;
+    if (clash) keyErr.innerHTML = ic("i-alert") + "Recipes already has a field called <code>" + esc(v) + "</code>, in " + esc(clash);
+    else { f.key = v;  markDirty(); }
+  });
+  var keyField = fieldBox("Key", keyIn, f.type === "object"
+    ? "The group's name in this set. Its fields are saved under their own keys."
+    : "How it's saved in each recipe. Follows the label until you change it.");
+  keyField.insertBefore(keyErr, keyField.lastChild);
+  r1.appendChild(fieldBox("Label", labIn));
+  r1.appendChild(keyField);
+
+  /* The box is the control: the whole thing is the hit area, sized to its
+     words rather than stretched across the form. */
+  var ty = T(f);
+  var typeRow;
+  if (ro) {
+    typeRow = el("div", "ed-type", '<span class="et-tile">' + ic(ty.ic) + "</span>" +
+      "<b>" + esc(ty.label) + "</b>");
+  } else {
+    typeRow = el("button", "ed-type", '<span class="et-tile">' + ic(ty.ic) + "</span>" +
+      "<b>" + esc(ty.label) + "</b>" + '<span class="et-do">Change</span>');
+    typeRow.type = "button";
+    typeRow.setAttribute("aria-haspopup", "dialog");
+    typeRow.setAttribute("aria-label", "Type: " + ty.label + ". Choose another");
+    typeRow.addEventListener("click", function () {
+      typePicker(f, function () { markDirty(); draw(); }, { flat: depth > 0 });
+    });
+  }
+  r1.appendChild(fieldBox("Type", typeRow));
+  inner.appendChild(r1);
+
+  /* A group holds no value of its own and a list is not something you type,
+     so neither takes a default. */
+  var holds = f.type !== "object" && f.type !== "items";
+  var r2 = el("div", "ed-row ed-2");
+  if (holds) {
+    var dbox = fieldBox("Default", defaultControl(f, ro), null);
+    dbox.dataset.def = key;
+    r2.appendChild(dbox);
+  }
+  /* A text box can say what goes in it. Every type that shows one offers it
+     rather than inventing its own, and it sits beside the default it is not. */
+  if (takesPlaceholder(f)) {
+    var phIn = inp(f.ph, { label: "Placeholder", ph: "None", ro: ro });
+    phIn.addEventListener("input", function () { f.ph = phIn.value; markDirty(); });
+    r2.appendChild(fieldBox("Placeholder", phIn, "Grey prompt in the empty box. Never saved."));
+    if (holds) { r2.classList.remove("ed-2"); r2.classList.add("ed-3"); }
+  }
+  var helpIn = el("textarea", "inp");
+  helpIn.value = f.help || "";
+  helpIn.rows = 2;
+  helpIn.readOnly = ro;
+  helpIn.setAttribute("aria-label", "Help");
+  helpIn.addEventListener("input", function () { f.help = helpIn.value; markDirty(); });
+  r2.appendChild(fieldBox("Help", helpIn, "Shown under the field in the editor."));
+  inner.appendChild(r2);
+
+  /* A group is an arrangement, not a value: there is nothing in it to require.
+     A repeating group does hold a list, so it can be required. */
+  if (f.type === "object") {
+    inner.appendChild(el("div", "ed-note-box", ic("i-info") +
+      "<span>A group holds no value of its own. A default, Required to publish and older keys " +
+      "belong to the fields inside it.</span>"));
+  } else if (!ro) {
+    inner.appendChild(sw(f.req, "Required to publish", f.type === "items"
+      ? "A draft still saves. Publishing needs at least one item."
+      : "A draft still saves. Publishing names the field.",
+      function (v) { f.req = v; markDirty(); draw(); focusRow(key, "[data-edit]"); }));
+  }
+
+  /* --- what the type adds --- */
+  var sec = typeSection(s, f, key, ro);
+  if (sec) inner.appendChild(sec);
+
+  /* --- Advanced --- */
+  /* Nothing is saved under a group's key, so there are no older ones to read. */
+  if (f.type !== "object") {
+  var adv = el("details", "ed-fold");
+  adv.innerHTML = "<summary>" + ic("i-chev-r") + "Advanced</summary>";
+  var advRow = el("div", "ed-row");
+  var wasIn = inp((f.was || []).join(", "), { mono: true, label: "Older keys", ph: "none", ro: ro });
+  wasIn.addEventListener("input", function () {
+    f.was = wasIn.value.split(/[\s,]+/).filter(Boolean); markDirty();
+  });
+  advRow.appendChild(fieldBox("Older keys", wasIn,
+    "Other names this field still reads, so a renamed field keeps its old values."));
+  advRow.appendChild(el("div", "hint", "Show when — making a field appear only in some entries — is not in this pass."));
+  adv.appendChild(advRow);
+  inner.appendChild(adv);
+  }
+
+  /* --- footer --- */
+  var foot = el("div", "ed-foot");
+  if (!ro) foot.appendChild(btn("Remove Field", "btn-ghost btn-danger sm", function () {
+    removeField(s, parent ? parent.fields : s.fields, f, (parent ? parent.fields : s.fields).indexOf(f));
+  }));
+  foot.appendChild(el("span", "hint", "Nothing is written until you Save."));
+  foot.appendChild(btn("Cancel", "sm", function () { closeRow(true); }));
+  foot.appendChild(btn("Done", "btn-primary sm", function () {
+    if (!keyErr.hidden) { keyIn.focus(); return; }
+    if (touchedKey && f.key !== f._savedKey && f._savedKey) keyDialog(f, function () { closeRow(true); });
+    else closeRow(true);
+  }));
+  inner.appendChild(foot);
+
+  box.appendChild(inner);
+  if (!f._savedKey) f._savedKey = f.key;
+  return box;
+}
+
+/* The kind tile's tooltip is the only place the type's detail lives now, so it
+   follows the options rather than going stale. */
+function refreshTypeTitle(key, f) {
+  var c = document.querySelector('.mt-item[data-id="' + CSS.escape(key) + '"] .mt-kind');
+  if (c) c.title = typeWords(f);
+}
+function sameKey(s, k, not) {
+  var hit = null;
+  SETS.forEach(function (o) {
+    if (!o.on.some(function (t) { return s.on.indexOf(t) > -1; })) return;
+    o.fields.forEach(function (x) { if (x !== not && x.key === k) hit = o.name; });
+  });
+  if (["title", "slug", "status", "date", "summary", "body"].indexOf(k) > -1) hit = "the built-in fields";
+  return hit;
+}
+
+function defaultControl(f, ro) {
+  if (isMulti(f)) {
+    if (!Array.isArray(f.def)) f.def = [];
+    /* An option that was removed can't stay on by default. */
+    f.def = f.def.filter(function (k) {
+      return opts(f).some(function (o) { return o.key === k; });
+    });
+    return multiPick(optPairs(f), f.def, function () { markDirty(); }, ro);
+  }
+  if (f.type === "icon") {
+    return iconControl(f.def, function (v) { f.def = v; markDirty(); }, ro);
+  }
+  if (f.type === "bool") {
+    return sw(f.def === true, "On by default", null,
+      function (v) { f.def = v; markDirty(); }, { disabled: ro });
+  }
+  if (isSetted(f)) {
+    return xsel("Default", [["", "None"]].concat(optPairs(f)), f.def || "",
+      function (v) { f.def = v; markDirty(); });
+  }
+  var i = inp(f.def, { label: "Default", ph: "None", ro: ro });
+  i.addEventListener("input", function () { f.def = i.value; markDirty(); });
+  return i;
+}
+
+/* Rebuild just the Default control after the options behind it changed, so
+   the open form does not blink. */
+function rebuildDefault(f, key) {
+  var holder = document.querySelector('[data-def="' + CSS.escape(key) + '"]');
+  if (holder && holder.children[1]) holder.replaceChild(defaultControl(f, false), holder.children[1]);
+}
+
+/* Choice's options: a row each. The label is what someone reads; the key is
+   what the entry stores, so renaming a label later leaves the data alone. */
+function optionsEditor(f, key, ro, cfg) {
+  cfg = cfg || {};
+  var box = el("div", "field");
+  box.appendChild(el("div", "lab", "Options"));
+  var n = el("div", "nest");
+
+  function paint() {
+    n.innerHTML = "";
+    var list = opts(f);
+    if (cfg.onCount) cfg.onCount(list.length);
+    refreshTypeTitle(key, f);
+    if (!list.length) {
+      n.appendChild(el("div", "tnone", cfg.empty || "No options yet."));
+    } else {
+      n.appendChild(el("div", "opt-head",
+        "<span></span><span>Label</span><span>Key</span><span></span>"));
+    }
+    list.forEach(function (o, i) {
+      var r = el("div", "opt-row");
+      var grip = el("span", "mt-grip", ro ? "" : ic("i-grip"));
+      r.appendChild(grip);
+      if (!ro) {
+        r.draggable = true;
+        r.dataset.oi = i;
+        r.addEventListener("dragstart", function (e) {
+          if (e.target.closest("input")) { e.preventDefault(); return; }
+          ODRAG = i; r.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(i));
+        });
+        r.addEventListener("dragend", function () {
+          ODRAG = null;
+          n.querySelectorAll(".opt-row").forEach(function (x) {
+            x.classList.remove("dragging", "drop-before", "drop-after");
+          });
+        });
+        r.addEventListener("dragover", function (e) {
+          if (ODRAG == null || ODRAG === i) return;
+          e.preventDefault();
+          var bx = r.getBoundingClientRect();
+          var before = (e.clientY - bx.top) / bx.height < 0.5;
+          n.querySelectorAll(".opt-row").forEach(function (x) {
+            x.classList.remove("drop-before", "drop-after");
+          });
+          r.classList.add(before ? "drop-before" : "drop-after");
+        });
+        r.addEventListener("drop", function (e) {
+          if (ODRAG == null || ODRAG === i) return;
+          e.preventDefault();
+          var bx = r.getBoundingClientRect();
+          var at = i + ((e.clientY - bx.top) / bx.height < 0.5 ? 0 : 1);
+          var moved = f.options.splice(ODRAG, 1)[0];
+          if (ODRAG < at) at--;
+          f.options.splice(at, 0, moved);
+          ODRAG = null;
+          markDirty(); paint(); rebuildDefault(f, key);
+          announce("Moved " + (moved.label || "the option") + " to " + (at + 1) + " of " + f.options.length + ".");
+        });
+      }
+
+      var li = inp(o.label, { label: "Label for option " + (i + 1), ph: "Label", ro: ro });
+      li.addEventListener("input", function () {
+        o.label = li.value;
+        if (!o.keyTouched) { o.key = slugify(li.value); ki.value = o.key; }
+        markDirty();
+      });
+      li.addEventListener("blur", function () { rebuildDefault(f, key); });
+      r.appendChild(li);
+
+      var ki = inp(o.key, { mono: true, label: "Key for option " + (i + 1), ph: "key", ro: ro });
+      ki.addEventListener("input", function () {
+        o.keyTouched = true;
+        o.key = slugify(ki.value);
+        markDirty();
+      });
+      ki.addEventListener("blur", function () { ki.value = o.key; rebuildDefault(f, key); });
+      r.appendChild(ki);
+
+      if (ro) { r.appendChild(el("span")); n.appendChild(r); return; }
+      var m = el("button", "rep-more", ic("i-dots-v"));
+      m.type = "button";
+      m.setAttribute("aria-label", "Actions for the option " + (o.label || i + 1));
+      m.setAttribute("aria-expanded", "false");
+      m.addEventListener("click", function (e) {
+        e.stopPropagation();
+        menu(m, [
+          { label: "Move up", ic: "i-chev-u", disabled: i === 0,
+            run: function () { move(f.options, i, -1); markDirty(); paint(); rebuildDefault(f, key); } },
+          { label: "Move down", ic: "i-chev-d", disabled: i === f.options.length - 1,
+            run: function () { move(f.options, i, 1); markDirty(); paint(); rebuildDefault(f, key); } },
+          "-",
+          { label: "Remove option", ic: "i-trash", danger: true, run: function () {
+            f.options.splice(i, 1);
+            markDirty(); paint(); rebuildDefault(f, key);
+            announce("Removed the option " + (o.label || "") + ".");
+          } }]);
+      });
+      r.appendChild(m);
+      n.appendChild(r);
+    });
+    if (!ro) {
+      var ft = el("div", "nest-foot");
+      ft.appendChild(btn(ic("i-plus") + "Add Option", "btn-ghost sm", function () {
+        f.options = opts(f).slice();
+        var base = "option", k = base, c = 2;
+        while (f.options.some(function (x) { return x.key === k; })) k = base + "_" + c++;
+        f.options.push({ key: k, label: "" });
+        markDirty(); paint(); rebuildDefault(f, key);
+        var rows = n.querySelectorAll(".opt-row");
+        var last = rows[rows.length - 1];
+        if (last) last.querySelector("input").focus();
+      }));
+      n.appendChild(ft);
+    }
+  }
+  paint();
+  box.appendChild(n);
+  box.appendChild(el("div", "hint", cfg.hint ||
+    "The label is what the editor shows. The key is what the entry stores, so a label can be reworded later without touching saved values."));
+  return box;
+}
+
+/* ------------------------------------------------------------ the icon field -- */
+/* The icon set is the one this admin already draws with, so the control shows
+   the glyph itself rather than a name to be trusted. */
+
+function iconNames() {
+  var out = [];
+  document.querySelectorAll("symbol[id]").forEach(function (sy) {
+    if (sy.id !== "i-shapes") out.push(sy.id);
+  });
+  return out;
+}
+
+function iconControl(value, onPick, ro) {
+  var wrap = el("div", "ico-pick");
+  var tile = el("button", "ico-tile" + (value ? " set" : ""), ic(value || "i-shapes"));
+  tile.type = "button";
+  var shown = value ? value.replace(/^i-/, "") : "";
+  tile.setAttribute("aria-label", value ? "Change the icon, now " + shown : "Choose an icon");
+  var name = el("code", "ico-name", esc(shown));
+  var quiet = el("span", "hint", value ? "" : "None");
+  wrap.appendChild(tile);
+  wrap.appendChild(value ? name : quiet);
+  if (ro) { tile.disabled = true; return wrap; }
+
+  function set(v) {
+    onPick(v || "");
+    var next = iconControl(v, onPick, ro);
+    if (wrap.parentNode) wrap.parentNode.replaceChild(next, wrap);
+  }
+  wrap.appendChild(btn(value ? "Change" : "Choose an Icon", "btn-ghost sm", function () {
+    iconPicker(value, set);
+  }));
+  if (value) wrap.appendChild(btn("Clear", "btn-ghost sm", function () { set(""); }));
+  return wrap;
+}
+
+function iconPicker(current, onPick) {
+  var sr = searchRow("Search icons…", "Search icons", function () { paint(); });
+  var si = sr.input;
+  var paint;
+  var d = modal("Choose an icon", function (b) {
+    var g = el("div", "ico-grid");
+    g.setAttribute("role", "radiogroup");
+    g.setAttribute("aria-label", "Icons");
+    b.appendChild(g);
+    var none = el("div", "tnone", "No icon matches that.");
+    none.hidden = true;
+    b.appendChild(none);
+
+    paint = function () {
+      var q = si.value.trim().toLowerCase().replace(/^i-/, "");
+      g.innerHTML = "";
+      var hits = iconNames().filter(function (id) {
+        return !q || id.slice(2).indexOf(q) > -1;
+      });
+      hits.forEach(function (id) {
+        var o = el("button", "ico-opt", ic(id) + "<span>" + esc(id.slice(2)) + "</span>");
+        o.type = "button";
+        o.setAttribute("role", "radio");
+        o.setAttribute("aria-checked", String(id === current));
+        o.addEventListener("click", function () { d.close(); onPick(id); });
+        g.appendChild(o);
+      });
+      none.hidden = hits.length > 0;
+    };
+    si.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); d.close(); }
+    });
+    paint();
+    setTimeout(function () { si.focus(); }, 30);
+  }, [{ label: "Cancel" }], { wide: true, band: sr });
+}
+
+/* The box an open group's own fields are moved into. Built empty: tree() puts
+   the rows in, so they stay the same rows, with the same keys, drag and menus. */
+function kidsBox(s, f, key, ro) {
+  var box = el("div", "field");
+  box.appendChild(el("div", "lab", f.type === "items" ? "Each item has" : "Its fields"));
+  var k = el("div", "kids");
+  k.dataset.kids = key;
+  k.setAttribute("role", "group");
+  k.setAttribute("aria-label", (f.label || "The group") + "'s fields");
+  if (!(f.fields || []).length) k.appendChild(el("div", "kids-none", "No fields yet."));
+  if (!ro) {
+    var ft = el("div", "kids-foot");
+    ft.appendChild(btn(ic("i-plus") + "Add Field", "btn-ghost sm", function () {
+      f.fields = f.fields || [];
+      S.expand[key] = true;
+      addField(s, f.fields, f.fields.length, key + ".x");
+    }));
+    k.appendChild(ft);
+  }
+  box.appendChild(k);
+  box.appendChild(el("div", "hint", f.type === "items"
+    ? "Every item in the list has these, in this order."
+    : "These are saved under their own keys, next to the set's other fields."));
+  return box;
+}
+
+/* One section, titled with the type's name, holding its options. */
+function typeSection(s, f, key, ro) {
+  var ty = T(f);
+  var wrap = el("div", "ed-sub");
+  wrap.appendChild(el("div", "ed-sub-h", ic(ty.ic) + esc(ty.label)));
+  var body = el("div", "ed-row");
+  var put = function (n) { body.appendChild(n); };
+  var any = false;
+
+  /* The four set-based controls differ only in how they draw, so one options
+     editor serves all of them. */
+  if (isSetted(f)) {
+    any = true;
+    put(optionsEditor(f, key, ro, {
+      empty: "No options yet. Add the ones people can pick.",
+      hint: isMulti(f)
+        ? "Any number of these can be on at once. The key is what the entry stores."
+        : "One of these at a time. The key is what the entry stores."
+    }));
+  }
+  if (f.type === "number" || f.type === "range") {
+    any = true;
+    var three = el("div", "three-col");
+    var lo = inp(f.low, { label: "Lowest", ph: "None", ro: ro, num: true });
+    var hi = inp(f.high, { label: "Highest", ph: "None", ro: ro, num: true });
+    var st = inp(f.step, { label: "Step", ph: f.whole ? "1" : "Any", ro: ro, num: true, min: 0 });
+    lo.addEventListener("input", function () { f.low = lo.value; markDirty(); bounds(); });
+    hi.addEventListener("input", function () { f.high = hi.value; markDirty(); bounds(); });
+    st.addEventListener("input", function () { f.step = st.value; markDirty(); });
+    three.appendChild(fieldBox("Lowest", lo));
+    three.appendChild(fieldBox("Highest", hi));
+    three.appendChild(fieldBox("Step", st, "How far each nudge moves."));
+    put(three);
+    /* A slider has to know where it starts and ends, so it says so rather than
+       drawing something meaningless. */
+    var need = el("div", "fld-err", ic("i-alert") + "A slider needs a lowest and a highest.");
+    function bounds() { need.hidden = f.type !== "range" || (f.low !== "" && f.low != null && f.high !== "" && f.high != null); }
+    bounds();
+    put(need);
+    put(sw(f.whole, "Whole numbers only", null, function (v) {
+      f.whole = v;
+      st.placeholder = v ? "1" : "Any";
+      st.step = v ? "1" : "any";
+      lo.step = hi.step = v ? "1" : "any";
+      markDirty();
+    }, { disabled: ro }));
+    if (f.whole) { lo.step = hi.step = st.step = "1"; }
+  }
+  if (f.type === "date") {
+    any = true;
+    put(sw(f.withTime, "Includes a time", null, function (v) { f.withTime = v; markDirty(); draw(); },
+      { disabled: ro }));
+  }
+
+  /* A file can be saved by its ID or by where it sits. The ID survives a
+     rename or a move; the path is what a template prints without a lookup. */
+  if (isMedia(f)) {
+    any = true;
+    put(sw(storesId(f), "Store the file's ID",
+      "Off saves the file path instead. An ID survives the file being renamed or moved.",
+      function (v) { f.storeAs = v ? "id" : "path"; markDirty(); draw(); focusRow(key, "[data-edit]"); },
+      { disabled: ro }));
+  }
+  if (f.type === "color") {
+    any = true;
+    var pal = inp(f.palette, { mono: true, label: "Palette", ph: "Any color", ro: ro });
+    pal.addEventListener("input", function () { f.palette = pal.value; markDirty(); });
+    put(fieldBox("Palette", pal, "Hex values, separated by spaces. Leave it empty for any color."));
+  }
+  if (f.type === "items" || f.type === "object") {
+    any = true;
+    /* While the group is open its fields sit here, inside it, rather than as
+       rows below. tree() moves the real rows into this box once it has them. */
+    put(kidsBox(s, f, key, ro));
+    if (f.type === "items") {
+      var two2 = el("div", "two-col");
+      var nm = inp(f.itemName, { label: "Call each item", ph: "Item", ro: ro });
+      nm.addEventListener("input", function () { f.itemName = nm.value; markDirty(); });
+      two2.appendChild(fieldBox("Call each item", nm,
+        '"Add ' + esc(f.itemName || "Item") + '" in the editor.'));
+      var cnt = el("div", "two-col");
+      var fw = inp(f.fewest, { label: "Fewest", ph: "0", ro: ro });
+      var mo = inp(f.most, { label: "Most", ph: "Any", ro: ro });
+      fw.addEventListener("input", function () { f.fewest = fw.value; markDirty(); });
+      mo.addEventListener("input", function () { f.most = mo.value; markDirty(); });
+      cnt.appendChild(fieldBox("Fewest", fw));
+      cnt.appendChild(fieldBox("Most", mo));
+      two2.appendChild(cnt);
+      put(two2);
+      var sp = el("div", "sum-pick");
+      (f.fields || []).forEach(function (c) {
+        var b = el("button", null, ic("i-check") + esc(c.label));
+        b.type = "button";
+        var on = (f.sumWith || []).indexOf(c.key) > -1;
+        b.setAttribute("aria-pressed", String(on));
+        b.addEventListener("click", function () {
+          f.sumWith = f.sumWith || [];
+          var i = f.sumWith.indexOf(c.key);
+          if (i > -1) f.sumWith.splice(i, 1); else f.sumWith.push(c.key);
+          b.setAttribute("aria-pressed", String(i < 0));
+          markDirty();
+        });
+        sp.appendChild(b);
+      });
+      put(fieldBox("Sum up each item with", sp, "What each item's one line says when it is closed."));
+    }
+  }
+  if (!any) return null;
+  wrap.appendChild(body);
+  return wrap;
+}
+
+/* ------------------------------------------------------------- the picker -- */
+/* About fifteen tiles plus whatever plugins add, so a modal with search. */
+
+function typePicker(target, onPick, pick) {
+  pick = pick || {};
+  var sr = searchRow("Search field types…", "Search field types", function () { paint(); });
+  var si = sr.input;
+  var paint;
+
+  /* A tile is a glyph and a name, so twenty of them fit at a glance. What a
+     type is for belongs in one place, under whatever the pointer or the focus
+     ring is on, rather than repeated across every tile. */
+  var desc = el("div", "tdesc");
+  function say(k) {
+    var t = TYPES[k];
+    desc.innerHTML = t
+      ? "<b>" + esc(t.label) + "</b><span>" + esc(t.desc) +
+        (t.plugin ? " From the " + esc(t.plugin) + "." : "") + "</span>"
+      : '<span class="q">Point at a type to see what it holds.</span>';
+  }
+  say(TYPES[target.type] ? target.type : null);
+
+  var d = modal("Choose a field type", function (b) {
+    var list = el("div");
+    b.appendChild(list);
+    paint = function () {
+      var q = si.value.trim().toLowerCase();
+      list.innerHTML = "";
+      var shown = 0;
+      TSECS.forEach(function (sec) {
+        /* One level, and no more: a field inside a group is never a group. */
+        if (pick.flat && sec === "Structure") return;
+        var keys = Object.keys(TYPES).filter(function (k) {
+          var t = TYPES[k];
+          if (t.sec !== sec) return false;
+          return !q || (t.label + " " + t.desc).toLowerCase().indexOf(q) > -1;
+        });
+        if (!keys.length) return;
+        list.appendChild(el("div", "tsec", esc(sec)));
+        var g = el("div", "tgrid");
+        keys.forEach(function (k) {
+          var t = TYPES[k];
+          shown++;
+          var o = el("button", "topt", ic(t.ic) + '<span class="tn">' + esc(t.label) + "</span>" +
+            (t.isNew ? '<span class="new-tag">New</span>' : ""));
+          o.type = "button";
+          o.title = t.desc;
+          o.setAttribute("aria-checked", String(target.type === k));
+          o.setAttribute("aria-describedby", "tdesc");
+          o.setAttribute("role", "radio");
+          o.addEventListener("mouseenter", function () { say(k); });
+          o.addEventListener("focus", function () { say(k); });
+          o.addEventListener("click", function () {
+            if (target.type === k) { d.close(); return; }
+            var before = target.type;
+            target.type = k;
+            /* Settings that belonged to the type it was stop meaning anything. */
+            /* The four set-based controls share one set of options, so the
+               options someone just typed survive a move between them. */
+            var keepOpts = isSetted({ type: before }) && isSetted({ type: k });
+            ["options", "low", "high", "step", "whole", "ph", "withTime", "palette", "storeAs"]
+              .forEach(function (p) { if (!(keepOpts && p === "options")) delete target[p]; });
+            if (keepOpts) delete target.def;
+            if (isSetted({ type: k }) && !Array.isArray(target.options))
+              target.options = [{ key: "first", label: "First" }, { key: "second", label: "Second" }];
+            if ((k === "items" || k === "object") && !target.fields)
+              target.fields = [{ key: "label", label: "Label", type: "text", req: true }];
+            if (k === "items" && !target.itemName) { target.itemName = "Item"; target.fewest = ""; target.most = ""; target.sumWith = ["label"]; }
+            if (k !== "items" && k !== "object") delete target.fields;
+            if (before) target._typeChanged = before;
+            d.close();
+            onPick();
+          });
+          g.appendChild(o);
+        });
+        list.appendChild(g);
+      });
+      if (!shown) list.appendChild(el("div", "tnone", "No field type matches that."));
+    };
+    si.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); d.close(); }
+    });
+    paint();
+    setTimeout(function () { si.focus(); }, 30);
+  }, [{ label: "Cancel" }], { wide: true, band: sr, foot: desc,
+    sub: pick.flat ? "This one sits inside a group, so it can't be a group itself." : null });
+  desc.id = "tdesc";
+  desc.setAttribute("aria-live", "polite");
+}
+
+/* -------------------------------------------------------------- dialogs --- */
+
+/* A search row for a modal's band. Escape closes the dialog rather than only
+   clearing the field, which is what someone means by it here. */
+function searchRow(placeholder, label, onType) {
+  var r = el("label", "search");
+  r.innerHTML = ic("i-search");
+  var i = el("input");
+  i.type = "search";
+  i.placeholder = placeholder;
+  i.setAttribute("aria-label", label);
+  r.appendChild(i);
+  r.input = i;
+  i.addEventListener("input", function () { onType(i.value.trim().toLowerCase()); });
+  return r;
+}
+
+function modal(title, buildBody, buttons, opts) {
+  opts = opts || {};
+  var d = el("dialog", "modal");
+  if (opts.wide) d.style.width = "min(680px, calc(100vw - 32px))";
+  var h = el("div", "modal-h", "<h2>" + esc(title) + "</h2>" + (opts.sub ? "<p>" + opts.sub + "</p>" : ""));
+  d.appendChild(h);
+  if (opts.band) {
+    var band = el("div", "modal-band");
+    band.appendChild(opts.band);
+    d.appendChild(band);
+  }
+  var b = el("div", "modal-b");
+  buildBody(b);
+  d.appendChild(b);
+  var f = el("div", "modal-f");
+  if (opts.foot) f.appendChild(opts.foot);
+  (buttons || []).forEach(function (x) {
+    if (x.spacer) { f.appendChild(el("span", "mf-sp")); return; }
+    f.appendChild(btn(x.label, x.cls || "", function () {
+      if (x.run && x.run() === false) return;
+      d.close();
+    }));
+  });
+  d.appendChild(f);
+  document.body.appendChild(d);
+  d.addEventListener("close", function () { d.remove(); });
+  d.showModal();
+  return d;
+}
+
+function setDialog(s) {
+  var creating = !s;
+  var draft = s || { key: "", name: "", help: "", from: "This site", on: ["Recipes"],
+    slot: "sidebar", pos: 10, fields: [] };
+  var before = { name: draft.name, help: draft.help, on: draft.on.slice(),
+    slot: draft.slot, pos: draft.pos };
+  modal(creating ? "New Field Set" : "Settings", function (b) {
+    var nm = inp(draft.name, { label: "Label" });
+    nm.addEventListener("input", function () {
+      draft.name = nm.value;
+      if (creating) draft.key = slugify(nm.value).replace(/_/g, "-");
+      if (!creating) { markDirty(); refreshHead(draft); }
+    });
+    b.appendChild(fieldBox("Label", nm, "The group's heading in the editor."));
+    var hp = inp(draft.help, { label: "Help" });
+    hp.addEventListener("input", function () { draft.help = hp.value; if (!creating) markDirty(); });
+    b.appendChild(fieldBox("Help", hp, "Shown under the group's heading."));
+
+    var box = el("div", "field");
+    box.appendChild(el("div", "lab", "Also use on"));
+    ALL_TYPES.forEach(function (t) {
+      if (t === draft.on[0] && !creating) return;
+      var clash = null;
+      draft.fields.forEach(function (fl) {
+        SETS.forEach(function (o) {
+          if (o === draft || o.on.indexOf(t) < 0) return;
+          o.fields.forEach(function (x) { if (x.key === fl.key) clash = o.name; });
+        });
+      });
+      var c = sw(draft.on.indexOf(t) > -1, esc(t),
+        clash ? esc(t) + " already has <code>" + esc(draft.fields[0].key) + "</code>, in " + esc(clash) : null,
+        function (v) {
+          var i = draft.on.indexOf(t);
+          if (v && i < 0) draft.on.push(t);
+          else if (!v && i > -1) draft.on.splice(i, 1);
+          if (!creating) { markDirty(); refreshHead(draft); }
+        }, { row: true, disabled: !!clash });
+      if (clash) c.style.opacity = ".6";
+      box.appendChild(c);
+    });
+    box.appendChild(el("div", "hint",
+      "Its fields are added to every entry of these types. Editing a field changes it everywhere."));
+    b.appendChild(box);
+
+    /* Where the set lands on the entry's screen, and in what order among the
+       sets that land in the same place. */
+    var where = el("div", "ed-row ed-2");
+    var slotSel = xsel("Where it appears", SLOTS.map(function (x) { return [x[0], x[1]]; }),
+      slotOf(draft), function (v) {
+        draft.slot = v;
+        slotNote.textContent = slotHelp(v);
+        if (!creating) { markDirty(); refreshHead(draft); }
+      });
+    var slotNote = el("div", "hint", slotHelp(slotOf(draft)));
+    var slotBox = el("div", "field");
+    slotBox.appendChild(el("div", "lab", "Where it appears"));
+    slotBox.appendChild(slotSel);
+    slotBox.appendChild(slotNote);
+    where.appendChild(slotBox);
+    var posIn = inp(posOf(draft), { label: "Position", num: true, step: "1" });
+    posIn.addEventListener("input", function () {
+      draft.pos = posIn.value;
+      if (!creating) { markDirty(); refreshHead(draft); }
+    });
+    where.appendChild(fieldBox("Position", posIn, "Lowest first. Ties fall back to the name."));
+    b.appendChild(where);
+  }, [
+    !creating && !s.locked ? { label: "Delete Field Set", cls: "btn-ghost btn-danger", run: function () { deleteSet(s); } } : { spacer: true },
+    { spacer: true },
+    { label: "Cancel", run: function () {
+      if (creating) return;
+      s.name = before.name; s.help = before.help; s.on = before.on;
+      s.slot = before.slot; s.pos = before.pos;
+      refreshHead(s);
+    } },
+    { label: creating ? "Create" : "Done", cls: "btn-primary", run: function () {
+      if (creating) {
+        if (!draft.name) return false;
+        SETS.push(draft); S.set = draft.key; S.dirty = true; go("set");
+        toast("<b>" + esc(draft.name) + "</b> created.");
+      }
+    } }
+  ]);
+}
+
+function slotHelp(k) {
+  for (var i = 0; i < SLOTS.length; i++) if (SLOTS[i][0] === k) return SLOTS[i][2];
+  return "";
+}
+
+function deleteSet(s) {
+  var others = s.on.slice(1);
+  modal("Delete " + s.name + "?", function (b) {
+    b.appendChild(el("p", "hint",
+      "Its " + plural(s.fields.length, "field") + " leave every " +
+      esc(s.on[0].toLowerCase().replace(/s$/, "")) + "'s form. Values stay in files."));
+  }, [{ label: "Cancel" }, { label: "Delete Field Set", cls: "btn-danger-fill", run: function () {
+    var i = SETS.indexOf(s);
+    SETS.splice(i, 1);
+    go("list");
+    toast("<b>" + esc(s.name) + "</b> deleted.", { undo: function () { SETS.splice(i, 0, s); draw(); } });
+  } }]);
+}
+
+/* Changing a saved key would orphan values, so the old key is kept as an
+   older key unless you say otherwise. */
+function keyDialog(f, done) {
+  var n = ENTRY_COUNTS[f._savedKey] || 0;
+  var keep = true;
+  modal("Change the key?", function (b) {
+    b.appendChild(el("p", "hint", plural(n, "recipe") + " have a value under <code>" +
+      esc(f._savedKey) + "</code>. The new key is <code>" + esc(f.key) + "</code>."));
+    b.appendChild(sw(true, "Keep reading their values from <code>" + esc(f._savedKey) + "</code>", null,
+      function (v) { keep = v; }));
+  }, [
+    { label: "Cancel", run: function () { f.key = f._savedKey; draw(); } },
+    { label: "Change Key", cls: "btn-primary", run: function () {
+      if (keep) { f.was = (f.was || []).concat([f._savedKey]); }
+      f._savedKey = f.key;
+      markDirty(); done();
+      toast("Key changed to <code>" + esc(f.key) + "</code>.");
+    } }
+  ]);
+}
+
+function removeField(s, list, f, i) {
+  var n = ENTRY_COUNTS[f.key] || 0;
+  modal("Remove " + f.label + "?", function (b) {
+    b.appendChild(el("p", "hint", n
+      ? plural(n, "recipe") + " keep their value in their files, but it won't show or be used."
+      : "It leaves the form. Nothing has a value under it yet."));
+  }, [{ label: "Cancel" }, { label: "Remove Field", cls: "btn-danger-fill", run: function () {
+    list.splice(i, 1);
+    S.open = null; S.sel = null;
+    markDirty(); draw();
+    announce("Removed " + f.label + ".");
+    toast("Removed <b>" + esc(f.label) + "</b>.", { undo: function () { list.splice(i, 0, f); draw(); } });
+  } }]);
+}
+
+function moveToSet(s, f, list, i) {
+  var targets = SETS.filter(function (o) { return o !== s && !o.locked; });
+  modal("Move " + f.label + " to another set", function (b) {
+    var list = el("div", "pick-list");
+    targets.forEach(function (o) {
+      var r = el("button", "pick-row", ic("i-fields") + '<span class="l"><b>' + esc(o.name) +
+        "</b><code>" + esc(o.key) + "</code></span>");
+      r.type = "button";
+      r.addEventListener("click", function () {
+        list.splice(i, 1);
+        o.fields.push(f);
+        S.open = null; markDirty();
+        document.querySelector("dialog.modal").close();
+        draw();
+        toast("Moved <b>" + esc(f.label) + "</b> to <b>" + esc(o.name) + "</b>.");
+      });
+      list.appendChild(r);
+    });
+    b.appendChild(list);
+  }, [{ label: "Cancel" }]);
+}
+
+function addField(s, list, index, nearId) {
+  list = list || s.fields;
+  if (index == null) index = list.length;
+  /* A new field has no type yet, so the inserter opens with nothing chosen
+     and nothing claimed. */
+  var draft = { key: "", label: "", type: "" };
+  var nested = !!(nearId && nearId.indexOf(".") > -1);
+  typePicker(draft, function () {
+    draft.label = draft.type === "text" ? "New field" : TYPES[draft.type].label;
+    draft.key = freeKey(s, slugify(draft.label));
+    list.splice(index, 0, draft);
+    draft._savedKey = null;
+    markDirty();
+    var path = nearId && nearId.indexOf(".") > -1 ? nearId.slice(0, nearId.lastIndexOf(".")) + "." : "";
+    if (path) S.expand[path.slice(0, -1)] = true;
+    S.sel = path + draft.key;
+    S.open = S.sel;
+    draw();
+    var first = document.querySelector('.mt-item[data-id="' + CSS.escape(S.sel) + '"] .mt-edit input');
+    if (first) { first.focus(); first.select(); }
+    announce("Added " + draft.label + ", " + where(s, S.sel));
+  }, { flat: nested });
+}
+
+/* --------------------------------------------------------- the entry editor -- */
+
+var VALUES = { prep_time: "15", cook_time: "40", servings: "", difficulty: "Easy",
+  diet: ["vegetarian", "gluten_free"],
+  ingredients: [
+    { amount: "2", unit: "lb", name: "Ground beef", note: "" },
+    { amount: "1", unit: "can", name: "Kidney beans", note: "drained and rinsed" },
+    { amount: "", unit: "", name: "", note: "" }
+  ] };
+var OPEN_ITEM = 1, OPEN_GROUPS = { "recipe-details": true };
+
+function editorSets() {
+  return SETS.filter(function (s) { return s.on.indexOf("Recipes") > -1 && !s.typeOff; });
+}
+function itemSummary(f, it) {
+  var parts = (f.sumWith || []).map(function (k) { return it[k]; }).filter(Boolean);
+  return parts.length ? parts.join(" · ") : "";
+}
+
+function screenEditor() {
+  crumbs([{ t: "Content", section: true }, { t: "Recipes", go: "list" }, { t: "Editing", here: true }]);
+  var w = el("div", "ed-screen");
+  w.setAttribute("data-drawer", "open");
+
+  var main = el("div", "ed-main");
+  var bar = el("div", "ed-bar");
+  bar.innerHTML =
+    '<button class="tb" type="button" aria-label="Insert a component">' + ic("i-plus") + "</button>" +
+    '<button class="tb" type="button" aria-label="Media">' + ic("i-media") + "</button>" +
+    '<span class="sp"></span>' +
+    '<button class="tb" type="button" aria-label="Bold"><b style="font-size:14px">B</b></button>' +
+    '<button class="tb" type="button" aria-label="Italic"><i style="font-size:14px;font-family:var(--font-display)">I</i></button>' +
+    '<span class="spacer"></span>' +
+    '<span class="quiet">Saved 14:32</span>' +
+    '<span class="pill neutral"><span class="d"></span>Draft</span>' +
+    '<button class="btn sm" type="button">Save Draft</button>' +
+    '<button class="btn btn-primary sm" type="button" id="pub">Publish</button>';
+  main.appendChild(bar);
+  var col = el("div", "ed-col");
+  col.appendChild(slotPanels("top"));
+  var doc = el("div", "ed-doc");
+  doc.innerHTML = '<div class="ed-title">Weeknight Chili</div>' +
+    '<pre class="src"><span class="sy">## </span><span class="hd">Before you start</span>\n\n' +
+    "A pot of chili is forgiving. The only thing it will not forgive is\n" +
+    "under-seasoning at the end.\n\n" +
+    '<span class="sy">:::</span><span class="dir">callout</span><span class="at">{<span class="nm">type</span>=note}</span>\n' +
+    "Brown the beef in two batches or it steams.\n" +
+    '<span class="sy">:::</span></pre>';
+  col.appendChild(doc);
+  col.appendChild(slotPanels("main"));
+  main.appendChild(col);
+  w.appendChild(main);
+
+  var dr = el("div", "drawer");
+  var tabs = el("div", "dtabs");
+  tabs.innerHTML = '<button class="dtab" role="tab" aria-selected="true" type="button">Recipe</button>' +
+    '<button class="dtab" role="tab" aria-selected="false" type="button">Elements</button>' +
+    '<span class="spacer"></span>';
+  dr.appendChild(tabs);
+  var body = el("div", "dbody");
+  body.id = "dbody";
+  dr.appendChild(body);
+  w.appendChild(dr);
+  return w;
+}
+
+/* The sets that asked for a slot other than the sidebar, drawn in the column
+   where they asked to be, in the order they asked for. */
+function slotPanels(slot) {
+  var wrap = el("div", "ed-slot");
+  wrap.dataset.slot = slot;
+  bySlot(editorSets(), slot).forEach(function (s) {
+    var p = el("div", "panel ed-panel");
+    var h = el("div", "panel-head");
+    h.innerHTML = "<h2>" + esc(s.name) + "</h2>" +
+      (s.help ? '<span class="hint">' + esc(s.help) + "</span>" : "");
+    p.appendChild(h);
+    var body = el("div", "panel-body ed-panel-b");
+    s.fields.forEach(function (f) { body.appendChild(control(f)); });
+    p.appendChild(body);
+    wrap.appendChild(p);
+  });
+  return wrap;
+}
+
+function drawDrawer() {
+  var db = document.getElementById("dbody");
+  if (!db) return;
+  db.innerHTML = "";
+  /* The columns hold their own sets, and those change with the same values.
+     Rebuilding them would drop the caret, so whatever was focused is found
+     again by the field it belongs to. */
+  var was = document.activeElement;
+  var wasIn = was && was.closest ? was.closest(".ed-slot") : null;
+  var wasKey = wasIn && was.closest("[data-fk]") ? was.closest("[data-fk]").dataset.fk : null;
+  var wasTag = was ? was.tagName : null;
+  document.querySelectorAll(".ed-slot").forEach(function (n) {
+    var fresh = slotPanels(n.dataset.slot);
+    n.parentNode.replaceChild(fresh, n);
+  });
+  if (wasKey) {
+    var again = document.querySelector('.ed-slot [data-fk="' + CSS.escape(wasKey) + '"] ' +
+      (wasTag === "TEXTAREA" ? "textarea" : wasTag === "INPUT" ? "input" : "button"));
+    if (again) again.focus();
+  }
+  var built = el("div", "dgroup");
+  built.innerHTML = '<button class="dgroup-h" type="button" aria-expanded="false">' + ic("i-chev-r", "chev") +
+    "<b>Status, address, and dates</b></button>";
+  db.appendChild(built);
+
+  bySlot(editorSets(), "sidebar").forEach(function (s) {
+    var open = !!OPEN_GROUPS[s.key];
+    var missing = s.fields.filter(function (f) { return f.req && !hasValue(f); });
+    var g = el("div", "dgroup" + (missing.length ? " bad" : ""));
+    var h = el("button", "dgroup-h", ic("i-chev-r", "chev") + "<b>" + esc(s.name) + "</b>" +
+      (missing.length ? '<span class="pill danger"><span class="d"></span>' + missing.length + "</span>" : "") +
+      '<span class="n">' + s.fields.length + "</span>");
+    h.type = "button";
+    h.setAttribute("aria-expanded", String(open));
+    h.addEventListener("click", function () { OPEN_GROUPS[s.key] = !open; drawDrawer(); });
+    g.appendChild(h);
+    if (open) {
+      var b = el("div", "dgroup-b");
+      s.fields.forEach(function (f) { b.appendChild(control(f)); });
+      g.appendChild(b);
+    }
+    db.appendChild(g);
+  });
+}
+/* Changing a field's type is allowed; values that don't fit are reported
+   rather than thrown away. */
+function fits(f) {
+  var v = VALUES[f.key];
+  if (v == null || v === "") return true;
+  if (f.type === "items" || f.type === "object") return Array.isArray(v) || typeof v === "object";
+  if (isMulti(f)) return Array.isArray(v);
+  if (Array.isArray(v) || (typeof v === "object" && f.type !== "bool")) return false;
+  if (f.type === "number") return !isNaN(Number(v));
+  return true;
+}
+function hasValue(f) {
+  var v = VALUES[f.key];
+  if (f.type === "items") return (v || []).some(function (it) { return itemSummary(f, it); });
+  if (isMulti(f)) return Array.isArray(v) && v.length > 0;
+  return v != null && v !== "";
+}
+
+function control(f) {
+  var box = el("div", "field");
+  box.dataset.fk = f.key;
+  /* The author's form marks a required field beside its label; the chip in the
+     admin's rows is a different job in a different place. */
+  box.appendChild(el("div", "lab", esc(f.label) +
+    (f.req ? '<span class="req-mark" title="Required to publish">' + ic("i-required") +
+      '<span class="sr">Required</span></span>' : "")));
+  var v = VALUES[f.key];
+
+  if (f.type === "items") {
+    box.appendChild(repControl(f));
+  } else if (f.type === "object") {
+    /* A group holds no value of its own, so it draws its fields under its
+       heading rather than a box with nothing to put in it. */
+    var og = el("div", "obj");
+    (f.fields || []).forEach(function (c) { og.appendChild(control(c)); });
+    box.appendChild(og);
+  } else if (f.type === "radio") {
+    box.appendChild(seg(optPairs(f), v || f.def, function (x) { VALUES[f.key] = x; drawDrawer(); }));
+  } else if (f.type === "select") {
+    box.appendChild(xsel(f.label, [["", "None"]].concat(optPairs(f)), v || f.def || "",
+      function (x) { VALUES[f.key] = x; drawDrawer(); }));
+  } else if (f.type === "bool") {
+    box.innerHTML = "";
+    box.appendChild(sw(v === true, esc(f.label), f.help ? esc(f.help) : null,
+      function (x) { VALUES[f.key] = x; drawDrawer(); }, { row: true }));
+  } else if (isMulti(f)) {
+    box.appendChild(listControl(f));
+  } else if (f.type === "icon") {
+    box.appendChild(iconControl(v || f.def, function (x) { VALUES[f.key] = x; }, false));
+  } else if (isMedia(f)) {
+    box.appendChild(btn(ic(T(f).ic) + (v || "Choose a " + MEDIA[f.type]), "sm",
+      function () { VALUES[f.key] = v ? "" : "chili-step-3.mp4"; drawDrawer(); }));
+  } else if (f.type === "textarea" || f.type === "markdown") {
+    var ta = el("textarea", "inp");
+    ta.rows = 3; ta.value = v || "";
+    if (f.ph) ta.placeholder = f.ph;
+    ta.setAttribute("aria-label", f.label);
+    ta.addEventListener("input", function () { VALUES[f.key] = ta.value; });
+    box.appendChild(ta);
+  } else if (f.type === "range" && f.low != null && f.low !== "" && f.high != null && f.high !== "") {
+    var sl = el("div", "slider");
+    var r = el("input");
+    r.type = "range";
+    r.min = f.low; r.max = f.high;
+    r.step = f.step || (f.whole ? 1 : "any");
+    r.value = v === "" || v == null ? f.def || f.low : v;
+    r.setAttribute("aria-label", f.label);
+    var read = el("output", "slider-v", esc(String(r.value)) + (f.unit ? " " + esc(f.unit) : ""));
+    r.addEventListener("input", function () {
+      VALUES[f.key] = r.value;
+      read.textContent = r.value + (f.unit ? " " + f.unit : "");
+    });
+    r.addEventListener("change", drawDrawer);
+    sl.appendChild(el("span", "slider-end", esc(String(f.low))));
+    sl.appendChild(r);
+    sl.appendChild(el("span", "slider-end", esc(String(f.high))));
+    box.appendChild(sl);
+    box.appendChild(read);
+  } else if (f.type === "number") {
+    var wl = el("div", "inp-row");
+    var i = inp(v, { label: f.label, ph: f.ph || f.def, num: true,
+      step: f.step || (f.whole ? "1" : "any"), min: f.low });
+    i.addEventListener("input", function () { VALUES[f.key] = i.value; });
+    i.addEventListener("blur", drawDrawer);
+    wl.appendChild(i);
+    if (f.unit) wl.appendChild(el("span", "quiet", esc(f.unit)));
+    box.appendChild(wl);
+  } else {
+    var i2 = inp(v, { label: f.label, ph: f.ph || (f.type === "url" ? "https://" : "") });
+    i2.addEventListener("input", function () { VALUES[f.key] = i2.value; });
+    i2.addEventListener("blur", drawDrawer);
+    box.appendChild(i2);
+  }
+
+  if (!fits(f)) {
+    box.appendChild(el("div", "fld-err", ic("i-warn") +
+      "This recipe's value doesn't fit a " + esc(T(f).label) + ". You'll see it in Site Health."));
+  } else if (f.req && !hasValue(f)) {
+    box.appendChild(el("div", "fld-err", ic("i-alert") + "Add " + esc(f.label.toLowerCase()) + " to publish."));
+  } else if (f.help) box.appendChild(el("div", "hint", esc(f.help)));
+  return box;
+}
+
+/* A list: pressable options when it is held to a set, a menu of them when the
+   set is long enough to want one, and plain lines when it is not held at all. */
+function listControl(f) {
+  if (!Array.isArray(VALUES[f.key])) VALUES[f.key] = [];
+  var v = VALUES[f.key], pairs = optPairs(f);
+  if (!pairs.length) return el("div", "hint", "No options yet.");
+  if (f.type === "checkboxes") return multiPick(pairs, v, drawDrawer);
+
+  var w = el("div", "tokens");
+  v.forEach(function (k, i) {
+    var p = pairs.filter(function (x) { return x[0] === k; })[0];
+    var lab = p ? p[1] : k;
+    var t = el("span", "token", esc(lab));
+    var x = el("button", "tkx", ic("i-x"));
+    x.type = "button";
+    x.setAttribute("aria-label", "Remove " + lab);
+    x.addEventListener("click", function () { v.splice(i, 1); drawDrawer(); });
+    t.appendChild(x);
+    w.appendChild(t);
+  });
+  var left = pairs.filter(function (p) { return v.indexOf(p[0]) < 0; });
+  var add = el("button", "token-add", ic("i-plus") + (v.length ? "Add" : "Choose"));
+  add.type = "button";
+  add.disabled = !left.length;
+  add.setAttribute("aria-haspopup", "menu");
+  add.setAttribute("aria-expanded", "false");
+  add.addEventListener("click", function (e) {
+    e.stopPropagation();
+    menu(add, left.map(function (p) {
+      return { label: p[1], ic: "i-plus", run: function () { v.push(p[0]); drawDrawer(); } };
+    }));
+  });
+  w.appendChild(add);
+  return w;
+}
+
+/* The repeating group control, which has to work in a 372px drawer. */
+function repControl(f) {
+  if (!Array.isArray(VALUES[f.key])) VALUES[f.key] = [];
+  var items = VALUES[f.key];
+  var wrap = el("div", "rep");
+  items.forEach(function (it, i) {
+    var open = OPEN_ITEM === i;
+    var sum = itemSummary(f, it);
+    var r = el("button", "rep-row" + (sum ? "" : ""), "");
+    r.type = "button";
+    r.setAttribute("aria-expanded", String(open));
+    r.innerHTML = '<span class="grip" aria-hidden="true">' + ic("i-grip") + "</span>" +
+      '<span class="rep-sum' + (sum ? "" : " none") + '">' +
+      (sum || "Untitled " + esc((f.itemName || "item").toLowerCase())) + "</span>";
+    r.addEventListener("click", function () { OPEN_ITEM = open ? -1 : i; drawDrawer(); });
+    var m = el("span", "rep-more", ic("i-dots-v"));
+    r.appendChild(m);
+    wrap.appendChild(r);
+    if (open) {
+      var o = el("div", "rep-open");
+      (f.fields || []).forEach(function (c) {
+        var fb = el("div", "field");
+        fb.appendChild(el("div", "lab", esc(c.label)));
+        if (c.type === "select" || c.type === "radio") {
+          fb.appendChild(xsel(c.label, [["", "None"]].concat(optPairs(c)), it[c.key] || "",
+            function (x) { it[c.key] = x; drawDrawer(); }));
+        } else {
+          var ii = inp(it[c.key], { label: c.label });
+          ii.addEventListener("input", function () { it[c.key] = ii.value; });
+          ii.addEventListener("blur", drawDrawer);
+          fb.appendChild(ii);
+        }
+        o.appendChild(fb);
+      });
+      var fo = el("div", "ed-foot");
+      fo.appendChild(el("span", "hint", ""));
+      fo.appendChild(btn("Done", "sm", function () { OPEN_ITEM = -1; drawDrawer(); }));
+      o.appendChild(fo);
+      wrap.appendChild(o);
+    }
+  });
+  var foot = el("div", "rep-foot");
+  var most = Number(f.most) || 0;
+  var atMost = most && items.length >= most;
+  var add = btn(ic("i-plus") + "Add " + esc(f.itemName || "Item"), "btn-ghost sm", function () {
+    items.push({}); OPEN_ITEM = items.length - 1; drawDrawer();
+  });
+  add.disabled = atMost;
+  foot.appendChild(add);
+  wrap.appendChild(foot);
+  if (atMost) wrap.appendChild(el("div", "rep-cap", "Most is " + most + "."));
+  return wrap;
+}
+
+/* ---------------------------------------------------------------- router -- */
+
+function snapshot() {
+  var s = setOf(S.set);
+  S.snap = s ? JSON.stringify(s) : null;
+}
+function revert() {
+  if (!S.snap) return;
+  var i = SETS.findIndex(function (x) { return x.key === S.set; });
+  if (i > -1) SETS[i] = JSON.parse(S.snap);
+  S.dirty = false; S.open = null; S.sel = null;
+}
+/* Leaving a set with unsaved changes asks, the way leaving a menu does. */
+function leave(then) {
+  if (!S.dirty || SCREEN !== "set") return then();
+  var s = setOf(S.set);
+  modal("Save changes to " + s.name + "?", function (b) {
+    b.appendChild(el("p", "hint", "Its fields have changed. Nothing is written until you save."));
+  }, [
+    { label: "Keep Editing" },
+    { label: "Discard Changes", cls: "btn-ghost btn-danger", run: function () { revert(); then(); } },
+    { label: "Save", cls: "btn-primary", run: function () {
+      S.dirty = false; snapshot(); then();
+      toast("<b>" + esc(s.name) + "</b> saved.");
+    } }
+  ]);
+}
+function openSet(k) {
+  S.set = k; S.sel = null; S.open = null; S.dirty = false; S.expand = {};
+  snapshot();
+  go("set");
+}
+function go(s) { SCREEN = s; draw(); }
+
+function draw() {
+  closeMenu();
+  SECTION = SCREEN === "editor" ? "content" : "structure";
+  renderNav();
+  var work = document.getElementById("work");
+  var top = work.scrollTop;
+  work.innerHTML = "";
+  var node;
+  if (SCREEN === "list") { node = screenList(); top = 0; }
+  else if (SCREEN === "editor") { node = screenEditor(); top = 0; }
+  else node = screenSet(setOf(S.set) || SETS[0]);
+  if (SCREEN === "editor") { work.style.overflow = "hidden"; node.style.height = "100%"; }
+  else work.style.overflow = "auto";
+  work.appendChild(node);
+  if (SCREEN === "editor") drawDrawer();
+  if (SCREEN === "set") { work.scrollTop = top; paintSave(); }
+}
+
+draw();
+
+</script>
+</body>
+</html>

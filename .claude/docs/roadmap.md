@@ -917,7 +917,132 @@ against grouping by area or one file once every screen is in
 opens. See D-687 for how the files are versioned and D-688 for
 keeping the first screen's code in one file.
 
+### The Fields API, picked up again (D-766 to D-769): planned
+
+Built from the fields sketch (`.claude/docs/admin-design/blush-fields.html`)
+on D-337 to D-348's baseline. In short: a **field** is a value's
+definition (its `type` is the authority), a **control** is how it's
+entered (core only for 2.x, as classes ready to open), a definition
+stores both, and field sets go on entries only, in the sidebar. Each
+stage ends with `composer check`, `npm run admin:build` where the admin
+changed, the jtcom trial's field sets updated (no back-compat, D-658),
+and `docs/`.
+
+**Stage 1. Controls as classes (PHP).** Built (D-771); media ids and
+choice labels moved to stages 2 and 3.
+- `Blush\Field\Control` becomes an abstract base with final
+  `Controls\*` classes, behind the subsystem pattern: a `ControlType`
+  enum of core keys, `ControlRegistry`, `ControlFactory`, and
+  `ControlRegistrar`. Only core registers controls for 2.x: there's no
+  tag or source for extensions yet, but nothing in the shape assumes
+  core (D-766).
+- **A control describes itself as data** (`toArray()`): key, label,
+  description, icon, picker section, whether the picker offers it, the
+  value `type` it stores, the type options it writes, and its own
+  options (placeholder, item name, summary keys). The admin draws from
+  that; a site's PHP form will too, later.
+- **Checks stay on the type.** Whatever a control implies is written
+  as an option of its type, so values are checked with no control
+  loaded (D-769): Link and Email write `TextField`'s new `format`
+  (`url`, `email`); Date and Time writes `DateField`'s new `time`; the
+  media controls write `MediaField`'s `kind`; Repeating Group writes
+  `ListField`'s new `min` and `max`; Number's `integer`, `min`, and
+  `max` stay, with a new `step`.
+- **Core controls:** the sketch's Group, Repeating Group, Text,
+  Textarea, Formatted Text, Link, Email, Radio Buttons, Select
+  Dropdown, Checkboxes, Multi-Select, Toggle, Number, Date and Time,
+  Image, Video, Audio, File, and Icon; and, not offered in the picker,
+  the ones other screens use today (Code, One Per Line, Read-only).
+  Range Slider and Color are registered later (stage 5).
+- **Definitions** carry `type` and `control`, either one optional in a
+  file written by hand (D-769); the type gives its default control
+  (`ControlRegistry::defaultFor()`), replacing `Field::controls()`.
+  A control that doesn't store its field's type is an `InvalidSchema`
+  when types load. `Control::switchesTo()` lists the controls a saved
+  field can change to: same type and same type options (D-768).
+- **No reference field** (D-767): `reference` leaves `FieldType` and
+  the catalog, so a definition naming it is an error that points at
+  relationships, and `RelationCompiler`'s reading of reference fields
+  goes. `ReferenceField` stays internal for the field a relation adds
+  to a schema and a collection's `parent`.
+- **Callers move to `ControlType`:** settings (D-343), media field
+  sets (D-341), menus' and theme settings' fields, directive options.
+  `RelationControl` is separate and unchanged.
+- **The catalog:** `GET fields/controls` (the picker's sections and
+  tiles) replaces `GET fields/types`. The editor JSON Schemas are
+  regenerated (`composer schemas`).
+
+**Stage 2. Drawing controls in the admin (the shared layer).** Built (D-772); media fields store ids since
+D-773.
+- `FieldControl` and `FieldInput` draw the control the server
+  describes, with what's missing built as shared components: Link and
+  Email (typed text boxes), Multi-Select (chips with an add menu),
+  radio buttons as the segmented control, Toggle (`ToggleSwitch`),
+  Icon (the existing icon picker), the media controls (the media
+  picker limited to a kind), Group (a sub-heading over its fields), and
+  Repeating Group (items that open and close, each summed up in one
+  line by its summary keys, with Add {Item}), all fitting the 372px
+  panel.
+- **Nesting** (D-768): the first level draws inline; deeper levels are
+  rows that open their own level with a back button, from the Document
+  tab's rows that open a level down (D-608).
+- What's left of `fields.ts`'s type-to-control mapping goes. Check the
+  size budget (D-510, D-687).
+
+**Stage 3. Structure → Fields from the sketch.** Built (D-774; review fixes D-775 to D-778); departures in
+`departures.md`.
+- **The list:** tabs All, This Site, Plugins; columns Field Set (label
+  and key), Used On (type tags, a Type Is Off pill, In Code), From
+  (locked for plugins and config), and Fields; the row menu (Edit
+  Fields, Settings, Delete Field Set; Open for read-only sets).
+- **A set's screen:** the head's meta line (key, field count, types,
+  position, origin), Settings, Save/Saved, and the kebab (Revert
+  Changes, Duplicate, Open in the Editor, Delete). The fields as a tree:
+  rows with move up, down, out, and in, ⌥ and the arrows, drag in
+  thirds (the middle nests into a group), and the More menu (Edit, Add
+  Above/Below/Inside, Duplicate, Move to Another Set, Remove).
+  **`MenuTree` already does this for menus (D-700), so the tree is
+  pulled out into a shared component both use** (D-509).
+- **The form under a row:** Label, Key (following the label until it's
+  changed or saved), the control tile opening the picker, Placeholder
+  where a box shows, Help, Required to Publish (not on groups), the
+  control's own section (options as label and key rows with a default,
+  limits, Includes a Time, item name and summary keys), and Advanced
+  (older names). Changing a saved key asks, keeping the old key as an
+  alias; removing a field with values says how many entries have one.
+- **The control picker:** a modal with search and sections of tiles.
+  A new field is offered every control; a saved one only those it can
+  switch to (D-768).
+- **The Settings dialog** (and New Field Set): Label, Help, Used On
+  (content types only, D-767, with a key clash named on the type),
+  and Position. No Where It Appears (D-768).
+- **The API:** sets target `type:` only through the admin; `position`
+  on a set; a set's screen gets each field's entry count from the
+  content index. `FieldSetsView`, `FieldSetView`, `NewFieldSetView`,
+  `FieldSetEditor`, `FieldListEditor`, and `FieldDefinitionEditor` are
+  replaced by the sketch's screens, built from existing pieces (record
+  differences in `departures.md`).
+
+**Stage 4. The entry sidebar.**
+- Every set is a group in the document panel, ordered by position then
+  label, open or closed, its header counting required fields left
+  empty. Controls from stage 2. A value that doesn't fit its field
+  (only from a file edited by hand now) shows as a warning that points
+  to Site Health, which lists such values.
+
+**Stage 5. Later (not scheduled).** Range Slider and Color as core
+controls (D-767); media as a target in the admin; extension controls
+after 2.x (D-766). (Featured images store ids since D-773.)
+
+**Nesting in the set editor** (D-770): the entry sidebar draws groups
+at any depth (stage 4), but Structure → Fields' tree stays one level
+deep (a group's fields can't be groups) until a new sketch designs
+deeper nesting.
+
 ### Still to scope
+
+- **The Fields API (D-766 to D-769):** see "The Fields API, picked up
+  again" above.
 
 - **The status API and workflows (D-732, D-733; for the 2.x launch):**
   statuses registered once by name, workflows of statuses and

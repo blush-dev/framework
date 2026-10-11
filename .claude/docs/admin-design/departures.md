@@ -1229,3 +1229,54 @@ from the admin's own pieces:
   Plugin (Lucide's `package` and `plug`), and the source's label from
   `Provenance` (Core for Blush's own, as the Tools screen says). Only
   the other tools' names in a description read as code.
+
+## Structure → Fields (`blush-fields.html`, D-766 to D-774)
+
+The sketch was drawn before the Fields API's terms were settled; it's
+built from the admin's own pieces, with these departures:
+
+- **The tree is `ItemTree`**, shared with Menus (D-509): the same rows,
+  buttons, keys, drag, and Undo. An open group's form holds its fields
+  in a box with **Add Field**, as the sketch has it: a tree of their own
+  (the set's tree is flat), so they move, drag, and open there. There's
+  no twist (nothing expands in place) and no indent or outdent: a
+  field moves between levels from its row's menu, **Move into {Group}**
+  or **Move out of {Group}** (D-776, D-778).
+- **The header is the Menus screen's** (`MenuView`): facts under the
+  title, **Settings**, one save button (**Update** / **Saved**), and a
+  menu with **Revert changes** and **Delete field set**. The sketch's
+  **Duplicate** and **Open in the Editor** aren't built, nor is **Move
+  to Another Set** in a row's menu (a move between sets would need both
+  saved at once).
+- **Tabs are All, This Site, and In Code**: config sets sit with
+  plugins' (the sketch's **Plugins**), since neither is edited here.
+- **New Field Set and Settings are one dialog** (`FieldSetSettings`):
+  label, key (a new set's), help, the content types it's used on, and
+  position. No **Where It Appears** (D-768), and a key another of the
+  types already has is refused by the server with the reason, not
+  warned about as it's ticked.
+- **The control picker** (`ControlPicker`) is the library pickers'
+  modal shell (`.modal`: the search in its own band, a bordered body,
+  the description in the footer beside Cancel), with the sketch's tiles;
+  a saved field sees only the controls of its shape (D-768), and a field
+  in a group no Structure section (D-770). Tiles use Lucide's icons by control (`controls.ts`); `hash`,
+  `toggle-right`, `circle-dot`, and `calendar` were added to the set.
+  Range Slider and Color aren't there yet (D-767).
+- **The form under a row** (`FieldForm`) has the sketch's parts in its
+  order: the control box drawn as the admin's drawn select, switches
+  with their text beside them (`ToggleSwitch`'s slot), a default as the
+  sketch draws it (a drawn select for one choice, `.chip-toggles` for
+  several, a switch for a toggle, the field's own control otherwise),
+  and a choice's options as the sketch's box (`ChoiceOptions` in
+  `.nest`: a Label and Key head, a grip and a menu on each row, Add
+  Option at the foot). A new group starts empty; the sketch seeds a
+  Label field. Edits apply as they're typed, as the sketch's do; Cancel
+  puts back what the field was when it opened (D-776). There's no
+  one-per-line control: a list of plain values is a repeating group, an
+  item a box (D-777). A field added inside a group is selected, not
+  opened. The media controls' **Store the File's ID** switch is
+  gone: media fields always store the id (D-773). **Show When** isn't
+  built, as the sketch says. Changing a saved key asks with the shared
+  checked confirmation (`confirmChecked`).
+- **A content type's own fields** use the same tree and form on its
+  screen, in place of the type screen's old field list.

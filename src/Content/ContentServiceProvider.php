@@ -59,6 +59,9 @@ use Blush\Core\Paths;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Field\FieldContext;
+use Blush\Field\ControlFactory;
+use Blush\Field\ControlRegistrar;
+use Blush\Field\ControlRegistry;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -94,6 +97,7 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		IndexFreshness::class,
 		IndexStore::class,
+		ControlFactory::class,
 		FieldFactory::class,
 		FieldTargets::class,
 		FrontMatter::class,
@@ -171,6 +175,16 @@ final class ContentServiceProvider extends ServiceProvider
 			static function (): FieldRegistry {
 				$registry = new FieldRegistry();
 				new FieldRegistrar($registry)->register();
+
+				return $registry;
+			}
+		);
+
+		$this->container->singleton(
+			ControlRegistry::class,
+			static function (): ControlRegistry {
+				$registry = new ControlRegistry();
+				new ControlRegistrar($registry)->register();
 
 				return $registry;
 			}

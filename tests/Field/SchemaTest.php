@@ -18,6 +18,7 @@ use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Field\FieldContext;
+use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -56,7 +57,7 @@ final class SchemaTest extends TestCase
 
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
-		$this->factory = new FieldFactory($registry);
+		$this->factory = new FieldFactory($registry, ControlFactory::core());
 	}
 
 	private function schema(bool $closed = false): Schema
@@ -258,7 +259,7 @@ final class SchemaTest extends TestCase
 		$cases = [
 			[['name' => 'x', 'type' => 'color'], 'Field "x" has an unknown type "color".'],
 			[['name' => 'x', 'required' => 'yes'], 'Field "x" "required" must be true or false.'],
-			[['name' => 'x', 'type' => 'enum', 'options' => [1]], 'Field "x" "options" must be a list of strings.'],
+			[['name' => 'x', 'type' => 'enum', 'options' => [1]], 'Field "x" "options" must be values, or values with labels ({"value", "label"}).'],
 			[['name' => 'x', 'type' => 'list', 'item' => ['a']], 'Field "x" "item" must be a map.']
 		];
 
@@ -277,10 +278,10 @@ final class SchemaTest extends TestCase
 		$registry = new FieldRegistry(['color' => ColorField::class]);
 		new FieldRegistrar($registry)->register();
 
-		$field = new FieldFactory($registry)->fromArray(['name' => 'accent', 'type' => 'color']);
+		$field = new FieldFactory($registry, ControlFactory::core())->fromArray(['name' => 'accent', 'type' => 'color']);
 
 		$this->assertInstanceOf(ColorField::class, $field);
 		$this->assertSame('#abcdef', $field->normalize('#ABCDEF', $this->context));
-		$this->assertCount(12, $registry);
+		$this->assertCount(11, $registry);
 	}
 }

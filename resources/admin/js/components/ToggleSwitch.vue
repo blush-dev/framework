@@ -13,7 +13,10 @@
  * its `reason` is its tooltip and is read with it. A `busy` one is
  * saving, and can't be moved again until it's done. Its `words` may say
  * more than On and Off ("Asked to Stay Away", "Allowed"; D-765), kept
- * the width of the longer so a column of them lines up.
+ * the width of the longer so a column of them lines up. Given text (the
+ * default slot), it says that beside the track in place of a word, as a
+ * setting's name with its note under it (the fields sketch's switches,
+ * D-774), and the whole of it is the hit area.
  */
 
 import { useId } from 'vue';
@@ -59,7 +62,8 @@ function changed(event: Event): void {
 			@change="changed"
 		>
 		<span class="switch__track" aria-hidden="true"><span class="switch__knob" /></span>
-		<span v-if="words" class="switch__word switch__word--long" aria-hidden="true"><span v-for="word in [words.on, words.off]" :key="word" :class="{ 'is-shown': word === (checked ? words.on : words.off) }">{{ word }}</span></span>
+		<span v-if="$slots.default" class="switch__text"><slot /></span>
+		<span v-else-if="words" class="switch__word switch__word--long" aria-hidden="true"><span v-for="word in [words.on, words.off]" :key="word" :class="{ 'is-shown': word === (checked ? words.on : words.off) }">{{ word }}</span></span>
 		<span v-else class="switch__word" aria-hidden="true">{{ checked ? 'On' : 'Off' }}</span>
 		<span v-if="reason" :id="reasonId" class="visually-hidden">{{ reason }}</span>
 	</label>
@@ -73,6 +77,33 @@ function changed(event: Event): void {
 	gap: var(--s-2);
 	cursor: pointer;
 	user-select: none;
+}
+
+/* A switch that says its setting's name beside it, with a note under. */
+.switch:has(> .switch__text) {
+	align-items: flex-start;
+	gap: 11px;
+}
+
+.switch:has(> .switch__text) > .switch__track {
+	margin-top: 1px;
+}
+
+.switch__text {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+	color: var(--fg);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	user-select: text;
+}
+
+.switch__text :deep(small) {
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 400;
+	line-height: 1.45;
 }
 
 .switch input {
