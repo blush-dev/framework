@@ -710,8 +710,9 @@ Where it shows can be changed:
   [job](#background-jobs), and the admin follows it with its progress
   to how it ended. The command line runs it straight away.
 
-**Settings → AI** lists your plugin's tools for apps under **Tools From
-Plugins**. When your plugin is off, its tools are gone.
+**Settings → AI** lists your plugin's tools for apps under **Tools**,
+grouped under your plugin's name. When your plugin is off, its tools
+are gone.
 
 ## Background jobs
 

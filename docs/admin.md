@@ -1421,14 +1421,17 @@ screens (and [Redirects](#redirects), with its own capability):
   `llms.txt`** on its screen; new types of terms and profiles start off), and the description it
   uses; and which kinds of AI crawler `robots.txt` asks to stay away:
   training crawlers, AI search crawlers, and fetchers acting for a
-  person, each saying what its crawlers do and naming its bots (see
+  person, each a switch (**Asked to Stay Away** or **Allowed**) saying
+  what its crawlers do and naming its bots (see
   [Configuration](configuration.md#sitemap-and-robotstxt)). It warns
   when the choices aren't used: outside production, or with your own
   `robots.txt`. Under **MCP Server**: whether AI apps can connect
   (off by default), the server's address with **Copy**, and which
-  roles may connect apps; and **Tools Offered**, what a connected app
-  can be asked to do, with what each needs, a plugin's under **Tools
-  From Plugins**. See [AI apps and MCP](mcp.md).
+  roles may connect apps. Last, **Tools**: what a connected app can be
+  asked to do, as one list grouped by who added each tool (Core, or a
+  plugin by name), with what each needs; select a tool to read what it
+  does, or **Show Descriptions** to open them all. See
+  [AI apps and MCP](mcp.md).
 - **API:** **API** turns on the [API](api.md) (off by default; saved
   as `api.enabled`, over `config/api.php`), with its address shown and
   a link to it once it's on, and **Who can read it**: **Anyone**, or

@@ -11,7 +11,9 @@
  *
  * A `locked` switch shows a state that's real but can't be changed here;
  * its `reason` is its tooltip and is read with it. A `busy` one is
- * saving, and can't be moved again until it's done.
+ * saving, and can't be moved again until it's done. Its `words` may say
+ * more than On and Off ("Asked to Stay Away", "Allowed"; D-765), kept
+ * the width of the longer so a column of them lines up.
  */
 
 import { useId } from 'vue';
@@ -26,6 +28,7 @@ const props = defineProps<{
 	form?: boolean;
 	// Help elsewhere on the page that describes it.
 	describedBy?: string;
+	words?: { on: string; off: string };
 }>();
 
 const emit = defineEmits<{
@@ -56,7 +59,8 @@ function changed(event: Event): void {
 			@change="changed"
 		>
 		<span class="switch__track" aria-hidden="true"><span class="switch__knob" /></span>
-		<span class="switch__word" aria-hidden="true">{{ checked ? 'On' : 'Off' }}</span>
+		<span v-if="words" class="switch__word switch__word--long" aria-hidden="true"><span v-for="word in [words.on, words.off]" :key="word" :class="{ 'is-shown': word === (checked ? words.on : words.off) }">{{ word }}</span></span>
+		<span v-else class="switch__word" aria-hidden="true">{{ checked ? 'On' : 'Off' }}</span>
 		<span v-if="reason" :id="reasonId" class="visually-hidden">{{ reason }}</span>
 	</label>
 </template>
@@ -122,6 +126,22 @@ function changed(event: Event): void {
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	font-weight: 600;
+}
+
+/* Longer words stack in one cell, the hidden one keeping the width. */
+.switch__word--long {
+	display: inline-grid;
+	width: auto;
+}
+
+.switch__word--long > span {
+	grid-area: 1 / 1;
+	visibility: hidden;
+	white-space: nowrap;
+}
+
+.switch__word--long > .is-shown {
+	visibility: visible;
 }
 
 .switch input:checked ~ .switch__word {

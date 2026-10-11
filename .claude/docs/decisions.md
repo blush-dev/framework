@@ -24203,3 +24203,39 @@ decision, add a new entry that supersedes it and mark the old one
   build", after asking whether `maxWrites` should be a setting and
   whether the API should leave Reading.
 
+### D-765: Settings → AI as the AI sketch's "Compact"
+
+- **Date:** 2026-10-11
+- **Status:** Built. From `.claude/docs/admin-design/ai-settings-sketch.html`,
+  modeled on the Writing work (D-695, D-696), drawn from the admin's
+  own pieces where the sketch differs (the author's standing rule);
+  departures in `departures.md`.
+- **Decision:**
+  - **Four panels, in this order:** Markdown Copies, MCP Server, AI
+    Crawlers, and Tools last.
+  - **Markdown Copies and MCP Server are `compact`** (a group flag):
+    each row's label, then its shown value under it and its help, with
+    a short fact (`aside`: llms.txt's page count, llms-full.txt's
+    size), its links (**View**), and its switch at the row's end. The
+    server's address sits under its label with **Copy**. Each panel
+    names its file once in its foot, as Writing's do.
+  - **AI Crawlers** stays one setting, `sitemap.blockAi`, drawn as a
+    switch for each crawler group (item kind `switches`), each saying
+    **Asked to Stay Away** or **Allowed** (`words`; `ToggleSwitch`
+    takes them) and naming its bots. Its help and where it's set are
+    the panel's foot, as the embeds' are, and the warning (outside
+    production, or a `robots.txt` of the site's own) is a foot of its
+    own.
+  - **Tools are one panel** in place of Tools Offered and Tools From
+    Plugins: one item of kind `tools`, its `sources` grouped by who
+    registered each tool (`Provenance::ofClass()`: Blush's as Core,
+    then the site's, then each plugin's by label), drawn by
+    `OfferedTools` with each tool's title, MCP name, and the
+    capability it needs ("Anyone connected" for none). A row opens its
+    description; the header says how many tools from how many sources,
+    with **Show Descriptions** / **Hide Descriptions**.
+- **Not done:** other Settings screens don't use `compact`; only AI's
+  groups set it.
+- **Why:** the author asked for the sketch to be built, modeled on the
+  Writing screen; every row and tool description was full height, so
+  the screen was long.

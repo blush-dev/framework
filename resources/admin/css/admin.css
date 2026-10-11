@@ -4493,6 +4493,64 @@ a.problem__title:hover {
 	padding-top: 0;
 }
 
+/* A compact row's end (D-765): a short fact, links, and the switch, in
+   a line. */
+.setting.setting--switch .setting__control,
+.setting--switch .setting__switch {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--s-2) var(--s-4);
+}
+
+/* A compact row's shown value, under its label. */
+.setting__line {
+	margin: 3px 0 0;
+	color: var(--fg);
+	font-size: var(--text-sm);
+	font-weight: 400;
+	overflow-wrap: anywhere;
+}
+
+.setting__line.setting__none {
+	color: var(--fg-3);
+}
+
+/* A value to copy, under its label: the MCP server's address. */
+.setting__address {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+	margin: var(--s-2) 0 var(--s-1);
+	font-weight: 400;
+}
+
+.setting__address code {
+	padding: 5px 9px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	color: var(--fg);
+	font-size: var(--text-sm);
+	overflow-wrap: anywhere;
+}
+
+.setting__aside {
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	white-space: nowrap;
+}
+
+/* The names an option covers, such as a crawler group's bots. */
+.setting__code {
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	line-height: 1.6;
+}
+
 /* A row turned off by another keeps its control, dimmed, with the reason
    in its help. */
 .setting.is-off .setting__control {
@@ -4593,6 +4651,24 @@ a.problem__title:hover {
 	border-top: 1px solid var(--border);
 	color: var(--fg-3);
 	font-size: var(--text-sm);
+}
+
+/* A panel's closing warning, such as robots.txt's choices not applying
+   outside production (D-765). */
+.setting-panels__foot--warn {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	background: var(--warn-soft);
+	color: var(--warn);
+}
+
+.setting-panels__foot--warn svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+	color: var(--warn-dot);
 }
 
 /* On a wide panel, a little more room for the control and a longer line

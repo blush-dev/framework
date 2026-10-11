@@ -28,7 +28,12 @@
  * A panel whose settings are all from one file (`source`, D-695) says
  * it once in its foot, so each row says where it's from only when it's
  * saved here. A panel of only switches has each row's words first and
- * its switch at the end, as the Writing sketch does.
+ * its switch at the end, as the Writing sketch does, and so does a
+ * `compact` one (AI's, from the AI sketch, D-765), with a shown value
+ * under its label and its links and `aside` at the end. AI's crawlers
+ * are one list drawn as a switch for each option (`switches`), and its
+ * tools a list grouped by who registered them (`OfferedTools`), whose
+ * descriptions the panel's header opens or closes together.
  *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them), but a yes or no is a
@@ -58,6 +63,7 @@ import FieldInput from '../components/FieldInput.vue';
 import DateFormatPicker from '../components/DateFormatPicker.vue';
 import EmbedChips from '../components/EmbedChips.vue';
 import LocalePicker from '../components/LocalePicker.vue';
+import OfferedTools from '../components/OfferedTools.vue';
 import SaveBar from '../components/SaveBar.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
@@ -262,6 +268,58 @@ function onlySwitches(group: SettingGroup): boolean {
 	return group.items.every((item) => item.setting !== undefined && item.field !== undefined && kindOf(item) === 'checkbox');
 }
 
+// Whether a group is drawn as compact rows: only switches, or a group
+// the server marks (D-765).
+function compact(group: SettingGroup): boolean {
+	return group.compact === true || onlySwitches(group);
+}
+
+// What a shown setting's value reads as under its label in a compact
+// row, if anything.
+function line(item: SettingItem): string {
+	return Array.isArray(item.value) && item.value.length === 0 ? 'None' : shown(item);
+}
+
+// Whether a `switches` setting has an option turned on in the form.
+function switchedOn(setting: string, option: string): boolean {
+	return onList(setting).includes(option);
+}
+
+// Turns one option on or off, kept in the options' order, so turning it
+// back leaves nothing changed.
+function setSwitch(item: SettingItem, option: string, on: boolean): void {
+	const setting = item.setting ?? '';
+	const chosen  = onList(setting).filter((entry) => entry !== option);
+
+	if (on) {
+		chosen.push(option);
+	}
+
+	form.value[setting] = (item.field?.item?.options ?? []).filter((entry) => chosen.includes(entry)).join('\n');
+}
+
+// The tools setting in a group, if it has one, and which tools'
+// descriptions are open.
+function toolsOf(group: SettingGroup): SettingItem | null {
+	return group.items.find((item) => item.kind === 'tools' && item.sources !== undefined) ?? null;
+}
+
+const openTools = ref<string[]>([]);
+
+function toolNames(item: SettingItem): string[] {
+	return (item.sources ?? []).flatMap((source) => source.tools.map((tool) => tool.name));
+}
+
+function toggleTool(name: string): void {
+	openTools.value = openTools.value.includes(name) ? openTools.value.filter((entry) => entry !== name) : [...openTools.value, name];
+}
+
+function toggleTools(item: SettingItem): void {
+	const names = toolNames(item);
+
+	openTools.value = openTools.value.length === names.length ? [] : names;
+}
+
 // The chosen option's details, for a segmented choice.
 function chosenDetail(item: SettingItem): string | null {
 	const value = item.setting === undefined ? '' : form.value[item.setting];
@@ -404,6 +462,10 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === embedsOf(group)!.providers?.length" @click="setProviders(embedsOf(group)!, true)">Turn All On</button>
 					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === 0" @click="setProviders(embedsOf(group)!, false)">Turn All Off</button>
 				</div>
+				<div v-else-if="toolsOf(group)" class="panel__actions">
+					<span class="panel__hint">{{ toolNames(toolsOf(group)!).length }} {{ toolNames(toolsOf(group)!).length === 1 ? 'tool' : 'tools' }} from {{ toolsOf(group)!.sources!.length }} {{ toolsOf(group)!.sources!.length === 1 ? 'source' : 'sources' }}</span>
+					<button type="button" class="button button--ghost button--small" @click="toggleTools(toolsOf(group)!)">{{ openTools.length === toolNames(toolsOf(group)!).length ? 'Hide Descriptions' : 'Show Descriptions' }}</button>
+				</div>
 			</header>
 			<template v-for="item in group.items" :key="item.key">
 				<template v-if="item.kind === 'uploads' && item.setting !== undefined && item.uploads !== undefined">
@@ -430,7 +492,35 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 						:locked="unset.includes(item.setting)"
 						@change="(name, on) => setProvider(item.setting!, name, on)"
 					/>
-					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'setting--switch': onlySwitches(group), 'is-off': locked(item) }">
+					<OfferedTools
+						v-else-if="item.kind === 'tools' && item.sources !== undefined"
+						:sources="item.sources"
+						:open="openTools"
+						@toggle="toggleTool"
+					/>
+					<template v-else-if="item.kind === 'switches' && item.setting !== undefined && item.field?.item !== undefined">
+						<div v-for="option in item.field.item.options ?? []" :key="option" class="setting setting--switch">
+							<div class="setting__label"><span>{{ choiceLabel(item.field, option) }}</span></div>
+							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
+								<div class="setting__switch">
+									<ToggleSwitch
+										form
+										:checked="switchedOn(item.setting, option)"
+										:label="`${choiceLabel(item.field, option)}: ${item.label.toLowerCase()}`"
+										:words="item.words"
+										:described-by="`setting-${item.key}-${option}-help`"
+										:locked="unset.includes(item.setting)"
+										@change="setSwitch(item, option, $event)"
+									/>
+								</div>
+							</div>
+							<div :id="`setting-${item.key}-${option}-help`" class="setting__help">
+								<p v-if="item.field.details?.[option]?.text">{{ item.field.details[option]!.text }}</p>
+								<p v-if="item.field.details?.[option]?.code" class="setting__code">{{ item.field.details[option]!.code }}</p>
+							</div>
+						</div>
+					</template>
+					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item) && !compact(group), 'setting--switch': compact(group), 'is-off': locked(item) }">
 						<template v-if="item.setting !== undefined && item.field !== undefined">
 							<div class="setting__label">
 								<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
@@ -439,6 +529,10 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 
 							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
 								<div v-if="kindOf(item) === 'checkbox'" class="setting__switch">
+									<template v-if="compact(group)">
+										<span v-if="item.aside" class="setting__aside">{{ item.aside }}</span>
+										<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
+									</template>
 									<ToggleSwitch
 										form
 										:checked="form[item.setting] === true"
@@ -502,13 +596,19 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									@update:model-value="form[item.setting!] = $event"
 								/>
 
-								<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
-								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
-								<p v-if="item.link" class="setting__links"><a class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
+								<template v-if="!compact(group)">
+									<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
+									<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+									<p v-if="item.link" class="setting__links"><a class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
+								</template>
 							</div>
 
 							<div :id="`setting-${item.key}-help`" class="setting__help">
 								<p v-if="liveHelp(item)">{{ liveHelp(item) }}</p>
+								<template v-if="compact(group)">
+									<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
+									<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+								</template>
 								<p v-if="isSite(item.setting)" class="setting__source">
 									<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
 									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
@@ -519,6 +619,24 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
 									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
 								</p>
+							</div>
+						</template>
+
+						<template v-else-if="compact(group)">
+							<div class="setting__label">
+								<span>{{ item.label }}</span>
+								<p v-if="item.copy" class="setting__address"><code>{{ item.value }}</code><button type="button" class="button button--small" @click="copyText(String(item.value), 'the address', 'the address')"><AdminIcon name="copy" />Copy</button></p>
+								<p v-else-if="line(item) !== ''" class="setting__line" :class="{ 'setting__none': line(item) === 'None', mono: item.kind === 'mono' }">{{ line(item) }}</p>
+							</div>
+							<div v-if="item.aside || item.link || item.links?.length" class="setting__control">
+								<span v-if="item.aside" class="setting__aside">{{ item.aside }}</span>
+								<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
+								<RouterLink v-for="link in item.links ?? []" :key="link.to" class="setting__link" :to="link.to">{{ link.label }}</RouterLink>
+							</div>
+							<div class="setting__help">
+								<p v-if="item.help">{{ item.help }}</p>
+								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+								<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
 							</div>
 						</template>
 
@@ -546,12 +664,15 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 				</template>
 			</div>
 			<template v-for="item in group.items" :key="`${item.key}-source`">
-				<p v-if="item.kind === 'embeds' && item.setting !== undefined" class="setting-panels__foot">
+				<p v-if="(item.kind === 'embeds' || item.kind === 'switches') && item.setting !== undefined" class="setting-panels__foot">
 					{{ item.help }}
 					<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
 					<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s</button></template>
 					<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
 				</p>
+			</template>
+			<template v-for="item in group.items" :key="`${item.key}-warning`">
+				<p v-if="item.kind === 'switches' && item.warning" class="setting-panels__foot setting-panels__foot--warn"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
 			</template>
 			<p v-if="sourceNote(group)" class="setting-panels__foot">
 				<template v-for="(part, index) in parts(sourceNote(group)!)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>

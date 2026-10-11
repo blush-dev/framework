@@ -154,7 +154,8 @@ and an address's trace worked out live, and the form checked by the
 server (D-686);
 and, from the Writing sketch, the Writing screen's A + Chips: sources
 named once per panel, Raw HTML as a segmented choice, and embeds as
-chips with Simple Icons marks (D-695);
+chips with Simple Icons marks (D-695), and the AI screen drawn the same
+way from its sketch, with its tools as one list by source (D-765);
 and, from the menus sketch
 (`.claude/docs/admin-design/menus-admin-standalone.html`), the Menus
 screens under Structure: menus and the theme's locations, a

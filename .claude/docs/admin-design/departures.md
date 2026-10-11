@@ -38,6 +38,8 @@ way to go; record the answer here.
                                                the Redirects screen (D-686)
 .claude/docs/admin-design/menus-admin-standalone.html
                                                the Menus screens (D-700)
+.claude/docs/admin-design/ai-settings-sketch.html
+                                               Settings → AI, its Compact option (D-765)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -1199,3 +1201,31 @@ switch, who can read it, the address), **Changes** (the write limit
 and who can make tokens, shown only), and **MCP Server** (whether it's
 on, linking to AI, where it's set).
 
+## Settings → AI (`ai-settings-sketch.html`, D-765)
+
+Built from the sketch's **Compact** option ("the Writing treatment"),
+from the admin's own pieces:
+
+- **Rows are the settings rows** in their switch form
+  (`.setting--switch`, D-696), with a group marked `compact`: a shown
+  value under the label (`.setting__line`), and the row's short fact
+  (`aside`), links, and switch at its end. The sketch's `.c-row` and
+  `.c-block` aren't copied.
+- **Labels stay sentence case** ("Markdown copies", "Server address",
+  "Who can connect apps"), as every Settings screen's are; the sketch
+  title-cases them. Links read as the sketch has them (**Manage Content
+  Types**, **Change in General Settings**, **Manage Roles**), and Who
+  can connect apps keeps its **API Settings** link (D-764).
+- **No storage notice** above the panels (D-697), though the sketch
+  draws one.
+- **Crawler switches** use the admin's `ToggleSwitch` (the form's
+  accent), saying the sketch's **Asked to Stay Away** or **Allowed**,
+  with the bots under the description in mono (`.setting__code`).
+  `robots.txt is a request…` is the panel's foot, with where it's set,
+  as the embeds' foot is; the warning is a foot of its own
+  (`.setting-panels__foot--warn`) in the sketch's warn colors.
+- **Tools** are `OfferedTools`: the sketch's column heads, group bands,
+  rows, and descriptions, with the admin's `.tag` for Built-in and
+  Plugin (Lucide's `package` and `plug`), and the source's label from
+  `Provenance` (Core for Blush's own, as the Tools screen says). Only
+  the other tools' names in a description read as code.

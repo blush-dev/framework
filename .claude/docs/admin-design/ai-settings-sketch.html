@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<title>AI Settings Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+/* Sketch harness around the Meridian admin's Writing screen.
+   Tokens are copied from the prototype's six theme blocks, unchanged. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --ctl:34px; --ctl-sm:30px;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px;
+  color-scheme: light;
+}
+:root[data-dir="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+  :root:not([data-theme="light"])[data-dir="editorial"]{
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+:root[data-theme="dark"][data-dir="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,p{margin:0}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+code,.mono{font-family:var(--font-mono);font-size:.92em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- harness (lab-) ---------- */
+.lab-bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:1px solid var(--border)}
+.lab-in{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-3);display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-3) var(--s-4)}
+.lab-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:-.01em;margin-right:var(--s-2)}
+.lab-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0;max-width:100%}
+.lab-tab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 12px;border-radius:var(--r-1);color:var(--fg-2);font-size:12.5px;white-space:nowrap}
+.lab-tab:hover{background:var(--surface-2);color:var(--fg)}
+.lab-tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.lab-tab .h{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);font-weight:400;font-variant-numeric:tabular-nums}
+.lab-tab[aria-selected="true"] .h{color:var(--accent)}
+.lab-end{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap}
+.lab-seg{display:flex;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.lab-seg button{height:var(--ctl-sm);padding:0 11px;font-size:12px;color:var(--fg-2)}
+.lab-seg button+button{border-left:1px solid var(--border)}
+.lab-seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg);font-weight:500}
+.lab-note{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-4) 0;display:flex;gap:var(--s-4);flex-wrap:wrap;align-items:baseline}
+.lab-note p{font-size:12.5px;color:var(--fg-2);max-width:78ch;line-height:1.6;flex:1;min-width:0}
+.lab-note b{color:var(--fg);font-weight:600}
+.lab-meter{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.lab-meter b{color:var(--fg)}
+
+/* ---------- the screen ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-5) 120px}
+.page-head{margin-bottom:var(--s-5)}
+.page-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;letter-spacing:var(--h1-track);line-height:1.2;text-wrap:balance}
+.page-head .sub{color:var(--fg-2);font-size:13px;margin-top:7px}
+.stack{display:flex;flex-direction:column;gap:var(--s-4)}
+.notebar{display:flex;align-items:flex-start;gap:var(--s-2);padding:11px var(--pad-x);border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-2);font-size:12px;color:var(--fg-2)}
+.notebar .ic{width:14px;height:14px;color:var(--fg-3);margin-top:2px}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);min-width:0}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.panel-head .end{margin-left:auto;display:flex;align-items:center;gap:6px}
+.panel-foot{padding:12px var(--pad-x);border-top:1px solid var(--border);font-size:11.5px;color:var(--fg-3);line-height:1.55}
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn-ghost:hover{background:var(--surface-2);border-color:transparent;color:var(--fg)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+.switch{display:inline-flex;align-items:center;gap:9px;cursor:pointer;padding:3px 0;position:relative}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch .track{width:30px;height:18px;border-radius:99px;background:var(--surface-3);border:1px solid var(--border-strong);position:relative;flex:none;transition:background .12s,border-color .12s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:99px;background:var(--surface);transition:transform .12s}
+.switch input:checked + .track{background:var(--accent);border-color:var(--accent)}
+.switch input:checked + .track::after{transform:translateX(12px)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+.switch .st{font-size:12px;color:var(--fg-2);min-width:2.4em}
+
+
+/* ---- Today ---- */
+.t-row{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--s-4);padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border)}
+.t-row:last-child,.t-row:has(+ .panel-foot),.t-row:has(+ .warnline){border-bottom:0}
+.t-row .k{font-size:13px;font-weight:500;padding-top:4px}
+.t-row .v{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.t-row .hint{font-size:12px;color:var(--fg-3);max-width:70ch;line-height:1.55}
+.radio-list{display:flex;flex-direction:column;gap:var(--s-3)}
+.h-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s-2) var(--s-4);padding:var(--s-4) var(--pad-x)}
+.h-row .k{font-size:13px;font-weight:500;padding-top:6px}
+.h-row .seg{align-self:flex-start}
+.h-row .v{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
+.h-row .hint{font-size:11.5px;color:var(--fg-3);line-height:1.55;max-width:82ch}
+@media (max-width:640px){.h-row{grid-template-columns:minmax(0,1fr)}}
+.radio{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;cursor:pointer}
+.radio input{margin:3px 0 0;accent-color:var(--accent)}
+.radio .nm{font-size:13px}
+.radio .ds{grid-column:2;font-size:12px;color:var(--fg-2)}
+@media (max-width:760px){.t-row{grid-template-columns:minmax(0,1fr);gap:var(--s-2)}}
+
+/* ---- compact rows (A, C) ---- */
+.c-row{display:flex;align-items:center;gap:var(--s-4);padding:12px var(--pad-x);border-bottom:1px solid var(--border)}
+.c-row:last-child,.c-row:has(+ .panel-foot),.c-row:has(+ .warnline){border-bottom:0}
+.c-row .txt{flex:1;min-width:0}
+.c-row .nm{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.c-row .ds{font-size:11.5px;color:var(--fg-3);line-height:1.5;margin-top:1px;max-width:82ch}
+.c-row .ctl{flex:none}
+.c-block{padding:var(--s-4) var(--pad-x);display:flex;flex-direction:column;gap:var(--s-3)}
+.c-block .top{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.c-block .nm{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
+.c-block .ds{font-size:11.5px;color:var(--fg-3);line-height:1.55;max-width:82ch}
+
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);overflow:hidden}
+.seg label{position:relative;display:inline-flex;align-items:center;height:var(--ctl-sm);padding:0 13px;font-size:12px;font-weight:500;color:var(--fg-2);cursor:pointer}
+.seg label+label{border-left:1px solid var(--border)}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--accent-soft);color:var(--accent)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.mode-ds{font-size:12px;color:var(--fg-2);line-height:1.55;max-width:82ch;padding:10px 12px;border-radius:var(--r-1);background:var(--surface-2)}
+
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px var(--s-3);padding:var(--s-3) calc(var(--pad-x) - 10px)}
+.ck{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 10px;align-items:start;padding:8px 10px;border-radius:var(--r-1);cursor:pointer;min-width:0}
+.ck:hover{background:var(--surface-2)}
+.ck input{margin:2px 0 0;width:15px;height:15px;accent-color:var(--accent)}
+.ck .nm{font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ck .dm{grid-column:2;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);line-height:1.55;overflow-wrap:anywhere}
+.ck:has(input:not(:checked)) .nm{color:var(--fg-2)}
+
+/* ---- Raw HTML option list and Embeds chips ---- */
+.opt-list{display:flex;flex-direction:column;gap:2px;padding:var(--s-2)}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 10px;padding:10px 12px;border-radius:var(--r-1);cursor:pointer}
+.opt:hover{background:var(--surface-2)}
+.opt input{margin:3px 0 0;accent-color:var(--accent)}
+.opt .nm{font-size:13px;font-weight:500}
+.opt .ds{grid-column:2;font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.opt:has(input:checked){background:var(--accent-soft)}
+.opt:has(input:checked) .nm{color:var(--accent)}
+.opt:has(input:checked) .ds{color:var(--fg-2)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s-2);padding:var(--s-4) var(--pad-x) var(--s-3)}
+.chip{display:inline-flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px 0 11px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12.5px;color:var(--fg-2)}
+.chip:hover{border-color:var(--border-strong);color:var(--fg)}
+.chip .ic{width:14px;height:14px}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:500}
+.chip .ic.off{color:var(--fg-3)}
+/* The provider's mark, from Simple Icons, in one color: ink when the site
+   embeds, stepped back when it does not. The check or dash after the name
+   still carries the state, so the mark is never the only signal. */
+/* The mark is the pill's left cap: no tile of its own, and a short rule
+   between it and the name in the pill's own line color. */
+.chip .mk{display:flex;align-items:center;height:16px;padding-right:9px;border-right:1px solid var(--border);color:var(--fg-3);flex:none}
+.chip .mk .logo{width:15px;height:15px;fill:currentColor;stroke:none}
+.chip[aria-pressed="true"] .mk{border-right-color:var(--accent-line);color:var(--accent)}
+.chip .stt{width:13px;height:13px;margin-left:1px}
+.chip-info{padding:0 var(--pad-x) var(--s-4);font-size:11.5px;color:var(--fg-3);min-height:2.6em}
+.chip-info b{color:var(--fg-2);font-weight:500}
+
+/* ---------- save bar ---------- */
+.savebar{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;
+  display:flex;align-items:center;gap:var(--s-3);padding:8px 9px 8px 18px;border-radius:99px;background:var(--surface);
+  border:1px solid var(--border-strong);box-shadow:var(--shadow-3);max-width:calc(100vw - 32px)}
+.savebar .n{font-size:12.5px;white-space:nowrap;color:var(--fg-2)}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-3);padding:11px 15px;font-size:12.5px}
+.toast .ic{color:var(--good-dot)}
+
+#measure{position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none}
+@media (max-width:640px){
+  .lab-in,.lab-note,.wrap{padding-inline:var(--s-4)}
+  .lab-end{margin-left:0}
+  .page-head h1{font-size:22px}
+  .c-row{align-items:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+
+/* ================= AI screen additions ================= */
+.c-row .val{font-size:12.5px;color:var(--fg);margin-top:3px}
+.c-row .val.none{color:var(--fg-3)}
+.c-row .ctl{display:flex;align-items:center;gap:var(--s-3)}
+.ext{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--accent);white-space:nowrap}
+.ext:hover{text-decoration:underline;text-underline-offset:2px}
+.ext .ic{width:12px;height:12px}
+.addr{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.addr code{font-size:12px;color:var(--fg);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:5px 9px;overflow-wrap:anywhere}
+.btn .ic{width:14px;height:14px}
+
+/* Tools: one list, grouped by whoever registered them. */
+.tl-group{border-top:1px solid var(--border)}
+.tl-cols + .tl-group{border-top:0}
+.tl-gh{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:10px var(--pad-x);background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;color:var(--fg-2)}
+.tl-gh b{color:var(--fg);font-weight:600}
+.tl-gh .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.src{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--border-strong);color:var(--fg-2);background:var(--surface)}
+.src .ic{width:11px;height:11px}
+.src.plugin{border-color:var(--accent-line);color:var(--accent);background:var(--accent-soft)}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{border-bottom:1px solid var(--border)}
+.tl li:last-child{border-bottom:0}
+.tl-row{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:var(--s-3);align-items:center;width:100%;padding:10px var(--pad-x);text-align:left}
+.tl-row:hover{background:var(--surface-2)}
+.tl-row .chev{width:14px;height:14px;color:var(--fg-3);transition:transform .12s}
+.tl-row[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.tl-name{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;min-width:0}
+.tl-name .nm{font-size:13px;font-weight:500;color:var(--fg)}
+.tl-name code{font-size:11.5px;color:var(--fg-3)}
+.needs{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);white-space:nowrap}
+.needs.any{font-family:var(--font-ui);color:var(--fg-3)}
+.tl-ds{padding:0 var(--pad-x) 12px calc(var(--pad-x) + 16px + var(--s-3));font-size:12px;color:var(--fg-2);line-height:1.6;max-width:calc(90ch + 60px)}
+.tl-ds code{font-size:11px}
+.tl-cols{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:var(--s-3);padding:8px var(--pad-x);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.tl-cols span:first-child{grid-column:2}
+@media (max-width:640px){.tl-row,.tl-cols{grid-template-columns:16px minmax(0,1fr)} .needs{grid-column:2} .tl-cols span:last-child{display:none} .tl-ds{padding-left:var(--pad-x)}}
+
+.bots{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px;line-height:1.6}
+.warnline{display:flex;align-items:flex-start;gap:var(--s-2);padding:11px var(--pad-x);border-top:1px solid var(--border);background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.5;border-radius:0 0 var(--r-3) var(--r-3)}
+.warnline .ic{width:14px;height:14px;margin-top:2px}
+.switch .st.wide{min-width:9.5em}
+
+/* Today */
+.t-row .val{font-size:13px}
+.t-row .mono-id{font-family:var(--font-mono);font-size:12.5px}
+.ck-list{display:flex;flex-direction:column;gap:var(--s-3)}
+.ck-big{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;cursor:pointer}
+.ck-big input{margin:3px 0 0;width:15px;height:15px;accent-color:var(--accent)}
+.ck-big .nm{font-size:13px}
+.ck-big .ds{grid-column:2;font-size:12px;color:var(--fg-2)}
+.ck-big .bots{grid-column:2;margin-top:0}
+</style>
+</head>
+<body>
+
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <!-- Provider marks from Simple Icons 13.21.0 (simpleicons.org), single color. -->
+  <symbol id="b-youtube" viewBox="0 0 24 24"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></symbol>
+  <symbol id="b-vimeo" viewBox="0 0 24 24"><title>Vimeo</title><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.247-6.0258 6.3699-8.2898 6.3699-1.409 0-2.578-1.294-3.553-3.881l-1.9179-7.1138c-.719-2.584-1.488-3.878-2.312-3.878-.179 0-.806.378-1.8809 1.132l-1.129-1.457a315.06 315.06 0 003.501-3.1279c1.579-1.368 2.765-2.085 3.5539-2.159 1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.5069.5389 2.45 1.1309 3.674 1.7759 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.8679 3.434-5.7568 6.7619-5.6368 2.4729.06 3.6279 1.664 3.4929 4.7969z"/></symbol>
+  <symbol id="b-ted" viewBox="0 0 24 24"><title>TED</title><path d="M0 7.664v2.223h2.43v6.449H5.1v-6.45h2.43V7.665zm7.945 0v8.672h7.31v-2.223h-4.638v-1.08h4.637v-2.066h-4.637v-1.08h4.637V7.664zm7.759 0v8.672h3.863c3.024 0 4.433-1.688 4.433-4.349 0-2.185-1.021-4.323-3.912-4.323zm2.672 2.223h.85c1.931 0 2.102 1.518 2.102 2.063 0 .815-.243 2.163-1.907 2.163h-1.045z"/></symbol>
+  <symbol id="b-codepen" viewBox="0 0 24 24"><title>CodePen</title><path d="M18.144 13.067v-2.134L16.55 12zm1.276 1.194a.628.628 0 01-.006.083l-.005.028-.011.053-.01.031c-.005.016-.01.031-.017.047l-.014.03a.78.78 0 01-.021.043l-.019.03a.57.57 0 01-.08.1l-.026.025a.602.602 0 01-.036.03l-.029.022-.01.008-6.782 4.522a.637.637 0 01-.708 0L4.864 14.79l-.01-.008a.599.599 0 01-.065-.052l-.026-.025-.032-.034-.021-.028a.588.588 0 01-.067-.11l-.014-.031a.644.644 0 01-.017-.047l-.01-.03c-.004-.018-.008-.036-.01-.054l-.006-.028a.628.628 0 01-.006-.083V9.739c0-.028.002-.055.006-.083l.005-.027.011-.054.01-.03a.574.574 0 01.12-.217l.031-.034.026-.025a.62.62 0 01.065-.052l.01-.008 6.782-4.521a.638.638 0 01.708 0l6.782 4.521.01.008.03.022.035.03c.01.008.017.016.026.025a.545.545 0 01.08.1l.019.03a.633.633 0 01.021.043l.014.03c.007.016.012.032.017.047l.01.031c.004.018.008.036.01.054l.006.027a.619.619 0 01.006.083zM12 0C5.373 0 0 5.372 0 12 0 18.627 5.373 24 12 24c6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12m0 10.492L9.745 12 12 13.51 14.255 12zm.638 4.124v2.975l4.996-3.33-2.232-1.493zm-6.272-.356l4.996 3.33v-2.974l-2.764-1.849zm11.268-4.52l-4.996-3.33v2.974l2.764 1.85zm-6.272-.356V6.41L6.366 9.74l2.232 1.493zm-5.506 1.549v2.134L7.45 12Z"/></symbol>
+  <symbol id="b-spotify" viewBox="0 0 24 24"><title>Spotify</title><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></symbol>
+  <symbol id="b-soundcloud" viewBox="0 0 24 24"><title>SoundCloud</title><path d="M23.999 14.165c-.052 1.796-1.612 3.169-3.4 3.169h-8.18a.68.68 0 0 1-.675-.683V7.862a.747.747 0 0 1 .452-.724s.75-.513 2.333-.513a5.364 5.364 0 0 1 2.763.755 5.433 5.433 0 0 1 2.57 3.54c.282-.08.574-.121.868-.12.884 0 1.73.358 2.347.992s.948 1.49.922 2.373ZM10.721 8.421c.247 2.98.427 5.697 0 8.672a.264.264 0 0 1-.53 0c-.395-2.946-.22-5.718 0-8.672a.264.264 0 0 1 .53 0ZM9.072 9.448c.285 2.659.37 4.986-.006 7.655a.277.277 0 0 1-.55 0c-.331-2.63-.256-5.02 0-7.655a.277.277 0 0 1 .556 0Zm-1.663-.257c.27 2.726.39 5.171 0 7.904a.266.266 0 0 1-.532 0c-.38-2.69-.257-5.21 0-7.904a.266.266 0 0 1 .532 0Zm-1.647.77a26.108 26.108 0 0 1-.008 7.147.272.272 0 0 1-.542 0 27.955 27.955 0 0 1 0-7.147.275.275 0 0 1 .55 0Zm-1.67 1.769c.421 1.865.228 3.5-.029 5.388a.257.257 0 0 1-.514 0c-.21-1.858-.398-3.549 0-5.389a.272.272 0 0 1 .543 0Zm-1.655-.273c.388 1.897.26 3.508-.01 5.412-.026.28-.514.283-.54 0-.244-1.878-.347-3.54-.01-5.412a.283.283 0 0 1 .56 0Zm-1.668.911c.4 1.268.257 2.292-.026 3.572a.257.257 0 0 1-.514 0c-.241-1.262-.354-2.312-.023-3.572a.283.283 0 0 1 .563 0Z"/></symbol>
+  <symbol id="b-flickr" viewBox="0 0 24 24"><title>Flickr</title><path d="M5.334 6.666C2.3884 6.666 0 9.055 0 12c0 2.9456 2.3884 5.334 5.334 5.334 2.9456 0 5.332-2.3884 5.332-5.334 0-2.945-2.3864-5.334-5.332-5.334zm13.332 0c-2.9456 0-5.332 2.389-5.332 5.334 0 2.9456 2.3864 5.334 5.332 5.334C21.6116 17.334 24 14.9456 24 12c0-2.945-2.3884-5.334-5.334-5.334Z"/></symbol>
+  <symbol id="b-twitch" viewBox="0 0 24 24"><title>Twitch</title><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></symbol>
+  <symbol id="b-tiktok" viewBox="0 0 24 24"><title>TikTok</title><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></symbol>
+</svg>
+
+<header class="lab-bar">
+  <div class="lab-in">
+    <span class="lab-name">AI</span>
+    <div class="lab-tabs" role="tablist" aria-label="Layout" id="labTabs"></div>
+    <div class="lab-end">
+      <div class="lab-seg" aria-label="Admin theme">
+        <button type="button" id="th-neutral" data-dir="" aria-pressed="true">Neutral</button>
+        <button type="button" id="th-editorial" data-dir="editorial" aria-pressed="false">Editorial</button>
+      </div>
+      <div class="lab-seg" aria-label="Color scheme">
+        <button type="button" id="cs-system" data-cs="" aria-pressed="true">System</button>
+        <button type="button" id="cs-light" data-cs="light" aria-pressed="false">Light</button>
+        <button type="button" id="cs-dark" data-cs="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="lab-note"><p id="labNote"></p><span class="lab-meter" id="labMeter"></span></div>
+
+<main class="wrap" id="screen"></main>
+<div id="measure" aria-hidden="true"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ic = (id, cls) => '<svg class="ic'+(cls?' '+cls:'')+'"><use href="#'+id+'"/></svg>';
+/* Tool names inside descriptions read as code. */
+const codeify = s => esc(s).replace(/\b([a-z]+_[a-z_]+)\b/g, '<code>$1</code>');
+
+/* ---------- the screen's content, as the screenshot has it ---------- */
+const TYPES_LISTED = "Pages, Posts, Literature, Docs, Genres, Movies, People, Recipes";
+const ROLES = "Owner, Administrator, Editor, Author, Contributor";
+const ADDR = "https://blush.ddev.site/api/mcp";
+const T = {
+  md:   "A page's copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.",
+  llms: "A Markdown map of the site: its name and description, then each listed type's pages.",
+  full: "Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.",
+  types:'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.',
+  desc: "The line under the site's name in llms.txt.",
+  mcp:  "Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.",
+  addr: "Paste it into an app's connector settings, such as Claude's. Each person signs in and approves the app, and it acts as them. Every change it makes is listed under Tools → Activity.",
+  who:  "Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.",
+  warn: "Outside production, robots.txt asks every crawler to stay away, so these choices apply only on the live site."
+};
+const ANY = "Anyone who connects an app may use it, for what they may see.";
+/* Who registered each tool. Core ships the first group; anything else names
+   its plugin. A plugin's tools arrive and leave with it. */
+const SOURCES = [
+  {k:"core", kind:"Built-in", name:"Core", tools:[
+    {id:"list_types", l:"List Content Types", needs:null,
+     d:"Lists the site's content types (posts, pages, and the site's own): each one's name, label, kind (a dated collection, or a tree of pages), a line about it, and how many entries this connection can see. Call it first to learn what the site has; call get_type before writing an entry of a type."},
+    {id:"get_type", l:"Get a Content Type", needs:null,
+     d:"Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry's fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries' slugs), and what this connection may do with it. Call it before create_entry or update_entry."},
+    {id:"search_entries", l:"Search Entries", needs:null,
+     d:"Finds entries (posts, pages, and the site's other types) by words, type, status, relationship (such as a tag or an author), parent page, and dates. Answers short summaries (id, type, title, status, address, dates, excerpt) without bodies; read one in full with get_entry. Finds drafts and scheduled entries this connection may see as well as published ones, but not the trash unless status asks for it."},
+    {id:"get_entry", l:"Get an Entry", needs:null,
+     d:'Gets one entry in full, by its id or its address on the site: its fields, its Markdown body exactly as written, its relationships, and, when this connection may edit it, its revision (which update_entry, edit_body, set_status, and trash_entry need) and links to edit and preview it. Add include: ["linked_from"] to list the entries that link to it, before trashing or unpublishing it.'},
+    {id:"search_media", l:"Search Media", needs:null,
+     d:"Finds files in the media library (images, video, audio, documents) by kind, by words in their name, title, alt text, or caption, and those missing alt text. Answers each file's id, address, size, title, alt text, and caption; get_media adds where it's used."},
+    {id:"get_media", l:"Get a Media File", needs:null,
+     d:"Gets one file in the media library by id: its address, dimensions, alt text, caption, sizes, and other details, and the entries that use it."},
+    {id:"create_entry", l:"Create a Draft", needs:"content.*.create",
+     d:"Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries' slugs), and a Markdown body. It's never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site's editor and to preview it."},
+    {id:"update_entry", l:"Update an Entry", needs:"content.*.edit",
+     d:"Changes an entry: only the fields given (null removes one), a whole new Markdown body, a new slug, or, for a page, a new parent page. Needs the revision get_entry answered; if someone changed it since, it's refused, so read it again. For a small change to the body, use edit_body instead. To publish or unpublish, use set_status."},
+    {id:"edit_body", l:"Edit Part of a Body", needs:"content.*.edit",
+     d:'Replaces one passage of an entry\'s Markdown body with new text, for a small change such as a typo or a sentence, without sending the whole body back. "find" must be copied exactly from the body get_entry answered and appear in it exactly once; send more of the text around it when it\'s found more than once. Needs the revision get_entry answered.'},
+    {id:"set_status", l:"Publish, Unpublish, or Schedule", needs:"content.*.publish",
+     d:'Changes whether an entry is live: "published" puts it on the site now, "draft" takes it off, and "scheduled" puts it on at a future "published" date. Only use it when the person asked to publish or unpublish. Needs the revision get_entry answered.'},
+    {id:"trash_entry", l:"Move an Entry to the Trash", needs:"content.*.delete",
+     d:"Moves an entry to the trash, off the site; restore_entry brings it back. When live entries link to it, it names them and does nothing until it's sent again with confirm: true. Needs the revision get_entry answered."},
+    {id:"restore_entry", l:"Restore an Entry", needs:"content.*.delete",
+     d:'Brings an entry back from the trash as a draft. search_entries with status ["trash"] finds what\'s there.'},
+    {id:"update_media", l:"Update a Media File", needs:"media.edit",
+     d:"Changes a media file's alt text, caption, or title, by its id. Alt text describes an image for someone who can't see it; keep it to a sentence. An empty value clears one."},
+    {id:"upload_media", l:"Upload a Media File", needs:"media.*.upload",
+     d:"Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id and address, for a body's Markdown image or a field."}
+  ]},
+  {k:"example", kind:"Plugin", name:"Example", tools:[
+    {id:"example_reading_time", l:"Reading Time", needs:"site.settings",
+     d:"Estimates how long the published entries take to read."}
+  ]}
+];
+const ALL_TOOLS = SOURCES.flatMap(s => s.tools.map(t => Object.assign({src:s}, t)));
+const CRAWLERS = [
+  {k:"cr_train",  l:"Training Crawlers", d:"Collect pages to train models.",
+   bots:["GPTBot","ClaudeBot","CCBot","Google-Extended","Applebot-Extended","Bytespider","meta-externalagent"]},
+  {k:"cr_search", l:"AI Search Crawlers", d:"Index pages so an answer can cite and link them.",
+   bots:["OAI-SearchBot","Claude-SearchBot","PerplexityBot"]},
+  {k:"cr_fetch",  l:"Fetchers Acting for a Person", d:"Get one page because a reader asked their assistant about it, so turning these away turns away a reader's own tools.",
+   bots:["ChatGPT-User","Claude-User","Perplexity-User"]}
+];
+
+/* ---------- state: config values, what is saved, what this screen holds ---------- */
+const CFG = {md:true, full:true, mcp:true, cr_train:false, cr_search:false, cr_fetch:false};
+let saved = {}, draft = {};
+const val = k => k in draft ? draft[k] : (k in saved ? saved[k] : CFG[k]);
+const dirtyKeys = () => Object.keys(CFG).filter(k => val(k) !== (k in saved ? saved[k] : CFG[k]));
+function setVal(k, v){ draft[k] = v; refresh(); }
+
+function sw(k, id, on_l, off_l){
+  const on = val(k);
+  return '<label class="switch"><input type="checkbox" id="'+id+'" data-k="'+k+'"'+(on?" checked":"")+'>'+
+    '<span class="track"></span><span class="st'+(on_l?' wide':'')+'">'+(on?(on_l||"On"):(off_l||"Off"))+'</span></label>';
+}
+const ext = (l) => '<a class="ext" href="#" onclick="return false">'+l+ic("i-ext")+'</a>';
+const lnk = (l) => '<a class="ext" href="#" onclick="return false">'+l+'</a>';
+const copyBtn = id => '<button class="btn sm" type="button" id="'+id+'" data-copy="1">'+ic("i-copy")+'Copy</button>';
+const head = '<div class="page-head"><h1>AI</h1><p class="sub">What AI tools can read, and what AI crawlers are asked.</p></div>';
+const panelHead = (t, h, end) => '<div class="panel-head"><h2>'+t+'</h2><span class="hint">'+h+'</span>'+(end?'<div class="end">'+end+'</div>':'')+'</div>';
+const notebar = '<div class="notebar">'+ic("i-info")+'<span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></div>';
+
+/* ---------- Today ---------- */
+function today(p){
+  const row = (k, v) => '<div class="t-row"><span class="k">'+k+'</span><div class="v">'+v+'</div></div>';
+  const h = s => '<span class="hint">'+s+'</span>';
+  return head + '<div class="stack">' +
+    '<section class="panel">'+panelHead("Markdown Copies","What AI tools read")+
+      row("Markdown copies", sw("md",p+"-md")+h(T.md))+
+      row("llms.txt", '<span class="val">Lists 1,063 pages</span>'+ext("View llms.txt")+h(T.llms))+
+      row("llms-full.txt", sw("full",p+"-full")+ext("View llms-full.txt (3.5 MB)")+h(T.full))+
+      row("Types in llms.txt", '<span class="val">'+TYPES_LISTED+'</span>'+lnk("Content Types")+h(T.types))+
+      row("Description", '<span class="val" style="color:var(--fg-3)">None</span>'+lnk("Change it on General")+h(T.desc))+
+      '<div class="panel-foot">The rest are from <code>config/llms.php</code>, the default.</div></section>'+
+    '<section class="panel">'+panelHead("MCP Server","How AI apps work with the site")+
+      row("MCP server", sw("mcp",p+"-mcp")+h(T.mcp))+
+      row("Server address", '<div class="addr"><code>'+ADDR+'</code>'+copyBtn(p+"-copy")+'</div>'+h(T.addr))+
+      row("Who can connect apps", '<span class="val">'+ROLES+'</span>'+lnk("Roles")+h(T.who))+
+    '</section>'+
+    '<section class="panel">'+panelHead("Tools Offered","What a connected app can be asked to do")+
+      SOURCES[0].tools.map(t => row(t.l, '<span class="mono-id">'+t.id+'</span>'+h(esc(t.d)+' '+(t.needs?'Needs '+t.needs+'.':ANY)))).join("")+
+    '</section>'+
+    '<section class="panel">'+panelHead("Tools From Plugins","What plugins add for connected apps")+
+      SOURCES.slice(1).flatMap(s=>s.tools).map(t => row(t.l, '<span class="mono-id">'+t.id+'</span>'+h(esc(t.d)+' Needs '+t.needs+'.'))).join("")+
+    '</section>'+
+    '<section class="panel">'+panelHead("AI Crawlers","What robots.txt asks of them")+
+      row("Ask to stay away", '<div class="ck-list">'+CRAWLERS.map(c =>
+        '<label class="ck-big"><input type="checkbox" id="'+p+'-'+c.k+'" data-k="'+c.k+'"'+(val(c.k)?" checked":"")+'>'+
+        '<span class="nm">'+c.l[0]+c.l.slice(1).toLowerCase()+'</span><span class="ds">'+esc(c.d)+'</span><span class="bots">'+c.bots.join(" · ")+'</span></label>').join("")+'</div>')+
+      '<div class="warnline">'+ic("i-warn")+'<span>'+T.warn+'</span></div>'+
+    '</section></div>';
+}
+
+/* ---------- Compact ---------- */
+const open = new Set();
+function toolsPanel(p){
+  const total = ALL_TOOLS.length;
+  const allOpen = open.size === total;
+  return '<section class="panel">'+panelHead("Tools","What a connected app can be asked to do",
+      '<span class="hint">'+total+' tools from '+SOURCES.length+' sources</span>'+
+      '<button class="btn btn-ghost sm" type="button" id="'+p+'-tl-all" data-tl-all="1">'+(allOpen?"Hide Descriptions":"Show Descriptions")+'</button>')+
+    '<div class="tl-cols" aria-hidden="true"><span>Tool</span><span>Needs</span></div>'+
+    SOURCES.map(s =>
+      '<div class="tl-group">'+
+        '<div class="tl-gh"><b>'+s.name+'</b><span class="src'+(s.kind==="Plugin"?" plugin":"")+'">'+ic(s.kind==="Plugin"?"i-plug":"i-cube")+s.kind+'</span>'+
+          '<span class="n">'+s.tools.length+(s.tools.length===1?" tool":" tools")+'</span></div>'+
+        '<ul class="tl">'+s.tools.map(t => { const o = open.has(t.id), did = p+'-ds-'+t.id;
+          return '<li><button class="tl-row" type="button" id="'+p+'-tl-'+t.id+'" data-tool="'+t.id+'" aria-expanded="'+o+'" aria-controls="'+did+'">'+
+            ic("i-chev","chev")+'<span class="tl-name"><span class="nm">'+t.l+'</span><code>'+t.id+'</code></span>'+
+            (t.needs ? '<span class="needs">'+t.needs+'</span>' : '<span class="needs any">Anyone connected</span>')+'</button>'+
+            '<p class="tl-ds" id="'+did+'"'+(o?'':' hidden')+'>'+codeify(t.d)+(t.needs?'':' '+esc(ANY))+'</p></li>'; }).join("")+'</ul>'+
+      '</div>').join("")+
+    '<div class="panel-foot">Core tools ship with the site. A plugin\'s tools arrive when it is turned on and leave when it is turned off. Every change a tool makes is listed under Tools → Activity.</div>'+
+  '</section>';
+}
+function compact(p){
+  const row = (name, ds, ctl, valLine) => '<div class="c-row"><div class="txt"><div class="nm">'+name+'</div>'+
+    (valLine?'<div class="val'+(valLine.none?' none':'')+'">'+(valLine.t||valLine)+'</div>':'')+
+    '<p class="ds">'+ds+'</p></div><div class="ctl">'+ctl+'</div></div>';
+  return head + '<div class="stack">' + notebar +
+    '<section class="panel">'+panelHead("Markdown Copies","What AI tools read")+
+      row("Markdown Copies", T.md, sw("md",p+"-md"))+
+      row("llms.txt", T.llms, '<span class="hint">1,063 pages</span>'+ext("View"))+
+      row("llms-full.txt", T.full, '<span class="hint">3.5 MB</span>'+ext("View")+sw("full",p+"-full"))+
+      row("Types in llms.txt", T.types, lnk("Manage Content Types"), TYPES_LISTED)+
+      row("Description", T.desc, lnk("Change in General Settings"), {t:"None", none:true})+
+      '<div class="panel-foot">From <code>config/llms.php</code>, the defaults.</div></section>'+
+    '<section class="panel">'+panelHead("MCP Server","How AI apps work with the site")+
+      row("MCP Server", T.mcp, sw("mcp",p+"-mcp"))+
+      '<div class="c-row"><div class="txt"><div class="nm">Server Address</div><div class="addr" style="margin-top:6px"><code>'+ADDR+'</code>'+copyBtn(p+"-copy")+'</div><p class="ds" style="margin-top:6px">'+T.addr+'</p></div></div>'+
+      row("Who Can Connect Apps", T.who, lnk("Manage Roles"), ROLES)+
+      '<div class="panel-foot">From <code>config/mcp.php</code>, the defaults.</div></section>'+
+    '<section class="panel">'+panelHead("AI Crawlers","What robots.txt asks of them")+
+      CRAWLERS.map(c => '<div class="c-row"><div class="txt"><div class="nm">'+c.l+'</div><p class="ds">'+esc(c.d)+'</p>'+
+        '<p class="bots">'+c.bots.join(" · ")+'</p></div><div class="ctl">'+sw(c.k,p+"-"+c.k,"Asked to Stay Away","Allowed")+'</div></div>').join("")+
+      '<div class="warnline">'+ic("i-warn")+'<span>'+T.warn+'</span></div>'+
+    '</section>'+
+    toolsPanel(p)+
+  '</div>';
+}
+
+const OPTIONS = [
+  {k:"today", l:"Today", fn:today, note:"<b>The screen as it is.</b> Every setting and every tool is a full-height row with its own label column. Core tools and plugin tools are two separate panels, and each tool's whole description is always open."},
+  {k:"compact", l:"Compact", fn:compact, note:"<b>The Writing treatment.</b> Settings are compact rows with the control on the right and one source line per panel. Tools come last, as one list grouped by whoever registered them, Core or a named plugin, each with what it needs; a tool's description opens on demand. Crawlers are switches, each naming its bots."}
+];
+let current = "compact";
+
+/* ---------- render, measure, save bar (as the Writing sketch) ---------- */
+function render(){
+  const o = OPTIONS.find(x => x.k === current);
+  const focusId = document.activeElement && document.activeElement.id;
+  $("#screen").innerHTML = o.fn(current);
+  $("#labNote").innerHTML = o.note;
+  if (focusId){ const el = document.getElementById(focusId); if (el) el.focus({preventScroll:true}); }
+  renderSaveBar(); measure();
+}
+function renderTabs(){
+  $("#labTabs").innerHTML = OPTIONS.map(o => '<button class="lab-tab" type="button" role="tab" id="lt-'+o.k+'" data-opt="'+o.k+'" aria-selected="'+(o.k===current)+'">'+
+    o.l+'<span class="h" id="h-'+o.k+'">—</span></button>').join("");
+}
+const heights = {};
+function measure(){
+  const m = $("#measure");
+  m.style.width = $("#screen").getBoundingClientRect().width + "px";
+  OPTIONS.forEach(o => { m.innerHTML = '<div class="wrap" style="max-width:none;padding-inline:0">'+o.fn("m")+'</div>'; heights[o.k] = m.firstChild.offsetHeight; });
+  m.innerHTML = "";
+  OPTIONS.forEach(o => { const el = $("#h-"+o.k); if (el) el.textContent = heights[o.k].toLocaleString("en-US")+"px"; });
+  const cur = heights[current], base = heights.today;
+  $("#labMeter").innerHTML = current === "today" ? "<b>"+base.toLocaleString("en-US")+"px</b> tall"
+    : "<b>"+cur.toLocaleString("en-US")+"px</b> tall · "+Math.round((1 - cur/base)*100)+"% shorter than today"+(open.size?" (with "+open.size+" open)":"");
+}
+function refresh(){ render(); }
+function renderSaveBar(){
+  let bar = $("#savebar");
+  const n = dirtyKeys().length;
+  if (!n){ if (bar) bar.remove(); return; }
+  if (!bar){
+    bar = document.createElement("div"); bar.className = "savebar"; bar.id = "savebar";
+    bar.innerHTML = '<span class="n" id="savebarN"></span><button class="btn btn-ghost sm" type="button" id="setRevert">Revert</button><button class="btn btn-primary sm" type="button" id="setSave">Save Changes</button>';
+    document.body.appendChild(bar);
+  }
+  $("#savebarN").textContent = n + (n === 1 ? " unsaved change" : " unsaved changes");
+}
+function toast(msg){
+  const t = document.createElement("div"); t.className = "toast"; t.innerHTML = ic("i-check")+'<span>'+msg+'</span>';
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2400);
+}
+
+document.addEventListener("change", e => {
+  const k = e.target.dataset && e.target.dataset.k; if (!k) return;
+  setVal(k, e.target.checked);
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.opt){ current = t.dataset.opt; renderTabs(); render(); document.getElementById("lt-"+current).focus(); return; }
+  if (t.dataset.tool){ const id = t.dataset.tool; open.has(id) ? open.delete(id) : open.add(id); render(); return; }
+  if (t.dataset.tlAll){ if (open.size === ALL_TOOLS.length) open.clear(); else ALL_TOOLS.forEach(x => open.add(x.id)); render(); return; }
+  if (t.dataset.copy){
+    const done = () => { const l = t.lastChild; t.lastChild.textContent = "Copied"; setTimeout(() => { if (l.isConnected) l.textContent = "Copy"; }, 1600); };
+    try { navigator.clipboard.writeText(ADDR).then(done, done); } catch(_){ done(); }
+    return;
+  }
+  if (t.id === "setSave"){ saved = Object.assign({}, saved, draft); draft = {}; toast("Saved to settings.json"); refresh(); return; }
+  if (t.id === "setRevert"){ draft = {}; toast("Reverted the unsaved changes"); refresh(); return; }
+  if ("dir" in t.dataset){ document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-pressed", b === t));
+    if (t.dataset.dir) document.documentElement.setAttribute("data-dir", t.dataset.dir); else document.documentElement.removeAttribute("data-dir"); measure(); return; }
+  if ("cs" in t.dataset){ document.querySelectorAll("[data-cs]").forEach(b => b.setAttribute("aria-pressed", b === t));
+    if (t.dataset.cs) document.documentElement.setAttribute("data-theme", t.dataset.cs); else document.documentElement.removeAttribute("data-theme"); return; }
+});
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(measure, 150); });
+renderTabs(); render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+</script>
+
+</body>
+</html>

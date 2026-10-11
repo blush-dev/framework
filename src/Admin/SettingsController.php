@@ -85,8 +85,9 @@ use Blush\Translation\Locales;
  * `help`. A `warning` marks a value that's risky where it is (detailed
  * errors on a live site). A shown setting may have a `link` (`label`
  * and `href`, a page on the site) or `links` (`label` and `to`, admin
- * paths), such as `llms.txt` and the types it lists. An editable one
- * may name the setting it `requires` (`setting`, and a `note` saying
+ * paths), such as `llms.txt` and the types it lists, and an `aside`, a
+ * short fact a `compact` group's row shows at its end (D-765). An
+ * editable one may name the setting it `requires` (`setting`, and a `note` saying
  * so): while that's off in the form, it's locked.
  *
  * A setting the admin can change (`Setting`) adds the `setting` it saves
@@ -98,7 +99,10 @@ use Blush\Translation\Locales;
  * field set on it (`settings:{screen}`) adds a group of its settings,
  * saved as `site.{name}`, with no `file` behind them. Media's upload
  * rules are one setting drawn as a grid (`kind` `uploads`, D-406; see
- * `media()`). The language (`app.locale`) adds `locales`, the menu it's
+ * `media()`). AI's crawler groups are one list drawn as a switch for
+ * each option (`kind` `switches`, with the `words` a switch says), and
+ * its tools one item of `kind` `tools` (D-765; see `toolGroups()`).
+ * The language (`app.locale`) adds `locales`, the menu it's
  * picked from (`Locales::options()`, D-441), and may be any code typed
  * instead. The time zone adds `menu`, the options its searchable menu
  * is drawn from (`TimeZones::options()`, D-444). The date and time
@@ -139,6 +143,7 @@ final readonly class SettingsController
 		private McpConfig $mcp,
 		private McpTools $mcpTools,
 		private Tools $tools,
+		private Provenance $provenance,
 		private OAuthServer $oauth
 	) {}
 
@@ -566,8 +571,12 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * AI (D-398): the Markdown copies and `llms.txt` AI tools read, and
-	 * what `robots.txt` asks of AI crawlers.
+	 * AI (D-398), drawn as the AI sketch's Compact (D-765): the Markdown
+	 * copies and `llms.txt` AI tools read, the MCP server, what
+	 * `robots.txt` asks of AI crawlers, and the tools a connected app can
+	 * be asked to do. The first two panels are `compact`: each row's words
+	 * first, with its value under its label, and its switch, links, and a
+	 * short `aside` at its end.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -578,34 +587,39 @@ final readonly class SettingsController
 		$blocked = array_map(static fn (AiCrawlerGroup $group): string => $group->label(), $this->sitemap->blockAi);
 
 		return [
-			self::group('markdown', 'Markdown Copies', 'What AI tools read', [
-				$this->edit(self::item('llms', 'Markdown copies', $this->llms->enabled, $this->llms->enabled, 'bool', Setting::Llms->field($this->types)->description), $saved, Setting::Llms, $this->llms->enabled),
-				[
-					...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? sprintf($listed === 1 ? 'Lists %s page' : 'Lists %s pages', number_format($listed)) : 'Off, with the Markdown copies', null, help: 'A Markdown map of the site: its name and description, then each listed type\'s pages.'),
-					'link' => $this->llms->enabled ? ['label' => 'View llms.txt', 'href' => $this->app->absoluteUrl('/llms.txt')] : null
-				],
-				$this->full($saved),
-				[
-					...self::item('types', 'Types in llms.txt', array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.'),
-					'links' => [['label' => 'Content Types', 'to' => '/types']]
-				],
-				[
-					...self::item('description', 'Description', $this->app->description === '' ? 'None' : $this->app->description, null, help: 'The line under the site\'s name in llms.txt.'),
-					'links' => [['label' => 'Change it on General', 'to' => '/settings/general']]
-				]
-			]),
-			$this->mcpGroup($saved),
-			...$this->toolGroups(),
+			[
+				...self::group('markdown', 'Markdown Copies', 'What AI tools read', [
+					$this->edit(self::item('llms', 'Markdown copies', $this->llms->enabled, $this->llms->enabled, 'bool', Setting::Llms->field($this->types)->description), $saved, Setting::Llms, $this->llms->enabled),
+					[
+						...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? '' : 'Off, with the Markdown copies', null, help: 'A Markdown map of the site: its name and description, then each listed type\'s pages.'),
+						'aside' => $this->llms->enabled ? sprintf($listed === 1 ? '%s page' : '%s pages', number_format($listed)) : null,
+						'link'  => $this->llms->enabled ? ['label' => 'View', 'href' => $this->app->absoluteUrl('/llms.txt')] : null
+					],
+					$this->full($saved),
+					[
+						...self::item('types', 'Types in llms.txt', array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.'),
+						'links' => [['label' => 'Manage Content Types', 'to' => '/types']]
+					],
+					[
+						...self::item('description', 'Description', $this->app->description === '' ? 'None' : $this->app->description, null, help: 'The line under the site\'s name in llms.txt.'),
+						'links' => [['label' => 'Change in General Settings', 'to' => '/settings/general']]
+					]
+				]),
+				'compact' => true
+			],
+			[...$this->mcpGroup($saved), 'compact' => true],
 			self::group('crawlers', 'AI Crawlers', 'What robots.txt asks of them', [
 				[
-					...$this->edit(self::item('blockAi', 'Ask to stay away', $blocked, $blocked === [], 'list', Setting::BlockAi->field($this->types)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
+					...$this->edit(self::item('blockAi', 'Ask to stay away', $blocked, $blocked === [], 'switches', Setting::BlockAi->field($this->types)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
+					'words'   => ['on' => 'Asked to Stay Away', 'off' => 'Allowed'],
 					'warning' => match (true) {
 						$this->sitemap->robots !== null                          => 'config/sitemap.php\'s own robots.txt replaces the generated one, so these choices aren\'t used.',
 						$this->app->environment !== Environment::Production => 'Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.',
 						default                                              => null
 					}
 				]
-			])
+			]),
+			...$this->toolGroups()
 		];
 	}
 
@@ -630,40 +644,51 @@ final readonly class SettingsController
 			],
 			[
 				...self::item('mcpConnect', 'Who can connect apps', $connect, null, 'list', 'Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.'),
-				'links' => [['label' => 'Roles', 'to' => '/roles'], ['label' => 'API Settings', 'to' => '/settings/api']]
+				'links' => [['label' => 'Manage Roles', 'to' => '/roles'], ['label' => 'API Settings', 'to' => '/settings/api']]
 			]
 		]);
 	}
 
 	/**
-	 * What a connected app can be asked to do (D-757): each tool, grouped
-	 * by who added it, with what it needs.
+	 * What a connected app can be asked to do (D-757, D-765): one panel
+	 * of every tool, as one setting of kind `tools`, its `sources` the
+	 * tools grouped by who registered them (`Provenance::ofClass()`):
+	 * Blush's first, then the site's, then each plugin's by label. Each
+	 * tool has its MCP `name`, `title`, `description`, and the capability
+	 * it `needs` (`null` for anyone who connects an app).
 	 *
 	 * @return list<array<string, mixed>>
 	 */
 	private function toolGroups(): array
 	{
-		$groups = [];
+		$sources = [];
 
 		foreach ($this->mcpTools->all() as $key => $tool) {
-			$name       = ToolRegistry::flatName($key);
-			$source     = $this->tools->isBuiltIn($key) ? 'blush' : 'plugins';
-			$capability = Tools::capabilityName($tool);
+			$source = $this->provenance->ofClass($this->tools->classOf($key) ?? $tool::class);
+			$group  = "{$source['kind']}:{$source['label']}";
 
-			$groups[$source][] = self::item(
-				"tool-{$name}",
-				$tool->title(),
-				$name,
-				null,
-				'mono',
-				$tool->description() . ($capability === null ? ' Anyone who connects an app may use it, for what they may see.' : " Needs {$capability}.")
-			);
+			$sources[$group] ??= [...$source, 'tools' => []];
+			$sources[$group]['tools'][] = [
+				'name'        => ToolRegistry::flatName($key),
+				'title'       => $tool->title(),
+				'description' => $tool->description(),
+				'needs'       => Tools::capabilityName($tool)
+			];
 		}
 
-		return array_values(array_filter([
-			isset($groups['blush']) ? self::group('tools', 'Tools Offered', 'What a connected app can be asked to do', $groups['blush']) : null,
-			isset($groups['plugins']) ? self::group('plugin-tools', 'Tools From Plugins', 'What plugins add for connected apps', $groups['plugins']) : null
-		]));
+		if ($sources === []) {
+			return [];
+		}
+
+		$order = ['core' => 0, 'site' => 1, 'plugin' => 2, 'other' => 3];
+
+		uasort($sources, static fn (array $a, array $b): int => [$order[$a['kind']] ?? 3, $a['label']] <=> [$order[$b['kind']] ?? 3, $b['label']]);
+
+		return [
+			self::group('tools', 'Tools', 'What a connected app can be asked to do', [
+				[...self::item('tools', 'Tools', [], null, 'tools'), 'sources' => array_values($sources)]
+			], 'Core tools ship with the site. A plugin\'s tools arrive when it\'s turned on and leave when it\'s turned off. Every change a tool makes is listed under Tools → Activity.')
+		];
 	}
 
 	/**
@@ -683,7 +708,8 @@ final readonly class SettingsController
 		return [
 			...$this->edit(self::item('full', 'llms-full.txt', $this->llms->full, ! $this->llms->full, 'bool', Setting::LlmsFull->field($this->types)->description), $saved, Setting::LlmsFull, $this->llms->full),
 			'requires' => ['setting' => Setting::Llms->value, 'note' => 'It needs the Markdown copies on.'],
-			'link'     => $served ? ['label' => sprintf('View llms-full.txt (%s)', self::bytes($size)), 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
+			'aside'    => $served ? self::bytes($size) : null,
+			'link'     => $served ? ['label' => 'View', 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
 			'warning'  => $served && $cached && $size > PageCache::MAX_BYTES
 				? sprintf('At %s, it\'s over the page cache\'s %s, so it\'s built again on every request for it.', self::bytes($size), self::bytes(PageCache::MAX_BYTES))
 				: null
@@ -743,8 +769,8 @@ final readonly class SettingsController
 	/**
 	 * Names the file a group's settings are from once (`source`, D-695),
 	 * when every setting it edits is from the same one, so its rows say
-	 * where they're from only when they're saved here. Upload rules and
-	 * embeds say it in their own foot, and a field set's settings
+	 * where they're from only when they're saved here. Upload rules,
+	 * embeds, and switches by option say it in their own foot, and a field set's settings
 	 * (`site.…`) have no file.
 	 *
 	 * @param  array<string, mixed> $group
@@ -759,7 +785,7 @@ final readonly class SettingsController
 				continue;
 			}
 
-			if (in_array($item['kind'] ?? null, ['uploads', 'embeds'], true) || ! is_string($item['file'] ?? null)) {
+			if (in_array($item['kind'] ?? null, ['uploads', 'embeds', 'switches'], true) || ! is_string($item['file'] ?? null)) {
 				return $group;
 			}
 

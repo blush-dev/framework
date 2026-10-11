@@ -935,8 +935,10 @@ export interface SettingItem {
 	// `embeds` is the embed providers turned off, drawn as a chip for
 	// each of `providers` (D-633, D-695); `segmented` is a choice drawn
 	// as its options side by side, with the chosen one's details under
-	// them (D-695).
-	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds' | 'segmented';
+	// them (D-695); `switches` is a list drawn as a switch for each
+	// option, saying its `words` (AI's crawlers, D-765); `tools` is the
+	// tools a connected app can be asked to do, by `sources` (D-765).
+	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds' | 'segmented' | 'switches' | 'tools';
 	// Whether it's still the default; `null` when it follows from others.
 	default: boolean | null;
 	help: string | null;
@@ -957,6 +959,13 @@ export interface SettingItem {
 	links?: { label: string; to: string }[];
 	// A value to copy, such as the MCP server's address (D-754).
 	copy?: boolean;
+	// A short fact a compact row shows at its end, such as llms.txt's
+	// page count (D-765).
+	aside?: string | null;
+	// What each of a `switches` setting's switches says, on and off.
+	words?: { on: string; off: string };
+	// A `tools` setting's tools, grouped by who registered them.
+	sources?: ToolSource[];
 	// A setting this one needs on (D-402): while that's off in the form,
 	// this one is locked, with the note saying why.
 	requires?: { setting: string; note: string };
@@ -1003,7 +1012,21 @@ export interface SettingGroup {
 	// The file every setting in it is from, named once in its foot
 	// (D-695), so a row says where it's from only when it's saved here.
 	source?: string;
+	// Drawn as compact rows (D-765): each row's words first, its value
+	// under its label, and its switch, links, and aside at its end.
+	compact?: boolean;
 	items: SettingItem[];
+}
+
+/**
+ * The tools a connected app can be asked to do (D-765), from one source:
+ * Blush (`core`), the site, or a plugin, by its label. Each tool has its
+ * MCP name and the capability it needs, or `null` for anyone connected.
+ */
+export interface ToolSource {
+	kind: 'core' | 'site' | 'plugin' | 'other';
+	label: string;
+	tools: { name: string; title: string; description: string; needs: string | null }[];
 }
 
 /**

@@ -82,7 +82,7 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(['600 changes an hour', true, 'config/api.php'], [$this->setting($api, 'changes', 'maxWrites')['value'] ?? null, $this->setting($api, 'changes', 'maxWrites')['default'] ?? null, $this->setting($api, 'changes', 'maxWrites')['file'] ?? null], 'Shown, set in config (D-764).');
 		$this->assertArrayNotHasKey('setting', $this->setting($api, 'changes', 'maxWrites'));
 		$this->assertSame(['addresses', 'search'], array_column(is_array($search['groups'] ?? null) ? $search['groups'] : [], 'key'));
-		$this->assertSame(['markdown', 'mcp', 'tools', 'crawlers'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
+		$this->assertSame(['markdown', 'mcp', 'crawlers', 'tools'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
 		$this->assertSame(['mcp.enabled', false, 'Off, with the MCP server'], [$this->setting($ai, 'mcp', 'mcp')['setting'] ?? null, $this->setting($ai, 'mcp', 'mcp')['value'] ?? null, $this->setting($ai, 'mcp', 'mcpAddress')['value'] ?? null], 'The MCP server is off until it\'s turned on (D-754).');
 		$this->assertSame(['types', 'caching', 'publishing'], array_column(is_array($system['groups'] ?? null) ? $system['groups'] : [], 'key'));
 		$this->assertSame(404, $this->send('GET', '/settings/permalinks')->getStatusCode());
@@ -147,16 +147,28 @@ final class AdminSettingsTest extends TestCase
 
 		$llms = $this->setting($ai, 'markdown', 'llms');
 		$this->assertSame(['llms.enabled', true, true, 'config/llms.php'], [$llms['setting'] ?? null, $llms['value'] ?? null, $llms['input'] ?? null, $llms['file'] ?? null]);
-		$this->assertSame('Lists 2 pages', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
+		$this->assertSame(['', '2 pages'], [$this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null, $this->setting($ai, 'markdown', 'llmsTxt')['aside'] ?? null]);
+		$groups = is_array($ai['groups'] ?? null) ? $ai['groups'] : [];
+		$this->assertSame([true, true, null, null], array_map(static fn (mixed $group): mixed => is_array($group) ? $group['compact'] ?? null : null, $groups), 'The first two panels are compact rows (D-765).');
 		$full = $this->setting($ai, 'markdown', 'full');
 		$this->assertSame(['llms.full', false, true, null], [$full['setting'] ?? null, $full['value'] ?? null, $full['default'] ?? null, $full['link'] ?? null]);
 		$this->assertSame(['setting' => 'llms.enabled', 'note' => 'It needs the Markdown copies on.'], $full['requires'] ?? null, 'Locked while the copies are off (D-402).');
-		$this->assertSame(['label' => 'View llms.txt', 'href' => 'https://example.test/llms.txt'], $this->setting($ai, 'markdown', 'llmsTxt')['link'] ?? null);
+		$this->assertSame(['label' => 'View', 'href' => 'https://example.test/llms.txt'], $this->setting($ai, 'markdown', 'llmsTxt')['link'] ?? null);
 		$this->assertSame(['Pages', 'Notes'], $this->setting($ai, 'markdown', 'types')['value'] ?? null, 'Types whose llms option is on.');
 		$this->assertSame('None', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
 
 		$block = $this->setting($ai, 'crawlers', 'blockAi');
-		$this->assertSame(['sitemap.blockAi', [], [], null], [$block['setting'] ?? null, $block['value'] ?? null, $block['input'] ?? null, $block['warning'] ?? null]);
+		$this->assertSame(['sitemap.blockAi', 'switches', [], [], null], [$block['setting'] ?? null, $block['kind'] ?? null, $block['value'] ?? null, $block['input'] ?? null, $block['warning'] ?? null]);
+		$this->assertSame(['on' => 'Asked to Stay Away', 'off' => 'Allowed'], $block['words'] ?? null);
+		$this->assertNotContains('crawlers', array_column(array_filter($groups, static fn (mixed $group): bool => is_array($group) && isset($group['source'])), 'key'), 'The switches say where they\'re from in their own foot.');
+
+		$sources = $this->setting($ai, 'tools', 'tools')['sources'] ?? null;
+		$this->assertIsArray($sources);
+		$core = is_array($sources[0] ?? null) ? $sources[0] : [];
+		$this->assertSame(['core', 'Blush'], [$core['kind'] ?? null, $core['label'] ?? null], 'Blush\'s tools first (D-765).');
+		$tools = is_array($core['tools'] ?? null) ? $core['tools'] : [];
+		$first = is_array($tools[0] ?? null) ? $tools[0] : [];
+		$this->assertSame(['name', 'title', 'description', 'needs'], array_keys($first));
 		$field = is_array($block['field'] ?? null) ? $block['field'] : [];
 		$this->assertSame('checks', $field['control'] ?? null);
 		$item = is_array($field['item'] ?? null) ? $field['item'] : [];
@@ -374,7 +386,8 @@ final class AdminSettingsTest extends TestCase
 		$full = $this->setting(self::json($this->send('GET', '/settings/ai')), 'markdown', 'full');
 		$link = is_array($full['link'] ?? null) ? $full['link'] : [];
 
-		$this->assertMatchesRegularExpression('/^View llms-full\.txt \(\d+ bytes\)$/', is_string($link['label'] ?? null) ? $link['label'] : '');
+		$this->assertSame('View', $link['label'] ?? null);
+		$this->assertMatchesRegularExpression('/^\d+ bytes$/', is_string($full['aside'] ?? null) ? $full['aside'] : '');
 		$this->assertNull($full['warning'] ?? null, 'Small enough for the page cache.');
 	}
 
