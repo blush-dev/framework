@@ -29,6 +29,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
+use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 
 /**
@@ -94,6 +95,25 @@ final readonly class ApiEntries
 			&& $this->permissions->limitedTo($token->capabilities)->can($account, ContentAction::Edit, $entry)
 			? $entry
 			: null;
+	}
+
+	/**
+	 * Returns an entry's revision when a token may edit it, for a write to
+	 * send back in `If-Match` (D-762), or `null`.
+	 *
+	 * @throws AuthException For a token whose capabilities aren't names.
+	 */
+	public function revision(Entry $entry, Token $token, Account $account): ?string
+	{
+		if (! $this->permissions->limitedTo($token->capabilities)->can($account, ContentAction::Edit, $entry)) {
+			return null;
+		}
+
+		try {
+			return $this->content->editable($entry)->version;
+		} catch (WriteException) {
+			return null;
+		}
 	}
 
 	/**

@@ -44,6 +44,8 @@ use Blush\Http\Status;
  *   Bearer`.
  * - **Lists** are `{ items, total, page, pages, per_page, next, prev }`,
  *   `next` and `prev` full URLs or `null`.
+ * - **Writes** (D-762) answer what they wrote, never kept, `201` with a
+ *   `Location` for something new.
  */
 final readonly class ApiResponses
 {
@@ -83,6 +85,22 @@ final readonly class ApiResponses
 	}
 
 	/**
+	 * Answers a write with what it wrote: `201` and where it is now, for
+	 * something new.
+	 *
+	 * @param array<array-key, mixed>|object $data
+	 */
+	public function written(array|object $data, Status $status = Status::Ok, ?string $location = null): ResponseInterface
+	{
+		return new Response($status, [
+			'Content-Type'  => 'application/json; charset=UTF-8',
+			'Cache-Control' => 'no-store',
+			...($location === null ? [] : ['Location' => $location]),
+			...self::cors()
+		], self::encode($data));
+	}
+
+	/**
 	 * Answers with an error.
 	 */
 	public function error(ApiError $error): ResponseInterface
@@ -91,20 +109,21 @@ final readonly class ApiResponses
 			'Content-Type'  => 'application/json; charset=UTF-8',
 			'Cache-Control' => 'no-store',
 			...($error->status === Status::Unauthorized ? ['WWW-Authenticate' => $error->error === 'invalid_token' ? 'Bearer error="invalid_token"' : 'Bearer'] : []),
+			...($error->retryAfter === null ? [] : ['Retry-After' => (string) $error->retryAfter]),
 			...self::cors()
 		], self::encode($error->toArray()));
 	}
 
 	/**
-	 * Answers a browser's CORS preflight: `GET` and `HEAD`, with the
-	 * headers a conditional request sends, and a token's.
+	 * Answers a browser's CORS preflight: reads and writes (D-762), with
+	 * the headers a conditional request sends, a token's, and a write's.
 	 */
 	public function preflight(): ResponseInterface
 	{
 		return new Response(Status::NoContent, [
 			...self::cors(),
-			'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
-			'Access-Control-Allow-Headers' => 'Accept, Authorization, If-None-Match, If-Modified-Since',
+			'Access-Control-Allow-Methods' => 'GET, HEAD, POST, PATCH, DELETE, OPTIONS',
+			'Access-Control-Allow-Headers' => 'Accept, Authorization, Content-Type, If-Match, If-None-Match, If-Modified-Since',
 			'Access-Control-Max-Age'       => '86400'
 		]);
 	}
@@ -163,7 +182,7 @@ final readonly class ApiResponses
 	 */
 	private static function cors(): array
 	{
-		return ['Access-Control-Allow-Origin' => '*', 'Access-Control-Expose-Headers' => 'ETag, WWW-Authenticate'];
+		return ['Access-Control-Allow-Origin' => '*', 'Access-Control-Expose-Headers' => 'ETag, Location, Retry-After, WWW-Authenticate'];
 	}
 
 	/**

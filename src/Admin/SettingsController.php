@@ -159,6 +159,7 @@ final readonly class SettingsController
 			'media'   => $this->media($saved),
 			'search'  => $this->search($saved),
 			'ai'      => $this->ai($saved),
+			'api'     => $this->apiScreen($saved, $account),
 			'system'  => $this->system(),
 			default   => null
 		};
@@ -331,9 +332,7 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * Reading: what the homepage shows, the feeds, and the API (D-741):
-	 * its switch, who may read it (D-745), and where it's served, set in
-	 * `config/api.php`.
+	 * Reading: what the homepage shows, and the feeds.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -351,13 +350,46 @@ final readonly class SettingsController
 				$this->edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
 				$this->edit(self::item('content', 'Full content', $this->feeds->content, $this->feeds->content, 'bool', 'Off, a feed carries each entry\'s summary only.'), $saved, Setting::FeedContent, $this->feeds->content),
 				$this->edit(self::item('limit', 'Entries per feed', (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: sprintf('From 1 to %d.', Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, $this->feeds->limit)
-			]),
+			])
+		];
+	}
+
+	/**
+	 * The API (D-741, D-764): its switch, who may read it (D-745), and
+	 * where it's served; what a token may change (D-762), its limit set
+	 * in `config/api.php`, and where tokens are made; and the MCP server
+	 * beside it, which the AI screen sets.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function apiScreen(Settings $saved, Account $account): array
+	{
+		$defaults = new ApiConfig();
+		$tokens   = array_values(array_map(
+			static fn (Role $role): string => $role->label,
+			array_filter($this->roles->all(), static fn (Role $role): bool => $role->allows(Capability::ApiTokens->value))
+		));
+
+		return [
 			self::group('api', 'API', 'For other sites, apps, and AI tools', [
 				$this->edit(self::item('api', 'API', $this->api->enabled, ! $this->api->enabled, 'bool', Setting::Api->field($this->types)->description), $saved, Setting::Api, $this->api->enabled),
 				$this->edit(self::item('access', 'Who can read it', $this->api->access->label(), $this->api->access === ApiAccess::Anyone, 'segmented', Setting::ApiAccess->field($this->types)->description), $saved, Setting::ApiAccess, $this->api->access->value),
 				[
-					...self::item('path', 'Address', $this->api->base(), $this->api->path === new ApiConfig()->path, 'mono', 'Where the API is served, with its version.', 'config/api.php'),
+					...self::item('path', 'Address', $this->api->base(), $this->api->path === $defaults->path, 'mono', 'Where the API is served, with its version.', 'config/api.php'),
 					'link' => $this->api->enabled ? ['label' => 'View the API', 'href' => $this->app->absoluteUrl($this->api->base())] : null
+				]
+			]),
+			self::group('changes', 'Changes', 'What a token may change', [
+				self::item('maxWrites', 'Changes per token', sprintf($this->api->maxWrites === 1 ? '%s change an hour' : '%s changes an hour', number_format($this->api->maxWrites)), $this->api->maxWrites === $defaults->maxWrites, help: 'How many entries and media files a token may create or change through the API in an hour. Past it, changes are refused until the hour is up. Each is listed under Tools → Activity.', file: 'config/api.php'),
+				[
+					...self::item('tokens', 'Who can make tokens', $tokens, null, 'list', 'Roles with Make API tokens. A token is made on an account\'s screen, under API Tokens, and does what its account may, or less.'),
+					'links' => [['label' => 'Your Account', 'to' => '/accounts/' . rawurlencode($account->username)], ['label' => 'Roles', 'to' => '/roles']]
+				]
+			]),
+			self::group('mcp', 'MCP Server', 'For AI apps, beside the API', [
+				[
+					...self::item('mcpStatus', 'MCP server', $this->mcp->enabled ? 'On' : 'Off', ! $this->mcp->enabled, help: 'AI apps connect to it with the API\'s tokens, or by signing in. It\'s set on the AI screen.'),
+					'links' => [['label' => 'AI Settings', 'to' => '/settings/ai']]
 				]
 			])
 		];
@@ -598,7 +630,7 @@ final readonly class SettingsController
 			],
 			[
 				...self::item('mcpConnect', 'Who can connect apps', $connect, null, 'list', 'Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.'),
-				'links' => [['label' => 'Roles', 'to' => '/roles']]
+				'links' => [['label' => 'Roles', 'to' => '/roles'], ['label' => 'API Settings', 'to' => '/settings/api']]
 			]
 		]);
 	}

@@ -24,7 +24,7 @@ enum ApiAccess: string
 	case Token  = 'token';
 
 	/**
-	 * Returns the choice's name, as the Reading screen has it.
+	 * Returns the choice's name, as the API screen has it.
 	 */
 	public function label(): string
 	{
@@ -35,7 +35,7 @@ enum ApiAccess: string
 	}
 
 	/**
-	 * Returns what the choice does, as the Reading screen says it.
+	 * Returns what the choice does, as the API screen says it.
 	 */
 	public function description(): string
 	{

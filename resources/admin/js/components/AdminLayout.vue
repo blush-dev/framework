@@ -156,7 +156,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// Redirects (D-686) after Addresses and Search, with its own capability.
 	const redirects = can('site.redirects') ? [counted(screen('redirects', 'Redirects', 'corner-down-right'), navCounts.value?.redirects)] : [];
 	const settings  = can('site.settings')
-		? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('writing', 'Writing', 'pen-line'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), ...redirects, settingsScreen('ai', 'AI', 'bot'), settingsScreen('system', 'System', 'settings')]
+		? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('writing', 'Writing', 'pen-line'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), ...redirects, settingsScreen('ai', 'AI', 'bot'), settingsScreen('api', 'API', 'braces'), settingsScreen('system', 'System', 'settings')]
 		: redirects;
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [

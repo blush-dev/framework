@@ -212,7 +212,7 @@ final class ApiTokensTest extends TestCase
 
 		$this->assertSame('token_required', $this->code('/api/v1/site', null, 401));
 		$this->assertSame('Blush', $this->json('/api/v1/site', $token)['name'] ?? null);
-		$this->assertSame(['enabled' => true, 'path' => '/api', 'maxAge' => 60, 'access' => 'token'], ApiConfig::fromArray(['enabled' => true, 'access' => 'token'])->toArray());
+		$this->assertSame(['enabled' => true, 'path' => '/api', 'maxAge' => 60, 'access' => 'token', 'maxWrites' => 600], ApiConfig::fromArray(['enabled' => true, 'access' => 'token'])->toArray());
 	}
 
 	public function testThrottlesTokensThatArent(): void

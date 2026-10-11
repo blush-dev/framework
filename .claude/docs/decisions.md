@@ -24067,3 +24067,139 @@ decision, add a new entry that supersedes it and mark the old one
   - `AdminAction`, `ActionResult`, the action registry, and
     `ActionController` are removed; docs: `extending.md#tools`,
     `cli.md#tools`, `admin.md#tools`.
+
+### D-762: Writes in the API
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-763). Shapes the writes D-756 left for
+  later; open around it: signing in on the same site and types
+  without pages (`open-questions.md` → Apps on the API).
+- **Decision:** The author agreed to these leanings:
+  - **What can be changed is what MCP can, and no more:** create,
+    update, publish or schedule, trash, and restore an entry; upload
+    media and change its alt text, caption, and title. No deleting for
+    good, no emptying the trash, no deleting media, no bulk changes,
+    and no types, settings, menus, roles, or accounts, which stay the
+    admin's.
+  - **Over the one write path:** `EntryEditor` and `MediaEditor`, so
+    the API refuses what the admin and MCP refuse (capabilities, the
+    token's narrowing, raw HTML, D-495, required fields, slugs and
+    languages, relation limits).
+  - **On the addresses that exist:** `POST /entries` makes a draft;
+    `PATCH /entries/{id}` changes only what it's sent (`null` removes
+    a field; a slug or parent moves the entry, with redirects as the
+    admin leaves them), `status` included, which needs `publish` as
+    everywhere and follows workflows once D-732 is built;
+    `DELETE /entries/{id}` trashes (D-484), and restoring is a `PATCH`
+    of `status`; `POST /media` uploads as a form does
+    (`multipart/form-data`) under the upload rules by kind (D-406, no
+    SVG, D-497); `PATCH /media/{id}` changes its details. No
+    `edit_body`: it exists for AI apps, which send long text back
+    badly; programs don't.
+  - **Revisions by `If-Match`:** entries read with a token carry their
+    `revision`, and a change sends it back in `If-Match`; a stale one
+    is refused (412) with "read it again", never saved over, and a
+    missing one is refused too (428).
+  - **Declared fields only** (D-743): a field the type doesn't declare
+    is refused, never kept quietly.
+  - **Logged and limited as MCP is:** every change in the activity log
+    under the token's account, marked as from the API, with Undo
+    (D-758); write limits per token on MCP's `RateLimiter`, with
+    numbers of their own.
+  - **No separate switch for writes:** a token whose capabilities
+    allow it is the switch (Read tokens can't write); requests from
+    browsers follow D-741's allowed list of origins.
+  - **The admin keeps its own API for now:** it already shares the
+    write path, which is what keeps the rules from drifting; its
+    endpoints change with its screens, while `/api/v1` is a promise to
+    outside programs, and it edits undeclared front matter, which v1
+    refuses (D-743). Its entry and media screens may move onto v1 once
+    the Fields API settles declared front matter; admin-only areas
+    (settings, roles, extensions, Site Health, jobs) stay internal.
+- **Why:** the author: "I think I agree with all of this", asking
+  first whether a plugin could ship its own app on the API (a pantry
+  tracker for someone who never sees the admin; yes, with the open
+  items) and why the admin doesn't run on it; then "Yes, record."
+
+### D-763: Writes in the API, as built
+
+- **Date:** 2026-10-11
+- **Status:** Built. Builds D-762; departs from it on CORS (below).
+- **Decision:** The author: "build the API writes". The fine points
+  were Claude's calls:
+  - **Input is the read shape:** `title`, `subtitle`, `slug`,
+    `published`, `image` (a media id), `parent` (an entry's id; `null`
+    for the top when moving), `fields` (only those
+    `EntryResource::declared()` gives, D-743; a media field by id),
+    `relations` (by name, as `EntryResource::listed()` gives, targets
+    by id or slug, written as slugs, the relation's aliases removed),
+    and `body` (Markdown); `type` and `language` on `POST` only;
+    `status` and `redirect` (default `true`) on `PATCH` only. A key
+    reads don't send (`summary`, `template`) is refused, never kept.
+  - **The trash:** `DELETE` trashes without asking about live links
+    (D-608's warning is for people and AI apps; a program asked for
+    it), answering the entry; a trashed entry takes `PATCH` of `status`
+    alone, `draft` or `published`, which restores it, at its revision;
+    `status: trash` in a `PATCH` points to `DELETE`.
+  - **Revisions:** `If-Match`, quoted or not (`W/` dropped), required
+    on `PATCH` and `DELETE` of entries (`428`), a stale one `412`
+    (`revision_mismatch`); token reads, and every write's answer,
+    carry `revision`. Media changes need none, as MCP's don't.
+  - **What a write finds:** an entry of a public type the token may
+    edit (in the trash, delete); any other is `404`, so a write learns
+    nothing a read wouldn't.
+  - **Answers:** the entry as `GET /entries/{id}` sends it (`?body=`,
+    `html` by default) with `revision`; the media file as `GET
+    /media/{id}` does; `201` with `Location` for something new;
+    `Cache-Control: no-store`. An upload whose details can't be saved
+    is still `201`, listing why in `warnings`.
+  - **Errors:** `invalid_body` (400), `forbidden` (403),
+    `revision_mismatch` (412), `too_large` (413), `unprocessable`
+    (422), `revision_required` (428), `too_many_writes` (429, with
+    `Retry-After`), and `field` on an error when a write names one,
+    as the write names it (`fields.{name}`, `relations.{name}`).
+  - **Limits:** `ApiConfig::$maxWrites`, 600 an hour per token by
+    default (an import, unlike an AI app's 60), counted per request on
+    `Http\RateLimiter` before the write is read.
+  - **CORS stays `*`,** with `POST`, `PATCH`, `DELETE`, `Content-Type`,
+    and `If-Match` in preflights and `Location` and `Retry-After`
+    exposed: a bearer token is a header, never a cookie, so a page on
+    another site can only write with a token it was given, as D-748
+    and D-759 settled for reads and MCP. D-741's allowed list of
+    origins isn't built.
+  - **Code:** `ApiWrites` (token, limit, context, body, revision,
+    finding, refusals), `Http\EntryWritesController`,
+    `Http\MediaWritesController`, `ApiResponses::written()`,
+    `ApiError::refused()`, and `ToolContexts::forToken(via:)`, so the
+    log says `Via::Api` with the token's name. Docs: `docs/api.md`
+    (Changing content), `docs/configuration.md`.
+- **Why:** the author asked for it to be built after D-762.
+
+### D-764: Settings → API, with the write limit shown, not set
+
+- **Date:** 2026-10-11
+- **Status:** Built. Moves D-741's API rows off Reading; departs from
+  the settings sketch (`departures.md`).
+- **Decision:** The author agreed:
+  - **The API gets its own Settings screen,** Settings → API
+    (`/settings/api`, `SettingsScreen::Api`, so `settings:api` is a
+    field set target like the others), between AI and System, not a
+    rail section of its own: it's a few rows, tokens belong to
+    accounts, and connected apps are on Tools. It could become a
+    section if webhooks, a view of every token, and request logs come.
+  - **Its groups:** **API** (the switch, who can read it, the address
+    with its link, moved from Reading as they were), **Changes** (how
+    many changes a token may make in an hour, and which roles may make
+    tokens, with links to Your Account and Roles), and **MCP Server**
+    (on or off, linking to AI, where it's set). The AI screen's MCP
+    group links back.
+  - **`maxWrites` is shown, not set:** a row naming `config/api.php`,
+    as the address is. It's a safety valve few sites change, MCP's
+    limits are config only too, and a limit per token, on the token,
+    would be the better control if one's needed later.
+  - **The MCP server stays on AI,** where people look for what AI apps
+    do.
+- **Why:** the author: "Yeah, that's what i mean: settings -> api and
+  build", after asking whether `maxWrites` should be a setting and
+  whether the API should leave Reading.
+

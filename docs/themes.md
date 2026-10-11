@@ -81,8 +81,9 @@ stylesheet: /media/zine.css  # an extra stylesheet
 
 A site, a theme's author, or a plugin can add settings to the
 admin's **Settings** screens with a [field set](content-types.md#field-sets)
-aimed at one: `settings:general`, `settings:reading`, or
-`settings:search`.
+aimed at one: `settings:general`, `settings:reading`,
+`settings:writing`, `settings:media`, `settings:search`, `settings:ai`,
+or `settings:api`.
 
 `user/data/fields/brand.json`:
 

@@ -26,6 +26,7 @@ enum SettingsScreen: string
 	case Media   = 'media';
 	case Search  = 'search';
 	case Ai      = 'ai';
+	case Api     = 'api';
 
 	/**
 	 * Returns the screen's name, as the admin's navigation has it.
@@ -38,7 +39,8 @@ enum SettingsScreen: string
 			self::Writing => 'Writing',
 			self::Media   => 'Media',
 			self::Search  => 'Addresses and Search',
-			self::Ai      => 'AI'
+			self::Ai      => 'AI',
+			self::Api     => 'API'
 		};
 	}
 

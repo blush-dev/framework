@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace Blush\Api;
 
 use Blush\Api\Http\EntriesController;
+use Blush\Api\Http\EntryWritesController;
 use Blush\Api\Http\IndexController;
 use Blush\Api\Http\MediaController;
+use Blush\Api\Http\MediaWritesController;
 use Blush\Api\Http\MenusController;
 use Blush\Api\Http\RelationsController;
 use Blush\Api\Http\SiteController;
@@ -24,8 +26,8 @@ use Blush\Core\ServiceProvider;
 use Blush\Routing\RouteSource;
 
 /**
- * Binds the read-only API (D-736 to D-741) and its API tokens (D-744 to
- * D-750).
+ * Binds the API (D-736 to D-741), its API tokens (D-744 to D-750), and
+ * its writes (D-762).
  */
 final class ApiServiceProvider extends ServiceProvider
 {
@@ -36,7 +38,8 @@ final class ApiServiceProvider extends ServiceProvider
 		ApiResponses::class,
 		ApiEntries::class,
 		EntryResource::class,
-		MediaResource::class
+		MediaResource::class,
+		ApiWrites::class
 	];
 
 	/**
@@ -51,7 +54,9 @@ final class ApiServiceProvider extends ServiceProvider
 		EntriesController::class,
 		RelationsController::class,
 		MediaController::class,
-		MenusController::class
+		MenusController::class,
+		EntryWritesController::class,
+		MediaWritesController::class
 	];
 
 	/**

@@ -77,6 +77,7 @@ const screens: Record<string, { title: string; hint: string }> = {
 	media: { title: 'Media', hint: 'What may be uploaded, how large, and where it\'s kept.' },
 	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
 	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },
+	api: { title: 'API', hint: 'What other sites, apps, and scripts can read, and what a token may change.' },
 	system: { title: 'System', hint: 'How the site is put together and run, all set in code.' }
 };
 

@@ -248,7 +248,8 @@ screen, tools over one write path for entries and media
 (`EntryEditor`, `MediaEditor`), and an activity log with Undo on Tools
 (D-751 to D-759; `docs/mcp.md`); and tools, written once and
 offered to AI apps, as Tools-screen buttons, and by `blush tool`
-(`Blush\Tool`, D-761).
+(`Blush\Tool`, D-761); and writes in the API, what MCP can change,
+with `If-Match` revisions (D-762, D-763).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

@@ -98,7 +98,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   by the bootstrap, every other when its config object is first resolved
   (a container singleton). Compiling leaves them out. Each `Setting` is
   also a field on its screen (`Setting::field()`, `SettingsScreen`,
-  D-343): general, reading, search, and ai (D-398), and the editable
+  D-343): general, reading, writing, media, search, ai (D-398), and
+  api (D-764), and the editable
   screens are field set targets (`settings:{screen}`, `SettingsTargets`;
   plugins' AI settings go on `settings:ai`, D-397); a set's settings are saved
   raw in the `site` group and read through their fields by
@@ -1222,7 +1223,7 @@ reusable pieces, from themes, the site, and plugins.
   (so the admin's and media's own `.md` paths win, and content routes'
   `{name}` never takes `hello.md`); themed pages link the version with
   `<link rel="alternate" type="text/markdown">`. Both are site URLs.
-- **The API** (`Blush\Api`, D-736 to D-742): read-only, off by
+- **The API** (`Blush\Api`, D-736 to D-742, writes D-762): off by
   default (`ApiConfig`), under `ApiConfig::base()` (`/api/v1`).
   `ApiRoutes` are system routes, `exact`, registered before
   `LlmsRoutes` (whose `/{path}.md` would take an API address), with a
@@ -1256,6 +1257,22 @@ reusable pieces, from themes, the site, and plugins.
   adds the `ETag`. Controllers are in `Blush\Api\Http`. The token
   check is `Auth\BearerTokens`, shared with the MCP server; a token with
   a `client` (an app's, from OAuth) is refused here (D-752).
+  **Writes** (D-762, D-763): `Http\EntryWritesController` (`POST
+  /entries`, `PATCH` and `DELETE /entries/{id}`) and
+  `Http\MediaWritesController` (`POST /media`, `PATCH /media/{id}`),
+  over `EntryEditor` and `MediaEditor` in a `ToolContext` from
+  `ToolContexts::forToken(via: Via::Api)`. `ApiWrites` runs each: a
+  token required, counted by `Http\RateLimiter` against
+  `ApiConfig::$maxWrites` an hour, the JSON body, the revision from
+  `If-Match`, an entry found only when the token may edit it (or, in
+  the trash, delete it), and `EditRefused` mapped to `ApiError` by
+  `Refusal` (`ApiError::refused()`, with a `field` named as the write
+  names it: `fields.{name}`, `relations.{name}`). Input is the read
+  shape: `EntryResource::declared()` and `listed()` say which fields
+  and relations a write takes; media and parents by id, relation
+  targets by id or slug (written as slugs). Answers go through
+  `ApiResponses::written()`, `no-store`; token reads carry `revision`
+  (`ApiEntries::revision()`).
 - **The MCP server** (`Blush\Mcp`, D-751 to D-759): off by default
   (`McpConfig`), at `{ApiConfig::$path}/mcp`, with OAuth's well-known
   and `/oauth` routes (`McpRoutes`, system routes, none while off).

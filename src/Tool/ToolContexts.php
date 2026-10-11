@@ -39,14 +39,15 @@ final readonly class ToolContexts
 	) {}
 
 	/**
-	 * A token's calls, by an app (its client's name) or a script.
+	 * A token's calls, by an app (its client's name) or a script, through
+	 * the MCP server or the API (D-762).
 	 *
 	 * @throws AuthException For a token whose capabilities aren't names.
 	 */
-	public function forToken(Account $account, Token $token, ?string $client = null): ToolContext
+	public function forToken(Account $account, Token $token, ?string $client = null, Via $via = Via::Mcp): ToolContext
 	{
 		return new ToolContext(
-			actor: Actor::token($account, Via::Mcp, $token, $client),
+			actor: Actor::token($account, $via, $token, $client),
 			permissions: $this->permissions->limitedTo($token->capabilities),
 			entries: $this->entries->limitedTo($token->capabilities),
 			media: $this->media->limitedTo($token->capabilities),

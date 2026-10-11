@@ -1187,3 +1187,15 @@ direction, built from the shared pieces until there's a design:
   a bot icon while an app made the latest change.
 - **Connected Apps** is a `.panel__section--turn` heading and `.rows`
   in the API Tokens panel, below the tokens' table.
+
+## Settings → API (D-764)
+
+The settings sketch (`meridian-settings-sketch.html`) has no API
+screen; the API's rows were on Reading (D-741) until it could change
+content (D-762). Its screen is drawn as the sketch draws every Settings
+screen (D-404), from the same rows, between AI and System in the
+section panel, with Lucide's `braces` as its icon: **API** (the
+switch, who can read it, the address), **Changes** (the write limit
+and who can make tokens, shown only), and **MCP Server** (whether it's
+on, linking to AI, where it's set).
+

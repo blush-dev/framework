@@ -406,7 +406,7 @@ final class ApiTest extends TestCase
 
 		$preflight = $this->get('/api/v1/entries', 'OPTIONS');
 		$this->assertSame(204, $preflight->getStatusCode());
-		$this->assertSame('GET, HEAD, OPTIONS', $preflight->getHeaderLine('Access-Control-Allow-Methods'));
+		$this->assertSame('GET, HEAD, POST, PATCH, DELETE, OPTIONS', $preflight->getHeaderLine('Access-Control-Allow-Methods'));
 	}
 
 	public function testAnswersNotModified(): void

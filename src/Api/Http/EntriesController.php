@@ -51,7 +51,8 @@ use Blush\Support\Uuid;
  * `status` (D-745), with an API token: entries of those statuses its
  * token may edit, whatever their visibility, in place of what the site
  * shows; on a list and on a single entry. Without a token, it's a
- * `401`.
+ * `401`. With a token, an entry it may edit has its `revision`, for a
+ * write to send back in `If-Match` (D-762).
  */
 final readonly class EntriesController
 {
@@ -98,7 +99,7 @@ final readonly class EntriesController
 
 			return $this->responses->page(
 				$request,
-				array_map(fn (Entry $entry): array => $this->resource->item($entry, $body, $include), $entries),
+				array_map(fn (Entry $entry): array => $this->item($request, $entry, $body, $include), $entries),
 				$total,
 				$page,
 				$perPage
@@ -121,8 +122,32 @@ final readonly class EntriesController
 				throw ApiError::notFound(sprintf('No entry has the id "%s".', $id));
 			}
 
-			return $this->resource->item($entry, $query->choice('body', EntryResource::BODIES, 'html'), ApiIncludes::from($query->list('include')));
+			return $this->item($request, $entry, $query->choice('body', EntryResource::BODIES, 'html'), ApiIncludes::from($query->list('include')));
 		});
+	}
+
+	/**
+	 * Returns an entry as the API sends it, with its revision when the
+	 * request's token may edit it.
+	 *
+	 * @return array<string, mixed>
+	 * @throws \Blush\Media\MediaException
+	 */
+	private function item(ServerRequestInterface $request, Entry $entry, string $body, ApiIncludes $include): array
+	{
+		$item    = $this->resource->item($entry, $body, $include);
+		$token   = $request->getAttribute(Token::class);
+		$account = $request->getAttribute(Account::class);
+
+		if ($token instanceof Token && $account instanceof Account) {
+			$revision = $this->entries->revision($entry, $token, $account);
+
+			if ($revision !== null) {
+				$item['revision'] = $revision;
+			}
+		}
+
+		return $item;
 	}
 
 	/**
@@ -174,7 +199,7 @@ final readonly class EntriesController
 		$entry    = $this->entries->at($address);
 		$path     = ApiEntries::path($address, $this->app->origin());
 		$redirect = $entry === null && $path !== null ? $this->routes->redirectFor($path) : null;
-		$items    = $entry === null ? [] : [$this->resource->item($entry, $body, $include)];
+		$items    = $entry === null ? [] : [$this->item($request, $entry, $body, $include)];
 
 		return [
 			...$this->responses->page($request, $items, count($items), 1, ApiQuery::PER_PAGE),

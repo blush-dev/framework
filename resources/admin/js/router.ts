@@ -107,7 +107,7 @@ export const router = createRouter({
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		// The site's redirects (D-686), listed under Settings.
 		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: 'Redirects', capability: 'site.redirects', area: 'settings' } },
-		{ path: '/settings/:screen(general|reading|writing|media|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'settings', wide: true } },
+		{ path: '/settings/:screen(general|reading|writing|media|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'settings', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'extend' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },

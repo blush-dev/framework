@@ -214,7 +214,7 @@ shown with their `icon` (see
 
 **Users** has Your Account, Accounts, Profiles, and Roles.
 **Settings** has General, Reading, Writing, Media, Addresses and Search,
-Redirects, AI, and System, and **Extend** has Themes, Plugins, and Icon
+Redirects, AI, API, and System, and **Extend** has Themes, Plugins, and Icon
 Packs. You only see the
 screens your roles allow: Media needs one of the media capabilities
 (see [Accounts](accounts.md#capabilities)), Accounts and
@@ -1372,12 +1372,7 @@ screens (and [Redirects](#redirects), with its own capability):
 - **Reading:** the homepage (the page at `user/content/index.md`, or the
   latest entries of a collection) and feeds: the formats (RSS, Atom,
   JSON Feed; none turns feeds off), whether they carry each entry's full
-  content, and how many entries each holds (1 to 100). Under them,
-  **API** turns on the read-only [API](api.md) (off by default; saved
-  as `api.enabled`, over `config/api.php`), with its address shown and
-  a link to it once it's on, and **Who can read it**: **Anyone**, or
-  **Only with a Token** for a private API (`api.access`; see
-  [Tokens](api.md#a-private-api)).
+  content, and how many entries each holds (1 to 100).
 - **Writing:** how Markdown renders: **Mentions** (`@name` links to
   the profile with that slug once it's published; anyone else's stays
   text), **Smart punctuation** (curly quotes, dashes, and ellipses),
@@ -1434,6 +1429,15 @@ screens (and [Redirects](#redirects), with its own capability):
   roles may connect apps; and **Tools Offered**, what a connected app
   can be asked to do, with what each needs, a plugin's under **Tools
   From Plugins**. See [AI apps and MCP](mcp.md).
+- **API:** **API** turns on the [API](api.md) (off by default; saved
+  as `api.enabled`, over `config/api.php`), with its address shown and
+  a link to it once it's on, and **Who can read it**: **Anyone**, or
+  **Only with a Token** for a private API (`api.access`; see
+  [Tokens](api.md#a-private-api)). Under **Changes**, shown only: how
+  many [changes](api.md#changing-content) a token may make in an hour
+  (`maxWrites` in `config/api.php`), and which roles may make API
+  tokens, with links to Your Account and Roles. Under **MCP Server**,
+  whether it's on, with a link to the AI screen, where it's set.
 - **System:** shown only: where content types come from, caching, and
   publishing and previews.
 

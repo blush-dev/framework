@@ -72,11 +72,15 @@ final class AdminSettingsTest extends TestCase
 		$reading = self::json($this->send('GET', '/settings/reading'));
 		$search  = self::json($this->send('GET', '/settings/search'));
 		$ai      = self::json($this->send('GET', '/settings/ai'));
+		$api     = self::json($this->send('GET', '/settings/api'));
 		$system  = self::json($this->send('GET', '/settings/system'));
 
 		$this->assertSame(['site', 'dates', 'accounts', 'environment'], array_column(is_array($general['groups'] ?? null) ? $general['groups'] : [], 'key'));
-		$this->assertSame(['home', 'feeds', 'api'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
-		$this->assertSame(['api.enabled', false, '/api/v1'], [$this->setting($reading, 'api', 'api')['setting'] ?? null, $this->setting($reading, 'api', 'api')['value'] ?? null, $this->setting($reading, 'api', 'path')['value'] ?? null], 'The API is off until it\'s turned on (D-741).');
+		$this->assertSame(['home', 'feeds'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
+		$this->assertSame(['api', 'changes', 'mcp'], array_column(is_array($api['groups'] ?? null) ? $api['groups'] : [], 'key'), 'The API has its own screen (D-764).');
+		$this->assertSame(['api.enabled', false, '/api/v1'], [$this->setting($api, 'api', 'api')['setting'] ?? null, $this->setting($api, 'api', 'api')['value'] ?? null, $this->setting($api, 'api', 'path')['value'] ?? null], 'The API is off until it\'s turned on (D-741).');
+		$this->assertSame(['600 changes an hour', true, 'config/api.php'], [$this->setting($api, 'changes', 'maxWrites')['value'] ?? null, $this->setting($api, 'changes', 'maxWrites')['default'] ?? null, $this->setting($api, 'changes', 'maxWrites')['file'] ?? null], 'Shown, set in config (D-764).');
+		$this->assertArrayNotHasKey('setting', $this->setting($api, 'changes', 'maxWrites'));
 		$this->assertSame(['addresses', 'search'], array_column(is_array($search['groups'] ?? null) ? $search['groups'] : [], 'key'));
 		$this->assertSame(['markdown', 'mcp', 'tools', 'crawlers'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
 		$this->assertSame(['mcp.enabled', false, 'Off, with the MCP server'], [$this->setting($ai, 'mcp', 'mcp')['setting'] ?? null, $this->setting($ai, 'mcp', 'mcp')['value'] ?? null, $this->setting($ai, 'mcp', 'mcpAddress')['value'] ?? null], 'The MCP server is off until it\'s turned on (D-754).');

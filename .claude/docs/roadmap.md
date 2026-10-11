@@ -973,7 +973,10 @@ keeping the first screen's code in one file.
   Tools written once and offered everywhere they fit built (D-761):
   `Blush\Tool\Tool` in place of `Blush\Mcp\Tool` and `AdminAction`,
   shown to AI apps, as Tools-screen buttons, and by `blush tool`, with
-  `core/tool` for queued runs.
+  `core/tool` for queued runs. Writes in the API built (D-762,
+  D-763): what MCP can change, over `EntryEditor` and `MediaEditor`,
+  with `If-Match` revisions; apps on the API (same-site sign-in, types
+  without pages) open in `open-questions.md`.
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,

@@ -757,7 +757,8 @@ Sets can also add details to media files: target `media:image`,
 `media:video`, `media:audio`, `media:document`, or `media:file` (see
 [Details about a file](media.md#details-about-a-file)). And they can add
 settings to the admin's Settings screens: target `settings:general`,
-`settings:reading`, or `settings:search` (see
+`settings:reading`, `settings:writing`, `settings:media`,
+`settings:search`, `settings:ai`, or `settings:api` (see
 [Your own settings](themes.md#your-own-settings)).
 
 The admin's **Structure → Fields** creates and edits the sets in

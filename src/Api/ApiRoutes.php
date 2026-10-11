@@ -15,8 +15,10 @@ namespace Blush\Api;
 
 use Override;
 use Blush\Api\Http\EntriesController;
+use Blush\Api\Http\EntryWritesController;
 use Blush\Api\Http\IndexController;
 use Blush\Api\Http\MediaController;
+use Blush\Api\Http\MediaWritesController;
 use Blush\Api\Http\MenusController;
 use Blush\Api\Http\RelationsController;
 use Blush\Api\Http\SiteController;
@@ -31,7 +33,8 @@ use Blush\Routing\RouteSource;
  * path exactly as written: the index, each resource and its single
  * items, a CORS preflight for any of them, and a JSON 404 for any other
  * address under the API, so a client never gets the site's HTML error
- * page. Off, there are none, and the site answers 404 itself (D-737).
+ * page; and the writes to entries and media, which need a token
+ * (D-762). Off, there are none, and the site answers 404 itself (D-737).
  * Each runs `ApiAuthentication` first, which finds the request's API
  * token, if it sends one (D-746).
  *
@@ -71,9 +74,14 @@ final readonly class ApiRoutes implements RouteSource
 			Route::get('/types/{name}', [TypesController::class, 'show'])->named('types.single'),
 			Route::get('/entries', [EntriesController::class, 'index'])->named('entries'),
 			Route::get('/entries/{id}', [EntriesController::class, 'show'])->named('entries.single'),
+			Route::post('/entries', [EntryWritesController::class, 'create'])->named('entries.create'),
+			Route::patch('/entries/{id}', [EntryWritesController::class, 'update'])->named('entries.update'),
+			Route::delete('/entries/{id}', [EntryWritesController::class, 'delete'])->named('entries.delete'),
 			Route::get('/relations', RelationsController::class)->named('relations'),
 			Route::get('/media', [MediaController::class, 'index'])->named('media'),
 			Route::get('/media/{id}', [MediaController::class, 'show'])->named('media.single'),
+			Route::post('/media', [MediaWritesController::class, 'upload'])->named('media.upload'),
+			Route::patch('/media/{id}', [MediaWritesController::class, 'update'])->named('media.update'),
 			Route::get('/menus', [MenusController::class, 'index'])->named('menus'),
 			Route::get('/menus/{location}', [MenusController::class, 'show'])->named('menus.single'),
 			Route::match(['OPTIONS'], '/', [IndexController::class, 'preflight'])->named('preflight'),

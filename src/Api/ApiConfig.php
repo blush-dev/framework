@@ -19,7 +19,7 @@ use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
 
 /**
- * The site's read-only API (D-736, D-741), from `config/api.php`:
+ * The site's API (D-736, D-741), from `config/api.php`:
  *
  *     return new ApiConfig(enabled: true, path: '/data');
  *
@@ -31,6 +31,8 @@ use Blush\Config\InvalidConfig;
  *   keep an answer.
  * - `access` is who may read it (D-745): `ApiAccess::Anyone`, or
  *   `ApiAccess::Token` for requests with an API token only.
+ * - `maxWrites` is how many changes a token may make through it in an
+ *   hour (D-762).
  */
 final readonly class ApiConfig implements Config
 {
@@ -46,7 +48,8 @@ final readonly class ApiConfig implements Config
 		public bool $enabled = false,
 		public string $path = '/api',
 		public int $maxAge = 60,
-		public ApiAccess $access = ApiAccess::Anyone
+		public ApiAccess $access = ApiAccess::Anyone,
+		public int $maxWrites = 600
 	) {
 		if (preg_match('#^(?:/[a-z0-9][a-z0-9._-]*)+$#', $path) !== 1) {
 			throw new InvalidConfig(sprintf('ApiConfig "path" must be a path of lowercase letters, digits, dots, dashes, and underscores, such as "/api", without a trailing slash; "%s" given.', $path));
@@ -54,6 +57,10 @@ final readonly class ApiConfig implements Config
 
 		if ($maxAge < 0) {
 			throw new InvalidConfig('ApiConfig "maxAge" must be 0 or more.');
+		}
+
+		if ($maxWrites < 1) {
+			throw new InvalidConfig('ApiConfig "maxWrites" must be 1 or more.');
 		}
 	}
 
@@ -72,13 +79,14 @@ final readonly class ApiConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['enabled', 'path', 'maxAge', 'access']);
+		$values->assertKnownKeys(['enabled', 'path', 'maxAge', 'access', 'maxWrites']);
 
 		return new static(
 			enabled: $values->bool('enabled', false),
 			path: $values->string('path', '/api'),
 			maxAge: $values->int('maxAge', 60),
-			access: $values->enum('access', ApiAccess::class, ApiAccess::Anyone)
+			access: $values->enum('access', ApiAccess::class, ApiAccess::Anyone),
+			maxWrites: $values->int('maxWrites', 600)
 		);
 	}
 
@@ -88,6 +96,6 @@ final readonly class ApiConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['enabled' => $this->enabled, 'path' => $this->path, 'maxAge' => $this->maxAge, 'access' => $this->access->value];
+		return ['enabled' => $this->enabled, 'path' => $this->path, 'maxAge' => $this->maxAge, 'access' => $this->access->value, 'maxWrites' => $this->maxWrites];
 	}
 }

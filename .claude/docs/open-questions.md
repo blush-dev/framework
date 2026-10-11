@@ -960,6 +960,25 @@ Move each item to `decisions.md` once it's answered.
     bodies for included entries, and registering front matter from
     core and the Fields API (D-743, waiting on the Fields API). No file paths, ever (D-481). Settle before tokens and MCP, which build
     on it.
+  - **Apps on the API** (discussed 2026-10-11, with D-762): a plugin
+    that ships its own app, such as a pantry tracker at `/pantry` for
+    someone who never sees the admin, reading and changing its items
+    through `/api/v1`. Writes are built (D-762, D-763); what else it
+    needs:
+    - **Signing in on the same site:** a token in a page's code is easy
+      to steal and lasts months, so a person in a browser should sign
+      in as usual and the API accept that session (with a CSRF check,
+      as the admin's does); `/api/v1` takes only tokens now. An app on
+      another site or a phone could use MCP's OAuth (D-752).
+    - **Types without pages:** the API serves only public types (what
+      the site shows), so a `pantry_item` type would need pages on the
+      site. A way for the API to serve a type with no pages to accounts
+      that may read it.
+    - **Data that isn't entries:** a plugin's own records need its own
+      endpoints (Extension endpoints, below).
+    - **The admin on v1, later:** its entry and media screens once the
+      Fields API settles declared front matter (D-762); same-site
+      sign-in is the first step either way.
   - **Extension endpoints in the API** (discussed 2026-10-11; leanings
     the author hasn't confirmed): v1 (D-742) has no way for a plugin to
     add one. A plugin's own `RouteSource` under the base works for a
@@ -1005,9 +1024,9 @@ Move each item to `decisions.md` once it's answered.
     (D-754), read tools (D-755), write tools over one write path shared
     with the admin (D-756), plugins' tools (D-757), and an activity log
     with undo and call limits (D-758); tools shared beyond MCP built
-    in D-761. Open around it: writes in the API, uploading from a
-    URL (the HTTP client, D-620), anonymous read-only access, and
-    prompts.
+    in D-761. Writes in the API built (D-762, D-763). Open around it:
+    uploading from a URL (the HTTP client, D-620), anonymous read-only
+    access, and prompts.
   - **A headless mode:** a setting where Blush serves the admin and the
     API (and perhaps feeds and the sitemap) but no themed pages, and a
     separate front end (Astro, Next.js, SvelteKit, an app) owns the

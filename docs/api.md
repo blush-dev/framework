@@ -1,16 +1,18 @@
 # The API
 
-Blush can serve a read-only API of your site as JSON, for a front end
-built with another tool, an app, another site, or an AI tool. It
-answers with what your site shows anyone: published pages and posts,
-your content types and relationships, your media, your menus, and your
-site's details. Drafts, scheduled entries, and hidden pages are left
-out, unless a request with an [API token](#tokens) asks for them.
+Blush can serve an API of your site as JSON, for a front end built
+with another tool, an app, another site, or an AI tool. It answers with
+what your site shows anyone: published pages and posts, your content
+types and relationships, your media, your menus, and your site's
+details. Drafts, scheduled entries, and hidden pages are left out,
+unless a request with an [API token](#tokens) asks for them. With a
+token, a script or an app can also [change content](#changing-content):
+write drafts, publish, trash, and upload media.
 
 ## Turning it on
 
 The API is off until you turn it on, in the admin on **Settings →
-Reading**, or in `config/api.php`:
+API**, or in `config/api.php`:
 
 ```php
 <?php
@@ -96,7 +98,7 @@ token are never cached or shared (`Cache-Control: private, no-store`).
 ### A private API
 
 To keep the API to your own front end, apps, and agents, set **Who can
-read it** to **Only with a Token** on **Settings → Reading**, or
+read it** to **Only with a Token** on **Settings → API**, or
 `access` in `config/api.php`:
 
 ```php
@@ -260,9 +262,65 @@ shows it, in your site's language, with each item's `label`, `url`,
 `description`, `icon`, `image`, `badge`, `class`, `rel`, the theme's own
 `fields`, and its `children`.
 
+## Changing content
+
+A request with a token whose account may make the change can create
+and change entries and media, by the same rules as the admin: what the
+account's role allows (narrowed to what the token allows), required
+fields, relationship limits, and raw HTML. Each change is listed in the
+activity log on **Tools → Activity**, as the API's, under the token's
+name, and can be undone there.
+
+Send changes as JSON, with `Content-Type: application/json`. Values are
+written the way reads send them: media and a page's `parent` by id,
+`fields` only those the type declares, and `relations` by name, as the
+targets' ids (or slugs). `null` removes a value.
+
+| Request | What it does |
+|---|---|
+| `POST /api/v1/entries` | Makes a draft: `type` and `title`, and any of `subtitle`, `slug`, `published`, `image`, `parent`, `language`, `fields`, `relations`, and `body` (Markdown). Answers `201` with a `Location` |
+| `PATCH /api/v1/entries/{id}` | Changes only what it's sent: any of the above but `type` and `language`, and `status` |
+| `DELETE /api/v1/entries/{id}` | Moves it to the trash |
+| `POST /api/v1/media` | Uploads a file, as a form does (`multipart/form-data`, the file as `file`), with `alt`, `caption`, and `title` beside it |
+| `PATCH /api/v1/media/{id}` | Changes a file's `alt`, `caption`, and `title` |
+
+```sh
+curl -X POST https://example.com/api/v1/entries \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "post", "title": "Hello", "body": "First words.", "relations": {"category": ["art"]}}'
+```
+
+Each answers what it wrote, as reading it would (`?body=` chooses
+`html`, `markdown`, or `none`), with its new `revision`.
+
+- **Revisions:** an entry read with a token that may edit it has a
+  `revision`. Send it back in `If-Match` with every `PATCH` and
+  `DELETE`. If someone changed the entry since, the change is refused
+  (`412`), never saved over: read it again, and make the change on
+  what's there now.
+- **Publishing:** new entries are always drafts. `PATCH` with `status`
+  publishes (`published`), unpublishes (`draft`), or schedules
+  (`scheduled`, with a future `published` date), when the account may
+  publish. A token made to write drafts never can.
+- **Moving:** a new `slug`, or a page's new `parent` (`null` for the
+  top), moves an entry; a published one's old address redirects to the
+  new one unless you send `redirect: false`.
+- **The trash:** `DELETE` moves an entry to the trash, and a `PATCH`
+  of `status` alone (`draft` or `published`) brings it back. Nothing is
+  ever deleted for good, and media is never deleted.
+- **Uploads** follow your Media settings: the kinds and sizes they
+  allow, and never SVG.
+- **Limits:** a token may make 600 changes an hour (`maxWrites`). Past
+  that, a `429` with `Retry-After`.
+
+Types, settings, menus, accounts, and roles are changed only in the
+admin.
+
 ## Errors
 
-A request the API can't answer gets an error with a status:
+A request the API can't answer gets an error with a status, and, for a
+change, the `field` it's about, when there is one:
 
 ```json
 { "error": { "code": "not_found", "message": "No entry has the id \"…\"." } }
@@ -271,11 +329,18 @@ A request the API can't answer gets an error with a status:
 | Code | Status | When |
 |---|---|---|
 | `invalid_query` | 400 | A parameter isn't one the address takes, or has a value it can't, or a token is in the address |
-| `token_required` | 401 | The API, or `status`, needs a token, and there's none |
+| `invalid_body` | 400 | A change isn't a JSON object, or has a key or value it can't take |
+| `token_required` | 401 | The API, `status`, or a change needs a token, and there's none |
 | `invalid_token` | 401 | The token is wrong, revoked, or expired, or its account is suspended |
 | `https_required` | 403 | A token was sent over plain HTTP |
-| `not_found` | 404 | Nothing has that id, or nothing is at that address |
+| `forbidden` | 403 | The token or its account may not make the change |
+| `not_found` | 404 | Nothing has that id, or nothing is at that address (or, for a change, nothing the token may change) |
+| `revision_mismatch` | 412 | The entry changed since that revision |
+| `too_large` | 413 | An upload is larger than the site allows |
+| `unprocessable` | 422 | The change can't be made as asked: a slug that's taken, a relationship out of its limits, an entry in the trash |
+| `revision_required` | 428 | A change to an entry came without its revision in `If-Match` |
 | `too_many_attempts` | 429 | Too many tokens that weren't one came from your address; try later |
+| `too_many_writes` | 429 | The token made as many changes this hour as the site allows |
 
 The `code` stays the same; the message may change.
 

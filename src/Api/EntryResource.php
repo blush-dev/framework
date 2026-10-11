@@ -22,9 +22,11 @@ use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Relation\Refs;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\Relations;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
+use Blush\Field\Field;
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\MediaField;
 use Blush\Llms\MarkdownLinks;
@@ -128,21 +130,9 @@ final readonly class EntryResource
 	 */
 	private function fields(Entry $entry, ApiIncludes $include): object
 	{
-		$skip = [EntryFields::ID => true, Refs::FIELD => true, ...array_fill_keys(array_keys(EntryFields::schema()->fields), true)];
-
-		foreach ($this->relations->for($entry->type->name) as $relation) {
-			foreach ([$relation->field, ...$relation->aliases] as $key) {
-				$skip[$key] = true;
-			}
-		}
-
 		$fields = [];
 
-		foreach ($entry->type->schema->fields as $name => $field) {
-			if (isset($skip[$name])) {
-				continue;
-			}
-
+		foreach ($this->declared($entry->type) as $name => $field) {
 			$value = $entry->fields[$name] ?? null;
 
 			$fields[$name] = match (true) {
@@ -159,6 +149,36 @@ final readonly class EntryResource
 	}
 
 	/**
+	 * Returns the fields an entry's `fields` holds, by name: those its
+	 * type declares, but Blush's own and the relations' (D-743), which
+	 * are also the only ones a write may set (D-762).
+	 *
+	 * @return array<string, Field>
+	 */
+	public function declared(ContentType $type): array
+	{
+		$skip = [EntryFields::ID => true, Refs::FIELD => true, ...array_fill_keys(array_keys(EntryFields::schema()->fields), true)];
+
+		foreach ($this->relations->for($type->name) as $relation) {
+			foreach ([$relation->field, ...$relation->aliases] as $key) {
+				$skip[$key] = true;
+			}
+		}
+
+		return array_filter($type->schema->fields, static fn (string $name): bool => ! isset($skip[$name]), ARRAY_FILTER_USE_KEY);
+	}
+
+	/**
+	 * Returns the relations an entry's `relations` lists, by name.
+	 *
+	 * @return array<string, Relation>
+	 */
+	public function listed(ContentType $type): array
+	{
+		return array_filter($this->relations->for($type->name), self::lists(...));
+	}
+
+	/**
 	 * Returns each relation's targets the API may show, by name.
 	 *
 	 * @throws MediaException
@@ -167,11 +187,7 @@ final readonly class EntryResource
 	{
 		$relations = [];
 
-		foreach ($this->relations->for($entry->type->name) as $name => $relation) {
-			if (! self::lists($relation)) {
-				continue;
-			}
-
+		foreach ($this->listed($entry->type) as $name => $relation) {
 			$targets = array_values(array_filter($this->related->related($entry, $name), $this->entries->shows(...)));
 
 			$relations[$name] = $include->includesRelation($name)
