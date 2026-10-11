@@ -393,7 +393,7 @@ final readonly class IndexStore implements RecordStore
 		$type   = $this->types->find(is_string($fields['type'] ?? null) ? $fields['type'] : '') ?? throw new InvalidRecord(sprintf('The entry %s needs a "type" the site has.', $record->id));
 		$slug   = is_string($fields['slug'] ?? null) ? $fields['slug'] : throw new InvalidRecord(sprintf('The entry %s needs a "slug".', $record->id));
 
-		if (($fields['original_id'] ?? null) !== null || ! in_array($fields['language'] ?? null, [null, '', $this->app->languages->default->code], true)) {
+		if (($fields['original_id'] ?? null) !== null) {
 			throw new InvalidRecord('On files, a translation is a file named for its language; it can\'t be written here yet.');
 		}
 
@@ -408,12 +408,19 @@ final readonly class IndexStore implements RecordStore
 		$parent  = is_string($fields['parent_id'] ?? null) ? $fields['parent_id'] : null;
 		$writer  = ($this->writer)();
 
-		match (true) {
+		$id = match (true) {
 			$parent !== null && $type instanceof Tree => $writer->create($type, $slug, $changes, $parent),
 			$parent !== null                          => throw new InvalidRecord(sprintf('On files, only a tree\'s pages have a parent by place; %s name theirs in front matter.', $type->labels->plural)),
 			$slug === ''                              => $writer->createAt($type, 'index', $changes),
 			default                                   => $writer->create($type, $slug, $changes, null, self::date($fields['published'] ?? null))
 		};
+
+		// Written in the default language, then named for its own (D-728).
+		$language = is_string($fields['language'] ?? null) ? $fields['language'] : '';
+
+		if ($language !== '' && ! $this->app->languages->isDefault($language)) {
+			$writer->changeLanguage($id, $language);
+		}
 	}
 
 	/**
@@ -430,7 +437,7 @@ final readonly class IndexStore implements RecordStore
 		$old = $stored['fields'];
 		$new = $record->fields;
 
-		foreach (['type', 'language', 'original_id'] as $key) {
+		foreach (['type', 'original_id'] as $key) {
 			if (($new[$key] ?? null) !== ($old[$key] ?? null)) {
 				throw new InvalidRecord(sprintf('On files, an entry\'s %s can\'t change; it\'s where the file is.', str_replace('_id', '', $key)));
 			}
@@ -472,7 +479,13 @@ final readonly class IndexStore implements RecordStore
 				throw new InvalidRecord('On files, only a tree\'s pages move to another parent here; others name theirs in front matter.');
 			}
 
-			$writer->move($id, is_string($new['parent_id'] ?? null) ? $new['parent_id'] : null, $version);
+			$id      = $writer->move($id, is_string($new['parent_id'] ?? null) ? $new['parent_id'] : null, $version);
+			$version = null;
+		}
+
+		// Another language renames the file (D-728).
+		if (($new['language'] ?? null) !== ($old['language'] ?? null)) {
+			$writer->changeLanguage($id, is_string($new['language'] ?? null) ? $new['language'] : '', $version);
 		}
 	}
 

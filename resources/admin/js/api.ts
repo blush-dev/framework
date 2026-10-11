@@ -1244,6 +1244,8 @@ export interface EntryDetail {
 	// The last part of its key; renaming changes it (D-277).
 	slug: string;
 	key: string;
+	// The code of the language it's written in (D-455, D-728).
+	language: string;
 	// A tree's page: its parent's key, `''` at the top (D-410); else `null`.
 	parent: string | null;
 	revision: string;
@@ -1293,7 +1295,9 @@ export interface EntryDetail {
 	// `rename`: not for a landing page, whose slug is its folder's.
 	// `move`: a tree's page, under another (D-410).
 	// `makeHomepage`: a root page that isn't, with `site.settings` (D-420).
-	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; move: boolean; duplicate: boolean; makeHomepage: boolean };
+	// `language`: on a site with other languages, not for a landing page
+	// (D-728).
+	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; language: boolean; move: boolean; duplicate: boolean; makeHomepage: boolean };
 	violations: Violation[];
 }
 

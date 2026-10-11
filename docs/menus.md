@@ -168,8 +168,8 @@ Any text can be written once per language:
 { "entry": "page/about", "label": { "en": "About", "fr": "À propos" } }
 ```
 
-The page's language picks the text: an entry's `locale`, or your site's
-(`APP_LOCALE`). If there's no text for it, the language without its
+The page's language picks the text: an entry's language's locale (see
+[Translations](content.md#translations)), or your site's (`APP_LOCALE`). If there's no text for it, the language without its
 region is tried (`fr` for `fr_CA`), then your site's, then English, then
 the first one written.
 

@@ -829,8 +829,8 @@ Implemented in M4b (D-087, D-090).
   `Entries`. A stale index (another fingerprint) is rebuilt on first
   use in any environment (D-098). It writes by id (D-654), each write
   answering the entry after it: `create()` (a tree's page under a parent
-  by id), `createAt()` (a fixed key), `change()`, `rename()`, `move()`,
-  `duplicate()`, `trash()`, `restore()`, and `delete()`, each taking an
+  by id), `createAt()` (a fixed key), `change()`, `rename()`,
+  `changeLanguage()` (D-728), `move()`, `duplicate()`, `trash()`, `restore()`, and `delete()`, each taking an
   `Entry` or an id and an optional `version` (`Entry::$version`, D-648),
   and `editable()` / `editableAt()` (front matter as stored, Markdown,
   version). Queries go through the record store (D-652, D-653); entries
@@ -856,7 +856,9 @@ Implemented in M4b (D-087, D-090).
   root).
 - **`ContentWriter`** (D-228, D-654; `Blush\Content\Writer`) is the
   driver's writer, by id: `load`, `loadAt`, `create` (a tree's page under
-  a parent id), `createAt`, `duplicate`, `update`, `rename`, `move`,
+  a parent id), `createAt`, `duplicate`, `update`, `rename`,
+  `changeLanguage` (another of the site's languages, refused when a
+  translation has it or its key is taken there; D-728), `move`,
   `trash`, `restore`, and `delete`, each returning the entry's id after
   it (an entry kept without one is named by its record's steady id and
   given its own when it's changed). The filesystem driver's,
@@ -872,7 +874,8 @@ Implemented in M4b (D-087, D-090).
   becoming `about/index.md`; `WriteResult::$moved`; D-408), `move` (a
   tree's page and those under it to another parent, D-410), `update`
   (`EntryChanges`: set, remove, body), `rename` (a new slug; date
-  prefixes kept, bundles move their folder), `duplicate` (a copy beside
+  prefixes kept, bundles move their folder), `changeLanguage` (the
+  file's language suffix swapped, added, or taken off, D-728), `duplicate` (a copy beside
   it under the first free name, `-2` and on; a new date prefix; a
   bundle's folder copied; D-275), and `trash` (`status: trash` and
   `trashed`, the file left in place), `restore` (to `status: draft`,

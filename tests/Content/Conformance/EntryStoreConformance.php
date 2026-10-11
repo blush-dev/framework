@@ -48,6 +48,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Refs;
 use Blush\Storage\StorageArea;
+use Blush\Storage\StorageConfig;
 use Blush\Tests\Content\BuildsContentSite;
 
 /**
@@ -513,6 +514,46 @@ abstract class EntryStoreConformance extends TestCase
 		$this->expectException(WriteException::class);
 
 		$this->content->rename($this->named('post', ''), 'blog');
+	}
+
+	public function testChangingLanguageKeepsTheEntryAndRefusesWhatsTaken(): void
+	{
+		$this->needsWrites();
+
+		// Its translation in French, by name (D-455).
+		$this->entry('_post/2003-04-15.welcome.fr.md', 'title: Bienvenue');
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['timezone' => 'America/Chicago', 'languages' => ['fr' => 'fr_FR']]);\n");
+
+		// Booted again with the language, its stores made again.
+		@unlink($this->temporaryDirectory() . '/' . StorageConfig::SQLITE_FILE);
+
+		$this->app     = $this->site();
+		$stores        = $this->stores($this->app);
+		$this->store   = $stores->store(EntryTable::table());
+		$this->content = $this->entries($this->app, $stores);
+
+		$spring = $this->named('post', 'spring');
+		$moved  = $this->content->changeLanguage($spring, 'fr', $spring->version);
+
+		$this->assertSame([$spring->id, 'fr', 'fr_FR', 'spring'], [$moved->id, $moved->language, $moved->locale, $moved->key]);
+		$this->assertNull($this->content->named('post', 'spring'));
+		$this->assertSame($spring->id, $this->content->named('post', 'spring', 'fr')?->id);
+		$this->assertSame('en', $this->content->changeLanguage($moved, 'en')->language, 'And back.');
+
+		$welcome = $this->named('post', 'welcome');
+
+		foreach (['fr' => 'Its translation has it.', 'de' => 'Not a language of the site.'] as $code => $why) {
+			try {
+				$this->content->changeLanguage($welcome, $code);
+				$this->fail($why);
+			} catch (WriteException) {
+				$this->assertSame('en', $this->named('post', 'welcome')->language, $why);
+			}
+		}
+
+		$this->expectException(WriteException::class);
+
+		$this->content->changeLanguage($this->named('post', ''), 'fr');
 	}
 
 	public function testMovingATreesPageTakesThePagesUnderIt(): void

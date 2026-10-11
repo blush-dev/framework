@@ -78,7 +78,6 @@ final class MenusTest extends TestCase
 		$this->writeTemporaryFile('user/content/about.md', "---\nid: 6083a88e-e341-1b0d-17ce-02d738f69d47\ntitle: About us\n---\nAbout.");
 		$this->writeTemporaryFile('user/content/team.md', "---\nid: 0032aa43-ab4d-0a52-da10-e3dd5643e52b\ntitle: Team\n---\nTeam.");
 		$this->writeTemporaryFile('user/content/contact.md', "---\nid: 3c4864f0-0d23-f7ea-3551-1ec930ce1d9c\ntitle: Contact\nstatus: draft\n---\nDraft.");
-		$this->writeTemporaryFile('user/content/bonjour.md', "---\nid: 0b4c7c6d-50bf-525a-c913-1b8255ae1c3a\ntitle: Bonjour\nlocale: fr_CA\n---\nBonjour.");
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -216,12 +215,16 @@ final class MenusTest extends TestCase
 			}
 			JSON);
 
+		// A page in French is the page's language's (D-728).
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['languages' => ['fr' => 'fr_CA']]);\n");
+		$this->writeTemporaryFile('user/content/bonjour.fr.md', "---\nid: 0b4c7c6d-50bf-525a-c913-1b8255ae1c3a\ntitle: Bonjour\n---\nBonjour.");
+
 		$app = $this->app();
 
 		$this->assertSame(['About /about', 'Elsewhere /elsewhere'], self::shape($this->menu($app, 'primary')->items));
 		$this->assertSame(['À propos /about', 'Elsewhere /elsewhere'], self::shape($this->menu($app, 'primary', 'fr_CA')->items));
 		$this->assertSame('Principal', $this->menu($app, 'primary', 'fr_CA')->label);
-		$this->assertStringContainsString('aria-label="Principal"', $this->page($app, '/bonjour'));
+		$this->assertStringContainsString('aria-label="Principal"', $this->page($app, '/fr/bonjour'));
 	}
 
 	public function testShowsTheMenuAssignedToALocation(): void

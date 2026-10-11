@@ -414,6 +414,17 @@ final class StoredEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function changeLanguage(Entry|string $entry, string $language, ?string $version = null): Entry
+	{
+		$id = $this->writer()->changeLanguage(self::id($entry), $language, $version);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function move(Entry|string $entry, Entry|string|null $parent, ?string $version = null): Entry
 	{
 		$id = $this->writer()->move(self::id($entry), $parent === null ? null : self::id($parent), $version);

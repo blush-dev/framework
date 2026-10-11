@@ -267,6 +267,38 @@ final readonly class RecordContentWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function changeLanguage(string $id, string $language, ?string $version = null): string
+	{
+		$named  = $this->app->languages->find($language) ?? throw new WriteException(sprintf('The site has no language "%s".', $language));
+		$record = $this->current($id, $version);
+		$place  = $this->placeOf($record);
+
+		if ($place['language'] === $language) {
+			return $record->id;
+		}
+
+		if ($place['slug'] === '' || $place['archive'] !== null) {
+			throw new WriteException('That\'s a landing page; it\'s in the language of the pages it lists.');
+		}
+
+		// Its translations: the original, and those naming it (D-511).
+		$group = $place['original_id'] ?? $record->id;
+
+		foreach ([new RecordQuery()->where('id', Operator::Equal, $group), new RecordQuery()->where('original_id', Operator::Equal, $group)] as $query) {
+			foreach ($this->store()->select(EntryTable::table(), $query->where('language', Operator::Equal, $language)->withoutContent())->records as $found) {
+				if ($found->id !== $record->id) {
+					throw new WriteException(sprintf('Its %s translation is “%s”.', $named->name(), EntryRecords::text($found, 'title')));
+				}
+			}
+		}
+
+		return $this->write($record, [...$place, 'language' => $language], $this->writtenOf($record), $record->content ?? '');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function move(string $id, ?string $parent, ?string $version = null): string
 	{
 		$record = $this->current($id, $version);

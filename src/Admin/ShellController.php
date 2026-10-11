@@ -21,6 +21,7 @@ use Blush\Auth\Authenticator;
 use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Core\AppConfig;
+use Blush\Core\Language;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Markdown\Html\HtmlRules;
@@ -99,6 +100,9 @@ final readonly class ShellController
 				'date'   => $this->site->dateFormat,
 				'time'   => $this->site->timeFormat
 			],
+			// The languages content is written in (D-455), the default
+			// first, for the editor's Language (D-728).
+			'languages'   => array_values(array_map(static fn (Language $language): array => ['code' => $language->code, 'label' => $language->name()], $this->site->languages->all())),
 			'html'        => [
 				'allowed'           => HtmlRules::ALLOWED,
 				'global'            => HtmlRules::GLOBAL,

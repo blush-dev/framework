@@ -105,6 +105,19 @@ interface ContentWriter
 	public function rename(string $id, string $slug, ?string $version = null): string;
 
 	/**
+	 * Moves an entry to another of the site's languages (D-728), by code,
+	 * keeping its slug and its translations. Moving to its own language
+	 * changes nothing.
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException When the language isn't the site's, the
+	 *                        entry is a landing page, one of its
+	 *                        translations is in that language, or another
+	 *                        entry has its place there.
+	 */
+	public function changeLanguage(string $id, string $language, ?string $version = null): string;
+
+	/**
 	 * Moves a tree's page under another of its pages (`$parent`, by id),
 	 * or to the top with `null` (D-410), keeping its slug, with the pages
 	 * under it. Moving to where it is changes nothing.

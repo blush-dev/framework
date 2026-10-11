@@ -21,6 +21,7 @@ use Blush\Content\Index\IndexRecord;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Support\Slug;
 
 /**
@@ -42,7 +43,8 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		private FilesystemWriter $files,
 		private IndexFreshness $freshness,
 		private ContentTypes $types,
-		private FileNames $fileNames
+		private FileNames $fileNames,
+		private AppConfig $app
 	) {}
 
 	/**
@@ -156,6 +158,43 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		}
 
 		return $this->followed($this->files->update($path, new EntryChanges(['slug' => $slug]), $version)->path);
+	}
+
+	/**
+	 * A file in another language is named with its code (D-455), so it's
+	 * renamed; its translations stay linked by its name or by id.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function changeLanguage(string $id, string $language, ?string $version = null): string
+	{
+		$named = $this->app->languages->find($language) ?? throw new WriteException(sprintf('The site has no language "%s".', $language));
+		$path  = $this->path($id);
+		$entry = $this->record($path);
+
+		if ($entry === null || $entry->language === $language) {
+			return $id;
+		}
+
+		if ($entry->landing) {
+			throw new WriteException(sprintf('%s is a landing page; it\'s in the language of the pages it lists.', $path));
+		}
+
+		$snapshot    = $this->freshness->fresh()->snapshot();
+		$translation = $snapshot->translations($path)[$language] ?? null;
+
+		if ($translation !== null && $translation !== $path) {
+			throw new WriteException(sprintf('Its %s translation is “%s”.', $named->name(), $snapshot->record($translation)->title ?? $translation));
+		}
+
+		$found = $snapshot->find($language, $entry->type, $entry->key);
+
+		if ($found !== null && $found !== $path) {
+			throw new WriteException(sprintf('There\'s already a %s at %s in %s.', $this->types->get($entry->type)->labels->item, $entry->key, $named->name()));
+		}
+
+		return $this->idAt($this->files->changeLanguage($path, $this->app->languages->isDefault($language) ? '' : $language, $version)->path);
 	}
 
 	/**

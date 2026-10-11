@@ -484,25 +484,32 @@ you left them open, so the next entry you edit opens the same way (on a
 small screen, where they'd cover the text, they always start closed).
 They have two tabs:
 
-- **The entry's**, named for its type (**Post**, **Page**): under
-  **Publish**, its **Status** (choose it to see what each status does,
-  and to change it), its **Date** (choose it for a calendar and the
-  time, on a 12-hour clock; a line under it says what the date means,
-  such as "Goes live tomorrow"), its **Slug** (see below), its
-  **Visibility** (**Public**, **Unlisted**: it has an address but isn't
-  in lists, feeds, or the sitemap, or **Hidden**: no address), and a
-  new page's **Parent**, or the parent of an entry in a nesting
-  collection (such as a category). A line under them says what the date means and when
-the file was last edited.
-  Then the **Featured Image** (choose, replace, or remove it), the
-  **Authors**, each type of terms it's filed under (see
-  [Choosing terms and authors](#choosing-terms-and-authors)), the
-  **Summary**, and the content type's other fields, such as the
-  subtitle (a few kinds, such as `collection`, show their value
-  read-only); each [field set](content-types.md#field-sets) added to the
-  type, under its label; and
+- **The entry's**, named for its type (**Post**, **Page**): first
+  **Publish**: its featured image (choose,
+  replace, or remove it), its summary as written, with **Edit summary**
+  (or **Add a summary…**) under it to write it in a small form beside
+  it, then its **Status** (choose it to see what each status does,
+  and to change it), its **Visibility** (**Public**, **Unlisted**: it
+  has an address but isn't in lists, feeds, or the sitemap, or
+  **Hidden**: no address), its **Date** (choose it for a calendar and
+  the time, on a 12-hour clock), its **Slug** (see below), its
+  **Subtitle**, its **Language** (on a site with
+  [translations](content.md#translations); see below), and a new page's
+  **Parent**, or the parent of an entry in a nesting collection (such
+  as a category). A line under them says what the date means and when
+  the file was last edited.
+  Then the **Authors**, each type of terms it's filed under (see
+  [Choosing terms and authors](#choosing-terms-and-authors)), and the
+  content type's other fields (a few kinds show their value read-only);
+  each [field set](content-types.md#field-sets) added to the type, under
+  its label; **Advanced**, with the theme's **Layout**, **Stylesheet**,
+  and **Class** (the page's classes on one line, apart by spaces),
+  folded away until you open it, or open when one of them is set; and
   what Site Health finds in the file, as last saved (notices only if
-  you ask). Front matter the type doesn't declare isn't shown, and
+  you ask). Every save, and every bulk change, sets `updated` to when it
+  was made, so there's no field for it, and `template` and `collection` are kept in the file
+  as written, without a field. Front matter the type doesn't declare
+  isn't shown, and
   saving keeps it as it is. Only the types of terms whose relation files the content
   type are offered, plus any the file already uses. At its foot,
   **Outline** lists everything in the entry (see
@@ -691,6 +698,18 @@ the old address here** (on by default) adds a
 links to it keep working, wherever it moves later. Landing pages
 (the homepage, and a folder's `index.md`) take their folder's name,
 so they have no Slug field.
+
+### Changing the language
+
+On a site with [translations](content.md#translations), the
+**Language** field on the Document tab lists the site's languages.
+Choose another and save to move the entry to it: its file is renamed
+with the language's code (`hello.md` becomes `hello.fr.md`, and back),
+and its address moves under the language's prefix (`/fr/…`). It keeps
+its id and its translations. It's refused, with nothing saved, when one
+of its translations is already in that language, or another entry has
+its address there. Landing pages keep their folder's language, so they
+have no Language field.
 
 ### Editing an index page
 
@@ -2459,9 +2478,12 @@ entries/{id}` answers with:
 - `type`: the type's name, kind, whether it's dated, and a description
   of each field (name, type, label, and options).
 - `slug`: the last part of its key.
+- `language`: the code of the language it's written in.
 - `can`: whether the account may edit, publish, rename, delete, and
-  duplicate it (`rename` and `duplicate` are `false` for a landing page;
-  `duplicate` needs to create entries of its type).
+  duplicate it, and move it to another `language` (`rename`,
+  `language`, and `duplicate` are `false` for a landing page;
+  `language` is `false` on a site with one language; `duplicate` needs
+  to create entries of its type).
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.
@@ -2497,8 +2519,19 @@ has, or that's a landing page's is a `422` with `"field": "slug"`. With
 [redirects](content.md#redirects) to its new one. The answer is the entry as `GET` would show it, with
 its new id and revision.
 
+`language` moves the entry to another of the site's languages, by code,
+renaming its file to that language's (see
+[Changing the language](#changing-the-language)). A language the site
+doesn't have, one a translation of the entry is already in, or one
+where another entry has its address is a `422` with
+`"field": "language"`, and nothing is saved.
+
+Every change sets `updated` to now, in the site's time zone, and so does
+each entry a bulk **Publish** or **Switch to draft** changes.
+
 New entries are drafts unless `status` says otherwise, credit the
-account's author, and get today's date as their publish date.
+account's author, and get today's date as their publish date. A new
+entry can name its `language` too.
 
 What an account may do follows its [capabilities](accounts.md#capabilities):
 each is its type's (`content.post.edit` for a post). Editing needs

@@ -127,8 +127,7 @@ final readonly class Languages
 
 	/**
 	 * Returns the language a page in a locale is in (D-463): the language
-	 * with that locale, or `null` (an entry with its own `locale` front
-	 * matter, which is in the default language).
+	 * with that locale, or `null`.
 	 */
 	public function forLocale(string $locale): ?Language
 	{

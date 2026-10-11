@@ -10,25 +10,31 @@
  *
  * At the limit the search goes, and a line says how to get it back. A
  * draft or trashed entry gets its pill and a faded still; a slug that
- * names nothing, a dashed frame. An entry with no image gets a quiet
- * frame, never initials, which mean a person everywhere in the admin.
+ * names nothing, a dashed frame. Stills are square (D-731), and an entry
+ * with no image gets its type's icon in the frame, never initials,
+ * which mean a person everywhere in the admin.
  */
 
 import { computed, ref } from 'vue';
 import { CARD_CAP, marked, type ReferenceItem } from '../references';
 import { capitalized, formatDay, plural, withArticle } from '../format';
 import { usePicker, type PickerProps } from '../picker';
+import { types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import ReferenceInherited from './ReferenceInherited.vue';
 import ReferenceMissing from './ReferenceMissing.vue';
 import ReferenceResults from './ReferenceResults.vue';
 import StatusPill from './StatusPill.vue';
+import TypeIcon from './TypeIcon.vue';
 
 const props = defineProps<PickerProps>();
 const model = defineModel<string>({ required: true });
 
 const picker = usePicker(props, model, { cap: CARD_CAP, suggest: 'edited', suggestions: 3, keepChosen: true });
-const { names, source, values, has, itemOf, isMissing, full, max, ordered, reorder, query, results, before, active, more, searching, missing, inheritedShown, error } = picker;
+const { type, names, source, values, has, itemOf, isMissing, full, max, ordered, reorder, query, results, before, active, more, searching, missing, inheritedShown, error } = picker;
+
+// The type's icon, for a still without an image.
+const targetType = computed(() => types.value.find((item) => item.name === type.value));
 
 const rows    = computed(() => values.value.map((value) => ({ value, item: itemOf(value) })));
 const focused = ref(false);
@@ -58,6 +64,7 @@ function meta(item: ReferenceItem): string {
 				<span class="reference__still reference__still--row" :class="{ 'is-missing': isMissing(value) }" aria-hidden="true">
 					<img v-if="item.image && !isMissing(value)" :src="item.image" alt="" loading="lazy">
 					<template v-else-if="isMissing(value)">?</template>
+					<TypeIcon v-else-if="targetType" :type="targetType" />
 				</span>
 				<span class="reference__who">
 					<span class="reference__name">
@@ -110,7 +117,7 @@ function meta(item: ReferenceItem): string {
 			@choose="picker.choose"
 		>
 			<template #item="{ item }">
-				<span class="reference__still" :class="{ 'is-faded': item.status === 'draft' }" aria-hidden="true"><img v-if="item.image" :src="item.image" alt="" loading="lazy"></span>
+				<span class="reference__still" :class="{ 'is-faded': item.status === 'draft' }" aria-hidden="true"><img v-if="item.image" :src="item.image" alt="" loading="lazy"><TypeIcon v-else-if="targetType" :type="targetType" /></span>
 				<span class="reference__who">
 					<span class="reference__card-title">{{ marked(item.title || 'Untitled', query)[0] }}<b>{{ marked(item.title || 'Untitled', query)[1] }}</b>{{ marked(item.title || 'Untitled', query)[2] }}</span>
 					<span class="reference__meta">{{ meta(item) }}<StatusPill v-if="item.status === 'draft' || item.status === 'scheduled'" :status="item.status" /></span>
@@ -122,7 +129,7 @@ function meta(item: ReferenceItem): string {
 		<ReferenceInherited v-if="inheritedShown.length && inherited" :inherited="inherited">
 			<ul class="reference__rows">
 				<li v-for="value in inheritedShown" :key="`inherited-${value}`" class="reference__row is-inherited">
-					<span class="reference__still reference__still--row" aria-hidden="true"><img v-if="itemOf(value).image" :src="itemOf(value).image ?? ''" alt="" loading="lazy"></span>
+					<span class="reference__still reference__still--row" aria-hidden="true"><img v-if="itemOf(value).image" :src="itemOf(value).image ?? ''" alt="" loading="lazy"><TypeIcon v-else-if="targetType" :type="targetType" /></span>
 					<span class="reference__who">
 						<span class="reference__name">{{ itemOf(value).title }}</span>
 						<span class="reference__meta">{{ meta(itemOf(value)) }}</span>

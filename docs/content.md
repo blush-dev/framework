@@ -78,7 +78,7 @@ needed in practice. The built-in keys:
 | `subtitle` | A line shown under the title |
 | `slug` | The URL name, instead of the file name |
 | `published` | The publish date, such as `2026-09-26 09:00:00 -05:00`. A date in the future schedules the entry. (`date` works too.) |
-| `updated` | When it last changed; defaults to `published`, then the file's modified time |
+| `updated` | When it last changed; defaults to `published`, then the file's modified time. Every save and bulk change in the admin sets it |
 | `status` | `published` (the default), `draft`, or `trash`. The admin's **Move to trash** sets `trash`, which takes the entry off your site |
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
@@ -151,6 +151,9 @@ by copying it beside the original with the code before the extension:
 | `about/index.md` | `about/index.fr.md` | `/fr/about` |
 | `_post/2026-10-04.hello.md` | `_post/2026-10-04.hello.fr.md` | The post's URL, under `/fr` |
 | `topics/music.md` | `topics/music.fr.md` | `/fr/topics/music` |
+
+In the admin, an entry's **Language** field does the renaming for you
+(see [Changing the language](admin.md#changing-the-language)).
 
 A translation can be a plain file or a folder, whatever its original
 is: `about/index.md` and `about.fr.md` are translations of each other.

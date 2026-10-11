@@ -108,6 +108,7 @@ import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
 import ImagePreview from '../components/ImagePreview.vue';
 import ReferencePicker from '../components/ReferencePicker.vue';
+import SummaryPopover from '../components/SummaryPopover.vue';
 import IconPicker from '../components/IconPicker.vue';
 import ImageOptions from '../components/ImageOptions.vue';
 import LinkForm from '../components/LinkForm.vue';
@@ -147,6 +148,13 @@ import { profileType, currentType, labelsOf, loadTypes, types } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
 const PLACED = ['title', 'status', 'published', 'slug'];
+
+// The built-in fields the editor leaves out (D-728): `updated` is set by
+// every save, a list's settings and a template are the file's for now.
+const UNSHOWN = ['updated', 'collection', 'template'];
+
+// The built-in fields under Advanced, for the theme (D-728).
+const ADVANCED = ['layout', 'stylesheet', 'class'];
 
 // Why a required field stops publishing.
 const REQUIRED = 'Required to publish.';
@@ -284,6 +292,18 @@ watch(parent, () => {
 	parentError.value = '';
 });
 
+// The language it's written in, from the site's (D-728). Another one
+// renames its file (D-455), so it's sent apart from its fields, as a
+// tree page's parent is.
+const language        = ref('');
+const languageError   = ref('');
+const relanguaging    = computed(() => entry.value !== null && language.value !== '' && language.value !== entry.value.language);
+const languageOptions = computed<SelectOption[]>(() => config.languages.map((item) => ({ value: item.code, label: item.label })));
+
+watch(language, () => {
+	languageError.value = '';
+});
+
 watch(() => treeParent.value ? `${entry.value?.type.name}:${entry.value?.id ?? ''}` : undefined, async (at) => {
 	const name = entry.value?.type.name;
 
@@ -364,7 +384,7 @@ const changedFields = computed(() => {
 const dirty = computed(() => {
 	const start = initial.value;
 
-	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || moving.value || changedFields.value.length > 0);
+	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || moving.value || relanguaging.value || changedFields.value.length > 0);
 });
 
 // Why the last save refused the new slug (D-277), until it's changed;
@@ -416,6 +436,8 @@ function fill(detail: EntryDetail | NewEntryDetail): void {
 	if (detail.id !== null) {
 		parent.value = detail.parent ?? '';
 	}
+
+	language.value = detail.language;
 
 	initial.value  = current();
 	conflict.value = null;
@@ -701,6 +723,10 @@ async function save(status?: EntryStatus): Promise<void> {
 		change.redirect = redirect.value;
 	}
 
+	if (relanguaging.value) {
+		change.language = language.value;
+	}
+
 	if (status !== undefined) {
 		change.status = status;
 
@@ -736,9 +762,9 @@ async function save(status?: EntryStatus): Promise<void> {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
 		}
 	} catch (caught) {
-		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent')) {
-			// Nothing was saved; the slug or parent field says why.
-			(caught.field === 'slug' ? slugError : parentError).value = caught.message;
+		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent' || caught.field === 'language')) {
+			// Nothing was saved; the slug, parent, or language field says why.
+			({ slug: slugError, parent: parentError, language: languageError })[caught.field].value = caught.message;
 			sideOpen.value  = true;
 			tab.value       = 'document';
 			await nextTick();
@@ -780,6 +806,7 @@ function created(detail: NewEntryDetail, change: Record<string, unknown>, status
 		status: status ?? 'draft',
 		...(change.slug === undefined || change.slug === '' ? {} : { slug: change.slug }),
 		...(treeParent.value && parent.value !== '' ? { parent: parent.value } : {}),
+		...(change.language === undefined ? {} : { language: change.language }),
 		...(change.body === undefined ? {} : { body: change.body }),
 		...(change.published === undefined ? {} : { published: change.published })
 	};
@@ -1076,11 +1103,12 @@ async function preview(): Promise<void> {
 }
 
 // The Document tab's fields, in the order they're touched (admin.md §8,
-// The document panel): visibility, a term's parent, and a tree page's or
-// term's position as rows under Publish, then the featured image, each
-// people field, each other reference
-// (terms, as a picker), the summary, the type's other
-// fields as a form, and then each field set's (D-337).
+// The document panel; D-728): the featured image and the summary at the
+// top of Publish, under the title; visibility, the subtitle, a term's
+// parent, and a tree page's or term's position as rows under Publish;
+// then each people field, each other reference (terms, as a picker), the
+// type's other fields as a form, each field set's (D-337), and the
+// theme's fields under Advanced.
 const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
 const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
 // A tree page's or term's place among its siblings (D-412), a row beside
@@ -1094,16 +1122,32 @@ const imageField      = computed(() => ownFields.value.find((field) => field.nam
 // or a recipe's `cooks`, as a people picker under its own label.
 const peopleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.to === profileType.value && field.multiple !== false));
 const summaryField    = computed(() => ownFields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
+const subtitleField   = computed(() => ownFields.value.find((field) => field.name === 'subtitle' && field.type === 'text'));
+// What the theme draws it with (D-728): a layout, a stylesheet, and the
+// body's classes, these last typed on one line, apart by spaces.
+const advancedFields  = computed(() => ownFields.value.filter((field) => ADVANCED.includes(field.name)));
+// Advanced folds away (D-730), open while one of its fields is set or
+// has an error, so nothing in it is out of sight.
+const advancedSet     = computed(() => advancedFields.value.some((field) => String(form.value[field.name] ?? '').trim() !== '' || errorFor(field.name) !== undefined));
 const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && !peopleFields.value.includes(field)));
 // A relation that takes exactly one (a cuisine, or who tested a recipe)
 // is a value in the Publish rows, as Status and Date are (D-607).
 const singleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple === false && field !== parentField.value && field.relation !== undefined));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value, ...singleFields.value];
+	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, subtitleField.value, ...referenceFields.value, ...singleFields.value, ...advancedFields.value];
 
-	return ownFields.value.filter((field) => !placed.includes(field));
+	return ownFields.value.filter((field) => !placed.includes(field) && !UNSHOWN.includes(field.name));
 });
+
+// A field's state as a line of text: a list's items apart by spaces.
+function inline(field: FieldDescription): FormValue {
+	return field.type === 'list' ? String(form.value[field.name] ?? '').replace(/\n/g, ' ') : form.value[field.name] ?? '';
+}
+
+function setInline(field: FieldDescription, value: FormValue): void {
+	form.value[field.name] = field.type === 'list' ? String(value).trim().replace(/\s+/g, '\n') : value;
+}
 
 function referenceCount(field: FieldDescription): number {
 	return String(form.value[field.name] ?? '').split(',').filter((item) => item.trim() !== '').length;
@@ -2924,6 +2968,8 @@ function fieldKey(field: FieldDescription): string {
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" class="editor__panel" role="tabpanel" aria-labelledby="editor-tab-document" @keydown.esc="leaveDrill">
 						<template v-if="drill === null">
 							<OptionsGroup heading="Publish">
+								<ImagePreview v-if="imageField && (!term || form[imageField.name])" :src="String(form[imageField.name] ?? '')" wide bare noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
+								<SummaryPopover v-if="summaryField" :id="`field-${summaryField.name}`" :model-value="String(form[summaryField.name] ?? '')" :error="errorFor(summaryField.name)" @update:model-value="form[summaryField.name] = $event" />
 								<dl class="settings">
 									<div class="settings__row">
 										<dt>Status</dt>
@@ -2972,6 +3018,18 @@ function fieldKey(field: FieldDescription): string {
 											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
 										</dd>
 									</div>
+									<div v-if="subtitleField" class="settings__row">
+										<dt><label :for="`field-${subtitleField.name}`">Subtitle</label></dt>
+										<dd>
+											<input :id="`field-${subtitleField.name}`" class="settings__input" autocomplete="off" :value="String(form[subtitleField.name] ?? '')" :aria-invalid="errorFor(subtitleField.name) ? 'true' : undefined" @input="form[subtitleField.name] = ($event.target as HTMLInputElement).value">
+										</dd>
+									</div>
+									<div v-if="entry.can.language" class="settings__row">
+										<dt><label for="editor-language">Language</label></dt>
+										<dd>
+											<AdminSelect id="editor-language" v-model="language" :options="languageOptions" :invalid="Boolean(languageError)" :described-by="languageError ? 'editor-language-error' : undefined" plain />
+										</dd>
+									</div>
 									<div v-if="treeParent" class="settings__row">
 										<dt><label for="editor-parent">Parent</label></dt>
 										<dd>
@@ -3001,6 +3059,8 @@ function fieldKey(field: FieldDescription): string {
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
 								<p v-if="parentError" id="editor-parent-error" class="field__error">{{ parentError }}</p>
+								<p v-if="languageError" id="editor-language-error" class="field__error">{{ languageError }}</p>
+								<p v-if="subtitleField && errorFor(subtitleField.name)" class="field__error">{{ errorFor(subtitleField.name) }}</p>
 								<template v-for="single in singleFields" :key="`error-${fieldKey(single)}`">
 									<p v-if="errorFor(single.name)" class="field__error">{{ errorFor(single.name) }}</p>
 								</template>
@@ -3021,11 +3081,6 @@ function fieldKey(field: FieldDescription): string {
 								</p>
 							</OptionsGroup>
 
-							<OptionsGroup v-if="imageField && (!term || form[imageField.name])" heading="Featured Image">
-								<ImagePreview :src="String(form[imageField.name] ?? '')" wide noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
-								<p v-if="!form[imageField.name]" class="field__help">Used in listings, link previews, and at the top of the {{ noun }}, as the theme shows it.</p>
-							</OptionsGroup>
-
 							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
 								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.relation?.label || peopleField.label || (peopleField.multiple === false ? 'Author' : 'Authors'))">
 									<template v-if="referenceMeta(peopleField, true).text" #hint><span :class="`is-${referenceMeta(peopleField, true).tone}`">{{ referenceMeta(peopleField, true).text }}</span></template>
@@ -3041,15 +3096,6 @@ function fieldKey(field: FieldDescription): string {
 								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
 							</OptionsGroup>
 
-							<OptionsGroup v-if="summaryField">
-								<template #heading><label :for="`field-${summaryField.name}`">Summary</label></template>
-								<template v-if="String(form[summaryField.name] ?? '').length" #hint>{{ String(form[summaryField.name] ?? '').length }} / 160</template>
-								<div class="field">
-									<textarea :id="`field-${summaryField.name}`" :value="String(form[summaryField.name] ?? '')" rows="3" placeholder="Used in listings and feeds. Left empty, the opening words are used." :aria-invalid="errorFor(summaryField.name) ? 'true' : undefined" @input="form[summaryField.name] = ($event.target as HTMLTextAreaElement).value" />
-									<p v-if="errorFor(summaryField.name)" class="field__error">{{ errorFor(summaryField.name) }}</p>
-								</div>
-							</OptionsGroup>
-
 							<OptionsGroup v-if="otherFields.length" :heading="`${labels.singular} Fields`">
 								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
 							</OptionsGroup>
@@ -3057,6 +3103,10 @@ function fieldKey(field: FieldDescription): string {
 							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label">
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
 								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+							</OptionsGroup>
+
+							<OptionsGroup v-if="advancedFields.length" heading="Advanced" collapsible :open="advancedSet">
+								<FieldControl v-for="field in advancedFields" :key="fieldKey(field)" :field="field.type === 'list' ? { ...field, control: 'mono' } : field" :model-value="inline(field)" :error="errorFor(field.name)" @update:model-value="setInline(field, $event)" />
 							</OptionsGroup>
 
 

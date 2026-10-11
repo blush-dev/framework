@@ -1474,7 +1474,8 @@
 		animation: none;
 	}
 
-	.twist .icon {
+	.twist .icon,
+	.options__caret {
 		transition: none;
 	}
 }
@@ -1715,6 +1716,55 @@
 	text-transform: uppercase;
 }
 
+/* A group that folds under its heading (D-730): the heading is the
+   switch, with a caret that turns as it opens. What's after a summary
+   is one box the browser draws, which a grid's gap doesn't reach, so
+   the group is a block and its body spaces what's in it. */
+.options__group--collapsible {
+	display: block;
+}
+
+.options__body {
+	display: grid;
+	gap: var(--s-4);
+	margin-top: var(--s-4);
+}
+
+.options__group--collapsible > summary {
+	cursor: pointer;
+	list-style: none;
+}
+
+.options__group--collapsible > summary::-webkit-details-marker {
+	display: none;
+}
+
+.options__group--collapsible > summary:hover {
+	color: var(--fg-2);
+}
+
+.options__group--collapsible > summary:focus-visible {
+	border-radius: var(--r-1);
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.options__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.options__caret {
+	width: 12px;
+	height: 12px;
+	transition: transform .12s;
+}
+
+.options__group--collapsible[open] .options__caret {
+	transform: rotate(90deg);
+}
+
 /* A hint at a heading's end: a count, or how what's in it is kept. A
    relation's changes its word before its ink (D-607). */
 .options__hint {
@@ -1793,6 +1843,13 @@
 
 .popover-form .field {
 	margin: 0;
+}
+
+/* One drawn over the page beside its button (`usePopover`), such as the
+   editor's summary (D-728). */
+.popover-form--placed {
+	position: fixed;
+	z-index: 70;
 }
 
 /* The Users screens (Accounts, an account and Your Account, New Account,
@@ -4127,15 +4184,15 @@ a.problem__title:hover {
 	}
 }
 
-/* A still: an entry's image in a quiet frame, or the frame alone. Never
-   initials, which mean a person. */
+/* A still: an entry's image in a quiet square frame, or its type's icon
+   in the frame (D-731). Never initials, which mean a person. */
 .reference__still {
 	position: relative;
 	display: grid;
 	flex: none;
 	place-items: center;
-	width: 56px;
-	aspect-ratio: 4 / 3;
+	width: 48px;
+	aspect-ratio: 1;
 	overflow: hidden;
 	border-radius: 4px;
 	background: var(--surface-3);
@@ -4151,7 +4208,7 @@ a.problem__title:hover {
 }
 
 .reference__still--row {
-	width: 44px;
+	width: 36px;
 }
 
 .reference__still.is-missing {

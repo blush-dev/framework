@@ -134,11 +134,7 @@ final readonly class RecordBuilder
 			slug: $slug,
 			key: $landing ? '' : implode('/', [...$segments, $slug]),
 			directory: $listedIn,
-			locale: match (true) {
-				$suffixed                          => $language->locale,
-				is_string($values['locale'] ?? null) => $values['locale'],
-				default                            => $this->app->locale
-			},
+			locale: $suffixed ? $language->locale : $this->app->locale,
 			landing: $landing,
 			status: $this->status($values, $private),
 			visibility: $this->visibility($values, $filename, $private),

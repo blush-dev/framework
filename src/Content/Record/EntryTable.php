@@ -35,8 +35,8 @@ use Blush\Storage\StorageArea;
  *   archive in a type that doesn't nest (D-602), its place, `_{word}/{slug}`
  *   (`_authors/jane`), which is its key, since no parent can give it
  *   one (D-657);
- * - `fields`: its front matter (the type's fields, `locale`, and keys
- *   it doesn't declare);
+ * - `fields`: its front matter (the type's fields, and keys it doesn't
+ *   declare);
  * - `slugs`: each front matter value written as slugs (a list), for
  *   1.x queries that compare values as slugs (`meta_key`, and terms
  *   written without refs), worked out by core (`EntryValues`).

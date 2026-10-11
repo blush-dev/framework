@@ -22834,3 +22834,101 @@ decision, add a new entry that supersedes it and mark the old one
   bigger picture." Headings left out because an excerpt runs its
   blocks together as one paragraph, where a heading reads as a stray
   phrase.
+
+### D-728: The editor's Publish group, and an entry's language as a field
+
+- **Date:** 2026-10-10
+- **Status:** Built; the title in place of Publish's heading is
+  reversed, and bulk actions set `updated`, in D-729.
+- **Decision:** The editor's entry tab is cleaned up, and an entry's
+  language can be changed from it:
+  - **Publish** has no heading on screen (a hidden "Publish" stays for
+    screen readers); it opens on the entry's **title**, in bold, as
+    typed. Under it, the **featured image** picker alone (no heading or
+    help), then the **summary** as written, with **Edit summary**
+    under it, or **Add a summary…** without one, opening a small form
+    beside it (`SummaryPopover`, on `usePopover` and a
+    `.popover-form--placed` modifier) that writes the field as it's
+    typed. Then the rows: Status, Visibility, Date, Slug, **Subtitle**
+    (a row drawn as Slug is), **Language**, and the parent and position
+    rows.
+  - **Language** lists the site's languages (`languages` in the
+    admin's start-up config, the default first), shown when the site
+    has more than one and the entry isn't a landing page, an archive
+    page, or an error page (`can.language`). It's sent apart from the
+    fields, as a tree page's parent is: `PATCH entries/{id}` and
+    `POST entries` take `language`, checked first (a language the site
+    lacks, one a translation already has, or a key taken there is a 422
+    with `field: "language"`).
+  - **The write path:** `ContentWriter::changeLanguage()` and
+    `Entries::changeLanguage()`. On files, the file's suffix is
+    swapped, added, or taken off (`hello.md` ↔ `hello.fr.md`,
+    `about/index.fr.md`; `FilesystemWriter::changeLanguage()`), so it
+    stays linked to its translations by name or `translation_of`; on
+    records, the `language` column changes. A new entry is written in
+    the default language, then moved. The filesystem record store
+    (`IndexStore`) changes a record's language the same way, and
+    creates one in another language, but still refuses `original_id`.
+  - **`locale` front matter is gone:** an entry's locale is its
+    language's (the site's for the default), in the hydrator, the
+    index, and `Query::locale()`, which now matches the language with
+    that locale.
+  - **`updated` is set by every save** from the editor (`PATCH
+    entries/{id}`), to now in the site's time zone, so the editor has
+    no field for it. Bulk actions too, since D-729.
+  - **Left out of the panel:** `updated`, `template` (to come back as a
+    select under the Publish rows; on the roadmap), and `collection`,
+    each still front matter.
+  - **Advanced** is a group of its own, after the field sets, with
+    **Layout**, **Stylesheet**, and **Class**; Class is a one-line text
+    field, its classes apart by spaces, written as the list it is.
+- **Why:** the author's list for "cleaning up the entry editing sidebar
+  panel," and, asked how far Language goes: build the write path, with
+  new entries in a chosen language; and remove `locale` entirely.
+
+### D-729: Publish keeps its heading, and every change someone makes sets `updated`
+
+- **Date:** 2026-10-10
+- **Status:** Built. Revises D-728.
+- **Decision:**
+  - The Publish group has its **Publish** heading back; the entry's
+    title isn't shown in the panel.
+  - The featured image is the picture alone: no address or size under
+    it (`ImagePreview`'s `bare`).
+  - **Bulk Publish and Switch to draft set `updated`** as the editor's
+    saves do (`EntryController::stamped()`). Moving to the trash and
+    restoring don't change the entry, so they leave it; nor do writes
+    that follow from another change (a relation's renamed target, an
+    entry taken out of its referrers, Site Health's fixes) or a
+    profile's Linkable switch.
+- **Why:** the author: "Bulk actions should definitely be setting the
+  updated time of a post. Whenever a user updates a post, it should be
+  updated. That's kind of the point of the field."
+
+### D-730: Advanced folds away
+
+- **Date:** 2026-10-10
+- **Status:** Built. Refines D-728.
+- **Decision:** The editor's **Advanced** group (Layout, Stylesheet,
+  Class) is a collapsible section, not a drill-down: closed by default,
+  open when one of its fields has a value or an error, and left as the
+  reader sets it after that. The drill-downs (Archive Page, Linked
+  From, Outline) stay for facts kept elsewhere (D-608); Advanced holds
+  fields edited and saved with the entry. Built into the shared
+  `OptionsGroup` (`collapsible`, `open`): a `<details>` whose summary is
+  the group's heading, with a caret that turns as it opens.
+- **Why:** the author asked whether Advanced should be a collapsible
+  section or a drill-down, was recommended the section, and chose it.
+
+### D-731: Square stills, with the type's icon when there's no image
+
+- **Date:** 2026-10-10
+- **Status:** Built. Refines D-599 and D-607's card picker.
+- **Decision:** An entry's still in the card picker (its chosen rows,
+  its result cards, and inherited rows) and in Linked From is square
+  (48px on a card, 36px on a row; `.reference__still`). Without an
+  image, the frame holds the entry type's icon (`TypeIcon`), as Linked
+  From's rows already did; a slug that names nothing keeps its `?` and
+  dashed frame.
+- **Why:** the author: "Make the image square," and "when there is no
+  image, place the content type icon inside of the square box."

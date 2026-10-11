@@ -24,7 +24,6 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
-use Blush\Core\Language;
 use Blush\Storage\Record\Order;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\Subquery;
@@ -294,26 +293,14 @@ final readonly class QueryCompiler
 	}
 
 	/**
-	 * Adds a locale: an entry in another language has its language's;
-	 * one in the default language, its own (`locale` in front matter),
-	 * else the site's.
+	 * Adds a locale: an entry has its language's (D-728), so it's the
+	 * language with that locale, or none.
 	 */
 	private function locale(RecordQuery $records, string $locale): RecordQuery
 	{
-		$languages = $this->app->languages;
-		$others    = array_values(array_map(
-			static fn (Language $language): string => $language->code,
-			array_filter($languages->others(), static fn (Language $language): bool => $language->locale === $locale)
-		));
-		$default   = $languages->default->code;
+		$language = $this->app->languages->forLocale($locale);
 
-		return $records->whereAny(
-			static fn (RecordQuery $q): RecordQuery => $q->where('language', 'in', $others),
-			static fn (RecordQuery $q): RecordQuery => $q->where('language', '=', $default)->where('fields.locale', '=', $locale),
-			fn (RecordQuery $q): RecordQuery => $this->app->locale === $locale
-				? $q->where('language', '=', $default)->where('fields.locale', 'null')
-				: $q->whereAny()
-		);
+		return $records->where('language', 'in', $language === null ? [] : [$language->code]);
 	}
 
 	/**

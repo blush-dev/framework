@@ -18,6 +18,9 @@ export interface AdminConfig {
 	// The site's language (a BCP 47 tag) and its date and time formats,
 	// each a style or an ICU pattern (`AppConfig`, D-693).
 	dates: { locale: string; date: string; time: string };
+	// The languages content is written in, by code, the default first
+	// (D-455, D-728).
+	languages: { code: string; label: string }[];
 	// What raw HTML each level may add (`HtmlRules`, D-495).
 	html: HtmlRules;
 }

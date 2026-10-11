@@ -66,7 +66,6 @@ final class EntryFields
 			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->described('public (the default), unlisted, or hidden.'),
 			new MarkdownField('summary')->aliases('excerpt')->described('A short Markdown summary for listings and feeds. Without one, the first 50 words are used.'),
 			new MediaField('image')->described('A featured image.'),
-			new TextField('locale')->described('The entry\'s locale, such as fr_CA, when it isn\'t the site\'s.'),
 			new ListField('template')->aliases('view')->described('The theme template to use, such as single-wide.'),
 			new TextField('layout')->described('The theme layout to use.'),
 			new TextField('stylesheet')->described('An extra stylesheet for this page.'),

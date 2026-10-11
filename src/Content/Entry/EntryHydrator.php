@@ -107,7 +107,7 @@ final class EntryHydrator
 			visibility: Visibility::tryFrom(EntryRecords::text($record, 'visibility')) ?? Visibility::Public,
 			published: $published === null ? null : $this->date($published),
 			updated: $this->date($updated),
-			locale: $this->locale($language, $front),
+			locale: $this->locale($language),
 			fields: $schema->hydrate($values, $this->context),
 			extra: array_diff_key($front, $values),
 			terms: EntryTerms::of($this->terms[$type->name] ??= EntryTerms::sources($this->types, $type), $refs, $targets),
@@ -122,16 +122,12 @@ final class EntryHydrator
 	}
 
 	/**
-	 * Returns an entry's locale: its language's, in another language;
-	 * else its own (`locale` in front matter), or the site's.
-	 *
-	 * @param array<string, mixed> $front
+	 * Returns an entry's locale: its language's (D-728), the site's for
+	 * the default language.
 	 */
-	private function locale(string $language, array $front): string
+	private function locale(string $language): string
 	{
-		$other = $this->app->languages->isOther($language) ? $this->app->languages->find($language) : null;
-
-		return $other->locale ?? (is_string($front['locale'] ?? null) ? $front['locale'] : $this->app->locale);
+		return $this->app->languages->find($language)->locale ?? $this->app->locale;
 	}
 
 	/**

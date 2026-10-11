@@ -266,7 +266,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => true, 'duplicate' => true, 'makeHomepage' => false], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'language' => false, 'move' => false, 'delete' => true, 'duplicate' => true, 'makeHomepage' => false], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);
 		$this->assertIsArray($entry['type']['fields'] ?? null);
@@ -518,7 +518,8 @@ final class AdminEditingTest extends TestCase
 		$saved    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\n" . self::filedRefs() . "id        : " . self::FLAME_ID . "\n---\n\nThe body.\n", $this->file(self::FLAME));
+		$this->assertMatchesRegularExpression('/^updated: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{2}:\d{2}$/m', $this->file(self::FLAME), 'Every save says when (D-728).');
+		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\n" . self::filedRefs() . "id        : " . self::FLAME_ID . "\n---\n\nThe body.\n", preg_replace('/^updated: .*\n/m', '', $this->file(self::FLAME)));
 		$this->assertSame('The Flame', $saved['title'] ?? null);
 		$this->assertNotSame($revision, $saved['revision'] ?? null);
 
@@ -562,6 +563,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame([$this->idOf(self::FLAME), $this->idOf($sams)], $answer['done'] ?? null);
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file(self::FLAME));
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file($sams));
+		$this->assertMatchesRegularExpression('/^updated: \d{4}-\d{2}-\d{2} /m', $this->file($sams), 'A bulk change says when it was made (D-729).');
 
 		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$this->idOf($idea), $this->idOf(self::FLAME)]]));
 
@@ -661,6 +663,32 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('POST', '/entries', ['type' => 'movie', 'title' => 'Nope'])->getStatusCode());
 	}
 
+	public function testMovesAnEntryToAnotherLanguage(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['languages' => ['fr' => 'fr_FR']]);\n");
+		$this->site();
+
+		$entry = $this->load(self::FLAME);
+
+		$this->assertSame(['en', true], [$entry['language'] ?? null, self::at($entry, 'can', 'language')]);
+
+		$response = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'language' => 'fr']);
+		$saved    = self::json($response);
+
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['fr', self::FLAME_ID], [$saved['language'] ?? null, $saved['id'] ?? null]);
+		$this->assertMatchesRegularExpression('#\.fr\.md$#', is_string($saved['path'] ?? null) ? $saved['path'] : '', 'Its file is named for it (D-455).');
+
+		$refused = $this->call('PATCH', '/entries/' . self::FLAME_ID, ['revision' => $saved['revision'] ?? '', 'language' => 'de']);
+
+		$this->assertSame([422, 'language'], [$refused->getStatusCode(), self::json($refused)['field'] ?? null]);
+
+		$created = self::json($this->call('POST', '/entries', ['type' => 'post', 'title' => 'Bonjour', 'language' => 'fr']));
+
+		$this->assertSame('fr', $created['language'] ?? null);
+		$this->assertSame('_post/bonjour.fr.md', $created['path'] ?? null);
+	}
+
 	public function testCreatesAPageUnderAnother(): void
 	{
 		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
@@ -751,7 +779,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('draft', $entry['status'] ?? null);
 		$this->assertSame(['authors' => ['jane']], $entry['values'] ?? null, 'Credited to the account\'s author.');
 		$this->assertSame('', $entry['body'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => false, 'duplicate' => false, 'makeHomepage' => false], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'language' => false, 'move' => false, 'delete' => false, 'duplicate' => false, 'makeHomepage' => false], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertSame('post', $entry['type']['name'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);

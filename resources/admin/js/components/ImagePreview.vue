@@ -3,7 +3,7 @@
  * An image as the thing itself, not its file name (admin.md §8): a
  * cropped frame (4:3 as the library shows files, or 16:9 for a featured
  * image, the shape it's used in), its address and size on a line under
- * it, and **Replace** and **Remove** on it, over a veil, on hover or
+ * it (left out when `bare`, as the editor's featured image is, D-729), and **Replace** and **Remove** on it, over a veil, on hover or
  * keyboard focus. A file that isn't there says so rather than showing a
  * broken frame. With no image, it's a button to choose one. It tells
  * its owner the library's record for the file (`resolved`), which has
@@ -20,7 +20,9 @@ const props = withDefaults(defineProps<{
 	wide?: boolean;
 	// What the buttons name, for screen readers: "the image".
 	noun?: string;
-}>(), { wide: false, noun: 'the image' });
+	// Without the address and size under it.
+	bare?: boolean;
+}>(), { wide: false, noun: 'the image', bare: false });
 
 const emit = defineEmits<{
 	pick: [];
@@ -89,7 +91,7 @@ function loaded(event: Event): void {
 	<div v-else class="image-preview image-preview--empty" :class="{ 'image-preview--wide': wide }">
 		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />Choose an Image</button>
 	</div>
-	<p v-if="src" class="field__help mono image-preview__about">
+	<p v-if="src && !bare" class="field__help mono image-preview__about">
 		{{ src }}<template v-if="missing"> · not found</template><template v-else-if="size"> · {{ size }}</template>
 	</p>
 </template>

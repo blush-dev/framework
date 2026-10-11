@@ -53,8 +53,7 @@ use Blush\Content\Visibility;
  * - `language` is the code of the language the entry is written in
  *   (D-455): a translation's file-name suffix (`about.fr.md` is `fr`),
  *   else the site's default language. `locale` is that language's
- *   locale, or for a file without a suffix, its `locale` front matter
- *   or the site's.
+ *   locale (D-728).
  * - `original` is, for a file with a language suffix, the path the file
  *   would have without it (`about.md` for `about.fr.md`), which links a
  *   translation to its siblings; `null` for the rest.

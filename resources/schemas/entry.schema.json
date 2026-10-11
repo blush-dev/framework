@@ -107,13 +107,6 @@
 			"type": "string",
 			"description": "A featured image."
 		},
-		"locale": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "The entry's locale, such as fr_CA, when it isn't the site's."
-		},
 		"template": {
 			"anyOf": [
 				{

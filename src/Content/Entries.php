@@ -197,6 +197,17 @@ interface Entries extends QueryRunner
 	public function rename(Entry|string $entry, string $slug, ?string $version = null): Entry;
 
 	/**
+	 * Moves an entry to another of the site's languages, by code (D-728).
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException When the language isn't the site's, the
+	 *                        entry is a landing page, one of its
+	 *                        translations is in that language, or another
+	 *                        entry has its place there.
+	 */
+	public function changeLanguage(Entry|string $entry, string $language, ?string $version = null): Entry;
+
+	/**
 	 * Moves a tree's page under another of its pages (`$parent`, by id),
 	 * or to the top with `null` (D-410), with the pages under it.
 	 *

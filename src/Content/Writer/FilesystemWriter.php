@@ -434,26 +434,69 @@ final readonly class FilesystemWriter
 				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s.', $path));
 			}
 
-			[$from, $to, $newPath] = $this->renameTargets($path, $slug, $entry);
-
-			if ($from === $to) {
-				return new WriteResult($path, self::version($contents), new IndexReport());
-			}
-
-			if (file_exists($to)) {
-				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($to)));
-			}
-
-			[$referrers, $filed] = $this->fileReferrers($path);
-
-			if (! @rename($from, $to)) {
-				throw new WriteException(sprintf('%s couldn\'t be renamed.', $path));
-			}
-
-			$report = $this->refresh($filed, $referrers);
-
-			return new WriteResult($newPath, $this->versionOf($newPath), $report);
+			return $this->renamed($path, $contents, ...$this->renameTargets($path, $slug, $entry));
 		});
+	}
+
+	/**
+	 * Gives an entry's file another language's suffix (D-728), or none
+	 * for the default language (`$suffix` `''`): `hello.md` becomes
+	 * `hello.fr.md`, and `about/index.md` becomes `about/index.fr.md`.
+	 *
+	 * @throws WriteException When the new name is taken, or it's a
+	 *                        landing page.
+	 */
+	public function changeLanguage(string $path, string $suffix, ?string $version = null): WriteResult
+	{
+		$file = $this->file($path);
+
+		return $this->locked(function () use ($path, $file, $suffix, $version): WriteResult {
+			$contents = $this->current($path, $file, $version);
+			$entry    = $this->record($path);
+
+			if ($entry === null || $entry->landing) {
+				throw new WriteException(sprintf('%s is a landing page; it\'s in the language of the pages it lists.', $path));
+			}
+
+			$directory = dirname($path) === '.' ? '' : dirname($path);
+			$extension = pathinfo($path, PATHINFO_EXTENSION);
+			$parts     = explode('.', pathinfo($path, PATHINFO_FILENAME));
+
+			if (count($parts) > 1 && end($parts) === $entry->language && end($parts) !== $entry->slug) {
+				array_pop($parts);
+			}
+
+			$newPath = ltrim("{$directory}/" . implode('.', $parts) . ($suffix === '' ? '' : ".{$suffix}") . '.' . ($extension === '' ? 'md' : $extension), '/');
+
+			return $this->renamed($path, $contents, $this->file($path), $this->file($newPath), $newPath);
+		});
+	}
+
+	/**
+	 * Renames an entry's file (or its bundle's folder) for `rename()` and
+	 * `changeLanguage()`, refreshing the index and what links to it.
+	 *
+	 * @throws WriteException When the new name is taken.
+	 */
+	private function renamed(string $path, string $contents, string $from, string $to, string $newPath): WriteResult
+	{
+		if ($from === $to) {
+			return new WriteResult($path, self::version($contents), new IndexReport());
+		}
+
+		if (file_exists($to)) {
+			throw new WriteException(sprintf('%s already exists.', $this->paths->relative($to)));
+		}
+
+		[$referrers, $filed] = $this->fileReferrers($path);
+
+		if (! @rename($from, $to)) {
+			throw new WriteException(sprintf('%s couldn\'t be renamed.', $path));
+		}
+
+		$report = $this->refresh($filed, $referrers);
+
+		return new WriteResult($newPath, $this->versionOf($newPath), $report);
 	}
 
 	/**

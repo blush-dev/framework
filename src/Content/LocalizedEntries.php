@@ -230,6 +230,15 @@ final readonly class LocalizedEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function changeLanguage(Entry|string $entry, string $language, ?string $version = null): Entry
+	{
+		return $this->content->changeLanguage($entry, $language, $version);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function move(Entry|string $entry, Entry|string|null $parent, ?string $version = null): Entry
 	{
 		return $this->content->move($entry, $parent, $version);

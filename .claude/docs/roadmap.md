@@ -919,6 +919,11 @@ keeping the first screen's code in one file.
 
 ### Still to scope
 
+- **The editor's Template (D-728):** a select under the Publish
+  group's rows, of the templates the active theme has for the entry's
+  type, writing `template`. Taken out of the panel (with `collection`)
+  until it's built; `template` stays front matter.
+
 - **Background jobs and the scheduler (D-621; built, D-622):**
   `Blush\Job` (jobs by key, records in the `jobs` area, chunks,
   retries, the schedule), cron's `schedule:run` and the runners

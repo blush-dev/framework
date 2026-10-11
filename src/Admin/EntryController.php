@@ -267,6 +267,7 @@ final readonly class EntryController
 			'handle'      => null,
 			'slug'        => '',
 			'key'         => '',
+			'language'    => $this->app->languages->default->code,
 			'parent'      => $type instanceof Tree ? '' : null,
 			'revision'    => null,
 			'modified'    => null,
@@ -290,6 +291,7 @@ final readonly class EntryController
 				'edit'         => true,
 				'publish'      => $this->permissions->can($account, ContentAction::Publish, $type->name),
 				'rename'       => true,
+				'language'     => $this->app->languages->isMultilingual(),
 				'move'         => false,
 				'delete'       => false,
 				'duplicate'    => false,
@@ -385,6 +387,14 @@ final readonly class EntryController
 			}
 		}
 
+		// Written in the site's language, then moved to another (D-728).
+		$language = self::stringOr($input, 'language', $this->app->languages->default->code);
+		$problem  = $this->app->languages->isDefault($language) ? null : $this->languageProblem($type, $parent === null ? $slug : "{$parent->key}/{$slug}", $language);
+
+		if ($problem !== null) {
+			return self::error($problem, Status::UnprocessableContent, 'language');
+		}
+
 		$related = $this->related($account, $type, null, [], $changes);
 
 		if ($related !== null) {
@@ -393,6 +403,7 @@ final readonly class EntryController
 
 		try {
 			$entry = $this->content->create($type, $slug, $changes, $parent, $now);
+			$entry = $this->app->languages->isDefault($language) ? $entry : $this->content->changeLanguage($entry, $language);
 			$file  = $this->content->editable($entry);
 		} catch (WriteException $e) {
 			// A trashed entry keeps its address until it's deleted (D-484).
@@ -437,7 +448,7 @@ final readonly class EntryController
 
 		try {
 			$body    = $input['body'] ?? null;
-			$changes = new EntryChanges(set: self::map($input, 'set'), remove: self::list($input, 'remove'), body: is_string($body) ? $body : null);
+			$changes = $this->stamped(new EntryChanges(set: self::map($input, 'set'), remove: self::list($input, 'remove'), body: is_string($body) ? $body : null));
 			$status  = $input['status'] ?? null;
 			$changes = $status === null ? $changes : $this->withStatus($changes, is_string($status) ? $status : '', $input, $entry);
 			$slug    = $input['slug'] ?? null;
@@ -506,6 +517,19 @@ final readonly class EntryController
 			}
 		}
 
+		// Another language (D-728), checked before anything is written.
+		$language = is_string($input['language'] ?? null) && $input['language'] !== $entry->language ? $input['language'] : null;
+
+		if ($language !== null) {
+			$problem = $entry->landing || $this->archivePages->isList($entry) || $this->archivePages->isTarget($entry) || ErrorPage::status($entry) !== null
+				? sprintf('"%s" keeps the language of the pages it goes with.', $entry->title)
+				: $this->languageProblem($entry->type, ($folder === '.' ? '' : "{$folder}/") . ($rename ?? $entry->slug), $language, $entry);
+
+			if ($problem !== null) {
+				return self::error($problem, Status::UnprocessableContent, 'language');
+			}
+		}
+
 		$redirect = ($input['redirect'] ?? false) === true;
 
 		// The pages under a tree's page, whose addresses change with its.
@@ -539,6 +563,10 @@ final readonly class EntryController
 
 			if ($rename !== null) {
 				$revision = $this->content->rename($entry, $rename, $revision)->version ?? $revision;
+			}
+
+			if ($language !== null) {
+				$revision = $this->content->changeLanguage($entry, $language, $revision)->version ?? $revision;
 			}
 
 			$updated = $this->content->change($entry, $changes, $revision);
@@ -954,7 +982,7 @@ final readonly class EntryController
 				return null;
 			}
 
-			$changes = $this->withStatus(new EntryChanges(), $action === 'publish' ? 'published' : 'draft', [], $entry);
+			$changes = $this->withStatus($this->stamped(new EntryChanges()), $action === 'publish' ? 'published' : 'draft', [], $entry);
 			$refusal = $this->refusal($account, $entry, $changes) ?? ($action === 'publish' ? $this->missing($entry) ?? $this->outOfLimits($entry) : null);
 
 			if ($refusal !== null) {
@@ -1119,6 +1147,30 @@ final readonly class EntryController
 			EntryStatus::Trash => sprintf('A %s in the trash has the slug "%s"; restore it, or delete it permanently, to use it.', $entry->type->labels->item, $slug),
 			default           => sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug)
 		};
+	}
+
+	/**
+	 * Returns what's wrong with an entry of a type at a key being in a
+	 * language (D-728), or `null`: a language the site doesn't have, one
+	 * its translations already have, or a key that's taken there.
+	 */
+	private function languageProblem(ContentType $type, string $key, string $code, ?Entry $entry = null): ?string
+	{
+		$language = $this->app->languages->find($code);
+
+		if ($language === null) {
+			return sprintf('The site has no language "%s".', $code);
+		}
+
+		$translation = $entry === null ? null : $this->content->translations($entry)[$code] ?? null;
+
+		if ($translation !== null && $translation->id !== $entry->id) {
+			return sprintf('Its %s translation is “%s”.', $language->name(), trim($translation->title) === '' ? 'Untitled' : $translation->title);
+		}
+
+		$found = $this->content->named($type->name, $key, $code);
+
+		return $found === null || $found->id === $entry?->id ? null : sprintf('There\'s already a %s at %s in %s.', $type->labels->item, $key, $language->name());
 	}
 
 	/**
@@ -1331,6 +1383,7 @@ final readonly class EntryController
 			'handle'      => $this->handles->of($entry),
 			'slug'        => $entry->slug,
 			'key'         => $entry->key,
+			'language'    => $entry->language,
 			'parent'      => $entry->type instanceof Tree && ! $entry->landing ? ($entry->type->parentKey($entry->key, []) ?? '') : null,
 			'revision'    => $file->version,
 			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
@@ -1355,6 +1408,7 @@ final readonly class EntryController
 				'edit'         => $live && $this->permissions->can($account, ContentAction::Edit, $entry),
 				'publish'      => $live && $this->permissions->can($account, ContentAction::Publish, $entry),
 				'rename'       => $live && ! $entry->landing && ! $people && ! $person && $error === null,
+				'language'     => $live && ! $entry->landing && ! $people && ! $person && $error === null && $this->app->languages->isMultilingual(),
 				'move'         => $live && $entry->type instanceof Tree && ! $entry->landing && $error === null,
 				'delete'       => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
 				'duplicate'    => $live && ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
@@ -1749,6 +1803,22 @@ final readonly class EntryController
 		} catch (Exception) {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns changes that also set `updated` to now (D-728, D-729): every
+	 * change someone makes to an entry, in the editor or in bulk, says
+	 * when it was made.
+	 *
+	 * @throws WriteException
+	 */
+	private function stamped(EntryChanges $changes): EntryChanges
+	{
+		return new EntryChanges(
+			set: [...$changes->set, 'updated' => self::dateString($this->clock->now()->setTimezone($this->app->timezone()))],
+			remove: array_values(array_diff($changes->remove, ['updated'])),
+			body: $changes->body
+		);
 	}
 
 	/**
