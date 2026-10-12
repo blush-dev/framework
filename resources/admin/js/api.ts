@@ -16,6 +16,8 @@ export interface Account {
 	// What the admin calls it: its own name, else its profile's title,
 	// else its username (D-370).
 	displayName: string;
+	// Its picture's URL (`Avatars`, D-810), or `null` for initials.
+	avatar: string | null;
 	author: string | null;
 	// That profile, when it has a file (for Your Account, D-369).
 	profile: AccountProfile | null;

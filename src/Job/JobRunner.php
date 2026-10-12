@@ -16,6 +16,7 @@ namespace Blush\Job;
 use Throwable;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Blush\Support\RequestMemo;
 
 /**
  * Runs queued jobs (D-621). Every runner (cron's `schedule:run`, the
@@ -46,7 +47,8 @@ final readonly class JobRunner
 		private JobFactory $factory,
 		private JobConfig $config,
 		private ClockInterface $clock,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
+		private ?RequestMemo $memo = null
 	) {}
 
 	/**
@@ -66,6 +68,9 @@ final readonly class JobRunner
 		$runs  = [];
 
 		while ((hrtime(true) - $start) / 1e9 < $seconds) {
+			// Each pass looks at what's queued now (D-807).
+			$this->memo?->forget();
+
 			$next = $this->next($accept);
 
 			if ($next === null) {
@@ -94,6 +99,10 @@ final readonly class JobRunner
 		if ($job->status !== JobStatus::Queued || $job->available > $now) {
 			return null;
 		}
+
+		// A worker runs for a while: each job starts from what's stored now
+		// (D-805).
+		$this->memo?->forget();
 
 		try {
 			$running = $this->store->claim($job, $job->with(['started' => $now, 'finished' => null]));

@@ -25,6 +25,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Support\RequestMemo;
 use Blush\Support\Uuid;
 
 /**
@@ -72,7 +73,8 @@ final readonly class Tokens
 
 	public function __construct(
 		private RecordStores|RecordStore $stores,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
@@ -195,7 +197,7 @@ final readonly class Tokens
 		$id     = $account instanceof Account ? $account->id : $account;
 		$query  = new RecordQuery()->where('account', '=', $id);
 		$tokens = array_filter(
-			array_map(self::token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records)),
+			array_map($this->token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records)),
 			static fn (Token $token): bool => $token->client === $client
 		);
 
@@ -239,7 +241,7 @@ final readonly class Tokens
 
 		$record = $this->read(fn (RecordStore $store): ?Record => $store->find(self::table(), $id));
 
-		return $record === null ? null : self::token($record);
+		return $record === null ? null : $this->token($record);
 	}
 
 	/**
@@ -256,7 +258,7 @@ final readonly class Tokens
 
 		$query = new RecordQuery()->where('account', '=', $account->id)->orderBy('created', Order::Desc);
 
-		return array_map(self::token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records));
+		return array_map($this->token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records));
 	}
 
 	/**
@@ -269,7 +271,7 @@ final readonly class Tokens
 	{
 		$query = new RecordQuery()->orderBy('created', Order::Desc);
 
-		return array_map(self::token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records));
+		return array_map($this->token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records));
 	}
 
 	/**
@@ -379,6 +381,8 @@ final readonly class Tokens
 			$write($this->store());
 		} catch (RecordException | StorageException $e) {
 			throw new AuthException(sprintf('The token "%s" couldn\'t be saved or removed: %s', $name, $e->getMessage()), previous: $e);
+		} finally {
+			$this->memo->forget();
 		}
 	}
 
@@ -393,12 +397,12 @@ final readonly class Tokens
 	}
 
 	/**
-	 * Returns a record's token.
+	 * Returns a record's token, built once a request (D-807).
 	 *
 	 * @throws AuthException When it isn't one.
 	 */
-	private static function token(Record $record): Token
+	private function token(Record $record): Token
 	{
-		return Token::fromArray($record->fields, $record->id);
+		return $this->memo->remember("token|{$record->id}|{$record->version}", static fn (): Token => Token::fromArray($record->fields, $record->id));
 	}
 }

@@ -56,7 +56,7 @@ export interface RoleInfo {
 	capabilities: string[];
 	builtIn: boolean;
 	origin: RoleOrigin;
-	accounts: { username: string; displayName: string }[];
+	accounts: { username: string; displayName: string; avatar: string | null }[];
 	// Whether you may give it to accounts: you can do all it allows.
 	grantable: boolean;
 	// Whether you may change it.
@@ -76,6 +76,8 @@ export interface AccountInfo {
 	// What the admin calls it: its own name, else its profile's title,
 	// else its username (D-370).
 	displayName: string;
+	// Its picture's URL (`Avatars`, D-810), or `null` for initials.
+	avatar: string | null;
 	roles: string[];
 	// The slug of the profile it's linked to, if any.
 	author: string | null;

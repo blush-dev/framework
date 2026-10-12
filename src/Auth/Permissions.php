@@ -17,6 +17,7 @@ use Closure;
 use Blush\Container\Attributes\NoAutowire;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\MediaKind;
@@ -200,9 +201,10 @@ final readonly class Permissions
 			return $entry->id === $account->profile;
 		}
 
-		$author = $this->profiles->slug($account);
+		$profile = $account->profile;
 
-		return $author !== null && $entry->hasTerm($authors, $author);
+		// Credited under any of its type's credit relations (D-803).
+		return array_any($this->types->credits($entry->type->name), static fn (Relation $relation): bool => $entry->linksTo($relation->name, $profile));
 	}
 
 	/**

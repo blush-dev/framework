@@ -26,6 +26,7 @@ use Blush\Field\FieldFactory;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\RecordException;
+use Blush\Support\RequestMemo;
 
 /**
  * Gathers the content types from every source and checks that they fit
@@ -71,15 +72,27 @@ final readonly class ContentTypeLoader
 		private FieldFactory $fields,
 		private Container $container,
 		private FieldSetLoader $sets,
-		private RelationLoader $relations
+		private RelationLoader $relations,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
-	 * Loads and checks the types.
+	 * Loads and checks the types, once a request (D-807); a write to the
+	 * tables they're read from drops what was loaded.
 	 *
 	 * @throws InvalidContentType
 	 */
 	public function load(): ContentTypes
+	{
+		return $this->memo->remember('content-types|loaded', $this->loadTypes(...));
+	}
+
+	/**
+	 * Loads and checks the types, for `load()`.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function loadTypes(): ContentTypes
 	{
 		[$types, $origins, $clashes] = $this->codeTypes();
 

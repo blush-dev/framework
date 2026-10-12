@@ -24,6 +24,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Support\RequestMemo;
 
 /**
  * Reads and writes secrets by their definitions (D-715): the environment
@@ -48,7 +49,8 @@ final readonly class SecretStore
 		private SecretCipher $cipher,
 		private SecretKeys $keys,
 		private RecordStores|RecordStore $stores,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
@@ -78,7 +80,7 @@ final readonly class SecretStore
 		}
 
 		try {
-			$this->cipher->decrypt($definition->name(), $stored);
+			$this->decrypt($definition, $stored);
 		} catch (SecretUnreadable) {
 			return SecretStatus::Unreadable;
 		}
@@ -102,7 +104,18 @@ final readonly class SecretStore
 
 		$stored = $this->stored($definition);
 
-		return $stored === null ? null : $this->cipher->decrypt($definition->name(), $stored);
+		return $stored === null ? null : $this->decrypt($definition, $stored);
+	}
+
+	/**
+	 * Returns a stored value decrypted, once a request for that value
+	 * (D-807).
+	 *
+	 * @throws SecretUnreadable When it won't decrypt.
+	 */
+	private function decrypt(SecretDefinition $definition, string $stored): Secret
+	{
+		return $this->memo->remember('secret|' . $definition->name() . '|' . hash('xxh128', $stored), fn (): Secret => $this->cipher->decrypt($definition->name(), $stored));
 	}
 
 	/**

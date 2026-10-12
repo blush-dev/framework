@@ -23,6 +23,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Support\RequestMemo;
 
 /**
  * The accounts repository (D-669): the `accounts` table, keyed by
@@ -46,6 +47,10 @@ use Blush\Storage\StorageException;
  * password hash is of random bytes nobody knows, for good, it never
  * gets a password or a password link, and an email address is its
  * choice (D-750). It's used through its API tokens (`Tokens`).
+ *
+ * Accounts are read once a request (D-807): every lookup, by username or
+ * id, comes from one reading of the table, and an account is one object
+ * however it's found.
  */
 final readonly class Accounts
 {
@@ -59,7 +64,8 @@ final readonly class Accounts
 		private Passwords $passwords,
 		private Roles $roles,
 		private AuthConfig $config,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
@@ -81,9 +87,7 @@ final readonly class Accounts
 			return null;
 		}
 
-		$record = $this->read($username, fn (RecordStore $store): ?Record => $store->findByKey(self::table(), $username));
-
-		return $record === null ? null : self::account($record);
+		return $this->index()['username'][$username] ?? null;
 	}
 
 	/**
@@ -97,9 +101,7 @@ final readonly class Accounts
 			return null;
 		}
 
-		$record = $this->read($id, fn (RecordStore $store): ?Record => $store->find(self::table(), $id));
-
-		return $record === null ? null : self::account($record);
+		return $this->index()['id'][strtolower($id)] ?? null;
 	}
 
 	/**
@@ -110,13 +112,34 @@ final readonly class Accounts
 	 */
 	public function all(): array
 	{
-		$table    = self::table();
-		$records  = $this->read('', fn (RecordStore $store): array => $store->select($table, new RecordQuery())->records);
-		$accounts = array_map(self::account(...), $records);
+		return $this->index()['all'];
+	}
 
-		usort($accounts, static fn (Account $a, Account $b): int => strcmp($a->username, $b->username));
+	/**
+	 * Returns every account, sorted by username, and by username and id,
+	 * read once a request.
+	 *
+	 * @return array{all: list<Account>, username: array<string, Account>, id: array<string, Account>}
+	 * @throws AuthException When a record is damaged.
+	 */
+	private function index(): array
+	{
+		return $this->memo->remember('accounts|index', function (): array {
+			$table    = self::table();
+			$records  = $this->read('', fn (RecordStore $store): array => $store->select($table, new RecordQuery())->records);
+			$accounts = array_map($this->account(...), $records);
 
-		return $accounts;
+			usort($accounts, static fn (Account $a, Account $b): int => strcmp($a->username, $b->username));
+
+			$index = ['all' => $accounts, 'username' => [], 'id' => []];
+
+			foreach ($accounts as $account) {
+				$index['username'][$account->username] = $account;
+				$index['id'][strtolower($account->id)] = $account;
+			}
+
+			return $index;
+		});
 	}
 
 	/**
@@ -151,6 +174,8 @@ final readonly class Accounts
 			$saved = $store->save($table, $record->withFields($account->toArray()));
 		} catch (RecordException | StorageException $e) {
 			throw new AuthException(sprintf('The account "%s" couldn\'t be saved: %s', $account->username, $e->getMessage()), previous: $e);
+		} finally {
+			$this->memo->forget();
 		}
 
 		return $account->withId($saved->id);
@@ -176,6 +201,8 @@ final readonly class Accounts
 			$this->store()->delete($table, $record->id);
 		} catch (RecordException | StorageException $e) {
 			throw new AuthException(sprintf('The account "%s" couldn\'t be deleted: %s', $username, $e->getMessage()), previous: $e);
+		} finally {
+			$this->memo->forget();
 		}
 	}
 
@@ -574,12 +601,12 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Returns a record's account.
+	 * Returns a record's account, built once a request.
 	 *
 	 * @throws AuthException When it isn't one.
 	 */
-	private static function account(Record $record): Account
+	private function account(Record $record): Account
 	{
-		return Account::fromArray($record->fields, $record->id);
+		return $this->memo->remember("account|{$record->id}|{$record->version}", static fn (): Account => Account::fromArray($record->fields, $record->id));
 	}
 }

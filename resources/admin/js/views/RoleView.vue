@@ -21,6 +21,7 @@
 import { computed, ref, watch } from 'vue';
 import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import AdminAvatar from '../components/AdminAvatar.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import CapabilitySections from '../components/CapabilitySections.vue';
 import MenuButton from '../components/MenuButton.vue';
@@ -28,7 +29,7 @@ import SaveBar from '../components/SaveBar.vue';
 import { useAction } from '../action';
 import { errorMessage } from '../api';
 import { plural } from '../format';
-import { deleteRole, initials, loadRoles, MEMBER, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
+import { deleteRole, loadRoles, MEMBER, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can } from '../session';
 import { toast } from '../toast';
@@ -222,7 +223,7 @@ guardLeave(() => changed.value);
 					<span class="page-facts__item">
 						<template v-if="holders.length">
 							<span class="role__faces" aria-hidden="true">
-								<span v-for="holder in holders.slice(0, 3)" :key="holder.username" class="role__face">{{ initials(holder.displayName) }}</span>
+								<AdminAvatar v-for="holder in holders.slice(0, 3)" :key="holder.username" class="role__face" :name="holder.displayName" :image="holder.avatar" />
 							</span>
 							<RouterLink :to="holdersLink">{{ holders.length === 1 ? holders[0]?.displayName : plural(holders.length, 'account') }}</RouterLink>
 						</template>

@@ -226,13 +226,13 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	 */
 	private function describeByline(Head $head, Entry $entry): void
 	{
-		$key = $this->types->byline($entry->type->name)?->termKey();
+		$byline = $this->types->byline($entry->type->name);
 
-		if ($key === null) {
+		if ($byline === null) {
 			return;
 		}
 
-		foreach ($entry->terms[$key] ?? [] as $slug) {
+		foreach ($entry->slugs($byline->name) as $slug) {
 			$url = $this->urls->byline($entry, $slug);
 
 			if ($url !== null) {

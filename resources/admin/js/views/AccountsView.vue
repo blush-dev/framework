@@ -21,6 +21,7 @@
 import { computed, ref } from 'vue';
 import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import AdminAvatar from '../components/AdminAvatar.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
@@ -29,7 +30,7 @@ import SkeletonTable from '../components/SkeletonTable.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { errorMessage } from '../api';
 import { plural } from '../format';
-import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
+import { freshLink, loadAccounts, loadRoles, makePasswordLink, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
 import { can, canType, session } from '../session';
 import { copyText, toast } from '../toast';
 import { profileType } from '../types';
@@ -201,7 +202,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 							<tr v-for="account in group.accounts" :key="account.username">
 								<th scope="row">
 									<span class="who">
-										<span class="avatar" :class="{ 'avatar--guest': !account.profile }" aria-hidden="true">{{ hasName(account) ? initials(account.displayName) : '—' }}</span>
+										<AdminAvatar :class="{ 'avatar--guest': !account.profile }" :name="hasName(account) ? account.displayName : '—'" :image="account.avatar" />
 										<span class="who__text">
 											<span class="account-cell__name">
 												<RouterLink class="account-cell__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>

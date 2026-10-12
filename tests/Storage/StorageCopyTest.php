@@ -103,7 +103,7 @@ final class StorageCopyTest extends TestCase
 
 		$this->assertNotNull($spring);
 		$this->assertSame($files->named('post', 'spring')?->id, $spring->id, 'Ids kept.');
-		$this->assertSame(['art', 'book-reviews'], $spring->terms['category']);
+		$this->assertSame(['art', 'book-reviews'], $spring->slugs('category'));
 		$this->assertSame('Spring is here.', trim($sqlite->editable($spring)->body));
 		$welcome = (string) $files->named('post', 'welcome')?->id;
 		$front   = $sqlite->editable($welcome)->frontMatter;

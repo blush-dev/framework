@@ -47,7 +47,7 @@ final readonly class SyncStorage
 
 		foreach (array_values($tables) as $done => $table) {
 			$steps('Syncing tables', $done, count($tables));
-			$store = $this->stores->store($table);
+			$store = $this->stores->driver($table);
 
 			if ($store instanceof SchemaStore) {
 				$store->prepare($table);

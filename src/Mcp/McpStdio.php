@@ -16,6 +16,7 @@ namespace Blush\Mcp;
 use JsonException;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
+use Blush\Support\RequestMemo;
 use Blush\Tool\ToolContext;
 
 /**
@@ -26,8 +27,10 @@ use Blush\Tool\ToolContext;
  */
 final readonly class McpStdio
 {
-	public function __construct(private McpServer $server)
-	{}
+	public function __construct(
+		private McpServer $server,
+		private ?RequestMemo $memo = null
+	) {}
 
 	/**
 	 * Serves messages from a stream until it ends.
@@ -42,6 +45,10 @@ final readonly class McpStdio
 			if ($line === '') {
 				continue;
 			}
+
+			// Each message starts from what's stored now, as each web
+			// request does (D-805).
+			$this->memo?->forget();
 
 			try {
 				$answer = $this->server->handle(json_decode($line, true, 64, JSON_THROW_ON_ERROR), $context);

@@ -120,7 +120,7 @@ final readonly class StorageCopy
 			}
 
 			foreach ($tables as $table) {
-				$destination = $target->store($table);
+				$destination = $target->driver($table);
 
 				if ($destination instanceof SchemaStore) {
 					$destination->prepare($table);
@@ -143,8 +143,10 @@ final readonly class StorageCopy
 			$done('jobs', $this->jobs($target, $steps));
 		});
 
-		if ($store instanceof SchemaStore) {
-			$store->analyze();
+		$driver = $target->driver(EntryTable::table());
+
+		if ($driver instanceof SchemaStore) {
+			$driver->analyze();
 		}
 
 		return ['copied' => $copied, 'unidentified' => $this->unidentified()];

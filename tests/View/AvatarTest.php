@@ -66,4 +66,14 @@ final class AvatarTest extends TestCase
 		$this->assertStringNotContainsString('aria-hidden', $html);
 		$this->assertStringContainsString('>J&lt;</text>', $html, 'Initials are escaped too.');
 	}
+
+	public function testAPictureIsAnImage(): void
+	{
+		$this->assertSame(
+			'<img class="avatar" src="/media/jane.jpg?a=1&amp;b=2" width="32" height="32" alt="" loading="lazy" decoding="async" style="object-fit: cover">',
+			new Avatar('Jane Doe', 32, '/media/jane.jpg?a=1&b=2')->html(),
+			'Beside a printed name, its alt text is empty (D-809).'
+		);
+		$this->assertStringContainsString('alt="Jane &quot;JD&quot;"', new Avatar('Jane Doe', 32, '/media/jane.jpg')->html('Jane "JD"'));
+	}
 }

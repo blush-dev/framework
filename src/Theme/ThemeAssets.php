@@ -61,8 +61,31 @@ final class ThemeAssets
 	 */
 	private array $versions = [];
 
+	/**
+	 * Assets' contents read so far, by path (D-806).
+	 *
+	 * @var array<string, string>
+	 */
+	private array $contents = [];
+
 	public function __construct(public readonly ThemeChain $chain)
 	{}
+
+	/**
+	 * Returns an asset's contents, resolved through the chain, or `''`
+	 * when no theme has it, read once (D-151, D-806). Only servable
+	 * assets can be read, never views or PHP.
+	 */
+	public function contents(string $path): string
+	{
+		if (! isset($this->contents[$path])) {
+			$found = $this->chain->asset($path);
+
+			$this->contents[$path] = $found === null ? '' : (string) file_get_contents($found[1]);
+		}
+
+		return $this->contents[$path];
+	}
 
 	/**
 	 * Returns an asset's URL, or `null` when no theme has it. Without

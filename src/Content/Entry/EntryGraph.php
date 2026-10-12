@@ -13,21 +13,34 @@ declare(strict_types=1);
 
 namespace Blush\Content\Entry;
 
+use Blush\Auth\Avatars;
 use Blush\Content\Entries;
 use Blush\Content\Relation\EntryRelations;
+use Blush\Content\Relation\RelatedEntries;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\Index\MediaRecord;
 use Blush\Media\MediaException;
 use Blush\Media\MediaValues;
+use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
+use Blush\Translation\Translator;
+use Blush\View\Avatar;
 
 /**
- * What an entry leads to (D-802): its URL, its terms, the entries its
- * relations link, its parent and children, and the media its fields
- * name. `Entry` asks it on its behalf, so `$entry->related('actors')`
- * works wherever an entry is. Every entry shares one, built lazily (the
- * hydrator is a step below the services it reads).
+ * What an entry leads to (D-802): its URL, its type's relations and the
+ * entries they link (D-803), its parent and children, the media its
+ * fields name, a profile's picture (D-809), and the word for an entry
+ * without a title. `Entry` asks
+ * it on its behalf, so `$entry->related('actors')` works wherever an
+ * entry is. Every entry shares one, built lazily (the hydrator is a step
+ * below the services it reads).
+ *
+ * Every answer is kept in the `RequestMemo` (D-805), by the entry's id,
+ * version, and language, so asking twice is one lookup.
  *
  * Entries come back whatever their status or visibility: what shows
  * them decides, with `isPublished()` and `isRoutable()`.
@@ -39,7 +52,12 @@ final readonly class EntryGraph
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private EntryRelations $relations,
-		private MediaValues $media
+		private Relations $definitions,
+		private MediaValues $media,
+		private Translator $translator,
+		private Messages $messages,
+		private RequestMemo $memo,
+		private Avatars $avatars
 	) {}
 
 	/**
@@ -51,93 +69,109 @@ final readonly class EntryGraph
 	}
 
 	/**
-	 * Returns the term entries an entry has of a term type, in the order
-	 * front matter lists them, each in the entry's language when it has a
-	 * translation in it.
+	 * Returns an entry's type's relations by name, or those of one kind:
+	 * the byline first, then the rest by name.
 	 *
-	 * @return list<Entry>
+	 * @return array<string, Relation>
 	 */
-	public function terms(Entry $entry, string $taxonomy): array
+	public function relations(Entry $entry, ?RelationKind $kind = null): array
 	{
-		if ($this->types->classification($taxonomy) === null) {
-			return [];
+		return $this->memo->remember('relations|' . $entry->type->name . '|' . ($kind->value ?? ''), fn (): array => $this->relationsOf($entry, $kind));
+	}
+
+	/**
+	 * Works out an entry's type's relations, for `relations()`.
+	 *
+	 * @return array<string, Relation>
+	 */
+	private function relationsOf(Entry $entry, ?RelationKind $kind): array
+	{
+		$relations = $this->definitions->for($entry->type->name);
+
+		if ($kind !== null) {
+			$relations = array_filter($relations, static fn (Relation $relation): bool => $relation->kind === $kind);
 		}
 
-		$language = $entry->language === '' ? null : $entry->language;
-		$terms    = [];
+		ksort($relations);
 
-		foreach ($entry->terms[$taxonomy] ?? [] as $slug) {
-			$term = $this->content->term($taxonomy, $slug, $language);
+		$byline = $this->types->byline($entry->type->name);
 
-			if ($term !== null) {
-				$terms[] = $term;
-			}
-		}
-
-		return $terms;
+		return $byline !== null && isset($relations[$byline->name])
+			? [$byline->name => $relations[$byline->name], ...$relations]
+			: $relations;
 	}
 
 	/**
 	 * Returns the entries an entry links to through a relation.
-	 *
-	 * @return list<Entry>
 	 */
-	public function related(Entry $entry, string $relation): array
+	public function related(Entry $entry, string $relation): RelatedEntries
 	{
-		return $this->relations->related($entry, $relation);
+		return $this->memo->remember(self::key("related|{$relation}", $entry), fn (): RelatedEntries => new RelatedEntries(
+			$this->relations->related($entry, $relation),
+			$this->definitions->find($entry->type->name, $relation),
+			$this->types->byline($entry->type->name)?->name === $relation
+		));
 	}
 
 	/**
-	 * Returns the entries linking to an entry through a relation.
-	 *
-	 * @return list<Entry>
+	 * Returns the profiles an entry's byline credits, or none when its
+	 * type has no byline.
 	 */
-	public function referencedBy(Entry $entry, string $relation): array
-	{
-		return $this->relations->referencedBy($entry, $relation);
-	}
-
-	/**
-	 * Returns the people an entry's byline credits, in order.
-	 *
-	 * @return list<Entry>
-	 */
-	public function byline(Entry $entry): array
+	public function byline(Entry $entry): RelatedEntries
 	{
 		$byline = $this->types->byline($entry->type->name);
 
-		return $byline === null ? [] : $this->related($entry, $byline->name);
+		return $byline === null ? new RelatedEntries() : $this->related($entry, $byline->name);
 	}
 
 	/**
-	 * Returns the people an entry credits, by credit relation: its byline
-	 * first, then the type's others by name, leaving out those that
-	 * credit no one.
-	 *
-	 * @return list<array{relation: Relation, byline: bool, people: list<Entry>}>
+	 * Returns the entries an entry links to through every relation of a
+	 * kind on its type, in `relations()` order, each once.
 	 */
-	public function credits(Entry $entry): array
+	public function ofKind(Entry $entry, RelationKind $kind): RelatedEntries
 	{
-		$byline  = $this->types->byline($entry->type->name);
-		$credits = $this->types->credits($entry->type->name);
+		return $this->memo->remember(self::key("kind|{$kind->value}", $entry), function () use ($entry, $kind): RelatedEntries {
+			$found = [];
 
-		ksort($credits);
-
-		if ($byline !== null) {
-			$credits = [$byline->name => $byline, ...$credits];
-		}
-
-		$found = [];
-
-		foreach ($credits as $relation) {
-			$people = $this->related($entry, $relation->name);
-
-			if ($people !== []) {
-				$found[] = ['relation' => $relation, 'byline' => $relation === $byline, 'people' => $people];
+			foreach (array_keys($this->relations($entry, $kind)) as $relation) {
+				foreach ($this->related($entry, $relation) as $linked) {
+					$found[$linked->id ?? $linked->path] ??= $linked;
+				}
 			}
-		}
 
-		return $found;
+			return new RelatedEntries(array_values($found));
+		});
+	}
+
+	/**
+	 * Returns an entry in every language it's written in, by language
+	 * code.
+	 *
+	 * @return array<string, Entry>
+	 */
+	public function translations(Entry $entry): array
+	{
+		return $this->memo->remember(self::key('translations', $entry), fn (): array => $this->content->translations($entry));
+	}
+
+	/**
+	 * Returns the entries linking to an entry through a relation: a key on
+	 * a source type (`movie.actors`), or a name on any type.
+	 */
+	public function referencedBy(Entry $entry, string $relation): RelatedEntries
+	{
+		return $this->memo->remember(self::key("referencedBy|{$relation}", $entry), fn (): RelatedEntries => new RelatedEntries(
+			$this->relations->referencedBy($entry, $relation),
+			str_contains($relation, '.') ? $this->definitions->byKey($relation) : array_find($this->definitions->relations, static fn (Relation $definition): bool => $definition->name === $relation)
+		));
+	}
+
+	/**
+	 * Returns the word for an entry without a title, in its language.
+	 */
+	public function untitled(Entry $entry): string
+	{
+		return $this->memo->remember("untitled|{$entry->locale}", fn (): string => $this->translator->text($this->messages->t('untitled', 'Untitled'), $entry->locale));
 	}
 
 	/**
@@ -145,7 +179,7 @@ final readonly class EntryGraph
 	 */
 	public function parent(Entry $entry): ?Entry
 	{
-		return $this->content->parent($entry);
+		return $this->memo->remember(self::key('parent', $entry), fn (): ?Entry => $this->content->parent($entry));
 	}
 
 	/**
@@ -155,7 +189,7 @@ final readonly class EntryGraph
 	 */
 	public function children(Entry $entry): array
 	{
-		return $this->content->children($entry);
+		return $this->memo->remember(self::key('children', $entry), fn (): array => $this->content->children($entry));
 	}
 
 	/**
@@ -164,10 +198,31 @@ final readonly class EntryGraph
 	 */
 	public function media(mixed $value): ?MediaRecord
 	{
-		try {
-			return $this->media->record($value);
-		} catch (MediaException) {
-			return null;
-		}
+		$find = function () use ($value): ?MediaRecord {
+			try {
+				return $this->media->record($value);
+			} catch (MediaException) {
+				return null;
+			}
+		};
+
+		return is_string($value) ? $this->memo->remember("media|{$value}", $find) : $find();
+	}
+
+	/**
+	 * Returns a profile's avatar (D-809), from `Avatars`.
+	 */
+	public function avatar(Entry $profile, int $size): Avatar
+	{
+		return $this->avatars->profile($profile, $size);
+	}
+
+	/**
+	 * Returns the memo's key for an answer about an entry: by its id (or
+	 * where it's kept, for one without), version, and language.
+	 */
+	private static function key(string $answer, Entry $entry): string
+	{
+		return implode('|', [$answer, $entry->id ?? "path:{$entry->path}", $entry->version ?? '', $entry->language]);
 	}
 }

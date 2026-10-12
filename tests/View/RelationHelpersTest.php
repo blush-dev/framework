@@ -50,9 +50,9 @@ final class RelationHelpersTest extends TestCase
 		$this->entry('_person/tom.md', 'title: Tom');
 		$this->entry('_person/meg.md', 'title: Meg');
 
-		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $entry->related("related")))) ?>');
-		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $entry->related("actors")))) ?>');
-		$this->themeView('single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $entry->referencedBy("movie.actors")))) ?>');
+		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $entry->related("related")->all()))) ?>');
+		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $entry->related("actors")->all()))) ?>');
+		$this->themeView('single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $entry->referencedBy("movie.actors")->all()))) ?>');
 	}
 
 	private function body(string $uri): string

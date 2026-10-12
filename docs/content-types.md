@@ -379,7 +379,7 @@ category: [painting, news]
 
 - A classify relation is **named after the one type it files under**:
   `to` is `[its name]`. That name is also how templates and queries
-  know the terms (`$entry->terms('category')`,
+  know the terms (`$entry->related('category')`,
   `whereTerm('category', 'news')`).
 - Entries use a front matter key named after the relation, unless you
   set `field`; `aliases` adds more keys it's read from.

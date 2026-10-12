@@ -353,6 +353,20 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   export, and admin preview.
 - **Flat files are the default, not the only option.** Content storage goes
   through `ContentSource` / `ContentWriter` / `Entries` interfaces.
+- **Every lookup is memoized for the request** (D-805 to D-807). Code
+  that reads storage or builds objects from it keeps its answers in the
+  shared `Blush\Support\RequestMemo`, so the same lookup reached two
+  ways is asked once and returns the same object, and a template never
+  saves a lookup in a variable to avoid repeating it. Record reads are
+  memoized by `RecordStores`; a repository keeps the objects it builds
+  by record id and version, and drops the memo on its writes. Build it
+  in with the feature, not after.
+- **Data is reachable outside templates** (D-811). Assume anything a
+  template shows (translations, avatars, an entry's relations) is also
+  needed by core and plugins: build it as a service method anyone can
+  call (`Blush\Auth\Avatars`), and make template helpers and entry
+  methods thin calls to it. Templates get data passed in; they're never
+  the only way to reach it.
 - **The admin shares what repeats** (D-505 to D-509). Before writing
   admin UI, use the shared components (`resources/admin/js/components`),
   classes (`admin.css`), and modules (`resources/admin/js/*.ts`) that

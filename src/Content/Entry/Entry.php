@@ -16,12 +16,19 @@ namespace Blush\Content\Entry;
 use DateTimeImmutable;
 use Stringable;
 use Override;
+use Blush\Content\Relation\RelatedEntries;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Visibility;
 use Blush\Markdown\MarkdownException;
 use Blush\Media\Index\MediaRecord;
+use Blush\View\Avatar;
+use Blush\View\Escaper;
+use Blush\View\SafeHtml;
+use Blush\View\TrustedHtml;
 
 /**
  * One piece of content, as templates and controllers see it. Its front
@@ -41,7 +48,7 @@ final readonly class Entry implements Stringable
 	 * @param string                      $path        Where its store keeps it, for showing (a file's path from the content folder), or `''`.
 	 * @param string                      $key         Its slug after its parents' (D-656); `''` for a landing page.
 	 * @param array<string, mixed>        $fields      Typed front matter, by field name.
-	 * @param array<string, list<string>> $terms       Term slugs by taxonomy.
+	 * @param array<string, array<string, string>> $links Target ids by relation name, in order, each with its slug (D-803).
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
 	 * @param string                      $language    The code of the language it's written in (D-455).
 	 * @param ?string                     $id          Its id (D-477); `null` only for a file without one, which the filesystem driver's tools build.
@@ -62,7 +69,7 @@ final readonly class Entry implements Stringable
 		public DateTimeImmutable $updated,
 		public string $locale,
 		public array $fields,
-		public array $terms,
+		private array $links,
 		public bool $landing,
 		private Body $body,
 		public string $language = '',
@@ -193,24 +200,15 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns its term entries of a term type (one a classify relation
-	 * files entries under, D-593), such as its tags, in the order front
-	 * matter lists them, each in its language when translated. Their
-	 * slugs are in `$terms`.
+	 * Returns its type's relations by name (D-803), or those of one kind,
+	 * such as `RelationKind::Credit`: the type's byline relation first
+	 * (D-602), then the rest by name.
 	 *
-	 * @return list<Entry>
+	 * @return array<string, Relation>
 	 */
-	public function terms(string $taxonomy): array
+	public function relations(?RelationKind $kind = null): array
 	{
-		return $this->graph?->terms($this, $taxonomy) ?? [];
-	}
-
-	/**
-	 * Returns whether the entry has a term, by its slug.
-	 */
-	public function hasTerm(string $taxonomy, string $slug): bool
-	{
-		return in_array($slug, $this->terms[$taxonomy] ?? [], true);
+		return $this->graph?->relations($this, $kind) ?? [];
 	}
 
 	/**
@@ -220,12 +218,62 @@ final readonly class Entry implements Stringable
 	 * symmetric relation answers from both ends (related posts include
 	 * the ones naming this one), and a translation's links follow the
 	 * relation's `translations` rule.
-	 *
-	 * @return list<Entry>
 	 */
-	public function related(string $relation): array
+	public function related(string $relation): RelatedEntries
 	{
-		return $this->graph?->related($this, $relation) ?? [];
+		return $this->graph?->related($this, $relation) ?? new RelatedEntries();
+	}
+
+	/**
+	 * Returns the profiles its byline credits (D-804): `related()` for its
+	 * type's byline relation (D-602), such as a post's `authors`, or none
+	 * when the type has no byline.
+	 */
+	public function byline(): RelatedEntries
+	{
+		return $this->graph?->byline($this) ?? new RelatedEntries();
+	}
+
+	/**
+	 * Returns what it's filed under (D-808): the entries every one of its
+	 * type's classify relations links, such as a post's categories and
+	 * tags, in `relations()` order, each once.
+	 */
+	public function classifications(): RelatedEntries
+	{
+		return $this->graph?->ofKind($this, RelationKind::Classify) ?? new RelatedEntries();
+	}
+
+	/**
+	 * Returns the profiles it credits (D-808): every one of its type's
+	 * credit relations, the byline first, merged, each once. `byline()`
+	 * is the byline alone.
+	 */
+	public function credits(): RelatedEntries
+	{
+		return $this->graph?->ofKind($this, RelationKind::Credit) ?? new RelatedEntries();
+	}
+
+	/**
+	 * Returns the other entries it refers to (D-808): every one of its
+	 * type's reference relations, such as a movie's actors or a post's
+	 * related posts, in `relations()` order, each once.
+	 */
+	public function references(): RelatedEntries
+	{
+		return $this->graph?->ofKind($this, RelationKind::Reference) ?? new RelatedEntries();
+	}
+
+	/**
+	 * Returns it in every language it's written in (D-808), by language
+	 * code, the default first: its original and its translations, itself
+	 * among them.
+	 *
+	 * @return array<string, Entry>
+	 */
+	public function translations(): array
+	{
+		return $this->graph?->translations($this) ?? [$this->language => $this];
 	}
 
 	/**
@@ -233,45 +281,103 @@ final readonly class Entry implements Stringable
 	 * published first: by its name (`actors`), or by its key on one
 	 * source type (`movie.actors`). It's the list a relation's reverse
 	 * side shows when it has no page of its own.
-	 *
-	 * @return list<Entry>
 	 */
-	public function referencedBy(string $relation): array
+	public function referencedBy(string $relation): RelatedEntries
 	{
-		return $this->graph?->referencedBy($this, $relation) ?? [];
+		return $this->graph?->referencedBy($this, $relation) ?? new RelatedEntries();
 	}
 
 	/**
-	 * Returns the people its byline credits (D-602): its type's byline
-	 * relation, such as a post's `authors`, in order.
-	 *
-	 * @return list<Entry>
+	 * Returns whether it links to an entry, by its id, through one of its
+	 * type's relations, as written: not through a symmetric relation's
+	 * other end or a translation's original.
 	 */
-	public function byline(): array
+	public function linksTo(string $relation, string $id): bool
 	{
-		return $this->graph?->byline($this) ?? [];
+		return isset($this->links[$relation][$id]);
 	}
 
 	/**
-	 * Returns the first person its byline credits, such as a post's
-	 * author, or `null` when it credits no one.
+	 * Returns the slugs of the entries it links to through a relation, as
+	 * written, for core code that builds addresses from them (D-803).
+	 *
+	 * @internal
+	 * @return list<string>
 	 */
-	public function author(): ?Entry
+	public function slugs(string $relation): array
 	{
-		return array_first($this->byline());
+		return array_values($this->links[$relation] ?? []);
 	}
 
 	/**
-	 * Returns the people it credits, by credit relation (D-602): its
-	 * byline first, then its type's others by name, each with the people
-	 * it credits, leaving out those that credit no one. A relation's
-	 * `label` and `singular` name it ("Photographers", "Photographer").
+	 * Returns what it links to as written, by relation name: target ids,
+	 * in order, each with its slug (D-803).
 	 *
-	 * @return list<array{relation: Relation, byline: bool, people: list<Entry>}>
+	 * @internal
+	 * @return array<string, array<string, string>>
 	 */
-	public function credits(): array
+	public function links(): array
 	{
-		return $this->graph?->credits($this) ?? [];
+		return $this->links;
+	}
+
+	/**
+	 * Returns a link to it (D-803): `<a href="{url}">{title}</a>`, every
+	 * part escaped, with attributes by name. A camelCase name is dashed
+	 * (`dataId:` is `data-id`, `ariaCurrent:` is `aria-current`), `true`
+	 * prints a bare attribute, and `false` or `null` leaves it out. An
+	 * empty title reads "Untitled" in its language; without a URL, it's
+	 * the title alone.
+	 *
+	 * @throws InvalidLinkAttribute When an attribute isn't named.
+	 */
+	public function link(string|int|bool|null ...$attributes): SafeHtml
+	{
+		$title = $this->title === '' ? ($this->graph?->untitled($this) ?? 'Untitled') : $this->title;
+		$url   = $this->url();
+
+		if ($url === '') {
+			return new TrustedHtml(Escaper::html($title));
+		}
+
+		$html = '<a href="' . Escaper::url($url) . '"';
+
+		foreach ($attributes as $name => $value) {
+			if (! is_string($name)) {
+				throw new InvalidLinkAttribute('Pass link() attributes by name, such as link(class: \'entry-link\').');
+			}
+
+			if ($value === false || $value === null) {
+				continue;
+			}
+
+			$name  = strtolower((string) preg_replace('/[A-Z]/', '-$0', $name));
+			$html .= $value === true ? " {$name}" : " {$name}=\"" . Escaper::attr($value) . '"';
+		}
+
+		return new TrustedHtml($html . '>' . Escaper::html($title) . '</a>');
+	}
+
+	/**
+	 * Returns a profile's avatar (D-536, D-809), to print: its portrait
+	 * (its `avatar` field), else a square box with up to two initials of
+	 * its name, as an inline SVG the theme styles (`Blush\Auth\Avatars`,
+	 * which draws accounts' avatars too). Empty for an entry that isn't a profile.
+	 * Without a label, it's hidden from assistive technology, for when the
+	 * name is printed beside it; with one, it's an image named by it.
+	 *
+	 * ```php
+	 * <?= $profile->avatar(64) ?>
+	 * <?= $profile->avatar(label: $profile->title) ?>
+	 * ```
+	 */
+	public function avatar(int $size = 48, string $label = ''): SafeHtml
+	{
+		if (! $this->type instanceof Profiles) {
+			return new TrustedHtml('');
+		}
+
+		return new TrustedHtml(($this->graph?->avatar($this, $size) ?? new Avatar($this->title, $size))->html($label));
 	}
 
 	/**
@@ -329,7 +435,7 @@ final readonly class Entry implements Stringable
 	 * the trash aren't. This is about time and status only: a published
 	 * entry can still be hidden (see `isRoutable()`). Queries find only
 	 * published entries unless they ask for others; what an entry leads
-	 * to (`terms()`, `related()`, `parent()`, and the rest) isn't
+	 * to (`related()`, `parent()`, and the rest) isn't
 	 * filtered, so check this before showing what they give (D-802).
 	 */
 	public function isPublished(): bool

@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace Blush\View;
 
 /**
- * A person's avatar, as the admin draws it (D-536): a square box with up
- * to two initials of their name, as an inline SVG. It's gray by default,
- * and the theme does the design: `--avatar-background` and
- * `--avatar-color` set its colors, its letters take the page's font, and
- * `border-radius` on `.avatar` sets the shape.
+ * A profile's avatar, as the admin draws it (D-536): its picture when it
+ * has one (D-809), else a square box with up to two initials of its
+ * name, as an inline SVG. It's gray by default, and the theme does the
+ * design: `--avatar-background` and `--avatar-color` set its colors, its
+ * letters take the page's font, and `border-radius` on `.avatar` sets the
+ * shape.
  */
 final readonly class Avatar
 {
@@ -32,12 +33,14 @@ final readonly class Avatar
 	private const string COLOR = '#535b6b';
 
 	/**
-	 * @param string $name The person's name.
-	 * @param int    $size Its width and height, in pixels.
+	 * @param string $name  The profile's name.
+	 * @param int    $size  Its width and height, in pixels.
+	 * @param string $image Its picture's URL, or `''` for its initials.
 	 */
 	public function __construct(
 		public string $name,
-		public int $size = 48
+		public int $size = 48,
+		public string $image = ''
 	) {}
 
 	/**
@@ -53,13 +56,24 @@ final readonly class Avatar
 	}
 
 	/**
-	 * Returns the avatar as an inline SVG. With a label, it's an image
-	 * named by it; without one, it's hidden from assistive technology,
-	 * for when the name is printed beside it.
+	 * Returns the avatar: its picture as an `<img>`, cropped square, or
+	 * its initials as an inline SVG. With a label, it's an image named by
+	 * it; without one, it's hidden from assistive technology, for when the
+	 * name is printed beside it.
 	 */
 	public function html(string $label = ''): string
 	{
 		$size = max(1, $this->size);
+
+		if ($this->image !== '') {
+			return sprintf(
+				'<img class="avatar" src="%1$s" width="%2$d" height="%2$d" alt="%3$s" loading="lazy" decoding="async" style="object-fit: cover">',
+				Escaper::url($this->image),
+				$size,
+				Escaper::attr($label)
+			);
+		}
+
 		$a11y = $label === ''
 			? 'aria-hidden="true"'
 			: 'role="img" aria-label="' . Escaper::attr($label) . '"';

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Entry;
 
+use Closure;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Blush\Asset\AssetCollector;
@@ -28,6 +29,10 @@ use Blush\Markdown\MarkdownParser;
  * It renders in its own asset scope (D-572) and keeps the assets its
  * directives asked for, adding them to the page only when its HTML is
  * asked for (`html()`), not when it's read for an excerpt or a count.
+ *
+ * What it works out from its HTML (an excerpt, its word count, its
+ * summary's rendering) is kept for as long as it lives (D-805), so
+ * asking twice works it out once.
  */
 final class Body
 {
@@ -39,6 +44,13 @@ final class Body
 	 * @var list<string>
 	 */
 	private array $assets = [];
+
+	/**
+	 * What it's worked out, by key.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $kept = [];
 
 	/**
 	 * @param string $hash     The source file's content hash, which keys the cache.
@@ -108,11 +120,10 @@ final class Body
 	 */
 	public function markdown(string $markdown): string
 	{
+		$key    = 'markdown.' . hash('xxh128', $markdown) . ($this->language === '' ? '' : ".{$this->language}");
 		$render = fn (): string => $this->markdown->toHtml($markdown, $this->language);
 
-		return $this->cache === null
-			? $render()
-			: $this->cache->remember('markdown.' . hash('xxh128', $markdown) . ($this->language === '' ? '' : ".{$this->language}"), $render);
+		return $this->keep($key, fn (): string => $this->cache === null ? $render() : $this->cache->remember($key, $render));
 	}
 
 	/**
@@ -165,9 +176,9 @@ final class Body
 			return '<p>' . htmlspecialchars($excerpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . (count($text) > $words ? $more : '') . '</p>';
 		};
 
-		return $this->cache === null || $this->hash === ''
-			? $extract()
-			: $this->cache->remember("excerpt.{$this->key()}.{$words}." . hash('xxh32', $more), $extract);
+		$key = "excerpt.{$this->key()}.{$words}." . hash('xxh32', $more);
+
+		return $this->keep($key, fn (): string => $this->cache === null || $this->hash === '' ? $extract() : $this->cache->remember($key, $extract));
 	}
 
 	/**
@@ -181,7 +192,9 @@ final class Body
 	{
 		$count = fn (): string => (string) count($this->words());
 
-		return (int) ($this->cache === null || $this->hash === '' ? $count() : $this->cache->remember("words.{$this->key()}", $count));
+		$key = "words.{$this->key()}";
+
+		return (int) $this->keep($key, fn (): string => $this->cache === null || $this->hash === '' ? $count() : $this->cache->remember($key, $count));
 	}
 
 	/**
@@ -268,6 +281,16 @@ final class Body
 	private function render(): string
 	{
 		return $this->markdown->toHtml($this->source->text, $this->language);
+	}
+
+	/**
+	 * Returns what's kept under a key, or works it out and keeps it.
+	 *
+	 * @param Closure(): string $compute
+	 */
+	private function keep(string $key, Closure $compute): string
+	{
+		return $this->kept[$key] ??= $compute();
 	}
 
 	/**

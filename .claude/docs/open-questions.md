@@ -4,6 +4,28 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Choosing a type's byline: overhaul the flow** (author, 2026-10-12:
+  "very hard", to fix). Today a byline is implicit: a type's only
+  credit relationship is its byline, and with two or more, none is until
+  one is picked in a **Byline** select that shows only then, sits in the
+  type screen's **Archives** panel (not with its relationships), defaults
+  to "Choose one" (no byline at all), and says "names an entry's author"
+  whatever the type. New Type offers only "Entries credit authors" (the
+  shared `authors` relationship); another credit (`cooks`) is made under
+  Structure → Relationships, which can silently leave a type with none.
+  Found on the dev site: recipes credit `authors` (jtcom-content) and
+  `cooks`, so they have no byline and the select is easy to miss. The
+  author also had to reload the page before the select appeared, after
+  changing `cooks` (17:25); not traced yet (no client cache or keep-alive
+  found, and the API sends `no-store`). To decide with it:
+  - where the choice lives (the Relationships panel, marking one credit
+    as the byline; or on the relationship's own screen), and whether
+    the first credit added becomes the byline by default;
+  - wording by type ("names the recipe's cooks"), and what New Type
+    offers beyond the shared `authors`;
+  - the method's name: `byline()` is singular for a list (`creators()`
+    suggested, with the type's `byline` option following it).
+
 - **Status API** (D-732; discussed 2026-10-10). Leaning, from Drupal's
   workflows mapped onto Blush:
   - **Statuses are registered once, by name** (label, `live`, `active`),

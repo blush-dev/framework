@@ -16,6 +16,7 @@ namespace Blush\Admin;
 use Psr\Clock\ClockInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
+use Blush\Auth\Avatars;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
@@ -45,7 +46,8 @@ final readonly class PeopleJson
 		private EntryHandles $handles,
 		private ContentUrls $urls,
 		private Capabilities $capabilities,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private Avatars $avatars
 	) {}
 
 	/**
@@ -98,7 +100,7 @@ final readonly class PeopleJson
 	/**
 	 * Describes an account: its `username`, its `email` (D-370), its own
 	 * `name` (or `null`), its `displayName` (D-370: the name, else the
-	 * profile's title, else the username), `roles`, `author` (the linked
+	 * profile's title, else the username), its `avatar` (D-810), `roles`, `author` (the linked
 	 * profile's slug, or `null`), its
 	 * `profile` (D-353: `{"id", "handle", "slug", "title", "status",
 	 * "url", "uses"}`, or `null`), `created` and `lastLogin`
@@ -117,6 +119,7 @@ final readonly class PeopleJson
 			'email'       => $account->email,
 			'name'        => $account->name,
 			'displayName' => $this->accounts->displayName($account),
+			'avatar'      => $this->avatar($account),
 			'roles'       => $account->roles,
 			'author'      => $this->accounts->slug($account),
 			'profile'     => $this->profile($account),
@@ -127,6 +130,17 @@ final readonly class PeopleJson
 			'tokenOnly'   => $account->tokenOnly,
 			'manages'     => $this->rules->manages($viewer, $account)
 		];
+	}
+
+	/**
+	 * Returns the URL of an account's picture (`Avatars`, D-810), or
+	 * `null` for its initials, which the admin draws.
+	 */
+	public function avatar(Account $account): ?string
+	{
+		$image = $this->avatars->account($account)->image;
+
+		return $image === '' ? null : $image;
 	}
 
 	/**
@@ -180,7 +194,7 @@ final readonly class PeopleJson
 			'builtIn'      => $builtIn !== null,
 			'origin'       => $origin->value,
 			'accounts'     => array_values(array_map(
-				fn (Account $account): array => ['username' => $account->username, 'displayName' => $this->accounts->displayName($account)],
+				fn (Account $account): array => ['username' => $account->username, 'displayName' => $this->accounts->displayName($account), 'avatar' => $this->avatar($account)],
 				array_filter($accounts, static fn (Account $account): bool => in_array($role->name, $account->roles, true))
 			)),
 			'grantable'    => $grantable,

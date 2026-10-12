@@ -15,6 +15,7 @@ namespace Blush\Content;
 
 use Override;
 use ReflectionClass;
+use Blush\Auth\Avatars;
 use Blush\Container\Container;
 use Blush\Container\ServiceResolver;
 use Blush\Content\Entry\EntryGraph;
@@ -82,6 +83,9 @@ use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
 use Blush\Storage\StorageArea;
+use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
+use Blush\Translation\Translator;
 
 /**
  * Binds the content layer: field types, content types, the document
@@ -207,7 +211,12 @@ final class ContentServiceProvider extends ServiceProvider
 					$resolver->make(ContentTypes::class),
 					$resolver->make(ContentUrls::class),
 					$resolver->make(EntryRelations::class),
-					$resolver->make(MediaValues::class)
+					$resolver->make(Relations::class),
+					$resolver->make(MediaValues::class),
+					$resolver->make(Translator::class),
+					$resolver->make(Messages::class),
+					$resolver->make(RequestMemo::class),
+					$resolver->make(Avatars::class)
 				);
 			})
 		);
@@ -262,7 +271,8 @@ final class ContentServiceProvider extends ServiceProvider
 	/**
 	 * Adds the site's redirect source, the `redirects` table (D-678),
 	 * after the ones providers declared, so `config/routes.php` redirects
-	 * win. Also keeps a compiled route table current as content changes.
+	 * win. Also keeps a compiled route table current as content changes,
+	 * and drops the request memo when the index changes (D-805).
 	 */
 	#[Override]
 	public function boot(): void
@@ -270,7 +280,13 @@ final class ContentServiceProvider extends ServiceProvider
 		$this->container->tag([DataRedirects::class], RedirectSource::TAG);
 
 		if ($this->container->has(ListenerRegistry::class)) {
-			$this->container->make(ListenerRegistry::class)->listen(ContentIndexed::class, RefreshRouteCache::class);
+			$listeners = $this->container->make(ListenerRegistry::class);
+			$memo      = $this->container->make(RequestMemo::class);
+
+			$listeners->listen(ContentIndexed::class, RefreshRouteCache::class);
+
+			// The request memo (D-805, D-807) holds what the old index gave.
+			$listeners->listen(ContentIndexed::class, $memo->forget(...));
 		}
 	}
 }

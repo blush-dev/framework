@@ -84,7 +84,7 @@ final class SqliteEntryStoreTest extends EntryStoreConformance
 			}
 		}
 
-		$this->assertInstanceOf(SqliteRecordStore::class, $stores->store(EntryTable::table()));
+		$this->assertInstanceOf(SqliteRecordStore::class, $stores->driver(EntryTable::table()));
 		$this->assertFileExists($this->temporaryDirectory() . '/' . StorageConfig::SQLITE_FILE);
 
 		return $stores;

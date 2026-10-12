@@ -25275,7 +25275,7 @@ decision, add a new entry that supersedes it and mark the old one
   (`$entry->related('actors')`), and the API and MCP get them too.
 - **Status:** Built.
 
-### D-803: The entry's slim surface: relationships, `RelatedEntries`, `link()` (planned)
+### D-803: The entry's slim surface: relationships, `RelatedEntries`, `link()`
 
 - **Refines:** D-802.
 - **Decision:** the author's calls, to slim `Entry` to its basics and
@@ -25319,4 +25319,241 @@ decision, add a new entry that supersedes it and mark the old one
     `content:terms`, `people.*` text keys, the admin).
 - **Why:** keep `Entry` to the basics; `related()` is the one entry
   point for every relationship.
-- **Status:** Planned; paused before building (2026-10-12).
+- **As built:** `Blush\Content\Relation\RelatedEntries`; the entry's
+  links are a private `$links` (relation name → target id → slug),
+  read through `@internal` `slugs($relation)` and `links()`. Route
+  placeholders are worked out from them by `EntryTerms::of()` (by term
+  key, as before); the feed's categories are the entry's classify
+  relations (or the feed's `categories`) through `related()`, and the
+  admin's `authors` the profiles its credit relations link.
+  `link()` throws `InvalidLinkAttribute` for a positional argument and
+  prints `href` first. Core's `untitled` message is new.
+- **Status:** Built (2026-10-12).
+
+### D-804: `$entry->byline()`, the short way to the byline
+
+- **Supersedes:** in part, D-803 (`byline()` gone from `Entry`).
+- **Decision:** the author's call, after building D-803 showed a
+  generic theme writing
+  `related((string) array_key_first(relations(RelationKind::Credit)))`
+  and checking `->byline` to reach the byline. `$entry->byline()`
+  returns a `RelatedEntries`: `related()` for the type's byline
+  relation (D-602), or an empty one when the type has none. Its
+  `relation` names it, and `byline` is `true`. `author()` and
+  `credits()` stay gone: `byline()->first()` and `relations(Credit)`
+  cover them.
+- **Why:** the byline is what nearly every theme shows; reaching it
+  shouldn't take knowing how `relations()` orders credits.
+- **Status:** Built (2026-10-12).
+
+### D-805: What an entry leads to is memoized
+
+- **Decision:** the author's call: a template never saves an entry's
+  lookups in a variable to avoid repeating them; repeating a call is
+  free. Built:
+  - **`Blush\Content\Entry\EntryMemo`**, one per process (a
+    singleton): every `EntryGraph` answer (`url()`, `relations()`,
+    `related()`, `byline()`, `referencedBy()`, `parent()`, `children()`,
+    `media()`, "Untitled") is kept under the entry's id (or path),
+    version, and language, so `$entry->byline()` asked twice is the same
+    `RelatedEntries`.
+  - **`RelatedEntries::published()`** is worked out once
+    (`RelatedEntries` is no longer `readonly`, for that).
+  - **`Body`** keeps its excerpt (by words and `$more`), word count,
+    and rendered summary for as long as it lives, over the `BodyCache`
+    (which is off in development).
+  - **Dropped** whenever what it holds might be stale: after every
+    write through `StoredEntries` (create, change, rename, move, trash,
+    restore, delete, …), on `ContentIndexed`, on `RequestReceived`,
+    before each job (`JobRunner::run()`), and before each MCP stdio
+    message, so a long-running worker or MCP session never answers from
+    before a change.
+  - The default theme's byline calls `$entry->byline()->published()`
+    where it's used, with no variable.
+- **Why:** an entry's lookups run queries (real ones on SQLite), and
+  templates shouldn't have to know that.
+- **Status:** Built (2026-10-12).
+
+### D-806: One object per lookup, whichever way it's reached
+
+- **Refines:** D-805.
+- **Decision:** the author's call: the same lookup reached two ways
+  returns the same memoized object, always. Built on `EntryMemo`:
+  - **An identity map in `StoredEntries`:** an entry is built once a
+    request, keyed by its record's id, version, and status now (so a
+    scheduled entry whose time comes is built again). `find()`,
+    `named()`, `term()`, `translation()`, `parent()`, `children()`,
+    queries, `related()`, and `$template->profile()` all hand back that
+    one object.
+  - **Queries' records** are asked of the store once a request, by the
+    compiled record query; `get()`'s `EntryCollection` and
+    `termCounts()` are kept the same way.
+  - **`ContentUrls`** keeps `entry()` (by id, version, and language),
+    `termPath()`, and every path it builds from a route pattern (which
+    parsed the pattern twice per URL).
+  - **`ThemeAssets::contents()`** reads an asset once;
+    `$template->inline()` uses it.
+  - Already kept and left as they were: media records (`MediaLibrary`'s
+    snapshot and id map), menus (`Menus::remember()`), settings, and
+    theme asset versions.
+  - Not memoized: formatting with no lookup (`date()`, `time()`,
+    `avatar()`, `link()`).
+- **Why:** templates reach the same entries many ways (a byline, a
+  profile lookup, a query); each was a query and a new object.
+- **Status:** Built (2026-10-12).
+
+### D-807: Every lookup is memoized for the request, by default
+
+- **Refines:** D-805, D-806 (`EntryMemo` becomes the shared
+  `Blush\Support\RequestMemo`).
+- **Decision:** the author's call, after an audit found accounts,
+  tokens, OAuth clients, secrets, and the record stores read again on
+  every lookup (on files, an account lookup read every account file;
+  admin lists did it once a row): memoizing per request is the default
+  for everything that reads storage, not something each subsystem adds.
+  It's in `AGENTS.md`, so it's built in with every feature. Built:
+  - **`MemoizedRecordStore`**, which `RecordStores` wraps every
+    driver's store in: `find()`, `findByKey()`, `findMany()`,
+    `select()`, `count()`, `countBy()`, and `aggregate()` are asked of
+    the driver once a request (queries by `RecordQuery::fingerprint()`),
+    and the same record comes back. A save or delete, and a
+    transaction's end, drop the memo; reads inside a transaction go to
+    the driver (a job's claim reads what's stored under its lock). It
+    passes `LocatingStore` through. `RecordStores::driver()` returns the
+    bare store, for `SchemaStore` checks (`storage:sync`,
+    `storage:copy`).
+  - **`Accounts`** reads its table once a request and finds by username
+    and id from that (accounts are few, and on files a lookup read every
+    file anyway); an account is one object however it's found.
+    `Tokens`, `OAuthClients`, and `OAuthGrants` keep the objects they
+    build by record id and version. Each drops the memo on its writes.
+  - **`SecretStore`** keeps a decrypted value per stored value;
+    **`ContentTypeLoader::load()`** loads once a request (saving a type
+    loaded every type up to four times).
+  - **Dropped also** on each pass of `JobRunner::work()`, so a worker
+    sees jobs queued meanwhile; the request-boundary listener moved to
+    the storage provider.
+  - Already kept, as they were: roles, compiled content types,
+    relations, field sets, settings groups, media, menus.
+- **Why:** speed: a lookup repeated in a request, or once a row, costs
+  queries (or, on files, reading whole folders).
+- **Status:** Built (2026-10-12).
+
+### D-808: A method on `Entry` for each kind of relation
+
+- **Supersedes:** in part, D-803 (`credits()` gone; it's back, as a
+  merged list).
+- **Decision:** the author's call, so a theme that doesn't know a
+  site's relation names still reaches what an entry links to in one
+  call, without looping over `relations()`. One method a
+  `RelationKind`:
+  - **`classifications()`**: every classify relation's entries (a
+    post's categories and tags), merged.
+  - **`credits()`**: every credit relation's profiles, the byline
+    first, merged. `byline()` stays the byline alone.
+  - **`references()`**: every reference relation's entries, merged.
+  - **`parent()`**: as it was.
+  - **`translations()`**: the entry in every language, by language
+    code (`Entries::translations()`), itself included.
+  - The merged ones return a `RelatedEntries` in `relations()` order,
+    each entry once, with no `relation` and `byline` false, through
+    `EntryGraph::ofKind()`; all are memoized (D-807). `related($name)`
+    stays for one relation. A kind argument on `related()` was
+    considered and set aside: one parameter meaning a name or a kind
+    reads poorly.
+  - The default theme's and core's `entry-meta` list
+    `classifications()`.
+- **Why:** templates read "give me what it's filed under" directly.
+- **Status:** Built (2026-10-12).
+
+### D-809: A profile's avatar is `$profile->avatar()`, from its account or its field
+
+- **Supersedes:** in part, D-536 (`$template->avatar($profile)` gone).
+- **Decision:** the author's call: an avatar belongs to a profile, and
+  its picture will come through the profile's account (a Gravatar,
+  later), so it's asked of the profile.
+  - **`Entry::avatar(int $size = 48, string $label = ''): SafeHtml`**:
+    the profile's picture as an `<img class="avatar">`, cropped square
+    (`object-fit: cover`) at the size given, else its initials as the
+    inline SVG it was. Empty for an entry that isn't a profile (its type
+    isn't `Profiles`), so templates never ask first. `Template::avatar()`
+    is removed (no 2.x sites to keep working); `Avatar` takes the
+    picture's URL beside the name and size.
+  - **Where the picture comes from**, in order, through
+    `EntryGraph::avatar()`, memoized by profile and size (D-807): every
+    `Blush\Content\Entry\AvatarSource` tagged `AvatarSource::TAG`, the
+    first with a URL winning; then the profile's `avatar` media field,
+    which profiles already had (its description promised the picture,
+    and nothing showed it); then the initials. Content keeps no tie to
+    accounts: the accounts side will tag its source.
+  - **Gravatar is a later step**, its own decision: off until an account
+    turns it on (maybe a site switch too), since it puts a hash of the
+    account's email, often traceable, in public HTML and sends every
+    visitor's browser to gravatar.com. Its fallback must be an image at
+    a public URL, so an account shows its Gravatar (with Gravatar's own
+    fallback) or its initials, and the size becomes Gravatar's size,
+    doubled for sharp screens.
+  - A picture is the file as uploaded; picking a smaller rendition by
+    size waits for a way to ask for one.
+  - Second-proof's templates call `$profile->avatar()`.
+- **Why:** the avatar reads off the profile like `link()`, and one
+  lookup order gives every theme the account's picture when it comes.
+- **Status:** Built (2026-10-12), Gravatar not yet.
+
+### D-810: Avatars are built from an account or a profile, the portrait winning
+
+- **Supersedes:** in part, D-809 (the `AvatarSource` tag and its order).
+- **Decision:** the author's call, since avatars are shown outside
+  templates (the admin, the activity log, mail), where what's at hand is
+  an account. A profile may have no account (a guest author) and an
+  account no profile (a token-only agent), so `Avatar` stays the drawing
+  piece (name, size, picture URL, no lookups) and
+  **`Blush\Auth\Avatars`** builds one from either:
+  - **`account(Account, size)`**: its profile's portrait, else its
+    initials, named as the admin names it (`displayName()`).
+  - **`profile(Entry, size)`**: its portrait, else its initials.
+  - **The profile's portrait wins** over anything the account has: it's
+    a deliberate upload for the site's face. An account's Gravatar
+    (still its own later step, per D-809) comes after it, before the
+    initials, in both.
+  - Both are memoized (D-807), so the same avatar reached two ways is
+    one object. `$profile->avatar()` asks `Avatars::profile()` through
+    `EntryGraph`; content already depends on accounts (`EntryEditor`).
+  - `AvatarSource` is removed: it only kept content from knowing about
+    accounts.
+- **Why:** callers start from whichever they have, and one place
+  decides the picture.
+- **Status:** Built (2026-10-12), Gravatar not yet.
+
+### D-811: Data templates show is reachable outside templates
+
+- **Decision:** the author's rule: assume any data a template shows
+  (translations, avatars, an entry's relations, and more) is also
+  needed outside views, by core and plugins. It's built as a service
+  method anyone can call, memoized (D-807), and template helpers and
+  entry methods are thin calls to it (as `$profile->avatar()` is to
+  `Avatars::profile()`, D-810). Templates get data passed in; they're
+  never the only way to reach it. In AGENTS.md.
+- **Why:** the admin, mail, the activity log, MCP, and plugins start
+  from an account or an entry, not a template.
+- **Status:** Standing rule (2026-10-12).
+
+### D-812: The admin draws accounts' avatars from `Avatars::account()`
+
+- **Decision:** the author's call: the admin is `Avatars`' first caller
+  outside templates (D-810, D-811).
+  - `GET session`, `GET accounts` (and so a profile's linked `account`),
+    and `GET roles`' holders carry `avatar`: the picture's URL from
+    `Avatars::account()` (`PeopleJson::avatar()`), or `null`, when the
+    admin draws the initials itself.
+  - A shared `AdminAvatar` component (name, image) draws every account
+    avatar: the bar's account button, the Accounts list, an account's
+    screen and its linked profile, a profile's account panel, a role's
+    holders, and the link pickers (`PickModal` items take `image`, not
+    `initials`). A profile's own screen shows its portrait the same way.
+    The picture fills the `.avatar` circle (`.avatar__image`,
+    `object-fit: cover`).
+  - Profiles in entry lists and the relation pickers still draw
+    initials; they move to `AdminAvatar` when those payloads carry the
+    portrait.
+- **Status:** Built (2026-10-12).

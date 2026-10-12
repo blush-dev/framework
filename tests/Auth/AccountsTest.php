@@ -27,6 +27,7 @@ use Blush\Clock\SystemClock;
 use Blush\Content\Entries;
 use Blush\Core\Application;
 use Blush\Storage\Record\ArrayRecordStore;
+use Blush\Support\RequestMemo;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(Account::class)]
@@ -87,6 +88,19 @@ final class AccountsTest extends TestCase
 		$this->assertEquals($account, $this->store()->find('jane'));
 		$this->assertTrue(new Passwords()->verify('a long enough password', $account->passwordHash));
 		$this->assertFalse($this->store()->isEmpty());
+	}
+
+	public function testAnAccountIsOneObjectHoweverItsFound(): void
+	{
+		$accounts = $this->store();
+		$jane     = $accounts->create('jane', 'a long enough password', ['author'], email: 'jane@example.test');
+		$found    = $accounts->find('jane');
+
+		$this->assertNotNull($found);
+		$this->assertSame($found, $accounts->findById($jane->id), 'Read once a request (D-807).');
+		$this->assertSame($found, $accounts->all()[0]);
+		$this->assertSame('jane@new.example', $accounts->setEmail($found, 'jane@new.example')->email);
+		$this->assertSame('jane@new.example', $accounts->find('jane')?->email, 'A save drops what was kept.');
 	}
 
 	public function testRefusesBadAccounts(): void
@@ -194,6 +208,10 @@ final class AccountsTest extends TestCase
 		$this->assertSame('jane@new.example', $this->store()->find('jane')?->email);
 
 		$this->writeTemporaryFile('storage/accounts/old.json', (string) json_encode(['username' => 'old', 'passwordHash' => 'x', 'roles' => ['author']]));
+
+		// Written outside the store, as by another process: the next
+		// request sees it (D-807).
+		$this->app()->container()->make(RequestMemo::class)->forget();
 
 		$old = $this->store()->find('old');
 		$this->assertNotNull($old);

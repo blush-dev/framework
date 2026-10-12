@@ -44,6 +44,7 @@ final class AuthServiceProvider extends ServiceProvider
 		BearerTokens::class,
 		Accounts::class,
 		Authenticator::class,
+		Avatars::class,
 		LoginThrottle::class,
 		Passwords::class,
 		Permissions::class,

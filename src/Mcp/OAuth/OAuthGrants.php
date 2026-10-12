@@ -24,6 +24,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Support\RequestMemo;
 use Blush\Support\Uuid;
 
 /**
@@ -40,7 +41,8 @@ final readonly class OAuthGrants
 
 	public function __construct(
 		private RecordStores|RecordStore $stores,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	public static function grants(): Table
@@ -64,7 +66,7 @@ final readonly class OAuthGrants
 		$query  = new RecordQuery()->where('account', '=', $account)->where('client', '=', $client)->limit(1);
 		$record = $this->read(self::grants(), fn (RecordStore $store): ?Record => $store->select(self::grants(), $query)->first());
 
-		return $record === null ? null : OAuthGrant::fromArray($record->fields, $record->id);
+		return $record === null ? null : $this->grant($record);
 	}
 
 	/**
@@ -76,7 +78,7 @@ final readonly class OAuthGrants
 	{
 		$record = Uuid::isValid($id) ? $this->read(self::grants(), fn (RecordStore $store): ?Record => $store->find(self::grants(), $id)) : null;
 
-		return $record === null ? null : OAuthGrant::fromArray($record->fields, $record->id);
+		return $record === null ? null : $this->grant($record);
 	}
 
 	/**
@@ -90,7 +92,7 @@ final readonly class OAuthGrants
 		$query = new RecordQuery()->where('account', '=', $account)->orderBy('approved', Order::Desc);
 
 		return array_map(
-			static fn (Record $record): OAuthGrant => OAuthGrant::fromArray($record->fields, $record->id),
+			$this->grant(...),
 			$this->read(self::grants(), fn (RecordStore $store): array => $store->select(self::grants(), $query)->records)
 		);
 	}
@@ -244,7 +246,17 @@ final readonly class OAuthGrants
 			$write($this->store($table));
 		} catch (RecordException | StorageException $e) {
 			throw new OAuthError('server_error', sprintf('A connected app couldn\'t be saved: %s', $e->getMessage()), false, 500);
+		} finally {
+			$this->memo->forget();
 		}
+	}
+
+	/**
+	 * Returns a record's grant, built once a request (D-807).
+	 */
+	private function grant(Record $record): OAuthGrant
+	{
+		return $this->memo->remember("oauth_grant|{$record->id}|{$record->version}", static fn (): OAuthGrant => OAuthGrant::fromArray($record->fields, $record->id));
 	}
 
 	/**

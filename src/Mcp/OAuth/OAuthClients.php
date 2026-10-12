@@ -26,6 +26,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Support\RequestMemo;
 use Blush\Support\Uuid;
 
 /**
@@ -57,7 +58,8 @@ final readonly class OAuthClients
 	public function __construct(
 		private RecordStores|RecordStore $stores,
 		private ClockInterface $clock,
-		private Fetcher $fetcher
+		private Fetcher $fetcher,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	public static function table(): Table
@@ -127,7 +129,7 @@ final readonly class OAuthClients
 	{
 		$record = Uuid::isValid($id) ? $this->read(fn (RecordStore $store): ?Record => $store->find(self::table(), $id)) : null;
 
-		return $record === null ? null : OAuthClient::fromArray($record->fields, $record->id);
+		return $record === null ? null : $this->client($record);
 	}
 
 	/**
@@ -209,7 +211,7 @@ final readonly class OAuthClients
 		$query  = new RecordQuery()->where('clientId', '=', $clientId)->limit(1);
 		$record = $this->read(fn (RecordStore $store): ?Record => $store->select(self::table(), $query)->first());
 
-		return $record === null ? null : OAuthClient::fromArray($record->fields, $record->id);
+		return $record === null ? null : $this->client($record);
 	}
 
 	/**
@@ -314,7 +316,17 @@ final readonly class OAuthClients
 			$write($this->store());
 		} catch (RecordException | StorageException $e) {
 			throw new OAuthError('server_error', sprintf('The OAuth client couldn\'t be saved: %s', $e->getMessage()), false, 500);
+		} finally {
+			$this->memo->forget();
 		}
+	}
+
+	/**
+	 * Returns a record's client, built once a request (D-807).
+	 */
+	private function client(Record $record): OAuthClient
+	{
+		return $this->memo->remember("oauth_client|{$record->id}|{$record->version}", static fn (): OAuthClient => OAuthClient::fromArray($record->fields, $record->id));
 	}
 
 	/**

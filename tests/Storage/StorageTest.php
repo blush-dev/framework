@@ -117,10 +117,10 @@ final class StorageTest extends TestCase
 		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'sqlite']);\n");
 
 		$container = $this->scratchApplication()->container();
-		$store     = $container->make(RecordStores::class)->store(EntryTable::table());
+		$store     = $container->make(RecordStores::class)->driver(EntryTable::table());
 
 		$this->assertInstanceOf(SqliteRecordStore::class, $store);
-		$this->assertSame($store, $container->make(RecordStores::class)->store(Ref::table(StorageArea::Content)), 'One store for the database.');
+		$this->assertSame($store, $container->make(RecordStores::class)->driver(Ref::table(StorageArea::Content)), 'One store for the database.');
 		$this->assertInstanceOf(RecordLocations::class, $container->make(EntryLocations::class));
 		$this->assertInstanceOf(Accounts::class, $container->make(Accounts::class), 'Other areas keep theirs.');
 		$this->assertFalse($container->make(CommandRegistry::class)->has('content:ids'), 'File tools aren\'t offered.');

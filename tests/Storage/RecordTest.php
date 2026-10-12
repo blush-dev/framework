@@ -22,6 +22,7 @@ use Blush\Storage\Record\ConditionGroup;
 use Blush\Storage\Record\InvalidRecord;
 use Blush\Storage\Record\InvalidRecordQuery;
 use Blush\Storage\Record\Junction;
+use Blush\Storage\Record\MemoizedRecordStore;
 use Blush\Storage\Record\Operator;
 use Blush\Storage\Record\Order;
 use Blush\Storage\Record\Record;
@@ -47,6 +48,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(Operator::class)]
 #[CoversClass(Sort::class)]
 #[CoversClass(RecordStores::class)]
+#[CoversClass(MemoizedRecordStore::class)]
 #[CoversClass(Ref::class)]
 #[CoversClass(Refs::class)]
 #[CoversClass(Related::class)]
@@ -236,12 +238,36 @@ final class RecordTest extends TestCase
 		$this->assertSame('5', Uuid::fromName('roles/editor')[14], 'Named ids are version 5.');
 	}
 
+	public function testReadsAreKeptForTheRequestUntilAWrite(): void
+	{
+		$stores = $this->scratchApplication()->container()->make(RecordStores::class);
+		$table  = new Table('albums', StorageArea::Data, key: 'slug');
+		$store  = $stores->store($table);
+
+		$store->save($table, new Record(self::ID, ['slug' => 'summer', 'title' => 'Summer']));
+
+		$found = $store->find($table, self::ID);
+
+		$this->assertNotNull($found);
+		$this->assertSame($found, $store->find($table, self::ID), 'One read a request, one record (D-807).');
+		$this->assertSame($store->select($table, new RecordQuery()), $store->select($table, new RecordQuery()));
+
+		$store->save($table, $found->withFields(['slug' => 'summer', 'title' => 'Late Summer']));
+
+		$this->assertSame('Late Summer', $store->find($table, self::ID)?->fields['title'], 'A write drops what was kept.');
+
+		$inside = $store->transaction(static fn (): ?Record => $store->find($table, self::ID));
+
+		$this->assertNotSame($store->find($table, self::ID), $inside, 'A transaction reads what\'s stored.');
+	}
+
 	public function testStoresComeFromEachAreasDriver(): void
 	{
 		$stores = $this->scratchApplication()->container()->make(RecordStores::class);
 		$table  = new Table('albums', StorageArea::Data, key: 'slug');
 
-		$this->assertInstanceOf(FileRecordStore::class, $stores->store($table));
+		$this->assertInstanceOf(FileRecordStore::class, $stores->driver($table));
+		$this->assertInstanceOf(MemoizedRecordStore::class, $stores->store($table), 'Reads are kept for the request (D-807).');
 
 		$stores->store($table)->save($table, new Record(self::ID, ['slug' => 'summer', 'title' => 'Summer']));
 

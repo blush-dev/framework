@@ -46,7 +46,7 @@ final class IndexStoreTest extends TestCase
 	{
 		$this->standardContent();
 		$this->app   = $this->site();
-		$this->store = $this->app->container()->make(RecordStores::class)->store(EntryTable::table());
+		$this->store = $this->app->container()->make(RecordStores::class)->driver(EntryTable::table());
 	}
 
 	/**

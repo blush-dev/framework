@@ -281,9 +281,9 @@ final class EntriesTest extends TestCase
 		$this->assertNull($entry->field('tag'), 'Nothing declares it (D-786).');
 		$this->assertSame('fallback', $entry->field('missing', 'fallback'));
 		$this->assertFalse($entry->has('tag'));
-		$this->assertSame(['art', 'book-reviews'], $entry->terms['category']);
-		$this->assertTrue($entry->hasTerm('category', 'art'));
-		$this->assertFalse($entry->hasTerm('category', 'life'));
+		$this->assertSame(['art', 'book-reviews'], $entry->slugs('category'));
+		$this->assertTrue($entry->linksTo('category', (string) $this->content->term('category', 'art')?->id));
+		$this->assertFalse($entry->linksTo('category', (string) $this->content->term('category', 'life')?->id));
 		$this->assertTrue($entry->isPublished());
 		$this->assertTrue($entry->isRoutable());
 		$this->assertTrue($entry->isListed());
@@ -378,7 +378,7 @@ final class EntriesTest extends TestCase
 		$this->assertNull($this->content->term('profile', 'nobody'), 'Nor is a credit.');
 		$this->assertArrayNotHasKey('lost-cause', $this->content->termCounts('category'));
 		$this->assertArrayNotHasKey('nobody', $this->content->termCounts('profile'));
-		$this->assertSame(['art'], $this->content->named('post', 'dangling')?->terms['category'], 'Terms come from refs, which link only entries (D-662).');
+		$this->assertSame(['art'], $this->content->named('post', 'dangling')?->slugs('category'), 'Terms come from refs, which link only entries (D-662).');
 	}
 
 	/**

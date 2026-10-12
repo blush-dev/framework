@@ -459,7 +459,6 @@ What a template can use:
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->profile('jane')` | A published profile by its slug, or `null` |
 | `$template->media($template->site('logo'))` | The media file a value names, such as a site setting's (an entry's is `$entry->media('image')`), or `null` |
-| `$template->avatar($profile, 48)` | A profile's avatar, to print: a square box with its initials, as an inline SVG (see [Avatars](#avatars)) |
 | `$template->archiveUrl($type, 'cooks', $profile)` | A [relation's archive](content-types.md#linking-entries-to-other-entries) under a type for one target, such as `/recipes/cooks/jane`, or with no target the list of what it links to (`/recipes/cooks`); `null` for the relation is the type's byline. `''` when there's none, so a byline links with `archiveUrl($entry->type, null, $person) ?: $person->url()` |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
@@ -524,24 +523,59 @@ An entry also leads to the entries and files it's linked to:
 | Call | What it does |
 |---|---|
 | `$entry->url()` | Its URL, or `''` when it has no page |
-| `$entry->terms('tag')` | Its terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags (their slugs are in `$entry->terms['tag']`) |
-| `$entry->related('actors')` | The entries it [links to](content-types.md#linking-entries-to-other-entries) through a relation, in order, each in its language when it's translated |
+| `$profile->avatar(48)` | A profile's avatar, to print: its picture, else a square box with its initials (see [Avatars](#avatars)). Empty for an entry that isn't a profile |
+| `$entry->link()` | A link to it: `<a href="…">Its title</a>`, escaped and ready to print. Attributes go by name: `link(class: 'tag', ariaCurrent: 'page')` (a camelCase name is dashed, so `ariaCurrent` is `aria-current`; `true` prints the name alone, and `false` or `null` leaves it out). An entry without a title reads "Untitled", and one without a page prints its title alone |
+| `$entry->related('tag')` | The entries it [links to](content-types.md#linking-entries-to-other-entries) through one of its type's relations, such as its tags or a movie's `actors`, in order, each in its language when it's translated |
 | `$entry->referencedBy('actors')` | The entries linking to it through a relation, newest first: by its name, or `'movie.actors'` for one type's |
-| `$entry->byline()` | The profiles its byline credits, in order: its type's [byline relation](content-types.md#crediting-people), such as a post's `authors` |
-| `$entry->author()` | The first person its byline credits, such as a post's author, or `null` |
-| `$entry->credits()` | Everyone it credits, by credit relation: the byline first, then the others, each `['relation' => …, 'byline' => bool, 'people' => [...]]`, leaving out those crediting no one. A relation's `label` and `singular` name it ("Photographers", "Photographer") |
+| `$entry->byline()` | The profiles its type's [byline relation](content-types.md#crediting-people) credits, such as a post's `authors`, in order, as `related()` gives them; none when the type has no byline |
+| `$entry->classifications()` | What it's filed under: the entries every one of its type's classify relations links (its categories and tags), merged, each once |
+| `$entry->credits()` | The profiles it credits through every credit relation (its authors, photographers), the byline first, merged, each once |
+| `$entry->references()` | The other entries it refers to through every reference relation (a movie's actors, related posts), merged, each once |
+| `$entry->translations()` | It in every language it's written in, by language code, the default first, itself included |
+| `$entry->relations()` | Its type's relations by name, or those of one kind: `relations(RelationKind::Credit)` for the people it can credit, its [byline relation](content-types.md#crediting-people) first, or `RelationKind::Classify` for the kinds of terms it's filed under |
+| `$entry->linksTo('tag', $id)` | Whether it links to an entry through a relation, by that entry's id |
 | `$entry->parent()` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, or `null` |
 | `$entry->ancestors()` | Its parents from the top down, for breadcrumbs |
 | `$entry->children()` | A page's subpages or a nesting collection's child entries, by `position` and then title |
 | `$entry->media('image')` | The media file a media field names, such as its `image`, or `null` |
 
+`related()` and `referencedBy()` give a list to loop over and count,
+with a little more:
+
+| Call | What it does |
+|---|---|
+| `->published()` | Only the ones that are published and have a page of their own |
+| `->first()` | The first one, such as a post's author, or `null` |
+| `->isEmpty()` | Whether there are none |
+| `->all()` | Them as an array |
+| `->relation` | The relation, whose `label` and `singular` name it ("Photographers", "Photographer"), or `null` when the entry's type has no relation by that name |
+| `->byline` | Whether it's the entry type's byline relation, such as a post's `authors` |
+
+Each is looked up once per request and kept, so call them as often as
+you like (`$entry->byline()` in a condition and again in a loop is one
+lookup); there's no need to save them in a variable first. An entry's
+`excerpt()`, `wordCount()`, and `readingTime()` are kept the same way.
+
 These come back whatever their status: a draft or a hidden entry is
-there too, so check before you show or link one:
+there too, so keep to `published()` for what you show or link:
 
 ```php
-<?php foreach ($entry->terms('tag') as $tag) : ?>
-	<?php if ($tag->isPublished() && $tag->isRoutable()) : ?>
-		<a href="<?= url($tag->url()) ?>"><?= e($tag->title) ?></a>
+<?php foreach ($entry->related('tag')->published() as $tag) : ?>
+	<?= $tag->link(class: 'tag') ?>
+<?php endforeach ?>
+```
+
+To list everyone an entry credits, byline first, under each relation's
+name:
+
+```php
+<?php foreach ($entry->relations(Blush\Content\Relation\RelationKind::Credit) as $relation) : ?>
+	<?php $profiles = $entry->related($relation->name)->published() ?>
+	<?php if (! $profiles->isEmpty()) : ?>
+		<p>
+			<?= e($profiles->byline ? 'By' : ($relation->label ?: ucfirst($relation->name)) . ':') ?>
+			<?= raw(implode(', ', array_map(static fn ($profile): string => (string) $profile->link(), $profiles->all()))) ?>
+		</p>
 	<?php endif ?>
 <?php endforeach ?>
 ```
@@ -915,26 +949,29 @@ same terms.
 
 ### Avatars
 
-`$template->avatar($profile)` draws a person's avatar the way the admin
-does: a square box with up to two initials of their name ("Jane Doe" is
-JD), as an inline SVG. Give a size in pixels as the second argument (48
-by default):
+`$profile->avatar()` draws a profile's avatar the way the admin does:
+its picture, from the profile's `avatar` field, or, without one, a
+square box with up to two initials of its name ("Jane Doe" is JD), as an
+inline SVG. Give a size in pixels (48 by default):
 
 ```php
-<?php if ($author = $entry->author()) : ?>
+<?php if ($author = $entry->byline()->published()->first()) : ?>
 	<p class="byline">
-		<?= $template->avatar($author, 32) ?>
+		<?= $author->avatar(32) ?>
 		<?= e($author->title) ?>
 	</p>
 <?php endif ?>
 ```
 
 Beside a printed name, it's hidden from screen readers. Alone, give it a
-label so it's read as an image: `$template->avatar($profile, label:
-$profile->title)`.
+label so it's read as an image: `$profile->avatar(label:
+$profile->title)`. Only profiles have avatars: on any other entry, it
+prints nothing.
 
-It's gray until your theme styles it. Its class is `avatar`, and two
-custom properties set its colors; the letters use the page's font:
+A picture is an `<img>` cropped square at the size you give. Initials
+are gray until your theme styles them. Both have the class `avatar`;
+two custom properties set the initials' colors, and the letters use the
+page's font:
 
 ```css
 .avatar {

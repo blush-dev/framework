@@ -16,14 +16,20 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Auth\Accounts;
+use Blush\Auth\Avatars;
 use Blush\Content\Entries;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\ProfileController;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Http\RelatedListController;
 use Blush\Content\ProfileList;
+use Blush\Content\Writer\EntryChanges;
 use Blush\Content\RelationArchives;
+use Blush\Content\Relation\RelatedEntries;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
@@ -37,6 +43,7 @@ use Blush\Routing\SiteUrl;
 use Blush\Routing\SiteUrls;
 use Blush\Routing\UrlSource;
 use Blush\Sitemap\SitemapBuilder;
+use Blush\Support\RequestMemo;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Hierarchy;
@@ -55,6 +62,9 @@ use Blush\View\ViewFactory;
 #[CoversClass(RelationArchives::class)]
 #[CoversClass(ProfileList::class)]
 #[CoversClass(Template::class)]
+#[CoversClass(RelatedEntries::class)]
+#[CoversClass(RequestMemo::class)]
+#[CoversClass(Avatars::class)]
 final class PeopleArchivesTest extends TestCase
 {
 	use BuildsContentSite;
@@ -241,21 +251,20 @@ final class PeopleArchivesTest extends TestCase
 		$app  = $this->boot();
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
-		$this->assertStringContainsString('<span class="entry-meta__people">By <a class="entry-meta__person" href="/archives/authors/justintadlock">Justin Tadlock</a>, <a class="entry-meta__person" href="/archives/authors/guest">A Guest</a></span>', $body);
+		$this->assertMatchesRegularExpression('#<span class="entry-meta__byline">\s*By\s*<a href="/profiles/justintadlock" class="entry-meta__profile">Justin Tadlock</a>\s*<a href="/profiles/guest" class="entry-meta__profile">A Guest</a>\s*</span>#', $body, 'The default theme links the byline\'s profiles (D-804).');
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/archives/authors/justintadlock">', $body);
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/archives/authors/guest">', $body, 'One tag per person.');
 
 		$app  = $this->boot(authors: ['inverse' => ['archive' => false]]);
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
-		$this->assertStringContainsString('<a class="entry-meta__person" href="/profiles/justintadlock">Justin Tadlock</a>', $body, 'Without archives, the profile\'s page.');
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/profiles/justintadlock">', $body);
 		$this->assertSame(404, $this->get($app, '/archives/authors')->getStatusCode());
 
 		$app  = $this->boot(profile: ['routing' => false], authors: ['inverse' => ['archive' => false]]);
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
-		$this->assertStringContainsString('<span class="entry-meta__person">Justin Tadlock</span>', $body, 'Nowhere to link.');
+		$this->assertMatchesRegularExpression('#By\s*Justin Tadlock\s*A Guest\s*</span>#', $body, 'Nowhere to link: the names alone.');
 	}
 
 	public function testTemplatesReachAnAuthorAProfileAndTheirAvatar(): void
@@ -268,8 +277,30 @@ final class PeopleArchivesTest extends TestCase
 
 		$this->assertNotNull($spring);
 		$this->assertSame('/archives/spring', $spring->url(), 'Its own URL (D-802).');
-		$this->assertSame('Justin Tadlock', $spring->author()?->title, 'The byline\'s first person.');
-		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn ($person): string => $person->title, $spring->byline()));
+		$authors = $spring->related('authors');
+
+		$this->assertSame(['authors'], array_keys($spring->relations(RelationKind::Credit)), 'Its credit relations, the byline first (D-803).');
+		$this->assertTrue($authors->byline, 'The type\'s byline (D-803).');
+		$this->assertSame('authors', $authors->relation?->name);
+		$this->assertSame('Justin Tadlock', $authors->first()?->title, 'The byline\'s first profile.');
+		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn (Entry $profile): string => $profile->title, $authors->all()));
+		$this->assertCount(2, $authors);
+		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn (Entry $profile): string => $profile->title, $spring->byline()->all()), 'The byline, shorter (D-804).');
+		$this->assertTrue($spring->byline()->byline);
+		$this->assertSame(['Art', 'Book Reviews'], array_map(static fn (Entry $linked): string => $linked->title, $spring->classifications()->all()), 'What it\'s filed under, every classify relation (D-808).');
+		$this->assertSame($spring->byline()->all(), $spring->credits()->all(), 'Every credit relation, the byline first.');
+		$this->assertTrue($spring->references()->isEmpty());
+		$this->assertSame(['en' => $spring], $spring->translations());
+		$this->assertSame($spring->classifications(), $spring->classifications(), 'Kept for the request (D-807).');
+
+		$about = $container->make(Entries::class)->named('page', 'about');
+
+		$this->assertNotNull($about);
+		$this->assertTrue($about->byline()->isEmpty(), 'A type without a byline has none.');
+		$this->assertFalse($spring->related('category')->byline);
+		$this->assertTrue($spring->related('nothing')->isEmpty(), 'A relation the type hasn\'t leads nowhere.');
+		$this->assertNull($spring->related('nothing')->relation);
+		$this->assertSame('<a href="/archives/spring" class="entry-link" data-entry-id="7" aria-current="page" hidden>spring</a>', (string) $spring->link(class: 'entry-link', dataEntryId: 7, ariaCurrent: 'page', hidden: true, title: null, download: false), 'Attributes by name, dashed (D-803).');
 		$this->assertSame('/archives/authors/guest', $template->archiveUrl('post', null, 'guest'), 'The byline\'s archive.');
 		$this->assertSame('/archives/authors', $template->archiveUrl('post', 'authors'));
 		$this->assertSame('', $template->archiveUrl('post', 'nope'));
@@ -279,8 +310,62 @@ final class PeopleArchivesTest extends TestCase
 
 		$this->assertNotNull($sam);
 		$this->assertSame('Sam', $sam->title);
-		$this->assertStringContainsString('>S</text></svg>', $template->avatar($sam, 32));
-		$this->assertStringContainsString('width="32" height="32"', $template->avatar($sam, 32));
+		$this->assertStringContainsString('>S</text></svg>', (string) $sam->avatar(32), 'Its initials, without a picture (D-809).');
+		$this->assertStringContainsString('width="32" height="32"', (string) $sam->avatar(32));
+		$this->assertSame('', (string) $spring->avatar(), 'Only a profile has one.');
+	}
+
+	public function testAProfilesAvatarIsItsPicture(): void
+	{
+		$this->entry('_profile/ann.md', "title: Ann\navatar: https://cdn.example.com/ann.jpg", 'Has a portrait.');
+
+		$container = $this->boot()->container();
+		$content   = $container->make(Entries::class);
+		$ann       = $content->named('profile', 'ann');
+
+		$this->assertNotNull($ann);
+		$this->assertStringStartsWith('<img class="avatar" src="https://cdn.example.com/ann.jpg" width="40" height="40" alt=""', (string) $ann->avatar(40), 'Its `avatar` field (D-809).');
+		$this->assertStringContainsString('alt="Ann"', (string) $ann->avatar(label: 'Ann'));
+
+		$this->assertNotNull($ann->id);
+
+		$avatars = $container->make(Avatars::class);
+		$linked  = $container->make(Accounts::class)->create('ann', 'a long enough password', ['author'], $ann->id, null, 'ann@example.com');
+		$agent   = $container->make(Accounts::class)->createTokenOnly('helper', ['author'], 'Helper Bot');
+
+		$this->assertSame('https://cdn.example.com/ann.jpg', $avatars->account($linked, 40)->image, 'An account shows its profile\'s portrait.');
+		$this->assertSame('Ann', $avatars->account($linked)->name, 'Named as the admin names it.');
+		$this->assertSame('', $avatars->account($agent)->image, 'An account without a profile has initials.');
+		$this->assertSame('HB', $avatars->account($agent)->initials());
+		$this->assertSame($avatars->account($linked, 40), $avatars->account($linked, 40), 'Kept for the request (D-807).');
+		$this->assertSame($avatars->profile($ann, 40), $avatars->profile($ann, 40));
+	}
+
+	public function testWhatAnEntryLeadsToIsKeptUntilAWrite(): void
+	{
+		$container = $this->boot()->container();
+		$content   = $container->make(Entries::class);
+		$template  = new Template($container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active()), new ViewContext());
+		$spring    = $content->named('post', 'spring');
+		$guest     = $content->named('profile', 'guest');
+
+		$this->assertNotNull($spring);
+		$this->assertNotNull($guest);
+		$this->assertSame($guest, $content->find((string) $guest->id), 'One object per entry, however it\'s reached (D-806).');
+		$this->assertSame($guest, $content->term('profile', 'guest'));
+		$this->assertSame($guest, $template->profile('guest'));
+		$this->assertSame($guest, $spring->byline()->all()[1] ?? null);
+		$this->assertSame($spring, $content->query()->type('post')->names('spring')->get()->first());
+		$this->assertSame($content->query()->type('post')->get(), $content->query()->type('post')->get(), 'A query asked twice is one lookup.');
+		$this->assertSame($spring->byline(), $spring->byline(), 'Asked again, it\'s kept (D-805).');
+		$this->assertSame($spring->related('authors'), $spring->byline());
+		$this->assertSame($spring->byline()->published(), $spring->byline()->published());
+		$this->assertSame($spring->url(), $spring->url());
+		$this->assertSame($spring->excerpt(), $spring->excerpt());
+
+		$content->change($guest, new EntryChanges(set: ['title' => 'A Visitor']));
+
+		$this->assertSame(['Justin Tadlock', 'A Visitor'], array_map(static fn (Entry $profile): string => $profile->title, $spring->byline()->all()), 'A write drops what was kept.');
 	}
 
 	public function testATypeCreditsPeopleInItsOwnWords(): void
@@ -290,8 +375,7 @@ final class PeopleArchivesTest extends TestCase
 		$app  = $this->boot(['byline' => 'authors'], authors: ['inverse' => ['archive' => 'writers']], relations: ['photographers' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'multiple' => false, 'aliases' => ['photographer'], 'label' => 'Photographers']]);
 		$body = (string) $this->get($app, '/archives/shots')->getBody();
 
-		$this->assertStringContainsString('By <a class="entry-meta__person" href="/archives/writers/guest">A Guest</a>', $body);
-		$this->assertStringContainsString('Photographer: <a class="entry-meta__person" href="/archives/photographers/justintadlock">Justin Tadlock</a>', $body);
+		$this->assertMatchesRegularExpression('#By\s*<a href="/profiles/guest" class="entry-meta__profile">A Guest</a>\s*</span>#', $body, 'The byline alone, in the default theme.');
 		$this->assertSame(200, $this->get($app, '/archives/writers/justintadlock')->getStatusCode());
 		$this->assertSame(404, $this->get($app, '/archives/authors/justintadlock')->getStatusCode());
 		$this->assertNotNull($app->container()->make(RouteTable::class)->named('post.authors.single'));
@@ -309,7 +393,7 @@ final class PeopleArchivesTest extends TestCase
 
 		$app = $this->boot(authors: null);
 
-		$this->assertStringNotContainsString('entry-meta__people', (string) $this->get($app, '/archives/spring')->getBody(), 'Posts don\'t credit people at all.');
+		$this->assertStringNotContainsString('entry-meta__byline', (string) $this->get($app, '/archives/spring')->getBody(), 'Posts don\'t credit people at all.');
 		$this->assertNull($app->container()->make(RouteTable::class)->named('post.authors.single'));
 	}
 

@@ -32,6 +32,7 @@
 
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import AdminAvatar from '../components/AdminAvatar.vue';
 import AccountPreferences from '../components/AccountPreferences.vue';
 import AccountTokens from '../components/AccountTokens.vue';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -47,7 +48,7 @@ import { config } from '../config';
 import { plural } from '../format';
 import { confirmAction } from '../confirm';
 import { slugOf } from '../references';
-import { claimable, freshLink, initials, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
+import { claimable, freshLink, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can, canType, loadSession, saveOwnDetails, session } from '../session';
 import { loadTypes, profileType } from '../types';
@@ -72,6 +73,7 @@ const own = computed<AccountInfo | undefined>(() => {
 		email: account.email,
 		name: account.name,
 		displayName: account.displayName,
+		avatar: account.avatar,
 		roles: account.roles.map((role) => role.name),
 		author: account.author,
 		profile: account.profile,
@@ -216,7 +218,6 @@ const linkable     = ref<LinkableProfile[] | null>(null);
 const free         = computed(() => (linkable.value ?? []).filter((item) => item.account === null && item.linkable));
 const linkItems    = computed<PickItem[] | null>(() => linkable.value === null ? null : free.value.map((item) => ({
 	key: item.slug,
-	initials: initials(item.title),
 	name: item.title,
 	meta: item.slug,
 	aside: item.status === 'published' ? undefined : (item.status === 'draft' ? 'Draft' : 'Scheduled')
@@ -528,7 +529,7 @@ async function changePassword(): Promise<void> {
 		<header class="page-header">
 			<RouterLink v-if="can('accounts.view')" class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />All accounts</RouterLink>
 			<div class="page-header__id">
-				<span v-if="account" class="avatar avatar--large" :class="{ 'avatar--guest': !hasProfile }" aria-hidden="true">{{ initials(account.displayName) }}</span>
+				<AdminAvatar v-if="account" class="avatar--large" :class="{ 'avatar--guest': !hasProfile }" :name="account.displayName" :image="account.avatar" />
 				<div class="page-header__text">
 					<h1 tabindex="-1">{{ account ? account.displayName : (mine ? 'Your Account' : 'Account') }}</h1>
 					<p v-if="account" class="page-header__hint">
@@ -678,7 +679,7 @@ async function changePassword(): Promise<void> {
 			</header>
 			<div class="panel__body">
 				<div v-if="account.profile" class="link-box">
-					<span class="avatar avatar--large" aria-hidden="true">{{ initials(account.profile.title || account.profile.slug) }}</span>
+					<AdminAvatar class="avatar--large" :name="account.profile.title || account.profile.slug" :image="account.avatar" />
 					<span class="link-box__text">
 						<RouterLink v-if="canOpenProfile" class="link-box__name lnk" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">{{ account.profile.title || account.profile.slug }}</RouterLink>
 						<strong v-else class="link-box__name">{{ account.profile.title || account.profile.slug }}</strong>

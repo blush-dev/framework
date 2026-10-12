@@ -20,6 +20,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -196,11 +197,10 @@ final readonly class FeedBuilder
 		}
 
 		$feed       = $entry->type->feed;
-		$profiles   = $this->types->profiles()?->name;
-		$byline     = $this->types->byline($entry->type->name)?->termKey();
+		$byline     = $this->types->byline($entry->type->name);
 		$taxonomies = $feed !== false && $feed->categories !== null
 			? [$feed->categories]
-			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->classification($taxonomy) !== null));
+			: array_keys($entry->relations(RelationKind::Classify));
 
 		return new FeedItem(
 			entry: $entry,
@@ -210,26 +210,25 @@ final readonly class FeedBuilder
 			updated: $entry->updated,
 			content: $this->config->content ? $entry->content() : '',
 			summary: $entry->excerpt(),
-			authors: $profiles === null || $byline === null ? [] : $this->titles($entry, [$byline], $profiles),
+			authors: $byline === null ? [] : $this->titles($entry, [$byline->name]),
 			categories: $this->titles($entry, $taxonomies)
 		);
 	}
 
 	/**
-	 * Returns the titles of an entry's terms in some taxonomies (or under
-	 * some credit relations' keys, given the profiles type, `$of`).
+	 * Returns the titles of the entries an entry links to through some of
+	 * its relations (D-803).
 	 *
-	 * @param  list<string> $taxonomies
+	 * @param  list<string> $relations
 	 * @return list<string>
 	 */
-	private function titles(Entry $entry, array $taxonomies, ?string $of = null): array
+	private function titles(Entry $entry, array $relations): array
 	{
 		$titles = [];
 
-		foreach ($taxonomies as $taxonomy) {
-			foreach ($entry->terms[$taxonomy] ?? [] as $slug) {
-				$term     = $this->content->term($of ?? $taxonomy, $slug);
-				$titles[] = $term !== null && $term->title !== '' ? $term->title : $slug;
+		foreach ($relations as $relation) {
+			foreach ($entry->related($relation) as $related) {
+				$titles[] = $related->title !== '' ? $related->title : $related->slug;
 			}
 		}
 

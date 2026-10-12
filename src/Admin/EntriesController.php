@@ -31,6 +31,7 @@ use Blush\Content\EntryFields;
 use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Referrers;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
@@ -631,7 +632,6 @@ final readonly class EntriesController
 	 */
 	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false, array $linked = []): array
 	{
-		$authors = $this->types->profiles()?->name;
 		$home    = $this->homepage->describe($entry);
 
 		return [
@@ -645,7 +645,7 @@ final readonly class EntriesController
 			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
 			'url'         => $this->urls->entry($entry),
-			'authors'     => $authors === null ? [] : ($entry->terms[$authors] ?? []),
+			'authors'     => self::credited($entry),
 			'own'         => $this->permissions->owns($account, $entry),
 			'index'       => IndexPage::is($entry),
 			'archivePage' => $this->archivePages->isList($entry),
@@ -713,6 +713,25 @@ final readonly class EntriesController
 		}
 
 		return $titles;
+	}
+
+	/**
+	 * Returns the slugs of the profiles an entry's credit relations link
+	 * (D-803), each once.
+	 *
+	 * @return list<string>
+	 */
+	private static function credited(Entry $entry): array
+	{
+		$slugs = [];
+
+		foreach ($entry->relations(RelationKind::Credit) as $relation) {
+			foreach ($entry->related($relation->name) as $person) {
+				$slugs[] = $person->slug;
+			}
+		}
+
+		return array_values(array_unique($slugs));
 	}
 
 	/**

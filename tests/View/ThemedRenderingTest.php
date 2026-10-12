@@ -76,8 +76,8 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<link rel="canonical" href="http://localhost/">', $home);
 		$this->assertStringContainsString('<a href="/archives/spring">spring</a>', $home);
 		$this->assertStringContainsString('<time datetime="2008-04-05T09:00:00-05:00">April 5, 2008</time>', $home);
-		$this->assertStringContainsString('<a class="entry-meta__term" href="/topics/art">Art</a>', $home);
-		$this->assertStringContainsString('<a class="entry-meta__term" href="/topics/book-reviews">Book Reviews</a>', $home);
+		$this->assertStringContainsString('<a href="/topics/art" class="entry-meta__term">Art</a>', $home);
+		$this->assertStringContainsString('<a href="/topics/book-reviews" class="entry-meta__term">Book Reviews</a>', $home);
 		$this->assertStringContainsString('<p>Spring is here.</p>', $home);
 		$this->assertMatchesRegularExpression('#<p>Powered by [^<]+\.</p>\s*</footer>#', $home, '1.x\'s lines (D-450).');
 

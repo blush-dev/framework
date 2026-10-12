@@ -418,9 +418,7 @@ final class Template
 	 */
 	public function inline(string $path): string
 	{
-		$found = $this->views->chain->asset($path);
-
-		return $found === null ? '' : (string) file_get_contents($found[1]);
+		return $this->views->assets->contents($path);
 	}
 
 	/**
@@ -552,23 +550,6 @@ final class Template
 		} catch (MediaException) {
 			return null;
 		}
-	}
-
-	/**
-	 * Returns a profile's avatar (D-536), to print: a square box with up
-	 * to two initials of its name, as an inline SVG the theme styles.
-	 * Without a label, it's hidden from assistive technology, for when
-	 * the name is printed beside it; with one, it's an image named by it.
-	 *
-	 * ```php
-	 * <?= $template->avatar($profile, 64) ?>
-	 * <?= $template->avatar($profile, label: $profile->title) ?>
-	 * ```
-	 */
-	#[ReturnsHtml]
-	public function avatar(Entry $profile, int $size = 48, string $label = ''): string
-	{
-		return new Avatar($profile->title, $size)->html($label);
 	}
 
 	/**

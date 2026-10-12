@@ -26,6 +26,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import AdminAvatar from '../components/AdminAvatar.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import MenuButton from '../components/MenuButton.vue';
 import PickModal, { type PickItem } from '../components/PickModal.vue';
@@ -34,7 +35,7 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { entryRoute, errorMessage, patchEntry, trashEntry } from '../api';
 import { config } from '../config';
 import { plural } from '../format';
-import { initials, loadAccounts, loadProfile, removeArchivePage, setLinkable, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
+import { loadAccounts, loadProfile, removeArchivePage, setLinkable, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
 import { screenTitle, screenTrail } from '../screen';
 import { confirmAction } from '../confirm';
 import { confirmLeaving } from '../referrers';
@@ -219,8 +220,8 @@ const linking  = ref(false);
 const free     = ref<AccountInfo[] | null>(null);
 const linkItems = computed<PickItem[] | null>(() => free.value?.map((account) => ({
 	key: account.username,
-	initials: initials(account.displayName),
 	name: account.displayName,
+	image: account.avatar,
 	meta: account.email ? `${account.username} · ${account.email}` : account.username,
 	aside: account.roles.join(', '),
 	guest: true
@@ -285,7 +286,7 @@ async function link(): Promise<void> {
 		<header class="page-header">
 			<RouterLink v-if="profileType" class="page-back" :to="{ name: 'type', params: { type: profileType } }"><AdminIcon name="chevron-left" />All profiles</RouterLink>
 			<div class="page-header__id">
-				<span v-if="profile" class="avatar avatar--large" :class="{ 'avatar--guest': !detail?.linked }" aria-hidden="true">{{ initials(name) }}</span>
+				<AdminAvatar v-if="profile" class="avatar--large" :class="{ 'avatar--guest': !detail?.linked }" :name="name" :image="profile.avatar" />
 				<div class="page-header__text">
 					<h1 tabindex="-1">{{ name }}</h1>
 					<p v-if="profile" class="page-header__hint">
@@ -341,7 +342,7 @@ async function link(): Promise<void> {
 				<template v-if="detail.account">
 					<div class="panel__body">
 						<div class="who">
-							<span class="avatar avatar--large" aria-hidden="true">{{ initials(detail.account.displayName) }}</span>
+							<AdminAvatar class="avatar--large" :name="detail.account.displayName" :image="detail.account.avatar" />
 							<span class="who__text">
 								<span class="who__name">{{ detail.account.displayName }}</span>
 								<span class="who__meta">{{ detail.account.username }}</span>

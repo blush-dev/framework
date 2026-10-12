@@ -123,7 +123,7 @@ final class RecordContentWriterTest extends TestCase
 		$file = $this->content->editable((string) $post->id);
 
 		$this->assertSame(['arts'], $file->frontMatter['category'] ?? null, 'Never stale.');
-		$this->assertSame(['arts'], $this->content->find((string) $post->id)?->terms['category']);
+		$this->assertSame(['arts'], $this->content->find((string) $post->id)?->slugs('category'));
 
 		$stored = $this->app->container()->make(RecordStores::class)->store(EntryTable::table())->find(EntryTable::table(), (string) $post->id);
 

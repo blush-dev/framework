@@ -231,10 +231,9 @@ final class SiteRelationsTest extends TestCase
 		$content = $this->repository($this->app);
 
 		$this->assertSame($this->report->graph->toArray(), $this->snapshot->graph()->toArray(), 'The index stores the graph.');
-		$this->assertSame(['painting'], $this->at('_post/b.md')->terms['category'], 'terms() follows the id in refs through a rename.');
-		$this->assertSame(['art'], $this->at('_post/c.md')->terms['category'], 'An id written as a value reads as its slug; a value that links nothing isn\'t a term (D-662).');
-		$this->assertSame(['jane'], $this->at('_post/b.md')->terms['profile.authors']);
-		$this->assertSame(['jane'], $this->at('_post/b.md')->terms['profile']);
+		$this->assertSame(['painting'], $this->at('_post/b.md')->slugs('category'), 'Links follow the id in refs through a rename.');
+		$this->assertSame(['art'], $this->at('_post/c.md')->slugs('category'), 'An id written as a value reads as its slug; a value that links nothing isn\'t a term (D-662).');
+		$this->assertSame(['jane'], $this->at('_post/b.md')->slugs('authors'));
 		$this->assertContains('_post/b.md', $this->snapshot->referencing('category', 'painting'));
 		$this->assertSame(['B', 'A'], array_map(static fn (Entry $entry): string => $entry->title, $content->query()->type('post')->whereTerm('category', 'painting')->get()->all()), 'whereTerm() too.');
 		$this->assertSame(1, $content->termCounts('category')['art'] ?? null, 'C counts for Art by its id; D is a draft.');

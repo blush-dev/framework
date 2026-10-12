@@ -31,11 +31,11 @@ import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
 import { focusMode, lastVisits, screenCrumb, screenTitle, screenTrail } from '../screen';
-import { initials } from '../people';
 import { loadCounts, navCounts } from '../counts';
 import { can, canAnyType, canType, savePreferences, session, signOut, usesMedia } from '../session';
 import { toast } from '../toast';
 import { contentMenu, profileType, currentType, loadTypes, typeIcon, types } from '../types';
+import AdminAvatar from './AdminAvatar.vue';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import MenuButton from './MenuButton.vue';
@@ -710,7 +710,7 @@ async function leave(): Promise<void> {
 				</a>
 				<MenuButton button-class="account" :label="`Account: ${session.account?.displayName ?? ''}`">
 					<template #button>
-						<span aria-hidden="true">{{ initials(session.account?.displayName ?? '') }}</span>
+						<AdminAvatar :name="session.account?.displayName ?? ''" :image="session.account?.avatar" />
 					</template>
 					<p class="account__who">
 						<span>{{ session.account?.displayName }}</span>
@@ -1290,6 +1290,14 @@ async function leave(): Promise<void> {
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	cursor: pointer;
+}
+
+.bar :deep(.account) .avatar {
+	width: 100%;
+	height: 100%;
+	background: none;
+	color: inherit;
+	font-size: inherit;
 }
 
 .bar :deep(.account[aria-expanded="true"]) {

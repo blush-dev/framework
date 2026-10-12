@@ -30,6 +30,7 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
@@ -240,15 +241,20 @@ final readonly class DashboardController
 
 	/**
 	 * Returns what the dashboard shows of an entry. `authors` are the
-	 * names of the people it credits, and `yours` says whether one of them
-	 * is the account's profile.
+	 * names of the profiles its credit relations link (D-803), and `yours`
+	 * says whether one of them is the account's profile.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private function describe(Entry $entry, Account $account): array
 	{
-		$profiles = $this->types->profiles()?->name;
-		$credited = $profiles === null ? [] : ($entry->terms[$profiles] ?? []);
+		$credited = [];
+
+		foreach ($entry->relations(RelationKind::Credit) as $relation) {
+			foreach ($entry->related($relation->name) as $person) {
+				$credited[$person->id ?? $person->path] = $person;
+			}
+		}
 
 		return [
 			'id'        => $entry->id,
@@ -260,19 +266,8 @@ final readonly class DashboardController
 			'url'       => $this->urls->entry($entry),
 			'published' => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
-			'authors'   => array_map(fn (string $slug): string => $this->name($profiles, $slug), $credited),
-			'yours'     => in_array($this->profiles->slug($account), $credited, true)
+			'authors'   => array_values(array_map(static fn (Entry $person): string => trim($person->title) === '' ? $person->slug : trim($person->title), $credited)),
+			'yours'     => $account->profile !== null && isset($credited[$account->profile])
 		];
-	}
-
-	/**
-	 * Returns the name of a person an entry credits: their profile's
-	 * title, or the slug when it has none.
-	 */
-	private function name(?string $profiles, string $slug): string
-	{
-		$title = $profiles === null ? '' : trim($this->content->term($profiles, $slug)->title ?? '');
-
-		return $title === '' ? $slug : $title;
 	}
 }

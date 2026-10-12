@@ -20,7 +20,6 @@ use Psr\Clock\ClockInterface;
 use Blush\Asset\AssetCollector;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Record\EntryTerms;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -43,13 +42,6 @@ use Blush\Storage\Record\RecordStores;
  */
 final class EntryHydrator
 {
-	/**
-	 * Each type's term sources, once asked for.
-	 *
-	 * @var array<string, list<array{string, string, string, list<string>, bool, string}>>
-	 */
-	private array $terms = [];
-
 	public function __construct(
 		private readonly ContentTypes $types,
 		private readonly FieldContext $context,
@@ -66,7 +58,7 @@ final class EntryHydrator
 	 * Builds the entry for a record, at its key within its type, kept at
 	 * a path (for showing; `''` for a store without files), with what it
 	 * refers to (target ids by relation, in order, from the `refs` rows)
-	 * and those targets' slugs, by id, for its terms. Its
+	 * and those targets' slugs, by id, which the entry keeps (D-803). Its
 	 * Markdown comes from `$content` when given, else from the store; an
 	 * entry built for a file without an id (`$identified` false) has
 	 * none.
@@ -109,7 +101,7 @@ final class EntryHydrator
 			updated: $this->date($updated),
 			locale: $this->locale($language),
 			fields: $schema->hydrate($values, $this->context),
-			terms: EntryTerms::of($this->terms[$type->name] ??= EntryTerms::sources($this->types, $type), $refs, $targets),
+			links: self::links($refs, $targets),
 			landing: $slug === '',
 			body: $this->body($record, $language, $content),
 			language: $language,
@@ -119,6 +111,30 @@ final class EntryHydrator
 			originalId: $original === '' ? null : $original,
 			graph: $this->graph
 		);
+	}
+
+	/**
+	 * Returns what an entry links to, by relation: each target's id with
+	 * its slug, in order, leaving out a target that isn't kept (D-662).
+	 *
+	 * @param  array<string, list<string>> $refs
+	 * @param  array<string, string>       $targets
+	 * @return array<string, array<string, string>>
+	 */
+	private static function links(array $refs, array $targets): array
+	{
+		$links = [];
+
+		// Plain loops: every entry built reads its links.
+		foreach ($refs as $relation => $ids) {
+			foreach ($ids as $id) {
+				if (isset($targets[$id])) {
+					$links[$relation][$id] = $targets[$id];
+				}
+			}
+		}
+
+		return $links;
 	}
 
 	/**

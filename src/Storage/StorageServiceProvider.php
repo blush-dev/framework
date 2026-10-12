@@ -15,6 +15,8 @@ namespace Blush\Storage;
 
 use Override;
 use Blush\Content\Record\EntryTable;
+use Blush\Event\Listener\ListenerRegistry;
+use Blush\Http\Events\RequestReceived;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
 use Blush\Container\ServiceResolver;
@@ -27,6 +29,7 @@ use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\TableRegistry;
 use Blush\Storage\Sql\SqliteConnection;
 use Blush\Storage\Sql\SqliteRecordStore;
+use Blush\Support\RequestMemo;
 
 /**
  * Binds the storage drivers (D-486, D-642), and the record layer's
@@ -45,6 +48,7 @@ final class StorageServiceProvider extends ServiceProvider
 		StorageDriverFactory::class,
 		StorageResolver::class,
 		RecordStores::class,
+		RequestMemo::class,
 		TableRegistry::class,
 		FileLayouts::class,
 		FileTransactions::class
@@ -86,12 +90,18 @@ final class StorageServiceProvider extends ServiceProvider
 	/**
 	 * Fails at boot, plainly, when an area uses the SQLite driver and PHP
 	 * can't open SQLite databases with SQLite's JSON functions (D-640).
+	 * Drops the request memo when a request comes in (D-807), for a
+	 * process that serves more than one.
 	 *
 	 * @throws StorageException
 	 */
 	#[Override]
 	public function boot(): void
 	{
+		if ($this->container->has(ListenerRegistry::class)) {
+			$this->container->make(ListenerRegistry::class)->listen(RequestReceived::class, $this->container->make(RequestMemo::class)->forget(...));
+		}
+
 		if ($this->container->make(StorageConfig::class)->uses(StorageConfig::SQLITE) && ! SqliteConnection::available()) {
 			throw new StorageException(SqliteStorage::UNAVAILABLE);
 		}

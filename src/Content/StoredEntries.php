@@ -43,6 +43,7 @@ use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Refs;
+use Blush\Support\RequestMemo;
 
 /**
  * The default `Entries` (D-654), on records (D-649), the same for every
@@ -70,7 +71,8 @@ final class StoredEntries implements Entries
 		private readonly QueryCompiler $compiler,
 		private readonly RecordStores $stores,
 		private readonly EntryLocations $locations,
-		#[Defer(ContentWriter::class)] private readonly Closure $writer
+		#[Defer(ContentWriter::class)] private readonly Closure $writer,
+		private readonly RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
@@ -88,9 +90,13 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function get(Query $query): EntryCollection
 	{
-		$found = $this->select($query);
+		$compiled = $this->compile($query);
 
-		return new EntryCollection(self::ids($found->records), $found->total, fn (): array => $this->entries($found->records));
+		return $this->memo->remember('collection|' . $compiled->fingerprint(), function () use ($compiled): EntryCollection {
+			$found = $this->records($compiled);
+
+			return new EntryCollection(self::ids($found->records), $found->total, fn (): array => $this->entries($found->records));
+		});
 	}
 
 	/**
@@ -103,10 +109,29 @@ final class StoredEntries implements Entries
 	 */
 	private function select(Query $query): RecordResult
 	{
-		$table = EntryTable::table();
-
-		return $this->store()->select($table, $this->compiler->compile($query, $this->now(), $this->locations)->withoutContent());
+		return $this->records($this->compile($query));
 	}
+
+	/**
+	 * Compiles a query to a record query over `entries`, as of now,
+	 * without content.
+	 *
+	 * @throws InvalidQuery
+	 */
+	private function compile(Query $query): RecordQuery
+	{
+		return $this->compiler->compile($query, $this->now(), $this->locations)->withoutContent();
+	}
+
+	/**
+	 * Returns the records a record query over `entries` finds, asked of
+	 * the store once a request (its reads are memoized, D-807).
+	 */
+	private function records(RecordQuery $query): RecordResult
+	{
+		return $this->store()->select(EntryTable::table(), $query);
+	}
+
 
 	/**
 	 * @inheritDoc
@@ -299,15 +324,29 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function termCounts(string|array $taxonomy, ?Query $query = null): array
 	{
+		$query  ??= $this->query();
+		$compiled = $this->compile($query->limit(null)->offset(0));
+
+		return $this->memo->remember('termCounts|' . implode(',', (array) $taxonomy) . '|' . $compiled->fingerprint(), fn (): array => $this->countTerms((array) $taxonomy, $compiled));
+	}
+
+	/**
+	 * Counts, for `termCounts()`.
+	 *
+	 * @param  list<string> $taxonomies
+	 * @return array<string, int>
+	 */
+	private function countTerms(array $taxonomies, RecordQuery $compiled): array
+	{
 		$relations = [];
 
-		foreach (is_array($taxonomy) ? $taxonomy : [$taxonomy] as $key) {
+		foreach ($taxonomies as $key) {
 			foreach ($this->compiler->termRelations($key) as $relation) {
 				$relations[$relation->name] = $relation;
 			}
 		}
 
-		$listed = self::ids($this->select(($query ?? $this->query())->limit(null)->offset(0))->records);
+		$listed = self::ids($this->records($compiled)->records);
 
 		if ($relations === [] || $listed === []) {
 			return [];
@@ -461,6 +500,7 @@ final class StoredEntries implements Entries
 	public function delete(Entry|string $entry, ?string $version = null): void
 	{
 		$this->writer()->delete(self::id($entry), $version);
+		$this->memo->forget();
 	}
 
 	/**
@@ -517,13 +557,15 @@ final class StoredEntries implements Entries
 	}
 
 	/**
-	 * Returns an entry just written.
+	 * Returns an entry just written, after dropping what entries led to
+	 * before it (D-805).
 	 *
 	 * @throws WriteException When it can't be read back.
 	 */
 	private function written(string $id): Entry
 	{
 		$this->locations->refresh();
+		$this->memo->forget();
 
 		return $this->find($id) ?? throw new WriteException('The entry was written but couldn\'t be read back; check Site Health.');
 	}
@@ -544,18 +586,49 @@ final class StoredEntries implements Entries
 	 */
 	private function where(RecordQuery $query): array
 	{
-		return $this->entries($this->store()->select(EntryTable::table(), $query->withoutContent())->records);
+		return $this->entries($this->records($query->withoutContent())->records);
 	}
 
 	/**
 	 * Builds entries from their records, with what each refers to (the
 	 * `refs` rows, D-649) and the slugs of those targets, read in one go,
-	 * for their terms.
+	 * for their terms. An entry is built once a request (D-806): a
+	 * record already built, at the same version, comes back as the same
+	 * object, however it was found.
 	 *
 	 * @param  list<Record> $records
 	 * @return list<Entry>
 	 */
 	private function entries(array $records): array
+	{
+		$missing = array_values(array_filter($records, fn (Record $record): bool => ! $this->memo->has($this->key($record))));
+
+		if ($missing !== []) {
+			$this->build($missing);
+		}
+
+		return array_map(fn (Record $record): Entry => $this->memo->remember($this->key($record), fn (): Entry => $this->build([$record])[0]), $records);
+	}
+
+	/**
+	 * Returns the memo's key for the entry built from a record: by its id,
+	 * its version, and its status now, so a scheduled entry whose time
+	 * comes is built again.
+	 */
+	private function key(Record $record): string
+	{
+		$status = Status::at(EntryRecords::text($record, 'status'), EntryTable::timestamp($record->fields['published'] ?? null), $this->now());
+
+		return "entry|{$record->id}|" . ($record->version ?? '') . "|{$status->value}";
+	}
+
+	/**
+	 * Builds entries from records not built yet, and keeps them.
+	 *
+	 * @param  list<Record> $records
+	 * @return list<Entry>
+	 */
+	private function build(array $records): array
 	{
 		$table = EntryTable::table();
 		$refs  = Refs::group($this->store(), $table, self::ids($records));
@@ -576,7 +649,7 @@ final class StoredEntries implements Entries
 		}
 
 		return array_map(
-			fn (Record $record): Entry => $this->hydrator->hydrate($record, $this->locations->key($record->id) ?? '', $this->locations->path($record->id), $refs[$record->id] ?? [], $slugs),
+			fn (Record $record): Entry => $this->memo->remember($this->key($record), fn (): Entry => $this->hydrator->hydrate($record, $this->locations->key($record->id) ?? '', $this->locations->path($record->id), $refs[$record->id] ?? [], $slugs)),
 			$records
 		);
 	}

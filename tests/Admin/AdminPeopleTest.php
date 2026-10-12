@@ -51,10 +51,10 @@ final class AdminPeopleTest extends TestCase
 
 		$this->assertIsArray($administrator);
 		$this->assertNotContains('*', $administrator, 'The administrator has a list (D-500).');
-		$this->assertSame([['username' => 'jane', 'displayName' => 'jane']], $this->role($answer, 'administrator')['accounts'] ?? null);
-		$this->assertSame([['username' => 'sam', 'displayName' => 'Sam Smith']], $this->role($answer, 'author')['accounts'] ?? null);
+		$this->assertSame([['username' => 'jane', 'displayName' => 'jane', 'avatar' => null]], $this->role($answer, 'administrator')['accounts'] ?? null);
+		$this->assertSame([['username' => 'sam', 'displayName' => 'Sam Smith', 'avatar' => null]], $this->role($answer, 'author')['accounts'] ?? null);
 		$this->assertTrue($this->role($answer, 'author')['builtIn'] ?? null);
-		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.*.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith']], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
+		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.*.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith', 'avatar' => null]], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
 		$this->assertFalse($this->role($answer, 'owner')['editable'] ?? null, 'The owner always has everything.');
 		$this->assertTrue($this->role($answer, 'owner')['grantable'] ?? null, 'With no owner yet, an administrator may name one.');
 		$this->assertTrue($this->role($answer, 'administrator')['editable'] ?? null);
@@ -110,6 +110,7 @@ final class AdminPeopleTest extends TestCase
 	public function testAccountsCarryTheirProfiles(): void
 	{
 		$this->profiles();
+		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\navatar: https://cdn.example.com/jane.jpg\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\nWrites.\n");
 		$this->site();
 
 		$accounts = self::json($this->send('GET', '/accounts'))['accounts'] ?? null;
@@ -119,6 +120,10 @@ final class AdminPeopleTest extends TestCase
 
 		$this->assertSame(['path' => '_profile/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
 		$this->assertSame('Jane Author', $jane['displayName'] ?? null, 'One name: the profile\'s title.');
+		$this->assertSame('https://cdn.example.com/jane.jpg', $jane['avatar'] ?? null, 'Its profile\'s portrait (`Avatars`, D-810).');
+		$this->assertArrayHasKey('avatar', $sam);
+		$this->assertNull($sam['avatar'], 'Without a profile, initials, which the admin draws.');
+		$this->assertSame('https://cdn.example.com/jane.jpg', self::account($this->send('GET', '/session'))['avatar'] ?? null, 'The signed-in account\'s too.');
 		$this->assertArrayHasKey('profile', $sam);
 		$this->assertNull($sam['profile'], 'Not linked, so no profile (D-353).');
 		$this->assertSame(404, $this->send('GET', '/people')->getStatusCode(), 'Accounts and profiles are two lists now.');
@@ -316,7 +321,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
 		$this->assertSame('Sam Smith', $sam['name'] ?? null);
 		$this->assertSame('Sam Smith', $sam['displayName'] ?? null);
-		$this->assertSame(['username', 'email', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'tokenOnly', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame(['username', 'email', 'name', 'displayName', 'avatar', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'tokenOnly', 'manages'], array_keys($sam), 'No password hash or preferences.');
 		$this->assertSame('active', $sam['status'] ?? null);
 		$this->assertTrue($sam['manages'] ?? null);
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');

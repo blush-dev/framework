@@ -17,6 +17,7 @@ use Closure;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Record\EntryTerms;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
@@ -27,6 +28,7 @@ use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteConfig;
 use Blush\Routing\RoutePattern;
 use Blush\Routing\UrlGenerationException;
+use Blush\Support\RequestMemo;
 
 /**
  * Builds the URLs of entries, collections, terms, and date archives from
@@ -112,7 +114,8 @@ final readonly class ContentUrls
 		private ContentTypes $types,
 		private RouteConfig $routes,
 		private AppConfig $app,
-		#[Defer(Entries::class)] private Closure $content
+		#[Defer(Entries::class)] private Closure $content,
+		private RequestMemo $memo = new RequestMemo()
 	) {}
 
 	/**
@@ -140,6 +143,14 @@ final readonly class ContentUrls
 	 * default, each slug is its translation's.
 	 */
 	public function termPath(ContentType $taxonomy, string $slug, ?string $language = null): string
+	{
+		return $this->memo->remember("termPath|{$taxonomy->name}|{$slug}|{$language}", fn (): string => $this->findTermPath($taxonomy, $slug, $language));
+	}
+
+	/**
+	 * Works out what a term's `{name}` holds, for `termPath()`.
+	 */
+	private function findTermPath(ContentType $taxonomy, string $slug, ?string $language): string
 	{
 		$path = [$slug];
 
@@ -185,6 +196,14 @@ final readonly class ContentUrls
 	 * Returns an entry's URL path.
 	 */
 	public function entry(Entry $entry): ?string
+	{
+		return $this->memo->remember(implode('|', ['url', $entry->id ?? "path:{$entry->path}", $entry->version ?? '', $entry->language]), fn (): ?string => $this->entryUrl($entry));
+	}
+
+	/**
+	 * Works out an entry's URL path, for `entry()`.
+	 */
+	private function entryUrl(Entry $entry): ?string
 	{
 		$type = $entry->type;
 
@@ -417,7 +436,7 @@ final readonly class ContentUrls
 			}
 		}
 
-		foreach ($entry->terms as $taxonomy => $slugs) {
+		foreach (EntryTerms::of(EntryTerms::sources($this->types, $entry->type), $entry->links()) as $taxonomy => $slugs) {
 			if ($slugs !== []) {
 				$values[$taxonomy] = $slugs[0];
 			}
@@ -465,6 +484,16 @@ final readonly class ContentUrls
 			return null;
 		}
 
+		return $this->memo->remember('build|' . hash('xxh128', serialize([$pattern, $values, $type->name])), fn (): ?string => $this->buildPath($pattern, $values, $type));
+	}
+
+	/**
+	 * Builds a path from a route pattern, for `build()`.
+	 *
+	 * @param array<string, string> $values
+	 */
+	private function buildPath(string $pattern, array $values, ContentType $type): ?string
+	{
 		try {
 			$parsed = RoutePattern::parse($pattern);
 

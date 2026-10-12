@@ -1413,6 +1413,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 
 | Layer | Key / invalidation |
 |---|---|
+| Lookups within a request | `RequestMemo` (D-805 to D-807); dropped on writes and at request, job, worker-pass, and MCP-message boundaries |
 | Config, routes, plugins, themes, icon packs, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies, summaries, excerpts | Content version + theme + rendering settings + content hash (`RenderedBodies`) |
@@ -1431,6 +1432,23 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   `fragments`, or an extension's). Values are plain data. `Caches` hands
   out stores, null ones when caching is off (in development, by
   default). Tagged invalidation comes later.
+- **Request memo** (`Blush\Support\RequestMemo`, D-807): every lookup
+  is asked of storage once a request, and the same lookup reached two
+  ways is the same object. `RecordStores` wraps every driver's store in
+  a `MemoizedRecordStore` (reads kept by table and query fingerprint;
+  writes and transactions drop the memo; reads inside a transaction go
+  to the driver; `RecordStores::driver()` is the bare store, for
+  `SchemaStore` checks). Repositories that build objects from records
+  keep them by record id and version (`account|…`, `token|…`), and a
+  small table read for lookups by several keys is read whole once
+  (`Accounts`). Entries (`StoredEntries`' identity map), what entries
+  lead to (`EntryGraph`), content URLs, the loaded content types, and
+  decrypted secrets are kept the same way. It's a singleton; the
+  storage provider drops it on `RequestReceived`, the content provider
+  on `ContentIndexed`, `JobRunner` before each job and each pass, and
+  `McpStdio` before each message. New code that reads storage or builds
+  objects from it memoizes here from the start; a test that writes
+  outside a store (as another process would) calls `forget()`.
 - **`CacheConfig`** (`config/cache.php`): `enabled`, `driver`, `stores`,
   `pages`, `maxAge`.
 - **Later:** page-cache files written so nginx/Apache `try_files` can

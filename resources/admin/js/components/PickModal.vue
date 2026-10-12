@@ -9,12 +9,14 @@
  */
 
 import { computed, useSlots } from 'vue';
+import AdminAvatar from './AdminAvatar.vue';
 import AdminModal from './AdminModal.vue';
 
 export interface PickItem {
 	key: string;
-	initials: string;
 	name: string;
+	// The picture's URL, or `null` for initials.
+	image?: string | null;
 	meta: string;
 	aside?: string;
 	guest?: boolean;
@@ -49,7 +51,7 @@ const lower = computed(() => props.noun.toLowerCase());
 			<p><slot /></p>
 			<div class="pick-list" role="group" :aria-label="`${noun}s`">
 				<button v-for="item in items" :key="item.key" type="button" class="pick" :aria-pressed="pick === item.key" @click="pick = item.key">
-					<span class="avatar" :class="{ 'avatar--guest': item.guest }" aria-hidden="true">{{ item.initials }}</span>
+					<AdminAvatar :class="{ 'avatar--guest': item.guest }" :name="item.name" :image="item.image" />
 					<span class="pick__text">
 						<span class="pick__name">{{ item.name }}</span>
 						<span class="pick__meta">{{ item.meta }}</span>

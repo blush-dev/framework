@@ -224,15 +224,35 @@ The template API (kept deliberately small; D-103):
 | `bodyClass()` | The `<body>` classes |
 
 What leads from an entry is the entry's (D-802), not `Template`'s:
-`$entry->url()`, `terms($taxonomy)` (term entries; slugs are the
-`$terms` property), `related()`, `referencedBy()`, `byline()`,
-`author()`, `credits()`, `parent()`, `ancestors()`, `children()`, and
-`media($field)`, through the `EntryGraph` every entry shares. They come
-back whatever their status; the template checks `isPublished()` and
-`isRoutable()`. `Template` keeps what needs the render: building the
+`$entry->url()`, `link(...$attributes)`, `relations(?RelationKind)`,
+`related()`, `referencedBy()`, `byline()` (D-804), one method a
+relation kind (D-808: `classifications()`, `credits()`, `references()`,
+`parent()`, `translations()`), `linksTo($relation, $id)`,
+`ancestors()`, `children()`, and `media($field)`, through the
+`EntryGraph` every entry shares. `related()` and `referencedBy()`
+return a `RelatedEntries` (D-803: `relation`, `byline`, `published()`,
+`first()`, `isEmpty()`, `all()`, countable and iterable); there's no
+`terms()`, `author()`, or `credits()`. They come back
+whatever their status; the template checks `isPublished()` and
+`isRoutable()`, or uses `published()`. An entry keeps its links as
+target ids with their slugs by relation name; core code that builds
+addresses reads them through the `@internal` `slugs()` and `links()`.
+Every `EntryGraph` answer is kept in the shared `RequestMemo` (D-805),
+by entry id, version, and language, and `RelatedEntries::published()`
+and `Body`'s excerpt, word count, and summary are kept too, so a
+template calls `$entry->byline()` as often as it likes without saving
+it in a variable. The memo is dropped on every write through
+`Entries`, on `ContentIndexed`, on `RequestReceived`, before each job,
+and before each MCP stdio message. `StoredEntries` keeps one object per entry
+(by id, version, and status now) however it's reached, queries' records
+by compiled query, and `ContentUrls` its URLs (D-806). `Template` keeps what needs the render: building the
 page, its head and foot, text and dates in its language, theme and site
 settings, assets, routes, menus, and lookups that aren't an entry's
-(`profile()`, `media($value)`, `archiveUrl()`, `avatar()`).
+(`profile()`, `media($value)`, `archiveUrl()`). A profile's avatar is
+`$profile->avatar()` (D-809, D-810): `Blush\Auth\Avatars` builds it
+(its portrait, its `avatar` field, else its initials), memoized by
+size, and draws accounts' avatars outside templates with
+`Avatars::account()`; empty for an entry that isn't a profile.
 
 Every template also gets `$site` (name, URL, locale, `lang`). Content
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages

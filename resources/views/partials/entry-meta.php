@@ -2,9 +2,9 @@
 
 /**
  * An entry's byline, when the theme has no `partials/entry-meta`
- * (D-632): its publish date, the people it credits (D-602), and its
- * terms. Each person links to their archive under the relation, else
- * their profile's page.
+ * (D-632): its publish date, the profiles it credits (D-602), and what
+ * it's filed under (D-808). Each profile links to its archive under the
+ * relation, else its own page.
  *
  * @var Blush\View\Template       $template
  * @var Blush\Content\Entry\Entry $entry
@@ -16,36 +16,27 @@ $published = $entry->type->name === 'page' ? null : $entry->published;
 $credits   = [];
 
 // What an entry leads to comes back whatever its status (D-802), so
-// only published people and terms show.
-$live = static fn (Blush\Content\Entry\Entry $item): bool => $item->isPublished() && $item->isRoutable();
+// only published profiles and terms show.
+foreach ($entry->relations(Blush\Content\Relation\RelationKind::Credit) as $relation) {
+	$profiles = $entry->related($relation->name)->published();
 
-foreach ($entry->credits() as $credit) {
-	$people = array_filter($credit['people'], $live);
-
-	if ($people === []) {
+	if ($profiles->isEmpty()) {
 		continue;
 	}
 
-	$relation = $credit['relation'];
-	$names    = array_map(static function (Blush\Content\Entry\Entry $person) use ($template, $entry, $relation): string {
-		$link = $template->archiveUrl($entry->type, $relation->name, $person) ?: $person->url();
+	$names = array_map(static function (Blush\Content\Entry\Entry $profile) use ($template, $entry, $relation): string {
+		$link = $template->archiveUrl($entry->type, $relation->name, $profile) ?: $profile->url();
 
-		return $link === '' ? e($person->title) : '<a href="' . url($link) . '">' . e($person->title) . '</a>';
-	}, $people);
+		return $link === '' ? e($profile->title) : '<a href="' . url($link) . '">' . e($profile->title) . '</a>';
+	}, $profiles->all());
 
 	$credits[] = [
-		$credit['byline'] ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
+		$profiles->byline ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
 		implode(', ', $names)
 	];
 }
 
-$terms = [];
-
-foreach (array_keys($entry->terms) as $taxonomy) {
-	foreach (array_filter($entry->terms($taxonomy), $live) as $term) {
-		$terms[] = '<a href="' . url($term->url()) . '">' . e($term->title) . '</a>';
-	}
-}
+$terms = array_map(static fn (Blush\Content\Entry\Entry $term): string => (string) $term->link(), $entry->classifications()->published()->all());
 
 ?>
 <?php if ($published !== null || $credits !== [] || $terms !== []) : ?>

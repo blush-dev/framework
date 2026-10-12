@@ -66,6 +66,16 @@ final readonly class RecordQuery
 	) {}
 
 	/**
+	 * Returns what identifies the query's answer (D-807): a hash of its
+	 * conditions, order, limits, loaded refs, and fields, for keeping
+	 * that answer in the request memo.
+	 */
+	public function fingerprint(): string
+	{
+		return hash('xxh128', serialize([$this->conditions, $this->sorts, $this->limit, $this->offset, $this->with, $this->content, $this->only]));
+	}
+
+	/**
 	 * Adds a condition.
 	 *
 	 * @throws InvalidRecordQuery When the key is empty or the value doesn't fit the operator.
