@@ -67,7 +67,6 @@ final class EntryFields
 			new MarkdownField('summary')->aliases('excerpt')->described('A short Markdown summary for listings and feeds. Without one, the first 50 words are used.'),
 			new MediaField('image')->described('A featured image.'),
 			new ListField('template')->aliases('view')->described('The theme template to use, such as single-wide.'),
-			new TextField('layout')->described('The theme layout to use.'),
 			new TextField('stylesheet')->described('An extra stylesheet for this page.'),
 			new ListField('class')->described('Extra CSS classes for the page\'s <body>.'),
 			new TextField(self::TRANSLATION_OF)->described('For a translation, the id of the entry it translates, which links them whatever their file names.'),

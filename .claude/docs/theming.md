@@ -441,10 +441,25 @@ in D-160. It may return as an add-on; notes on the old design:
 
 ## Per-entry presentation (D-027)
 
-Built-in front matter: `layout`, `template`, `stylesheet`, `class`.
+Built-in front matter: `template`, `stylesheet`, `class`.
 These let a single post have its own design without a custom theme.
-`layout` replaces the page template's layout (if it exists), `class` is added
-to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
+`class` is added to `<body>` (D-109), and `stylesheet` is a URL or a
+theme asset path (D-119). `layout`, which replaced the page template's
+layout, is gone (D-783).
+
+**Templates for single entries (D-783):** a theme declares the
+templates the editor's Template row offers, in code for now
+(`theme.json` will build on it): `EntryTemplateRegistry` (a singleton)
+takes an `EntryTemplate` (its view name without the extension, a label,
+a description, and the type names it's for, every type when none), from
+the theme provider's `boot()`. `Views::entryTemplates($type)` answers
+the declared ones with a view in the chain, by label;
+`missingEntryTemplates()` the ones without, which `theme:check` warns
+about. The admin (`Blush\Admin\EntryTemplates`) sends them with an
+entry as `templates` (none on a landing, archive, or error page), and
+refuses a `set` of `template` that isn't one of them. The row writes one
+name, or removes `template` for Default; a list, or a name the theme
+doesn't offer, shows as "Not in this theme" and is kept until changed.
 
 ## Assets (D-031)
 

@@ -147,13 +147,6 @@
 			],
 			"description": "Same as template. The theme template to use, such as single-wide."
 		},
-		"layout": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "The theme layout to use."
-		},
 		"stylesheet": {
 			"type": [
 				"string",

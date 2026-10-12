@@ -25,6 +25,8 @@ use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Tests\WritesContentConfig;
 use Blush\Tests\SavedSettings;
+use Blush\View\EntryTemplate;
+use Blush\View\EntryTemplateRegistry;
 
 #[CoversClass(EntryController::class)]
 #[CoversClass(EntryHandles::class)]
@@ -688,6 +690,38 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame('fr', $created['language'] ?? null);
 		$this->assertSame('_post/bonjour.fr.md', $created['path'] ?? null);
+	}
+
+	public function testOffersTheThemesTemplatesAndWritesOneByName(): void
+	{
+		$this->site();
+
+		// Views the default chain has, and one it doesn't (D-783).
+		$registry = $this->app->container()->make(EntryTemplateRegistry::class);
+		$registry->register(new EntryTemplate('single', 'Plain', 'Just the entry.', ['post']));
+		$registry->register(new EntryTemplate('collection', 'As a List', types: ['page']));
+		$registry->register(new EntryTemplate('template-gone', 'Gone'));
+
+		$this->assertSame([['name' => 'single', 'label' => 'Plain', 'description' => 'Just the entry.']], $this->load(self::FLAME)['templates'] ?? null);
+		$this->assertSame('As a List', self::at(self::json($this->call('GET', '/entries/new?type=page')), 'templates', '0', 'label'));
+
+		$saved = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['template' => 'single']]);
+
+		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
+		$this->assertStringContainsString("\ntemplate: single\n", $this->file(self::FLAME), 'One name, not a list.');
+
+		foreach (['collection', 'template-gone', ['single']] as $refused) {
+			$response = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['template' => $refused]]);
+
+			$this->assertSame([422, 'template'], [$response->getStatusCode(), self::json($response)['field'] ?? null]);
+		}
+
+		$this->assertSame(422, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'Listed', 'set' => ['template' => 'collection']])->getStatusCode());
+
+		$removed = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'remove' => ['template']]);
+
+		$this->assertSame(200, $removed->getStatusCode());
+		$this->assertStringNotContainsString('template:', $this->file(self::FLAME), 'Default writes nothing.');
 	}
 
 	public function testCreatesAPageUnderAnother(): void

@@ -59,6 +59,7 @@ final readonly class ViewServices
 		public AssetCollector $collector,
 		public EntryRelations $relations,
 		public MediaValues $media,
+		public EntryTemplateRegistry $templates,
 		public ?ContentCache $cache = null
 	) {}
 }

@@ -508,19 +508,26 @@ They have two tabs:
   **Subtitle**, its **Language** (on a site with
   [translations](content.md#translations); see below), and a new page's
   **Parent**, or the parent of an entry in a nesting collection (such
-  as a category). A line under them says what the date means and when
-  the file was last edited.
+  as a category), and its **Template**: **Default**, where the theme
+  picks one by the entry's type, or one of the templates the active
+  theme [declares](themes.md#templates-for-single-entries) for the type,
+  each with what it's for. The row shows only when the theme declares
+  one for the type, and never on an index page, an archive's page, or
+  an error page. A template the theme doesn't offer (or a list of them)
+  shows as **Not in this theme** and stays until you choose another. A
+  line under them says what the date means and when the file was last
+  edited.
   Then the **Authors**, each type of terms it's filed under (see
   [Choosing terms and authors](#choosing-terms-and-authors)), and the
   content type's other fields (a few kinds show their value read-only);
   each [field set](content-types.md#field-sets) added to the type, under
   its label, in the order of the sets' positions (see
-  [Fields on the Document tab](#fields-on-the-document-tab)); **Advanced**, with the theme's **Layout**, **Stylesheet**,
+  [Fields on the Document tab](#fields-on-the-document-tab)); **Advanced**, with the page's **Stylesheet**
   and **Class** (the page's classes on one line, apart by spaces),
   folded away until you open it, or open when one of them is set; and
   what Site Health finds in the file, as last saved (notices only if
   you ask). Every save, and every bulk change, sets `updated` to when it
-  was made, so there's no field for it, and `template` and `collection` are kept in the file
+  was made, so there's no field for it, and `collection` is kept in the file
   as written, without a field. Front matter the type doesn't declare
   isn't shown, and
   saving keeps it as it is. Only the types of terms whose relation files the content

@@ -227,27 +227,13 @@ final class ViewsTest extends TestCase
 		$this->views()->exists('../etc/passwd');
 	}
 
-	public function testTheContextLayoutReplacesThePagesLayout(): void
-	{
-		$this->view('layouts/wide', 'wide:<?= $template->section(\'content\') ?>');
-		$this->view('layouts/narrow', 'narrow:<?= $template->section(\'content\') ?>');
-		$this->view('page', '<?php $template->layout(\'narrow\') ?>body');
-
-		$this->assertSame('narrow:body', $this->render('page'));
-		$this->assertSame('wide:body', $this->render('page', [], new ViewContext(layout: 'wide')));
-		$this->assertSame('narrow:body', $this->render('page', [], new ViewContext(layout: 'missing')));
-		$this->assertSame('narrow:body', $this->render('page', [], new ViewContext(layout: '../x')));
-	}
-
 	public function testALayoutWithAFolderIsUnderLayouts(): void
 	{
 		$this->view('layouts/shells/wide', 'shell:<?= $template->section(\'content\') ?>');
-		$this->view('layouts/shells/narrow', 'narrow shell:<?= $template->section(\'content\') ?>');
 		$this->view('shells/wide', 'outside layouts');
 		$this->view('page', '<?php $template->layout(\'shells/wide\') ?>body');
 
 		$this->assertSame('shell:body', $this->render('page'));
-		$this->assertSame('narrow shell:body', $this->render('page', [], new ViewContext(layout: 'shells/narrow')));
 	}
 
 	public function testHelpers(): void

@@ -223,8 +223,8 @@ final class ThemedRenderingTest extends TestCase
 	public function testFrontMatterControlsPresentation(): void
 	{
 		$this->standardContent();
-		$this->entry('about/index.md', "title: About\ntemplate: [about-page]\nlayout: plain\nclass: [wide, 'dark mode']");
-		$this->themeView('about-page.php', '<?php $template->layout(\'base\') ?>custom about');
+		$this->entry('about/index.md', "title: About\ntemplate: [about-page]\nclass: [wide, 'dark mode']");
+		$this->themeView('about-page.php', '<?php $template->layout(\'plain\') ?>custom about');
 		$this->themeView('layouts/plain.php', '<body class="<?= attr($template->bodyClass()) ?>"><?= $template->section(\'content\') ?></body>');
 
 		$this->assertSame('<body class="wide dark mode is-page type-page">custom about</body>', $this->body('/about'));

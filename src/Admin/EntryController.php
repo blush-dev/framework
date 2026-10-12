@@ -64,6 +64,7 @@ use Blush\Field\FieldTargets;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Media\MediaValues;
+use Blush\View\EntryTemplate;
 use Blush\Http\Status;
 
 /**
@@ -75,7 +76,11 @@ use Blush\Http\Status;
  *   (from whichever key or alias the file uses), other front matter,
  *   body, revision, when the file was last written (`modified`), type
  *   and field descriptions, what the account may do, and the file's
- *   problems, and its handle (`EntryHandles`, D-253), or `null`.
+ *   problems, and its handle (`EntryHandles`, D-253), or `null`; and
+ *   the `templates` its Template row offers (D-783: `name`, `label`,
+ *   `description`; none on a landing, archive, or error page). A `set`
+ *   of `template` on `POST` or `PATCH` must name one of them, or it's a
+ *   422 with `field: "template"`.
  * - `GET    entries/new?type=…`: a new entry of a type, described the same
  *   way but not yet written (no `path`, `id`, `handle`, or `revision`), so the
  *   editor opens on it and its first save creates it (D-336). It's a
@@ -211,7 +216,8 @@ final readonly class EntryController
 		private ArchivePages $archivePages,
 		private EntryEditor $editor,
 		private ActivityLog $activity,
-		private MediaValues $media
+		private MediaValues $media,
+		private EntryTemplates $templates
 	) {}
 
 	/**
@@ -273,6 +279,7 @@ final readonly class EntryController
 			'homepage'    => false,
 			'rootPage'    => false,
 			'homeInstead' => null,
+			'templates'   => $this->templatesFor($type->name),
 			'values'      => $this->editor->authorDefault($account, $type->name),
 			'extra'       => [],
 			'body'        => '',
@@ -316,6 +323,11 @@ final readonly class EntryController
 	{
 		$account = self::account($request);
 		$input   = self::input($request);
+		$refused = $this->templateRefused($input, is_string($input['type'] ?? null) ? $input['type'] : '');
+
+		if ($refused !== null) {
+			return $refused;
+		}
 
 		try {
 			$entry = $this->editor->create(Actor::admin($account), new NewEntry(
@@ -357,6 +369,12 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
 
+		$refused = $this->templateRefused($input, $entry->type->name);
+
+		if ($refused !== null) {
+			return $refused;
+		}
+
 		try {
 			$body   = $input['body'] ?? null;
 			$status = $input['status'] ?? null;
@@ -392,6 +410,45 @@ final readonly class EntryController
 		$this->remember($account, $updated);
 
 		return self::json($this->describe($account, $updated, $file));
+	}
+
+	/**
+	 * Returns the templates the editor's Template row offers on a type
+	 * (D-783), as it reads them.
+	 *
+	 * @return list<array{name: string, label: string, description: string}>
+	 */
+	private function templatesFor(string $type): array
+	{
+		return array_map(static fn (EntryTemplate $template): array => $template->toArray(), $this->templates->for($type));
+	}
+
+	/**
+	 * Refuses a `template` the editor wouldn't offer (D-783): it sets one
+	 * name the active theme declares for the type. A name the file
+	 * already has is never sent, since only changes are.
+	 *
+	 * @param array<mixed> $input
+	 */
+	private function templateRefused(array $input, string $type): ?ResponseInterface
+	{
+		$set = $input['set'] ?? null;
+
+		if (! is_array($set) || ! array_key_exists('template', $set)) {
+			return null;
+		}
+
+		$name = $set['template'];
+
+		if (is_string($name) && $this->templates->offers($type, $name)) {
+			return null;
+		}
+
+		return self::error(
+			is_string($name) ? sprintf('The theme has no "%s" template for this type.', $name) : 'Choose one template by its name.',
+			Status::UnprocessableContent,
+			'template'
+		);
 	}
 
 	/**
@@ -807,6 +864,7 @@ final readonly class EntryController
 			'introduces'  => $this->introduces($entry, $index),
 			'errorPage'   => ErrorPage::status($entry),
 			...$home,
+			'templates'   => $live && ! $entry->landing && ! $people && ! $person && $error === null ? $this->templatesFor($entry->type->name) : [],
 			'values'      => $values,
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),

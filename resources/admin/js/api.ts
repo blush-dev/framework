@@ -1302,6 +1302,13 @@ export interface FieldTypeCatalog {
 /**
  * An entry for editing (`GET entries/{id}`, D-229).
  */
+// A template a theme declares for single entries (D-783).
+export interface EntryTemplateOption {
+	name: string;
+	label: string;
+	description: string;
+}
+
 export interface EntryDetail {
 	// What a translation uses from its original, by relation field (D-599).
 	inherited?: Record<string, InheritedValues>;
@@ -1343,6 +1350,10 @@ export interface EntryDetail {
 	introduces: ArchiveFacts | null;
 	// The status it's the site's error page for (D-411), or `null`.
 	errorPage: number | null;
+	// The templates its Template row offers (D-783): those the active
+	// theme declares for its type. None on a landing, archive, or error
+	// page, and then the row is hidden.
+	templates: EntryTemplateOption[];
 	// Its part in the homepage, as `EntrySummary` says (D-420).
 	homepage: boolean;
 	rootPage: boolean;

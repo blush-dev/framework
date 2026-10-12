@@ -49,7 +49,8 @@ use Blush\Translation\CatalogCheck;
  *   met, so it can't be activated; a `version` Composer can't read
  *   (D-430, D-431); an abandoned theme (D-433); site setting values
  *   that don't fit; other broken themes; a directive or component with a
- *   class but no template to render; a template in `directives/` for no
+ *   class but no template to render; a template declared for entries
+ *   with no view (D-783); a template in `directives/` for no
  *   registered directive, or in `components/` not named for a component;
  *   site menus or items that are invalid or don't resolve, and
  *   assignments to menus the site doesn't have (D-199, D-676); a theme's layout without `<header>` or `<footer>`,
@@ -231,6 +232,7 @@ final readonly class ThemeChecker
 	 * nor does one in `components/` not named for a component
 	 * (`{namespace}-{name}`, D-171). Another theme's components are
 	 * skipped (its provider registers them when it's the active theme).
+	 * A template declared for entries needs its view (D-783).
 	 * Its `theme.json` variants (D-266) must be for directives that exist
 	 * and have valid names, and should have labels; a variant's template
 	 * mustn't also be a directive's own.
@@ -245,6 +247,7 @@ final readonly class ThemeChecker
 			$components      = $views->components();
 			$strayDirectives = $views->strayDirectiveFiles();
 			$strayComponents = $views->strayComponentFiles();
+			$missing         = $views->missingEntryTemplates();
 		} catch (Throwable) {
 			// The layout check reports views that can't be built.
 			return [];
@@ -267,6 +270,10 @@ final readonly class ThemeChecker
 			if ($component->isMissingTemplate()) {
 				$problems[] = new Violation("component {$component->name}", sprintf('The "%s" component (%s) has no %s template in the chain.', $component->name, $component->class ?? 'no class', $component->name->view()), Severity::Warning);
 			}
+		}
+
+		foreach ($missing as $template) {
+			$problems[] = new Violation("template {$template->name}", sprintf('The "%s" template (%s) is declared for entries but has no %s view in the chain, so the editor doesn\'t offer it.', $template->name, $template->label, $template->name), Severity::Warning);
 		}
 
 		$problems = [...$problems, ...$this->variants($theme, $views, $directives)];

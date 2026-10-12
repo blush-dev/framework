@@ -87,8 +87,7 @@ needed in practice. The built-in keys:
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
-| `template` | The theme template to use, such as `single-wide` (`view` works too) |
-| `layout` | The theme layout to use, by its name in the theme's `layouts/` folder (`wide`, or `shells/wide` for `layouts/shells/wide.php`) |
+| `template` | The theme template to use, such as `template-wide` (`view` works too). The admin's **Template** row offers the ones the theme [declares](themes.md#templates-for-single-entries) |
 | `class` | Extra CSS classes for the page's `<body>` |
 | `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |

@@ -664,7 +664,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 - **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
   `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
   (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
-  `layout`, `stylesheet`, `class`, and
+  `stylesheet`, `class`, and
   `collection`, plus the field of each relation the site defines from
   the type (a classify relation's terms).
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
@@ -1109,8 +1109,8 @@ view layer was implemented in M5 (D-103 to D-125).
   through the theme chain (the site has none, D-617), then the
   framework's own `resources/views` (D-632), in each engine's extension (the first registered wins
   within a folder). `ViewFactory` builds one `Views` per chain and the per-page
-  `ViewContext` (the `PageMarkup` with its head and foot, sections, shared `$site`, body classes, and
-  the front matter `layout`).
+  `ViewContext` (the `PageMarkup` with its head and foot, sections, shared `$site`, and body
+  classes; front matter `layout` is gone, D-783).
 - **`Escaper`:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are the
   only global functions (D-106).
 - **`Head` manager:** collects title, meta, OpenGraph, canonical, alternates,

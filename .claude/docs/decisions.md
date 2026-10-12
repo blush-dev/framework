@@ -24684,3 +24684,58 @@ decision, add a new entry that supersedes it and mark the old one
   of the same thing), keeps values that belong together as one (an
   address, a call to action), and lets a plugin's set claim one key.
   Values left behind by a move would only show up as problems.
+
+### D-781: The fields sketch's loose ends, and Color, held
+- **Date:** 2026-10-11
+- **Refines:** D-774 (what's left of the sketch's Structure → Fields
+  menus) and D-767 (Color as a core control).
+- **Decision:** From the fields sketch, Move to Another Set (a field's
+  row menu) is left out for now; Duplicate and Open in the Editor (a
+  set's menu) are on hold; and a new group isn't seeded with a Label
+  field: it starts as Untitled, which is enough. Color, planned as a
+  core control in D-767, is on hold for a larger discussion. Range
+  Slider is next.
+- **Status:** Accepted.
+
+### D-782: Range Slider held too
+- **Date:** 2026-10-11
+- **Refines:** D-781 ("Range Slider is next") and D-767 (Range Slider
+  as a core control).
+- **Decision:** Range Slider is on hold with Color. A slider can stand
+  for more than a number (a date, or choices in an order, for two), so
+  it isn't settled as a control of number fields alone.
+- **Status:** Accepted.
+
+### D-783: Templates for single entries, declared in code, and `layout` removed
+- **Date:** 2026-10-11
+- **Refines:** D-728 (the editor's Template select, left for later) and
+  D-027 (per-entry presentation front matter).
+- **Decision:**
+  - **Templates are declared.** A theme registers each template the
+    editor offers with `EntryTemplateRegistry::register(new
+    EntryTemplate($name, label:, description:, types:))` from its
+    provider's `boot()`: the view's path under `views/` without the
+    extension, a label, a description, and the type names it's offered
+    on, every type when none are named. Code comes first; `theme.json`
+    builds on it once this is in place. `Views::entryTemplates($type)`
+    offers only declared templates with a view in the chain, by label;
+    `theme:check` warns about one without a view.
+  - **The editor's Template row**, after the Publish group's rows, is
+    a menu drawn as Status is: Default first, then the type's templates,
+    each with its description. It's hidden when the theme declares none
+    for the type, and on landing pages, relation archive pages, and
+    error pages: templates are for single entries only, not index or
+    collection pages.
+  - **Writing:** one name, or `template` removed for Default. The
+    editing API sends `templates` with an entry and refuses (422,
+    `field: "template"`) a `set` of `template` that isn't one of them.
+    A list, or a name the active theme doesn't offer, shows as "Not in
+    this theme (…)" and is kept until something else is chosen.
+  - **`layout` front matter is removed**, with every part of its
+    support: the `EntryFields` field, `ViewContext::$layout`, the
+    override in `Views`, and Layout in the editor's Advanced group. A
+    theme's own layouts (`$template->layout()`) are unchanged.
+- **Why:** the author's answers: declared templates need a name, label,
+  description, and types, starting in code; the description shown as
+  Status's are; `layout` was a leftover from the author's old site.
+- **Status:** Built.

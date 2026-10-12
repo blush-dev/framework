@@ -388,6 +388,16 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringNotContainsString('loose', $check->output);
 	}
 
+	public function testThemeCheckFlagsEntryTemplatesWithoutAView(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\TemplatesProvider::class]);\n");
+
+		$check = $this->command('theme:check');
+
+		$this->assertMatchesRegularExpression('#warning\s+template template\-gone\s+The "template\-gone" template \(Gone\) is declared for entries but has no template\-gone view in the chain, so the editor doesn\'t offer it\.#', $check->output);
+		$this->assertStringNotContainsString('template single', $check->output);
+	}
+
 	public function testAnotherThemesComponentsAreLeftOut(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");

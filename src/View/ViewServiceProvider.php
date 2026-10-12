@@ -46,6 +46,7 @@ final class ViewServiceProvider extends ServiceProvider
 		ViewEngines::class,
 		ViewFactory::class,
 		ViewServices::class,
+		EntryTemplateRegistry::class,
 		DocumentRenderer::class,
 		ContextProviders::class,
 		RenderableFactory::class

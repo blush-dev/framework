@@ -76,9 +76,7 @@ final readonly class Views
 	}
 
 	/**
-	 * Renders a page from the first view in a hierarchy that exists. The
-	 * context's layout (from front matter) replaces the one the page's
-	 * template asks for.
+	 * Renders a page from the first view in a hierarchy that exists.
 	 *
 	 * The head is held while the page renders (D-570), and the assets
 	 * anything in it asked for (D-572) are added before it's filled in,
@@ -95,7 +93,7 @@ final readonly class Views
 		$found = $this->finder->first($names) ?? throw ViewNotFound::forNames($names);
 		$holds = $context->markup->hold();
 
-		[$html, $handles] = $this->services->collector->collect(fn (): string => $this->renderFile($found[0], $found[1], $data, $context, $context->layout));
+		[$html, $handles] = $this->services->collector->collect(fn (): string => $this->renderFile($found[0], $found[1], $data, $context));
 
 		$context->markup->enqueue(...$handles);
 
@@ -126,6 +124,28 @@ final readonly class Views
 	public function exists(string|array $names): bool
 	{
 		return $this->findPartial($names) !== null;
+	}
+
+	/**
+	 * Returns the templates declared for single entries of a type
+	 * (D-783) that have a view in the chain, by label.
+	 *
+	 * @return list<EntryTemplate>
+	 */
+	public function entryTemplates(string $type): array
+	{
+		return array_values(array_filter($this->services->templates->forType($type), fn (EntryTemplate $template): bool => $this->finder->find($template->name) !== null));
+	}
+
+	/**
+	 * Returns the templates declared for single entries (D-783) that
+	 * have no view in the chain, for `theme:check`.
+	 *
+	 * @return list<EntryTemplate>
+	 */
+	public function missingEntryTemplates(): array
+	{
+		return array_values(array_filter($this->services->templates->all(), fn (EntryTemplate $template): bool => $this->finder->find($template->name) === null));
 	}
 
 	/**
@@ -567,7 +587,7 @@ final readonly class Views
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
 	 */
-	private function renderFile(string $name, string $file, array $data, ViewContext $context, ?string $layoutOverride = null): string
+	private function renderFile(string $name, string $file, array $data, ViewContext $context): string
 	{
 		$template = new Template($this, $context);
 		$data     = [...$context->shared, ...$data];
@@ -579,11 +599,6 @@ final readonly class Views
 		}
 
 		[$name, $layoutData] = $layout;
-
-		if ($layoutOverride !== null && ViewFinder::isValidName($layoutOverride)) {
-			$override = "layouts/{$layoutOverride}";
-			$name     = $this->finder->find($override) === null ? $name : $override;
-		}
 
 		$context->setSection('content', $output);
 

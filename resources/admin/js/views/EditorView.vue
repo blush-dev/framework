@@ -98,7 +98,7 @@ import { confirmAction } from '../confirm';
 import { confirmLeaving } from '../referrers';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type ContentTypeSummary, type EntryStatus, type LinkedGroup, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
+import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type ContentTypeSummary, type EntryStatus, type LinkedGroup, type NewEntryDetail, type FieldDescription, type EntryTemplateOption, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import DirectiveOptions from '../components/DirectiveOptions.vue';
@@ -158,7 +158,7 @@ const PLACED = ['title', 'status', 'published', 'slug'];
 const UNSHOWN = ['updated', 'collection', 'template'];
 
 // The built-in fields under Advanced, for the theme (D-728).
-const ADVANCED = ['layout', 'stylesheet', 'class'];
+const ADVANCED = ['stylesheet', 'class'];
 
 // Why a required field stops publishing.
 const REQUIRED = 'Required to publish.';
@@ -311,6 +311,48 @@ watch(language, () => {
 	languageError.value = '';
 });
 
+// The template it's drawn with (D-783): Default leaves it to the
+// template hierarchy, and another is one the active theme declares for
+// its type, written as its name. What the menu can't show (a list of
+// names, or one the theme doesn't offer) is kept until something else
+// is chosen.
+const KEPT_TEMPLATE = '\u0000kept';
+
+const template      = ref('');
+const templateStart = ref('');
+const templateError = ref('');
+const retemplating  = computed(() => template.value !== templateStart.value);
+
+const templateNames = computed(() => {
+	const value = entry.value?.values.template;
+
+	return (Array.isArray(value) ? value : [value]).filter((name): name is string => typeof name === 'string' && name !== '');
+});
+
+const templateOptions = computed<EntryTemplateOption[]>(() => [
+	{ name: '', label: 'Default', description: 'The theme chooses, by the entry\'s type.' },
+	...(entry.value?.templates ?? [])
+]);
+
+const templateLabel = computed(() => template.value === KEPT_TEMPLATE
+	? `Not in this theme (${templateNames.value.join(', ')})`
+	: templateOptions.value.find((option) => option.name === template.value)?.label ?? 'Default');
+
+function templateOf(detail: EntryDetail | NewEntryDetail): string {
+	const value = detail.values.template;
+	const names = (Array.isArray(value) ? value : [value]).filter((name): name is string => typeof name === 'string' && name !== '');
+
+	if (names.length === 0) {
+		return '';
+	}
+
+	return names.length === 1 && detail.templates.some((item) => item.name === names[0]) ? names[0]! : KEPT_TEMPLATE;
+}
+
+watch(template, () => {
+	templateError.value = '';
+});
+
 watch(() => treeParent.value ? `${entry.value?.type.name}:${entry.value?.id ?? ''}` : undefined, async (at) => {
 	const name = entry.value?.type.name;
 
@@ -391,7 +433,7 @@ const changedFields = computed(() => {
 const dirty = computed(() => {
 	const start = initial.value;
 
-	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || moving.value || relanguaging.value || changedFields.value.length > 0);
+	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || moving.value || relanguaging.value || retemplating.value || changedFields.value.length > 0);
 });
 
 // Why the last save refused the new slug (D-277), until it's changed;
@@ -445,6 +487,7 @@ function fill(detail: EntryDetail | NewEntryDetail): void {
 	}
 
 	language.value = detail.language;
+	template.value = templateStart.value = templateOf(detail);
 
 	initial.value  = current();
 	conflict.value = null;
@@ -739,6 +782,10 @@ async function save(status?: EntryStatus): Promise<void> {
 		put(field.name, fromForm(field, form.value[field.name] ?? '', detail.values[field.name]));
 	}
 
+	if (retemplating.value) {
+		put('template', template.value === '' ? null : template.value);
+	}
+
 	if (body.value !== start.body) {
 		change.body = body.value;
 	}
@@ -792,9 +839,10 @@ async function save(status?: EntryStatus): Promise<void> {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
 		}
 	} catch (caught) {
-		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent' || caught.field === 'language')) {
-			// Nothing was saved; the slug, parent, or language field says why.
-			({ slug: slugError, parent: parentError, language: languageError })[caught.field].value = caught.message;
+		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent' || caught.field === 'language' || caught.field === 'template')) {
+			// Nothing was saved; the slug, parent, language, or template
+			// row says why.
+			({ slug: slugError, parent: parentError, language: languageError, template: templateError })[caught.field].value = caught.message;
 			sideOpen.value  = true;
 			tab.value       = 'document';
 			await nextTick();
@@ -3188,12 +3236,30 @@ function fieldKey(field: FieldDescription): string {
 											<ReferencePicker :id="`field-${single.name}`" :field="single" :self="entry.slug" :people="single.to === profileType" :keep-last="entry.type.byline === single.name || single.required === true" :inherited="entry.inherited?.[single.name]" :invalid="Boolean(errorFor(single.name))" plain :model-value="String(form[single.name] ?? '')" @update:model-value="form[single.name] = $event" />
 										</dd>
 									</div>
+									<div v-if="entry.templates.length > 0" class="settings__row">
+										<dt>Template</dt>
+										<dd>
+											<MenuButton button-class="settings__value" :label="`Template: ${templateLabel}`" align="start" floating>
+												<template #button>
+													<AdminIcon name="layout-template" /><span class="settings__text">{{ templateLabel }}</span><AdminIcon name="chevron-down" class="settings__caret" />
+												</template>
+												<button v-for="option in templateOptions" :key="option.name" type="button" class="menu-item menu-item--described" :aria-current="option.name === template ? 'true' : undefined" @click="template = option.name">
+													<AdminIcon name="layout-template" />
+													<span>
+														<span class="menu-item__name">{{ option.label }}</span>
+														<span v-if="option.description !== ''" class="menu-item__text">{{ option.description }}</span>
+													</span>
+												</button>
+											</MenuButton>
+										</dd>
+									</div>
 								</dl>
 								<p id="editor-publish-help" class="editor__group-note">{{ publishNote }}</p>
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
 								<p v-if="parentError" id="editor-parent-error" class="field__error">{{ parentError }}</p>
 								<p v-if="languageError" id="editor-language-error" class="field__error">{{ languageError }}</p>
+								<p v-if="templateError" class="field__error">{{ templateError }}</p>
 								<p v-if="subtitleField && errorFor(subtitleField.name)" class="field__error">{{ errorFor(subtitleField.name) }}</p>
 								<template v-for="single in singleFields" :key="`error-${fieldKey(single)}`">
 									<p v-if="errorFor(single.name)" class="field__error">{{ errorFor(single.name) }}</p>

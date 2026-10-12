@@ -92,7 +92,7 @@ final class ViewFactory
 	 * build manifest pairs with them; built scripts load as modules) and
 	 * the files it preloads (D-558, by the URL the page asks for them
 	 * at, D-698),
-	 * `$site`, the entry's presentation front matter (`layout`,
+	 * `$site`, the entry's presentation front matter (
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
 	 * locale (a list's language's, D-455, else the entry's, else the
 	 * site's).
@@ -150,13 +150,11 @@ final class ViewFactory
 			$this->presentation($views, $head, $entry);
 		}
 
-		$layout  = $entry?->field('layout');
 		$locale  = ($language === null ? null : $this->services->app->languages->find($language)?->locale) ?? $entry->locale ?? $this->services->app->locale;
 		$language ??= $entry?->language;
 		$context = new ViewContext(
 			$markup,
 			['site' => Site::fromConfig($this->services->app, $locale)],
-			is_string($layout) ? $layout : null,
 			$path,
 			$locale,
 			$language !== null && $this->services->app->languages->isOther($language) ? $language : ''

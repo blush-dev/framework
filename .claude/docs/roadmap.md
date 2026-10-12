@@ -1037,7 +1037,10 @@ each change in the activity log with Undo.
 
 **Stage 5. Later (not scheduled).** Range Slider and Color as core
 controls (D-767); media as a target in the admin; extension controls
-after 2.x (D-766). (Featured images store ids since D-773.)
+after 2.x (D-766). (Featured images store ids since D-773.) Range
+Slider (D-782) and Color are on hold for larger discussions, and the
+sketch's Move to Another Set, Duplicate, Open in the Editor, and a new
+group's Label field are left out or held (D-781).
 
 **Nesting in the set editor** (D-770): the entry sidebar draws groups
 at any depth (stage 4), but Structure → Fields' tree stays one level
@@ -1056,10 +1059,11 @@ deeper nesting.
   same machinery for responses, and a Workflows screen under
   Structure. See `open-questions.md` → Status API.
 
-- **The editor's Template (D-728):** a select under the Publish
-  group's rows, of the templates the active theme has for the entry's
-  type, writing `template`. Taken out of the panel (with `collection`)
-  until it's built; `template` stays front matter.
+- **The editor's Template (D-728; built, D-783):** a row under the
+  Publish group's rows, of the templates the active theme declares for
+  the entry's type (`EntryTemplateRegistry`, in code), writing one name
+  to `template`. Declaring them in `theme.json` is next, built on the
+  code method. Front matter `layout` is removed.
 
 - **Background jobs and the scheduler (D-621; built, D-622):**
   `Blush\Job` (jobs by key, records in the `jobs` area, chunks,
