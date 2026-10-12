@@ -16,20 +16,27 @@ namespace Blush\Tests\Field;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
+use Blush\Field\Field;
 use Blush\Field\FieldConfig;
+use Blush\Field\FieldControls;
 use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
 use Blush\Field\FieldSet;
-use Blush\Field\FieldSetOrigin;
 use Blush\Field\FieldSets;
 use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidSchema;
+use Blush\Field\TextFormat;
+use Blush\Field\RegisteredField;
+use Blush\Field\RegisteredFields;
 
 #[CoversClass(FieldSet::class)]
 #[CoversClass(FieldSets::class)]
 #[CoversClass(FieldConfig::class)]
+#[CoversClass(RegisteredFields::class)]
+#[CoversClass(ControlFactory::class)]
+#[CoversClass(FieldControls::class)]
 final class FieldSetTest extends TestCase
 {
 	private FieldFactory $fields;
@@ -103,10 +110,70 @@ final class FieldSetTest extends TestCase
 		$this->assertArrayNotHasKey('label', $set->toArray());
 	}
 
+	public function testASetCanBeOnEveryPlaceOfAKind(): void
+	{
+		$every = new FieldSet('notes', [], ['type:*']);
+		$some  = new FieldSet('kitchen', [], ['type:recipe']);
+
+		$this->assertTrue($every->attachesTo('type:post'));
+		$this->assertTrue($every->isEverywhere());
+		$this->assertFalse($every->attachesTo('media:image'));
+		$this->assertFalse($some->attachesTo('type:post'));
+		$this->assertFalse($some->isEverywhere());
+		$this->assertSame(['post', 'recipe'], $every->namesOf('type', ['post', 'recipe']));
+		$this->assertSame(['recipe'], $some->namesOf('type', ['post', 'recipe']));
+	}
+
+	public function testCoresRegisteredFieldsArentAttachedAfterAPlacesOwnFields(): void
+	{
+		$registered = new RegisteredFields([
+			new RegisteredField(RegisteredField::CORE, new TextField('title'), ['type:*']),
+			new RegisteredField('acme/seo', new TextField('meta_title'), ['type:post'])
+		]);
+
+		$this->assertSame(['meta_title'], array_map(static fn (RegisteredField $field): string => $field->field->name, $registered->for('type:post')));
+		$this->assertSame([], $registered->for('type:page'));
+		$this->assertSame(['title'], array_map(static fn (Field $field): string => $field->name, $registered->core('type:page')));
+		$this->assertEquals(new RegisteredFields([$registered->fields[1]]), RegisteredFields::fromArray($registered->toArray(), $this->fields), 'Core\'s are left out of the cache.');
+	}
+
+	public function testKeepsEachFieldsControlBesideIt(): void
+	{
+		$set = FieldSet::fromArray(['name' => 'kitchen', 'fields' => [
+			['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric'], 'control' => ['name' => 'radios']],
+			['name' => 'site', 'control' => ['name' => 'link', 'placeholder' => 'https://']],
+			['name' => 'steps', 'type' => 'list', 'item' => ['type' => 'object', 'fields' => [['name' => 'step', 'control' => ['name' => 'textarea']]]], 'control' => ['name' => 'repeater', 'itemLabel' => 'Step']]
+		]], $this->fields);
+
+		$this->assertArrayNotHasKey('control', $set->schema->field('oven')?->toArray() ?? [], 'The field holds no control (D-795).');
+		$this->assertSame(['oven', 'site', 'steps', 'steps.*.step'], array_keys($set->controls->controls));
+		$this->assertSame(TextFormat::Url, $set->schema->field('site') instanceof TextField ? $set->schema->field('site')->format : null, 'A control still names its type and what it implies (D-769).');
+		$this->assertSame(['name' => 'link', 'placeholder' => 'https://'], $set->toArray()['fields'][1]['control'] ?? null);
+		$this->assertEquals($set, FieldSet::fromArray($set->toArray(), $this->fields), 'The file round-trips.');
+	}
+
+	public function testNestsTheFormsShape(): void
+	{
+		$this->assertSame(
+			[['name' => 'unit', 'type' => 'text', 'control' => ['name' => 'text', 'placeholder' => 'oz.']], ['name' => 'list', 'type' => 'list', 'item' => ['type' => 'enum', 'control' => ['name' => 'select']]]],
+			ControlFactory::core()->nest([['name' => 'unit', 'type' => 'text', 'control' => 'text', 'placeholder' => 'oz.'], ['name' => 'list', 'type' => 'list', 'item' => ['type' => 'enum', 'control' => 'select']]])
+		);
+	}
+
+	public function testRefusesAControlByItsKeyAlone(): void
+	{
+		$this->expectException(InvalidSchema::class);
+		$this->expectExceptionMessage('Field "oven" "control" must be an object with the control\'s "name", such as {"name": "radios"}.');
+
+		FieldSet::fromArray(['name' => 'kitchen', 'fields' => [['name' => 'oven', 'control' => 'radios']]], $this->fields);
+	}
+
 	public function testRefusesWhatIsntASet(): void
 	{
 		$cases = [
 			static fn (): FieldSet => new FieldSet('SEO'),
+			static fn (): FieldSet => new FieldSet('acme/seo'),
+			static fn (): FieldSet => new FieldSet('seo', [], ['type:**']),
 			static fn (): FieldSet => new FieldSet('seo', [], ['post']),
 			static fn (): FieldSet => new FieldSet('seo', [new TextField('a'), new TextField('a')]),
 			fn (): FieldSet => FieldSet::fromArray(['name' => 'seo', 'type' => 'post'], $this->fields),
@@ -129,29 +196,22 @@ final class FieldSetTest extends TestCase
 			'social' => new FieldSet('social', [], ['type:post']),
 			'about'  => new FieldSet('about', [], ['type:post', 'type:page']),
 			'shop'   => new FieldSet('shop', [], ['type:product'])
-		], ['social' => FieldSetOrigin::Extension, 'about' => FieldSetOrigin::Config, 'shop' => FieldSetOrigin::Data]);
+		]);
 
 		$this->assertSame(['about', 'social'], array_column($sets->for('type:post'), 'name'));
 		$this->assertSame(['about', 'shop', 'social'], array_keys($sets->all()));
-		$this->assertSame(FieldSetOrigin::Data, $sets->origin('shop'));
 		$this->assertEquals($sets, FieldSets::fromArray($sets->toArray(), $this->fields));
 	}
 
-	public function testConfigKeepsArraySetsForLoading(): void
+	public function testConfigOnlyConfigures(): void
 	{
-		$config = FieldConfig::fromArray(['sets' => ['seo' => ['targets' => ['type:post']]], 'dataSets' => false]);
+		$config = FieldConfig::fromArray(['dataSets' => false]);
 
-		$this->assertSame([], $config->sets);
-		$this->assertSame([['name' => 'seo', 'targets' => ['type:post']]], $config->definitions);
 		$this->assertFalse($config->dataSets);
 		$this->assertEquals($config, FieldConfig::fromArray($config->toArray()));
-	}
 
-	public function testConfigRefusesASetTwice(): void
-	{
 		$this->expectException(InvalidConfig::class);
-		$this->expectExceptionMessage('FieldConfig defines the "seo" field set more than once.');
 
-		new FieldConfig(sets: [new FieldSet('seo')], definitions: [['name' => 'seo']]);
+		FieldConfig::fromArray(['sets' => []]);
 	}
 }

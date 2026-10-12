@@ -58,6 +58,8 @@ use Blush\Content\Editing\EntryEdit;
 use Blush\Content\Editing\EntryEditor;
 use Blush\Content\Editing\NewEntry;
 use Blush\Core\AppConfig;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldTargets;
@@ -190,6 +192,13 @@ final readonly class EntryController
 	private const int BULK_LIMIT = 100;
 
 	/**
+	 * Declared fields the editor never offers: `trashed` is the trash's
+	 * (D-484), `translation_of` links a translation (D-511), and a
+	 * profile's `linkable` is locked on its own screen (D-605).
+	 */
+	private const array NOT_EDITED = [EntryFields::TRASHED, EntryFields::TRANSLATION_OF, 'linkable'];
+
+	/**
 	 * How many entries a list of what links to an entry names (D-608),
 	 * and up to how many a Linked From group holds all of, to show in
 	 * place.
@@ -216,7 +225,8 @@ final readonly class EntryController
 		private EntryEditor $editor,
 		private ActivityLog $activity,
 		private MediaValues $media,
-		private EntryTemplates $templates
+		private EntryTemplates $templates,
+		private ControlDefaults $defaults
 	) {}
 
 	/**
@@ -253,7 +263,7 @@ final readonly class EntryController
 			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
 		}
 
-		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, [EntryFields::TRASHED, EntryFields::TRANSLATION_OF], true));
+		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, self::NOT_EDITED, true));
 
 		return self::json([
 			'path'        => null,
@@ -828,12 +838,16 @@ final readonly class EntryController
 		// The schema has the term field of every classify relation from the
 		// type, but one from every type isn't offered on a term type itself
 		// (D-283, D-593). One the file
-		// already uses stays, so it can still be edited. `trashed` is the
-		// trash's (D-484), never edited, and `translation_of` links a
-		// translation (D-511), kept as it is.
-		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter) && ! in_array($field->name, [EntryFields::TRASHED, EntryFields::TRANSLATION_OF], true));
+		// already uses stays, so it can still be edited. A few declared
+		// fields are never edited here (`NOT_EDITED`).
+		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter) && ! in_array($field->name, self::NOT_EDITED, true));
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
+
+		// Declared keys the editor doesn't offer; a key nothing declares
+		// isn't shown anywhere (D-786), though a save keeps it in the file.
+		$schema = $this->types->schema($entry->type->name);
+		$extra  = array_filter($extra, static fn (string $key): bool => $schema->field($key) !== null, ARRAY_FILTER_USE_KEY);
 
 		// The body starts at its first line, without the blank lines after
 		// the front matter; a save keeps those (D-334).
@@ -936,7 +950,7 @@ final readonly class EntryController
 			'hierarchical' => $this->types->nestsByParent($type->name),
 			'byline' => $this->types->byline($type->name)?->field,
 			'dated'  => $type->dateArchives !== DateArchives::None,
-			'fields' => array_values(array_map(fn (Field $field): array => [...$field->toForm(), ...$this->relationOf($type, $field)], $fields)),
+			'fields' => array_values(array_map(fn (Field $field): array => [...FormField::of($field, $this->types->controls($type->name), $this->defaults)->toArray(), ...$this->relationOf($type, $field)], $fields)),
 			'sets'   => array_map(fn (FieldSet $set): array => [
 				'name'        => $set->name,
 				'label'       => $set->label,

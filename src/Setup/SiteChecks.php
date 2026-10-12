@@ -22,6 +22,8 @@ use Blush\Core\Framework;
 use Blush\Extension\DefinitionClash;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
+use Blush\Field\FieldTargets;
+use Blush\Field\InvalidSchema;
 use Blush\Job\JobConfig;
 use Blush\Job\JobRunner;
 use Blush\Job\RunnerMode;
@@ -47,8 +49,9 @@ use Blush\Secret\SecretStore;
  *   theme whose chain falls back to the default theme (`theme`), and
  *   plugins (`plugins`) and icon packs (`icon-packs`) that are on but
  *   don't run; content types and relations two plugins define by one
- *   name (`clashes`, D-597), the first kept; or one pass when everything
- *   that's on runs.
+ *   name (`clashes`, D-597), the first kept; field sets left off a type
+ *   because a key they declare is declared already (`field-sets`,
+ *   D-786); or one pass when everything that's on runs.
  * - `accounts`: a site with accounts but no owner (D-500), as `owner`.
  *
  * Within an area, a check's key says what it's about where that's one
@@ -73,7 +76,8 @@ final readonly class SiteChecks
 		private Secrets $secrets,
 		private SecretStore $secretStore,
 		private SecretKeys $secretKeys,
-		private ExposureCheck $exposure
+		private ExposureCheck $exposure,
+		private FieldTargets $targets
 	) {}
 
 	/**
@@ -251,6 +255,20 @@ final readonly class SiteChecks
 					$this->pluginLabel($clash->dropped)
 				), $this->types->clashes)),
 				'Turn one of them off, or ask its author to rename what it defines.'
+			);
+		}
+
+		try {
+			$problems = $this->targets->problems($this->types->sets);
+		} catch (InvalidSchema) {
+			$problems = [];
+		}
+
+		if ($problems !== []) {
+			$results['field-sets'] = CheckResult::warning(
+				'Field sets left off',
+				implode(' ', array_merge(...array_values($problems))),
+				sprintf('Rename the field in one of the sets, or turn off the plugin that adds one. Run "%s content:lint" to see each.', Framework::BINARY)
 			);
 		}
 

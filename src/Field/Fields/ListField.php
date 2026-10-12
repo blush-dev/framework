@@ -14,10 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Checkboxes;
-use Blush\Field\Controls\Repeater;
-use Blush\Field\Controls\ViewOnly;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -76,19 +72,6 @@ final class ListField extends Field
 	public static function typeDescription(): string
 	{
 		return 'Several values.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return match (true) {
-			$this->item instanceof EnumField   => new Checkboxes(),
-			new Repeater()->fits($this)        => new Repeater(),
-			default                            => new ViewOnly()
-		};
 	}
 
 	/**
@@ -196,17 +179,6 @@ final class ListField extends Field
 		return ['item' => $this->item->toArray(), 'min' => $this->min, 'max' => $this->max];
 	}
 
-	/**
-	 * @inheritDoc
-	 *
-	 * Its item is as forms take it too, with its control, so the admin
-	 * draws a repeating group's fields (D-768).
-	 */
-	#[Override]
-	public function toForm(): array
-	{
-		return [...parent::toForm(), 'item' => $this->item->toForm()];
-	}
 
 	/**
 	 * Returns a limit as a whole number.

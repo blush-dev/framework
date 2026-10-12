@@ -106,7 +106,8 @@ use Blush\Session\StartSession;
  *     entries into their folders (D-514, D-629), and `POST health/terms` to write
  *     the terms and profiles entries name with no file (D-584), `POST
  *     health/refs` to file links between entries with their ids
- *     (`POST health/media-fields` rewrites media fields written as
+ *     (`POST health/undeclared` removes front matter keys nothing
+ *     declares, D-786; `POST health/media-fields` rewrites media fields written as
  *     paths to ids, by entry id, D-773)
  *     (D-596), `POST health/ignore` and `POST health/unignore` (D-613),
  *     and `POST health/taxonomies` to migrate data types still written as
@@ -265,6 +266,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/parents', [HealthController::class, 'createParents'])->named('health.parents')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/media-fields', [HealthController::class, 'rewriteMediaFields'])->named('health.media-fields')->middleware(Authenticate::class),
+			Route::post('/health/undeclared', [HealthController::class, 'removeUndeclared'])->named('health.undeclared')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
 			Route::post('/health/type-folders', [HealthController::class, 'moveTypeFolders'])->named('health.type-folders')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),

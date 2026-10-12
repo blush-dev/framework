@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Group;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -61,15 +59,6 @@ final class ObjectField extends Field
 	public static function typeDescription(): string
 	{
 		return 'A group of fields.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return new Group();
 	}
 
 	/**
@@ -141,17 +130,6 @@ final class ObjectField extends Field
 		);
 	}
 
-	/**
-	 * @inheritDoc
-	 *
-	 * Its fields are as forms take them too, each with its control, so
-	 * the admin draws a group's fields (D-768).
-	 */
-	#[Override]
-	public function toForm(): array
-	{
-		return [...parent::toForm(), 'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $this->schema->fields))];
-	}
 
 	/**
 	 * @inheritDoc

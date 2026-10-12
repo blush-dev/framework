@@ -488,8 +488,10 @@ Implemented in M3 (D-073 to D-077).
 The value layer is `Blush\Field` (see Content → Types and schemas). Four
 terms (D-766): a **field** is a value's definition (its type is the
 authority on values), a **field set** groups fields for a place, a
-**control** is how one value is entered, and a **form** is controls
-bound to a submission (not built yet). Controls (stage 1 of the plan in
+**control** is how one value is entered, and a **form** draws fields
+with controls (D-795: `FormField`, `FieldControls` by path, and
+`ControlDefaults`, the control layer's default for a field type; a
+field holds no control). Controls (stage 1 of the plan in
 `roadmap.md`, built): `Control` is the abstract base of a Type enum +
 Registry + Factory + Registrar (`ControlType`, `ControlRegistry`,
 `ControlFactory`, `ControlRegistrar`; core only for 2.x), with final
@@ -497,12 +499,17 @@ classes in `Controls\*`. A control describes itself as data (`name()`,
 `label()`, `description()`, its picker `section()`, the value `type()`
 it stores, the type options it `implies()`, its own options and
 `definitionSchema()`), says whether it `fits()` a field, and `complete()`s
-a definition that names only it. `FieldFactory` runs every definition
-through `ControlFactory::complete()` and `apply()`; a definition stores
-`type` and `control`, either optional by hand (D-769). A field's
-`defaultControl()` is its type's (always accepted by `control()`), and
-`ControlFactory::switchesFor()` lists the offered controls that fit a
-field (D-768). Checks a control implies are type options: `TextField`'s
+a definition that names only it. A field set's or data type's file
+writes each field's control as an object beside it (`"control":
+{"name": "radios"}`); `FieldFactory::withControls()` parts them
+(`ControlFactory::split()`, a control naming its type when the field
+names none, D-769) and checks each fits its field (or is its type's
+default), and `FieldControls::definitions()` writes them back; the
+admin's forms send the flat shape, which the writers `nest()`.
+`FieldFactory::fromArray()` refuses a `control`. `FieldSet` and
+`ContentType` hold their `controls`; `ContentTypes::controls()` adds
+core's (`EntryFields::controls()`) and the type's sets', and
+`Setting::control()` chooses the Settings screens'. Checks a control implies are type options: `TextField`'s
 `format` (`TextFormat`), `DateField`'s `time`, `NumberField`'s `step`,
 `ListField`'s `min` and `max`. There's no reference field type (D-767):
 `ReferenceField` is only the field a relation adds to a schema and a
@@ -514,8 +521,8 @@ shared `ItemTree`, which Menus uses too) with `FieldForm` under a row,
 `ControlPicker`, and `FieldSetSettings`. Media fields store ids
 (`MediaValues`, D-773). Built earlier
 (D-338): field types describe themselves (`typeLabel()`,
-`typeDescription()`); `editedWith()` the control used; `toForm()` for
-the admin's forms, with the control's options; `GET fields/controls`,
+`typeDescription()`); `FormField::toArray()` for the admin's forms,
+with the control's options (once `Field::toForm()`); `GET fields/controls`,
 the catalog (D-766); definitions as a list or a map
 (`FieldFactory::definitions()`); and config types and media fields in
 array form built with the container's registry. Field sets on content

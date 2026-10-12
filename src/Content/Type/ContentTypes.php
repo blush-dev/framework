@@ -27,13 +27,16 @@ use Blush\Content\Relation\RelationOrigin;
 use Blush\Content\Relation\Refs;
 use Blush\Extension\DefinitionClash;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSets;
+use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\MediaField;
 use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\ReferenceField;
 use Blush\Field\InvalidSchema;
+use Blush\Field\RegisteredFields;
 use Blush\Field\Schema;
 
 /**
@@ -49,7 +52,8 @@ use Blush\Field\Schema;
  *
  * Each type's full schema is the built-in entry fields, then the term
  * field of every relation from it (which may not reuse a built-in name
- * or alias; a credit's people too, D-602), or a profile's `avatar`, then
+ * or alias; a credit's people too, D-602), or a profile's `avatar` and
+ * `linkable`, then
  * the type's own fields (which may replace any of them), then the fields
  * of the field sets attached to it (`type:{name}`, D-337), in set name
  * order, which may not reuse any name or alias before them
@@ -529,6 +533,23 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the controls a type's fields are drawn with (D-795), where
+	 * they aren't their defaults: core's, the type's own, then each of its
+	 * field sets'. Fields are named once per type, so their paths don't
+	 * clash.
+	 */
+	public function controls(string $name): FieldControls
+	{
+		$controls = [...EntryFields::controls()->controls, ...$this->get($name)->controls->controls];
+
+		foreach ($this->setsFor($name) as $set) {
+			$controls = [...$controls, ...$set->controls->controls];
+		}
+
+		return new FieldControls($controls);
+	}
+
+	/**
 	 * Returns a type's full schema: its own (`ownSchema()`), then its
 	 * field sets' fields (`FieldSets::schemaFor()`).
 	 *
@@ -565,7 +586,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * Returns a type's schema before its field sets: the built-in entry
 	 * fields, the field of each relation the site defines from it (D-593:
 	 * a classify relation's terms, or a credit's profiles, say), a
-	 * profile's `avatar`, a hierarchical collection's `parent`, a tree's or a
+	 * profile's `avatar` and `linkable`, a hierarchical collection's `parent`, a tree's or a
 	 * positioned collection's `position` (D-412), then the type's own
 	 * fields.
 	 *
@@ -582,7 +603,10 @@ final class ContentTypes implements IteratorAggregate, Countable
 					->required($relation->isRequired()),
 				array_filter($this->relations, static fn (Relation $relation): bool => ! $relation->kind->isWithinType() && $relation->isFrom($name))
 			));
-			$avatar   = $type instanceof Profiles ? [new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.')] : [];
+			$avatar   = $type instanceof Profiles ? [
+				new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.'),
+				new BoolField('linkable')->described('false locks the profile against being linked to an account (D-605).')
+			] : [];
 			$parent   = $type instanceof Collection ? $type->parentField() : null;
 			$position = $type instanceof Tree || ($type instanceof Collection && $type->isPositioned())
 				? [new NumberField(Position::FIELD, integer: true)->described(sprintf('Its place among its sibling %s, lowest first; those without one follow, by title.', $type->labels->items))]
@@ -603,7 +627,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>, namedFolders: list<string>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, fields: list<array{owner: string, targets: list<string>, field: array<string, mixed>}>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>, namedFolders: list<string>}
 	 */
 	public function toArray(): array
 	{
@@ -613,6 +637,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 			'overrides'       => $this->overrides,
 			'home'            => $this->home,
 			'sets'            => $this->sets->toArray(),
+			'fields'          => $this->sets->registered->toArray(),
 			'relations'       => array_values(array_map(static fn (Relation $relation): array => $relation->toArray(), $this->relations)),
 			'relationOrigins' => array_map(static fn (RelationOrigin $origin): string => $origin->value, $this->relationOrigins),
 			'legacy'          => $this->legacy,
@@ -648,7 +673,11 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$home = $data['home'] ?? null;
 
 		try {
-			$sets = FieldSets::fromArray(is_array($data['sets'] ?? null) ? $data['sets'] : [], $fields);
+			$sets = FieldSets::fromArray(
+				is_array($data['sets'] ?? null) ? $data['sets'] : [],
+				$fields,
+				RegisteredFields::fromArray(is_array($data['fields'] ?? null) ? $data['fields'] : [], $fields, iterator_to_array(new EntryFields()->fields(), false))
+			);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}

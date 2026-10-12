@@ -14,9 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Code;
-use Blush\Field\Controls\Reference;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -70,15 +67,6 @@ final class ReferenceField extends Field
 	public static function typeDescription(): string
 	{
 		return 'Other entries, by slug.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return $this->to === '' ? new Code() : new Reference();
 	}
 
 	/**

@@ -119,10 +119,9 @@ const changed = computed(() => Object.keys(changes.value).length > 0);
 const typeNames = computed(() => {
 	const targets = settled.value?.targets ?? [];
 
-	return targets.map((key) => set.value?.options.find((option) => option.key === key)?.label ?? key);
+	return targets.map((key) => set.value?.targets.find((target) => target.key === key)?.label ?? set.value?.options.find((option) => option.key === key)?.label ?? key);
 });
 
-const origin = computed(() => ({ extension: 'a plugin', config: 'config/fields.php', data: 'user/data/fields' })[set.value?.origin ?? 'data']);
 
 // The noun an empty tree uses: what the set is added to.
 const noun = computed(() => typeNames.value.length === 1 ? (typeNames.value[0] ?? 'entries').toLowerCase() : 'entries of its types');
@@ -220,7 +219,7 @@ guardLeave(() => !leaving && set.value?.editable === true && changed.value, () =
 				<span class="page-facts__item">Position <span class="mono">{{ settled.position }}</span></span>
 				<template v-if="!set.editable">
 					<span class="page-facts__divider" aria-hidden="true" />
-					<span class="page-facts__item"><AdminIcon name="lock" />From {{ origin }}</span>
+					<span class="page-facts__item"><AdminIcon name="lock" />Read only</span>
 				</template>
 			</div>
 		</div>
@@ -238,6 +237,7 @@ guardLeave(() => !leaving && set.value?.editable === true && changed.value, () =
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<p v-if="failure" class="notice notice--error" role="alert">{{ failure }}</p>
+	<p v-for="problem in set?.problems ?? []" :key="problem" class="notice notice--warn"><span>{{ problem }} It's left off there until one of them is renamed.</span></p>
 
 	<FieldTree
 		v-if="set"
@@ -250,7 +250,7 @@ guardLeave(() => !leaving && set.value?.editable === true && changed.value, () =
 		:counts="set.counts"
 	>
 		<template v-if="!set.editable" #notice>
-			<p class="panel__note"><AdminIcon name="lock" /> From {{ origin }}, so its fields can't be changed here.</p>
+			<p class="panel__note"><AdminIcon name="lock" /> <code>config/fields.php</code> turns off sets in <code>user/data/fields</code>, so its fields can't be changed here.</p>
 		</template>
 	</FieldTree>
 

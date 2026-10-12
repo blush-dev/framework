@@ -15,11 +15,6 @@ namespace Blush\Field\Fields;
 
 use Override;
 use Uri\Rfc3986\Uri;
-use Blush\Field\Control;
-use Blush\Field\Controls\Email;
-use Blush\Field\Controls\Icon;
-use Blush\Field\Controls\Link;
-use Blush\Field\Controls\Text;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -65,20 +60,6 @@ final class TextField extends Field
 	public static function typeDescription(): string
 	{
 		return 'A line of text.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return match ($this->format) {
-			TextFormat::Url   => new Link(),
-			TextFormat::Email => new Email(),
-			TextFormat::Icon  => new Icon(),
-			null              => new Text()
-		};
 	}
 
 	/**

@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldTarget;
 use Blush\Field\InvalidSchema;
+use Blush\Content\EntryFields;
+use Blush\Content\Relation\Refs;
 use Blush\Field\Schema;
 
 /**
@@ -64,11 +66,14 @@ final readonly class ContentTypeTarget implements FieldTarget
 
 	/**
 	 * @inheritDoc
+	 *
+	 * Not a field named (or aliased) for the entry's id or its links' ids
+	 * (D-477, D-589), which are no field's.
 	 */
 	#[Override]
 	public function accepts(Field $field): bool
 	{
-		return true;
+		return array_intersect([$field->name, ...$field->aliases], [EntryFields::ID, Refs::FIELD]) === [];
 	}
 
 	/**

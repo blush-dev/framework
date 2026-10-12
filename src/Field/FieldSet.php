@@ -21,8 +21,14 @@ namespace Blush\Field;
  *
  *     new FieldSet('seo', [new TextField('meta_title')], ['type:post', 'type:page'], 'SEO')
  *
- * Where a target takes the set's fields, they come after its own, and a
- * name used twice is an error, never an override. A set's targets are
+ * Sets are the site's, made in the admin (`user/data/fields`, D-790,
+ * D-791): they register their fields and show them together, as HTML's
+ * `<fieldset>` does. Code registers fields (`RegisteredField`) instead.
+ * `kind:*` attaches a set to every place of a kind (`type:*`, D-786).
+ *
+ * Where a target takes the set's fields, they come after its own and the
+ * fields code registers; a set that would declare a key again is left
+ * off it (D-789), never an override. A set's targets are
  * all one kind of place, and `slot` names one of the slots that kind
  * offers (D-347), such as `details` or `content`, or is left out for the
  * kind's default; each admin screen decides where a slot goes. A slot
@@ -39,9 +45,15 @@ final readonly class FieldSet
 	public const string NAME_PATTERN = '/^[a-z0-9][a-z0-9_-]*$/';
 
 	/**
-	 * What a target may be: a kind, a colon, and a name (`type:post`).
+	 * What a target may be: a kind, a colon, and a name (`type:post`), or
+	 * `*` for every place of the kind (`type:*`, D-786).
 	 */
-	public const string TARGET_PATTERN = '/^[a-z]+:[a-z0-9][a-z0-9_-]*$/';
+	public const string TARGET_PATTERN = '/^[a-z]+:(?:\*|[a-z0-9][a-z0-9_-]*)$/';
+
+	/**
+	 * A target's name for every place of its kind.
+	 */
+	public const string EVERY = '*';
 
 	/**
 	 * The definition keys a set takes.
@@ -70,6 +82,7 @@ final readonly class FieldSet
 	 * @param  list<string>    $targets The places the set is attached to, all of one kind.
 	 * @param  ?string         $slot    The slot its kind's places show it in (D-347), or `null` for the kind's default.
 	 * @param  int             $position Where it goes among a place's sets, lowest first, then by label (D-768).
+	 * @param  FieldControls   $controls The controls its fields are drawn with, by path (D-795).
 	 * @throws InvalidSchema When the name, a target, the slot, or the fields aren't valid, or the targets mix kinds.
 	 */
 	public function __construct(
@@ -79,7 +92,8 @@ final readonly class FieldSet
 		string $label = '',
 		public string $description = '',
 		public ?string $slot = null,
-		public int $position = self::POSITION
+		public int $position = self::POSITION,
+		public FieldControls $controls = new FieldControls()
 	) {
 		if (preg_match(self::NAME_PATTERN, $name) !== 1) {
 			throw new InvalidSchema(sprintf('"%s" can\'t be a field set\'s name; use lowercase letters, digits, "_", and "-".', $name));
@@ -109,7 +123,7 @@ final readonly class FieldSet
 			throw new InvalidSchema(sprintf('Field set "%s": %s', $name, $e->getMessage()), previous: $e);
 		}
 
-		$this->label = $label === '' ? ucfirst(str_replace(['_', '-'], ' ', $name)) : $label;
+		$this->label = $label === '' ? self::readable($name) : $label;
 	}
 
 	/**
@@ -124,17 +138,60 @@ final readonly class FieldSet
 	}
 
 	/**
-	 * Returns whether the set is attached to a target, by its key.
+	 * Returns whether the set is attached to every place of its kind
+	 * (`type:*`).
 	 */
-	public function attachesTo(string $target): bool
+	public function isEverywhere(): bool
 	{
-		return in_array($target, $this->targets, true);
+		$kind = $this->kind();
+
+		return $kind !== null && in_array("{$kind}:" . self::EVERY, $this->targets, true);
 	}
 
 	/**
-	 * Builds a set from a definition, as written in `user/data/fields` or
-	 * `config/fields.php`. `targets` may be one target or a list, and
-	 * `fields` a list of definitions with names or a map of names to them.
+	 * Returns whether the set is attached to a target, by its key: named,
+	 * or as one of every place of its kind.
+	 */
+	public function attachesTo(string $target): bool
+	{
+		return self::targets($this->targets, $target);
+	}
+
+	/**
+	 * Returns whether a list of targets takes in a place, by its key:
+	 * named, or as one of every place of its kind.
+	 *
+	 * @param list<string> $targets
+	 */
+	public static function targets(array $targets, string $target): bool
+	{
+		if (in_array($target, $targets, true)) {
+			return true;
+		}
+
+		$kind = strstr($target, ':', true);
+
+		return $kind !== false && in_array("{$kind}:" . self::EVERY, $targets, true);
+	}
+
+	/**
+	 * Returns which of a kind's place names the set is attached to, such
+	 * as the types it's on out of every type's name.
+	 *
+	 * @param  list<string> $names
+	 * @return list<string>
+	 */
+	public function namesOf(string $kind, array $names): array
+	{
+		return array_values(array_filter($names, fn (string $name): bool => $this->attachesTo("{$kind}:{$name}")));
+	}
+
+	/**
+	 * Builds a set from a definition, as written in `user/data/fields`.
+	 * `targets` may be one target or a list, and `fields` a list of
+	 * definitions with names or a map of names to them, each with the
+	 * control it's drawn with as an object (`"control": {"name":
+	 * "radios"}`, D-795).
 	 * A JSON file's `$schema` (`field-set.schema.json`) is ignored.
 	 *
 	 * @param  array<array-key, mixed> $data
@@ -154,7 +211,7 @@ final readonly class FieldSet
 		}
 
 		try {
-			$fields = array_map($factory->fromArray(...), FieldFactory::definitions($definition->listOrMap('fields')));
+			[$fields, $controls] = $factory->withControls($definition->listOrMap('fields'));
 		} catch (InvalidSchema $e) {
 			throw new InvalidSchema(sprintf('Field set "%s": %s', $name, $e->getMessage()), previous: $e);
 		}
@@ -166,7 +223,8 @@ final readonly class FieldSet
 			$definition->string('label'),
 			$definition->string('description'),
 			$definition->nullableString('slot'),
-			self::position($definition, $name)
+			self::position($definition, $name),
+			$controls
 		);
 	}
 
@@ -178,7 +236,7 @@ final readonly class FieldSet
 	 */
 	public function toArray(): array
 	{
-		$label = ucfirst(str_replace(['_', '-'], ' ', $this->name));
+		$label = self::readable($this->name);
 
 		return [
 			'name'    => $this->name,
@@ -187,8 +245,16 @@ final readonly class FieldSet
 			'targets' => $this->targets,
 			...($this->slot === null ? [] : ['slot' => $this->slot]),
 			...($this->position === self::POSITION ? [] : ['position' => $this->position]),
-			'fields'  => array_values(array_map(static fn (Field $field): array => $field->toArray(), $this->schema->fields))
+			'fields'  => $this->controls->definitions($this->schema->fields)
 		];
+	}
+
+	/**
+	 * Returns a set's name made readable.
+	 */
+	private static function readable(string $name): string
+	{
+		return ucfirst(str_replace(['_', '-'], ' ', $name));
 	}
 
 	/**

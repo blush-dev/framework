@@ -29,6 +29,7 @@ enum HealthFix: string
 	case Parents    = 'parents';
 	case Refs       = 'refs';
 	case MediaFields = 'media-fields';
+	case Undeclared  = 'undeclared';
 
 	/**
 	 * Returns the key the fix's changes are answered under.
@@ -41,7 +42,8 @@ enum HealthFix: string
 			self::FileNames, self::Folders    => 'renamed',
 			self::Terms, self::Parents        => 'created',
 			self::Refs                        => 'filed',
-			self::MediaFields                 => 'rewritten'
+			self::MediaFields                 => 'rewritten',
+			self::Undeclared                  => 'cleaned'
 		};
 	}
 
@@ -57,7 +59,8 @@ enum HealthFix: string
 			self::MediaSizes => ['image', 'images'],
 			self::FileNames,
 			self::Folders,
-			self::MediaFields => ['entry', 'entries'],
+			self::MediaFields,
+			self::Undeclared => ['entry', 'entries'],
 			self::Terms      => ['term or profile', 'terms and profiles'],
 			self::Parents    => ['parent page', 'parent pages'],
 			default          => ['file', 'files']

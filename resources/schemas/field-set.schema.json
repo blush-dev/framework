@@ -27,14 +27,14 @@
 			"anyOf": [
 				{
 					"type": "string",
-					"pattern": "^[a-z]+:[a-z0-9][a-z0-9_-]*$",
+					"pattern": "^[a-z]+:(?:\\*|[a-z0-9][a-z0-9_-]*)$",
 					"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
 				},
 				{
 					"type": "array",
 					"items": {
 						"type": "string",
-						"pattern": "^[a-z]+:[a-z0-9][a-z0-9_-]*$",
+						"pattern": "^[a-z]+:(?:\\*|[a-z0-9][a-z0-9_-]*)$",
 						"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
 					}
 				}
@@ -157,112 +157,121 @@
 					"description": "Help text."
 				},
 				"control": {
-					"description": "How the field is entered. Either `type` or `control` may be left out: a control names its type, and a type has a default control.",
-					"anyOf": [
-						{
-							"const": "group",
-							"description": "Group"
+					"type": "object",
+					"description": "How the field is entered (D-795): the control's `name` and its own options, beside the field. Either `type` or `control` may be left out: a control names its type, and a type has a default control.",
+					"required": [
+						"name"
+					],
+					"additionalProperties": false,
+					"properties": {
+						"name": {
+							"anyOf": [
+								{
+									"const": "group",
+									"description": "Group"
+								},
+								{
+									"const": "repeater",
+									"description": "Repeating Group"
+								},
+								{
+									"const": "text",
+									"description": "Text"
+								},
+								{
+									"const": "textarea",
+									"description": "Textarea"
+								},
+								{
+									"const": "markdown",
+									"description": "Formatted Text"
+								},
+								{
+									"const": "link",
+									"description": "Link"
+								},
+								{
+									"const": "email",
+									"description": "Email"
+								},
+								{
+									"const": "select",
+									"description": "Select Dropdown"
+								},
+								{
+									"const": "radios",
+									"description": "Radio Buttons"
+								},
+								{
+									"const": "checkboxes",
+									"description": "Checkboxes"
+								},
+								{
+									"const": "multiselect",
+									"description": "Multi-Select"
+								},
+								{
+									"const": "toggle",
+									"description": "Toggle"
+								},
+								{
+									"const": "number",
+									"description": "Number"
+								},
+								{
+									"const": "date",
+									"description": "Date and Time"
+								},
+								{
+									"const": "image",
+									"description": "Image"
+								},
+								{
+									"const": "video",
+									"description": "Video"
+								},
+								{
+									"const": "audio",
+									"description": "Audio"
+								},
+								{
+									"const": "file",
+									"description": "File"
+								},
+								{
+									"const": "icon",
+									"description": "Icon"
+								},
+								{
+									"const": "code",
+									"description": "Code"
+								},
+								{
+									"const": "reference",
+									"description": "Entry Picker"
+								},
+								{
+									"const": "readonly",
+									"description": "Read-only"
+								}
+							]
 						},
-						{
-							"const": "repeater",
-							"description": "Repeating Group"
+						"itemLabel": {
+							"type": "string",
+							"description": "What each item is called, for \"Add Ingredient\"."
 						},
-						{
-							"const": "text",
-							"description": "Text"
+						"summary": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "The keys of the fields that sum an item up in one line when it's closed."
 						},
-						{
-							"const": "textarea",
-							"description": "Textarea"
-						},
-						{
-							"const": "markdown",
-							"description": "Formatted Text"
-						},
-						{
-							"const": "link",
-							"description": "Link"
-						},
-						{
-							"const": "email",
-							"description": "Email"
-						},
-						{
-							"const": "select",
-							"description": "Select Dropdown"
-						},
-						{
-							"const": "radios",
-							"description": "Radio Buttons"
-						},
-						{
-							"const": "checkboxes",
-							"description": "Checkboxes"
-						},
-						{
-							"const": "multiselect",
-							"description": "Multi-Select"
-						},
-						{
-							"const": "toggle",
-							"description": "Toggle"
-						},
-						{
-							"const": "number",
-							"description": "Number"
-						},
-						{
-							"const": "date",
-							"description": "Date and Time"
-						},
-						{
-							"const": "image",
-							"description": "Image"
-						},
-						{
-							"const": "video",
-							"description": "Video"
-						},
-						{
-							"const": "audio",
-							"description": "Audio"
-						},
-						{
-							"const": "file",
-							"description": "File"
-						},
-						{
-							"const": "icon",
-							"description": "Icon"
-						},
-						{
-							"const": "code",
-							"description": "Code"
-						},
-						{
-							"const": "reference",
-							"description": "Entry Picker"
-						},
-						{
-							"const": "readonly",
-							"description": "Read-only"
+						"placeholder": {
+							"type": "string",
+							"description": "A prompt shown in the empty box. Never saved."
 						}
-					]
-				},
-				"itemLabel": {
-					"type": "string",
-					"description": "What each item is called, for \"Add Ingredient\"."
-				},
-				"summary": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"description": "The keys of the fields that sum an item up in one line when it's closed."
-				},
-				"placeholder": {
-					"type": "string",
-					"description": "A prompt shown in the empty box. Never saved."
+					}
 				}
 			},
 			"allOf": [
@@ -288,15 +297,19 @@
 								"description": "What the text must look like: a web address, an email address, or an icon name."
 							},
 							"control": {
-								"enum": [
-									"text",
-									"textarea",
-									"link",
-									"email",
-									"icon",
-									"code",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"text",
+											"textarea",
+											"link",
+											"email",
+											"icon",
+											"code",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -315,10 +328,14 @@
 					"then": {
 						"properties": {
 							"control": {
-								"enum": [
-									"markdown",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"markdown",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -342,10 +359,14 @@
 								"default": true
 							},
 							"control": {
-								"enum": [
-									"date",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"date",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -367,10 +388,14 @@
 								"type": "boolean"
 							},
 							"control": {
-								"enum": [
-									"toggle",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"toggle",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -409,10 +434,14 @@
 								"type": "number"
 							},
 							"control": {
-								"enum": [
-									"number",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"number",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -460,11 +489,15 @@
 								"type": "string"
 							},
 							"control": {
-								"enum": [
-									"select",
-									"radios",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"select",
+											"radios",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -500,12 +533,16 @@
 								"type": "array"
 							},
 							"control": {
-								"enum": [
-									"repeater",
-									"checkboxes",
-									"multiselect",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"repeater",
+											"checkboxes",
+											"multiselect",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -534,14 +571,18 @@
 								"description": "The kind of file it takes, so the admin's picker offers only those."
 							},
 							"control": {
-								"enum": [
-									"image",
-									"video",
-									"audio",
-									"file",
-									"code",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"image",
+											"video",
+											"audio",
+											"file",
+											"code",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -560,10 +601,15 @@
 					"then": {
 						"properties": {
 							"control": {
-								"enum": [
-									"code",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"text",
+											"code",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}
@@ -605,10 +651,14 @@
 								"type": "object"
 							},
 							"control": {
-								"enum": [
-									"group",
-									"readonly"
-								]
+								"properties": {
+									"name": {
+										"enum": [
+											"group",
+											"readonly"
+										]
+									}
+								}
 							}
 						}
 					}

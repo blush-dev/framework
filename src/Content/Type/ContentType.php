@@ -18,6 +18,7 @@ use NoDiscard;
 use Blush\Storage\Record\Order;
 use Blush\Field\Definition;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
@@ -146,7 +147,8 @@ abstract readonly class ContentType
 		public bool $llms = true,
 		public ?FileName $filename = null,
 		public ?int $position = null,
-		?string $under = null
+		?string $under = null,
+		public FieldControls $controls = new FieldControls()
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -396,7 +398,8 @@ abstract readonly class ContentType
 		$definition = new Definition($data, sprintf('Content type "%s"', $name));
 
 		try {
-			$schema = $fields->schema($definition->listOrMap('fields'), $definition->bool('closed'));
+			[$own, $controls] = $fields->withControls($definition->listOrMap('fields'));
+			$schema           = new Schema($own, $definition->bool('closed'));
 			$common = [
 				'name'        => $name,
 				'folders'     => $definition->nullableString('folders'),
@@ -407,7 +410,8 @@ abstract readonly class ContentType
 				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name),
 				'description' => $definition->nullableString('description') ?? '',
 				'icon'        => $definition->nullableString('icon'),
-				'filename'    => self::filename($definition, $name)
+				'filename'    => self::filename($definition, $name),
+				'controls'    => $controls
 			];
 
 
@@ -566,7 +570,8 @@ abstract readonly class ContentType
 			'position'    => $this->position,
 			'under'       => $this->under,
 			...$this->options(),
-			...$this->schema->toArray()
+			'fields'      => $this->controls->definitions($this->schema->fields),
+			'closed'      => $this->schema->closed ?: null
 		];
 
 		$data = array_intersect_key($data, array_flip(['name', 'kind', ...$this->kind()->options()]));

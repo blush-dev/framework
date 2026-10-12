@@ -20,6 +20,7 @@ use Blush\Admin\FieldSetEditController;
 use Blush\Admin\FieldSetsController;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Data\DataKeys;
+use Blush\Setup\SiteChecks;
 
 #[CoversClass(FieldSetsController::class)]
 #[CoversClass(FieldSetEditController::class)]
@@ -36,7 +37,7 @@ final class AdminFieldSetsTest extends TestCase
 
 	/**
 	 * Boots a site with a `recipe` collection (with a `servings` field), a
-	 * `kitchen` data set on it, and an `seo` set from `config/fields.php`.
+	 * `kitchen` data set on it, and `config/fields.php` as given.
 	 *
 	 * @param list<string> $roles
 	 */
@@ -45,7 +46,7 @@ final class AdminFieldSetsTest extends TestCase
 		$this->writeTemporaryFile('user/data/types/recipe.json', '{"fields": [{"name": "servings", "type": "number"}]}');
 		$this->writeTemporaryFile('user/data/fields/kitchen.json', '{"label": "In the Kitchen", "targets": ["type:recipe", "type:gone"], "fields": [{"name": "oven", "type": "enum", "options": ["gas", "electric"]}]}');
 
-		$config = $config === '' ? "new Blush\\Field\\FieldConfig(sets: [new Blush\\Field\\FieldSet('seo', [], ['type:page'])])" : $config;
+		$config = $config === '' ? 'new Blush\\Field\\FieldConfig()' : $config;
 
 		$this->writeTemporaryFile('config/fields.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn {$config};\n");
 
@@ -95,7 +96,7 @@ final class AdminFieldSetsTest extends TestCase
 		$list = self::json($this->send('GET', '/fields/sets'));
 		$sets = array_column(is_array($list['sets'] ?? null) ? $list['sets'] : [], null, 'name');
 
-		$this->assertSame(['kitchen', 'seo'], array_keys($sets));
+		$this->assertSame(['kitchen'], array_keys($sets), 'Only the site\'s sets (D-790).');
 		$this->assertTrue($list['create'] ?? null);
 
 		$this->assertSame([
@@ -105,16 +106,37 @@ final class AdminFieldSetsTest extends TestCase
 			'kind'        => 'type',
 			'slot'        => 'details',
 			'position'    => 10,
-			'origin'      => 'data',
 			'editable'    => true,
 			'file'        => 'user/data/fields/kitchen.json',
 			'targets'     => [['key' => 'type:recipe', 'label' => 'Recipes', 'found' => true], ['key' => 'type:gone', 'label' => 'type:gone', 'found' => false]],
-			'fields'      => 1
+			'fields'      => 1,
+			'problems'    => []
 		], $sets['kitchen']);
-		$seo = is_array($sets['seo'] ?? null) ? $sets['seo'] : [];
+	}
 
-		$this->assertSame('config', $seo['origin'] ?? null);
-		$this->assertFalse($seo['editable'] ?? null);
+	public function testListsASetOnEveryType(): void
+	{
+		$this->writeTemporaryFile('user/data/fields/notes.json', '{"targets": ["type:*"], "fields": [{"name": "note"}]}');
+		$this->site();
+
+		$notes = self::json($this->send('GET', '/fields/sets/notes'));
+
+		$this->assertSame([['key' => 'type:*', 'label' => 'All content types', 'found' => true, 'every' => true]], $notes['targets'] ?? null, 'Every type (D-786).');
+	}
+
+	public function testSaysWhereASetIsLeftOff(): void
+	{
+		$this->writeTemporaryFile('user/data/fields/stove.json', '{"targets": ["type:recipe"], "fields": [{"name": "oven"}]}');
+		$this->site();
+
+		$list = self::json($this->send('GET', '/fields/sets'));
+		$sets = array_column(is_array($list['sets'] ?? null) ? $list['sets'] : [], null, 'name');
+
+		$this->assertSame(['type:recipe can\'t take field set "stove": field set "kitchen" declares "oven" there already, and a key is declared once.'], is_array($sets['stove'] ?? null) ? $sets['stove']['problems'] ?? null : null);
+
+		$checks = $this->app->container()->make(SiteChecks::class)->extensions();
+
+		$this->assertSame('Field sets left off', ($checks['field-sets'] ?? null)?->label, 'The site keeps running, and says so (D-786).');
 	}
 
 	public function testDescribesOneSet(): void
@@ -145,7 +167,7 @@ final class AdminFieldSetsTest extends TestCase
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame('pantry', self::json($response)['name'] ?? null);
 		$this->assertSame('details', self::json($response)['slot'] ?? null, 'The kind\'s default.');
-		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'code']]], $this->saved('pantry.json'), 'A new set is JSON (D-490), and a label the name gives is left out.');
+		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => ['name' => 'code']]]], $this->saved('pantry.json'), 'A new set is JSON (D-490), and a label the name gives is left out; the control the form sent is an object beside the field (D-795).');
 	}
 
 	public function testChangesOnlyWhatChanged(): void
@@ -176,7 +198,7 @@ final class AdminFieldSetsTest extends TestCase
 		$saved = $this->saved('kitchen.json');
 
 		$this->assertSame(3, $saved['position'] ?? null);
-		$this->assertSame([['name' => 'oven', 'type' => 'enum', 'options' => [['value' => 'gas', 'label' => 'Gas'], ['value' => 'electric', 'label' => 'electric']], 'control' => 'radios']], $saved['fields'] ?? null, 'Options with labels, each written with its own.');
+		$this->assertSame([['name' => 'oven', 'type' => 'enum', 'options' => [['value' => 'gas', 'label' => 'Gas'], ['value' => 'electric', 'label' => 'electric']], 'control' => ['name' => 'radios']]], $saved['fields'] ?? null, 'Options with labels, each written with its own.');
 
 		$set = self::json($response);
 
@@ -265,7 +287,6 @@ final class AdminFieldSetsTest extends TestCase
 
 		$this->assertSame(422, $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['name' => 'stove']])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['targets' => ['recipe']]])->getStatusCode());
-		$this->assertSame(422, $this->write('PATCH', '/fields/sets/seo', ['set' => ['label' => 'Search']])->getStatusCode(), 'A config set is shown, not edited.');
 		$this->assertSame(422, $this->write('POST', '/fields/sets', ['name' => 'kitchen', 'set' => []])->getStatusCode());
 		$this->assertSame(400, $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['a', 'b']])->getStatusCode());
 	}
@@ -278,7 +299,7 @@ final class AdminFieldSetsTest extends TestCase
 
 		$this->assertSame(['deleted' => 'kitchen'], self::json($response));
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/fields/kitchen.json');
-		$this->assertSame(422, $this->write('DELETE', '/fields/sets/seo')->getStatusCode());
+		$this->assertSame(422, $this->write('DELETE', '/fields/sets/nope')->getStatusCode());
 	}
 
 	public function testDataSetsCanBeOff(): void

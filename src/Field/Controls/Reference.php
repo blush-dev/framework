@@ -19,7 +19,7 @@ use Blush\Field\Field;
 use Blush\Field\Fields\ReferenceField;
 
 /**
- * Entries of the type a reference holds, picked from a list: the field a relation adds to a schema, or a collection's parent. Not offered in the picker; entries are linked by relationships (D-767).
+ * Entries of the type a reference holds, picked from a list: the field a relation adds to a schema, a collection's parent, or a translation's original (of the entry's own type, a reference to no type named). Not offered in the picker; entries are linked by relationships (D-767).
  */
 final class Reference extends Control
 {
@@ -56,6 +56,6 @@ final class Reference extends Control
 	#[Override]
 	public function fits(Field $field): bool
 	{
-		return $field instanceof ReferenceField && $field->to !== '';
+		return $field instanceof ReferenceField;
 	}
 }

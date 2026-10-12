@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
+use Blush\Field\FieldSet;
 use Blush\Field\FieldSetLoader;
-use Blush\Field\FieldSetOrigin;
 use Blush\Field\FieldSets;
 use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
@@ -66,12 +66,12 @@ final readonly class FieldSetCheck
 
 		foreach ($this->sets as $name => $set) {
 			foreach ($set->targets as $target) {
-				[$kind] = explode(':', $target, 2);
+				[$kind, $place] = explode(':', $target, 2);
 
 				$message = match (true) {
-					! $this->targets->hasKind($kind) => sprintf('"%s" names %s, but fields can\'t attach to a "%s" yet.', $name, $target, $kind),
-					! isset($targets[$target])       => sprintf('"%s" names %s, which the site doesn\'t have, so it isn\'t used there.', $name, $target),
-					default                          => null
+					! $this->targets->hasKind($kind)                     => sprintf('"%s" names %s, but fields can\'t attach to a "%s" yet.', $name, $target, $kind),
+					$place !== FieldSet::EVERY && ! isset($targets[$target]) => sprintf('"%s" names %s, which the site doesn\'t have, so it isn\'t used there.', $name, $target),
+					default                                              => null
 				};
 
 				if ($message !== null) {
@@ -103,15 +103,12 @@ final readonly class FieldSetCheck
 	}
 
 	/**
-	 * Returns where a set's problems are listed.
+	 * Returns where problems are listed: a set's file, or the fields an
+	 * extension registers.
 	 */
 	private function key(string $name): string
 	{
-		return match ($this->sets->origin($name)) {
-			FieldSetOrigin::Data      => $this->dataFile($name),
-			FieldSetOrigin::Config    => 'config/fields.php',
-			FieldSetOrigin::Extension => sprintf('the "%s" field set', $name)
-		};
+		return $this->sets->find($name) === null ? sprintf('the fields %s registers', $name) : $this->dataFile($name);
 	}
 
 	/**

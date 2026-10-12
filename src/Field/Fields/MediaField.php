@@ -14,11 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Audio;
-use Blush\Field\Controls\File;
-use Blush\Field\Controls\Image;
-use Blush\Field\Controls\Video;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -69,20 +64,6 @@ final class MediaField extends Field
 	public static function typeDescription(): string
 	{
 		return 'A media file.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return match ($this->kind) {
-			MediaKind::Image => new Image(),
-			MediaKind::Video => new Video(),
-			MediaKind::Audio => new Audio(),
-			default          => new File()
-		};
 	}
 
 	/**

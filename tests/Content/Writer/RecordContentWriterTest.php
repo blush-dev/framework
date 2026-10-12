@@ -100,7 +100,11 @@ final class RecordContentWriterTest extends TestCase
 		$this->assertSame('sunny', $file->frontMatter['mood'] ?? null);
 		$this->assertSame($post->id, $file->frontMatter['id'] ?? null);
 		$this->assertSame(2020, (int) $post->published?->format('Y'), 'Read through its type.');
-		$this->assertSame('sunny', $post->extra['mood'] ?? null);
+		$this->assertNull($post->field('mood'), 'Nothing declares it, so it isn\'t read (D-786).');
+
+		$post = $this->content->change($post, new EntryChanges(set: ['title' => 'Hello Again']), $post->version);
+
+		$this->assertSame('sunny', $this->content->editable($post)->frontMatter['mood'] ?? null, 'A change keeps it in the file.');
 
 		$changed = $this->content->change($post, new EntryChanges(set: ['published' => '2021-05-06 07:08:09'], remove: ['mood']), $post->version);
 		$file    = $this->content->editable($changed);

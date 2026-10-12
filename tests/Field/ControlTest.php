@@ -35,8 +35,10 @@ use Blush\Field\Controls\Text;
 use Blush\Field\Controls\TextBox;
 use Blush\Field\Controls\Toggle;
 use Blush\Field\Controls\ViewOnly;
+use Blush\Field\ControlDefaults;
 use Blush\Field\ControlType;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
@@ -45,12 +47,12 @@ use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\MarkdownField;
 use Blush\Field\Fields\MediaField;
-use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\ReferenceField;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidSchema;
+use Blush\Field\FormField;
 use Blush\Field\Schema;
 use Blush\Field\TextFormat;
 use Blush\Media\MediaKind;
@@ -65,6 +67,8 @@ use Blush\Tests\Fixtures\Content\ColorField;
 #[CoversClass(TextBox::class)]
 #[CoversClass(Field::class)]
 #[CoversClass(FieldFactory::class)]
+#[CoversClass(ControlDefaults::class)]
+#[CoversClass(FormField::class)]
 final class ControlTest extends TestCase
 {
 	private FieldFactory $fields;
@@ -96,7 +100,7 @@ final class ControlTest extends TestCase
 		$this->assertSame(array_column(ControlType::cases(), 'value'), array_keys($this->controls->all()));
 	}
 
-	public function testAFieldIsEditedWithItsTypesDefaultControl(): void
+	public function testAFieldIsDrawnWithItsTypesDefaultControl(): void
 	{
 		$cases = [
 			[Text::class, new TextField('title')],
@@ -118,49 +122,59 @@ final class ControlTest extends TestCase
 		];
 
 		foreach ($cases as [$class, $field]) {
-			$this->assertInstanceOf($class, $field->editedWith(), $field->name);
+			$this->assertInstanceOf($class, new ControlDefaults()->for($field), $field->name);
 		}
 	}
 
-	public function testAFieldMayNameAControlThatFitsIt(): void
+	public function testAFieldHoldsNoControl(): void
 	{
-		$field = new EnumField('size', ['s', 'm'])->control(new Radios());
+		$this->assertArrayNotHasKey('control', new EnumField('size', ['s'])->toArray());
 
-		$this->assertInstanceOf(Radios::class, $field->editedWith());
-		$this->assertSame('radios', $field->toArray()['control'] ?? null);
-		$this->assertArrayNotHasKey('control', new EnumField('size', ['s'])->toArray(), 'A field naming none writes none.');
+		$this->expectException(InvalidSchema::class);
+		$this->expectExceptionMessage('Field "size" names a control, but a field holds none; a form chooses it (D-795).');
+
+		$this->fields->fromArray(['name' => 'size', 'type' => 'enum', 'control' => 'radios']);
 	}
 
-	public function testAFieldRefusesAControlThatDoesNotFit(): void
+	public function testADefinitionChoosesAControlThatFitsIt(): void
+	{
+		[[$field], $controls] = $this->fields->withControls([['name' => 'size', 'type' => 'enum', 'options' => ['s', 'm'], 'control' => ['name' => 'radios']]]);
+
+		$this->assertInstanceOf(Radios::class, $controls->at('size'));
+		$this->assertSame([['name' => 'size', 'type' => 'enum', 'options' => ['s', 'm'], 'control' => ['name' => 'radios']]], $controls->definitions([$field]));
+	}
+
+	public function testADefinitionRefusesAControlThatDoesNotFit(): void
 	{
 		$this->expectException(InvalidSchema::class);
 		$this->expectExceptionMessage('Field "title" (text) can\'t be edited with the "toggle" control.');
 
-		(void) new TextField('title')->control(new Toggle());
+		$this->fields->withControls([['name' => 'title', 'type' => 'text', 'control' => ['name' => 'toggle']]]);
 	}
 
 	public function testAControlsOptionsAreWrittenWithIt(): void
 	{
-		$field = $this->fields->fromArray(['name' => 'source', 'type' => 'text', 'control' => 'text', 'placeholder' => 'Cookbook, site, or person']);
+		$source = ['name' => 'source', 'type' => 'text', 'control' => ['name' => 'text', 'placeholder' => 'Cookbook, site, or person']];
 
-		$this->assertSame(['name' => 'source', 'type' => 'text', 'control' => 'text', 'placeholder' => 'Cookbook, site, or person'], $field->toArray());
-		$this->assertEquals($field, $this->fields->fromArray($field->toArray()));
+		[$fields, $controls] = $this->fields->withControls([$source]);
 
-		$steps = $this->fields->fromArray(['name' => 'ingredients', 'control' => 'repeater', 'itemLabel' => 'Ingredient', 'summary' => ['amount', 'name'], 'fields' => [['name' => 'amount', 'type' => 'number'], ['name' => 'name']]]);
+		$this->assertSame([$source], $controls->definitions($fields));
 
-		$this->assertInstanceOf(ListField::class, $steps);
-		$this->assertInstanceOf(ObjectField::class, $steps->item);
-		$this->assertSame('Ingredient', $steps->toArray()['itemLabel'] ?? null);
-		$this->assertSame(['amount', 'name'], $steps->toArray()['summary'] ?? null);
-		$this->assertEquals($steps, $this->fields->fromArray($steps->toArray()));
+		[$steps, $controls] = $this->fields->withControls([['name' => 'ingredients', 'control' => ['name' => 'repeater', 'itemLabel' => 'Ingredient', 'summary' => ['amount', 'name']], 'fields' => [['name' => 'amount', 'type' => 'number'], ['name' => 'name']]]]);
+
+		$this->assertInstanceOf(ListField::class, $steps[0]);
+		$this->assertInstanceOf(ObjectField::class, $steps[0]->item);
+		$this->assertSame(['itemLabel' => 'Ingredient', 'summary' => ['amount', 'name']], $controls->at('ingredients')?->options());
 	}
 
 	public function testADefinitionMayNameOnlyAControl(): void
 	{
-		$site  = $this->fields->fromArray(['name' => 'site', 'control' => 'link']);
-		$cover = $this->fields->fromArray(['name' => 'cover', 'control' => 'image']);
-		$diet  = $this->fields->fromArray(['name' => 'diet', 'control' => 'checkboxes', 'options' => ['vegan', 'vegetarian']]);
-		$on    = $this->fields->fromArray(['name' => 'featured', 'control' => 'toggle']);
+		[[$site, $cover, $diet, $on], $controls] = $this->fields->withControls([
+			['name' => 'site', 'control' => ['name' => 'link']],
+			['name' => 'cover', 'control' => ['name' => 'image']],
+			['name' => 'diet', 'control' => ['name' => 'checkboxes'], 'options' => ['vegan', 'vegetarian']],
+			['name' => 'featured', 'control' => ['name' => 'toggle']]
+		]);
 
 		$this->assertInstanceOf(TextField::class, $site);
 		$this->assertSame(TextFormat::Url, $site->format);
@@ -170,12 +184,12 @@ final class ControlTest extends TestCase
 		$this->assertInstanceOf(EnumField::class, $diet->item);
 		$this->assertSame(['vegan', 'vegetarian'], $diet->item->options);
 		$this->assertInstanceOf(BoolField::class, $on);
-		$this->assertSame(['name' => 'site', 'type' => 'text', 'format' => 'url', 'control' => 'link'], $site->toArray(), 'Written with both.');
+		$this->assertSame([['name' => 'site', 'type' => 'text', 'format' => 'url', 'control' => ['name' => 'link']]], $controls->definitions([$site]), 'Written with both.');
 	}
 
 	public function testAControlFillsInTheOptionsItImpliesOnItsOwnType(): void
 	{
-		$field = $this->fields->fromArray(['name' => 'site', 'type' => 'text', 'control' => 'link']);
+		[[$field]] = $this->fields->withControls([['name' => 'site', 'type' => 'text', 'control' => ['name' => 'link']]]);
 
 		$this->assertInstanceOf(TextField::class, $field);
 		$this->assertSame(TextFormat::Url, $field->format);
@@ -184,17 +198,18 @@ final class ControlTest extends TestCase
 	public function testDefinitionsRefuseAControlThatDoesNotFitTheirType(): void
 	{
 		$cases = [
-			['name' => 'title', 'control' => 'wysiwyg'],
+			['name' => 'title', 'control' => ['name' => 'wysiwyg']],
 			['name' => 'title', 'control' => true],
-			['name' => 'count', 'type' => 'number', 'control' => 'toggle'],
-			['name' => 'title', 'control' => 'radios'],
-			['name' => 'tags', 'type' => 'list', 'control' => 'checkboxes'],
-			['name' => 'email', 'type' => 'text', 'format' => 'email', 'control' => 'link']
+			['name' => 'title', 'control' => 'text'],
+			['name' => 'count', 'type' => 'number', 'control' => ['name' => 'toggle']],
+			['name' => 'title', 'control' => ['name' => 'radios']],
+			['name' => 'tags', 'type' => 'list', 'control' => ['name' => 'checkboxes']],
+			['name' => 'email', 'type' => 'text', 'format' => 'email', 'control' => ['name' => 'link']]
 		];
 
 		foreach ($cases as $definition) {
 			try {
-				$this->fields->fromArray($definition);
+				$this->fields->withControls([$definition]);
 				$this->fail('The definition should be invalid: ' . json_encode($definition));
 			} catch (InvalidSchema) {
 				$this->addToAssertionCount(1);
@@ -202,32 +217,26 @@ final class ControlTest extends TestCase
 		}
 	}
 
-	public function testAFieldSwitchesOnlyToControlsThatStoreTheSameValue(): void
+	public function testFormsGetTheControlAFieldIsDrawnWith(): void
 	{
-		$names = fn (Field $field): array => array_map(static fn (string $class): string => $class::name(), $this->controls->switchesFor($field));
-
-		$this->assertSame(['select', 'radios'], $names(new EnumField('size', ['s'])));
-		$this->assertSame(['text', 'textarea'], $names(new TextField('title')));
-		$this->assertSame(['link'], $names(new TextField('site', TextFormat::Url)));
-		$this->assertSame(['checkboxes', 'multiselect'], $names(new ListField('days', new EnumField('', ['mon']))));
-		$this->assertSame(['number'], $names(new NumberField('servings')));
-		$this->assertSame([], $names(new SlugField('handle')), 'Code isn\'t offered.');
-	}
-
-	public function testFormsGetTheControlAFieldIsEditedWith(): void
-	{
-		$form = new ColorField('accent')->toForm();
+		$defaults = new ControlDefaults();
+		$form     = FormField::of(new ColorField('accent'), new FieldControls(), $defaults)->toArray();
 
 		$this->assertSame('readonly', $form['control'] ?? null);
 		$this->assertArrayNotHasKey('class', $form);
-		$this->assertSame('code', new ReferenceField('cast')->toForm()['control'] ?? null);
-		$this->assertSame('Search for it', new TextField('q')->control(new Text('Search for it'))->toForm()['placeholder'] ?? null);
+		$this->assertSame('code', FormField::of(new ReferenceField('cast'), new FieldControls(), $defaults)->toArray()['control'] ?? null);
+		$this->assertSame('Search for it', FormField::of(new TextField('q'), new FieldControls(['q' => new Text('Search for it')]), $defaults)->toArray()['placeholder'] ?? null);
 	}
 
 	public function testFormsGiveNestedFieldsTheirControls(): void
 	{
-		$group = $this->fields->fromArray(['name' => 'rights', 'control' => 'group', 'fields' => [['name' => 'holder'], ['name' => 'license', 'control' => 'radios', 'type' => 'enum', 'options' => ['cc', 'all']]]])->toForm();
-		$steps = $this->fields->fromArray(['name' => 'steps', 'control' => 'repeater', 'fields' => [['name' => 'done', 'type' => 'bool']]])->toForm();
+		$defaults = new ControlDefaults();
+
+		[[$rights], $controls] = $this->fields->withControls([['name' => 'rights', 'control' => ['name' => 'group'], 'fields' => [['name' => 'holder'], ['name' => 'license', 'control' => ['name' => 'radios'], 'type' => 'enum', 'options' => ['cc', 'all']]]]]);
+		$group                 = FormField::of($rights, $controls, $defaults)->toArray();
+
+		[[$list], $controls] = $this->fields->withControls([['name' => 'steps', 'control' => ['name' => 'repeater'], 'fields' => [['name' => 'done', 'type' => 'bool']]]]);
+		$steps               = FormField::of($list, $controls, $defaults)->toArray();
 
 		$this->assertSame('group', $group['control'] ?? null);
 		$this->assertSame(['text', 'radios'], array_column(is_array($group['fields'] ?? null) ? $group['fields'] : [], 'control'));

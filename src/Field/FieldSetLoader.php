@@ -22,12 +22,12 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 
 /**
- * Loads the field sets from every source (D-337), each replacing a set of
- * the same name before it: extensions (`FieldSetSource`), then
- * `config/fields.php`, then the `field_sets` table (D-678; on files
+ * Loads the fields code registers (D-790): core's (`FieldSource::CORE_TAG`,
+ * owned by `core`), then extensions' (`FieldSource::TAG`); and the site's
+ * field sets, from the `field_sets` table (D-678; on files
  * `user/data/fields/*.json`, a set named after its file) unless
- * `FieldConfig::$dataSets` is off. Two
- * extensions can't define the same set.
+ * `FieldConfig::$dataSets` is off. Sets are only the site's: neither
+ * code nor `config/` makes them (D-791).
  */
 final readonly class FieldSetLoader
 {
@@ -67,79 +67,60 @@ final readonly class FieldSetLoader
 	}
 
 	/**
-	 * Loads the sets.
+	 * Loads the registered fields and the sets.
 	 *
-	 * @throws InvalidSchema When a set can't be read or isn't valid.
+	 * @throws InvalidSchema When a field or a set can't be read or isn't valid.
 	 */
 	public function load(): FieldSets
 	{
-		$sets    = [];
-		$origins = [];
+		$fields = [];
 
-		foreach ($this->extensionSets() as $set) {
-			if (isset($origins[$set->name])) {
-				throw new InvalidSchema(sprintf('Two extensions define the "%s" field set.', $set->name));
+		foreach ($this->sources(FieldSource::CORE_TAG) as $field) {
+			if (! $field->isCore()) {
+				throw new InvalidSchema(sprintf('Core\'s field "%s" is registered by "%s", not "%s".', $field->field->name, $field->owner, RegisteredField::CORE));
 			}
 
-			$sets[$set->name]    = $set;
-			$origins[$set->name] = FieldSetOrigin::Extension;
+			$fields[] = $field;
 		}
 
-		foreach ($this->configSets() as $set) {
-			$sets[$set->name]    = $set;
-			$origins[$set->name] = FieldSetOrigin::Config;
+		foreach ($this->sources(FieldSource::TAG) as $field) {
+			if ($field->isCore()) {
+				throw new InvalidSchema(sprintf('Field "%s" is registered by an extension as "%s"; name the extension, such as "acme/seo".', $field->field->name, RegisteredField::CORE));
+			}
+
+			$fields[] = $field;
 		}
+
+		$sets = [];
 
 		foreach ($this->dataSets() as $set) {
-			$sets[$set->name]    = $set;
-			$origins[$set->name] = FieldSetOrigin::Data;
+			$sets[$set->name] = $set;
 		}
 
-		return new FieldSets($sets, $origins);
+		return new FieldSets($sets, new RegisteredFields($fields));
 	}
 
 	/**
-	 * Returns the sets from extension sources.
+	 * Returns the fields the sources with a tag register: core's or
+	 * extensions'.
 	 *
-	 * @return iterable<FieldSet>
+	 * @return iterable<RegisteredField>
 	 * @throws InvalidSchema
 	 */
-	private function extensionSets(): iterable
+	private function sources(string $tag): iterable
 	{
-		foreach ($this->container->tagged(FieldSetSource::TAG) as $source) {
-			if (! $source instanceof FieldSetSource) {
+		foreach ($this->container->tagged($tag) as $source) {
+			if (! $source instanceof FieldSource) {
 				throw new InvalidSchema(sprintf(
 					'Services tagged "%s" must implement %s; %s does not.',
-					FieldSetSource::TAG,
-					FieldSetSource::class,
+					$tag,
+					FieldSource::class,
 					get_debug_type($source)
 				));
 			}
 
-			yield from $source->fieldSets();
+			yield from $source->fields();
 		}
-	}
-
-	/**
-	 * Returns the config's sets, building those in array form with every
-	 * registered field type.
-	 *
-	 * @return list<FieldSet>
-	 * @throws InvalidSchema
-	 */
-	private function configSets(): array
-	{
-		$sets = $this->config->sets;
-
-		foreach ($this->config->definitions as $definition) {
-			try {
-				$sets[] = FieldSet::fromArray($definition, $this->fields);
-			} catch (InvalidSchema $e) {
-				throw new InvalidSchema(sprintf('config/fields.php: %s', $e->getMessage()), previous: $e);
-			}
-		}
-
-		return $sets;
 	}
 
 	/**

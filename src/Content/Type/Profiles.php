@@ -16,6 +16,7 @@ namespace Blush\Content\Type;
 use Override;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 
 /**
  * The type whose entries are the people other entries credit (D-351):
@@ -75,9 +76,10 @@ final readonly class Profiles extends ContentType
 		string $description = '',
 		?string $icon = null,
 		bool $llms = false,
-		?FileName $filename = null
+		?FileName $filename = null,
+		FieldControls $controls = new FieldControls()
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls);
 	}
 
 	/**

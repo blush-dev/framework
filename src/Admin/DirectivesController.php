@@ -18,6 +18,9 @@ use Blush\Directive\DirectiveListing;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\DirectiveType;
 use Blush\Directive\Variant;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FieldControls;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\Fields\EnumField;
 use Blush\Http\Response;
@@ -63,7 +66,8 @@ final readonly class DirectivesController
 	public function __construct(
 		private ViewFactory $views,
 		private ThemeResolver $resolver,
-		private Provenance $provenance
+		private Provenance $provenance,
+		private ControlDefaults $defaults
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -133,7 +137,7 @@ final readonly class DirectivesController
 	 */
 	private function prop(Field $field, DirectiveName $directive, Views $views): array
 	{
-		$prop  = $field->toForm();
+		$prop  = FormField::of($field, new FieldControls(), $this->defaults)->toArray();
 		$label = $views->directiveText($directive, "props.{$field->name}.label");
 
 		if ($label !== null) {

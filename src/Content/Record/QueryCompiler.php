@@ -329,8 +329,8 @@ final readonly class QueryCompiler
 	}
 
 	/**
-	 * The sorts a query's order is: its key (a column, or a front matter
-	 * field); positions then titles for `position`; and for a term key
+	 * The sorts a query's order is: its key (a column, or a declared
+	 * front matter field, else the date); positions then titles for `position`; and for a term key
 	 * (`category`, the profiles type's name), the slugs written under its
 	 * relations' front matter keys.
 	 *
@@ -346,8 +346,25 @@ final readonly class QueryCompiler
 			$query->orderBy === 'name'                                                           => [['slug', $query->order]],
 			$query->orderBy === Position::FIELD                                                  => [['position', $query->order], ['title', Order::Asc]],
 			$written !== []                                                                      => array_map(static fn (string $field): array => ["slugs.{$field}", $query->order], $written),
-			default                                                                              => [["fields.{$query->orderBy}", $query->order]]
+			$this->declared($query->orderBy)                                                    => [["fields.{$query->orderBy}", $query->order]],
+			default                                                                              => [['published', $query->order]]
 		};
+	}
+
+	/**
+	 * Returns whether a type declares a field (by its name or an alias):
+	 * a key nothing declares isn't read, so it isn't sorted by either,
+	 * and the entries go by date (D-786).
+	 */
+	private function declared(string $key): bool
+	{
+		foreach (array_keys($this->types->all()) as $type) {
+			if ($this->types->schema($type)->field($key) !== null) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

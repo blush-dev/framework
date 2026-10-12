@@ -1049,22 +1049,29 @@ deeper nesting.
 
 ### Declared front matter (D-786): planned
 
+**Reshaped by D-790 to D-792 (built):** fields are registered in code
+(`RegisteredField`, `FieldSource`), panels and controls are the
+developer's (later), and field sets are only the site's. Stages 1 and 2
+below now work on registrations: core's fields are registered, not a
+set, and `type:*` and leaving clashes off carry over. Stages 3 and 4
+read "registered" for "declared".
+
 Only declared fields are read anywhere; nothing is removed from files.
 Each stage ends with `composer check`, the jtcom trial updated, and
 `docs/`.
 
-1. **Core's set and `type:*`.** `EntryFields::schema()` becomes the
+1. **Core's set and `type:*`** (built, D-787; core's fields registered instead of a set, D-792). `EntryFields::schema()` becomes the
    locked `core/entry` set; `type:*` targets every type. Sets from code
    are named `vendor/name` (core and extensions), the site's keep plain
    names; a set from code with a plain name is an error.
-2. **One declaration per key.** A key declared twice for one type is an
+2. **One declaration per key** (built, D-789: a set that would declare a key again is left off, never stopping the site). A key declared twice for one type is an
    `InvalidSchema` naming both sets and the type; core's keys are
    reserved.
-3. **Declaring the trial's keys.** Audit what the trial's themes and
+3. **Declaring the trial's keys** (built, D-793). Audit what the trial's themes and
    plugins read that no field declares (likely `social`, `og`,
    `format`, `style`, `note`, `details`, `related`) and declare them
    from their providers, before stage 4.
-4. **Reading declared fields only.** `EntryHydrator` stops handing
+4. **Reading declared fields only** (built, D-794). `EntryHydrator` stops handing
    `extra` to entries (`$entry->get()` and templates read declared
    fields only); undeclared keys stay in the file and are kept when
    the admin writes it. Site Health lists them, with fixes to declare
@@ -1072,7 +1079,33 @@ Each stage ends with `composer check`, the jtcom trial updated, and
 5. **Later:** themes declaring fields in `theme.json`, beside its
    templates; fields saying whether they're public in the API.
 
-### Still to scope
+### Fields forget controls (D-795): planned
+
+Each stage ends with `composer check`, `npm run admin:build` where the
+admin changed, and `docs/`.
+
+1. **The control layer stands on its own** (built, D-796; nothing changes yet): a
+   field's default control from the control layer (core types' defaults
+   moved there, with a registration for other field types); controls
+   chosen for fields by path (`FieldControls`: `details`,
+   `details.servings`, `gallery.*` for a list's item); and form fields
+   (`FormField`: a field with its control and its children), whose
+   `toArray()` is what `Field::toForm()` answers today.
+2. **Places keep controls beside their fields** (built, D-797; theme settings and menu fields are drawn nowhere, so they take no controls, and stage 3 drops theirs): a site's field set
+   file holds its own mapping, so it imports and exports whole (the
+   author): each field's `control` is an object of the control's name
+   and options beside the field's keys (`"oven": {"type": "enum", ...,
+   "control": {"name": "radios"}}`), nested fields their own, split
+   apart when read. A data type's own fields the same, and theme
+   settings and menu fields from `theme.json` too. Core's own
+   forms (Settings, the editor's rows, directive options) choose
+   theirs in code. Every admin endpoint sends form fields.
+3. **Fields forget controls** (built, D-798): `Field`'s control, `control()`,
+   `editedWith()`, `defaultControl()`, and `toForm()` go, with the field
+   types' overrides; `FieldFactory` builds fields only. A plugin's field
+   type registers its default control. `docs/` and the JSON Schemas
+   follow, and the admin's set editor writes the new shape.
+
 
 - **The Fields API (D-766 to D-769):** see "The Fields API, picked up
   again" above.

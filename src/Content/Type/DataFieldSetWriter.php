@@ -167,6 +167,16 @@ final readonly class DataFieldSetWriter
 			}
 		}
 
+		// The admin's forms send a control by its key, with its options
+		// beside the field's; the file keeps each as an object (D-795).
+		try {
+			if (is_array($changes['fields'] ?? null) && $changes['fields'] !== []) {
+				$merged['fields'] = $this->fields->nest($changes['fields']);
+			}
+		} catch (InvalidSchema $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
+		}
+
 		try {
 			$set = FieldSet::fromArray(['name' => $name, ...$merged], $this->fields);
 		} catch (InvalidSchema $error) {
@@ -214,7 +224,9 @@ final readonly class DataFieldSetWriter
 					throw new InvalidContentType($error->getMessage(), previous: $error);
 				}
 
-				$first = array_first(array_merge(...array_values($problems)));
+				// The sets' own problems: a field an extension registers that's
+				// left off isn't the site's to fix by saving a set.
+				$first = array_first(array_merge(...array_values(array_intersect_key($problems, $types->sets->all()))));
 
 				if ($first !== null) {
 					throw new InvalidContentType($first);

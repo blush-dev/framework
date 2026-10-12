@@ -124,9 +124,7 @@ final class EntriesTest extends TestCase
 		$this->assertSame(['spring', 'welcome'], self::slugs($query->whereTerm('category', 'art', 'old-posts')->get()));
 		$this->assertSame(['spring', 'welcome'], self::slugs($query->whereAuthor('justintadlock')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereAuthor('justintadlock', 'guest')->get()));
-		$this->assertSame(['spring'], self::slugs($query->where('tag')->get()));
-		$this->assertSame(['spring'], self::slugs($query->where('tag', 'Flowers')->get()));
-		$this->assertSame([], self::slugs($query->where('tag', 'weeds')->get()));
+		$this->assertSame([], self::slugs($query->where('tag')->get()), 'Nothing declares `tag`, so nothing matches it (D-786).');
 		$this->assertSame(['spring'], self::slugs($query->date(year: 2008, month: 4)->get()));
 		$this->assertSame(['welcome'], self::slugs($query->date(2003, 4, 15, 17)->get()));
 		$this->assertSame([], self::slugs($query->date(year: 1999)->get()));
@@ -169,7 +167,7 @@ final class EntriesTest extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('title')->get()));
 		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($posts->orderBy('title', Order::Desc)->get()));
 		$this->assertSame(['spring', 'welcome', 'hello'], self::slugs($posts->orderBy('author')->get()), 'By the slugs written for the relation, lists compared as the record layer compares them, then none (D-648).');
-		$this->assertSame(['spring', 'hello', 'welcome'], self::slugs($posts->orderBy('tag')->get()), 'Entries without one last (D-648).');
+		$this->assertSame(self::slugs($posts->orderBy('published')->get()), self::slugs($posts->orderBy('tag')->get()), 'Nothing declares `tag`, so they go by date (D-786).');
 
 		$page = $posts->limit(1)->offset(1)->get();
 
@@ -280,9 +278,9 @@ final class EntriesTest extends TestCase
 		$this->assertEquals(new DateTimeImmutable('2008-04-05 09:00:00 America/Chicago'), $entry->published);
 		$this->assertSame('America/Chicago', $entry->updated->getTimezone()->getName());
 		$this->assertSame(['justintadlock', 'guest'], $entry->field('authors'));
-		$this->assertSame('flowers', $entry->field('tag'));
+		$this->assertNull($entry->field('tag'), 'Nothing declares it (D-786).');
 		$this->assertSame('fallback', $entry->field('missing', 'fallback'));
-		$this->assertTrue($entry->has('tag'));
+		$this->assertFalse($entry->has('tag'));
 		$this->assertSame(['art', 'book-reviews'], $entry->terms('category'));
 		$this->assertTrue($entry->hasTerm('category', 'art'));
 		$this->assertFalse($entry->hasTerm('category', 'life'));
@@ -313,7 +311,7 @@ final class EntriesTest extends TestCase
 
 	public function testExcerptsAndPresentationFields(): void
 	{
-		$this->entry('_post/long.md', "title: Long\nexcerpt: A *short* summary.\nview: [custom.php, other]", 'Unused.');
+		$this->entry('_post/long.md', "title: Long\nexcerpt: A *short* summary.\nview: custom.php", 'Unused.');
 		$this->entry('_post/figure.md', 'title: Figure', "<figure><img src=\"a.jpg\"><figcaption>Caption words</figcaption></figure>\n\nOne two three four five.");
 		$this->content = $this->repository($this->site('development'));
 
@@ -322,7 +320,7 @@ final class EntriesTest extends TestCase
 
 		$this->assertSame("<p>A <em>short</em> summary.</p>\n", $long->excerpt());
 		$this->assertSame('A *short* summary.', $long->summary());
-		$this->assertSame(['custom', 'other'], $long->templates());
+		$this->assertSame(['custom'], $long->templates());
 		$this->assertSame('', $long->subtitle());
 		$figure = $this->content->named('post', 'figure');
 		$this->assertNotNull($figure);

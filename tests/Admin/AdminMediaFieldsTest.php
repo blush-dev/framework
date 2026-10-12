@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\MediaListController;
-use Blush\Config\InvalidConfig;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaKindTarget;
 use Blush\Media\MediaMetadataStore;
@@ -135,15 +134,16 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->assertSame(['title', 'caption', 'credit', 'content', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the sets on a kind.');
 	}
 
-	public function testASetCantReuseABuiltInField(): void
+	public function testASetThatReusesABuiltInFieldIsLeftOff(): void
 	{
 		$this->writeTemporaryFile('user/data/fields/strict.json', '{"targets": ["media:image"], "fields": [{"name": "alt", "required": true}]}');
+		$this->writeTemporaryFile('user/data/fields/owned.json', '{"targets": ["media:image"], "fields": [{"name": "owner"}]}');
 		$this->site(false);
 
-		$this->expectException(InvalidConfig::class);
-		$this->expectExceptionMessage('media:image can\'t take field set "strict": Schema key "alt"');
+		$schema = $this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Image);
 
-		$this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Image);
+		$this->assertFalse($schema->field('alt')->required ?? true, 'The built-in field is kept (D-786).');
+		$this->assertFalse($schema->has('owner'), 'A reserved key leaves its set off too.');
 	}
 
 	public function testSavesSetsAndRemovesFields(): void

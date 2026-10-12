@@ -1235,6 +1235,11 @@ from the admin's own pieces:
 The sketch was drawn before the Fields API's terms were settled; it's
 built from the admin's own pieces, with these departures:
 
+- **Only the site's sets, no tabs or From column** (D-790, D-791): the
+  sketch's All, This Site, and Plugins tabs, its From column, and its
+  locked plugin and config sets go. Sets are made only in the admin;
+  fields core and plugins register aren't sets and aren't listed.
+
 - **The tree is `ItemTree`**, shared with Menus (D-509): the same rows,
   buttons, keys, drag, and Undo. An open group's form holds its fields
   in a box with **Add Field**, as the sketch has it: a tree of their own

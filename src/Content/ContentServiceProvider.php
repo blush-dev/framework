@@ -59,6 +59,7 @@ use Blush\Core\Paths;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Field\FieldContext;
+use Blush\Field\ControlDefaults;
 use Blush\Field\ControlFactory;
 use Blush\Field\ControlRegistrar;
 use Blush\Field\ControlRegistry;
@@ -67,6 +68,7 @@ use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldSets;
+use Blush\Field\FieldSource;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
 use Blush\Markdown\MentionResolver;
@@ -97,6 +99,7 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		IndexFreshness::class,
 		IndexStore::class,
+		ControlDefaults::class,
 		ControlFactory::class,
 		FieldFactory::class,
 		FieldTargets::class,
@@ -155,12 +158,13 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array TAGS = [
-		RouteSource::TAG       => [
+		RouteSource::TAG         => [
 			ContentRoutes::class,
 			PageRoutes::class
 		],
-		UrlSource::TAG         => [ContentSiteUrls::class],
-		FieldTargetSource::TAG => [ContentTypeTargets::class]
+		UrlSource::TAG           => [ContentSiteUrls::class],
+		FieldTargetSource::TAG   => [ContentTypeTargets::class],
+		FieldSource::CORE_TAG    => [EntryFields::class]
 	];
 
 	/**

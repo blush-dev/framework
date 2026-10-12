@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Toggle;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -56,15 +54,6 @@ final class BoolField extends Field
 	public static function typeDescription(): string
 	{
 		return 'true or false.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return new Toggle();
 	}
 
 	/**

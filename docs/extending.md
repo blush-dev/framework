@@ -1654,12 +1654,12 @@ plugin would have. A plugin still defining a type with the old
 taxonomy kind stops the site from loading, with a message saying what
 to change.
 
-### Field sets from a plugin
+### Fields from a plugin
 
-A plugin can add fields to content types, its own or the site's,
-and to media files' [details](media.md#details-about-a-file), with
-[field sets](content-types.md#field-sets) (`media:image` and so on). Write a class that
-implements `FieldSetSource`:
+A plugin registers the fields it saves, so Blush knows about them: on
+content types (`type:post`, or `type:*` for every type, including ones
+added later), media files (`media:image`), or Settings screens
+(`settings:general`). Write a class that implements `FieldSource`:
 
 ```php
 <?php
@@ -1668,41 +1668,43 @@ declare(strict_types=1);
 
 namespace Acme\Seo;
 
-use Blush\Field\FieldSet;
-use Blush\Field\FieldSetSource;
+use Blush\Field\FieldSource;
 use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\TextField;
+use Blush\Field\RegisteredField;
 
-final class SeoFields implements FieldSetSource
+final class SeoFields implements FieldSource
 {
-	public function fieldSets(): iterable
+	public function fields(): iterable
 	{
-		yield new FieldSet(
-			'seo',
-			[new TextField('meta_title'), new BoolField('noindex')],
-			['type:post', 'type:page'],
-			'SEO'
-		);
+		yield new RegisteredField('acme/seo', new TextField('meta_title'), ['type:post', 'type:page']);
+		yield new RegisteredField('acme/seo', new BoolField('noindex'), ['type:*']);
 	}
 }
 ```
 
-Tag it with `FieldSetSource::TAG` in the plugin's provider. A site's
-`config/fields.php` or `user/data/fields/` can replace any of your sets
-by its name. Two plugins can't define the same set.
+Tag it with `FieldSource::TAG` in the plugin's provider, and name your
+plugin (`acme/seo`) as each field's owner. A registered field is data:
+its values are checked and kept, and `$entry->field('meta_title')`
+reads them. It isn't shown in the admin; a way for plugins to add
+panels and controls comes later.
 
-A set aimed at a Settings screen (`settings:general`, and so on) adds
-settings the site owner fills in ([Your own settings](themes.md#your-own-settings)).
-Read them in PHP from `Blush\Settings\SiteSettings`, which the
-container gives you: `$site->get('tagline')`, or `$site->all()`.
+Each key is registered once on a type. If yours is already one of the
+type's fields, Blush's own (`title`, `published`, and the rest), or
+another plugin's, your field is left off that type and the site says
+so (Site Health and `bin/blush content:lint`), so prefer keys unlikely
+to clash, or keep several under one group (`seo: { title, description }`).
+A site's [field set](content-types.md#field-sets) that uses a key you
+registered is left off instead, for the site to rename.
 
 ### Field types from a plugin
 
 A plugin can add a field type for every place fields are defined:
 content types, media details, theme settings, and menu fields. Extend
-`Blush\Field\Field`, describe the type for the admin with `typeLabel()`
-and `typeDescription()`, and give the control it's entered with by
-default in `defaultControl()` (without one, it's shown read-only):
+`Blush\Field\Field` and describe the type for the admin with
+`typeLabel()` and `typeDescription()`. A field is data only: it never
+says how it's drawn. The control it's entered with by default is
+registered beside it (below); without one, it's shown read-only.
 
 ```php
 <?php
@@ -1712,8 +1714,6 @@ declare(strict_types=1);
 namespace Acme\Colors;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Code;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -1738,12 +1738,6 @@ final class ColorField extends Field
 	}
 
 	#[Override]
-	public function defaultControl(): Control
-	{
-		return new Code();
-	}
-
-	#[Override]
 	public function normalize(mixed $value, FieldContext $context): mixed
 	{
 		if (! is_string($value) || preg_match('/^#[0-9a-f]{6}$/i', $value) !== 1) {
@@ -1763,22 +1757,27 @@ final class ColorField extends Field
 }
 ```
 
-Register it in the plugin's provider's `boot()`:
+Register it, and its default control, in the plugin's provider's
+`boot()`:
 
 ```php
+use Blush\Field\ControlDefaults;
+use Blush\Field\Controls\Code;
 use Blush\Field\FieldRegistry;
 
 public function boot(): void
 {
 	$this->container->get(FieldRegistry::class)->register('color', Acme\Colors\ColorField::class);
+	$this->container->get(ControlDefaults::class)->register('color', Code::class);
 }
 ```
 
 Then `type: color` works in `user/data/types`, `user/data/fields`, and
 the rest, and the admin's field editor offers it. Controls
 (`Blush\Field\Controls\*`) come only from Blush for now, so a field
-type picks from those; it can't bring its own. A definition may name
-its default control, or another whose `fits()` takes the field. Options of its own, described by
+type picks from those; it can't bring its own. A field set's or type's
+definition may choose its default control, or another whose `fits()`
+takes the field (`"control": {"name": "code"}`). Options of its own, described by
 `definitionSchema()`, are offered in the field editor when they're
 text, numbers, true or false, a set of values, or a list of text.
 

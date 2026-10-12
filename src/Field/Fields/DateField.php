@@ -17,8 +17,6 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Date;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -66,15 +64,6 @@ final class DateField extends Field
 	public static function typeDescription(): string
 	{
 		return 'A date and time.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return new Date();
 	}
 
 	/**

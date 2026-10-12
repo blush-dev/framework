@@ -79,9 +79,8 @@ stylesheet: /media/zine.css  # an extra stylesheet
 
 ## Your own settings
 
-A site, a theme's author, or a plugin can add settings to the
-admin's **Settings** screens with a [field set](content-types.md#field-sets)
-aimed at one: `settings:general`, `settings:reading`,
+A site can add settings to the admin's **Settings** screens with a
+[field set](content-types.md#field-sets) aimed at one: `settings:general`, `settings:reading`,
 `settings:writing`, `settings:media`, `settings:search`, `settings:ai`,
 or `settings:api`.
 
@@ -526,7 +525,9 @@ items, it includes the `empty` template, if you gave one:
 An entry offers `title`, `slug`, `published`, `updated`, `content()`
 (its rendered Markdown; `raw()` is the Markdown as written),
 `summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
-(in minutes), and `field('name')` for anything in its front matter.
+(in minutes), and `field('name')` for any declared field in its front
+matter (a key nothing declares reads as `null`; a theme registers the
+keys its templates read, as a plugin [does](extending.md#fields-from-a-plugin)).
 `excerpt(50, $more)` takes the number of words and HTML to end with when
 the content is cut short, such as a "Continue reading" link. Without a
 summary, the excerpt is the content's prose: the words of its paragraphs

@@ -99,9 +99,10 @@ final class FieldTargets
 	}
 
 	/**
-	 * Returns why sets don't fit the targets, by set name: each target's
-	 * clashes (`FieldSets::clashes()`), then each kind's conflicts across
-	 * its targets (`FieldTargetSource::conflicts()`).
+	 * Returns why sets and registered fields don't fit the targets, by
+	 * set name or field owner: each target's clashes
+	 * (`FieldSets::clashes()`), then each kind's conflicts across its
+	 * targets (`FieldTargetSource::conflicts()`).
 	 *
 	 * @return array<string, list<string>>
 	 * @throws InvalidSchema When a target's own fields don't fit.
@@ -111,8 +112,8 @@ final class FieldTargets
 		$problems = [];
 
 		foreach ($this->all() as $target) {
-			foreach ($sets->clashes($target) as $name => $message) {
-				$problems[$name][] = $message;
+			foreach ($sets->clashes($target) as $name => $messages) {
+				$problems[$name] = [...$problems[$name] ?? [], ...$messages];
 			}
 		}
 

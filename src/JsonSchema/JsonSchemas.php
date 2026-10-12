@@ -277,7 +277,7 @@ final readonly class JsonSchemas
 				'provide'     => $this->requires('The packages the theme provides an implementation of, as composer.json says it, each with the versions it provides (self.version for its own): a require of one is met by this theme when it runs, and any number of extensions may provide one. Without it, the provide in the composer.json beside this file is used.')
 			],
 			'definitions' => [
-				'field'      => $this->field(),
+				'field'      => $this->field(controls: false),
 				'menuItem'   => $this->menuItem(),
 				'localeText' => $this->localeText()
 			]
@@ -642,11 +642,13 @@ final readonly class JsonSchemas
 	/**
 	 * Returns the schema for a field definition: the shared keys, and each
 	 * built-in type's own keys when `type` names it (editors offer those
-	 * once `type` is set).
+	 * once `type` is set). A field set's (`$controls`) chooses each
+	 * field's control too (D-795); a theme's settings and menu fields
+	 * take none.
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function field(): array
+	private function field(bool $controls = true): array
 	{
 		$field = ['$ref' => '#/definitions/field'];
 		$types = array_map(
@@ -666,11 +668,16 @@ final readonly class JsonSchemas
 			'aliases'     => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Other keys the value may be read from.'],
 			'label'       => ['type' => 'string', 'description' => 'A human-readable name.'],
 			'description' => ['type' => 'string', 'description' => 'Help text.'],
-			'control'     => [
-				'description' => 'How the field is entered. Either `type` or `control` may be left out: a control names its type, and a type has a default control.',
-				'anyOf'       => array_map(static fn (ControlType $control): array => ['const' => $control->value, 'description' => $control->className()::label()], ControlType::cases())
-			],
-			...array_merge(...array_map(static fn (ControlType $control): array => $control->className()::definitionSchema(), ControlType::cases()))
+			...($controls ? ['control' => [
+				'type'                 => 'object',
+				'description'          => 'How the field is entered (D-795): the control\'s `name` and its own options, beside the field. Either `type` or `control` may be left out: a control names its type, and a type has a default control.',
+				'required'             => ['name'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'name' => ['anyOf' => array_map(static fn (ControlType $control): array => ['const' => $control->value, 'description' => $control->className()::label()], ControlType::cases())],
+					...array_merge(...array_map(static fn (ControlType $control): array => $control->className()::definitionSchema(), ControlType::cases()))
+				]
+			]] : [])
 		];
 
 		$conditions = [];
@@ -679,10 +686,10 @@ final readonly class JsonSchemas
 			$class = $type->className();
 			$own   = [
 				...$class::definitionSchema($field),
-				'control' => ['enum' => [...array_values(array_map(
+				...($controls ? ['control' => ['properties' => ['name' => ['enum' => [...array_values(array_map(
 					static fn (ControlType $control): string => $control->value,
 					array_filter(ControlType::cases(), static fn (ControlType $control): bool => in_array($type->value, $control->className()::stores(), true))
-				)), ControlType::Readonly->value]]
+				)), ControlType::Readonly->value]]]]] : [])
 			];
 
 			$conditions[] = [

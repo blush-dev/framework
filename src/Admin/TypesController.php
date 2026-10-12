@@ -33,6 +33,8 @@ use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Http\Response;
@@ -102,7 +104,8 @@ final readonly class TypesController
 		private DataTypeWriter $writer,
 		private Entries $content,
 		private FeedConfig $feeds,
-		private ContentFiles $files
+		private ContentFiles $files,
+		private ControlDefaults $defaults
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -170,7 +173,7 @@ final readonly class TypesController
 			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
 			'relations'    => array_values(array_map(fn (Relation $relation): array => RelationsController::describe($types, $relation, $this->config->dataTypes), $relations)),
-			'fields'       => array_values(array_map(static fn (Field $field): array => $field->toForm(), $type->schema->fields)),
+			'fields'       => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($type->schema, $type->controls, $this->defaults)),
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
 			'folders'      => $type->folders?->pattern,

@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\Entry\Position;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 
 /**
  * A type whose entries nest by folder (D-386). The built-in `page` type is
@@ -73,9 +74,10 @@ final readonly class Tree extends ContentType
 		?FileName $filename = null,
 		?string $prefix = null,
 		?int $position = null,
-		?string $under = null
+		?string $under = null,
+		FieldControls $controls = new FieldControls()
 	) {
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

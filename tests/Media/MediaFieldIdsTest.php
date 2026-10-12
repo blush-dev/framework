@@ -73,7 +73,7 @@ final class MediaFieldIdsTest extends TestCase
 
 		$this->contentConfig(['types' => ['recipe' => ['kind' => 'collection', 'fields' => [
 			['name' => 'gallery', 'type' => 'list', 'item' => ['type' => 'media', 'kind' => 'image']],
-			['name' => 'rights', 'control' => 'group', 'fields' => [['name' => 'holder'], ['name' => 'photo', 'control' => 'image']]]
+			['name' => 'rights', 'control' => ['name' => 'group'], 'fields' => [['name' => 'holder'], ['name' => 'photo', 'control' => ['name' => 'image']]]]
 		]]]]);
 
 		$this->writeTemporaryFile('user/content/_recipe/chili.md', implode("\n", [

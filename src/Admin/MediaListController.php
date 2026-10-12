@@ -26,6 +26,8 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\Editing\EditRefused;
 use Blush\Core\Paths;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldContext;
@@ -162,7 +164,8 @@ final readonly class MediaListController
 		private AccountProfiles $profiles,
 		private EmbeddedMetadataReader $embedded,
 		private MediaArtwork $artworks,
-		private MediaEditor $editor
+		private MediaEditor $editor,
+		private ControlDefaults $defaults
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -579,7 +582,7 @@ final readonly class MediaListController
 		return [
 			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes), $record === null ? '' : $this->artworks->url($record)),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
-			'fields'     => array_values(array_map(static fn (Field $field): array => $field->toForm(), $schema->fields)),
+			'fields'     => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($schema, $this->schemas->controls(MediaKind::fromMime($file->mime)), $this->defaults)),
 			'sets'       => array_map(static fn (FieldSet $set): array => [
 				'name'        => $set->name,
 				'label'       => $set->label,

@@ -455,6 +455,14 @@ final readonly class DataTypeWriter
 				$value = $this->labels($merged, $value);
 			} elseif ($key === 'feed' && $value === true && is_array($merged['feed'] ?? null)) {
 				$value = $merged['feed'];
+			} elseif ($key === 'fields' && is_array($value) && $value !== []) {
+				// The admin's forms send a control by its key; the file keeps
+				// each as an object (D-795).
+				try {
+					$value = $this->fields->nest($value);
+				} catch (InvalidSchema $error) {
+					throw new InvalidContentType($error->getMessage(), previous: $error);
+				}
 			}
 
 			if (! array_key_exists($key, self::OPTIONS)) {

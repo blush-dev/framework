@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Fixture: registers an extension's field sets.
+ * Fixture: registers an extension's fields.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,14 +14,14 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Field;
 
 use Blush\Core\ServiceProvider;
-use Blush\Field\FieldSetSource;
+use Blush\Field\FieldSource;
 
 /**
- * Registers an extension's field sets.
+ * Registers an extension's fields.
  */
 final class SeoProvider extends ServiceProvider
 {
 	protected const array TAGS = [
-		FieldSetSource::TAG => [SeoFields::class]
+		FieldSource::TAG => [SeoFields::class]
 	];
 }

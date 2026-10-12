@@ -13,16 +13,20 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\ObjectField;
+
 /**
  * Builds fields and schemas from definition arrays, looking up each
- * field's class by its `type` in the registry, and its control by its
- * `control` (`ControlFactory`):
+ * field's class by its `type` in the registry:
  *
  *     $factory->fromArray(['name' => 'rating', 'type' => 'number', 'max' => 5]);
  *
- * A definition stores both (D-769), but either may be left out of one
- * written by hand: without a `type`, the control's type is used, with
- * the options it implies; without a `control`, the type's default.
+ * A field holds no control (D-795). Definitions that choose controls,
+ * as a field set's file writes them, are built with `withControls()`,
+ * which parts each into the field and its control (a control names its
+ * type when the field names none, D-769) and checks the control can draw
+ * its field.
  *
  * A `class` key naming a `Field` subclass wins over the registry. Compiled
  * caches use it for extension field types (see `Field::toArray()`).
@@ -45,7 +49,10 @@ final readonly class FieldFactory
 	 */
 	public function fromArray(array $data): Field
 	{
-		$data  = $this->controls->complete($data);
+		if (array_key_exists('control', $data)) {
+			throw new InvalidSchema(sprintf('Field "%s" names a control, but a field holds none; a form chooses it (D-795).', is_string($data['name'] ?? null) ? $data['name'] : ''));
+		}
+
 		$type  = $data['type'] ?? FieldType::Text->value;
 		$class = $data['class'] ?? null;
 		$class = is_string($class) && is_subclass_of($class, Field::class)
@@ -67,7 +74,65 @@ final readonly class FieldFactory
 			));
 		}
 
-		return $this->controls->apply($class::fromArray($data, $this), $data);
+		return $class::fromArray($data, $this);
+	}
+
+	/**
+	 * Builds fields from definitions as a field set's file writes them,
+	 * with the controls chosen for them (`ControlFactory::split()`, D-795).
+	 *
+	 * @param  array<array-key, mixed> $definitions
+	 * @return array{list<Field>, FieldControls}
+	 * @throws InvalidSchema
+	 */
+	public function withControls(array $definitions): array
+	{
+		[$definitions, $controls] = $this->controls->split($definitions);
+		$fields                   = array_map($this->fromArray(...), $definitions);
+
+		self::check($fields, $controls, '');
+
+		return [$fields, $controls];
+	}
+
+	/**
+	 * Checks each chosen control can draw its field: one that fits it, or
+	 * its type's default (D-768).
+	 *
+	 * @param  iterable<Field> $fields
+	 * @throws InvalidSchema
+	 */
+	private static function check(iterable $fields, FieldControls $controls, string $parent): void
+	{
+		foreach ($fields as $field) {
+			$path    = FieldControls::path($parent, $field->name);
+			$control = $controls->at($path);
+
+			if ($control !== null && ! $control->fits($field) && $control::name() !== ControlDefaults::core($field)?->name()) {
+				throw new InvalidSchema(sprintf('Field "%s" (%s) can\'t be edited with the "%s" control.', $field->name, $field->type(), $control::name()));
+			}
+
+			if ($field instanceof ObjectField) {
+				self::check($field->schema->fields, $controls, $path);
+			}
+
+			if ($field instanceof ListField) {
+				self::check([$field->item->named(FieldControls::ITEM)], $controls, $path);
+			}
+		}
+	}
+
+	/**
+	 * Nests definitions as the admin's forms send them into the shape a
+	 * field set's file writes (`ControlFactory::nest()`).
+	 *
+	 * @param  array<array-key, mixed> $definitions
+	 * @return list<array<array-key, mixed>>
+	 * @throws InvalidSchema
+	 */
+	public function nest(array $definitions): array
+	{
+		return $this->controls->nest($definitions);
 	}
 
 	/**

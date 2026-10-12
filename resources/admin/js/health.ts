@@ -71,6 +71,9 @@ export interface HealthFix {
 	body: (rows: HealthRow[], choice?: string) => Record<string, unknown>;
 	// What it changes, for a toast: "Gave 3 files new ids".
 	noun: [string, string];
+	// Whether it asks first even for one row: it takes out what's
+	// written (D-786).
+	ask?: boolean;
 }
 
 export interface HealthGroup {
@@ -84,7 +87,7 @@ export interface HealthGroup {
 	fix?: HealthFix;
 	// The group's fix, offered when two or more rows are open: its
 	// button, and the confirmation's question and paragraph.
-	bulk?: { label: (count: number) => string; title: (count: number) => string; say: string };
+	bulk?: { label: (count: number) => string; title: (count: number) => string; say: string; after?: string };
 }
 
 export interface HealthScreen {
@@ -123,7 +126,7 @@ const KINDS: Record<string, { name: string; says: string; notice?: { name: strin
 	unknown: {
 		name: 'Keys That Aren\'t Fields',
 		says: 'This type takes only its own fields, so the site leaves these keys out.',
-		notice: { name: 'Fields Nothing Reads', says: 'Nothing in the site reads these keys. They do nothing here, so nothing on the site changes.' }
+		notice: { name: 'Fields Nothing Reads', says: 'Nothing declares these keys: no field of the type, a field set, or a plugin. They stay in their files, but the site never reads them. Add one to a field set to use it, or remove them.' }
 	},
 	date: { name: 'Dates That Aren\'t Real', says: 'Each is read as another date, so these entries can sort into the wrong place.' },
 	parent: { name: 'Parents That Can\'t Be Used', says: 'An entry whose parent can\'t be used is shown at the top level.' },
@@ -198,6 +201,20 @@ function fileGroups(health: Health, area: 'content' | 'media'): HealthGroup[] {
 				};
 			}
 
+			// A key nothing declares can be taken out of its file (D-786),
+			// asking first.
+			const remove = kind === 'unknown' && entry?.id;
+
+			if (remove && group.fix === undefined) {
+				group.fix  = { path: '/health/undeclared', body: (rows) => ({ ids: [...new Set(rows.map((row) => row.entry?.id).filter((id): id is string => typeof id === 'string'))] }), noun: ['entry', 'entries'], ask: true };
+				group.bulk = {
+					label: (count) => `Remove ${plural(count, 'Key')}`,
+					title: (count) => `Remove ${plural(count, 'Key')}?`,
+					say: 'Every key nothing declares is taken out of each entry\'s file, with what it holds.',
+					after: 'Nothing on the site changes, since nothing reads them.'
+				};
+			}
+
 			group.rows.push({
 				key: `${area}:files:${file.path}:${violation.field}:${violation.message}`,
 				severity: violation.severity,
@@ -205,7 +222,8 @@ function fileGroups(health: Health, area: 'content' | 'media'): HealthGroup[] {
 				title: entry ? (entry.title || 'Untitled') : null,
 				entry: entry ? { type: entry.type, id: entry.id } : undefined,
 				...found(violation),
-				...(rewrite ? { fix: { label: 'Rewrite as ID', change: 'the path rewritten as its file\'s id', done: 'Rewritten as its id.' } } : {})
+				...(rewrite ? { fix: { label: 'Rewrite as ID', change: 'the path rewritten as its file\'s id', done: 'Rewritten as its id.' } } : {}),
+				...(remove ? { fix: { label: 'Remove', change: 'every key nothing declares removed', done: 'Removed.' } } : {})
 			});
 		});
 	}

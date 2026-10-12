@@ -50,7 +50,10 @@ watch(() => form.value.label, (label) => {
 });
 
 const types   = computed(() => props.options.filter((option) => option.kind === 'type'));
-const missing = computed(() => form.value.targets.filter((target) => !types.value.some((option) => option.key === target)));
+// `type:*` is every type, now and later (D-786).
+const EVERY   = 'type:*';
+const every   = computed(() => form.value.targets.includes(EVERY));
+const missing = computed(() => form.value.targets.filter((target) => target !== EVERY && !types.value.some((option) => option.key === target)));
 
 const keyError = computed(() => {
 	if (!props.fresh) {
@@ -114,8 +117,12 @@ function submit(): void {
 			<fieldset class="fieldset">
 				<legend>Used on</legend>
 				<div class="field-set-settings__types">
+					<label class="checkbox">
+						<input type="checkbox" :checked="every" @change="form.targets = ($event.target as HTMLInputElement).checked ? [EVERY] : []">
+						All content types
+					</label>
 					<label v-for="option in types" :key="option.key" class="checkbox">
-						<input type="checkbox" :checked="form.targets.includes(option.key)" @change="toggle(option.key, ($event.target as HTMLInputElement).checked)">
+						<input type="checkbox" :checked="every || form.targets.includes(option.key)" :disabled="every" @change="toggle(option.key, ($event.target as HTMLInputElement).checked)">
 						{{ option.label }}
 					</label>
 					<label v-for="target in missing" :key="target" class="checkbox">

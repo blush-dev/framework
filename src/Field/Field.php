@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field;
 
 use NoDiscard;
-use Blush\Field\Controls\ViewOnly;
 
 /**
  * The abstract base of every field type (the enum + registry pattern,
@@ -30,9 +29,10 @@ use Blush\Field\Controls\ViewOnly;
  * (D-078). When the canonical key is present too, it wins.
  *
  * A field is a value's definition, and its type is the authority on
- * values (D-766, D-769). How it's entered is its control (`Control`): the
- * one it names (`control()`, checked with `Control::fits()`), or its
- * type's default (`defaultControl()`). Each field type describes itself
+ * values (D-766, D-769): its shape, rules, default value, older names,
+ * label, and help. It never knows how it's drawn (D-795): a form chooses
+ * a control for it (`FormField`), else the control layer's default for
+ * its type (`ControlDefaults`). Each field type describes itself
  * too (D-337): a name for people (`typeLabel()`) and what it holds
  * (`typeDescription()`).
  */
@@ -72,11 +72,6 @@ abstract class Field
 	 */
 	public protected(set) string $description = '';
 
-	/**
-	 * The control the field names, or `null` for its type's default (see
-	 * `editedWith()`).
-	 */
-	public protected(set) ?Control $control = null;
 
 	/**
 	 * Returns the field type's registry key, such as `text`.
@@ -100,23 +95,7 @@ abstract class Field
 		return '';
 	}
 
-	/**
-	 * Returns the control the field is edited with: its own, or its type's
-	 * default.
-	 */
-	public function editedWith(): Control
-	{
-		return $this->control ?? $this->defaultControl();
-	}
 
-	/**
-	 * Returns the control used when the field names none. A type no
-	 * control fits is shown read-only.
-	 */
-	public function defaultControl(): Control
-	{
-		return new ViewOnly();
-	}
 
 	/**
 	 * Validates a raw value and returns its normalized form: plain data
@@ -209,24 +188,12 @@ abstract class Field
 				'default'     => $this->default,
 				'label'       => $this->label,
 				'description' => $this->description,
-				...$this->options(),
-				...($this->control?->toArray() ?? [])
+				...$this->options()
 			],
 			static fn (mixed $value): bool => $value !== '' && $value !== [] && $value !== null
 		);
 	}
 
-	/**
-	 * Returns the field as the admin's forms take it (D-229, D-337): its
-	 * definition, without a `class`, and with the control it's edited
-	 * with always set, with that control's options.
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function toForm(): array
-	{
-		return [...array_diff_key($this->toArray(), ['class' => true]), ...$this->editedWith()->toArray()];
-	}
 
 	/**
 	 * Returns a copy with another name.
@@ -282,27 +249,6 @@ abstract class Field
 		return clone($this, ['description' => $description]);
 	}
 
-	/**
-	 * Returns a copy edited with a control: one that fits the field, or
-	 * its type's default (so a plugin's field type can name a core
-	 * control that knows nothing of it).
-	 *
-	 * @throws InvalidSchema When the control can't edit the field.
-	 */
-	#[NoDiscard]
-	public function control(Control $control): static
-	{
-		if (! $control->fits($this) && $control::name() !== $this->defaultControl()::name()) {
-			throw new InvalidSchema(sprintf(
-				'Field "%s" (%s) can\'t be edited with the "%s" control.',
-				$this->name,
-				$this->type(),
-				$control::name()
-			));
-		}
-
-		return clone($this, ['control' => $control]);
-	}
 
 	/**
 	 * Returns the type-specific settings for `toArray()`.
@@ -316,7 +262,6 @@ abstract class Field
 
 	/**
 	 * Applies the shared settings in a definition array to a new field.
-	 * Its control is applied by `FieldFactory`.
 	 *
 	 * @template T of Field
 	 * @param    T $field

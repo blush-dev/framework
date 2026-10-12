@@ -262,7 +262,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($entry['values'] ?? null);
 		$this->assertSame('Rekindling the Flame', $entry['values']['title'] ?? null);
 		$this->assertSame('2022-03-29T23:00:00-06:00', $entry['values']['published'] ?? null, 'The 1.x `date` is the `published` field, as parsed.');
-		$this->assertSame(['mood' => 'hopeful'], $entry['extra'] ?? null);
+		$this->assertSame([], $entry['extra'] ?? null, 'Nothing declares `mood`, so it isn\'t shown (D-786).');
 		$this->assertSame("The body.\n", $entry['body'] ?? null);
 		$this->assertIsString($entry['modified'] ?? null, 'When the file was last written, for the editor\'s conflict notice.');
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
@@ -432,7 +432,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($index['type']['fields'] ?? null);
 		$this->assertSame(['title', 'status'], array_column($index['type']['fields'], 'name'), 'Only its title and status are fields.');
 		$this->assertSame(['title' => 'Writing', 'status' => 'draft'], $index['values'] ?? null);
-		$this->assertSame(['authors' => ['jane'], 'refs' => ['authors' => ['jane' => self::profileId('jane')]]], $index['extra'] ?? null, 'The rest is kept as it is.');
+		$this->assertSame(['authors' => ['jane']], $index['extra'] ?? null, 'The rest that\'s declared; the file keeps everything as it is.');
 		$this->assertIsArray($index['can'] ?? null);
 		$this->assertFalse($index['can']['delete'] ?? null);
 
@@ -472,8 +472,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsString($copy['path'] ?? null);
 		$this->assertMatchesRegularExpression('#^_post/flame-copy\.md$#', $copy['path'], 'Named by the slug alone (D-515).');
 		$this->assertSame(['Rekindling the Flame (Copy)', 'draft'], [$copy['title'] ?? null, $copy['status'] ?? null]);
-		$this->assertIsArray($copy['extra'] ?? null);
-		$this->assertSame('hopeful', $copy['extra']['mood'] ?? null, 'Everything else is copied.');
+		$this->assertStringContainsString('mood      : hopeful', $this->file($copy['path']), 'Everything else is copied.');
 		$this->assertIsArray($copy['values'] ?? null);
 		$this->assertSame(['jane'], (array) ($copy['values']['authors'] ?? null), 'It keeps its authors.');
 		$this->assertStringContainsString("\nThe body.\n", $this->file($copy['path']));
@@ -785,7 +784,7 @@ final class AdminEditingTest extends TestCase
 
 	public function testDescribesTheFieldSetsAttachedToTheType(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/feelings.json', '{"description": "How it felt to write.", "targets": ["type:post"], "fields": {"mood": {"type": "enum", "options": ["hopeful", "glum"], "control": "radios"}}}');
+		$this->writeTemporaryFile('user/data/fields/feelings.json', '{"description": "How it felt to write.", "targets": ["type:post"], "fields": {"mood": {"type": "enum", "options": ["hopeful", "glum"], "control": {"name": "radios"}}}}');
 		$this->site();
 
 		$entry = $this->load(self::FLAME);

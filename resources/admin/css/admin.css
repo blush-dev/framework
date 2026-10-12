@@ -475,7 +475,6 @@
 	margin: 0;
 	padding: var(--s-3) var(--pad-x);
 	border-top: 1px solid var(--border);
-	border-radius: 0 0 var(--r-3) var(--r-3);
 	background: var(--surface-2);
 	color: var(--fg-2);
 	font-size: var(--text-sm);

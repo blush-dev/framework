@@ -24,8 +24,8 @@ use Blush\Markdown\MarkdownException;
 /**
  * One piece of content, as templates and controllers see it. Its front
  * matter is typed by its type's schema (`fields`, keyed by canonical
- * name), and undeclared keys are kept as they were written (`extra`,
- * D-081). The body is a lazy ghost: its Markdown is read and rendered
+ * name). Only declared fields are read (D-786): a key nothing declares
+ * stays in its file but isn't here. The body is a lazy ghost: its Markdown is read and rendered
  * only when `content()` is called.
  *
  * Entries are built from their records (D-649), whatever keeps them.
@@ -39,7 +39,6 @@ final readonly class Entry implements Stringable
 	 * @param string                      $path        Where its store keeps it, for showing (a file's path from the content folder), or `''`.
 	 * @param string                      $key         Its slug after its parents' (D-656); `''` for a landing page.
 	 * @param array<string, mixed>        $fields      Typed front matter, by field name.
-	 * @param array<string, mixed>        $extra       Undeclared front matter.
 	 * @param array<string, list<string>> $terms       Term slugs by taxonomy.
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
 	 * @param string                      $language    The code of the language it's written in (D-455).
@@ -60,7 +59,6 @@ final readonly class Entry implements Stringable
 		public DateTimeImmutable $updated,
 		public string $locale,
 		public array $fields,
-		public array $extra,
 		public array $terms,
 		public bool $landing,
 		private Body $body,
@@ -90,12 +88,11 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns a front matter value by field name, or an undeclared key's
-	 * raw value.
+	 * Returns a declared field's value by its name.
 	 */
 	public function field(string $name, mixed $default = null): mixed
 	{
-		return $this->fields[$name] ?? $this->extra[$name] ?? $default;
+		return $this->fields[$name] ?? $default;
 	}
 
 	/**
@@ -167,23 +164,20 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns the view names front matter asks for (`template`, or 1.x's
-	 * `view`), without a `.php` extension.
+	 * Returns the view name front matter asks for (`template`, or 1.x's
+	 * `view`), without a `.php` extension, as a list: none or one.
 	 *
 	 * @return list<string>
 	 */
 	public function templates(): array
 	{
-		$templates = $this->fields['template'] ?? [];
-		$views     = [];
+		$view = $this->fields['template'] ?? null;
 
-		foreach (is_array($templates) ? $templates : [] as $view) {
-			if (is_string($view)) {
-				$views[] = str_ends_with($view, '.php') ? substr($view, 0, -4) : $view;
-			}
+		if (! is_string($view) || $view === '') {
+			return [];
 		}
 
-		return $views;
+		return [str_ends_with($view, '.php') ? substr($view, 0, -4) : $view];
 	}
 
 	/**

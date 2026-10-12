@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Fixture: an extension's field sets.
+ * Fixture: an extension's registered fields.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,19 +14,20 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Field;
 
 use Override;
-use Blush\Field\FieldSet;
-use Blush\Field\FieldSetSource;
+use Blush\Field\FieldSource;
 use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\TextField;
+use Blush\Field\RegisteredField;
 
 /**
- * An extension's SEO fields for posts and pages.
+ * Registers SEO fields on posts and pages.
  */
-final class SeoFields implements FieldSetSource
+final class SeoFields implements FieldSource
 {
 	#[Override]
-	public function fieldSets(): iterable
+	public function fields(): iterable
 	{
-		yield new FieldSet('seo', [new TextField('meta_title'), new BoolField('noindex')], ['type:post', 'type:page'], 'SEO');
+		yield new RegisteredField('acme/seo', new TextField('meta_title'), ['type:post', 'type:page']);
+		yield new RegisteredField('acme/seo', new BoolField('noindex'), ['type:post', 'type:page']);
 	}
 }

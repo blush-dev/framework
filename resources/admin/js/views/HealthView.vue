@@ -298,7 +298,8 @@ async function setIgnored(row: Row, ignore: boolean): Promise<void> {
 
 /**
  * Runs a group's fix for some of its rows (`choice`, the file a row
- * chose to keep), asking first for more than one row or a group fix,
+ * chose to keep), asking first for more than one row, a group fix, or a
+ * fix that always asks,
  * with every change listed. Rows it fixed are marked Fixed; a file it
  * couldn't change is named, with why. Then the check runs again.
  */
@@ -309,14 +310,14 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 		return;
 	}
 
-	if (options.bulk || rows.length > 1) {
+	if (options.bulk || rows.length > 1 || fixer.ask) {
 		const listed = rows.slice(0, 8);
 		const ok     = await confirmAction({
 			title: group.bulk?.title(rows.length) ?? `Change ${plural(rows.length, 'File')}?`,
 			body: group.bulk?.say ?? 'Each file gets the change below and nothing else.',
 			items: listed.map((row) => ({ title: row.path, meta: row.fix?.change ?? '' })),
 			more: rows.length > listed.length ? `and ${rows.length - listed.length} more, the same change in each` : undefined,
-			after: 'Published entries change on the site as soon as this is done.',
+			after: group.bulk?.after ?? 'Published entries change on the site as soon as this is done.',
 			confirm: group.bulk?.label(rows.length) ?? `Change ${plural(rows.length, 'File')}`
 		});
 

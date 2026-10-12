@@ -9,21 +9,21 @@
 				"string",
 				"number"
 			],
-			"description": "The entry's title."
+			"description": "Title: The entry's title."
 		},
 		"subtitle": {
 			"type": [
 				"string",
 				"number"
 			],
-			"description": "A line shown under the title."
+			"description": "Subtitle: A line shown under the title."
 		},
 		"slug": {
 			"type": [
 				"string",
 				"integer"
 			],
-			"description": "The URL name, instead of the file name."
+			"description": "Slug: The URL name, instead of the file name."
 		},
 		"published": {
 			"anyOf": [
@@ -35,7 +35,7 @@
 					"type": "integer"
 				}
 			],
-			"description": "The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+			"description": "Published: The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
 		},
 		"date": {
 			"anyOf": [
@@ -59,7 +59,7 @@
 					"type": "integer"
 				}
 			],
-			"description": "When it last changed; defaults to published, then the file's modified time."
+			"description": "Updated: When it last changed; defaults to published, then the file's modified time."
 		},
 		"status": {
 			"enum": [
@@ -67,7 +67,7 @@
 				"draft",
 				"trash"
 			],
-			"description": "published (the default), draft, or trash."
+			"description": "Status: published (the default), draft, or trash."
 		},
 		"trashed": {
 			"anyOf": [
@@ -79,7 +79,7 @@
 					"type": "integer"
 				}
 			],
-			"description": "When the entry was moved to the trash, set with status: trash."
+			"description": "Trashed: When the entry was moved to the trash, set with status: trash."
 		},
 		"visibility": {
 			"enum": [
@@ -87,14 +87,14 @@
 				"unlisted",
 				"hidden"
 			],
-			"description": "public (the default), unlisted, or hidden."
+			"description": "Visibility: public (the default), unlisted, or hidden."
 		},
 		"summary": {
 			"type": [
 				"string",
 				"number"
 			],
-			"description": "A short Markdown summary for listings and feeds. Without one, the first 50 words are used."
+			"description": "Summary: A short Markdown summary for listings and feeds. Without one, the first 50 words are used."
 		},
 		"excerpt": {
 			"type": [
@@ -105,45 +105,19 @@
 		},
 		"image": {
 			"type": "string",
-			"description": "A featured image."
+			"description": "Featured image: A featured image."
 		},
 		"template": {
-			"anyOf": [
-				{
-					"type": "array",
-					"items": {
-						"type": [
-							"string",
-							"number"
-						]
-					}
-				},
-				{
-					"type": [
-						"string",
-						"number"
-					]
-				}
+			"type": [
+				"string",
+				"number"
 			],
-			"description": "The theme template to use, such as single-wide."
+			"description": "Template: The theme template to use, such as single-wide."
 		},
 		"view": {
-			"anyOf": [
-				{
-					"type": "array",
-					"items": {
-						"type": [
-							"string",
-							"number"
-						]
-					}
-				},
-				{
-					"type": [
-						"string",
-						"number"
-					]
-				}
+			"type": [
+				"string",
+				"number"
 			],
 			"description": "Same as template. The theme template to use, such as single-wide."
 		},
@@ -152,38 +126,25 @@
 				"string",
 				"number"
 			],
-			"description": "An extra stylesheet for this page."
+			"description": "Stylesheet: An extra stylesheet for this page."
 		},
 		"class": {
-			"anyOf": [
-				{
-					"type": "array",
-					"items": {
-						"type": [
-							"string",
-							"number"
-						]
-					}
-				},
-				{
-					"type": [
-						"string",
-						"number"
-					]
-				}
-			],
-			"description": "Extra CSS classes for the page's <body>."
-		},
-		"translation_of": {
 			"type": [
 				"string",
 				"number"
 			],
-			"description": "For a translation, the id of the entry it translates, which links them whatever their file names."
+			"description": "Classes: Extra CSS classes for the page's <body>, separated by spaces."
+		},
+		"translation_of": {
+			"type": [
+				"string",
+				"integer"
+			],
+			"description": "Original: For a translation, the id of the entry it translates, which links them whatever their file names."
 		},
 		"collection": {
 			"type": "object",
-			"description": "Lists other entries on this page."
+			"description": "Collection: Lists other entries on this page."
 		},
 		"id": {
 			"type": "string",

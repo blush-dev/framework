@@ -16,6 +16,7 @@ namespace Blush\Field\Controls;
 use Override;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
+use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
 
 /**
@@ -72,8 +73,17 @@ final class Text extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function stores(): array
+	{
+		return ['text', 'slug'];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function fits(Field $field): bool
 	{
-		return $field instanceof TextField && $field->format === null;
+		return ($field instanceof TextField && $field->format === null) || $field instanceof SlugField;
 	}
 }

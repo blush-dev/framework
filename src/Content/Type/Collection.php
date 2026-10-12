@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use Override;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 use Blush\Field\Fields\ReferenceField;
 
 /**
@@ -90,9 +91,10 @@ final readonly class Collection extends ContentType
 		public bool $hierarchical = false,
 		public TypeOrder $order = TypeOrder::Published,
 		?int $position = null,
-		?string $under = null
+		?string $under = null,
+		FieldControls $controls = new FieldControls()
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls);
 	}
 
 	/**

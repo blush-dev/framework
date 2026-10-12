@@ -37,7 +37,7 @@ use Blush\Storage\StorageArea;
  *   one (D-657);
  * - `fields`: its front matter (the type's fields, and keys it doesn't
  *   declare);
- * - `slugs`: each front matter value written as slugs (a list), for
+ * - `slugs`: each declared value written as slugs (a list; D-786), for
  *   1.x queries that compare values as slugs (`meta_key`, and terms
  *   written without refs), worked out by core (`EntryValues`).
  *
@@ -102,7 +102,7 @@ final class EntryTable
 			'position'    => is_int($values['position'] ?? null) ? $values['position'] : null,
 			'archive'     => $archive,
 			'fields'      => $front,
-			'slugs'       => EntryValues::slugs($front)
+			'slugs'       => EntryValues::slugs($values)
 		];
 	}
 

@@ -15,6 +15,7 @@ namespace Blush\Media;
 
 use Blush\Config\InvalidConfig;
 use Blush\Field\Field;
+use Blush\Field\FieldControls;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSets;
 use Blush\Field\Fields\MarkdownField;
@@ -101,6 +102,21 @@ final class MediaSchemas
 		}
 
 		return $this->schemas[$kind->value] = $schema;
+	}
+
+	/**
+	 * Returns the controls a kind's fields are drawn with (D-795): each of
+	 * its field sets'.
+	 */
+	public function controls(MediaKind $kind): FieldControls
+	{
+		$controls = [];
+
+		foreach ($this->setsFor($kind) as $set) {
+			$controls = [...$controls, ...$set->controls->controls];
+		}
+
+		return new FieldControls($controls);
 	}
 
 	/**

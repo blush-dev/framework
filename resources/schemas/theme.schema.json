@@ -736,114 +736,6 @@
 				"description": {
 					"type": "string",
 					"description": "Help text."
-				},
-				"control": {
-					"description": "How the field is entered. Either `type` or `control` may be left out: a control names its type, and a type has a default control.",
-					"anyOf": [
-						{
-							"const": "group",
-							"description": "Group"
-						},
-						{
-							"const": "repeater",
-							"description": "Repeating Group"
-						},
-						{
-							"const": "text",
-							"description": "Text"
-						},
-						{
-							"const": "textarea",
-							"description": "Textarea"
-						},
-						{
-							"const": "markdown",
-							"description": "Formatted Text"
-						},
-						{
-							"const": "link",
-							"description": "Link"
-						},
-						{
-							"const": "email",
-							"description": "Email"
-						},
-						{
-							"const": "select",
-							"description": "Select Dropdown"
-						},
-						{
-							"const": "radios",
-							"description": "Radio Buttons"
-						},
-						{
-							"const": "checkboxes",
-							"description": "Checkboxes"
-						},
-						{
-							"const": "multiselect",
-							"description": "Multi-Select"
-						},
-						{
-							"const": "toggle",
-							"description": "Toggle"
-						},
-						{
-							"const": "number",
-							"description": "Number"
-						},
-						{
-							"const": "date",
-							"description": "Date and Time"
-						},
-						{
-							"const": "image",
-							"description": "Image"
-						},
-						{
-							"const": "video",
-							"description": "Video"
-						},
-						{
-							"const": "audio",
-							"description": "Audio"
-						},
-						{
-							"const": "file",
-							"description": "File"
-						},
-						{
-							"const": "icon",
-							"description": "Icon"
-						},
-						{
-							"const": "code",
-							"description": "Code"
-						},
-						{
-							"const": "reference",
-							"description": "Entry Picker"
-						},
-						{
-							"const": "readonly",
-							"description": "Read-only"
-						}
-					]
-				},
-				"itemLabel": {
-					"type": "string",
-					"description": "What each item is called, for \"Add Ingredient\"."
-				},
-				"summary": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"description": "The keys of the fields that sum an item up in one line when it's closed."
-				},
-				"placeholder": {
-					"type": "string",
-					"description": "A prompt shown in the empty box. Never saved."
 				}
 			},
 			"allOf": [
@@ -867,17 +759,6 @@
 									"icon"
 								],
 								"description": "What the text must look like: a web address, an email address, or an icon name."
-							},
-							"control": {
-								"enum": [
-									"text",
-									"textarea",
-									"link",
-									"email",
-									"icon",
-									"code",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -894,14 +775,7 @@
 						]
 					},
 					"then": {
-						"properties": {
-							"control": {
-								"enum": [
-									"markdown",
-									"readonly"
-								]
-							}
-						}
+						"properties": []
 					}
 				},
 				{
@@ -921,12 +795,6 @@
 								"type": "boolean",
 								"description": "Whether the value has a time; without one, only the day is kept.",
 								"default": true
-							},
-							"control": {
-								"enum": [
-									"date",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -946,12 +814,6 @@
 						"properties": {
 							"default": {
 								"type": "boolean"
-							},
-							"control": {
-								"enum": [
-									"toggle",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -988,12 +850,6 @@
 							},
 							"default": {
 								"type": "number"
-							},
-							"control": {
-								"enum": [
-									"number",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -1039,13 +895,6 @@
 							},
 							"default": {
 								"type": "string"
-							},
-							"control": {
-								"enum": [
-									"select",
-									"radios",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -1079,14 +928,6 @@
 							},
 							"default": {
 								"type": "array"
-							},
-							"control": {
-								"enum": [
-									"repeater",
-									"checkboxes",
-									"multiselect",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -1113,16 +954,6 @@
 									"file"
 								],
 								"description": "The kind of file it takes, so the admin's picker offers only those."
-							},
-							"control": {
-								"enum": [
-									"image",
-									"video",
-									"audio",
-									"file",
-									"code",
-									"readonly"
-								]
 							}
 						}
 					}
@@ -1139,14 +970,7 @@
 						]
 					},
 					"then": {
-						"properties": {
-							"control": {
-								"enum": [
-									"code",
-									"readonly"
-								]
-							}
-						}
+						"properties": []
 					}
 				},
 				{
@@ -1184,12 +1008,6 @@
 							},
 							"default": {
 								"type": "object"
-							},
-							"control": {
-								"enum": [
-									"group",
-									"readonly"
-								]
 							}
 						}
 					}

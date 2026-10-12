@@ -383,6 +383,15 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Removes front matter keys nothing declares (D-786) from the entries
+	 * (by id) the account may edit, as a job.
+	 */
+	public function removeUndeclared(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->queue($request, HealthFix::Undeclared);
+	}
+
+	/**
 	 * Migrates the data types still written as taxonomies (D-591), for an
 	 * account that may change content types.
 	 */
@@ -440,7 +449,8 @@ final readonly class HealthController
 		$paths = self::list($request, match ($fix) {
 			HealthFix::Terms   => 'terms',
 			HealthFix::Parents => 'parents',
-			HealthFix::MediaFields => 'ids',
+			HealthFix::MediaFields,
+			HealthFix::Undeclared  => 'ids',
 			default            => 'paths'
 		});
 

@@ -681,9 +681,12 @@ find easier to read:
 ### How a field is entered
 
 A field's `type` says what its value is, and its `control` says how
-someone enters it. A field without a `control` uses its type's
-default. Some types can use another control instead: set `control` to
-pick it.
+someone enters it in the admin. A field without a `control` uses its
+type's default. Some types can use another control instead: set
+`control` to an object naming it (`"control": {"name": "radios"}`),
+beside the field's own keys. The control's options go inside it, so a
+type's or field set's file holds how each field is entered with the
+field.
 
 | Control       | Stores                                  | Is                                                        |
 |---------------|-----------------------------------------|-----------------------------------------------------------|
@@ -708,19 +711,21 @@ pick it.
 | `readonly`    | Anything                                | Shown, not edited                                         |
 
 Text-box controls (`text`, `textarea`, `markdown`, `link`, `email`,
-`number`) take a `placeholder`, a prompt shown while the box is empty.
-A `repeater` takes `itemLabel` (what each item is called, for "Add
-Ingredient") and `summary` (the keys that sum up an item in one line).
+`number`) take a `placeholder`, a prompt shown while the box is empty:
+`"control": {"name": "text", "placeholder": "Salt"}`. A `repeater` takes
+`itemLabel` (what each item is called, for "Add Ingredient") and
+`summary` (the keys that sum up an item in one line). A group's fields
+and a list's item take a `control` of their own.
 
 You can name only the control, and the field gets the control's type:
 
 ```json
 {
 	"fields": [
-		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "control": "radios" },
-		{ "name": "diets", "control": "checkboxes", "options": ["vegetarian", "vegan", "gluten-free"] },
-		{ "name": "website", "control": "link", "placeholder": "https://" },
-		{ "name": "cover", "control": "image" }
+		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "control": { "name": "radios" } },
+		{ "name": "diets", "control": { "name": "checkboxes" }, "options": ["vegetarian", "vegan", "gluten-free"] },
+		{ "name": "website", "control": { "name": "link", "placeholder": "https://" } },
+		{ "name": "cover", "control": { "name": "image" } }
 	]
 }
 ```
@@ -731,7 +736,12 @@ doesn't store its field's type is an error. A list's items need to fit
 on one line to be repeated a box each, so a list of `markdown` is shown
 read-only. For text written freely, use a `text` field with `textarea`.
 
-Keys you don't declare are still kept, and `content:lint --strict` lists
+Only declared keys are read: a type's fields, Blush's built-in ones, a
+plugin's or theme's [registered fields](extending.md#fields-from-a-plugin),
+and the site's [field sets](#field-sets). A key nothing declares stays
+in its file (and a save in the admin keeps it), but templates, queries,
+the admin, and the [API](api.md) never see it. `content:lint --strict`
+and Site Health (**Fields Nothing Reads**, which can remove them) list
 them. Set `closed: true` on the type to make them errors instead.
 
 ## Field sets
@@ -758,6 +768,9 @@ map. `label` heads the set's fields in the admin's editor, where each set
 has its own group after the type's own fields (its name, made readable,
 when it has no label), and `description` is shown under it.
 
+`type:*` adds a set to every type, including types added later:
+`"targets": ["type:*"]`.
+
 A set's targets are all one kind of place: content types, kinds of
 media file, or Settings screens. A field means one thing on an entry and
 another in the site's settings, so make a set for each.
@@ -768,9 +781,13 @@ panel beside the text, after the type's own fields, by `position`
 
 - A type's fields come first, then each set's, with the sets in name
   order.
-- A set can't use a field name (or alias) that the type, the built-in
-  fields, or another of its sets already uses. Rename one; Blush stops
-  with a message naming both.
+- Each key is declared once on a type. A set can't use a field name (or
+  alias) that the type, the built-in fields (which every type starts
+  with), a plugin's registered fields, or another of its sets already
+  uses, nor `id` or `refs`. Such a set is left off that type, whole, and the
+  site keeps running: the first set by name keeps the key. Site Health,
+  `bin/blush content:lint`, and Structure → Fields (**Left Off**) say
+  which set and key; rename the field in one of them.
 - A target the site doesn't have, such as a type that's turned off, is
   skipped. `bin/blush content:lint` notes it.
 
@@ -786,29 +803,11 @@ settings to the admin's Settings screens: target `settings:general`,
 [Your own settings](themes.md#your-own-settings)).
 
 The admin's **Structure → Fields** creates and edits the sets in
-`user/data/fields/` ([Fields](admin.md#fields)). Sets can also be
-defined in `config/fields.php`, where the admin only shows them:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use Blush\Field\FieldConfig;
-use Blush\Field\FieldSet;
-use Blush\Field\Fields\BoolField;
-use Blush\Field\Fields\TextField;
-
-return new FieldConfig(sets: [
-	new FieldSet('seo', [new TextField('meta_title'), new BoolField('noindex')], ['type:post', 'type:page'], 'SEO')
-]);
-```
-
-Plugins can add sets too
-([Field sets from a plugin](extending.md#field-sets-from-a-plugin)).
-A set in `config/fields.php` replaces a plugin's set of the same
-name, and a set in `user/data/fields/` replaces either. Set `dataSets:
-false` in `config/fields.php` to ignore `user/data/fields/`.
+`user/data/fields/` ([Fields](admin.md#fields)). Sets are only made
+there: `config/fields.php` configures fields but doesn't add them, and
+plugins [register fields](extending.md#fields-from-a-plugin) of their
+own instead, which aren't sets and aren't listed. Set `dataSets: false`
+in `config/fields.php` to ignore `user/data/fields/`.
 
 Editors that read JSON Schema can check a set's file: start it with
 `"$schema": "../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json"`.

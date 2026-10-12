@@ -24851,4 +24851,330 @@ decision, add a new entry that supersedes it and mark the old one
   set aside because shared plain keys are sometimes the point (two
   themes reading one `subtitle`), and a vendor prefix on sets alone
   doesn't stop two sets declaring one key, so a clash is an error.
-- **Status:** Planned (`roadmap.md` → Declared front matter).
+- **Status:** Stages 1 to 4 built (D-787, D-789, D-792 to D-794); later
+  items planned (`roadmap.md` → Declared front matter).
+
+### D-787: Declared front matter, stage 1: core's set, `type:*`, and vendor names
+
+- **Date:** 2026-10-11
+- **Builds:** D-786's stage 1.
+- **Decision:**
+  - **`core/entry`** is `EntryFields::set()` (label Entry), in place of
+    `EntryFields::schema()`. `EntryFields` is a `FieldSetSource` tagged
+    `FieldSetSource::CORE_TAG`, which `FieldSetLoader` reads first with
+    the new `FieldSetOrigin::Core`; a core set not named `core/…` is an
+    error. A type's own schema still starts with its fields (a type may
+    redefine one of them), so `FieldSets::for()` never attaches a core
+    set after a place's own fields; Structure → Fields lists it, locked,
+    "From Blush".
+  - **`kind:*`** in `targets` is every place of the kind
+    (`FieldSet::EVERY`, `attachesTo()`, `isEverywhere()`, `namesOf()`).
+    Lint doesn't note it as a missing place; the admin labels it "All
+    content types", counts and moves values across every type, and the
+    set's Settings dialog offers an **All content types** checkbox
+    (sites can use it, not only plugins).
+  - **Names:** `FieldSet::VENDOR_NAME_PATTERN` (`vendor/name`, the vendor
+    as extensions' allow) beside `NAME_PATTERN` (plain). Extensions'
+    sets must have a vendor other than `core`; config and data sets
+    must be plain. So the site's sets can no longer replace a plugin's
+    by name (D-337's replacing goes); a data set still replaces a config
+    set of the same name. A label made from a name leaves the vendor
+    out.
+  - **The admin:** `fields/sets/{name}` routes take `vendor/name`; the
+    app's `/fields/:name+` route and `fieldSetRoute()`/`fieldSetPath()`
+    in `fields.ts`.
+- **Why:** D-786. Claude's call on the dialog's checkbox and on
+  dropping replacement of a plugin's set by the site (plain and vendor
+  names never meet).
+- **Status:** Built, then reworked by D-792: `core/entry`, vendor
+  names, and code's sets are gone (fields are registered instead);
+  `type:*` stays.
+
+### D-788: Core's entry fields drawn as the editor has them
+
+- **Date:** 2026-10-11
+- **Refines:** D-787, D-783 (one template name).
+- **Decision:** From the author's review of `core/entry` on Structure →
+  Fields:
+  - Every core field has a label (Title, …, Featured image, Classes,
+    Original).
+  - `template` is a `text` field of one name, and `class` a `text`
+    field of classes separated by spaces; lists are no longer read for
+    either.
+  - `image` is a media field of images (`MediaKind::Image`), with the
+    Image control.
+  - `slug` uses the Text control, which can now store a slug (Code is
+    still the slug type's default).
+  - `translation_of` is a reference (Entry Picker, any `ReferenceField`
+    now fits the Reference control), labeled Original. Core's sets are
+    left out of the types cache and given back from code
+    (`FieldSets::fromArray(..., $core)`), since a reference can't be
+    written as a definition.
+  - `.panel__note` has no radius of its own; the panel clips its
+    corners, so a note that isn't last stays square.
+  - An entry's language isn't front matter (its file name, D-455), so
+    it isn't in `core/entry`.
+- **Status:** Built.
+
+### D-789: Declared front matter, stage 2: a key declared twice leaves the set off
+
+- **Date:** 2026-10-11
+- **Refines:** D-786 (a key declared by two sets was to be an
+  `InvalidSchema` when types load).
+- **Decision:** The author asked that a clash never take the site down,
+  so it doesn't:
+  - **A set that would declare a key again is left off that place,
+    whole,** with the site running: `FieldSets::schemaFor()` attaches
+    sets in name order and skips one that clashes, and `clashes()` says
+    why, naming the key and what declared it first: the place's own
+    fields, another set, or core's (`core/entry`'s keys are reserved).
+    This was already fatal before D-786 for a set reusing a type's key;
+    it isn't any more.
+  - **Reserved keys** are refused by the place: `ContentTypeTarget`
+    and `MediaKindTarget` don't accept a field named (or aliased) for
+    `id` and `refs`, or a file's `id`, `owner`, `uploaded`,
+    `renditions`, and `artwork`, so such a set is left off too.
+  - **Said where it's seen:** `content:lint` (as before), the site's
+    checks under Extensions (`field-sets`, "Field sets left off"), and
+    Structure → Fields: `problems` on each set, a **Left Off** pill in
+    the list, and a warning on the set's screen. The admin still
+    refuses to save a set that would clash.
+  - A type's own fields clashing (its own definition) still stops it,
+    as before.
+- **Why:** the author: "By error, it won't take the site down will it?
+  If not, proceed."
+- **Status:** Built.
+
+### D-790: Fields are registered; panels and controls are the developer's; field sets are the site's
+
+- **Date:** 2026-10-11
+- **Refines:** D-766 (fields, field sets, controls, and forms), D-786 to
+  D-789 (declared front matter, built on sets).
+- **Decision:** The author's model, from a doubt that the Fields API
+  was right in modeling everything as sets:
+  - **A field is registered in code:** it tells Blush about data that's
+    saved (its key, type, and the places it's on). Registration is what
+    "declared" means in D-786; a key registered twice on a place is the
+    clash D-789 leaves off.
+  - **The admin's presentation is separate and the developer's:**
+    panels and controls are added to the admin by developers (an API
+    for it comes later). The control is the developer's choice, not
+    part of registering a field.
+  - **A registered field no panel shows simply isn't shown.** No
+    catch-all group; developers decide what to do with their fields.
+  - **Field sets are the site's:** the way people make fields in the
+    admin, a group like HTML's `<fieldset>` (registering its fields and
+    showing them together). Structure → Fields lists only user-created
+    sets, never fields from core, plugins, or types.
+- **Consequences, to plan:** `core/entry` (D-787) stops being a set and
+  becomes core's registrations; plugins register fields rather than
+  sets (`FieldSetSource`); the clash and left-off logic (D-789) moves
+  from sets to registrations. Stages 3 and 4 of D-786 wait for this.
+- **Why:** the author: "The field sets were just a way to structure for
+  users like <fieldset> in html."
+- **Status:** Built (D-792).
+
+### D-791: No fields from config, and plugins' fields aren't shown until an admin API
+
+- **Date:** 2026-10-11
+- **Refines:** D-790, D-337 (sets in `config/fields.php`), D-617.
+- **Decision:** The author's answers to D-790's open points:
+  - **`config/fields.php` can't add fields.** `config/` is for
+    configuration, not for making things, so its `sets` (and set
+    definitions) go; settings that configure fields, such as
+    `dataSets`, stay. Field sets are only the site's, made in the admin
+    (`user/data/fields`).
+  - **Plugins' fields aren't shown in the admin on their own.** A
+    plugin registers fields as data; showing them (in the editor, on
+    media details, or on Settings screens) waits for a proper admin API
+    for panels and controls, down the road. There are no good reasons
+    for plugins to add custom fields yet, so nothing is kept working in
+    between.
+- **Why:** the author: "config/ files are for configuration, not
+  creating new things" and "there are no good reasons for plugins to
+  add custom fields yet."
+- **Status:** Built (D-792).
+
+### D-792: Fields registered in code, and field sets only the site's
+
+- **Date:** 2026-10-11
+- **Builds:** D-790, D-791; reworks D-787 (and D-789's left-off logic).
+- **Decision:**
+  - **`RegisteredField`** (owner, field, targets): `core`, or an
+    extension's `vendor/name`; targets as a set's, `type:*` included.
+    **`FieldSource`** (`fields()`), tagged `FieldSource::TAG` by
+    extensions and `FieldSource::CORE_TAG` by core, replaces
+    `FieldSetSource`. **`RegisteredFields`** holds them, core's first;
+    core's are each type's base (`EntryFields::schema()` again, its
+    fields registered on `type:*`), so they're never attached after a
+    type's own fields, and their keys are reserved. The compiled types
+    keep extensions' registered fields (`fields`); core's are given
+    again from code.
+  - **`FieldSets`** holds the site's sets and `$registered`. A place's
+    schema: its own fields, then extensions' registered fields (in
+    order), then the site's sets (by name); one that would declare a
+    key again is left off, and `clashes()` lists why by set name or
+    owner. The admin refuses saving a set only for sets' problems.
+  - **Sets are only `user/data/fields`.** `FieldSetLoader` reads no
+    config or extension sets; `FieldConfig` is `dataSets` alone
+    (`sets` is an unknown key now). `FieldSetOrigin` is gone, and so are
+    vendor names on sets (`FieldSet::targets()` shares `type:*`
+    matching with registrations).
+  - **The admin:** Structure → Fields lists the site's sets only: no
+    tabs, no From column, no `origin` (`departures.md`). Registered
+    fields show nowhere (D-791).
+- **Status:** Built.
+
+### D-793: Declared front matter, stage 3: the trial's themes register what they read
+
+- **Date:** 2026-10-11
+- **Builds:** D-786's stage 3, on D-792's registrations.
+- **Decision:** Each trial theme registers the front matter its
+  templates read, in a `Fields` source tagged `FieldSource::TAG` in its
+  provider (the jtcom trial isn't committed; this records what was
+  done there):
+  - **jtcom and jtcom-blade:** `format` on posts (an enum of `aside`,
+    `gallery`, `image`, `quote`; none is a standard post), and on every
+    type 1.x's head keys: `keywords`, `style`, `social` (an object with
+    `image`), `og:title`, `og:image`, and `image:alt` (keys with colons
+    are field names as written).
+  - **Second Proof:** `image_alt` on every type.
+  - **Left undeclared:** keys in the trial's content that nothing
+    reads (`tag`, `amazon`, `notes`, `course`, `teacher`, `emoji`,
+    `video`, `thumbnail`, `note`, `gallery`, `details`, `assignment`,
+    and one `foramt` typo). They stay in their files; stage 4 stops
+    handing them to templates.
+- **Status:** Built (in the trial).
+
+### D-794: Declared front matter, stage 4: only declared fields are read
+
+- **Date:** 2026-10-11
+- **Builds:** D-786's stage 4 (its option B), on D-792's registrations.
+- **Decision:**
+  - **Entries:** `Entry::$extra` is gone; `field()` and `has()` read
+    declared fields only, so a template's `field('tag')` is `null` when
+    nothing declares `tag`. Records still keep every key (they're the
+    store on SQLite), and saves keep them in files.
+  - **Queries:** the `slugs` column `where()` matches is built from
+    declared values only, and `orderBy()` a key no type declares sorts
+    by date instead.
+  - **The admin:** the editor's `extra` is narrowed to declared keys it
+    doesn't offer (the Trash screen shows those); a key nothing declares
+    isn't shown. A profile's `linkable` (read by core since D-605) is
+    now declared beside `avatar`, and kept out of the editor's fields
+    with `trashed` and `translation_of` (`NOT_EDITED`).
+  - **Site Health:** **Fields Nothing Reads** says what declares a key
+    and offers **Remove** (`POST health/undeclared`, `UndeclaredKeys`,
+    a `HealthFix` job by entry id), which takes every undeclared key out
+    of an entry's file. A fix can now ask first even for one row
+    (`HealthFix.ask` in `health.ts`), and a group's confirmation can say
+    what happens after (`bulk.after`).
+  - **Not changed:** a media file's undeclared details (`MediaDetail
+    extra`) are still shown on its screen; D-786 was about front matter.
+- **Status:** Built.
+
+### D-795: Fields forget controls; forms draw fields with controls
+
+- **Date:** 2026-10-12
+- **Refines:** D-766 (a field "never knows how it's drawn"), D-769
+  (definitions carry `type` and `control`), D-790 (the control is the
+  developer's).
+- **Decision:** The author's calls:
+  - **A field is data:** its key, type and the type's options, what's
+    required, its **default value**, older names, and its **label and
+    help** (they describe the data; the API, MCP, and JSON Schemas use
+    them). It holds no control, no default control, and no form shape.
+    "A default belongs to the field, not the control": a field's
+    default value stays on the field.
+  - **A control is presentation,** with its own options (placeholder,
+    item name, summary keys): chosen by whoever draws a form. Checks a
+    control used to imply are already the type's (D-769).
+  - **A field's default control is the control layer's:** core field
+    types' defaults move out of the field classes; a plugin's field
+    type names its default control there, not on the field.
+  - **Forms** (D-766's fourth term) draw fields with controls: a form
+    field is a field and the control chosen for it, with its group's or
+    list's fields, and is what the admin's forms are sent.
+  - **The site's field sets keep their controls apart from their
+    fields,** and their file's shape may change for it (the author: "It's
+    ok if we need to change the shape of the fields.json at this
+    stage").
+- **Status:** Built (D-796 to D-798) (`roadmap.md` →
+  Fields forget controls). A set's file holds its fields' controls
+  itself, so it can be imported and exported whole (the author: "the
+  mapping can happen in the file itself (and should)"): each field's
+  `control` an object of the control's name and options.
+
+### D-796: Fields forget controls, stage 1: the control layer stands on its own
+
+- **Date:** 2026-10-12
+- **Builds:** D-795's stage 1.
+- **Decision:**
+  - **`ControlDefaults`** (a singleton): a field's default control.
+    Core field types' defaults moved there from their classes
+    (`ControlDefaults::core()`); another field type's is registered by
+    its type key (`register('rating', Radios::class)`), else it's
+    read-only. `Field::defaultControl()` asks it, until stage 3 removes
+    it.
+  - **`FieldControls`:** the controls a form chooses, by path (`oven`,
+    `details.servings`, `gallery.*` for a list's item).
+  - **`FormField`:** a field drawn with a control (chosen, else the
+    field's own until stage 3, else its default), with a group's
+    fields and a list's item; `toArray()` is what `Field::toForm()`
+    answers, which a test checks for every core entry field.
+  - Nothing uses them yet; stage 2 moves the forms onto them.
+- **Status:** Built.
+
+### D-797: Fields forget controls, stage 2: places keep controls beside their fields
+
+- **Date:** 2026-10-12
+- **Builds:** D-795's stage 2.
+- **Decision:**
+  - **The file shape:** a field set's and a data type's fields write
+    each control as an object beside the field (`"control": {"name":
+    "text", "placeholder": "Salt"}`), a group's fields and a list's item
+    their own; a bare `"control": "radios"` is refused. On reading,
+    `ControlFactory::split()` (through `FieldFactory::withControls()`)
+    parts each definition into the field and its control by path, and a
+    control still names its type and what it implies (D-769);
+    `FieldControls::definitions()` writes them back.
+  - **`FieldSet` and `ContentType` hold `controls`** (`FieldControls`);
+    their fields hold none. `ContentTypes::controls()` merges core's
+    (`EntryFields::controls()`: a slug as Text, a translation's
+    original as Reference), the type's own, and its sets'; and
+    `MediaSchemas::controls()` its sets'.
+  - **Core's own forms choose in code:** `Setting::control()` in place
+    of `->control()` on its fields; directive props take their defaults.
+  - **The admin's wire shape is unchanged:** every endpoint sends form
+    fields (`FormField`), flat as before (`control` a key, its options
+    beside the field's), and the set and type writers nest what the
+    forms send (`FieldFactory::nest()`) before saving.
+  - **Theme settings and menu fields** are drawn nowhere in the admin,
+    so they take no controls; stage 3 removes what's left.
+  - The editor JSON Schemas describe `control` as an object; the
+    trial's `recipe` set was rewritten in the new shape.
+- **Status:** Built.
+
+### D-798: Fields forget controls, stage 3: a field holds no control
+
+- **Date:** 2026-10-12
+- **Builds:** D-795's stage 3.
+- **Decision:**
+  - **`Field` holds no control:** `$control`, `control()`,
+    `editedWith()`, `defaultControl()`, and `toForm()` are gone, with
+    the field types' `toForm()` overrides; `toArray()` writes no
+    control. A form draws a field (`FormField`), and a field's default
+    control is `ControlDefaults`' (`core()` for core types, `register()`
+    for a plugin's, else read-only).
+  - **`FieldFactory`** builds fields only: `fromArray()` refuses a
+    definition with `control` ("a field holds none; a form chooses
+    it"). `withControls()` checks each chosen control fits its field or
+    is its type's default (the check `Field::control()` made), with the
+    same message. `ControlFactory` keeps `split()`, `nest()`, and the
+    registry; `complete()`, `apply()`, and the unused `switchesFor()`
+    go (the admin's picker has its own, D-768).
+  - **JSON Schemas:** a field set's fields take `control`; a theme's
+    settings and menu fields don't.
+  - **Docs:** a plugin's field type registers its default control with
+    `ControlDefaults` in its provider's `boot()`.
+- **Status:** Built.

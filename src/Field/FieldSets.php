@@ -19,9 +19,9 @@ use IteratorAggregate;
 use Override;
 
 /**
- * The site's resolved field sets, from every source (`FieldSetLoader`),
- * by name, with where each was defined. A target's sets are the ones
- * attached to it, in name order.
+ * The site's field sets (`FieldSetLoader`), by name, with the fields
+ * code registers (D-790). A target's sets are the ones attached to it,
+ * in name order.
  *
  * @implements IteratorAggregate<string, FieldSet>
  */
@@ -33,10 +33,9 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	private array $sets;
 
 	/**
-	 * @param array<string, FieldSet>       $sets    Keyed by name.
-	 * @param array<string, FieldSetOrigin> $origins Keyed by name.
+	 * @param array<string, FieldSet> $sets Keyed by name.
 	 */
-	public function __construct(array $sets = [], private array $origins = [])
+	public function __construct(array $sets = [], public RegisteredFields $registered = new RegisteredFields())
 	{
 		ksort($sets, SORT_STRING);
 
@@ -62,15 +61,8 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns where a set was defined.
-	 */
-	public function origin(string $name): FieldSetOrigin
-	{
-		return $this->origins[$name] ?? FieldSetOrigin::Extension;
-	}
-
-	/**
-	 * Returns the sets attached to a target, in name order.
+	 * Returns the sets attached to a target, in name order: those that
+	 * name it, or every place of its kind.
 	 *
 	 * @return list<FieldSet>
 	 */
@@ -80,65 +72,109 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns a target's full schema: its own fields, then the fields of
-	 * each set attached to it, in set name order. A set's field may not
-	 * reuse a name or alias before it, and the target must take it.
+	 * Returns a target's full schema: its own fields (core's first, for a
+	 * type), then the fields extensions register on it, then each set's,
+	 * in set name order. A key is declared once (D-786): a field or set
+	 * that would declare a key again, or that the target won't take, is
+	 * left off it rather than stopping the site (D-789), and `clashes()`
+	 * says why.
 	 *
-	 * @throws InvalidSchema Naming the target and the set.
+	 * @throws InvalidSchema When the target's own fields don't fit.
 	 */
 	public function schemaFor(FieldTarget $target): Schema
 	{
-		$schema = $target->schema();
-
-		foreach ($this->for($target->key()) as $set) {
-			$schema = $this->attach($schema, $target, $set);
-		}
-
-		return $schema;
+		return $this->resolve($target)[0];
 	}
 
 	/**
-	 * Returns why each set attached to a target doesn't fit it, by set
-	 * name, trying every set rather than stopping at the first (for
-	 * `content:lint`). A set that doesn't fit is left out of the ones
-	 * after it.
+	 * Returns why what's attached to a target is left off it: by set
+	 * name, or by the owner of a registered field (for `content:lint`,
+	 * the site's checks, and the admin).
 	 *
-	 * @return array<string, string>
+	 * @return array<string, list<string>>
 	 * @throws InvalidSchema When the target's own fields don't fit.
 	 */
 	public function clashes(FieldTarget $target): array
 	{
-		$schema  = $target->schema();
-		$clashes = [];
-
-		foreach ($this->for($target->key()) as $set) {
-			try {
-				$schema = $this->attach($schema, $target, $set);
-			} catch (InvalidSchema $e) {
-				$clashes[$set->name] = $e->getMessage();
-			}
-		}
-
-		return $clashes;
+		return $this->resolve($target)[1];
 	}
 
 	/**
-	 * Adds a set's fields to a target's schema.
+	 * Attaches a target's registered fields and sets one at a time,
+	 * leaving off each that doesn't fit what's before it.
 	 *
-	 * @throws InvalidSchema
+	 * @return array{Schema, array<string, list<string>>}
+	 * @throws InvalidSchema When the target's own fields don't fit.
 	 */
-	private function attach(Schema $schema, FieldTarget $target, FieldSet $set): Schema
+	private function resolve(FieldTarget $target): array
 	{
-		foreach ($set->schema->fields as $field) {
+		$schema  = $target->schema();
+		$owners  = [];
+		$clashes = [];
+
+		foreach ($this->registered->core($target->key()) as $field) {
+			foreach ([$field->name, ...$field->aliases] as $key) {
+				$owners[$key] = RegisteredField::CORE;
+			}
+		}
+
+		$attachments = [
+			...array_map(static fn (RegisteredField $field): array => [$field->owner, sprintf('%s\'s field "%s"', $field->owner, $field->field->name), [$field->field]], $this->registered->for($target->key())),
+			...array_map(static fn (FieldSet $set): array => [$set->name, sprintf('field set "%s"', $set->name), array_values($set->schema->fields)], $this->for($target->key()))
+		];
+
+		foreach ($attachments as [$name, $what, $fields]) {
+			try {
+				$schema = $this->attach($schema, $target, $what, $fields, $owners);
+			} catch (InvalidSchema $e) {
+				$clashes[$name][] = $e->getMessage();
+
+				continue;
+			}
+
+			foreach ($fields as $field) {
+				foreach ([$field->name, ...$field->aliases] as $key) {
+					$owners[$key] = $what;
+				}
+			}
+		}
+
+		return [$schema, $clashes];
+	}
+
+	/**
+	 * Adds fields to a target's schema.
+	 *
+	 * @param  list<Field>           $fields
+	 * @param  array<string, string> $owners What declared keys before, by key.
+	 * @throws InvalidSchema Naming the target, what's attached, and what declared the key first.
+	 */
+	private function attach(Schema $schema, FieldTarget $target, string $what, array $fields, array $owners): Schema
+	{
+		foreach ($fields as $field) {
 			if (! $target->accepts($field)) {
-				throw new InvalidSchema(sprintf('%s doesn\'t take field set "%s" field "%s".', $target->key(), $set->name, $field->name));
+				throw new InvalidSchema(sprintf('%s can\'t take %s: it takes no field named "%s".', $target->key(), $what, $field->name));
+			}
+
+			foreach ([$field->name, ...$field->aliases] as $key) {
+				if ($schema->field($key) === null) {
+					continue;
+				}
+
+				$owner = $owners[$key] ?? null;
+
+				throw new InvalidSchema(match ($owner) {
+					RegisteredField::CORE => sprintf('%s can\'t take %s: "%s" is Blush\'s own key, so nothing else can declare it.', $target->key(), $what, $key),
+					null                  => sprintf('%s can\'t take %s: "%s" is already one of its own fields.', $target->key(), $what, $key),
+					default               => sprintf('%s can\'t take %s: %s declares "%s" there already, and a key is declared once.', $target->key(), $what, $owner, $key)
+				});
 			}
 		}
 
 		try {
-			return new Schema([...array_values($schema->fields), ...array_values($set->schema->fields)], $schema->closed);
+			return new Schema([...array_values($schema->fields), ...$fields], $schema->closed);
 		} catch (InvalidSchema $e) {
-			throw new InvalidSchema(sprintf('%s can\'t take field set "%s": %s', $target->key(), $set->name, $e->getMessage()), previous: $e);
+			throw new InvalidSchema(sprintf('%s can\'t take %s: %s', $target->key(), $what, $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -149,40 +185,28 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	 */
 	public function toArray(): array
 	{
-		$sets = [];
-
-		foreach ($this->sets as $name => $set) {
-			$sets[] = [...$set->toArray(), 'origin' => $this->origin($name)->value];
-		}
-
-		return $sets;
+		return array_values(array_map(static fn (FieldSet $set): array => $set->toArray(), $this->sets));
 	}
 
 	/**
-	 * Rebuilds the sets from `toArray()`'s output.
+	 * Rebuilds the sets from `toArray()`'s output, with the registered
+	 * fields.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidSchema
 	 */
-	public static function fromArray(array $data, FieldFactory $factory): self
+	public static function fromArray(array $data, FieldFactory $factory, RegisteredFields $registered = new RegisteredFields()): self
 	{
-		$sets    = [];
-		$origins = [];
+		$sets = [];
 
 		foreach ($data as $definition) {
-			if (! is_array($definition)) {
-				continue;
+			if (is_array($definition)) {
+				$set              = FieldSet::fromArray($definition, $factory);
+				$sets[$set->name] = $set;
 			}
-
-			$origin = $definition['origin'] ?? null;
-			unset($definition['origin']);
-
-			$set                 = FieldSet::fromArray($definition, $factory);
-			$sets[$set->name]    = $set;
-			$origins[$set->name] = FieldSetOrigin::tryFrom(is_string($origin) ? $origin : '') ?? FieldSetOrigin::Extension;
 		}
 
-		return new self($sets, $origins);
+		return new self($sets, $registered);
 	}
 
 	/**

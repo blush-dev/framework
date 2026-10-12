@@ -173,7 +173,6 @@ driver must be one built into Blush (`filesystem` or `sqlite`).
 
 | Option | Default | What it does |
 |---|---|---|
-| `sets` | `[]` | Your [field sets](content-types.md#field-sets) |
 | `dataSets` | `true` | Whether sets in `user/data/fields/` are read |
 
 ### Theme

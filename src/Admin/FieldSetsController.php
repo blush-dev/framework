@@ -18,11 +18,12 @@ use Blush\Content\Record\EntryTable;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\Fields\ObjectField;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldSet;
-use Blush\Field\FieldSetOrigin;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
@@ -36,12 +37,14 @@ use Blush\Storage\Record\RecordStores;
  * Answers `GET {path}/api/fields/sets` (D-337): the site's field sets, for
  * Structure → Fields. Each set has its `name`, `label`, `description`,
  * the `kind` of place its targets are, its `slot` (D-347: the one it's
- * in, its kind's default when it names none or one the kind lacks), its
- * `origin` (`extension`, `config`, or `data`), whether it's `editable` (a
- * data set, while `user/data/fields` is read), its data `file` (or
- * `null`), its `targets` (each `{"key", "label", "found"}`, `found` being
- * whether the site has the place, labeled with its name when it does),
- * and how many `fields` it has. Beside them, `create` says whether sets
+ * in, its kind's default when it names none or one the kind lacks),
+ * whether it's `editable` (while `user/data/fields` is read), its data
+ * `file` (or `null`), its `targets` (each `{"key", "label", "found"}`,
+ * `found` being whether the site has the place, labeled with its name
+ * when it does, and `every` for every place of a kind, `type:*`), how
+ * many `fields` it has, and its `problems`: why it's left off places
+ * (D-789). Sets are only the site's (D-790): fields core and extensions
+ * register aren't listed. Beside them, `create` says whether sets
  * can be made here, and `targets` lists every place a set can attach to
  * (`{"key", "label", "group", "kind"}`: each content type by plural
  * name, then each kind of media file and Settings screen; `group` names
@@ -66,12 +69,14 @@ final readonly class FieldSetsController
 		private FieldConfig $config,
 		private DataFieldSetWriter $writer,
 		private FieldTargets $targets,
-		private RecordStores $stores
+		private RecordStores $stores,
+		private ControlDefaults $defaults
 	) {}
 
 	public function __invoke(): ResponseInterface
 	{
-		$sets = array_values(array_map(fn (FieldSet $set): array => $this->summary($this->types, $set), $this->types->sets->all()));
+		$problems = $this->problems($this->types);
+		$sets     = array_values(array_map(fn (FieldSet $set): array => $this->summary($this->types, $set, $problems), $this->types->sets->all()));
 
 		return Response::json([
 			'sets'    => $sets,
@@ -100,8 +105,8 @@ final readonly class FieldSetsController
 	public function detail(ContentTypes $types, FieldSet $set): array
 	{
 		return [
-			...$this->summary($types, $set),
-			'fields'  => array_values(array_map(static fn (Field $field): array => $field->toForm(), $set->schema->fields)),
+			...$this->summary($types, $set, $this->problems($types)),
+			'fields'  => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($set->schema, $set->controls, $this->defaults)),
 			'counts'  => (object) $this->counts($set),
 			'options' => $this->targets(),
 			'kinds'   => $this->kinds()
@@ -117,7 +122,7 @@ final readonly class FieldSetsController
 	 */
 	private function counts(FieldSet $set): array
 	{
-		$types  = array_map(static fn (string $target): string => substr($target, 5), array_filter($set->targets, static fn (string $target): bool => str_starts_with($target, 'type:')));
+		$types  = $set->namesOf('type', array_keys($this->types->all()));
 		$counts = array_fill_keys(array_map(static fn (Field $field): string => $field->name, array_values($set->schema->fields)), 0);
 
 		if ($types === []) {
@@ -227,16 +232,44 @@ final readonly class FieldSetsController
 	}
 
 	/**
-	 * A set as the list describes it.
+	 * The name for every place of a kind, such as "All content types".
+	 */
+	private function every(string $kind): string
+	{
+		try {
+			$source = $this->targets->sources()[$kind] ?? null;
+		} catch (InvalidSchema) {
+			$source = null;
+		}
+
+		return 'All ' . ($source === null ? $kind : mb_strtolower($source->label()));
+	}
+
+	/**
+	 * Why sets are left off places they're attached to (D-786), by set
+	 * name.
 	 *
+	 * @return array<string, list<string>>
+	 */
+	private function problems(ContentTypes $types): array
+	{
+		try {
+			return $this->targets->problems($types->sets);
+		} catch (InvalidSchema) {
+			return [];
+		}
+	}
+
+	/**
+	 * A set as the list describes it, with why it's left off places.
+	 *
+	 * @param  array<string, list<string>> $problems
 	 * @return array<string, mixed>
 	 */
-	private function summary(ContentTypes $types, FieldSet $set): array
+	private function summary(ContentTypes $types, FieldSet $set, array $problems): array
 	{
-		$origin = $types->sets->origin($set->name);
-
 		try {
-			$file = $origin === FieldSetOrigin::Data ? $this->writer->location($set->name) : null;
+			$file = $this->writer->location($set->name);
 		} catch (InvalidContentType) {
 			$file = null;
 		}
@@ -248,10 +281,15 @@ final readonly class FieldSetsController
 			'kind'        => $set->kind(),
 			'slot'        => $this->slot($set),
 			'position'    => $set->position,
-			'origin'      => $origin->value,
 			'editable'    => $file !== null && $this->config->dataSets,
 			'file'        => $file,
 			'targets'     => array_map(function (string $key): array {
+				[$kind, $place] = explode(':', $key, 2) + [1 => ''];
+
+				if ($place === FieldSet::EVERY) {
+					return ['key' => $key, 'label' => $this->every($kind), 'found' => true, 'every' => true];
+				}
+
 				try {
 					$target = $this->targets->find($key);
 				} catch (InvalidSchema) {
@@ -260,7 +298,8 @@ final readonly class FieldSetsController
 
 				return ['key' => $key, 'label' => $target?->label() ?? $key, 'found' => $target !== null];
 			}, $set->targets),
-			'fields'      => count($set->schema->fields)
+			'fields'      => count($set->schema->fields),
+			'problems'    => $problems[$set->name] ?? []
 		];
 	}
 }

@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Field\Control;
-use Blush\Field\Controls\Select;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
@@ -51,16 +49,6 @@ final class EnumField extends Field
 		return $this->labels[$option] ?? $option;
 	}
 
-	/**
-	 * @inheritDoc
-	 *
-	 * Forms get each option's label (`choices`).
-	 */
-	#[Override]
-	public function toForm(): array
-	{
-		return [...parent::toForm(), 'options' => $this->options, 'choices' => array_combine($this->options, array_map($this->label(...), $this->options))];
-	}
 
 	/**
 	 * @inheritDoc
@@ -87,15 +75,6 @@ final class EnumField extends Field
 	public static function typeDescription(): string
 	{
 		return 'One of a set of values.';
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function defaultControl(): Control
-	{
-		return new Select();
 	}
 
 	/**

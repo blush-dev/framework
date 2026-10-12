@@ -79,13 +79,11 @@ final class EntryHydrator
 		$schema   = $this->types->schema($type->name);
 		$slug     = EntryRecords::text($record, 'slug');
 		$language = EntryRecords::text($record, 'language');
-		$front    = [];
 		$values   = [];
 
-		// Front matter keys are names, whatever YAML read them as.
+		// Front matter keys are names, whatever YAML read them as; only
+		// the declared ones are read (D-786).
 		foreach (EntryRecords::front($record) as $name => $value) {
-			$front[(string) $name] = $value;
-
 			if ($schema->field((string) $name) !== null) {
 				$values[(string) $name] = $value;
 			}
@@ -109,7 +107,6 @@ final class EntryHydrator
 			updated: $this->date($updated),
 			locale: $this->locale($language),
 			fields: $schema->hydrate($values, $this->context),
-			extra: array_diff_key($front, $values),
 			terms: EntryTerms::of($this->terms[$type->name] ??= EntryTerms::sources($this->types, $type), $refs, $targets),
 			landing: $slug === '',
 			body: $this->body($record, $language, $content),

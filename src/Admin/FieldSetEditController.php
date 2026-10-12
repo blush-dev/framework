@@ -123,7 +123,7 @@ final readonly class FieldSetEditController
 
 			$moved = $this->moves->apply(
 				Actor::admin($account),
-				array_values(array_map(static fn (string $target): string => substr($target, 5), array_filter($after->targets, static fn (string $target): bool => str_starts_with($target, 'type:')))),
+				$after->namesOf('type', array_keys($types->all())),
 				FieldMoves::between($before, $after->schema->fields)
 			);
 

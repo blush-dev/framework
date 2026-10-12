@@ -1188,11 +1188,15 @@ export interface FieldSetSummary {
 	slot: string | null;
 	// Where it sits among a type's sets in the editor (D-768).
 	position: number;
-	origin: 'extension' | 'config' | 'data';
+	// False while `config/fields.php` turns off `dataSets`.
 	editable: boolean;
 	file: string | null;
-	targets: (FieldSetTargetOption & { found: boolean })[];
+	// A target's `every` is all places of its kind (`type:*`, D-786).
+	targets: (FieldSetTargetOption & { found: boolean; every?: boolean })[];
 	fields: number;
+	// Why it's left off places it's attached to: a key declared there
+	// already (D-786).
+	problems: string[];
 }
 
 /**

@@ -62,11 +62,14 @@ final readonly class MediaKindTarget implements FieldTarget
 
 	/**
 	 * @inheritDoc
+	 *
+	 * Not a field named (or aliased) for what a file's details keep that
+	 * isn't a field: its id, owner, upload date, renditions, or artwork.
 	 */
 	#[Override]
 	public function accepts(Field $field): bool
 	{
-		return true;
+		return array_intersect([$field->name, ...$field->aliases], [MediaMetadata::ID, MediaMetadata::OWNER, MediaMetadata::UPLOADED, MediaMetadata::RENDITIONS, MediaMetadata::ARTWORK]) === [];
 	}
 
 	/**

@@ -83,12 +83,12 @@ needed in practice. The built-in keys:
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words of the content's paragraphs and lists are used. (`excerpt` works too.) |
-| `image` | A featured image: a [media file's](media.md) id, which the admin writes when you choose one |
+| `image` | A featured image: an image [media file's](media.md) id, which the admin writes when you choose one |
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
-| `template` | The theme template to use, such as `template-wide` (`view` works too). The admin's **Template** row offers the ones the theme [declares](themes.md#templates-for-single-entries) |
-| `class` | Extra CSS classes for the page's `<body>` |
+| `template` | The theme template to use, one name, such as `template-wide` (`view` works too). The admin's **Template** row offers the ones the theme [declares](themes.md#templates-for-single-entries) |
+| `class` | Extra CSS classes for the page's `<body>`, separated by spaces: `class: wide dark` |
 | `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |
 | `id` | The entry's id, a UUID that never changes (see [Ids](#ids)). Blush writes it, last |

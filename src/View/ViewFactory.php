@@ -161,10 +161,8 @@ final class ViewFactory
 		);
 		$classes = $entry?->field('class');
 
-		foreach (is_array($classes) ? $classes : [] as $class) {
-			if (is_string($class)) {
-				$context->addClass($class);
-			}
+		foreach (is_string($classes) ? preg_split('/\s+/', $classes, flags: PREG_SPLIT_NO_EMPTY) ?: [] : [] as $class) {
+			$context->addClass($class);
 		}
 
 		return $context;

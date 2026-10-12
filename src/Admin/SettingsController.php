@@ -39,6 +39,9 @@ use Blush\Embed\EmbedProvider;
 use Blush\Embed\EmbedProviders;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
+use Blush\Field\ControlDefaults;
+use Blush\Field\FieldControls;
+use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\FieldSets;
 use Blush\Field\Fields\EnumField;
@@ -144,7 +147,8 @@ final readonly class SettingsController
 		private McpTools $mcpTools,
 		private Tools $tools,
 		private Provenance $provenance,
-		private OAuthServer $oauth
+		private OAuthServer $oauth,
+		private ControlDefaults $defaults
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -235,7 +239,7 @@ final readonly class SettingsController
 				$items[] = [
 					...self::item("site-{$name}", $field->label === '' ? ucfirst(str_replace('_', ' ', $name)) : $field->label, '', ! $has, help: $field->description === '' ? null : $field->description),
 					'setting' => Settings::SITE . ".{$name}",
-					'field'   => $field->toForm(),
+					'field'   => FormField::of($field, $set->controls, $this->defaults)->toArray(),
 					'input'   => $has ? $values[$name] : $field->default,
 					'saved'   => $has
 				];
@@ -830,7 +834,9 @@ final readonly class SettingsController
 	 */
 	private function edit(array $item, Settings $saved, Setting $setting, mixed $input, ?Field $field = null): array
 	{
-		$field   = ($field ?? $setting->field($this->types))->toForm();
+		$field   = $field ?? $setting->field($this->types);
+		$control = $setting->control();
+		$field   = FormField::of($field, $control === null ? new FieldControls() : new FieldControls([$field->name => $control]), $this->defaults)->toArray();
 		$choices = $setting->choices($this->types);
 		$details = $setting->details();
 

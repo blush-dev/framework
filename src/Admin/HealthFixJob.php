@@ -22,6 +22,7 @@ use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\MediaFieldIds;
+use Blush\Content\UndeclaredKeys;
 use Blush\Content\EntryFolders;
 use Blush\Content\MissingParents;
 use Blush\Content\MissingTerms;
@@ -71,7 +72,8 @@ final class HealthFixJob extends Job
 		private readonly MissingTerms $terms,
 		private readonly MissingParents $parents,
 		private readonly EntryRefs $refs,
-		private readonly MediaFieldIds $mediaFields
+		private readonly MediaFieldIds $mediaFields,
+		private readonly UndeclaredKeys $undeclared
 	) {}
 
 	/**
@@ -108,7 +110,7 @@ final class HealthFixJob extends Job
 
 		[$did, $didFail] = $this->apply($fix, $type, array_slice($remaining, 0, self::CHUNK), $account);
 
-		$changed = $fix === HealthFix::Refs || $fix === HealthFix::MediaFields ? array_values([...$changed, ...$did]) : array_replace($changed, $did);
+		$changed = in_array($fix, [HealthFix::Refs, HealthFix::MediaFields, HealthFix::Undeclared], true) ? array_values([...$changed, ...$did]) : array_replace($changed, $did);
 		$failed  = array_replace($failed, $didFail);
 		$rest    = array_slice($remaining, self::CHUNK);
 
@@ -147,6 +149,7 @@ final class HealthFixJob extends Job
 			HealthFix::Folders    => array_map(strval(...), array_keys($this->folders->report())),
 			HealthFix::Refs       => array_map(strval(...), array_keys($this->refs->report())),
 			HealthFix::MediaFields => $this->mediaFieldEntries(),
+			HealthFix::Undeclared  => array_map(strval(...), array_keys($this->undeclared->report())),
 			HealthFix::Terms      => $this->missingTerms(),
 			HealthFix::Parents    => $this->missingParents()
 		};
@@ -162,6 +165,12 @@ final class HealthFixJob extends Job
 	{
 		$entries = FixAccess::only($this->access->entries($account), $paths);
 		$media   = FixAccess::only($this->access->media($account), $paths);
+
+		if ($fix === HealthFix::Undeclared) {
+			$done = $this->undeclared->remove(array_values(array_filter($paths, $this->access->entryIds($account))));
+
+			return [$done['changed'], $done['failed']];
+		}
 
 		if ($fix === HealthFix::MediaFields) {
 			$allowed = $this->access->entryIds($account);

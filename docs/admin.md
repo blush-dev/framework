@@ -1274,20 +1274,21 @@ does it, with the default the choice that changes no files:
 
 ## Fields
 
-With `site.settings`, **Structure → Fields** lists every
-[field set](content-types.md#field-sets): groups of fields added to the
-entries of content types, beside their own. **All**, **This Site**, and
-**In Code** split the sets made here (in `user/data/fields`, edited on
-their screens) from those defined in `config/fields.php` and plugins
-(shown on their screens). Each row says the set's label and key, the
-types it's used on (**Type Is Off** for one the site doesn't have), where
-it's from, and how many fields it has; its menu opens it, or, for a set
-made here, opens its settings or deletes it.
+With `site.settings`, **Structure → Fields** lists the site's
+[field sets](content-types.md#field-sets): groups of fields added to the
+entries of content types, beside their own, made here (in
+`user/data/fields`). Fields Blush and plugins register aren't sets and
+aren't listed. Each row says the set's label and key, the types it's
+used on (**All content types** for a set on every type, **Type Is Off**
+for one the site doesn't have, and **Left Off** when a key it declares
+is declared there already, which its screen explains), and how many
+fields it has; its menu opens it, opens its settings, or deletes it.
 
 **New Field Set** asks for a label (heading the set's fields in the
 editor), a key (made from the label; it's the file's name, so it can't
 change later), help shown under the label, the content types it's used
-on, and its **position**: where it sits among a type's sets in the
+on (or **All content types**, every type including ones added later),
+and its **position**: where it sits among a type's sets in the
 editor's panel, lowest first, then by label. **Create** writes
 `user/data/fields/{key}.json` and opens it.
 
@@ -2098,7 +2099,9 @@ file), what was found, and what the site does because of it.
   that file at once. The row stays where it was, marked **Fixed**, until
   you check again. Problems Blush can't fix for you, such as a value
   that doesn't fit its field, have **Open in Editor**. A row's menu
-  (**…**) opens the entry and copies its file's path.
+  (**…**) opens the entry and copies its file's path. **Remove**, on a
+  key nothing declares (**Fields Nothing Reads**), takes every such key
+  out of the entry's file, so it asks first even for one row.
 - **Fixing a group:** when every row in a group would get the same
   kind of change, its heading has a button for all of them, such as
   **Give 12 Files New IDs**. It asks first, listing the files and what
@@ -2281,7 +2284,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/controls` | The controls and field types definitions can use: `{"controls": [{"value", "label", "description", "section", "type", "implies", "options"}], "types": [{"type", "label", "description", "controls", "options"}]}`. A control's `section` is the picker's (`{"value", "label"}`, or `null` for one the picker doesn't offer), `type` the value type it stores (`null` for one that edits several), and `implies` the type options it writes. A type's `controls` are `{"value", "label"}`, the ones that store it without implying options, its default first. `options` are definition keys as JSON Schemas |
-| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "position", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension` (from a plugin), `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
+| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "position", "editable", "file", "targets", "fields", "problems"}], "create", "targets"}`: the site's sets in `user/data/fields` only; `problems` says why a set is left off places (a key declared there already); each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it), with `"every": true` on one for every place of its kind (`type:*`, labeled "All content types"); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
 | `GET fields/sets/{name}` | One set, with its `fields` as forms take them (each with its `control`, and a choice's option labels as `choices`), `counts` (how many entries have a value for each field, by name, and for a group's fields by both keys, such as `details.servings`), `options`, every place it can be added to, and `kinds` |
 | `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, `position`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
 | `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set, and `moved`: a field put somewhere new (into a group, out of one) has its values moved in the entries of the set's types, and `moved` gives how many `entries` changed, how many `kept` a value already at the new place, and the `failed` ones' reasons by entry id. A field a target already has is a `422` with the reason |

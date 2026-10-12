@@ -270,9 +270,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['spring', 'welcome'], $this->found($query->whereTerm('category', 'art', 'old-posts')));
 		$this->assertSame(['spring', 'welcome'], $this->found($query->whereAuthor('justintadlock')));
 		$this->assertSame(['spring'], $this->found($query->whereAuthor('justintadlock', 'guest')));
-		$this->assertSame(['spring'], $this->found($query->where('tag')));
-		$this->assertSame(['spring'], $this->found($query->where('tag', 'Flowers')));
-		$this->assertSame([], $this->found($query->where('tag', 'weeds')));
+		$this->assertSame([], $this->found($query->where('tag')), 'Nothing declares `tag`, so nothing matches it (D-786).');
 		$this->assertSame(['spring'], $this->found($query->date(year: 2008, month: 4)));
 		$this->assertSame(['welcome'], $this->found($query->date(2003, 4, 15, 17)));
 		$this->assertSame([], $this->found($query->date(year: 1999)));
@@ -309,7 +307,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], $this->found($posts->orderBy('title')));
 		$this->assertSame(['welcome', 'spring', 'hello'], $this->found($posts->orderBy('title', Order::Desc)));
 		$this->assertSame(['spring', 'welcome', 'hello'], $this->found($posts->orderBy('author')), 'By the slugs written for the relation (D-648).');
-		$this->assertSame(['spring', 'hello', 'welcome'], $this->found($posts->orderBy('tag')), 'Entries without one last (D-648).');
+		$this->assertSame($this->found($posts->orderBy('published')), $this->found($posts->orderBy('tag')), 'Nothing declares `tag`, so they go by date (D-786).');
 		$this->assertSame(['art', 'book-reviews', 'old-posts'], $this->found($this->query()->type('category')->orderBy('position')), 'Positions, then titles.');
 
 		$page = $posts->limit(1)->offset(1)->get();
@@ -345,7 +343,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('2008-04-05 09:00', $spring->published?->format('Y-m-d H:i'), 'In the site\'s timezone.');
 		$this->assertSame(['art', 'book-reviews'], $spring->terms('category'));
 		$this->assertSame(['justintadlock', 'guest'], $spring->terms('profile'));
-		$this->assertSame('flowers', $spring->field('tag'), 'What the type doesn\'t declare is kept as written.');
+		$this->assertNull($spring->field('tag'), 'What nothing declares isn\'t read (D-786).');
 		$this->assertSame('<p>Spring is here.</p>', trim($spring->content()), 'The content, read when it\'s first used.');
 		$this->assertNotNull($spring->version);
 		$this->assertSame($spring->id, $this->content->find((string) $spring->id)?->id);

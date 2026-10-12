@@ -13,7 +13,7 @@
  */
 
 import { computed, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import EmptyState from '../components/EmptyState.vue';
 import FieldSetSettings, { type FieldSetSettingsValue } from '../components/FieldSetSettings.vue';
@@ -26,7 +26,6 @@ import { plural } from '../format';
 import { toast } from '../toast';
 import { refreshTypes } from '../types';
 
-const route  = useRoute();
 const router = useRouter();
 
 const list     = ref<FieldSetList | null>(null);
@@ -45,23 +44,9 @@ async function load(): Promise<void> {
 
 void load();
 
-type Tab = '' | 'site' | 'code';
-
-const tab  = computed<Tab>(() => route.query.from === 'site' || route.query.from === 'code' ? route.query.from : '');
+// Only the site's own sets: fields core and plugins register aren't
+// listed (D-790).
 const sets = computed(() => list.value?.sets ?? []);
-const tabs = computed(() => [
-	{ key: '' as Tab, label: 'All', count: sets.value.length },
-	{ key: 'site' as Tab, label: 'This Site', count: sets.value.filter((set) => set.origin === 'data').length },
-	{ key: 'code' as Tab, label: 'In Code', count: sets.value.filter((set) => set.origin !== 'data').length }
-]);
-const shown = computed(() => sets.value.filter((set) => tab.value === '' || (tab.value === 'site') === (set.origin === 'data')));
-
-/**
- * Where a set comes from, for people.
- */
-function from(set: FieldSetSummary): string {
-	return { extension: 'A plugin', config: 'config/fields.php', data: 'This site' }[set.origin];
-}
 
 const blank: FieldSetSettingsValue = { name: '', label: '', description: '', targets: [], position: 10 };
 
@@ -109,22 +94,15 @@ async function remove(set: FieldSetSummary): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-else>
-		<nav class="status-tabs" aria-label="Where sets are from">
-			<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: { ...route.query, from: item.key || undefined } }" :aria-current="tab === item.key ? 'page' : undefined">
-				{{ item.label }}
-				<span v-if="list" class="status-tabs__count">{{ item.count }}</span>
-			</RouterLink>
-		</nav>
-
 		<section class="panel" aria-labelledby="sets-heading" :aria-busy="list === null">
 			<header class="panel__header">
-				<h2 id="sets-heading">{{ tabs.find((item) => item.key === tab)?.label === 'All' ? 'Field Sets' : tabs.find((item) => item.key === tab)?.label }}</h2>
-				<p v-if="list" class="panel__hint">{{ plural(shown.length, 'set') }}</p>
+				<h2 id="sets-heading">Field Sets</h2>
+				<p v-if="list" class="panel__hint">{{ plural(sets.length, 'set') }}</p>
 			</header>
 
-			<SkeletonTable v-if="list === null" :columns="['Field set', 'Used on', 'From', 'Fields']" :rows="3" label="Loading the field sets…" />
-			<EmptyState v-else-if="!shown.length" icon="group" :heading="tab === 'code' ? 'No Field Sets in Code' : 'No Field Sets Yet'" :text="tab === 'code' ? 'Plugins and config/fields.php can define field sets. None are on this site.' : 'A set adds the same fields to several content types: a recipe\'s details, or search engine settings for posts and pages.'">
-				<template v-if="tab !== 'code' && list.create" #actions>
+			<SkeletonTable v-if="list === null" :columns="['Field set', 'Used on', 'Fields']" :rows="3" label="Loading the field sets…" />
+			<EmptyState v-else-if="!sets.length" icon="group" heading="No Field Sets Yet" text="A set adds the same fields to several content types: a recipe's details, or search engine settings for posts and pages.">
+				<template v-if="list.create" #actions>
 					<button type="button" class="button button--primary" @click="creating = true"><AdminIcon name="plus" />New Field Set</button>
 				</template>
 			</EmptyState>
@@ -134,13 +112,12 @@ async function remove(set: FieldSetSummary): Promise<void> {
 						<tr>
 							<th scope="col">Field set</th>
 							<th scope="col">Used on</th>
-							<th scope="col">From</th>
 							<th scope="col" class="table__count">Fields</th>
 							<th scope="col"><span class="visually-hidden">Actions</span></th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="set in shown" :key="set.name">
+						<tr v-for="set in sets" :key="set.name">
 							<th scope="row">
 								<span class="entry-title">
 									<span class="entry-title__text">
@@ -157,9 +134,7 @@ async function remove(set: FieldSetSummary): Promise<void> {
 									</li>
 								</ul>
 								<span v-else class="field-sets__none">Nowhere yet</span>
-							</td>
-							<td>
-								<span class="field-sets__from"><AdminIcon v-if="!set.editable" name="lock" />{{ from(set) }}</span>
+								<span v-if="set.problems.length" class="pill pill--warn" :title="set.problems.join('\n')">Left Off<span class="visually-hidden">: {{ set.problems.join(' ') }}</span></span>
 							</td>
 							<td class="table__count mono">{{ set.fields }}</td>
 							<td class="table__actions">
@@ -195,18 +170,6 @@ async function remove(set: FieldSetSummary): Promise<void> {
 
 <style scoped>
 .field-sets__none {
-	color: var(--fg-3);
-}
-
-.field-sets__from {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--s-1);
-}
-
-.field-sets__from .icon {
-	width: 13px;
-	height: 13px;
 	color: var(--fg-3);
 }
 </style>
