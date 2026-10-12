@@ -214,11 +214,6 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame(200, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/plate']])->getStatusCode(), 'Activating (D-389).');
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/notebook', 'app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
 		$this->assertSame(403, $this->write('DELETE', '/themes/acme/broken')->getStatusCode(), 'Deleting is its own.');
-
-		$counts = self::json($this->send('GET', '/counts'));
-		$this->assertArrayHasKey('themes', $counts);
-		$this->assertArrayNotHasKey('plugins', $counts);
-		$this->assertArrayNotHasKey('contentTypes', $counts);
 	}
 
 	public function testNeedsItsCapabilities(): void

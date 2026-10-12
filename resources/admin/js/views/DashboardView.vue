@@ -22,7 +22,6 @@ import EmptyState from '../components/EmptyState.vue';
 import EntryRows from '../components/EntryRows.vue';
 import MenuButton from '../components/MenuButton.vue';
 import StatusPill from '../components/StatusPill.vue';
-import { navCounts } from '../counts';
 import { when } from '../people';
 import { formatWhen } from '../format';
 import { can, canAnyType, canType, canUpload, savePreferences, session } from '../session';
@@ -139,7 +138,7 @@ const steps = computed<Step[]>(() => {
 	}
 
 	if (canUpload()) {
-		const has = (navCounts.value?.media ?? 0) > 0;
+		const has = dashboard.value?.setup.media ?? false;
 
 		list.push({
 			key: 'media',
@@ -151,7 +150,7 @@ const steps = computed<Step[]>(() => {
 	}
 
 	if (can('accounts.create')) {
-		const has = (navCounts.value?.accounts ?? 1) > 1;
+		const has = dashboard.value?.setup.others ?? false;
 
 		list.push({
 			key: 'people',

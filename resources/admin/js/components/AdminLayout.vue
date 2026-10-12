@@ -55,7 +55,7 @@ interface NavLink {
 	current?: boolean;
 	// Links nested under this one, such as the types under a type.
 	links?: NavLink[];
-	// How many things its list holds (D-371), when known.
+	// Site Health's problems (D-545); lists aren't counted (D-800).
 	count?: number;
 	// Its id as a shortcut (D-547), and its name there when its own
 	// needs its section to make sense ("Reading Settings").
@@ -128,9 +128,6 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// A Settings screen (D-325).
 	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false, pin: `settings:${key}`, pinLabel: key === 'general' ? 'Settings' : `${label} Settings` });
 
-	// A link to a list, with how many things it holds (D-371).
-	const counted = (link: NavLink, count: number | undefined): NavLink => ({ ...link, count });
-
 	const inEntries = route.meta.section === 'entries';
 	const link = (type: ContentTypeSummary): NavLink => ({
 		key: type.name,
@@ -139,30 +136,29 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		type,
 		to: { name: 'type', params: { type: type.name } },
 		current: inEntries && currentType.value === type.name,
-		pin: `type:${type.name}`,
-		count: navCounts.value?.types[type.name]
+		pin: `type:${type.name}`
 	});
 
 	// In the site's order (D-726); only the types the account edits
 	// entries of (D-359).
 	const content = contentMenu(types.value.filter((type) => canType(type.name, 'edit'))).map(({ type, under }) => ({ ...link(type), links: under.map(link) }));
-	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
+	const library = usesMedia() ? [screen('media', 'Media', 'image')] : [];
 
 	const structure = [
-		...(can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('relations', 'Relationships', 'workflow'), navCounts.value?.relations), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : []),
+		...(can('site.settings') ? [screen('types', 'Content Types', 'layers'), screen('relations', 'Relationships', 'workflow'), screen('fields', 'Fields', 'group')] : []),
 		// Menus, with their own capability.
-		...(can('menus.edit') ? [counted(screen('menus', 'Menus', 'menu'), navCounts.value?.menus)] : [])
+		...(can('menus.edit') ? [screen('menus', 'Menus', 'menu')] : [])
 	];
 	// Redirects (D-686) after Addresses and Search, with its own capability.
-	const redirects = can('site.redirects') ? [counted(screen('redirects', 'Redirects', 'corner-down-right'), navCounts.value?.redirects)] : [];
+	const redirects = can('site.redirects') ? [screen('redirects', 'Redirects', 'corner-down-right')] : [];
 	const settings  = can('site.settings')
 		? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('writing', 'Writing', 'pen-line'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), ...redirects, settingsScreen('ai', 'AI', 'bot'), settingsScreen('api', 'API', 'braces'), settingsScreen('system', 'System', 'settings')]
 		: redirects;
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [
-		...(can('extensions.themes.view') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes)] : []),
-		...(can('extensions.plugins.view') ? [counted(screen('plugins', 'Plugins', 'plug'), navCounts.value?.plugins)] : []),
-		...(can('extensions.icon-packs.view') ? [counted(screen('icon-packs', 'Icon Packs', 'shapes'), navCounts.value?.iconPacks)] : [])
+		...(can('extensions.themes.view') ? [screen('themes', 'Themes', 'paintbrush')] : []),
+		...(can('extensions.plugins.view') ? [screen('plugins', 'Plugins', 'plug')] : []),
+		...(can('extensions.icon-packs.view') ? [screen('icon-packs', 'Icon Packs', 'shapes')] : [])
 	];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
@@ -174,14 +170,13 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		icon: 'user-round',
 		to: { name: 'type', params: { type: profiles.name } },
 		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name),
-		count: navCounts.value?.types[profiles.name],
 		pin: 'profiles'
 	}] : [];
 	const people    = [
 		yourLink,
-		...(can('accounts.view') ? [{ ...counted(screen('accounts', 'Accounts', 'key-round'), navCounts.value?.accounts), current: route.meta.parent === 'accounts' && !onOwn }] : []),
+		...(can('accounts.view') ? [{ ...screen('accounts', 'Accounts', 'key-round'), current: route.meta.parent === 'accounts' && !onOwn }] : []),
 		...profileLink,
-		...(can('accounts.view') ? [counted(screen('roles', 'Roles', 'shield'), navCounts.value?.roles)] : [])
+		...(can('accounts.view') ? [screen('roles', 'Roles', 'shield')] : [])
 	];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
@@ -195,6 +190,52 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		settings: groups([{ key: 'settings', links: settings }])
 	};
 });
+
+/*
+ * A link with links under it has a chevron that shows or hides them
+ * (D-800), open until closed. What's closed is remembered in this
+ * browser for each account; storage may be off. Going to a link under a
+ * closed one opens it.
+ */
+const closedKey = computed(() => `blush-admin-nav-closed:${session.account?.username ?? ''}`);
+
+function storedClosed(): string[] {
+	try {
+		const value: unknown = JSON.parse(localStorage.getItem(closedKey.value) ?? '[]');
+
+		return Array.isArray(value) ? value.filter((key): key is string => typeof key === 'string') : [];
+	} catch {
+		return [];
+	}
+}
+
+const closed = ref<string[]>(storedClosed());
+
+watch(closedKey, () => {
+	closed.value = storedClosed();
+});
+
+watch(closed, (value) => {
+	try {
+		localStorage.setItem(closedKey.value, JSON.stringify(value));
+	} catch {
+		// Not remembered; nothing else depends on it.
+	}
+});
+
+const isOpen = (link: NavLink): boolean => !closed.value.includes(link.key);
+
+function toggleLinks(link: NavLink): void {
+	closed.value = isOpen(link) ? [...closed.value, link.key] : closed.value.filter((key) => key !== link.key);
+}
+
+watch(sections, (value) => {
+	const opened = Object.values(value).flat().flatMap((group) => group.links).filter((link) => !isOpen(link) && link.links?.some((child) => child.current));
+
+	if (opened.length > 0) {
+		closed.value = closed.value.filter((key) => !opened.some((link) => link.key === key));
+	}
+}, { immediate: true });
 
 /*
  * Shortcuts (D-547, from the Home sketch): screens the account pins in
@@ -567,22 +608,33 @@ async function leave(): Promise<void> {
 						<p v-if="group.heading" :id="`nav-${group.key}`" class="eyebrow panel-nav__heading">{{ group.heading }}</p>
 						<ul :aria-labelledby="group.heading ? `nav-${group.key}` : undefined">
 							<li v-for="link in group.links" :key="link.key">
-								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current }" :to="link.to">
+								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current, 'has-links': link.links?.length }" :to="link.to">
 									<TypeIcon v-if="link.type" :type="link.type" />
 									<AdminIcon v-else :name="link.icon" />
 									<span class="panel-nav__label">{{ link.label }}</span>
-									<span v-if="link.count !== undefined" class="panel-nav__count"><span class="visually-hidden">, </span>{{ link.count.toLocaleString() }}</span>
+									<span v-if="link.count" class="panel-nav__count"><span class="visually-hidden">, </span>{{ link.count.toLocaleString() }}</span>
 								</RouterLink>
-								<ul v-if="link.links?.length" class="panel-nav__nest">
-									<li v-for="child in link.links" :key="child.key">
-										<RouterLink class="panel-nav__link" :class="{ 'is-current': child.current }" :to="child.to">
-											<TypeIcon v-if="child.type" :type="child.type" />
-											<AdminIcon v-else :name="child.icon" />
-											<span class="panel-nav__label">{{ child.label }}</span>
-											<span v-if="child.count !== undefined" class="panel-nav__count"><span class="visually-hidden">, </span>{{ child.count.toLocaleString() }}</span>
-										</RouterLink>
-									</li>
-								</ul>
+								<template v-if="link.links?.length">
+									<button
+										type="button"
+										class="twist panel-nav__twist"
+										:aria-expanded="isOpen(link)"
+										:aria-controls="`nav-under-${link.key}`"
+										:aria-label="`${isOpen(link) ? 'Hide' : 'Show'} the links under ${link.label}`"
+										@click="toggleLinks(link)"
+									>
+										<AdminIcon name="chevron-right" />
+									</button>
+									<ul v-show="isOpen(link)" :id="`nav-under-${link.key}`" class="panel-nav__nest">
+										<li v-for="child in link.links" :key="child.key">
+											<RouterLink class="panel-nav__link" :class="{ 'is-current': child.current }" :to="child.to">
+												<TypeIcon v-if="child.type" :type="child.type" />
+												<AdminIcon v-else :name="child.icon" />
+												<span class="panel-nav__label">{{ child.label }}</span>
+											</RouterLink>
+										</li>
+									</ul>
+								</template>
 							</li>
 						</ul>
 					</div>
@@ -887,7 +939,8 @@ async function leave(): Promise<void> {
 	white-space: nowrap;
 }
 
-/* How many things a list holds (D-371), at the link's end. */
+/* Site Health's problems (D-545), at the link's end; lists aren't
+   counted (D-800). */
 
 .panel-nav__count {
 	flex: none;
@@ -1021,6 +1074,23 @@ async function leave(): Promise<void> {
 }
 
 /* The types under a type sit under it, one level only. */
+
+/* The chevron of a link with links under it (D-800), over the link's
+   end, which keeps its room. */
+.panel-nav__nav li {
+	position: relative;
+}
+
+.panel-nav__link.has-links {
+	padding-right: 34px;
+}
+
+.panel-nav__twist {
+	position: absolute;
+	top: 9px;
+	right: 8px;
+	margin-top: 0;
+}
 
 .panel-nav__nav .panel-nav__nest {
 	position: relative;

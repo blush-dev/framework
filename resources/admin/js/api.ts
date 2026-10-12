@@ -169,7 +169,7 @@ export interface Dashboard {
 	everyone: DashboardGroups;
 	// The pages type (`null` when it's off), the newest page, and whether
 	// the site has pages or a collection of its own.
-	setup: { type: string | null; page: DashboardEntry | null; ownTypes: boolean };
+	setup: { type: string | null; page: DashboardEntry | null; ownTypes: boolean; media: boolean; others: boolean };
 	// Your API tokens that expire within a week (D-748), soonest first.
 	tokens: { id: string; name: string; expires: number }[];
 }

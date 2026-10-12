@@ -200,8 +200,6 @@ final class AdminRedirectsTest extends TestCase
 
 		$paged = self::json($this->send('GET', '/redirects?per=10&page=2'));
 		$this->assertSame([1, 10], [$paged['pages'] ?? null, $paged['total'] ?? null], 'A page past the end is the last.');
-
-		$this->assertSame(10, self::json($this->send('GET', '/counts'))['redirects'] ?? null);
 	}
 
 	public function testSearchIsAlsoATest(): void
@@ -301,7 +299,6 @@ final class AdminRedirectsTest extends TestCase
 
 		$this->assertSame(403, $this->send('GET', '/redirects')->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/redirects', ['from' => '/a', 'to' => '/b', 'status' => 301])->getStatusCode());
-		$this->assertArrayNotHasKey('redirects', self::json($this->send('GET', '/counts')));
 	}
 
 	public function testAnEntryRowFollowsItsEntry(): void

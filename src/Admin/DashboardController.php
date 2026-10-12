@@ -19,6 +19,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
+use Blush\Auth\Accounts;
+use Blush\Auth\AuthException;
+use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Tokens;
@@ -35,6 +38,8 @@ use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
+use Blush\Media\Index\MediaLibrary;
+use Blush\Media\Index\MediaQuery;
 
 /**
  * Answers `GET {path}/api/dashboard` (D-538): the site, and the entries
@@ -52,7 +57,10 @@ use Blush\Http\Status as HttpStatus;
  *   the `resume` entry. Landing pages are left out: they're their type's
  *   archive.
  * - `setup`: what the setup path needs to know: the pages type, the
- *   site's newest page, and whether it has a type of its own.
+ *   site's newest page, whether it has a type of its own, whether the
+ *   library has files (`media`, with a media capability), and whether
+ *   another account exists (`others`, with `accounts.view`; D-800).
+ *   Either is `false` without its capability.
  * - `tokens`: the account's API tokens that expire within
  *   `TOKEN_WARNING` (D-748), soonest first, each its `id`, `name`, and
  *   `expires`.
@@ -81,6 +89,8 @@ final readonly class DashboardController
 		private Permissions $permissions,
 		private AccountProfiles $profiles,
 		private Tokens $tokens,
+		private Accounts $accounts,
+		private MediaLibrary $media,
 		private ClockInterface $clock
 	) {}
 
@@ -174,10 +184,11 @@ final readonly class DashboardController
 	/**
 	 * Returns what the setup path needs: the pages type's name (`null`
 	 * when it's off), the newest of its entries the account may edit,
-	 * whatever its status, and whether the site defines pages or a
-	 * collection of its own.
+	 * whatever its status, whether the site defines pages or a
+	 * collection of its own, and whether the library has files and
+	 * another account exists, as far as the account may see.
 	 *
-	 * @return array{type: ?string, page: ?array<string, mixed>, ownTypes: bool}
+	 * @return array{type: ?string, page: ?array<string, mixed>, ownTypes: bool, media: bool, others: bool}
 	 */
 	private function setup(Account $account): array
 	{
@@ -188,8 +199,23 @@ final readonly class DashboardController
 		return [
 			'type'     => $pages?->name,
 			'page'     => $entry === null ? null : $this->describe($entry, $account),
-			'ownTypes' => $own !== []
+			'ownTypes' => $own !== [],
+			'media'    => $this->permissions->usesMedia($account) && $this->media->query(new MediaQuery(per: 1))->total > 0,
+			'others'   => $this->permissions->can($account, Capability::AccountsView) && $this->others()
 		];
+	}
+
+	/**
+	 * Returns whether the site has more than one account. A damaged
+	 * record answers no.
+	 */
+	private function others(): bool
+	{
+		try {
+			return count($this->accounts->all()) > 1;
+		} catch (AuthException) {
+			return false;
+		}
 	}
 
 	/**

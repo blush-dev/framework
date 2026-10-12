@@ -127,8 +127,6 @@ final class AdminIconPacksTest extends TestCase
 		$first = is_array($icons[0] ?? null) ? $icons[0] : [];
 		$this->assertCount(12, $icons);
 		$this->assertStringNotContainsString('/', is_string($first['name'] ?? null) ? $first['name'] : '/', 'Core icons go by their names alone.');
-
-		$this->assertSame(4, self::json($this->send('GET', '/counts'))['iconPacks'] ?? null, 'Two packs, the broken one, and the core set.');
 	}
 
 	public function testShowsEveryIconOfAPack(): void

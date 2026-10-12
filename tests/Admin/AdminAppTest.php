@@ -215,6 +215,8 @@ final class AdminAppTest extends TestCase
 		$this->assertSame('page', $setup['type'] ?? null);
 		$this->assertIsArray($setup['page'] ?? null);
 		$this->assertFalse($setup['ownTypes'] ?? null);
+		$this->assertFalse($setup['media'] ?? null, 'The library is empty (D-800).');
+		$this->assertFalse($setup['others'] ?? null, 'Jane alone.');
 	}
 
 	public function testTheDashboardResumesTheEntryLastSaved(): void
@@ -288,7 +290,7 @@ final class AdminAppTest extends TestCase
 		$this->assertIsArray($groups[0] ?? null);
 		$this->assertIsArray($groups[0]['tools'] ?? null);
 		$this->assertSame(['core/publish', 'core/reindex', 'core/clear-caches'], array_column($groups[0]['tools'], 'key'), 'Only tools that need no input and are buttons (those that write, by default).');
-		$this->assertSame(3, self::json($this->send('GET', '/counts'))['tools'] ?? null);
+		$this->assertSame(['tools' => 3], self::json($this->send('GET', '/counts')), 'Only what the section panel shows (D-800).');
 	}
 
 	public function testReadsTheLogWithTheCapability(): void

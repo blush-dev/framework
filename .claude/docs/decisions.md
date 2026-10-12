@@ -10263,6 +10263,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-371: Counts in the section panel, and Your Account at its own address
 - **Date:** 2026-10-02
+- **Status:** The counts are superseded by D-800 (lists aren't counted);
+  Your Account's address stands.
 - **Decision:** The author's follow-ups to D-370.
   - **The section panel shows counts**, as the profiles sketch does:
     beside each content type's link (and its nested taxonomies, and
@@ -10301,6 +10303,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-372: Counts beside Media and Themes too
 - **Date:** 2026-10-02
+- **Status:** Superseded by D-800.
 - **Decision:** Amends D-371's "Media, Themes … have none": the section
   panel counts them too. `GET counts` adds `media` (the files in the
   library, from its index: `MediaLibrary::query()`'s total) for
@@ -25196,4 +25199,28 @@ decision, add a new entry that supersedes it and mark the old one
   the schema, so a set's field of the same name is still drawn.
   Values of registered fields are kept on save, since saves change only
   what they're sent; checks and the API still read the full schema.
+- **Status:** Built.
+
+### D-800: No counts in the section panel; chevrons for nested links
+
+- **Date:** 2026-10-12
+- **Supersedes:** D-371's counts and D-372.
+- **Decision:** the section panel no longer counts its lists: with
+  every section built, the numbers made it busy. Site Health keeps its
+  number of checks needing a look (D-545), since it asks for attention
+  rather than sizing a list.
+  - **A link with links under it** (a content type with the types under
+    it, D-726) has a chevron at its end in place of a count, the shared
+    `.twist` disclosure, which shows or hides them. Every one is open
+    until closed. What's closed is remembered in `localStorage` per
+    account (`blush-admin-nav-closed:{username}`, a list of link
+    keys), a per-browser convenience like the panel's own collapse;
+    going to a link under a closed one opens it.
+  - **`GET counts`** answers only `tools` and `health`, what the panel
+    still uses. The dashboard's setup path, which read `media` and
+    `accounts` from it, gets `setup.media` (the library has files,
+    with a media capability) and `setup.others` (another account
+    exists, with `accounts.view`) from `GET dashboard`.
+- **Why:** the author's call: the panel was getting busy, and the room
+  at a link's end is better spent on a chevron.
 - **Status:** Built.

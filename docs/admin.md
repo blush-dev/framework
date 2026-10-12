@@ -54,9 +54,11 @@ entry you're writing stays open); choose a link in the panel to go
 there. Choosing the section that's already showing hides the panel,
 leaving just the rail (your browser remembers it), and choosing it
 again brings the panel back. You only see what your account can use.
-A link to a list shows how many things are in it: each content type's
-entries you can edit, media files, accounts, roles, content types,
-field sets, themes, plugins, and icon packs. The counts update as you move between screens.
+A link with others under it, such as a content type with the types
+that sit under it, has a chevron at its end that shows or hides them.
+Your browser remembers which you've closed, for your account, and
+going to a link under a closed one opens it again. Site Health shows
+how many of its checks need a look.
 
 **Shortcuts**, under Home's own screens, are the screens you pin there,
 in your order: Your Account until you choose your own.
@@ -2229,8 +2231,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`), `adminTheme` (`neutral` or `editorial`), `setupSkipped` (`true` or `false`), and `shortcuts` (a list of up to 30 screen ids, such as `"media"`, `"type:post"`, or `"settings:general"`, or `null` for the default), such as `{"colorScheme": "dark"}`; answers `{"preferences"}`, which also has `lastEdited`, the id of the entry the account last saved |
-| `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "published", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes"}`: the pages type, the newest page, and whether the site has a type of its own) |
-| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `tools` (how many of the Tools screen's buttons the account may use), `health` (how many checks need a look in Site Health's last check; `site.health`), `media` (the library's files; any media capability), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
+| `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "published", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes", "media", "others"}`: the pages type, the newest page, whether the site has a type of its own, whether the library has files, and whether another account exists; the last two `false` without the capability to see them) |
+| `GET counts` | What the section panel needs counted: `tools` (how many of the Tools screen's buttons the account may use), and, with `site.health`, `health` (how many checks need a look in Site Health's last check) |
 | `GET tools` | The Tools screen's buttons the account may use, as `{"groups": [{"source": {"kind", "label"}, "tools": [{"key", "title", "description", "confirm"}]}]}`; a source's `kind` is `core`, `site`, `plugin`, or `other` |
 | `POST tools/{vendor}/{name}` | Run a tool by its key; the answer is `{"successful", "message", "details"}`, or `{"job"}` for one that runs in the background |
 | `GET logs` | The end of the site's log, with `site.logs`: `{"driver", "file", "size", "entries"}`, its last 50 entries, newest first, each `{"time", "channel", "level", "message", "details"}` (`details` is the lines under it, such as an exception's trace); `file` is `null` unless the driver writes one |

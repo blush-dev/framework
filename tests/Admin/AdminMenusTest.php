@@ -141,7 +141,6 @@ final class AdminMenusTest extends TestCase
 			['name' => 'footer', 'label' => 'Footer', 'depth' => null, 'defaults' => 0, 'menu' => null],
 			['name' => 'primary', 'label' => 'Header', 'depth' => 2, 'defaults' => 1, 'menu' => 'main']
 		], $answer['locations'] ?? null);
-		$this->assertSame(2, self::json($this->send('GET', '/counts'))['menus'] ?? null);
 	}
 
 	public function testShowsEachItemWithWhereItsLinkLeads(): void
@@ -276,6 +275,5 @@ final class AdminMenusTest extends TestCase
 
 		$this->assertSame(403, $this->send('GET', '/menus')->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/menus', ['was' => null, 'name' => 'x', 'items' => [], 'locations' => []])->getStatusCode());
-		$this->assertArrayNotHasKey('menus', self::json($this->send('GET', '/counts')));
 	}
 }

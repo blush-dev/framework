@@ -107,38 +107,6 @@ final class AdminPeopleTest extends TestCase
 		return $this->send($method, $path, $data === [] ? '' : (json_encode($data) ?: ''), ['X-CSRF-Token' => is_string($token) ? $token : '']);
 	}
 
-	public function testCountsTheSectionPanelsLists(): void
-	{
-		$this->profiles();
-		$this->site();
-
-		$counts = self::json($this->send('GET', '/counts'));
-		$types  = is_array($counts['types'] ?? null) ? $counts['types'] : [];
-
-		$this->assertSame(2, $types['profile'] ?? null, 'Each type\'s entries, as its list counts them (D-371).');
-		$this->assertSame(1, $types['post'] ?? null);
-		$this->assertSame(2, $counts['accounts'] ?? null);
-		$this->assertIsInt($counts['roles'] ?? null);
-		$this->assertIsInt($counts['contentTypes'] ?? null);
-		$this->assertArrayHasKey('plugins', $counts);
-		$this->assertSame(0, $counts['media'] ?? null, 'The library\'s files (D-372).');
-		$this->assertGreaterThanOrEqual(1, $counts['themes'] ?? null, 'The default theme, at least.');
-	}
-
-	public function testCountsOnlyWhatTheAccountMaySee(): void
-	{
-		$this->profiles();
-		$this->site(['contributor']);
-
-		$counts = self::json($this->send('GET', '/counts'));
-
-		$this->assertArrayNotHasKey('accounts', $counts);
-		$this->assertArrayNotHasKey('contentTypes', $counts);
-		$this->assertArrayNotHasKey('themes', $counts);
-		$this->assertArrayHasKey('media', $counts, 'A contributor uploads images (D-407).');
-		$this->assertSame(0, is_array($counts['types'] ?? null) ? $counts['types']['post'] ?? null : null, 'A contributor edits only their own.');
-	}
-
 	public function testAccountsCarryTheirProfiles(): void
 	{
 		$this->profiles();

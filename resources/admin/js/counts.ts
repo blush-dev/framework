@@ -1,31 +1,18 @@
 /**
- * How many things each of the section panel's lists holds (`GET counts`,
- * D-371), for the count beside its link. Loaded with the shell and again
- * after each change of screen, since a screen is where things are made
- * and removed; a failed load keeps the counts it had.
+ * What the section panel needs counted (`GET counts`, D-371; its lists
+ * aren't counted since D-800): whether Tools has anything on it, and
+ * Site Health's problems. Loaded with the shell and again after each
+ * change of screen; a failed load keeps the counts it had.
  */
 
 import { ref } from 'vue';
 import { request } from './api';
 
 export interface NavCounts {
-	// Entries of each type the account edits, by type name.
-	types: Record<string, number>;
 	// The Tools screen's buttons the account may use (D-540, D-761).
 	tools: number;
 	// Checks needing a look in Site Health's last report (D-545).
 	health?: number;
-	media?: number;
-	accounts?: number;
-	roles?: number;
-	contentTypes?: number;
-	relations?: number;
-	fieldSets?: number;
-	redirects?: number;
-	menus?: number;
-	themes?: number;
-	plugins?: number;
-	iconPacks?: number;
 }
 
 export const navCounts = ref<NavCounts | null>(null);
