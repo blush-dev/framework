@@ -99,7 +99,7 @@ final class RelationFormsTest extends TestCase
 		$result = $this->writer()->create($type ?? self::fail('No post type.'), 'd', new EntryChanges(set: ['title' => 'D', 'category' => 'art']));
 
 		$this->assertStringContainsString("category: art\npublished: ", $this->file($result->path), 'One value written on its own stays on its own.');
-		$this->assertStringContainsString("refs:\n  category:\n    art: " . self::idFor('_category/art.md') . "\nid: ", $this->file($result->path), 'Before the id, which stays last.');
+		$this->assertStringContainsString("\nrefs:\n  category:\n    art: " . self::idFor('_category/art.md') . "\n---", $this->file($result->path), 'Last, after the id (D-801).');
 	}
 
 	public function testReferrersFollowARename(): void

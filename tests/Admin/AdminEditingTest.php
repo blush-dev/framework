@@ -193,7 +193,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(200, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => $restore['status'], 'revision' => $restore['revision'] ?? null])->getStatusCode());
 		$this->assertSame('published', $this->load(self::FLAME)['status'] ?? null);
-		$this->assertSame(str_replace("mood      : hopeful\n", "mood      : hopeful\n" . self::filedRefs(), $before), $this->file(self::FLAME), 'The file is as it was, with its credit filed by id (D-596).');
+		$this->assertSame(str_replace("id        : " . self::FLAME_ID . "\n", "id        : " . self::FLAME_ID . "\n" . self::filedRefs(), $before), $this->file(self::FLAME), 'The file is as it was, with its credit filed by id (D-596).');
 
 		$idea  = '_post/2023-01-01.idea.md';
 		$draft = self::json($this->call('DELETE', $this->entryPath($idea) . '?revision=' . $this->revision($idea)))['restore'] ?? null;
@@ -521,7 +521,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertMatchesRegularExpression('/^updated: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{2}:\d{2}$/m', $this->file(self::FLAME), 'Every save says when (D-728).');
-		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\n" . self::filedRefs() . "id        : " . self::FLAME_ID . "\n---\n\nThe body.\n", preg_replace('/^updated: .*\n/m', '', $this->file(self::FLAME)));
+		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n" . self::filedRefs() . "---\n\nThe body.\n", preg_replace('/^updated: .*\n/m', '', $this->file(self::FLAME)));
 		$this->assertSame('The Flame', $saved['title'] ?? null);
 		$this->assertNotSame($revision, $saved['revision'] ?? null);
 

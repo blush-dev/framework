@@ -25224,3 +25224,15 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author's call: the panel was getting busy, and the room
   at a link's end is better spent on a chevron.
 - **Status:** Built.
+
+### D-801: `id` before `refs` at the end of front matter
+
+- **Refines:** D-477 (a new key before a last `id`) and D-589 (`refs`).
+- **Decision:** an entry's front matter ends `id`, then `refs`. When a
+  file is written, a new `refs` goes at the end, a new `id` before
+  `refs`, and any other new key before whichever of the two the front
+  matter ends with. Keys already in a file stay where they are, so
+  older files with `refs` above `id` are left as they are.
+- **Why:** the author's call: the id reads with the entry's own fields,
+  and `refs`, a block of ids Blush files, last.
+- **Status:** Built.

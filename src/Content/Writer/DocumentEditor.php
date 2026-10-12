@@ -31,9 +31,12 @@ use Blush\Content\Relation\Refs;
  * front matter gets a block. A body that doesn't start with a blank line
  * keeps the blank lines the document had between its front matter and
  * body (one, for a document without a block), so an editor can show the
- * body without them. A new key goes before the entry's `id` (D-477) when
- * it's last, so it stays last; otherwise at the end. Lists and maps are written inline (`[a, b]`), but
- * `refs` (D-589) is written as a block, a line for each id.
+ * body without them. The entry's `id` (D-477) and `refs` (D-589) end the
+ * front matter, `id` then `refs`: a new `refs` goes at the end, a new
+ * `id` before `refs`, and any other new key before whichever of them the
+ * front matter ends with; otherwise at the end. Lists and maps are
+ * written inline (`[a, b]`), but `refs` is written as a block, a line
+ * for each id.
  *
  * Every result is parsed again before it's returned. The keys that were
  * set must read back as the given values, removed keys must be gone,
@@ -56,8 +59,7 @@ final readonly class DocumentEditor
 	{
 		$before  = $this->parse($path, $contents);
 		$changes = self::withGap($contents, $changes);
-		$anchor  = ! array_key_exists(EntryFields::ID, $before->frontMatter) || array_key_last($before->frontMatter) === EntryFields::ID ? EntryFields::ID : null;
-		$edited  = $this->editFrontMatter($contents, $changes, $keys, $anchor);
+		$edited  = $this->editFrontMatter($contents, $changes, $keys, self::tail(array_map(strval(...), array_keys($before->frontMatter))));
 
 		$this->verify($path, $before, $this->parse($path, $edited), $changes, $keys);
 
@@ -65,8 +67,25 @@ final readonly class DocumentEditor
 	}
 
 	/**
-	 * Edits a document's front matter and body, adding new keys before
-	 * `$anchor`'s entry, or at the end.
+	 * Returns the first of the `id` and `refs` keys the front matter ends
+	 * with, or `null` when it ends with neither.
+	 *
+	 * @param list<string> $keys
+	 */
+	private static function tail(array $keys): ?string
+	{
+		$first = null;
+
+		while (($key = array_pop($keys)) !== null && in_array($key, [EntryFields::ID, Refs::FIELD], true)) {
+			$first = $key;
+		}
+
+		return $first;
+	}
+
+	/**
+	 * Edits a document's front matter and body, adding new keys (other
+	 * than `id` and `refs`) before `$anchor`'s entry, or at the end.
 	 *
 	 * @param Closure(string): list<string> $keys
 	 */
@@ -123,7 +142,9 @@ final readonly class DocumentEditor
 	}
 
 	/**
-	 * Removes and sets front matter keys in a map.
+	 * Removes and sets front matter keys in a map: other keys first, then
+	 * `id` before `refs`, then `refs` at the end, so new ones end it in
+	 * that order.
 	 *
 	 * @param Closure(string): list<string> $keys
 	 */
@@ -133,8 +154,19 @@ final readonly class DocumentEditor
 			$map = $map->without($keys($name));
 		}
 
-		foreach ($changes->set as $name => $value) {
-			$map = $map->with($keys((string) $name), $value, $name === Refs::FIELD ? 4 : 1, $anchor);
+		$set  = $changes->set;
+		$last = array_intersect_key($set, [EntryFields::ID => true, Refs::FIELD => true]);
+
+		foreach (array_diff_key($set, $last) as $name => $value) {
+			$map = $map->with($keys((string) $name), $value, 1, $anchor);
+		}
+
+		if (array_key_exists(EntryFields::ID, $last)) {
+			$map = $map->with($keys(EntryFields::ID), $last[EntryFields::ID], 1, Refs::FIELD);
+		}
+
+		if (array_key_exists(Refs::FIELD, $last)) {
+			$map = $map->with($keys(Refs::FIELD), $last[Refs::FIELD], 4);
 		}
 
 		return $map;
