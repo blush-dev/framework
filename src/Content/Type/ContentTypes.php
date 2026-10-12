@@ -583,6 +583,17 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns a type's schema as the editor draws it: its full schema
+	 * without the fields extensions register (D-791).
+	 *
+	 * @throws InvalidContentType
+	 */
+	public function formSchema(string $name): Schema
+	{
+		return $this->sets->drawn($this->schema($name), ContentTypeTarget::keyFor($this->get($name)->name));
+	}
+
+	/**
 	 * Returns a type's schema before its field sets: the built-in entry
 	 * fields, the field of each relation the site defines from it (D-593:
 	 * a classify relation's terms, or a credit's profiles, say), a

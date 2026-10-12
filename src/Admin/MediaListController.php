@@ -563,7 +563,10 @@ final readonly class MediaListController
 		$result = $schema->resolve($metadata->fields(), new FieldContext($this->app->timezone()));
 		$values = [];
 
-		foreach ($schema->fields as $name => $field) {
+		// Fields extensions register aren't drawn (D-791).
+		$drawn = $this->schemas->formSchema(MediaKind::fromMime($file->mime));
+
+		foreach ($drawn->fields as $name => $field) {
 			foreach ([$name, ...$field->aliases] as $key) {
 				if (array_key_exists($key, $metadata->values)) {
 					$values[$name] = $metadata->values[$key];
@@ -582,7 +585,7 @@ final readonly class MediaListController
 		return [
 			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes), $record === null ? '' : $this->artworks->url($record)),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
-			'fields'     => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($schema, $this->schemas->controls(MediaKind::fromMime($file->mime)), $this->defaults)),
+			'fields'     => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($drawn, $this->schemas->controls(MediaKind::fromMime($file->mime)), $this->defaults)),
 			'sets'       => array_map(static fn (FieldSet $set): array => [
 				'name'        => $set->name,
 				'label'       => $set->label,

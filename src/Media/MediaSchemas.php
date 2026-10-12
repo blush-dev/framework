@@ -105,6 +105,17 @@ final class MediaSchemas
 	}
 
 	/**
+	 * Returns a kind's schema as its file's screen draws it: its full
+	 * schema without the fields extensions register (D-791).
+	 *
+	 * @throws InvalidConfig
+	 */
+	public function formSchema(MediaKind $kind): Schema
+	{
+		return $this->sets->drawn($this->schema($kind), MediaKindTarget::keyFor($kind));
+	}
+
+	/**
 	 * Returns the controls a kind's fields are drawn with (D-795): each of
 	 * its field sets'.
 	 */

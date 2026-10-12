@@ -162,6 +162,9 @@ final class FieldSetsTest extends TestCase
 		$this->assertTrue($types->schema('page')->has('noindex'));
 		$this->assertSame([], $types->sets->all(), 'Not a set, so the admin shows nothing (D-791).');
 		$this->assertSame([], $types->setsFor('page'));
+		$this->assertFalse($types->formSchema('page')->has('meta_title'), 'Not drawn in the editor (D-791).');
+		$this->assertFalse($types->formSchema('page')->has('noindex'));
+		$this->assertTrue($types->formSchema('page')->has('title'));
 
 		$compiled = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class));
 

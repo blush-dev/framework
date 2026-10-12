@@ -25178,3 +25178,22 @@ decision, add a new entry that supersedes it and mark the old one
   - **Docs:** a plugin's field type registers its default control with
     `ControlDefaults` in its provider's `boot()`.
 - **Status:** Built.
+
+### D-799: The admin's forms leave out registered fields
+
+- **Date:** 2026-10-12
+- **Fixes:** D-791 and D-792 ("registered fields show nowhere"), which
+  the editor and a media file's screen didn't keep: they drew every
+  field of a place's full schema, extensions' registrations included,
+  each with its default control (`ControlDefaults`, D-796), so a
+  theme's registered fields showed up as controls.
+- **Decision:** a place's **form schema** is its full schema without
+  the fields extensions register on it (`FieldSets::drawn()`,
+  `ContentTypes::formSchema()`, `MediaSchemas::formSchema()`); the
+  entry editor (new and existing entries) and a media file's screen
+  draw that. Core's fields, a type's own, and the site's sets are
+  drawn as before. A registered field left off for a clash isn't in
+  the schema, so a set's field of the same name is still drawn.
+  Values of registered fields are kept on save, since saves change only
+  what they're sent; checks and the API still read the full schema.
+- **Status:** Built.

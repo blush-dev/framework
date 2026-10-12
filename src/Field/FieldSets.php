@@ -87,6 +87,20 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns a target's schema as the admin's forms draw it: its full
+	 * schema (`schemaFor()`) without the fields extensions register, which
+	 * no form shows on its own (D-791). Their values are kept, since a
+	 * save changes only what it's sent. One left off for a clash isn't in
+	 * the schema, so a set's field of the same name stays.
+	 */
+	public function drawn(Schema $schema, string $target): Schema
+	{
+		$fields = array_map(static fn (RegisteredField $field): Field => $field->field, $this->registered->for($target));
+
+		return new Schema(array_filter($schema->fields, static fn (Field $field): bool => ! in_array($field, $fields, true)), $schema->closed);
+	}
+
+	/**
 	 * Returns why what's attached to a target is left off it: by set
 	 * name, or by the owner of a registered field (for `content:lint`,
 	 * the site's checks, and the admin).

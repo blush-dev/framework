@@ -263,7 +263,7 @@ final readonly class EntryController
 			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
 		}
 
-		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, self::NOT_EDITED, true));
+		$fields = array_filter($this->types->formSchema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, self::NOT_EDITED, true));
 
 		return self::json([
 			'path'        => null,
@@ -817,7 +817,7 @@ final readonly class EntryController
 		$person = $this->archivePages->isTarget($entry);
 		$error  = ErrorPage::status($entry);
 		$home   = $this->homepage->describe($entry);
-		$fields = $this->types->schema($entry->type->name)->fields;
+		$fields = $this->types->formSchema($entry->type->name)->fields;
 		$live   = $entry->status !== EntryStatus::Trash;
 
 		// An index page describes the type's archive, not one of its
