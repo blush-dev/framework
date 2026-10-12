@@ -1023,12 +1023,17 @@ D-773.
   replaced by the sketch's screens, built from existing pieces (record
   differences in `departures.md`).
 
-**Stage 4. The entry sidebar.**
+**Stage 4. The entry sidebar.** Built (D-779).
 - Every set is a group in the document panel, ordered by position then
   label, open or closed, its header counting required fields left
   empty. Controls from stage 2. A value that doesn't fit its field
   (only from a file edited by hand now) shows as a warning that points
   to Site Health, which lists such values.
+
+**Groups are data** (D-780, built): a Group keeps its fields' values
+under its key, and moving a field into or out of one moves its values
+in every entry of the set's types when the set is saved (`FieldMoves`),
+each change in the activity log with Undo.
 
 **Stage 5. Later (not scheduled).** Range Slider and Color as core
 controls (D-767); media as a target in the admin; extension controls

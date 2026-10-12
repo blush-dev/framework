@@ -272,6 +272,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($entry['type']['fields'] ?? null);
 		$this->assertContains('title', array_column($entry['type']['fields'], 'name'));
 		$this->assertIsArray($entry['violations'] ?? null);
+		$this->assertContains('unknown', array_column($entry['violations'], 'kind'), 'Each problem says its kind, so the editor can warn under a value that doesn\'t fit (D-779).');
 
 		$this->assertSame(404, $this->call('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-000000000000')->getStatusCode());
 	}

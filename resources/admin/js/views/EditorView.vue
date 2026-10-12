@@ -106,6 +106,7 @@ import DirectivePanel from '../components/DirectivePanel.vue';
 import ConflictBar from '../components/ConflictBar.vue';
 import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
+import FieldMisfit from '../components/FieldMisfit.vue';
 import ImagePreview from '../components/ImagePreview.vue';
 import ReferencePicker from '../components/ReferencePicker.vue';
 import SummaryPopover from '../components/SummaryPopover.vue';
@@ -241,9 +242,12 @@ function fieldsOf(detail: EntryDetail | NewEntryDetail | null): FieldDescription
 const fields    = computed(() => fieldsOf(entry.value));
 
 // The field sets attached to the type (D-337), each a group of its own in
-// the document panel under its label, with its fields in the set's order;
+// the document panel under its label, with its fields in the set's order,
+// in the order the server sends the sets (by position, then label; D-768);
 // fields stay out of the writing area (D-348). Their fields stay out of
-// the panel's other groups.
+// the panel's other groups. Each folds (D-779), closed until it's opened
+// or has something to show, its header counting its fields and the
+// required ones left empty.
 const setGroups = computed(() => (entry.value?.type.sets ?? []).map((set) => ({
 	...set,
 	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
@@ -603,6 +607,29 @@ const missing = computed(() => {
 
 	return found;
 });
+
+// How many of a set's required fields are left empty, for its header.
+function setMissing(set: { fields: FieldDescription[] }): number {
+	return set.fields.filter((field) => missing.value.some((item) => item.name === field.name)).length;
+}
+
+// A set opens to show an error or a warning in it.
+function setOpen(set: { fields: FieldDescription[] }): boolean {
+	return set.fields.some((field) => errorFor(field.name) !== undefined || misfit(field) !== undefined);
+}
+
+// The values, as last saved, that don't fit their fields (D-779), only
+// from a file edited by hand, each the linter's words for what's wrong.
+// A field's warning shows while it's as it was loaded.
+const misfits = computed(() => new Map((entry.value?.violations ?? [])
+	.filter((violation) => violation.kind === 'value' && violation.severity !== 'notice')
+	.map((violation) => [violation.field, violation.message])));
+
+function misfit(field: FieldDescription): string | undefined {
+	const start = initial.value;
+
+	return start !== null && form.value[field.name] === start.form[field.name] ? misfits.value.get(field.name) : undefined;
+}
 
 function errorFor(name: string): string | undefined {
 	if (attempted.value && missing.value.some((item) => item.name === name)) {
@@ -3204,12 +3231,20 @@ function fieldKey(field: FieldDescription): string {
 							</OptionsGroup>
 
 							<OptionsGroup v-if="otherFields.length" :heading="`${labels.singular} Fields`">
-								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)" />
+								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
+									<template v-if="misfit(field) !== undefined" #help="{ id }"><FieldMisfit :id="id" :label="label(field)" :message="misfit(field) ?? ''" /></template>
+								</FieldControl>
 							</OptionsGroup>
 
-							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label">
+							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label" collapsible :open="setOpen(set)">
+								<template #hint>
+									<span v-if="setMissing(set)" class="pill pill--danger">{{ setMissing(set) }}<span class="visually-hidden"> required {{ setMissing(set) === 1 ? 'field' : 'fields' }} left empty</span></span>
+									<span class="mono">{{ set.fields.length }}<span class="visually-hidden"> {{ set.fields.length === 1 ? 'field' : 'fields' }}</span></span>
+								</template>
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
-								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)" />
+								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
+									<template v-if="misfit(field) !== undefined" #help="{ id }"><FieldMisfit :id="id" :label="label(field)" :message="misfit(field) ?? ''" /></template>
+								</FieldControl>
 							</OptionsGroup>
 
 							<OptionsGroup v-if="advancedFields.length" heading="Advanced" collapsible :open="advancedSet">

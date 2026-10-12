@@ -514,7 +514,8 @@ They have two tabs:
   [Choosing terms and authors](#choosing-terms-and-authors)), and the
   content type's other fields (a few kinds show their value read-only);
   each [field set](content-types.md#field-sets) added to the type, under
-  its label; **Advanced**, with the theme's **Layout**, **Stylesheet**,
+  its label, in the order of the sets' positions (see
+  [Fields on the Document tab](#fields-on-the-document-tab)); **Advanced**, with the theme's **Layout**, **Stylesheet**,
   and **Class** (the page's classes on one line, apart by spaces),
   folded away until you open it, or open when one of them is set; and
   what Site Health finds in the file, as last saved (notices only if
@@ -671,7 +672,18 @@ The relation's settings shape the picker too:
 ### Fields on the Document tab
 
 A type's own fields and its [field sets](content-types.md#field-sets)
-are groups on the Document tab, each field drawn by its control:
+are groups on the Document tab, each field drawn by its control. Each
+field set is its own group, ordered by the sets' **Position**, then
+their labels. A set's group is folded until you open it, and opens by
+itself when one of its fields has an error or a warning to show. Its
+heading counts its fields, with a red count of the required ones still
+empty beside it.
+
+A value saved in the file that doesn't fit its field (only possible
+when the file was edited by hand) shows a warning under the field,
+saying what's wrong. The site leaves such a value out until it's
+fixed, and Site Health lists it with the file's other problems. The
+warning goes once you change the field.
 
 - A **toggle** is a switch at the end of its label's line.
 - **Radio buttons** with up to four short options are one row of
@@ -1290,6 +1302,13 @@ position. Below them are its fields, as a tree:
   moves it into a group beside it (or out of the group it's in),
   duplicates it, or removes it, with Undo. Removing a field
   entries have values for asks first; their files keep the values.
+- A group keeps its fields' values together under its key (a
+  `details` group's `servings` is `details.servings` in an entry's
+  file). So moving a field into or out of a group moves its values
+  too: the move says how many entries have one, and saving the set
+  moves them in every entry of its types, each change listed in Tools →
+  Activity with Undo. An entry that already has a value at the new
+  place keeps it, and the save says so.
 - **Add Field** asks how the field is entered first: choose a control
   from its sections, or search them.
 - Open a row (its pencil, a double click, or F2) to edit it under the
@@ -2256,9 +2275,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/controls` | The controls and field types definitions can use: `{"controls": [{"value", "label", "description", "section", "type", "implies", "options"}], "types": [{"type", "label", "description", "controls", "options"}]}`. A control's `section` is the picker's (`{"value", "label"}`, or `null` for one the picker doesn't offer), `type` the value type it stores (`null` for one that edits several), and `implies` the type options it writes. A type's `controls` are `{"value", "label"}`, the ones that store it without implying options, its default first. `options` are definition keys as JSON Schemas |
 | `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "position", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension` (from a plugin), `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
-| `GET fields/sets/{name}` | One set, with its `fields` as forms take them (each with its `control`, and a choice's option labels as `choices`), `counts` (how many entries have a value for each field, by name), `options`, every place it can be added to, and `kinds` |
+| `GET fields/sets/{name}` | One set, with its `fields` as forms take them (each with its `control`, and a choice's option labels as `choices`), `counts` (how many entries have a value for each field, by name, and for a group's fields by both keys, such as `details.servings`), `options`, every place it can be added to, and `kinds` |
 | `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, `position`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
-| `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set. A field a target already has is a `422` with the reason |
+| `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set, and `moved`: a field put somewhere new (into a group, out of one) has its values moved in the entries of the set's types, and `moved` gives how many `entries` changed, how many `kept` a value already at the new place, and the `failed` ones' reasons by entry id. A field a target already has is a `422` with the reason |
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
@@ -2613,7 +2632,10 @@ entries/{id}` answers with:
   the target's slug for a page written for one target's archive
   (described the same way, with `can.delete` also `false`) and `null`
   for a list page.
-- `violations`: the file's problems, as Site Health shows them.
+- `violations`: the file's problems, as Site Health shows them
+  (`{"field", "message", "severity", "kind"}`, `kind` being what kind
+  of problem it is, such as `value` for a value that doesn't fit its
+  field, or `null`).
 
 A change only touches what it names; the rest of the file stays as it
 was written. `set` takes field names to values, `remove` a list of

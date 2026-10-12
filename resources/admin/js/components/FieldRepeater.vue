@@ -124,7 +124,6 @@ function blank(item: FormGroup): boolean {
 		<ol v-if="items.length" class="repeater">
 			<li v-for="(item, index) in items" :id="`${id}-${index}`" :key="index" class="repeater__item" :class="{ 'is-open': open === index }">
 				<button type="button" class="repeater__row" :aria-expanded="open === index" @click="open = open === index ? -1 : index">
-					<span class="repeater__index mono">{{ index + 1 }}</span>
 					<span class="repeater__summary" :class="{ 'is-blank': blank(item) }">{{ summary(item, index) }}</span>
 					<AdminIcon name="chevron-down" class="repeater__caret" />
 				</button>
@@ -189,13 +188,6 @@ function blank(item: FormGroup): boolean {
 
 .repeater__row:hover {
 	background: var(--surface-2);
-}
-
-.repeater__index {
-	flex: none;
-	min-width: 1.5em;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
 }
 
 .repeater__summary {

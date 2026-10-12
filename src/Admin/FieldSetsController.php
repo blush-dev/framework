@@ -19,6 +19,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Field\Field;
+use Blush\Field\Fields\ObjectField;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSetOrigin;
@@ -51,7 +52,8 @@ use Blush\Storage\Record\RecordStores;
  * same way, with its `fields` as forms take them (`Field::toForm()`: each
  * with its control, D-769, and a choice's option labels as `choices`) in
  * place of the count, and `counts`: how many entries of its
- * types have a value for each of its fields, by name (read from the
+ * types have a value for each of its fields, by name, and for each
+ * field in a group by both keys (`details.servings`, D-780; read from the
  * content records, so removing a field or changing its key can say what
  * it leaves behind). `detail()` describes a set among any
  * set of types, so a change can be answered with the types it made
@@ -108,7 +110,8 @@ final readonly class FieldSetsController
 
 	/**
 	 * How many entries of a set's types have a value for each of its
-	 * fields (by its name or an alias), by name.
+	 * fields (by its name or an alias), by name, and for a group's
+	 * fields by the group's key and theirs.
 	 *
 	 * @return array<string, int>
 	 */
@@ -134,16 +137,38 @@ final readonly class FieldSetsController
 				continue;
 			}
 
-			foreach ($set->schema->fields as $field) {
-				$value = array_find([$field->name, ...$field->aliases], static fn (string $key): bool => ! in_array($front[$key] ?? null, [null, '', []], true));
-
-				if ($value !== null) {
-					$counts[$field->name]++;
-				}
-			}
+			self::count($set->schema->fields, $front, '', $counts);
 		}
 
 		return $counts;
+	}
+
+	/**
+	 * Counts the fields a map has values for, and the fields of its
+	 * groups, under the key they're at.
+	 *
+	 * @param array<array-key, Field> $fields
+	 * @param array<array-key, mixed> $data
+	 * @param array<string, int>      $counts
+	 */
+	private static function count(array $fields, array $data, string $at, array &$counts): void
+	{
+		foreach ($fields as $field) {
+			$key = array_find([$field->name, ...$field->aliases], static fn (string $key): bool => ! in_array($data[$key] ?? null, [null, '', []], true));
+			$as  = $at === '' ? $field->name : "{$at}.{$field->name}";
+
+			$counts[$as] ??= 0;
+
+			if ($key === null) {
+				continue;
+			}
+
+			$counts[$as]++;
+
+			if ($field instanceof ObjectField && is_array($data[$key])) {
+				self::count($field->schema->fields, $data[$key], $as, $counts);
+			}
+		}
 	}
 
 	/**

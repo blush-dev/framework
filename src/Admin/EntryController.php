@@ -823,7 +823,8 @@ final readonly class EntryController
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,
 				'message'  => $violation->message,
-				'severity' => $violation->severity->value
+				'severity' => $violation->severity->value,
+				'kind'     => $violation->kind?->value
 			], $this->linter->lintFile($entry->path))
 		];
 	}

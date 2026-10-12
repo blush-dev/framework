@@ -127,6 +127,28 @@ const origin = computed(() => ({ extension: 'a plugin', config: 'config/fields.p
 // The noun an empty tree uses: what the set is added to.
 const noun = computed(() => typeNames.value.length === 1 ? (typeNames.value[0] ?? 'entries').toLowerCase() : 'entries of its types');
 
+// What a save says, with the values it moved along with fields put
+// somewhere new (D-780), and those it couldn't.
+function savedMessage(saved: FieldSetDetail): string {
+	const moved  = saved.moved;
+	const failed = Object.keys(moved?.failed ?? {}).length;
+	const parts  = [`Saved ${saved.label}`];
+
+	if (moved !== undefined && moved.entries > 0) {
+		parts.push(`Moved values in ${plural(moved.entries, 'entry', 'entries')}`);
+	}
+
+	if (moved !== undefined && moved.kept > 0) {
+		parts.push(`${plural(moved.kept, 'entry', 'entries')} already had a value at the new place, so the old one stays`);
+	}
+
+	if (failed > 0) {
+		parts.push(`${plural(failed, 'entry', 'entries')} couldn't be changed: ${Object.values(moved?.failed ?? {})[0]}`);
+	}
+
+	return parts.join('. ');
+}
+
 async function save(): Promise<void> {
 	const detail = set.value;
 
@@ -142,7 +164,7 @@ async function save(): Promise<void> {
 
 		refreshTypes();
 		show(saved);
-		toast(`Saved ${saved.label}`);
+		toast(savedMessage(saved), { kind: Object.keys(saved.moved?.failed ?? {}).length > 0 || (saved.moved?.kept ?? 0) > 0 ? 'warn' : undefined });
 	} catch (caught) {
 		failure.value = errorMessage(caught, 'The field set couldn\'t be saved.');
 	} finally {

@@ -1693,9 +1693,13 @@
 	display: none;
 }
 
-/* A short, fixed set of choices side by side (All, Images, Video…). */
+/* A short, fixed set of choices side by side (All, Images, Video…), as
+   wide as its buttons wherever it's put: a field's grid or a setting's
+   would stretch it, the last button seeming to run on. */
 .segmented {
 	display: flex;
+	width: fit-content;
+	max-width: 100%;
 	overflow: hidden;
 	border: 1px solid var(--border);
 	border-radius: var(--r-1);
@@ -1907,8 +1911,12 @@
 }
 
 /* A hint at a heading's end: a count, or how what's in it is kept. A
-   relation's changes its word before its ink (D-607). */
+   relation's changes its word before its ink (D-607). A field set's is
+   its required fields left empty, as a pill, then its count (D-779). */
 .options__hint {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	font-weight: 400;
 	letter-spacing: normal;
 	text-transform: none;
@@ -4651,10 +4659,6 @@ a.problem__title:hover {
 }
 
 /* A row of buttons keeps its own width, as a switch does. */
-.setting__control > .segmented {
-	justify-self: start;
-}
-
 .setting__control.is-unset > :first-child {
 	opacity: .6;
 }

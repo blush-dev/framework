@@ -17,11 +17,15 @@ use Closure;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Activity\Actor;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
+use Blush\Container\Attributes\Defer;
+use Blush\Content\Editing\FieldMoves;
 use Blush\Content\Type\ContentTypeCache;
+use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
@@ -35,7 +39,12 @@ use Blush\Http\Status;
  *
  * - `POST fields/sets`: `{"name", "set"}`; answers `201` with the set as
  *   `GET fields/sets/{name}` describes it.
- * - `PATCH fields/sets/{name}`: `{"set"}`; answers with the set.
+ * - `PATCH fields/sets/{name}`: `{"set"}`; answers with the set, and
+ *   `moved`: a field put somewhere new (into a group, out of one) has
+ *   its values moved in the entries of the set's types (D-780,
+ *   `FieldMoves`), and `moved` says how many `entries` were changed,
+ *   how many `kept` a value already at the new place, and the `failed`
+ *   ones' reasons, by entry id.
  * - `DELETE fields/sets/{name}`: deletes its file (entries keep their
  *   values for its fields); answers `{"deleted"}`.
  *
@@ -50,13 +59,18 @@ use Blush\Http\Status;
  */
 final readonly class FieldSetEditController
 {
+	/**
+	 * @param Closure(): ContentTypeLoader $loader
+	 */
 	public function __construct(
 		private DataFieldSetWriter $writer,
 		private FieldSetsController $sets,
 		private ContentTypeCache $cache,
 		private ContentVersion $version,
 		private AppConfig $app,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private FieldMoves $moves,
+		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -89,8 +103,36 @@ final readonly class FieldSetEditController
 			return self::error('Send "set" (keys to values).', Status::BadRequest);
 		}
 
+		// The set as saved now, read again: types loaded earlier may be
+		// from before another change.
+		try {
+			$before = ($this->loader)()->load()->sets->find($name)?->schema->fields ?? [];
+		} catch (InvalidContentType $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		$account = $request->getAttribute(Account::class);
+
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name);
+		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, then: function (ContentTypes $types) use ($name, $before, $account): array {
+			$after = $types->sets->find($name);
+
+			if ($after === null || ! $account instanceof Account) {
+				return [];
+			}
+
+			$moved = $this->moves->apply(
+				Actor::admin($account),
+				array_values(array_map(static fn (string $target): string => substr($target, 5), array_filter($after->targets, static fn (string $target): bool => str_starts_with($target, 'type:')))),
+				FieldMoves::between($before, $after->schema->fields)
+			);
+
+			return ['moved' => [
+				'entries' => count($moved['moved']),
+				'kept'    => count($moved['kept']),
+				'failed'  => (object) $moved['failed']
+			]];
+		});
 	}
 
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
@@ -114,9 +156,10 @@ final readonly class FieldSetEditController
 	/**
 	 * Makes a change, then compiles the types and answers with the set.
 	 *
-	 * @param Closure(): ContentTypes $change
+	 * @param Closure(): ContentTypes                         $change
+	 * @param ?Closure(ContentTypes): array<string, mixed>    $then   What's done once it's changed, and more to answer with.
 	 */
-	private function changed(Closure $change, string $name, Status $status = Status::Ok): ResponseInterface
+	private function changed(Closure $change, string $name, Status $status = Status::Ok, ?Closure $then = null): ResponseInterface
 	{
 		try {
 			$types = $change();
@@ -127,9 +170,11 @@ final readonly class FieldSetEditController
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
 
+		$more = $then === null ? [] : $then($types);
+
 		$this->version->bump();
 
-		return Response::json($this->sets->detail($types, $set), $status, ['Cache-Control' => 'no-store']);
+		return Response::json([...$this->sets->detail($types, $set), ...$more], $status, ['Cache-Control' => 'no-store']);
 	}
 
 	/**

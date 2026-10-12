@@ -17,11 +17,12 @@
  * A screen can put a line under the control (`after`), such as a value
  * offered for it, and say something in place of the help (`help`, given
  * the help's id), such as a warning; `warn` marks the control for one.
+ * A group or a repeating group has it under its fields (D-779).
  * `narrow` is a side panel's: radio buttons with a few short options are
  * one segmented row there.
  */
 
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 import type { FieldDescription } from '../api';
 import type { FieldLevel } from '../field-levels';
 import FieldGroup from './FieldGroup.vue';
@@ -45,18 +46,22 @@ const model = defineModel<FormValue>({ required: true });
 // A media control can open the media picker (D-247).
 const emit = defineEmits<{ pick: [field: FieldDescription, steps: FieldStep[]] }>();
 
+const slots     = useSlots();
 const id        = computed(() => `${props.idPrefix ?? 'field-'}${props.field.name}`);
 const kind      = computed(() => control(props.field));
 const where     = computed<FieldLevel>(() => props.at ?? { root: props.field.name, steps: [], trail: [label(props.field)] });
 const group     = computed(() => isChoiceGroup(kind.value));
 const labelOnly = computed(() => group.value || kind.value === 'toggle');
 const errorId   = computed(() => props.error === undefined || props.error === '' ? undefined : `${id.value}-error`);
-const described = computed(() => [help(props.field) === '' ? '' : `${id.value}-help`, isShownOnly(kind.value) ? `${id.value}-readonly` : '', errorId.value ?? ''].filter((part) => part !== '').join(' ') || undefined);
+const described = computed(() => [help(props.field) === '' && slots.help === undefined ? '' : `${id.value}-help`, isShownOnly(kind.value) ? `${id.value}-readonly` : '', errorId.value ?? ''].filter((part) => part !== '').join(' ') || undefined);
 </script>
 
 <template>
-	<FieldGroup v-if="kind === 'group'" v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
-	<FieldRepeater v-else-if="kind === 'repeater'" v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
+	<template v-if="kind === 'group' || kind === 'repeater'">
+		<FieldGroup v-if="kind === 'group'" v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
+		<FieldRepeater v-else v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
+		<slot v-if="$slots.help" name="help" :id="`${id}-help`" />
+	</template>
 	<div v-else class="field" :class="{ 'field--toggle': kind === 'toggle', 'field--warn': warn }">
 		<span v-if="labelOnly" :id="`${id}-label`" class="field__label">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></span>
 		<label v-else :for="id">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></label>

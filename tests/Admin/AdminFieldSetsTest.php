@@ -187,6 +187,36 @@ final class AdminFieldSetsTest extends TestCase
 		$this->assertSame(['gas' => 'Gas', 'electric' => 'electric'], $oven['choices'] ?? null);
 	}
 
+	public function testMovesValuesWithAFieldMovedIntoOrOutOfAGroup(): void
+	{
+		$this->writeTemporaryFile('user/content/_recipe/beans.md', "---\ntitle: Beans\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1f01\noven: gas\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1f02\noven: electric\ndetails:\n  oven: gas\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/toast.md', "---\ntitle: Toast\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1f03\n---\n");
+		$this->site();
+
+		$oven  = ['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric']];
+		$front = fn (string $name): string => (string) file_get_contents($this->temporaryDirectory() . "/user/content/_recipe/{$name}.md");
+
+		$into = self::json($this->write('PATCH', '/fields/sets/kitchen', ['set' => ['fields' => [['name' => 'details', 'type' => 'object', 'fields' => [$oven]]]]]));
+
+		$this->assertSame(['entries' => 1, 'kept' => 1, 'failed' => []], $into['moved'] ?? null, 'Stew already had a value in the group, so its own stays (D-780).');
+		$this->assertStringContainsString('details:', $front('beans'));
+		$this->assertStringNotContainsString("\noven: gas", $front('beans'));
+		$this->assertStringContainsString("\noven: electric", $front('stew'));
+		$this->assertSame(['details' => 2, 'details.oven' => 2], $into['counts'] ?? null, 'A group\'s fields are counted under both keys.');
+
+		$out = self::json($this->write('PATCH', '/fields/sets/kitchen', ['set' => ['fields' => [$oven]]]));
+
+		$this->assertSame(['entries' => 1, 'kept' => 1, 'failed' => []], $out['moved'] ?? null);
+		$this->assertStringContainsString("\noven: gas", $front('beans'));
+		$this->assertStringNotContainsString('details', $front('beans'), 'A group left empty goes.');
+		$this->assertStringContainsString('details:', $front('stew'), 'Stew kept its own value, so the group\'s stays.');
+
+		$activity = self::json($this->send('GET', '/activity'));
+
+		$this->assertContains('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1f01', array_column(is_array($activity['changes'] ?? null) ? $activity['changes'] : [], 'subject'), 'Each move is in the activity log, for Undo.');
+	}
+
 	public function testRefusesAFieldATargetAlreadyHas(): void
 	{
 		$this->site();

@@ -1202,10 +1202,15 @@ export interface FieldSetSummary {
 export interface FieldSetDetail extends Omit<FieldSetSummary, 'fields'> {
 	// As forms take them, each with its control (D-769).
 	fields: FieldDescription[];
-	// How many entries have a value for each field, by name.
+	// How many entries have a value for each field, by name, and a
+	// group's fields by both keys (`details.servings`, D-780).
 	counts: Record<string, number>;
 	options: FieldSetTargetOption[];
 	kinds: FieldKindDescription[];
+	// After a save, the values moved with fields put somewhere new
+	// (D-780): how many entries changed, how many kept a value already at
+	// the new place, and why any failed, by entry id.
+	moved?: { entries: number; kept: number; failed: Record<string, string> };
 }
 
 /**

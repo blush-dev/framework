@@ -14,7 +14,9 @@
  * (`ControlPicker`); inside a group, the new field is selected, not
  * opened (D-777). A field without a key yet says so on its row. Removing
  * a field entries have values for asks first; their files keep the
- * values.
+ * values. A group keeps its fields' values under its key (D-780), so a
+ * field moved into or out of one says how many entries' values move with
+ * it when the set is saved.
  */
 
 import { computed, ref } from 'vue';
@@ -37,13 +39,16 @@ const props = withDefaults(defineProps<{
 	labelledBy: string;
 	idPrefix: string;
 	locked?: boolean;
-	// How many entries have a value under each saved key (the top level's).
+	// How many entries have a value under each saved key, a group's
+	// fields under both keys (`details.servings`).
 	counts?: Record<string, number>;
+	// The saved key of the group this level is inside, for its counts.
+	at?: string | null;
 	// Keys this level can't take, with where each is used.
 	taken?: Record<string, string>;
 	// The group this level is inside, for what's said.
 	group?: string;
-}>(), { depth: 0, locked: false, counts: () => ({}), taken: () => ({}), group: '' });
+}>(), { depth: 0, locked: false, counts: () => ({}), at: null, taken: () => ({}), group: '' });
 
 const emit = defineEmits<{ change: []; out: [node: FieldNode] }>();
 
@@ -73,8 +78,22 @@ async function create(parent: FieldNode | null): Promise<FieldNode | null> {
 	return key === null ? null : fieldNode(blankField(key));
 }
 
+// How many entries have a value for a saved field, inside a group or not.
+function countOf(node: FieldNode, group: string | null = props.at): number {
+	if (node.saved === null || (props.depth > 0 && group === null)) {
+		return 0;
+	}
+
+	return props.counts[group === null ? node.saved : `${group}.${node.saved}`] ?? 0;
+}
+
+// What a move says of the values that go with it on saving.
+function movesValues(count: number, where: string): string {
+	return count === 0 ? '' : `. Saving moves its values in ${plural(count, 'entry', 'entries')} ${where} too`;
+}
+
 async function confirmRemove(node: FieldNode): Promise<boolean> {
-	const count = node.saved === null || props.depth > 0 ? 0 : (props.counts[node.saved] ?? 0);
+	const count = countOf(node);
 
 	if (count === 0) {
 		return true;
@@ -113,7 +132,7 @@ function moveInto(placed: Placed<FieldNode>, group: FieldNode): void {
 	placed.list.splice(placed.index, 1);
 	group.children.push(placed.node);
 	emit('change');
-	toast(`Moved ${name(placed.node)} into ${name(group)}`);
+	toast(`Moved ${name(placed.node)} into ${name(group)}${movesValues(countOf(placed.node), 'into it')}`);
 }
 
 // A group's field moved out goes after the group.
@@ -123,7 +142,7 @@ function moveOut(placed: Placed<FieldNode>, node: FieldNode): void {
 	children.splice(children.indexOf(node), 1);
 	placed.list.splice(placed.index + 1, 0, node);
 	emit('change');
-	toast(`Moved ${name(node)} out of ${name(placed.node)}`);
+	toast(`Moved ${name(node)} out of ${name(placed.node)}${movesValues(countOf(node, placed.node.saved), 'out of it')}`);
 }
 
 async function add(): Promise<void> {
@@ -190,6 +209,8 @@ defineExpose({ add });
 							:id-prefix="`${idPrefix}${placed.node.id}-`"
 							:locked="locked"
 							:group="name(placed.node)"
+							:counts="counts"
+							:at="placed.node.saved"
 							@change="emit('change')"
 							@out="moveOut(placed, $event)"
 						/>

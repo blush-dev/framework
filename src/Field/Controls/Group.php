@@ -20,7 +20,8 @@ use Blush\Field\Field;
 use Blush\Field\Fields\ObjectField;
 
 /**
- * A few fields kept together under one heading: an object field.
+ * A few fields kept together under one heading: an object field, whose
+ * fields' values are kept together under its key (D-780).
  */
 final class Group extends Control
 {
@@ -48,7 +49,7 @@ final class Group extends Control
 	#[Override]
 	public static function description(): string
 	{
-		return 'A few fields kept together under one heading.';
+		return 'A few fields kept together, their values under its key.';
 	}
 
 	/**

@@ -652,7 +652,7 @@ Field types:
 | `list`      | Several values         | `item` (a field definition for each value; text by default), `min` and `max` (the fewest and most items)            |
 | `media`     | A media file, by its id | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug`      | A URL-safe name        |                                                                                                                     |
-| `object`    | A group of fields      | `fields`, `closed`                                                                                                  |
+| `object`    | A group of fields, kept together under its key (`details: {servings: 4}`) | `fields`, `closed`                                                                     |
 
 Every field also takes `required` (a value is needed to publish),
 `default`, `aliases` (other keys it's read from), `label`,
@@ -687,7 +687,7 @@ pick it.
 
 | Control       | Stores                                  | Is                                                        |
 |---------------|-----------------------------------------|-----------------------------------------------------------|
-| `group`       | `object`                                | A few fields under one heading                            |
+| `group`       | `object`                                | A few fields kept together, their values under its key    |
 | `repeater`    | `list` of `object` items, or of values that fit on a line | A list of items, each with the same fields, or each one box (the default for both) |
 | `text`        | `text`                                  | One line (the default)                                    |
 | `textarea`    | `text`                                  | Several lines                                             |

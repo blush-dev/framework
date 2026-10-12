@@ -24625,3 +24625,62 @@ decision, add a new entry that supersedes it and mark the old one
   edited by opening the group (the author's preference). Menus' tree,
   not flat, is unchanged.
 - **Checked:** `npm run admin:build`; `composer check`.
+
+### D-779: The Fields API, stage 4: the entry sidebar, as built
+- **Date:** 2026-10-11
+- **Builds:** D-768's sidebar and D-770's nesting, stage 4 of "The
+  Fields API, picked up again" in `roadmap.md`.
+- **Decision:** Built from the fields sketch's editor, from existing
+  pieces (departures in `departures.md`):
+  - **Every field set is a collapsible group** on the Document tab
+    (`OptionsGroup`), in the order the server sends them (position,
+    then label; `ContentTypes::setsFor()`). It's closed until it's
+    opened, and opens by itself when one of its fields has an error or
+    a warning to show. Its heading's hint counts its fields, with a red
+    pill counting its required fields left empty (the editor's
+    `missing`, from the start, not only once publishing was tried).
+  - **Nesting** is stage 2's: the first level inline, deeper levels a
+    row that opens a level down, at any depth (D-770).
+  - **A value that doesn't fit its field** (a `value` violation, only
+    from a file edited by hand) shows a warning under the field
+    (`FieldMisfit`, through `FieldControl`'s `help` slot, which a group
+    or repeating group now has under its fields too): the field's label
+    and the linter's message, that the site leaves the value out until
+    it's fixed, and Site Health, which already lists it under "Values
+    the Site Can't Use", as a link. It shows while the field is as it
+    was loaded. The type's own fields get it too.
+  - **The entry's `violations` say their `kind`** (`GET entries/{id}`),
+    as Site Health's do.
+- **Checked:** `composer check`; `npm run admin:build`.
+
+### D-780: Group keeps its fields' values together, and moving a field in or out moves its values
+- **Date:** 2026-10-11
+- **Supersedes:** the fields sketch's reading of a Group as a heading
+  that holds no value of its own (its editor reads a group's fields by
+  their own keys).
+- **Decision:** The author's call, after comparing field builders
+  elsewhere (most call a data group "Group", and give layout-only
+  grouping a layout word: Tab, Accordion, Section, Row, Collapsible).
+  - **The names stay:** **Group** and **Repeating Group**. A Group is an
+    `object` field: its fields' values are kept together under its key
+    (`details.servings`), as each item of a Repeating Group is. "Data
+    Group" was weighed and left: every field is data, so the word tells
+    nothing apart.
+  - **No layout-only group for now.** A field set is the layout unit (a
+    folding group in the sidebar, D-779). If headings inside a set are
+    wanted later, they're a kind of their own named for layout
+    (**Section**), never with "Group" in the name.
+  - **Moving a field into or out of a group moves its values.** When a
+    set is saved with a field at a new place (into a group, out of one,
+    or from one group to another, found by its key), every entry of the
+    set's types with a value at the old place has it moved to the new
+    one, through `EntryEditor`, so each is in the activity log with
+    Undo. An entry that already has a value at the new place keeps it,
+    and is reported. The Fields screen says how many entries' values
+    will move when a field is moved, and how many did when it's saved.
+  - **Group's description says how it stores:** its fields are kept
+    together under its key.
+- **Why:** a group that's data pairs with Repeating Group (one or many
+  of the same thing), keeps values that belong together as one (an
+  address, a call to action), and lets a plugin's set claim one key.
+  Values left behind by a move would only show up as problems.

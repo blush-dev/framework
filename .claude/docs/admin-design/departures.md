@@ -1280,3 +1280,35 @@ built from the admin's own pieces, with these departures:
   checked confirmation (`confirmChecked`).
 - **A content type's own fields** use the same tree and form on its
   screen, in place of the type screen's old field list.
+
+## The entry sidebar's field sets (`blush-fields.html`, D-779)
+
+- **A set is the panel's collapsible group** (`OptionsGroup`), not the
+  sketch's `dgroup`: the same chevron, label, and fold, with the
+  heading's hint holding the sketch's red count of required fields left
+  empty (`.pill--danger`) and its field count. A set opens by itself to
+  show an error or a warning in it; the sketch only opens on a click.
+- **Required fields keep the admin's "(required)"** after their labels
+  (`FieldControl`), not the sketch's marker, and **Add {field} to
+  publish** shows once publishing was tried, as every required field in
+  the editor does; the header's count shows from the start.
+- **A value that doesn't fit** says what's wrong in the linter's words
+  after the field's label ("Servings must be a number, not a list."),
+  not "doesn't fit a {control}", then that the site leaves it out and
+  Site Health lists it (a link, for an account with `site.health`).
+- **No slots:** every set is in the sidebar (D-768); the sketch's top
+  and main column panels aren't drawn.
+
+## A group is data (`blush-fields.html`, D-780)
+
+- **A Group keeps its fields' values under its key** (`details.servings`),
+  where the sketch's editor reads a group's fields by their own keys and
+  its form says a group holds no value of its own. The sketch's
+  "holds no value" line becomes Group's description: "A few fields kept
+  together, their values under its key."
+- **Moving a field into or out of a group moves its values** when the
+  set is saved; the move's toast says how many entries have one, and
+  the save's says how many were moved (and any that kept a value
+  already at the new place). The sketch has no such step.
+- **No layout-only group:** the sketch has none either; if one comes,
+  it's named for layout (Section), never Group.

@@ -68,7 +68,8 @@ function choice(option: string): string {
 	return choiceLabel(props.field, option);
 }
 
-// Text-typed state for the controls that hold text.
+// Text-typed state for the controls that hold text. A number box sets it
+// from its input, not `v-model`, which would store a number.
 const text = computed({
 	get: () => typeof model.value === 'string' ? model.value : '',
 	set: (value: string) => {
@@ -147,7 +148,7 @@ const checked = computed({
 		<DatePicker :id="id" v-model="text" :day-only="field.time === false" :described-by="describedBy" :invalid="invalid === 'true'" />
 		<button v-if="text" type="button" class="button button--ghost button--small" :disabled="disabled" @click="text = ''">Clear<span class="visually-hidden"> {{ label(field).toLowerCase() }}</span></button>
 	</div>
-	<input v-else-if="kind === 'number'" :id="id" v-model="text" type="number" :min="field.min" :max="field.max" :step="field.step ?? (field.integer ? 1 : 'any')" :placeholder="field.placeholder" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid">
+	<input v-else-if="kind === 'number'" :id="id" :value="text" type="number" :min="field.min" :max="field.max" :step="field.step ?? (field.integer ? 1 : 'any')" :placeholder="field.placeholder" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" @input="text = ($event.target as HTMLInputElement).value">
 	<pre v-else-if="isShownOnly(kind)" :id="id" class="field__readonly" tabindex="0" :aria-describedby="describedBy">{{ text || '—' }}</pre>
 	<IconField v-else-if="kind === 'icon'" :id="id" v-model="text" :described-by="describedBy" :preview="(icon) => `${field.name}: ${icon.name}`" />
 	<ImagePreview v-else-if="kind === 'image' && pickable" :src="text" :noun="label(field).toLowerCase()" @pick="emit('pick')" @remove="text = ''" />
