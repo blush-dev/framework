@@ -454,7 +454,7 @@ final class MultilingualTest extends TestCase
 
 	public function testDirectiveTextIsInThePageLanguage(): void
 	{
-		$this->writeTemporaryFile('user/lang/fr/extensions/blush/default.json', '{"progress": {"label": "Avancement"}}');
+		$this->writeTemporaryFile('user/lang/fr/core.json', '{"progress": {"label": "Avancement"}}');
 
 		$app       = $this->site();
 		$container = $app->container();

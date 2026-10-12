@@ -299,19 +299,22 @@ abstract class Renderable
 	}
 
 	/**
-	 * Translates a message from the theme chain's catalogs, like a
-	 * template's `$template->t()`, and then from its own extension's
-	 * (D-451), so a plugin can ship its text and a theme can reword it.
+	 * Translates a message as a template's `$template->t()` does, with
+	 * the text it reads when no catalog has it (D-784), from the class's
+	 * own domain (its namespace's extension, a theme's through the chain,
+	 * child first), then core's. `context:` is a note for translators.
 	 * Without a translator (one built outside `Views`), it returns the
-	 * key. Text is in the page's locale, so a translation's directives and
-	 * components speak its language (D-462).
+	 * text, else the key. Text is in the page's locale, so a translation's
+	 * directives and components speak its language (D-462).
 	 */
-	protected function t(string $key, string|int|float ...$params): string
+	protected function t(string $key, ?string $text = null, string|int|float ...$params): string
 	{
 		$locale = $this->viewContext->locale ?? '';
 
+		unset($params['context']);
+
 		/** @var array<string, string|int|float> $params */
-		return $this->translator?->translate($key, $params, $locale === '' ? null : $locale) ?? $key;
+		return $this->translator?->translate($key, $params, $locale === '' ? null : $locale, $text) ?? $text ?? $key;
 	}
 
 	/**

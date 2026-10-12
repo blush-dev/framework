@@ -122,6 +122,7 @@ Implemented in M2 (D-065, D-069).
 | `menu:refs [--write]` | List menus whose `entry`/`term` links lack the target's id in `ref` or name a renamed entry; `--write` files them (D-676) |
 | `directive:list [--theme]` | List every registered directive (D-532): full name, label, class, variants under the chain (D-266), and winning template; warn when one can't render and about files in `directives/` for no registered directive |
 | `component:list [--theme]` | List every component the chain can render (D-532): full name, class, and winning template, leaving out other themes'; warn when one can't render (D-164) and about files not named for a component (D-173) |
+| `lang:extract <name> [--locale] [--dry-run]` | Write the text an extension's code writes (`->t()` calls with text, read by `MessageExtractor`) to its source catalog, `lang/en.json` or `--locale`'s (`SourceCatalog`): adds new keys, replaces changed text, writes `context` as `@{key}`, keeps the rest; `core` for the framework's `src` and `resources/views`/`directives`; warns about calls it can't collect, one key with two texts, and invalid ICU (D-784) |
 | `lang:missing [--locale]` | List untranslated message keys |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
 | `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |

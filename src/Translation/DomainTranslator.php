@@ -44,9 +44,9 @@ final readonly class DomainTranslator
 	 * @param  array<string, mixed> $params
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function translate(string $key, array $params = [], ?string $locale = null): string
+	public function translate(string $key, array $params = [], ?string $locale = null, ?string $text = null): string
 	{
-		return $this->translator->translate($key, $params, $this->domains, $locale);
+		return $this->translator->translate($key, $params, $this->domains, $locale, $text);
 	}
 
 	/**

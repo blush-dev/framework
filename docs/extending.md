@@ -1446,7 +1446,10 @@ A plugin's [directives](directives.md) use its namespace: `acme/hello`,
 with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
 text (labels, descriptions) goes in the plugin's `lang/en.json`, under
 `directives.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
-the top ([Translations](themes.md#translations)). A plugin's directive
+the top ([Translations](themes.md#translations)). Text written in the
+plugin's code (`t()` in its templates and classes, below) is the
+plugin's, looked up in its catalogs and then Blush's, never the
+theme's. A plugin's directive
 draws itself with its `render()`, usually a template file in the plugin
 returned by `$this->view(__DIR__ . '/../views/tabs.php')` (see
 [Rendering itself](directives.md#rendering-itself)); a theme (or a
@@ -1457,6 +1460,45 @@ A plugin can also offer [components](components.md) for themes to use
 in their templates, such as a newsletter plugin's `newsletter/signup`,
 registered with `ComponentRegistry` and drawn by their own `render()`,
 which a theme replaces with a template of its own.
+
+### Text in a plugin's code
+
+Write text where it's used, with a key and the text beside it, as
+[themes do](themes.md#translations). Blush works out whose text it is
+from where the code lives, so you never name your plugin:
+
+- **In a template** the plugin ships: `$template->t('key', 'Text')`.
+- **In a directive or component class**, and **in your provider**:
+  `$this->t('key', 'Text')`. A provider's comes back as a message that's
+  translated where it's shown, so a label you register reads in the
+  page's or the admin's language:
+
+  ```php
+  $registry->register(new EntryTemplate('template-wide', label: $this->t('templates.wide.label', 'Wide')));
+  ```
+
+- **In any other class**, ask for `Messages` in the constructor. You
+  get your plugin's, by the namespace your class is in (your
+  `autoload` or your provider's):
+
+  ```php
+  use Blush\Translation\Messages;
+  use Blush\Translation\Text;
+
+  final readonly class Exporter
+  {
+  	public function __construct(private Messages $messages) {}
+
+  	public function label(): Text
+  	{
+  		return $this->messages->t('tools.export.label', 'Export {count, plural, one {# entry} other {# entries}}', count: 3);
+  	}
+  }
+  ```
+
+`bin/blush lang:extract acme/hello` writes it all to `lang/en.json` for
+translators, and `plugin:check` warns when that file is behind your
+code (see [Translations](themes.md#translations)).
 
 ### Template engines from a plugin
 

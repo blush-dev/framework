@@ -27,6 +27,8 @@ use Blush\Tests\WritesThemeViews;
 use Blush\Embed\Fetcher;
 use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 use Blush\Tests\Fixtures\Directive\Box;
+use Blush\Tests\Fixtures\Directive\CoreKey;
+use Blush\Tests\Fixtures\Directive\OwnView;
 use Blush\Tests\Fixtures\Directive\Orphan;
 use Blush\Tests\Fixtures\Directive\Salutation;
 use Blush\Tests\Fixtures\Directive\Stamp;
@@ -252,19 +254,57 @@ final class DirectivesTest extends TestCase
 		$this->assertNull($views->directiveText(new DirectiveName('other', 'tabs'), 'label'));
 
 		// A plugin's directive reads its own catalog, by its vendor/name
-		// domain, and the theme can reword it (D-451).
+		// domain (D-451); a theme's catalog doesn't reword it (D-784).
 		$this->app->container()->make(DirectiveRegistry::class)->register('hello/greeting', Salutation::class);
 
 		$this->assertSame('<p>Hello, Ada.</p>', $views->directive('hello/greeting', [], '', new ViewContext()));
 
-		$this->writeTemporaryFile('user/lang/en/extensions/fixture/hello.json', '{"directives": {"tabs": {"label": "Site tabs"}}}');
 		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"greeting": "Howdy, {name}."}');
+
+		$views = $this->boot();
+		$this->app->container()->make(DirectiveRegistry::class)->register('hello/greeting', Salutation::class);
+
+		$this->assertSame('<p>Hello, Ada.</p>', $views->directive('hello/greeting', [], '', new ViewContext()), 'A theme\'s key of the same name isn\'t the plugin\'s text.');
+
+		$this->writeTemporaryFile('user/lang/en/extensions/fixture/hello.json', '{"directives": {"tabs": {"label": "Site tabs"}}, "greeting": "Howdy, {name}."}');
 
 		$views = $this->boot();
 		$this->app->container()->make(DirectiveRegistry::class)->register('hello/greeting', Salutation::class);
 
 		$this->assertSame('Site tabs', $views->directiveText(new DirectiveName('hello', 'tabs'), 'label'), 'The site\'s override wins.');
 		$this->assertSame('<p>Howdy, Ada.</p>', $views->directive('hello/greeting', [], '', new ViewContext()));
+	}
+
+	public function testTextIsInTheDomainOfTheCodeThatWroteIt(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"greeting": "Theme greeting", "progress": {"label": "Theme progress"}}');
+		$this->writeTemporaryFile('extensions/acme/alt/views/page.php', '<?= e($template->t("greeting")) ?>|<?= e($template->t("theme.only", "Only {n, plural, one {# thing} other {# things}}", n: 2, context: "A note")) ?>');
+		$this->writeTemporaryFile('extensions/fixture/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Directive\\\\OrphanProvider"}');
+		$this->writeTemporaryFile('extensions/fixture/hello/lang/en.json', '{"greeting": "Plugin greeting", "progress": {"label": "Plugin progress"}}');
+		$this->writeTemporaryFile('extensions/fixture/hello/views/greet.php', '<?= e($template->t("greeting")) ?>|<?= e($template->t("hello.inline", "Inline {name}", name: "Ada")) ?>');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['fixture/hello']);\n");
+
+		$views    = $this->boot();
+		$root     = $this->temporaryDirectory();
+		$registry = $this->app->container()->make(DirectiveRegistry::class);
+		$registry->register('hello/own', OwnView::class);
+		$registry->register('hello/core-key', CoreKey::class);
+
+		// A plugin's own template reads the plugin's catalog, not the
+		// theme's (D-784).
+		$this->assertSame('Plugin greeting|Inline Ada', $views->directive('hello/own', ['file' => "{$root}/extensions/fixture/hello/views/greet.php"], '', new ViewContext()));
+
+		// A plugin's class reads its own catalog before core's.
+		$this->assertSame('Plugin progress|Brand new, Ada', $views->directive('hello/core-key', [], '', new ViewContext()));
+
+		// A theme's template reads the chain, with its text when no
+		// catalog has the key.
+		$this->assertSame('Theme greeting|Only 2 things', $views->render('page'));
+
+		$this->assertSame(['acme/alt', 'core'], $views->domainsFor("{$root}/extensions/acme/alt/views/page.php"));
+		$this->assertSame(['fixture/hello', 'core'], $views->domainsFor("{$root}/extensions/fixture/hello/views/greet.php"));
 	}
 
 	public function testCoreDirectivesAreRegisteredWithTheirDefinitions(): void

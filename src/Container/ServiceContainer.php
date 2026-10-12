@@ -129,6 +129,14 @@ final class ServiceContainer implements Container
 	private array $contextual = [];
 
 	/**
+	 * Bindings by type that know their consumer, from
+	 * `whenAnyNeedsType()`.
+	 *
+	 * @var array<string, Closure>
+	 */
+	private array $consumerAware = [];
+
+	/**
 	 * Stores named parameter values available to any consumer parameter
 	 * marked with `#[Param]`.
 	 *
@@ -273,6 +281,15 @@ final class ServiceContainer implements Container
 	public function whenNeedsType(string $consumer, string $type, Closure|string $concrete): void
 	{
 		$this->contextual[$consumer]['types'][$type] = $concrete;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function whenAnyNeedsType(string $type, Closure $concrete): void
+	{
+		$this->consumerAware[$type] = $concrete;
 	}
 
 	/**
@@ -1228,6 +1245,12 @@ final class ServiceContainer implements Container
 
 				return $give instanceof Closure ? $give($this) : $this->resolve($give);
 			}
+		}
+
+		// A binding that knows its consumer gives each class its own
+		// value of the type, worked out from who's asking.
+		if ($consumer !== null && $param->typeName !== null && isset($this->consumerAware[$param->typeName])) {
+			return ($this->consumerAware[$param->typeName])($this, $consumer);
 		}
 
 		// A variadic parameter is inherently optional. With nothing

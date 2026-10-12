@@ -53,7 +53,7 @@ final class EntryTemplatesTest extends TestCase
 		$this->assertTrue($any->isFor('post'));
 		$this->assertTrue($page->isFor('page'));
 		$this->assertFalse($page->isFor('post'));
-		$this->assertSame(['name' => 'templates/compact', 'label' => 'Compact List', 'description' => 'One line each.'], $page->toArray());
+		$this->assertSame(['templates/compact', 'Compact List', 'One line each.'], [$page->name, $page->label, $page->description]);
 	}
 
 	public function testATemplateNeedsAViewNameAndALabel(): void
@@ -71,15 +71,15 @@ final class EntryTemplatesTest extends TestCase
 		new EntryTemplate('template-wide', ' ');
 	}
 
-	public function testTheRegistryOffersATypesTemplatesByLabel(): void
+	public function testTheRegistryOffersATypesTemplates(): void
 	{
 		$registry = new EntryTemplateRegistry();
 		$registry->register(new EntryTemplate('template-wide', 'Wide'));
 		$registry->register(new EntryTemplate('template-compact', 'Compact List', types: ['page']));
 		$registry->register(new EntryTemplate('template-card', 'Card', types: ['post']));
 
-		$this->assertSame(['Compact List', 'Wide'], array_column(array_map(static fn (EntryTemplate $template): array => $template->toArray(), $registry->forType('page')), 'label'));
-		$this->assertSame(['Card', 'Wide'], array_column(array_map(static fn (EntryTemplate $template): array => $template->toArray(), $registry->forType('post')), 'label'));
+		$this->assertSame(['template-wide', 'template-compact'], array_map(static fn (EntryTemplate $template): string => $template->name, $registry->forType('page')));
+		$this->assertSame(['template-wide', 'template-card'], array_map(static fn (EntryTemplate $template): string => $template->name, $registry->forType('post')));
 
 		$registry->register(new EntryTemplate('template-wide', 'Full Width'));
 		$registry->remove('template-card');

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Blush\Translation\Text;
+
 /**
  * A template someone can choose for a single entry in the editor
  * (D-783), declared by a theme: its view name (the path under `views/`
@@ -24,11 +26,14 @@ namespace Blush\View;
  * ```php
  * $registry->register(new EntryTemplate(
  *     'template-compact',
- *     label: 'Compact List',
- *     description: 'Every post on a line of its own.',
+ *     label: $this->t('templates.compact.label', 'Compact List'),
+ *     description: $this->t('templates.compact.description', 'Every post on a line of its own.'),
  *     types: ['page']
  * ));
  * ```
+ *
+ * The label and description are translated where they're shown
+ * (`Views::text()`, D-784); plain text is shown as it is.
  */
 final readonly class EntryTemplate
 {
@@ -38,15 +43,15 @@ final readonly class EntryTemplate
 	 */
 	public function __construct(
 		public string $name,
-		public string $label,
-		public string $description = '',
+		public string|Text $label,
+		public string|Text $description = '',
 		public array $types = []
 	) {
 		if (! ViewFinder::isValidName($name)) {
 			throw new ViewException(sprintf('"%s" isn\'t a view name for a template; name it as under views/, without the extension, such as "template-wide".', $name));
 		}
 
-		if (trim($label) === '') {
+		if (is_string($label) ? trim($label) === '' : trim($label->text ?? $label->key) === '') {
 			throw new ViewException(sprintf('The "%s" template needs a label.', $name));
 		}
 	}
@@ -57,15 +62,5 @@ final readonly class EntryTemplate
 	public function isFor(string $type): bool
 	{
 		return $this->types === [] || in_array($type, $this->types, true);
-	}
-
-	/**
-	 * Returns it as the editor reads it.
-	 *
-	 * @return array{name: string, label: string, description: string}
-	 */
-	public function toArray(): array
-	{
-		return ['name' => $this->name, 'label' => $this->label, 'description' => $this->description];
 	}
 }

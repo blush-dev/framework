@@ -44,6 +44,16 @@ final class Catalog
 	}
 
 	/**
+	 * Returns whether a key is metadata or a message's note, never a
+	 * message: `@@locale` and `@@domain`, and `@{key}` beside a message,
+	 * with its `context` for translators (D-784), as ARB writes them.
+	 */
+	public static function isAnnotation(int|string $key): bool
+	{
+		return str_starts_with((string) $key, '@');
+	}
+
+	/**
 	 * Returns an empty catalog's JSON, with its metadata, for a new
 	 * extension's `lang/en.json`.
 	 */

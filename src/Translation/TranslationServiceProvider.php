@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Translation;
 
 use Override;
+use Blush\Container\Container;
 use Blush\Container\ServiceResolver;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
@@ -30,6 +31,9 @@ use Blush\Plugin\Plugins;
  * mapped to it for directive and icon labels. The site's overrides in
  * `user/lang` win over them all. The view layer adds the theme chain's
  * domains.
+ *
+ * A class that asks for `Messages` gets its own extension's (D-784), by
+ * its namespace (`ClassDomains`).
  */
 final class TranslationServiceProvider extends ServiceProvider
 {
@@ -39,6 +43,12 @@ final class TranslationServiceProvider extends ServiceProvider
 	#[Override]
 	public function register(): void
 	{
+		$this->container->singleton(ClassDomains::class);
+		$this->container->whenAnyNeedsType(
+			Messages::class,
+			static fn (Container $container, string $consumer): Messages => new Messages($container->make(ClassDomains::class)->of($consumer))
+		);
+
 		$plugins = $this->container->has(Plugins::class);
 		$packs   = $this->container->has(IconPacks::class);
 

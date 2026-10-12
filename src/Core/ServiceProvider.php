@@ -20,6 +20,10 @@ use Blush\Container\ServiceResolver;
 use Blush\Core\Bootable;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageResolver;
+use Blush\Translation\ClassDomains;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+use Blush\Translation\TranslationException;
 
 /**
  * Service providers allow you to connect services to the application container.
@@ -205,5 +209,20 @@ abstract class ServiceProvider implements Bootable
 	#[Override]
 	public function boot(): void
 	{
+	}
+
+	/**
+	 * Returns a message to translate when it's shown (D-784), in the
+	 * domain of the extension the provider belongs to, so a label it
+	 * registers reads in the page's or the admin's language:
+	 * `$this->t('templates.compact.label', 'Compact List')`. The text is
+	 * an ICU message, shown when no catalog has the key; `context:` is a
+	 * note for translators, and every other parameter is named.
+	 *
+	 * @throws TranslationException When a parameter isn't named.
+	 */
+	protected function t(string $key, ?string $text = null, mixed ...$params): Text
+	{
+		return Messages::text($this->container->make(ClassDomains::class)->of(static::class), $key, $text, $params);
 	}
 }

@@ -30,6 +30,8 @@ use Blush\Media\MediaException;
 use Blush\Menu\Menu;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
+use Blush\Translation\DomainTranslator;
+use Blush\Translation\Text;
 use Blush\Component\PendingComponent;
 use Blush\Directive\PendingDirective;
 
@@ -65,9 +67,13 @@ final class Template
 	 */
 	private array $capturing = [];
 
+	/**
+	 * @param ?DomainTranslator $messages The domains of the code that wrote the template (D-784); the chain's, by default.
+	 */
 	public function __construct(
 		private readonly Views $views,
-		private readonly ViewContext $context
+		private readonly ViewContext $context,
+		private readonly ?DomainTranslator $messages = null
 	) {}
 
 	/**
@@ -315,9 +321,16 @@ final class Template
 	}
 
 	/**
-	 * Translates a message from the theme's catalogs with named
-	 * parameters: `$template->t('reading_time', minutes: 5)` (D-028).
-	 * It's text, so print it with `e()` or `attr()`.
+	 * Translates a message with named parameters, with the text it reads
+	 * when no catalog has it written beside its key (D-784):
+	 * `$template->t('reading_time', '{minutes, plural, one {# min} other {# mins}} read', minutes: 5)`.
+	 * The text is an ICU message, in whatever language the template is
+	 * written in; without it, a missing key shows as itself. `context:` is
+	 * a note for translators, never a parameter. The key is looked up in
+	 * the domains of the code that wrote the template: a theme's chain,
+	 * child first, a plugin's own, or core's, each then core's. A message
+	 * made to be translated later (a `Text`) is translated here. It's
+	 * text, so print it with `e()` or `attr()`.
 	 *
 	 * A parameter marked with `raw()` is HTML (D-559): the message comes
 	 * back as HTML, with that parameter as given and the message's own
@@ -327,10 +340,16 @@ final class Template
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function t(string $key, mixed ...$params): string|SafeHtml
+	public function t(string|Text $key, ?string $text = null, mixed ...$params): string|SafeHtml
 	{
+		if ($key instanceof Text) {
+			return $this->views->text($key, $this->locale());
+		}
+
 		$params = self::named($params);
 		$html   = [];
+
+		unset($params['context']);
 
 		// Each marked parameter is held by a private-use token while the
 		// message is formatted and escaped, then put back as given.
@@ -342,7 +361,7 @@ final class Template
 			}
 		}
 
-		$message = $this->views->messages->translate($key, $params, $this->locale());
+		$message = ($this->messages ?? $this->views->messages)->translate($key, $params, $this->locale(), $text);
 
 		return $html === [] ? $message : new TrustedHtml(strtr(Escaper::html($message), $html));
 	}
@@ -358,7 +377,7 @@ final class Template
 	 */
 	public function tGroup(string $key, mixed ...$params): array
 	{
-		return $this->views->messages->group($key, self::named($params), $this->locale());
+		return ($this->messages ?? $this->views->messages)->group($key, self::named($params), $this->locale());
 	}
 
 	/**

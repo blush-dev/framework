@@ -119,6 +119,20 @@ interface Container extends ServiceResolver, ContainerInterface
 	public function whenNeedsType(string $consumer, string $type, Closure|string $concrete): void;
 
 	/**
+	 * Register a binding by type that knows its consumer: when the
+	 * container builds any class with a constructor parameter typed
+	 * `$type`, the parameter is given `$concrete($container, $consumer)`,
+	 * where `$consumer` is the class being built. This is how a value
+	 * that depends on who asks for it is supplied, such as the text
+	 * domain of the extension a class belongs to. A consumer's own
+	 * `whenNeedsType()` binding wins over it; resolving the type outside
+	 * a constructor (`get()`, `make()`, `call()`) uses its usual binding.
+	 *
+	 * @param Closure(Container, class-string): mixed $concrete
+	 */
+	public function whenAnyNeedsType(string $type, Closure $concrete): void;
+
+	/**
 	 * Sets a container-backed named parameter value. A parameter set this
 	 * way is available to any constructor parameter explicitly marked with
 	 * the `#[Param]` attribute and sharing the same name.

@@ -24,6 +24,7 @@ use Blush\Console\Commands\CheckIconPacks;
 use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
+use Blush\Console\Commands\ExtractMessages;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\CreateTheme;
@@ -120,6 +121,7 @@ enum BuiltInCommand: string
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
 	case IconPackCheck = 'icon-pack:check';
+	case LangExtract   = 'lang:extract';
 	case MenuList      = 'menu:list';
 	case MenuShow      = 'menu:show';
 	case MenuAssign    = 'menu:assign';
@@ -194,6 +196,7 @@ enum BuiltInCommand: string
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
 			self::IconPackCheck => CheckIconPacks::class,
+			self::LangExtract   => ExtractMessages::class,
 			self::MenuList      => ListMenus::class,
 			self::MenuShow      => ShowMenu::class,
 			self::MenuAssign    => AssignMenu::class,

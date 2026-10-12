@@ -558,9 +558,14 @@ D-199 to D-204 and D-676; the user guide is `docs/menus.md`.
 ## Translation (D-028)
 
 Themes ship `lang/{locale}.json` catalogs, each in its own domain, the
-theme's `vendor/name` (D-451), and templates call `$template->t()`, which
-searches the chain's domains (`Views::$messages`, a `DomainTranslator`). A child theme overrides its ancestors message by message
-(D-107). `$template->tGroup('group')` returns a group's messages (the keys
+theme's `vendor/name` (D-451), and templates call
+`$template->t($key, $text, ...named)` (D-784), with the text in the
+template's language beside the key, shown when no catalog has it. A
+template's text is in the domain of the code that wrote it: a theme's
+file searches the chain's domains, child first, then core's; a
+plugin's own file its plugin's; the framework's core's. A child theme
+overrides its ancestors message by message (D-107); a theme no longer
+rewords a plugin's or core's text by sharing a key (D-784). `$template->tGroup('group')` returns a group's messages (the keys
 under `group`), keyed by name; a group comes
 whole from one locale (`Translator::group()`, D-450). The translator itself is CMS-wide; see
 `architecture.md` → Translation.

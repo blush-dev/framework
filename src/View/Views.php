@@ -20,6 +20,7 @@ use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeSettings;
 use Blush\Icon\IconName;
 use Blush\Translation\DomainTranslator;
+use Blush\Translation\Text;
 use Blush\Translation\Translator;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
@@ -29,6 +30,7 @@ use Blush\Directive\DirectiveDefinition;
 use Blush\Directive\DirectiveListing;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\Variant;
+use Blush\Data\InvalidData;
 
 /**
  * Renders templates for one theme chain, each through the view engine
@@ -59,8 +61,9 @@ final readonly class Views
 
 	/**
 	 * The translator bound to the chain's domains, child first (D-451),
-	 * then the framework's, for the text its own views use (D-632):
-	 * what `$template->t()` reads.
+	 * then the framework's: what a theme's own text reads, and the
+	 * messages a theme may supply in core's place (error pages, page
+	 * titles).
 	 */
 	public DomainTranslator $messages;
 
@@ -127,6 +130,42 @@ final readonly class Views
 	}
 
 	/**
+	 * Returns the domains a view file's text is looked up in (D-784): the
+	 * chain's, child first, for a theme's file, so a child theme can
+	 * reword its parent's; a plugin's own, for a file it ships; and core's
+	 * for the framework's; each then core's.
+	 *
+	 * @return list<string>
+	 */
+	public function domainsFor(string $file): array
+	{
+		foreach ($this->chain as $theme) {
+			if (str_starts_with($file, $theme->viewsPath() . '/')) {
+				return [...$this->chain->names(), Translator::CORE];
+			}
+		}
+
+		return Translator::domainsOf($this->translator->domainAt($file) ?? Translator::CORE);
+	}
+
+	/**
+	 * Translates a message written to be translated when it's shown
+	 * (D-784), such as a template's label, in a locale (the site's by
+	 * default). A theme's text is looked up through the chain, child
+	 * first. Plain text comes back as it is.
+	 *
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	public function text(string|Text $text, ?string $locale = null): string
+	{
+		if (is_string($text)) {
+			return $text;
+		}
+
+		return $this->translator->translate($text->key, $text->params, $this->domainsOfNamespaceOrDomain($text->domain), $locale, $text->text);
+	}
+
+	/**
 	 * Returns the templates declared for single entries of a type
 	 * (D-783) that have a view in the chain, by label.
 	 *
@@ -134,7 +173,11 @@ final readonly class Views
 	 */
 	public function entryTemplates(string $type): array
 	{
-		return array_values(array_filter($this->services->templates->forType($type), fn (EntryTemplate $template): bool => $this->finder->find($template->name) !== null));
+		$templates = array_values(array_filter($this->services->templates->forType($type), fn (EntryTemplate $template): bool => $this->finder->find($template->name) !== null));
+
+		usort($templates, fn (EntryTemplate $a, EntryTemplate $b): int => strnatcasecmp($this->text($a->label), $this->text($b->label)));
+
+		return $templates;
 	}
 
 	/**
@@ -342,7 +385,7 @@ final readonly class Views
 		$directive  = $this->services->factory->make($definition->class, $props, $context->language);
 		$variant    = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 
-		$directive->attach($parsed, $props, $content, $this->messages->with($this->ownDomain($parsed->namespace)), $context, $variant, $container);
+		$directive->attach($parsed, $props, $content, new DomainTranslator($this->translator, $this->ownDomains($parsed->namespace)), $context, $variant, $container);
 
 		if (! $directive->shouldRender()) {
 			return '';
@@ -449,7 +492,7 @@ final readonly class Views
 		$class     = $this->services->components->get((string) $parsed);
 		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
 
-		$component->attach($parsed, $props, $slot, $slots, $this->messages->with($this->ownDomain($parsed->namespace)), $context);
+		$component->attach($parsed, $props, $slot, $slots, new DomainTranslator($this->translator, $this->ownDomains($parsed->namespace)), $context);
 
 		if (! $component->shouldRender()) {
 			return '';
@@ -529,6 +572,29 @@ final readonly class Views
 	}
 
 	/**
+	 * Returns the domains a directive's or component's class's text is
+	 * looked up in (D-784): its own, then core's, with a theme's through
+	 * the chain, child first.
+	 *
+	 * @return list<string>
+	 */
+	private function ownDomains(string $namespace): array
+	{
+		return $this->domainsOfNamespaceOrDomain($this->ownDomain($namespace));
+	}
+
+	/**
+	 * Returns a domain's lookup domains: the chain's, child first, for a
+	 * theme in the chain; otherwise its own; each then core's.
+	 *
+	 * @return list<string>
+	 */
+	private function domainsOfNamespaceOrDomain(string $domain): array
+	{
+		return in_array($domain, $this->chain->names(), true) ? [...$this->chain->names(), Translator::CORE] : Translator::domainsOf($domain);
+	}
+
+	/**
 	 * Returns the error for a directive that isn't registered.
 	 */
 	private function unknownDirective(string $name): ViewException
@@ -589,7 +655,7 @@ final readonly class Views
 	 */
 	private function renderFile(string $name, string $file, array $data, ViewContext $context): string
 	{
-		$template = new Template($this, $context);
+		$template = new Template($this, $context, new DomainTranslator($this->translator, $this->domainsFor($file)));
 		$data     = [...$context->shared, ...$data];
 		$output   = $this->evaluate($template, $file, $this->services->providers->apply($name, $data));
 		$layout   = $template->requestedLayout();

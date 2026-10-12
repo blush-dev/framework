@@ -117,6 +117,30 @@ final class Translator
 	}
 
 	/**
+	 * Returns the domain of the extension a file is in (D-784), by the
+	 * folder its `lang/` sits in (the deepest wins), or `null` for a file
+	 * in none.
+	 */
+	public function domainAt(string $file): ?string
+	{
+		$found = null;
+		$depth = -1;
+
+		foreach ($this->directories as $domain => $directories) {
+			foreach ($directories as $directory) {
+				$root = dirname($directory);
+
+				if (str_starts_with($file, $root . '/') && strlen($root) > $depth) {
+					$found = (string) $domain;
+					$depth = strlen($root);
+				}
+			}
+		}
+
+		return $found;
+	}
+
+	/**
 	 * Returns the override catalog's path for a domain and locale, without
 	 * its extension, or `null` when the site has no override folder.
 	 */
@@ -134,13 +158,15 @@ final class Translator
 	/**
 	 * Translates a key, formatting it with named parameters:
 	 * `translate('reading_time', ['minutes' => 5], 'acme/hello')`. A list
-	 * of domains is searched in order for each locale.
+	 * of domains is searched in order for each locale. When no catalog
+	 * has the key, the text written beside it in the code is used (D-784),
+	 * else the key itself.
 	 *
 	 * @param  array<string, mixed>  $params
 	 * @param  string|list<string>   $domain
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function translate(string $key, array $params = [], string|array $domain = self::CORE, ?string $locale = null): string
+	public function translate(string $key, array $params = [], string|array $domain = self::CORE, ?string $locale = null, ?string $text = null): string
 	{
 		$locale ??= $this->locale;
 
@@ -152,7 +178,29 @@ final class Translator
 			}
 		}
 
-		return self::format($key, $params, $locale);
+		return self::format($text ?? $key, $params, $locale);
+	}
+
+	/**
+	 * Translates a message written to be translated when it's shown
+	 * (D-784): from its own domain, then core's.
+	 *
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	public function text(Text $text, ?string $locale = null): string
+	{
+		return $this->translate($text->key, $text->params, self::domainsOf($text->domain), $locale, $text->text);
+	}
+
+	/**
+	 * Returns the domains a domain's own text is looked up in (D-784):
+	 * its own, then core's.
+	 *
+	 * @return list<string>
+	 */
+	public static function domainsOf(string $domain): array
+	{
+		return $domain === self::CORE ? [self::CORE] : [$domain, self::CORE];
 	}
 
 	/**
@@ -299,7 +347,7 @@ final class Translator
 		$flat = [];
 
 		foreach ($messages as $key => $message) {
-			if (Catalog::isMeta($key)) {
+			if (Catalog::isAnnotation($key)) {
 				continue;
 			}
 

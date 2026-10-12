@@ -30,6 +30,9 @@ use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
 use Blush\Translation\CatalogCheck;
+use Blush\Translation\MessageExtractor;
+use Blush\Translation\SourceCatalog;
+use Blush\Translation\TranslationException;
 
 /**
  * Checks every installed plugin (or one, by name): that its manifest
@@ -47,7 +50,9 @@ final readonly class CheckPlugins
 		private Plugins $plugins,
 		private PluginConfig $config,
 		private ExtensionState $extensions,
-		private CatalogCheck $catalogs
+		private CatalogCheck $catalogs,
+		private MessageExtractor $extractor,
+		private SourceCatalog $sourceCatalog
 	) {}
 
 	public function __invoke(
@@ -77,6 +82,18 @@ final readonly class CheckPlugins
 			// Its catalogs against what they say they translate (D-452);
 			// notices (a catalog without them) are `theme:check --strict`'s.
 			$catalogs = array_filter($this->catalogs->check("{$plugin->path}/lang", $plugin->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
+
+			// The messages its code writes against lang/en.json (D-784);
+			// a catalog that can't be read is reported above.
+			[$messages, $problems] = $this->extractor->extract($plugin->path);
+
+			try {
+				$problems = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path("{$plugin->path}/lang"))];
+			} catch (TranslationException) {
+				// Reported by the catalog check.
+			}
+
+			$catalogs = [...$catalogs, ...array_filter($problems, static fn (Violation $violation): bool => $violation->severity !== Severity::Notice)];
 
 			foreach ($catalogs as $violation) {
 				$lines[] = new StatusLine(Outcome::of($violation->severity), $plugin->name, "{$violation->field} {$violation->message}");

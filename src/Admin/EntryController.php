@@ -64,7 +64,6 @@ use Blush\Field\FieldTargets;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Media\MediaValues;
-use Blush\View\EntryTemplate;
 use Blush\Http\Status;
 
 /**
@@ -420,7 +419,7 @@ final readonly class EntryController
 	 */
 	private function templatesFor(string $type): array
 	{
-		return array_map(static fn (EntryTemplate $template): array => $template->toArray(), $this->templates->for($type));
+		return $this->templates->for($type);
 	}
 
 	/**

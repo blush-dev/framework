@@ -301,10 +301,30 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   group (`group()`), while across a list of domains groups add up.
 - **Lists of domains:** `translate()`, `has()`, and `group()` take one
   domain or a list, searched in order within each locale.
-  `DomainTranslator` binds a list: `Views::$messages` is the theme
-  chain's, child first, then `core` for the framework's own views
-  (`$template->t()`, `tGroup()`; D-632); a directive or
-  component gets the chain's and then its own extension's (`Renderable::t()`).
+  `DomainTranslator` binds a list. `Views::$messages` is the theme
+  chain's, child first, then `core`, for messages a theme may supply in
+  core's place (error pages, `document_title`).
+- **Text is in the domain of the code that wrote it (D-784):**
+  `t($key, ?string $text = null, ...named)` everywhere, `$text` the
+  ICU message in the code's own language, used when no catalog has the
+  key (`Translator::translate()`'s `$text`), `context:` a translators'
+  note. A template's domains come from its file (`Views::domainsFor()`:
+  a chain theme's file → the chain, child first; a plugin's →
+  `Translator::domainAt()`, by the folder its `lang/` is in; the
+  framework's → `core`), each then `core`; a directive's or component's
+  class from its namespace (`Views::ownDomains()`). So a plugin's own
+  template reads its catalog, its keys aren't shadowed by core's, and a
+  theme's key never rewords a plugin's or core's text (the site's
+  `user/lang` does). Providers (`ServiceProvider::t()`) and other
+  classes (`Messages`, given per class by the container's
+  `whenAnyNeedsType()` from `ClassDomains`, which maps PHP namespaces
+  to extensions by `autoload` and provider) make a `Text`, translated
+  where it's shown (`Translator::text()`, `Views::text()`,
+  `$template->t($text)`). `MessageExtractor` (PHP's tokenizer) collects
+  `->t()` calls with text; `SourceCatalog` writes them to `lang/en.json`
+  (`lang:extract`) and compares them (`theme:check`, `plugin:check`).
+  Catalog keys starting with `@` are notes (`@{key}: {context}`), never
+  messages.
 - **Locale fallback:** `en_US` → `en` → the default locale and its
   language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers

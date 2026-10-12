@@ -31,14 +31,22 @@ final readonly class EntryTemplates
 	) {}
 
 	/**
-	 * Returns the templates offered on a type, by label.
+	 * Returns the templates offered on a type, by label, as the editor
+	 * reads them: the name, and the label and description in the site's
+	 * language (D-784).
 	 *
-	 * @return list<EntryTemplate>
+	 * @return list<array{name: string, label: string, description: string}>
 	 */
 	public function for(string $type): array
 	{
 		try {
-			return $this->views->forChain($this->themes->active())->entryTemplates($type);
+			$views = $this->views->forChain($this->themes->active());
+
+			return array_map(static fn (EntryTemplate $template): array => [
+				'name'        => $template->name,
+				'label'       => $views->text($template->label),
+				'description' => $views->text($template->description)
+			], $views->entryTemplates($type));
 		} catch (Throwable) {
 			return [];
 		}
@@ -49,6 +57,6 @@ final readonly class EntryTemplates
 	 */
 	public function offers(string $type, string $name): bool
 	{
-		return array_any($this->for($type), static fn (EntryTemplate $template): bool => $template->name === $name);
+		return in_array($name, array_column($this->for($type), 'name'), true);
 	}
 }

@@ -34,6 +34,10 @@ use Blush\Menu\Menus;
 use Blush\View\ViewFactory;
 use Blush\View\Views;
 use Blush\Translation\CatalogCheck;
+use Blush\Translation\MessageExtractor;
+use Blush\Translation\SourceCatalog;
+use Blush\View\EntryTemplate;
+use Blush\View\EntryTemplateRegistry;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
@@ -56,11 +60,13 @@ use Blush\Translation\CatalogCheck;
  *   assignments to menus the site doesn't have (D-199, D-676); a theme's layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`, or `foot()` outside `<body>`, or one that prints a tag `head()`
  *   prints (`<meta charset>`, `viewport`, `generator`, `<title>`; D-472); a catalog whose `@@locale` or
- *   `@@domain` doesn't match its file or theme (D-452).
+ *   `@@domain` doesn't match its file or theme (D-452); messages the
+ *   code writes that `lang/en.json` lacks or has otherwise, and `t()`
+ *   calls that can't be collected (D-784).
  * - **Notices:** variants without a translated label; site menus no
  *   location shows, and assignments to locations the theme doesn't
  *   declare; a catalog without `@@locale` and
- *   `@@domain`; a base layout without `dir` on `<html>` (D-470); no
+ *   `@@domain`; code that writes messages with no `lang/en.json`; a base layout without `dir` on `<html>` (D-470); no
  *   base layout of the theme's own, so pages render in the framework's
  *   skeleton (D-632).
  *
@@ -82,7 +88,10 @@ final readonly class ThemeChecker
 		private ViewFactory $views,
 		private Menus $menus,
 		private CatalogCheck $catalogs,
-		private ThemeResolver $resolver
+		private ThemeResolver $resolver,
+		private MessageExtractor $extractor,
+		private SourceCatalog $sourceCatalog,
+		private EntryTemplateRegistry $templates
 	) {}
 
 	/**
@@ -112,6 +121,11 @@ final readonly class ThemeChecker
 		$autoloader->addThemes($chain);
 		$autoloader->register();
 
+		// The templates registered before the theme's provider runs are the
+		// active theme's and plugins' (D-783): only the active theme's own
+		// check counts them.
+		$before = $name === $this->config->active ? [] : array_keys($this->templates->all());
+
 		try {
 			try {
 				$this->resolver->start($name);
@@ -120,7 +134,7 @@ final readonly class ThemeChecker
 			}
 
 			foreach ($chain as $theme) {
-				$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme)];
+				$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme), ...$this->messages($theme)];
 			}
 
 			$problems = [...$problems, ...$this->requirements($name)];
@@ -128,7 +142,7 @@ final readonly class ThemeChecker
 			$problems = [
 				...$problems,
 				...$this->settings($chain),
-				...$this->directivesAndComponents($chain),
+				...$this->directivesAndComponents($chain, $before),
 				...$this->menus->check($chain),
 				...$this->layout($chain)
 			];
@@ -150,6 +164,28 @@ final readonly class ThemeChecker
 		return array_map(
 			static fn (Violation $violation): Violation => new Violation("{$violation->field} ({$theme->name})", $violation->message, $violation->severity),
 			$this->catalogs->check($theme->langPath(), $theme->name)
+		);
+	}
+
+	/**
+	 * Checks the messages a theme's code writes (D-784) against its
+	 * source catalog, `lang/en.json`: a key it lacks or text it has
+	 * otherwise (run `lang:extract`), and calls that can't be collected.
+	 *
+	 * @return list<Violation>
+	 */
+	private function messages(ThemeManifest $theme): array
+	{
+		try {
+			[$messages, $problems] = $this->extractor->extract($theme->path);
+			$problems              = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path($theme->langPath()))];
+		} catch (Throwable $error) {
+			$problems = [new Violation('lang', $error->getMessage(), Severity::Warning)];
+		}
+
+		return array_map(
+			static fn (Violation $violation): Violation => new Violation("{$violation->field} ({$theme->name})", $violation->message, $violation->severity),
+			$problems
 		);
 	}
 
@@ -232,14 +268,16 @@ final readonly class ThemeChecker
 	 * nor does one in `components/` not named for a component
 	 * (`{namespace}-{name}`, D-171). Another theme's components are
 	 * skipped (its provider registers them when it's the active theme).
-	 * A template declared for entries needs its view (D-783).
+	 * A template declared for entries needs its view (D-783), the
+	 * checked theme's own when it isn't the active one.
 	 * Its `theme.json` variants (D-266) must be for directives that exist
 	 * and have valid names, and should have labels; a variant's template
 	 * mustn't also be a directive's own.
 	 *
+	 * @param  list<string> $others Templates registered by others, left out.
 	 * @return list<Violation>
 	 */
-	private function directivesAndComponents(ThemeChain $chain): array
+	private function directivesAndComponents(ThemeChain $chain, array $others = []): array
 	{
 		try {
 			$views           = $this->views->forChain($chain);
@@ -247,7 +285,7 @@ final readonly class ThemeChecker
 			$components      = $views->components();
 			$strayDirectives = $views->strayDirectiveFiles();
 			$strayComponents = $views->strayComponentFiles();
-			$missing         = $views->missingEntryTemplates();
+			$missing         = array_filter($views->missingEntryTemplates(), static fn (EntryTemplate $template): bool => ! in_array($template->name, $others, true));
 		} catch (Throwable) {
 			// The layout check reports views that can't be built.
 			return [];
@@ -273,7 +311,7 @@ final readonly class ThemeChecker
 		}
 
 		foreach ($missing as $template) {
-			$problems[] = new Violation("template {$template->name}", sprintf('The "%s" template (%s) is declared for entries but has no %s view in the chain, so the editor doesn\'t offer it.', $template->name, $template->label, $template->name), Severity::Warning);
+			$problems[] = new Violation("template {$template->name}", sprintf('The "%s" template (%s) is declared for entries but has no %s view in the chain, so the editor doesn\'t offer it.', $template->name, $views->text($template->label), $template->name), Severity::Warning);
 		}
 
 		$problems = [...$problems, ...$this->variants($theme, $views, $directives)];

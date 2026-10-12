@@ -481,7 +481,7 @@ What a template can use:
 | `$template->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
 | `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
 | `$template->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
-| `$template->t('key')` | A translated string from `lang/` |
+| `$template->t('key', 'Text', ...)` | A translated string, with its text for when no catalog has it ([Translations](#translations)) |
 | `$template->tGroup('group')` | The translated strings of a group in `lang/` (the keys under `group`), keyed by name |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
 | `$template->foot()` | Add scripts to the end of the page, and print them just before `</body>` in the base layout |
@@ -690,10 +690,59 @@ provider, or `"core/player": {}` under `assets`.
 
 ### Translations
 
-A theme's text lives in its `lang/` folder, one catalog per language
-(`en.json`, `fr.json`, `fr_CA.json`), read with
-`$template->t('key')`. Start each catalog with `@@locale` and `@@domain`,
-which say what it translates: the language, and your theme's name.
+Write your text where it's used, with a key that names it:
+
+```php
+<?= e($template->t('entry.by', 'By {author}', author: $name)) ?>
+```
+
+The second argument is the text, in whatever language you write your
+theme in. It's shown wherever no catalog has the key, so your theme
+reads well before anyone translates it. Values are named (`author:`),
+and every value is named, never positional. Leave the text out
+(`$template->t('read_more', title: $title)`) to read a key from your
+catalogs alone; a key no catalog has then shows as itself.
+
+Text is an [ICU message](https://unicode-org.github.io/icu/userguide/format_parse/messages/),
+so one message can cover what would otherwise be several:
+
+```php
+// Plurals: # is the number; other is required.
+$template->t('comments', '{count, plural, =0 {No comments} one {# comment} other {# comments}}', count: $n);
+
+// Choosing by a value, instead of building keys from it.
+$template->t('status', '{status, select, draft {Draft} scheduled {Scheduled} other {Published}}', status: $status);
+
+// Numbers and dates, in the page's language.
+$template->t('since', '{views, number} views since {date, date, long}', views: $views, date: $since);
+```
+
+Keep a sentence as one message, so a translator can reorder it. A note
+for translators goes in `context:`, which is never a value:
+
+```php
+$template->t('actions.post', 'Post', context: 'A button that publishes, not a blog post');
+```
+
+Classes write text the same way. A [component or directive class](#directives-and-components)
+calls `$this->t()`. So does your theme's provider, for text it hands
+to something else to show later, such as a
+[template's label](#templates-for-single-entries): it's translated where
+it's shown, in that page's or the admin's language. Any other class of
+your theme asks for `Messages` in its constructor and calls
+`$this->messages->t()`.
+
+Text is looked up in your theme's catalogs (a child theme's first),
+then Blush's. A plugin's text is the plugin's, and Blush's is its own,
+so a key your theme happens to share with them never rewords them; to
+reword them, use [your own wording](#your-own-wording).
+
+#### Catalogs
+
+Translations live in your theme's `lang/` folder, one catalog per
+language (`en.json`, `fr.json`, `fr_CA.json`). Start each catalog with
+`@@locale` and `@@domain`, which say what it translates: the language,
+and your theme's name.
 
 ```json
 {
@@ -708,7 +757,19 @@ without the region (`fr`), then your site's language, and last English.
 So `en.json` is the one catalog every theme should have: a site in a
 language you haven't translated shows your English text.
 
-Keys that start with `@@` aren't messages, so they never show on a page.
+`bin/blush lang:extract acme/notebook` writes the text in your code to
+`lang/en.json` for translators to work from: it adds new keys, updates
+text you've changed (translators should recheck those), keeps
+everything else, and writes each `context:` beside its message as
+`@{key}`. Give `--locale=fr` when your code's text is French, and
+`--dry-run` to see what would change. `theme:check` warns when
+`lang/en.json` is missing a key your code writes or reads otherwise,
+when one key has two texts, when text isn't a valid ICU message, and
+when a key or text isn't plain text it can collect (such as
+`"status.{$status}"`; use a `select`). Templates in other languages,
+such as Blade, aren't read.
+
+Keys that start with `@` aren't messages, so they never show on a page.
 They let a catalog be recognized on its own, away from its folder, such
 as when it's sent to a translator and back. Every catalog Blush ships
 has them, and plugins and icon packs use them the same way, with their
@@ -728,7 +789,9 @@ escaped.
 `attr()` escapes it all, so the same message can go in a `title` too.
 
 A child theme's catalogs come before its parent's, message by message,
-so a child rewords only what it needs to.
+so a child rewords only what it needs to. A message given as a value
+can be translated too: `$template->t($label)` prints a label a provider
+registered, in the page's language.
 
 #### Your own wording
 
@@ -924,15 +987,17 @@ use Blush\View\EntryTemplateRegistry;
 
 $this->container->get(EntryTemplateRegistry::class)->register(new EntryTemplate(
 	'template-compact',
-	label: 'Compact List',
-	description: 'Every post on a line of its own, its title and date.',
+	label: $this->t('templates.compact.label', 'Compact List'),
+	description: $this->t('templates.compact.description', 'Every post on a line of its own, its title and date.'),
 	types: ['page']
 ));
 ```
 
 - **The name** is the view's path under `views/` without `.php`, so
   `template-compact` is `views/template-compact.php`.
-- **The label and description** are what the row's menu shows.
+- **The label and description** are what the row's menu shows, in the
+  site's language ([Translations](#translations)). Plain strings work
+  too, shown as written.
 - **The types** are the content types it's offered on, by name. Leave
   them out to offer it on every type.
 

@@ -396,6 +396,34 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertMatchesRegularExpression('#warning\s+template template\-gone\s+The "template\-gone" template \(Gone\) is declared for entries but has no template\-gone view in the chain, so the editor doesn\'t offer it\.#', $check->output);
 		$this->assertStringNotContainsString('template single', $check->output);
+
+		// Another theme's check leaves out what was registered before its
+		// provider ran: the active theme's and plugins'.
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+
+		$this->assertStringNotContainsString('template-gone', $this->command(['theme:check', 'acme/nova'])->output);
+	}
+
+	public function testLangExtractWritesTheCatalogThemeCheckCompares(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '<?= e($template->t("entry.by", "By {author}", author: "Ada")) ?>');
+		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', "{\n\t\"@@locale\": \"en\",\n\t\"@@domain\": \"acme/nova\"\n}\n");
+
+		$this->assertMatchesRegularExpression('#warning\s+views/single\.php:1 \(acme/nova\)\s+"entry\.by" isn\'t in lang/en\.json; run lang:extract\.#', $this->command(['theme:check', 'acme/nova'])->output);
+
+		$dry = $this->command(['lang:extract', 'acme/nova', '--dry-run']);
+
+		$this->assertMatchesRegularExpression('#entry\.by\s+Added\.#', $dry->output);
+		$this->assertStringNotContainsString('entry', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json'));
+
+		$this->command(['lang:extract', 'acme/nova']);
+
+		$this->assertStringContainsString("\t\"entry\": {\n\t\t\"by\": \"By {author}\"\n\t}", (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json'));
+		$this->assertStringNotContainsString('entry.by', $this->command(['theme:check', 'acme/nova'])->output);
+		$missing = $this->command(['lang:extract', 'acme/none']);
+
+		$this->assertStringContainsString('No theme or plugin named "acme/none"', $missing->output . $missing->errors);
 	}
 
 	public function testAnotherThemesComponentsAreLeftOut(): void

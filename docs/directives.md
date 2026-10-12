@@ -635,8 +635,11 @@ final class RecentPosts extends Directive
   it needs on the page, by handle: `protected const array ASSETS = ['acme/tabs'];`.
   They load only on pages where it's drawn, in an entry's text too.
   Override `assets()` to decide each time it's drawn.
-- **`$this->t('key', name: 'value')`** translates text from the theme's
-  catalog, as `$template->t()` does, in the page's language.
+- **`$this->t('key', 'Text with {name}', name: 'value')`** translates
+  text, as `$template->t()` does, in the page's language: from its own
+  extension's catalogs (its plugin's, or a theme's chain), then Blush's,
+  showing the text when none has the key (see
+  [Translations](themes.md#translations)).
 - **`#[MediaProp]`** on a string parameter makes it a media reference:
   in Markdown, `src=photo.jpg` is found like an image's (next to the
   entry, or in the media folder) and arrives as its full URL.
@@ -822,8 +825,9 @@ owns its namespace, under
 Blush's own directives have theirs in Blush's catalog. Any of them can
 be reworded by your site's catalogs in `user/lang/`
 (see [Your own wording](themes.md#your-own-wording)). A directive that
-translates text as it renders (`$this->t()` in its class) reads the
-theme's catalogs first, then its own plugin's.
+translates text as it renders (`$this->t()` in its class, or its own
+template's `$template->t()`) reads its own plugin's catalogs, then
+Blush's; a theme's catalog doesn't reword it.
 
 A variant someone else adds to your directive, such as a theme's
 `bordered` callout, has its text in their catalog, under the same

@@ -71,16 +71,13 @@ final class EntryTemplateRegistry
 	}
 
 	/**
-	 * Returns the templates offered on a type, by label.
+	 * Returns the templates offered on a type, in the order they were
+	 * registered.
 	 *
 	 * @return list<EntryTemplate>
 	 */
 	public function forType(string $type): array
 	{
-		$templates = array_values(array_filter($this->templates, static fn (EntryTemplate $template): bool => $template->isFor($type)));
-
-		usort($templates, static fn (EntryTemplate $a, EntryTemplate $b): int => strnatcasecmp($a->label, $b->label));
-
-		return $templates;
+		return array_values(array_filter($this->templates, static fn (EntryTemplate $template): bool => $template->isFor($type)));
 	}
 }

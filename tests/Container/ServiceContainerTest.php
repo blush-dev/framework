@@ -380,6 +380,31 @@ final class ServiceContainerTest extends TestCase
 		$this->assertInstanceOf(NullCache::class, $other->cache);
 	}
 
+	public function testABindingThatKnowsItsConsumerGivesEachItsOwn(): void
+	{
+		$this->container->singleton(Cache::class, NullCache::class);
+
+		/** @var list<string> $asked */
+		$asked = [];
+
+		$this->container->whenAnyNeedsType(Cache::class, static function (Container $container, string $consumer) use (&$asked): Cache {
+			$asked[] = $consumer;
+
+			return $consumer === NeedsCache::class ? new FileCache() : new NullCache();
+		});
+
+		$this->assertInstanceOf(FileCache::class, $this->container->make(NeedsCache::class)->cache);
+		$this->assertInstanceOf(NullCache::class, $this->container->make(AlsoNeedsCache::class)->cache);
+		$this->assertSame([NeedsCache::class, AlsoNeedsCache::class], $asked);
+
+		// A consumer's own binding wins, and asking for the type directly
+		// uses its usual binding.
+		$this->container->whenNeedsType(AlsoNeedsCache::class, Cache::class, FileCache::class);
+
+		$this->assertInstanceOf(FileCache::class, $this->container->make(AlsoNeedsCache::class)->cache);
+		$this->assertInstanceOf(NullCache::class, $this->container->get(Cache::class));
+	}
+
 	public function testProvidedArgumentOverridesContextualBinding(): void
 	{
 		// An explicit make() argument outranks a contextual binding.

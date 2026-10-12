@@ -24739,3 +24739,73 @@ decision, add a new entry that supersedes it and mark the old one
   description, and types, starting in code; the description shown as
   Status's are; `layout` was a leftover from the author's old site.
 - **Status:** Built.
+
+### D-784: Text in the domain of the code that wrote it, `t()` with its text, and `lang:extract`
+- **Date:** 2026-10-11
+- **Supersedes:** D-451's "a theme can reword a plugin's text" (the
+  chain first for a directive's or component's class, and the chain
+  and core for every view file). **Settles:** the open question
+  "Translations written inline, and collecting them" (2026-10-05).
+  **Refines:** D-783 (an entry template's label and description).
+- **Decision:**
+  - **One rule:** text is looked up in the domain of the code that
+    wrote it, then core's. A theme's file or class searches the chain,
+    child first; a plugin's its own; the framework's core's. A theme's
+    key no longer rewords a plugin's or core's text by sharing its name;
+    the site's `user/lang` overrides do that, per domain. Messages a
+    theme may supply in core's place on purpose (error pages,
+    `document_title`) keep reading the chain (`Views::$messages`).
+  - **`t($key, ?string $text = null, ...named)`** everywhere: a
+    template's `$template->t()`, a directive's or component's
+    `$this->t()`, a provider's `$this->t()`, and `Messages::t()` for any
+    other class. The parameter is `$text`, not `$english`: it's the
+    code's own language, whatever that is. The text is an ICU message
+    used when no catalog has the key; without it, a key shows as itself,
+    so keyed calls keep working. `context:` is a translators' note,
+    never a parameter. Parameters are always named.
+  - **Deferred text:** a provider's and `Messages`' `t()` return a
+    `Text` (key, text, domain, parameters, context), translated where
+    it's shown (`Translator::text()`, `Views::text()`, or
+    `$template->t($text)`) in that render's locale. `EntryTemplate`
+    takes `string|Text` for its label and description.
+  - **Domains without typing them:** a template's from its file
+    (`Views::domainsFor()`, `Translator::domainAt()`); a class's from its
+    namespace (`ClassDomains`, by each plugin's and theme's `autoload`
+    prefixes and provider namespace). A class asking for `Messages` gets
+    its own through the container's new `whenAnyNeedsType()`, a binding
+    by type that's given the class being built.
+  - **Plurals and the rest** are ICU: `plural` (with `#` and `=0`),
+    `selectordinal`, `select` in place of keys built from values,
+    `number`, `date`, and currency skeletons. HTML is a `raw()` (or
+    other `SafeHtml`) parameter, as `t()` already did; a link's words
+    are their own message. No `textHtml()`.
+  - **`lang:extract <name> [--locale=en] [--dry-run]`** reads an
+    extension's PHP with the tokenizer (`MessageExtractor`; Blade isn't
+    read) and writes `->t()` calls with text to its `lang/en.json`
+    (`SourceCatalog`): new keys added, changed text replaced, `context`
+    written beside its message as `@{key}`, everything else kept.
+    Catalog keys starting with `@` are never messages. `core` extracts
+    the framework's own.
+  - **Checks:** `theme:check` (each chain theme) and `plugin:check` warn
+    about a key `lang/en.json` lacks or reads otherwise, a key or text
+    that isn't a plain string, one key with two texts, and invalid ICU;
+    a missing `lang/en.json` is a notice.
+- **Why:** the author's questions: how a provider's text knows its
+  theme's domain (it shouldn't need `from`), that resolution was
+  broken (a plugin's own template couldn't reach its catalog, and core
+  shadowed a plugin's keys), that a global `t()` would translate at the
+  wrong time and needs global state, that `->t()` is the name to keep,
+  and that `en.json` should be generated and checked.
+- **Status:** Built.
+
+### D-785: A theme's check counts only its own entry templates
+- **Date:** 2026-10-11
+- **Refines:** D-783 (`theme:check` warns about a declared template
+  with no view).
+- **Decision:** Checking a theme other than the active one leaves out
+  the entry templates registered before its provider ran (the active
+  theme's and plugins'), so another theme's template isn't blamed on
+  it. The active theme's check counts every registered template.
+- **Why:** checking `justintadlock/jtcom` with Second Proof active
+  warned about Second Proof's `template-compact`.
+- **Status:** Built.
