@@ -15,13 +15,23 @@ declare(strict_types=1);
 $published = $entry->type->name === 'page' ? null : $entry->published;
 $credits   = [];
 
-foreach ($template->credits($entry) as $credit) {
+// What an entry leads to comes back whatever its status (D-802), so
+// only published people and terms show.
+$live = static fn (Blush\Content\Entry\Entry $item): bool => $item->isPublished() && $item->isRoutable();
+
+foreach ($entry->credits() as $credit) {
+	$people = array_filter($credit['people'], $live);
+
+	if ($people === []) {
+		continue;
+	}
+
 	$relation = $credit['relation'];
 	$names    = array_map(static function (Blush\Content\Entry\Entry $person) use ($template, $entry, $relation): string {
-		$link = $template->archiveUrl($entry->type, $relation->name, $person) ?: $template->permalink($person);
+		$link = $template->archiveUrl($entry->type, $relation->name, $person) ?: $person->url();
 
 		return $link === '' ? e($person->title) : '<a href="' . url($link) . '">' . e($person->title) . '</a>';
-	}, $credit['people']);
+	}, $people);
 
 	$credits[] = [
 		$credit['byline'] ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
@@ -32,8 +42,8 @@ foreach ($template->credits($entry) as $credit) {
 $terms = [];
 
 foreach (array_keys($entry->terms) as $taxonomy) {
-	foreach ($template->terms($entry, $taxonomy) as $term) {
-		$terms[] = '<a href="' . url($template->permalink($term)) . '">' . e($term->title) . '</a>';
+	foreach (array_filter($entry->terms($taxonomy), $live) as $term) {
+		$terms[] = '<a href="' . url($term->url()) . '">' . e($term->title) . '</a>';
 	}
 }
 

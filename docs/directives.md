@@ -720,7 +720,7 @@ declare(strict_types=1);
 	<?php endif ?>
 	<ul class="directive-recent-posts__list">
 		<?php foreach ($directive->posts() as $post) : ?>
-			<li><a href="<?= url($template->permalink($post)) ?>"><?= e($post->title) ?></a></li>
+			<li><a href="<?= url($post->url()) ?>"><?= e($post->title) ?></a></li>
 		<?php endforeach ?>
 	</ul>
 </nav>

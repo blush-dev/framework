@@ -17,11 +17,10 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 
 /**
- * Reads relations for the site (D-585): an entry's targets, and the
+ * Reads relations for entries (D-585): an entry's targets, and the
  * entries that point at one, as entries.
  *
- * - **Only live entries** come back, at either end: `published` until
- *   the status API exists (D-588).
+ * - **Whatever their status** (D-802): what shows them decides.
  * - **In the reader's language** (D-587): a target with a translation in
  *   the entry's language comes back as that translation, else as its
  *   original. A translation's own links relate to its original's by the
@@ -43,7 +42,7 @@ final readonly class EntryRelations
 	) {}
 
 	/**
-	 * Returns the live entries an entry links to in a relation, in order,
+	 * Returns the entries an entry links to in a relation, in order,
 	 * in a language (the entry's by default).
 	 *
 	 * @return list<Entry>
@@ -83,7 +82,7 @@ final readonly class EntryRelations
 	}
 
 	/**
-	 * Returns the live entries pointing at an entry through a relation:
+	 * Returns the entries pointing at an entry through a relation:
 	 * a key on a source type (`movie.actors`), or a name on any type.
 	 * They're in a language (the entry's by default; a term with no
 	 * translation is in its original's) when they have a translation in it,
@@ -110,7 +109,7 @@ final readonly class EntryRelations
 		foreach ($this->links->linksTo($target, $relation) as $link) {
 			$shown = $this->source($link, $target, $language ?? $entry->language);
 
-			if ($shown !== null && $shown->isPublished()) {
+			if ($shown !== null) {
 				$entries[$shown->path] = $shown;
 			}
 		}
@@ -142,7 +141,7 @@ final readonly class EntryRelations
 
 		$translation = $this->content->translation($source, $language);
 
-		if ($translation === null || $translation === $source || ! $translation->isPublished() || $translation->id === null) {
+		if ($translation === null || $translation === $source || $translation->id === null) {
 			return $source;
 		}
 
@@ -155,7 +154,7 @@ final readonly class EntryRelations
 	}
 
 	/**
-	 * Returns the live entries with ids, each in a language when it has
+	 * Returns the entries with ids, each in a language when it has
 	 * a translation in it, without repeats.
 	 *
 	 * @param  list<string> $ids
@@ -167,10 +166,9 @@ final readonly class EntryRelations
 
 		foreach ($ids as $id) {
 			$original = $this->content->find($id);
-			$entry    = $original === null ? null : $this->content->translation($original, $language);
-			$entry    = $entry !== null && $entry->isPublished() ? $entry : $original;
+			$entry    = $original === null ? null : $this->content->translation($original, $language) ?? $original;
 
-			if ($entry !== null && $entry->isPublished() && ! isset($entries[$entry->id ?? $entry->path])) {
+			if ($entry !== null && ! isset($entries[$entry->id ?? $entry->path])) {
 				$entries[$entry->id ?? $entry->path] = $entry;
 			}
 		}

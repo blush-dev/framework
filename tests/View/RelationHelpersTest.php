@@ -50,9 +50,9 @@ final class RelationHelpersTest extends TestCase
 		$this->entry('_person/tom.md', 'title: Tom');
 		$this->entry('_person/meg.md', 'title: Meg');
 
-		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $template->related($entry, "related")))) ?>');
-		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $template->related($entry, "actors")))) ?>');
-		$this->themeView('single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $template->referencedBy($entry, "movie.actors")))) ?>');
+		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $entry->related("related")))) ?>');
+		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $entry->related("actors")))) ?>');
+		$this->themeView('single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $entry->referencedBy("movie.actors")))) ?>');
 	}
 
 	private function body(string $uri): string
@@ -65,6 +65,6 @@ final class RelationHelpersTest extends TestCase
 		$this->assertSame('Tom, Meg', $this->body('/movies/big'), 'In the order front matter lists them.');
 		$this->assertSame('Splash, Big', $this->body('/people/tom'), 'What links to it, newest first (D-596).');
 		$this->assertSame('C, A', $this->body('/archives/b'), 'A symmetric relation answers from both ends.');
-		$this->assertSame('B', $this->body('/archives/c'), 'Drafts are left out.');
+		$this->assertSame('B, D', $this->body('/archives/c'), 'Drafts too: what shows them decides (D-802).');
 	}
 }

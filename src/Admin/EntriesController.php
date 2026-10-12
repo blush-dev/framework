@@ -645,7 +645,7 @@ final readonly class EntriesController
 			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
 			'url'         => $this->urls->entry($entry),
-			'authors'     => $authors === null ? [] : $entry->terms($authors),
+			'authors'     => $authors === null ? [] : ($entry->terms[$authors] ?? []),
 			'own'         => $this->permissions->owns($account, $entry),
 			'index'       => IndexPage::is($entry),
 			'archivePage' => $this->archivePages->isList($entry),

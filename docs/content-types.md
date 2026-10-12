@@ -379,7 +379,7 @@ category: [painting, news]
 
 - A classify relation is **named after the one type it files under**:
   `to` is `[its name]`. That name is also how templates and queries
-  know the terms (`$template->terms($entry, 'category')`,
+  know the terms (`$entry->terms('category')`,
   `whereTerm('category', 'news')`).
 - Entries use a front matter key named after the relation, unless you
   set `field`; `aliases` adds more keys it's read from.
@@ -426,8 +426,8 @@ it, such as `/topics/css` or its address before it moved, redirects
 there. An entry below the top can't be slugged `page` or `feed`, since
 those words start its paged and feed URLs.
 
-Themes show the tree with `$template->parent()`,
-`$template->ancestors()`, and `$template->children()` (see
+Themes show the tree with `$entry->parent()`,
+`$entry->ancestors()`, and `$entry->children()` (see
 [Themes](themes.md)), and the admin shows each entry's parents before
 its title. `bin/blush content:lint` reports a parent with no file (the
 entry is shown at the top level) and an entry that's its own ancestor.
@@ -500,7 +500,7 @@ itself.
 The relation's `inverse` says where the entries linking to one are
 listed, paged with a feed. Its two sides can be on at once, and a
 reference has neither by default, so a template lists them with
-`$template->referencedBy()`:
+`$entry->referencedBy()`:
 
 - `"page": true` lists them on the linked entry's own page, as a term's
   page lists what's filed under it. With `actors` linking movies to
@@ -523,8 +523,8 @@ reference has neither by default, so a template lists them with
 
 `symmetric: true` makes a link count from both ends, so a post
 naming another is related to it and the other to it. In a template,
-`$template->related($entry, 'related')` lists what an entry links to,
-and `$template->referencedBy($entry, 'related')` what links to it (see
+`$entry->related('related')` lists what an entry links to, and
+`$entry->referencedBy('related')` what links to it (see
 [Themes](themes.md)). There's no reference field type: a link between
 entries is always a relation.
 
@@ -614,8 +614,8 @@ collections can; the `page` type can't.
   admin pins it above the tree's other entries.
 - An entry in a subfolder is a child of the entry the subfolder is named
   for: `install/requirements.md` is under `install.md` (or
-  `install/index.md`). Themes show the tree with `$template->parent()`,
-  `$template->ancestors()`, and `$template->children()` (see
+  `install/index.md`). Themes show the tree with `$entry->parent()`,
+  `$entry->ancestors()`, and `$entry->children()` (see
   [Themes](themes.md)), and the admin lists it as a tree.
 - A tree has no listing page, feed, or routes of its own. Its entries use
   the `single-{type}` and `single` views.

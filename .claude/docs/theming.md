@@ -217,13 +217,22 @@ The template API (kept deliberately small; D-103):
 | `widont($text)` | Escaped text with its last two words joined by `&nbsp;` (1.x's `runt()`, D-153) |
 | `cache($key, $render)` | A fragment kept per content version and active theme (D-152) |
 | `head()` | The `Head` manager (title, meta, OpenGraph, and so on; D-109) |
-| `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
-| `terms($entry, $taxonomy)` | An entry's published term entries |
-| `parent($entry)` / `ancestors($entry)` / `children($entry)` | A page's or hierarchical term's published parent, parents from the top down, and children by title (D-257) |
+| `route($name, $params)` | Named-route URLs |
 | `date($date, $format)` | A localized date, in the site's date format (`app.dateFormat`, D-445) or a style (a name or `DateStyle`, D-447) or ICU pattern given |
 | `time($date, $format)` | A localized time, in the site's time format (`app.timeFormat`) or one given |
 | `datetime($date, $dateFormat, $timeFormat)` | Both, joined as the language joins them |
 | `bodyClass()` | The `<body>` classes |
+
+What leads from an entry is the entry's (D-802), not `Template`'s:
+`$entry->url()`, `terms($taxonomy)` (term entries; slugs are the
+`$terms` property), `related()`, `referencedBy()`, `byline()`,
+`author()`, `credits()`, `parent()`, `ancestors()`, `children()`, and
+`media($field)`, through the `EntryGraph` every entry shares. They come
+back whatever their status; the template checks `isPublished()` and
+`isRoutable()`. `Template` keeps what needs the render: building the
+page, its head and foot, text and dates in its language, theme and site
+settings, assets, routes, menus, and lookups that aren't an entry's
+(`profile()`, `media($value)`, `archiveUrl()`, `avatar()`).
 
 Every template also gets `$site` (name, URL, locale, `lang`). Content
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages

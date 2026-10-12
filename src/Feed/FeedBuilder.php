@@ -227,7 +227,7 @@ final readonly class FeedBuilder
 		$titles = [];
 
 		foreach ($taxonomies as $taxonomy) {
-			foreach ($entry->terms($taxonomy) as $slug) {
+			foreach ($entry->terms[$taxonomy] ?? [] as $slug) {
 				$term     = $this->content->term($of ?? $taxonomy, $slug);
 				$titles[] = $term !== null && $term->title !== '' ? $term->title : $slug;
 			}

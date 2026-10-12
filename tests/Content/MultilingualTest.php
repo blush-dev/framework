@@ -564,10 +564,9 @@ final class MultilingualTest extends TestCase
 		$this->assertSame('_category/art.md', $content->term('category', 'art', 'pt-br')?->path, 'Without a translation, the original (D-584).');
 
 		$spring = $content->named('post', 'printemps', 'fr');
-		$views  = $this->app->container()->make(ViewFactory::class)->forChain($this->app->container()->make(ThemeResolver::class)->active());
 
 		$this->assertNotNull($spring);
-		$this->assertSame(['L\'art'], array_map(static fn (Entry $entry): string => $entry->title, new Template($views, new ViewContext())->terms($spring, 'category')));
+		$this->assertSame(['L\'art'], array_map(static fn (Entry $entry): string => $entry->title, $spring->terms('category')));
 	}
 
 	public function testHreflangAlternates(): void

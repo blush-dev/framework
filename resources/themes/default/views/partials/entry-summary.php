@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-$link  = $template->permalink($entry);
+$link  = $entry->url();
 $title = $entry->title !== '' ? $entry->title : $entry->slug;
 
 ?>

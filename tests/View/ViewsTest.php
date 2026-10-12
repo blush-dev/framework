@@ -291,7 +291,7 @@ final class ViewsTest extends TestCase
 		$this->writeTemporaryFile('user/content/_topic/grid.md', "---\nid: aad0501c-6673-960a-3d39-2749cf881311\ntitle: Grid\nparent: css\n---\n");
 		$this->writeTemporaryFile('user/content/_topic/flex.md', "---\nid: b82c7795-cafe-88f4-0fc1-8e8ad2da4ee3\ntitle: Flex\nparent: css\nstatus: draft\n---\n");
 		$this->themeView('tree.php', <<<'PHP'
-			<?= e(implode('/', array_map(fn ($entry) => $entry->title, $template->ancestors($term)))) ?>|<?= e($template->parent($term)?->title ?? '') ?>|<?= e(implode(',', array_map(fn ($entry) => $entry->title, $template->children($template->parent($term))))) ?>
+			<?= e(implode('/', array_map(fn ($entry) => $entry->title, $term->ancestors()))) ?>|<?= e($term->parent()?->title ?? '') ?>|<?= e(implode(',', array_map(fn ($entry) => $entry->title, $term->parent()?->children() ?? []))) ?>
 			PHP);
 
 		$app = $this->scratchApplication(['APP_NAME' => 'Test Site']);
@@ -302,7 +302,7 @@ final class ViewsTest extends TestCase
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$context   = new ViewContext(new PageMarkup('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
 
-		$this->assertSame('Web/CSS|CSS|Grid', trim($views->render('tree', ['term' => $term], $context)), 'Drafts aren\'t children.');
+		$this->assertSame('Web/CSS|CSS|Flex,Grid', trim($views->render('tree', ['term' => $term], $context)), 'Drafts are children too: what shows them decides (D-802).');
 	}
 
 	public function testInlineReadsOnlyServableThemeAssets(): void

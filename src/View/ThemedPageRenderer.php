@@ -232,7 +232,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			return;
 		}
 
-		foreach ($entry->terms($key) as $slug) {
+		foreach ($entry->terms[$key] ?? [] as $slug) {
 			$url = $this->urls->byline($entry, $slug);
 
 			if ($url !== null) {

@@ -456,21 +456,11 @@ What a template can use:
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
 | `$template->directive('callout', variant: 'tip')` | Render a directive, as content would (see [Directives](directives.md#using-directives-in-templates)) |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
-| `$template->permalink($entry)` | An entry's URL |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
-| `$template->terms($entry, 'tag')` | An entry's terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags |
-| `$template->related($entry, 'actors')` | The published entries an entry [links to](content-types.md#linking-entries-to-other-entries) through a relation, in order, each in the entry's language when it's translated |
-| `$template->referencedBy($entry, 'actors')` | The published entries linking to an entry through a relation, newest first: by its name, or `'movie.actors'` for one type's |
-| `$template->byline($entry)` | The profiles an entry's byline credits, in order: its type's [byline relation](content-types.md#crediting-people), such as a post's `authors` |
-| `$template->author($entry)` | The first person an entry's byline credits, such as a post's author, or `null` |
 | `$template->profile('jane')` | A published profile by its slug, or `null` |
-| `$template->credits($entry)` | Everyone an entry credits, by credit relation: the byline first, then the others, each `['relation' => …, 'byline' => bool, 'people' => [...]]`, leaving out those crediting no one. A relation's `label` and `singular` name it ("Photographers", "Photographer") |
+| `$template->media($template->site('logo'))` | The media file a value names, such as a site setting's (an entry's is `$entry->media('image')`), or `null` |
 | `$template->avatar($profile, 48)` | A profile's avatar, to print: a square box with its initials, as an inline SVG (see [Avatars](#avatars)) |
-| `$template->archiveUrl($type, 'cooks', $profile)` | A [relation's archive](content-types.md#linking-entries-to-other-entries) under a type for one target, such as `/recipes/cooks/jane`, or with no target the list of what it links to (`/recipes/cooks`); `null` for the relation is the type's byline. `''` when there's none, so a byline links with `archiveUrl($entry->type, null, $person) ?: permalink($person)` |
-| `$template->permalink($profile)` | A profile's own page, such as `/profiles/jane` |
-| `$template->parent($entry)` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, if published |
-| `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
-| `$template->children($entry)` | A page's subpages or a nesting collection's child entries, published, by `position` and then title |
+| `$template->archiveUrl($type, 'cooks', $profile)` | A [relation's archive](content-types.md#linking-entries-to-other-entries) under a type for one target, such as `/recipes/cooks/jane`, or with no target the list of what it links to (`/recipes/cooks`); `null` for the relation is the type's byline. `''` when there's none, so a byline links with `archiveUrl($entry->type, null, $person) ?: $person->url()` |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
 | `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
@@ -528,6 +518,33 @@ An entry offers `title`, `slug`, `published`, `updated`, `content()`
 (in minutes), and `field('name')` for any declared field in its front
 matter (a key nothing declares reads as `null`; a theme registers the
 keys its templates read, as a plugin [does](extending.md#fields-from-a-plugin)).
+
+An entry also leads to the entries and files it's linked to:
+
+| Call | What it does |
+|---|---|
+| `$entry->url()` | Its URL, or `''` when it has no page |
+| `$entry->terms('tag')` | Its terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags (their slugs are in `$entry->terms['tag']`) |
+| `$entry->related('actors')` | The entries it [links to](content-types.md#linking-entries-to-other-entries) through a relation, in order, each in its language when it's translated |
+| `$entry->referencedBy('actors')` | The entries linking to it through a relation, newest first: by its name, or `'movie.actors'` for one type's |
+| `$entry->byline()` | The profiles its byline credits, in order: its type's [byline relation](content-types.md#crediting-people), such as a post's `authors` |
+| `$entry->author()` | The first person its byline credits, such as a post's author, or `null` |
+| `$entry->credits()` | Everyone it credits, by credit relation: the byline first, then the others, each `['relation' => …, 'byline' => bool, 'people' => [...]]`, leaving out those crediting no one. A relation's `label` and `singular` name it ("Photographers", "Photographer") |
+| `$entry->parent()` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, or `null` |
+| `$entry->ancestors()` | Its parents from the top down, for breadcrumbs |
+| `$entry->children()` | A page's subpages or a nesting collection's child entries, by `position` and then title |
+| `$entry->media('image')` | The media file a media field names, such as its `image`, or `null` |
+
+These come back whatever their status: a draft or a hidden entry is
+there too, so check before you show or link one:
+
+```php
+<?php foreach ($entry->terms('tag') as $tag) : ?>
+	<?php if ($tag->isPublished() && $tag->isRoutable()) : ?>
+		<a href="<?= url($tag->url()) ?>"><?= e($tag->title) ?></a>
+	<?php endif ?>
+<?php endforeach ?>
+```
 `excerpt(50, $more)` takes the number of words and HTML to end with when
 the content is cut short, such as a "Continue reading" link. Without a
 summary, the excerpt is the content's prose: the words of its paragraphs
@@ -535,7 +552,7 @@ and list items. Headings, images, audio, video, embeds, captions,
 callouts, tables, code, footnotes, buttons, and menus are left out.
 
 ```php
-<?= raw($entry->excerpt(40, ' <a href="' . url($template->permalink($entry)) . '">Continue reading</a>')) ?>
+<?= raw($entry->excerpt(40, ' <a href="' . url($entry->url()) . '">Continue reading</a>')) ?>
 ```
 
 To preload a file on one page, such as the picture at the top of a
@@ -595,11 +612,12 @@ paths as they are. Meta tag values print as given, so give `og:image`
 and the like a full URL.
 
 A media field, such as an entry's `image`, holds the file's id. Get the
-file with `$template->media()`, which also reads an older value written
-as a path, and returns `null` for none:
+file with `$entry->media('image')`, which also reads an older value
+written as a path, and returns `null` for none (for a value that isn't
+an entry's, such as a site setting, use `$template->media($value)`):
 
 ```php
-<?php if ($image = $template->media($entry->field('image'))) : ?>
+<?php if ($image = $entry->media('image')) : ?>
 	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>" width="<?= attr((string) $image->width) ?>" height="<?= attr((string) $image->height) ?>">
 <?php endif ?>
 ```
@@ -903,7 +921,7 @@ JD), as an inline SVG. Give a size in pixels as the second argument (48
 by default):
 
 ```php
-<?php if ($author = $template->author($entry)) : ?>
+<?php if ($author = $entry->author()) : ?>
 	<p class="byline">
 		<?= $template->avatar($author, 32) ?>
 		<?= e($author->title) ?>

@@ -16,10 +16,12 @@ namespace Blush\Content\Entry;
 use DateTimeImmutable;
 use Stringable;
 use Override;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Visibility;
 use Blush\Markdown\MarkdownException;
+use Blush\Media\Index\MediaRecord;
 
 /**
  * One piece of content, as templates and controllers see it. Its front
@@ -46,6 +48,7 @@ final readonly class Entry implements Stringable
 	 * @param ?string                     $version     Its version (D-648), for the edit-conflict check: on files, a hash of its file.
 	 * @param ?string                     $parentId    Its parent's id, in a type that nests.
 	 * @param ?string                     $originalId  The id of the original it's a translation of.
+	 * @param ?EntryGraph                 $graph       What it leads to (D-802); without it, it leads nowhere.
 	 */
 	public function __construct(
 		public string $path,
@@ -66,8 +69,17 @@ final readonly class Entry implements Stringable
 		public ?string $id = null,
 		public ?string $version = null,
 		public ?string $parentId = null,
-		public ?string $originalId = null
+		public ?string $originalId = null,
+		private ?EntryGraph $graph = null
 	) {}
+
+	/**
+	 * Returns its URL path, or `''` when it has none.
+	 */
+	public function url(): string
+	{
+		return $this->graph?->url($this) ?? '';
+	}
 
 	/**
 	 * Returns the rendered content (D-649).
@@ -181,21 +193,134 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns the slugs of the terms the entry has in a taxonomy.
+	 * Returns its term entries of a term type (one a classify relation
+	 * files entries under, D-593), such as its tags, in the order front
+	 * matter lists them, each in its language when translated. Their
+	 * slugs are in `$terms`.
 	 *
-	 * @return list<string>
+	 * @return list<Entry>
 	 */
 	public function terms(string $taxonomy): array
 	{
-		return $this->terms[$taxonomy] ?? [];
+		return $this->graph?->terms($this, $taxonomy) ?? [];
 	}
 
 	/**
-	 * Returns whether the entry has a term.
+	 * Returns whether the entry has a term, by its slug.
 	 */
 	public function hasTerm(string $taxonomy, string $slug): bool
 	{
-		return in_array($slug, $this->terms($taxonomy), true);
+		return in_array($slug, $this->terms[$taxonomy] ?? [], true);
+	}
+
+	/**
+	 * Returns the entries it links to through one of its type's relations
+	 * (D-585, D-596), such as a movie's `actors`, in the order front
+	 * matter lists them, each in its language when translated. A
+	 * symmetric relation answers from both ends (related posts include
+	 * the ones naming this one), and a translation's links follow the
+	 * relation's `translations` rule.
+	 *
+	 * @return list<Entry>
+	 */
+	public function related(string $relation): array
+	{
+		return $this->graph?->related($this, $relation) ?? [];
+	}
+
+	/**
+	 * Returns the entries linking to it through a relation, newest
+	 * published first: by its name (`actors`), or by its key on one
+	 * source type (`movie.actors`). It's the list a relation's reverse
+	 * side shows when it has no page of its own.
+	 *
+	 * @return list<Entry>
+	 */
+	public function referencedBy(string $relation): array
+	{
+		return $this->graph?->referencedBy($this, $relation) ?? [];
+	}
+
+	/**
+	 * Returns the people its byline credits (D-602): its type's byline
+	 * relation, such as a post's `authors`, in order.
+	 *
+	 * @return list<Entry>
+	 */
+	public function byline(): array
+	{
+		return $this->graph?->byline($this) ?? [];
+	}
+
+	/**
+	 * Returns the first person its byline credits, such as a post's
+	 * author, or `null` when it credits no one.
+	 */
+	public function author(): ?Entry
+	{
+		return array_first($this->byline());
+	}
+
+	/**
+	 * Returns the people it credits, by credit relation (D-602): its
+	 * byline first, then its type's others by name, each with the people
+	 * it credits, leaving out those that credit no one. A relation's
+	 * `label` and `singular` name it ("Photographers", "Photographer").
+	 *
+	 * @return list<array{relation: Relation, byline: bool, people: list<Entry>}>
+	 */
+	public function credits(): array
+	{
+		return $this->graph?->credits($this) ?? [];
+	}
+
+	/**
+	 * Returns its parent: a page's or a nesting collection's entry's, or
+	 * `null` when it has none.
+	 */
+	public function parent(): ?Entry
+	{
+		return $this->graph?->parent($this);
+	}
+
+	/**
+	 * Returns its parents from the top down, such as for breadcrumbs.
+	 *
+	 * @return list<Entry>
+	 */
+	public function ancestors(): array
+	{
+		$ancestors = [];
+		$seen      = [$this->id ?? $this->path => true];
+		$entry     = $this;
+
+		while (($entry = $entry->parent()) !== null && ! isset($seen[$entry->id ?? $entry->path])) {
+			$seen[$entry->id ?? $entry->path] = true;
+			array_unshift($ancestors, $entry);
+		}
+
+		return $ancestors;
+	}
+
+	/**
+	 * Returns the entries whose parent is this one, by `position` and
+	 * then title: a page's subpages, or a term's child terms.
+	 *
+	 * @return list<Entry>
+	 */
+	public function children(): array
+	{
+		return $this->graph?->children($this) ?? [];
+	}
+
+	/**
+	 * Returns the media file a media field names (D-773), or `null`: its
+	 * `url`, its `width` and `height`, and its details (`metadata()`, with
+	 * the alt text).
+	 */
+	public function media(string $field): ?MediaRecord
+	{
+		return $this->graph?->media($this->field($field));
 	}
 
 	/**
@@ -203,9 +328,9 @@ final readonly class Entry implements Stringable
 	 * date has come. A draft, an entry scheduled for later, and one in
 	 * the trash aren't. This is about time and status only: a published
 	 * entry can still be hidden (see `isRoutable()`). Queries find only
-	 * published entries unless they ask for others; `parent()` and
-	 * `children()` don't filter, so check this before showing what they
-	 * give.
+	 * published entries unless they ask for others; what an entry leads
+	 * to (`terms()`, `related()`, `parent()`, and the rest) isn't
+	 * filtered, so check this before showing what they give (D-802).
 	 */
 	public function isPublished(): bool
 	{

@@ -341,8 +341,8 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(Status::Published, $spring->status);
 		$this->assertSame(Visibility::Public, $spring->visibility);
 		$this->assertSame('2008-04-05 09:00', $spring->published?->format('Y-m-d H:i'), 'In the site\'s timezone.');
-		$this->assertSame(['art', 'book-reviews'], $spring->terms('category'));
-		$this->assertSame(['justintadlock', 'guest'], $spring->terms('profile'));
+		$this->assertSame(['art', 'book-reviews'], $spring->terms['category']);
+		$this->assertSame(['justintadlock', 'guest'], $spring->terms['profile']);
 		$this->assertNull($spring->field('tag'), 'What nothing declares isn\'t read (D-786).');
 		$this->assertSame('<p>Spring is here.</p>', trim($spring->content()), 'The content, read when it\'s first used.');
 		$this->assertNotNull($spring->version);
@@ -470,8 +470,8 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('fresh', $fresh->key);
 		$this->assertSame(Status::Published, $fresh->status);
 		$this->assertNotNull($fresh->published, 'Dated now (D-514).');
-		$this->assertSame(['art'], $fresh->terms('category'));
-		$this->assertSame(['guest'], $fresh->terms('profile'));
+		$this->assertSame(['art'], $fresh->terms['category']);
+		$this->assertSame(['guest'], $fresh->terms['profile']);
 		$this->assertSame('Fresh text.', trim($this->content->editable($fresh)->body));
 		$this->assertSame(['art'], $this->content->editable($fresh)->frontMatter['category'] ?? null, 'The editor gets the relation\'s slugs.');
 		$this->assertContains('fresh', $this->found($this->query()->type('post')->whereTerm('category', 'art')));
@@ -491,7 +491,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('Springtime', $changed->title);
 		$this->assertSame($spring->id, $changed->id);
 		$this->assertSame('Changed.', trim($this->content->editable($changed)->body));
-		$this->assertSame(['art', 'book-reviews'], $changed->terms('category'), 'Its relations are kept.');
+		$this->assertSame(['art', 'book-reviews'], $changed->terms['category'], 'Its relations are kept.');
 
 		$this->expectException(WriteConflict::class);
 
@@ -507,7 +507,7 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertSame('arts', $renamed->key);
 		$this->assertNull($this->content->named('category', 'art'));
-		$this->assertSame(['arts', 'book-reviews'], $this->named('post', 'spring')->terms('category'), 'Its referrers follow it.');
+		$this->assertSame(['arts', 'book-reviews'], $this->named('post', 'spring')->terms['category'], 'Its referrers follow it.');
 
 		$this->expectException(WriteException::class);
 
@@ -601,6 +601,6 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('Spring Again', $copy->title);
 		$this->assertSame('Spring is here.', trim($this->content->editable($copy)->body));
 		$this->assertNotSame($this->named('post', 'spring')->id, $copy->id);
-		$this->assertSame(['art', 'book-reviews'], $copy->terms('category'));
+		$this->assertSame(['art', 'book-reviews'], $copy->terms['category']);
 	}
 }

@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace Blush\Content;
 
 use Override;
+use ReflectionClass;
 use Blush\Container\Container;
 use Blush\Container\ServiceResolver;
+use Blush\Content\Entry\EntryGraph;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Events\ContentIndexed;
 use Blush\Content\Http\CollectionController;
@@ -72,6 +74,7 @@ use Blush\Field\FieldSource;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
 use Blush\Markdown\MentionResolver;
+use Blush\Media\MediaValues;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
@@ -192,6 +195,21 @@ final class ContentServiceProvider extends ServiceProvider
 
 				return $registry;
 			}
+		);
+
+		// What entries lead to (D-802), built on first use: it reads
+		// services that are built on the hydrator that hands it out.
+		$this->container->singleton(
+			EntryGraph::class,
+			static fn (ServiceResolver $resolver): EntryGraph => new ReflectionClass(EntryGraph::class)->newLazyGhost(static function (EntryGraph $graph) use ($resolver): void {
+				$graph->__construct(
+					$resolver->make(Entries::class),
+					$resolver->make(ContentTypes::class),
+					$resolver->make(ContentUrls::class),
+					$resolver->make(EntryRelations::class),
+					$resolver->make(MediaValues::class)
+				);
+			})
 		);
 
 		$this->container->singleton(

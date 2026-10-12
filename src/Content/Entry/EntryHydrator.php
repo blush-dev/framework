@@ -36,7 +36,8 @@ use Blush\Storage\Record\RecordStores;
  * hydrated (dates become `DateTimeImmutable` in the site timezone), and
  * what it doesn't declare; the status is decided against the clock; and
  * the body's source is a lazy ghost that reads the record's `content`
- * from its store only when it's first used. With a `BodyCache` (bound
+ * from its store only when it's first used. Every entry shares the
+ * `EntryGraph` it leads through (D-802). With a `BodyCache` (bound
  * outside development by the cache layer), a rendering cached under the
  * record's version skips even that.
  */
@@ -57,7 +58,8 @@ final class EntryHydrator
 		private readonly ClockInterface $clock,
 		private readonly AppConfig $app,
 		private readonly ?BodyCache $cache = null,
-		private readonly ?AssetCollector $collector = null
+		private readonly ?AssetCollector $collector = null,
+		private readonly ?EntryGraph $graph = null
 	) {}
 
 	/**
@@ -114,7 +116,8 @@ final class EntryHydrator
 			id: $identified ? $record->id : null,
 			version: $record->version,
 			parentId: $parent === '' ? null : $parent,
-			originalId: $original === '' ? null : $original
+			originalId: $original === '' ? null : $original,
+			graph: $this->graph
 		);
 	}
 

@@ -22,7 +22,6 @@ use Blush\Cache\CacheNamespace;
 use Blush\Clock\DateFormat;
 use Blush\Clock\DateStyle;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Data\InvalidData;
 use Blush\Media\Index\MediaRecord;
@@ -500,14 +499,6 @@ final class Template
 	}
 
 	/**
-	 * Returns an entry's URL path, or `''` when it has none.
-	 */
-	public function permalink(Entry $entry): string
-	{
-		return $this->views->services->urls->entry($entry) ?? '';
-	}
-
-	/**
 	 * Returns a named route's URL. On a page in another language (D-464),
 	 * it's the language's route when there is one (`es:home` for `home`,
 	 * `/es`), so a theme's links to the homepage, collections, and date
@@ -530,132 +521,6 @@ final class Template
 	}
 
 	/**
-	 * Returns the term entries an entry has of a term type (one a
-	 * classify relation files entries under, D-593), in the order front
-	 * matter lists them. Terms that aren't published are left out.
-	 * Profiles aren't terms here; use `people()`.
-	 *
-	 * @return list<Entry>
-	 */
-	public function terms(Entry $entry, string $taxonomy): array
-	{
-		if ($this->views->services->types->classification($taxonomy) === null) {
-			return [];
-		}
-
-		$terms = [];
-
-		foreach ($entry->terms($taxonomy) as $slug) {
-			$term = $this->views->services->content->term($taxonomy, $slug, $entry->language === '' ? null : $entry->language);
-
-			if ($term !== null && $term->isPublished() && $term->isRoutable()) {
-				$terms[] = $term;
-			}
-		}
-
-		return $terms;
-	}
-
-	/**
-	 * Returns the entries an entry links to through one of its type's
-	 * relations (D-585, D-596), such as a movie's `actors`, in the order
-	 * front matter lists them, each in the entry's language when it has a
-	 * translation in it. Only published entries come back. A symmetric
-	 * relation answers from both ends (related posts include the ones
-	 * naming this one), and a translation's links follow the relation's
-	 * `translations` rule.
-	 *
-	 * @return list<Entry>
-	 */
-	public function related(Entry $entry, string $relation): array
-	{
-		return $this->views->services->relations->related($entry, $relation);
-	}
-
-	/**
-	 * Returns the published entries linking to an entry through a
-	 * relation, newest published first: by its name (`actors`), or by
-	 * its key on one source type (`movie.actors`). It's the list a
-	 * relation's reverse side shows when it has no page of its own
-	 * (`inverse.archive: false`).
-	 *
-	 * @return list<Entry>
-	 */
-	public function referencedBy(Entry $entry, string $relation): array
-	{
-		return $this->views->services->relations->referencedBy($entry, $relation);
-	}
-
-	/**
-	 * Returns the people an entry's byline credits (D-602): its type's
-	 * byline relation, such as a post's `authors`, in order, published
-	 * profiles only.
-	 *
-	 * @return list<Entry>
-	 */
-	public function byline(Entry $entry): array
-	{
-		$byline = $this->views->services->types->byline($entry->type->name);
-
-		return $byline === null ? [] : $this->related($entry, $byline->name);
-	}
-
-	/**
-	 * Returns the first person an entry's byline credits, such as a
-	 * post's author, or `null` when it credits no one.
-	 *
-	 * ```php
-	 * <?php if ($author = $template->author($entry)) : ?>
-	 *     <?= $template->avatar($author) ?> <?= e($author->title) ?>
-	 * <?php endif ?>
-	 * ```
-	 */
-	public function author(Entry $entry): ?Entry
-	{
-		return array_first($this->byline($entry));
-	}
-
-	/**
-	 * Returns the people an entry credits, by credit relation (D-602): its
-	 * byline first, then the type's others by name, each with the people
-	 * it credits, leaving out those that credit no one. A relation's
-	 * `label` and `singular` name it ("Photographers", "Photographer").
-	 *
-	 * ```php
-	 * <?php foreach ($template->credits($entry) as $credit) : ?>
-	 *     <?= e($credit['relation']->label) ?>:
-	 *     <?php foreach ($credit['people'] as $person) : ?> … <?php endforeach ?>
-	 * <?php endforeach ?>
-	 * ```
-	 *
-	 * @return list<array{relation: Relation, byline: bool, people: list<Entry>}>
-	 */
-	public function credits(Entry $entry): array
-	{
-		$types   = $this->views->services->types;
-		$byline  = $types->byline($entry->type->name);
-		$credits = $types->credits($entry->type->name);
-
-		ksort($credits);
-
-		if ($byline !== null) {
-			$credits = [$byline->name => $byline, ...$credits];
-		}
-
-		$found = [];
-
-		foreach ($credits as $relation) {
-			$people = $this->related($entry, $relation->name);
-
-			if ($people !== []) {
-				$found[] = ['relation' => $relation, 'byline' => $relation === $byline, 'people' => $people];
-			}
-		}
-
-		return $found;
-	}
-
-	/**
 	 * Returns a published profile by its slug (D-351), or `null` when
 	 * there's none, or the site has no profiles type.
 	 */
@@ -668,13 +533,14 @@ final class Template
 	}
 
 	/**
-	 * Returns the media file a media field names (D-773), or `null`: its
-	 * `url`, its `width` and `height`, and its details (`metadata()`, with
-	 * the alt text). A media field holds the file's id; an older value, a
-	 * path, is read too.
+	 * Returns the media file a value names (D-773), or `null`: its `url`,
+	 * its `width` and `height`, and its details (`metadata()`, with the
+	 * alt text). A media value is the file's id; an older value, a path,
+	 * is read too. It's for values that aren't an entry's, such as a site
+	 * setting's; an entry's field is `$entry->media('image')` (D-802).
 	 *
 	 * ```php
-	 * <?php if ($image = $template->media($entry->field('image'))) : ?>
+	 * <?php if ($image = $template->media($template->site('logo'))) : ?>
 	 * 	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>">
 	 * <?php endif ?>
 	 * ```
@@ -714,7 +580,7 @@ final class Template
 	 * archive; a byline's link can fall back to the profile's own page:
 	 *
 	 * ```php
-	 * <?= url($template->archiveUrl($entry->type, null, $person) ?: $template->permalink($person)) ?>
+	 * <?= url($template->archiveUrl($entry->type, null, $person) ?: $person->url()) ?>
 	 * ```
 	 */
 	public function archiveUrl(ContentType|string $type, ?string $relation = null, Entry|string|null $target = null): string
@@ -730,52 +596,6 @@ final class Template
 		$slug = $target instanceof Entry ? $target->slug : $target;
 
 		return ($slug === null ? $services->urls->relatedList($type, $found) : $services->urls->related($type, $found, $slug)) ?? '';
-	}
-
-	/**
-	 * Returns an entry's parent: a page's (from its folder) or a
-	 * hierarchical collection's entry's (its `parent`). `null` when there's
-	 * none, or it isn't published.
-	 */
-	public function parent(Entry $entry): ?Entry
-	{
-		$parent = $this->views->services->content->parent($entry);
-
-		return $parent !== null && $parent->isPublished() && $parent->isRoutable() ? $parent : null;
-	}
-
-	/**
-	 * Returns an entry's ancestors, from the top down, such as for
-	 * breadcrumbs. The chain stops at a parent that's missing or not
-	 * published.
-	 *
-	 * @return list<Entry>
-	 */
-	public function ancestors(Entry $entry): array
-	{
-		$ancestors = [];
-		$seen      = [$entry->id ?? $entry->path => true];
-
-		while (($entry = $this->parent($entry)) !== null && ! isset($seen[$entry->id ?? $entry->path])) {
-			$seen[$entry->id ?? $entry->path] = true;
-			array_unshift($ancestors, $entry);
-		}
-
-		return $ancestors;
-	}
-
-	/**
-	 * Returns the published entries whose parent is this one, by title:
-	 * a page's subpages, or a term's child terms.
-	 *
-	 * @return list<Entry>
-	 */
-	public function children(Entry $entry): array
-	{
-		return array_values(array_filter(
-			$this->views->services->content->children($entry),
-			static fn (Entry $child): bool => $child->isPublished() && $child->isRoutable()
-		));
 	}
 
 	/**

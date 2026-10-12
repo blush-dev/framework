@@ -25236,3 +25236,87 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author's call: the id reads with the entry's own fields,
   and `refs`, a block of ids Blush files, last.
 - **Status:** Built.
+
+### D-802: What leads from an entry is the entry's, not `Template`'s
+
+- **Supersedes:** in part, D-103 and D-257 (`$template->terms()`,
+  `parent()`, `ancestors()`, and `children()`) and the template
+  methods of D-596 and D-602 (`related()`, `referencedBy()`, `byline()`,
+  `author()`, `credits()`); `$template->permalink()`; and, for
+  `EntryRelations`, D-585's "only live entries".
+- **Decision:** the author's call, as a first step in keeping
+  `Template` from growing into a mix of helpers: methods about one
+  entry move onto `Entry`, and `Template` keeps what needs the render
+  (building the page, its head and foot, text and dates in its
+  language, settings, assets, routes, menus) and lookups that aren't
+  one entry's (`profile()`, `media($value)`, `archiveUrl()`,
+  `avatar()`).
+  - **On `Entry`:** `url()`, `terms($taxonomy)`, `related($relation)`,
+    `referencedBy($relation)`, `byline()`, `author()`, `credits()`,
+    `parent()`, `ancestors()`, `children()`, and `media($field)` (the
+    file a media field names).
+  - **`terms()` returns term entries**, in the entry's language when
+    translated; their slugs are the `$terms` property
+    (`$entry->terms['category'] ?? []`), which core's slug readers use.
+  - **Whatever their status:** an entry returns what it leads to
+    whatever that entry's status or visibility, so a template checks
+    `isPublished()` and `isRoutable()` before showing or linking one.
+    `EntryRelations` no longer leaves out drafts; core's fallback
+    views, the default theme, and the trial themes filter.
+  - **`Blush\Content\Entry\EntryGraph`** does the work: one shared
+    object the hydrator gives every entry, bound as a lazy ghost (it
+    reads `Entries`, which is built on the hydrator). An entry built
+    without it leads nowhere (`''`, `[]`, `null`).
+  - A wrapper for templates was considered and set aside: `Entry` is
+    `final readonly`, so a wrapper would forward every property, and
+    every place an entry reaches a view would wrap and unwrap it.
+- **Why:** `Template` had grown by two or three methods with each
+  content feature; an entry's links read as the entry's
+  (`$entry->related('actors')`), and the API and MCP get them too.
+- **Status:** Built.
+
+### D-803: The entry's slim surface: relationships, `RelatedEntries`, `link()` (planned)
+
+- **Refines:** D-802.
+- **Decision:** the author's calls, to slim `Entry` to its basics and
+  build on top later. "Terms" (and "people") mean nothing in this
+  surface: it's relationships.
+  - **Gone from `Entry`:** `terms()`, `hasTerm()`, the `$terms`
+    property, `byline()`, `author()`, and `credits()`.
+  - **`relations(?RelationKind $kind = null)`:** its type's relations,
+    by name, optionally of one kind; credit relations list the type's
+    byline relation first.
+  - **`related($relation)` and `referencedBy($relation)`** return a
+    `RelatedEntries`: iterable and countable, with `->relation` (the
+    definition, for its `label`/`singular`), `->byline` (whether that
+    relation is the entry type's byline), `published()` (published and
+    routable only), `first()`, `isEmpty()`, and `all()`. Nothing else
+    (no `map()`/`filter()`/sorting) until a theme needs it. `children()`
+    and `ancestors()` stay plain lists.
+  - **`linksTo($relation, $id)`:** whether it links to an entry by id;
+    replaces `hasTerm()` (permissions check the account's profile id
+    across the type's credit relations).
+  - **Internally,** the entry keeps its links as target ids (with their
+    slugs, which the hydrator already reads) by relation name, from
+    `refs`; core code that needs slugs (single-route params, the
+    `article:author` head lines) reads them through an `@internal`
+    method, and the feed and admin read `related()`.
+  - **`ContentType::$byline` stays the stored setting** (`null` for the
+    type's only credit relation); the resolved byline reaches templates
+    only through `relations()` order and `RelatedEntries::$byline`, so
+    the admin's type screen still shows and saves "default".
+  - **`link(string|int|bool|null ...$attributes): SafeHtml`:**
+    `<a href="{url}" …>{title}</a>`, URL, title, and attributes
+    escaped; camelCase names become dashed (`dataId:` is `data-id`,
+    `ariaCurrent:` is `aria-current`), `true` prints a bare attribute,
+    `false`/`null` leaves it out, a positional argument throws. An empty
+    title reads "Untitled", translated by the shared `EntryGraph` in
+    the entry's language (core's `untitled` message). Without a URL,
+    it's the escaped title alone.
+  - **Later, separately:** renaming "terms"/"taxonomy" and "people"
+    across the rest of the code (`Query::whereTerm()`,
+    `Entries::term()`, `termCounts()`, `TermController`,
+    `content:terms`, `people.*` text keys, the admin).
+- **Why:** keep `Entry` to the basics; `related()` is the one entry
+  point for every relationship.
+- **Status:** Planned; paused before building (2026-10-12).

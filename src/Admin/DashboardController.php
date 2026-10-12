@@ -248,7 +248,7 @@ final readonly class DashboardController
 	private function describe(Entry $entry, Account $account): array
 	{
 		$profiles = $this->types->profiles()?->name;
-		$credited = $profiles === null ? [] : $entry->terms($profiles);
+		$credited = $profiles === null ? [] : ($entry->terms[$profiles] ?? []);
 
 		return [
 			'id'        => $entry->id,

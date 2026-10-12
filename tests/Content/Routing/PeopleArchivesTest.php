@@ -267,8 +267,9 @@ final class PeopleArchivesTest extends TestCase
 		$spring    = $container->make(Entries::class)->named('post', 'spring');
 
 		$this->assertNotNull($spring);
-		$this->assertSame('Justin Tadlock', $template->author($spring)?->title, 'The byline\'s first person.');
-		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn ($person): string => $person->title, $template->byline($spring)));
+		$this->assertSame('/archives/spring', $spring->url(), 'Its own URL (D-802).');
+		$this->assertSame('Justin Tadlock', $spring->author()?->title, 'The byline\'s first person.');
+		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn ($person): string => $person->title, $spring->byline()));
 		$this->assertSame('/archives/authors/guest', $template->archiveUrl('post', null, 'guest'), 'The byline\'s archive.');
 		$this->assertSame('/archives/authors', $template->archiveUrl('post', 'authors'));
 		$this->assertSame('', $template->archiveUrl('post', 'nope'));
