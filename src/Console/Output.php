@@ -197,14 +197,6 @@ final readonly class Output
 	}
 
 	/**
-	 * Writes an informational line.
-	 */
-	public function info(string $text, Verbosity $level = Verbosity::Normal): void
-	{
-		$this->line($this->tone($text, Tone::Code), $level);
-	}
-
-	/**
 	 * Writes a line saying something was done: on a terminal, after a
 	 * `✓` (D-717).
 	 */
@@ -405,14 +397,6 @@ final readonly class Output
 	public function tone(string $text, ?Tone $tone): string
 	{
 		return $tone === null || ! $this->ansi || $text === '' ? $text : "\033[{$this->palette->codes($tone)}m{$text}\033[0m";
-	}
-
-	/**
-	 * Styles text when ANSI is on; returns it unchanged otherwise.
-	 */
-	public function style(string $text, Style ...$styles): string
-	{
-		return $this->ansi ? Style::apply($text, ...$styles) : $text;
 	}
 
 	/**

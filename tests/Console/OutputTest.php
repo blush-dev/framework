@@ -62,12 +62,11 @@ final class OutputTest extends TestCase
 		$output = new Output($this->stdout, $this->stderr);
 
 		$output->success('Done');
-		$output->info('Info');
 		$output->comment('Note');
 		$output->newLine();
 		$output->write('raw');
 
-		$this->assertSame('Done' . PHP_EOL . 'Info' . PHP_EOL . 'Note' . PHP_EOL . PHP_EOL . 'raw', $this->read($this->stdout));
+		$this->assertSame('Done' . PHP_EOL . 'Note' . PHP_EOL . PHP_EOL . 'raw', $this->read($this->stdout));
 	}
 
 	public function testStylesWithAnsi(): void

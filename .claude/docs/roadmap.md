@@ -1047,6 +1047,31 @@ at any depth (stage 4), but Structure → Fields' tree stays one level
 deep (a group's fields can't be groups) until a new sketch designs
 deeper nesting.
 
+### Declared front matter (D-786): planned
+
+Only declared fields are read anywhere; nothing is removed from files.
+Each stage ends with `composer check`, the jtcom trial updated, and
+`docs/`.
+
+1. **Core's set and `type:*`.** `EntryFields::schema()` becomes the
+   locked `core/entry` set; `type:*` targets every type. Sets from code
+   are named `vendor/name` (core and extensions), the site's keep plain
+   names; a set from code with a plain name is an error.
+2. **One declaration per key.** A key declared twice for one type is an
+   `InvalidSchema` naming both sets and the type; core's keys are
+   reserved.
+3. **Declaring the trial's keys.** Audit what the trial's themes and
+   plugins read that no field declares (likely `social`, `og`,
+   `format`, `style`, `note`, `details`, `related`) and declare them
+   from their providers, before stage 4.
+4. **Reading declared fields only.** `EntryHydrator` stops handing
+   `extra` to entries (`$entry->get()` and templates read declared
+   fields only); undeclared keys stay in the file and are kept when
+   the admin writes it. Site Health lists them, with fixes to declare
+   or remove them.
+5. **Later:** themes declaring fields in `theme.json`, beside its
+   templates; fields saying whether they're public in the API.
+
 ### Still to scope
 
 - **The Fields API (D-766 to D-769):** see "The Fields API, picked up
@@ -1158,9 +1183,8 @@ deeper nesting.
   groups, JSON Schema, `docs/`); (3, done) Structure → Fields screens
   and writer; (4) media (done, D-341), theme settings (on hold, D-342), site
   settings (done, D-343), and accounts (on hold with the authors work,
-  D-344) as later consumers. When it's picked up: a proper way to register front matter from
-  core and through the Fields API, so the API sends declared fields
-  only (D-743).
+  D-344) as later consumers. Registering front matter from core and through the Fields API is
+  planned in D-786 (see "Declared front matter" above).
 - **Profiles (D-351; replaces D-329 to D-333):** accounts,
   profiles, and bylines as three nouns, from the author's profiles
   sketch. (1, done, D-352) Content and routing: the `profiles` kind with a canonical

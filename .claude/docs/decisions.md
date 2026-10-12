@@ -23321,6 +23321,7 @@ decision, add a new entry that supersedes it and mark the old one
 - **Status:** Built (the API's part). Supersedes D-742's `fields`
   (undeclared keys included). Registering front matter waits for the
   Fields API (paused, D-348).
+  Registering front matter planned in D-786.
 - **Decision:** The author's call:
   - **An entry's `fields` in the API are the fields its type
     declares** (`ContentType::$schema`), but Blush's own
@@ -24809,3 +24810,45 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** checking `justintadlock/jtcom` with Second Proof active
   warned about Second Proof's `template-compact`.
 - **Status:** Built.
+
+### D-786: Only declared front matter is read, sets named by vendor, and one declaration per key
+
+- **Date:** 2026-10-11
+- **Refines:** D-743 (front matter registration waits for the Fields
+  API, now picked up again, D-766), D-337 (field sets and targets).
+- **Decision:** The author's calls:
+  - **Core's front matter is a field set.** `EntryFields::schema()`
+    becomes a locked set, `core/entry`, so core's keys, a type's, and
+    every set's are one model that the admin, the API, and the JSON
+    Schemas read the same way.
+  - **`type:*` targets every type,** as `content.*` does for
+    capabilities, so a plugin can add a field to every entry without
+    naming types.
+  - **Only declared fields are read, anywhere.** A key no field
+    declares isn't sent by the API, isn't given to templates
+    (`$entry->get()` and the rest read declared fields only), and
+    isn't shown in the admin. It's never removed from its file. Site
+    Health lists undeclared keys, with fixes to declare or remove them
+    (the latter asks first).
+  - **Sets from code are named by `vendor/name`:** core's `core/...`,
+    an extension's under its declared vendor (D-378), so every set
+    says who declared it. The site's own sets (`user/data/fields`,
+    config) keep plain names, with no `app` prefix (D-617).
+  - **Keys stay plain, and each is declared once per type.** A key
+    declared by two sets for the same type is an `InvalidSchema` when
+    types load, naming both sets and the type; core's keys are
+    reserved, as `id` is. The fix is the site's: rename its field or
+    turn the plugin off. A plugin with several fields is encouraged,
+    not required, to keep them under one group (D-780), such as
+    `seo: { title, description }`.
+  - **Planned, not now:** themes declaring their front matter in
+    `theme.json` (until then, from their provider in code), and fields
+    saying whether they're public in the API (and whether private
+    fields exist at all), whose shape is worked out later
+    (`open-questions.md` → Fields API details).
+- **Why:** the author: only declared fields should be public anywhere,
+  in any way, but nothing is removed from files. Namespaced keys were
+  set aside because shared plain keys are sometimes the point (two
+  themes reading one `subtitle`), and a vendor prefix on sets alone
+  doesn't stop two sets declaring one key, so a clash is an error.
+- **Status:** Planned (`roadmap.md` → Declared front matter).

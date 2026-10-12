@@ -1287,8 +1287,11 @@ Move each item to `decisions.md` once it's answered.
   - More slots: which a content type should offer beyond `details`
     (fields in the writing area were tried and taken back, D-348), and
     whether extensions may add slots to a kind they don't own.
-  - Broader targets: every type (`type:*`), a kind
-    (`kind:collection`), or a type and its children?
+  - Broader targets: a kind (`kind:collection`), or a type and its
+    children? (Every type, `type:*`, is D-786.)
+  - **Public and private fields** (D-786): a field says whether it's
+    public in the API, in a shape to be worked out; and whether
+    private fields (declared, but never sent) have a use at all.
   - Conditional fields (shown when another field has a value), and
     editing `object` fields and lists of objects in forms.
   - Should the type wizard offer existing sets, and should a type's
@@ -1606,6 +1609,13 @@ Move each item to `decisions.md` once it's answered.
       `related-list-*` (D-596).
     - **Conditional requirements:** required only for some statuses or
       when another value is set.
+- **Media fields by address** (raised 2026-10-11, with D-786): media
+  fields store ids (D-773), so a file says `image: 0199…`, which no one
+  recognizes. A file should be able to say `image: /media/2026/photo.jpg`
+  (or a path relative to the media folder), with the id found on read.
+  Open: what the admin writes back (the address or the id), and what
+  happens when the file moves.
+
 - **Media metadata** (D-238, D-239):
   - Edited WordPress images (`photo-e1234567890.jpg`, D-239): a variant
     of the original, or an image of its own, since the edit (a crop or
