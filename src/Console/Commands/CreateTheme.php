@@ -20,6 +20,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Extension\ExtensionText;
 use Blush\Console\Prompt;
 use Blush\Console\StatusLine;
 use Blush\Core\Framework;
@@ -61,7 +62,8 @@ final readonly class CreateTheme
 		private Filesystem $filesystem,
 		private InstalledExtensions $installed,
 		private ExtensionState $extensions,
-		private ThemeActivator $activator
+		private ThemeActivator $activator,
+		private ExtensionText $text
 	) {}
 
 	/**
@@ -200,14 +202,16 @@ final readonly class CreateTheme
 	 */
 	private function parents(): array
 	{
+		$labels = array_map(fn (ThemeManifest $theme): string => (string) $this->text->label($theme), $this->themes->all());
 		$themes = array_values($this->themes->all());
 
-		usort($themes, static fn (ThemeManifest $a, ThemeManifest $b): int => [$a->name !== Themes::DEFAULT, strtolower($a->label)] <=> [$b->name !== Themes::DEFAULT, strtolower($b->label)]);
+		usort($themes, static fn (ThemeManifest $a, ThemeManifest $b): int => [$a->name !== Themes::DEFAULT, strtolower($labels[$a->name] ?? '')] <=> [$b->name !== Themes::DEFAULT, strtolower($labels[$b->name] ?? '')]);
 
 		$parents = ['' => 'None: a standalone theme, with its own style.css'];
 
 		foreach ($themes as $theme) {
-			$parents[$theme->name] = sprintf('%s (%s)', $theme->label !== '' ? $theme->label : $theme->name, $theme->name);
+			$label                 = $labels[$theme->name] ?? '';
+			$parents[$theme->name] = sprintf('%s (%s)', $label !== '' ? $label : $theme->name, $theme->name);
 		}
 
 		return $parents;

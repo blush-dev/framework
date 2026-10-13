@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Extension\ExtensionText;
+use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
@@ -41,7 +43,9 @@ use Blush\Settings\SettingGroups;
  * own when another is active, and anything
  * missing falls back to its default. Values that don't fit are reported,
  * not fatal: the default is used instead. Values for undeclared settings
- * are ignored.
+ * are ignored. A setting's `label` and `description` are translated from
+ * the declaring theme's catalog (`manifest.settings.{name}.label`,
+ * D-824).
  */
 final class SettingsResolver
 {
@@ -55,7 +59,8 @@ final class SettingsResolver
 	public function __construct(
 		private readonly FieldFactory $fields,
 		private readonly FieldContext $context,
-		private readonly SettingGroups $groups
+		private readonly SettingGroups $groups,
+		private readonly ExtensionText $text
 	) {}
 
 	/**
@@ -85,7 +90,7 @@ final class SettingsResolver
 				$names[$name] = true;
 
 				try {
-					$schema = $schema->with($this->fields->fromArray([...$definition, 'name' => $name]));
+					$schema = $schema->with($this->translated($this->fields->fromArray([...$definition, 'name' => $name]), $theme, $name, $definition));
 				} catch (InvalidSchema $error) {
 					throw new ThemeException(sprintf('The "%s" theme\'s setting "%s" is invalid: %s', $theme->name, $name, $error->getMessage()), 0, $error);
 				}
@@ -100,5 +105,27 @@ final class SettingsResolver
 		$result = $failed === [] ? $first : $schema->resolve(array_diff_key($values, array_flip($failed)), $this->context);
 
 		return new ThemeSettings($schema, $schema->hydrate($result->values, $this->context), $first->violations(Severity::Warning));
+	}
+
+	/**
+	 * Returns a setting's field with its label and description in the
+	 * theme's language, where the definition gives them.
+	 *
+	 * @param array<array-key, mixed> $definition
+	 */
+	private function translated(Field $field, ThemeManifest $theme, string $name, array $definition): Field
+	{
+		$label       = $definition['label'] ?? null;
+		$description = $definition['description'] ?? null;
+
+		if (is_string($label) && $label !== '') {
+			$field = $field->labeled($this->text->setting($theme, $name, 'label', $label));
+		}
+
+		if (is_string($description) && $description !== '') {
+			$field = $field->described($this->text->setting($theme, $name, 'description', $description));
+		}
+
+		return $field;
 	}
 }

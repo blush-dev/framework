@@ -63,7 +63,7 @@ final readonly class MenusController
 			$names   = $this->theme(fn (): array => $this->menus->assignments($chain));
 			$items   = array_values(array_map(static fn (MenuLocation $location): array => [
 				'location' => $location->name,
-				'label'    => $location->label,
+				'label'    => (string) $location->label,
 				'menu'     => $names[$location->name] ?? null
 			], $this->theme(fn (): array => $this->menus->locations($chain))));
 			$page    = $query->page();
@@ -86,7 +86,7 @@ final readonly class MenusController
 			return [
 				'location' => $location,
 				'name'     => $menu === null || $menu->name === '' ? null : $menu->name,
-				'label'    => $menu->label ?? $declared->label,
+				'label'    => $menu->label ?? (string) $declared->label,
 				'items'    => $menu === null ? [] : array_map($this->item(...), $menu->items)
 			];
 		});

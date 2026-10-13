@@ -25,6 +25,7 @@ use Blush\Core\Framework;
 use Blush\Core\ServiceProvider;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
+use Blush\Extension\ExtensionText;
 use Blush\Extension\LocalAutoloader;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
@@ -168,8 +169,8 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks the messages a theme's code writes (D-784) against its
-	 * source catalog, `lang/en.json`: a key it lacks or text it has
+	 * Checks the messages a theme's code and manifest write (D-784,
+	 * D-824) against its source catalog, `lang/en.json`: text it has
 	 * otherwise (run `lang:extract`), and calls that can't be collected.
 	 *
 	 * @return list<Violation>
@@ -178,6 +179,7 @@ final readonly class ThemeChecker
 	{
 		try {
 			[$messages, $problems] = $this->extractor->extract($theme->path);
+			$messages              = [...ExtensionText::extracted($theme), ...$messages];
 			$problems              = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path($theme->langPath()))];
 		} catch (Throwable $error) {
 			$problems = [new Violation('lang', $error->getMessage(), Severity::Warning)];

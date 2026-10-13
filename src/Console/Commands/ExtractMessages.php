@@ -21,6 +21,11 @@ use Blush\Console\Outcome;
 use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Core\Framework;
+use Blush\Extension\ExtensionManifest;
+use Blush\Extension\ExtensionText;
+use Blush\Icon\IconPack;
+use Blush\Icon\IconPacks;
+use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
 use Blush\Theme\Themes;
 use Blush\Translation\MessageExtractor;
@@ -32,8 +37,11 @@ use Blush\Translation\Translator;
  * Writes the messages an extension's code writes (`->t()` calls with
  * text beside the key, D-784) to its source catalog, `lang/en.json` (or
  * `--locale`'s), for translators: new keys are added, text that changed
- * in the code is replaced, and what's there otherwise is kept. `core`
- * extracts the framework's own. Problems (a key that isn't a plain
+ * in the code is replaced, and what's there otherwise is kept. An
+ * extension's manifest text (its label and description, and a theme's
+ * menu locations and settings) is written too, under `manifest.` keys
+ * (`ExtensionText`, D-824). `core` extracts the framework's own; an icon
+ * pack, its manifest's alone. Problems (a key that isn't a plain
  * string, one key with two texts, text that isn't valid ICU) are
  * warnings; the messages they're in aren't written.
  */
@@ -43,27 +51,29 @@ final readonly class ExtractMessages
 	public function __construct(
 		private Themes $themes,
 		private Plugins $plugins,
+		private IconPacks $packs,
 		private MessageExtractor $extractor,
 		private SourceCatalog $catalog
 	) {}
 
 	public function __invoke(
 		Output $output,
-		#[Argument('The theme or plugin (vendor/name), or core.')] string $name,
+		#[Argument('The theme, plugin, or icon pack (vendor/name), or core.')] string $name,
 		#[Option('The language the code\'s text is in.')] string $locale = SourceCatalog::LOCALE,
 		#[Option('Show what would change without writing.')] bool $dryRun = false
 	): ExitCode {
 		$found = $this->find($name);
 
 		if ($found === null) {
-			$output->error(sprintf('No theme or plugin named "%s" is installed.', $name), 'Name one by its vendor/name, or core for the framework.');
+			$output->error(sprintf('No theme, plugin, or icon pack named "%s" is installed.', $name), 'Name one by its vendor/name, or core for the framework.');
 
 			return ExitCode::Failure;
 		}
 
-		[$root, $folders, $lang] = $found;
-		[$messages, $problems]  = $this->extractor->extract($root, $folders);
-		$file                    = SourceCatalog::path($lang, $locale);
+		[$root, $folders, $lang, $manifest] = $found;
+		[$messages, $problems]             = $manifest instanceof IconPack ? [[], []] : $this->extractor->extract($root, $folders);
+		$messages                          = $manifest === null ? $messages : [...ExtensionText::extracted($manifest), ...$messages];
+		$file                              = SourceCatalog::path($lang, $locale);
 
 		try {
 			$result = $this->catalog->write($messages, $file, $name, $locale, $dryRun);
@@ -104,24 +114,21 @@ final readonly class ExtractMessages
 
 	/**
 	 * Returns an extension's folder, the folders in it to read (all of
-	 * it when none), and its `lang/` folder, or `null`.
+	 * it when none), its `lang/` folder, and its manifest (`null` for
+	 * core), or `null`.
 	 *
-	 * @return ?array{string, list<string>, string}
+	 * @return ?array{string, list<string>, string, ?ExtensionManifest}
 	 */
 	private function find(string $name): ?array
 	{
 		if ($name === Translator::CORE) {
-			return [Framework::path(), ['src', 'resources/views', 'resources/blocks'], Framework::path('resources/lang')];
+			return [Framework::path(), ['src', 'resources/views', 'resources/blocks'], Framework::path('resources/lang'), null];
 		}
 
-		$theme = $this->themes->find($name);
+		$extension = $this->themes->find($name)
+			?? array_find($this->plugins->installed(), static fn (PluginManifest $plugin): bool => $plugin->name === $name)
+			?? $this->packs->find($name);
 
-		if ($theme !== null) {
-			return [$theme->path, [], $theme->langPath()];
-		}
-
-		$plugin = array_find($this->plugins->installed(), static fn ($plugin): bool => $plugin->name === $name);
-
-		return $plugin === null ? null : [$plugin->path, [], "{$plugin->path}/lang"];
+		return $extension === null ? null : [$extension->path, [], "{$extension->path}/lang", $extension];
 	}
 }

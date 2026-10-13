@@ -141,7 +141,12 @@ return new AppConfig(
 );
 ```
 
-Codes are lowercase, with hyphens (`fr`, `pt-br`). Then translate a file
+Codes are lowercase, with hyphens (`fr`, `pt-br`). To make a listed
+language the default, set the site's locale (Settings → General →
+Language and region) to its locale (`fr_FR`) or its code (`fr`), or to
+the code with another region (`fr_CA`, used as the site's locale).
+
+Then translate a file
 by copying it beside the original with the code before the extension:
 
 | Original | French translation | French URL |

@@ -223,21 +223,36 @@ final readonly class ExtensionState
 	 *
 	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>}
 	 */
-	public function report(ExtensionManifest $extension): array
+	public function report(ExtensionManifest $extension, ?ExtensionText $text = null): array
 	{
 		$checked = $this->check($extension);
+		$row     = fn (Requirement $requirement): array => $this->row($requirement, $text);
 
 		return [
-			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, static fn (Requirement $requirement): bool => ! $requirement->conflict))),
-			'conflicts'    => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isConflict(...)))),
-			'replaces'     => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isReplace(...)))),
+			'requirements' => array_map($row, array_values(array_filter($checked, static fn (Requirement $requirement): bool => ! $requirement->conflict))),
+			'conflicts'    => array_map($row, array_values(array_filter($checked, Requirements::isConflict(...)))),
+			'replaces'     => array_map($row, array_values(array_filter($checked, Requirements::isReplace(...)))),
 			'provides'     => array_map(static fn (string $name): array => ['name' => $name, 'constraint' => Requirements::provided($extension, $name, 'provide') ?? ''], array_map(strval(...), array_keys($extension->provide))),
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
-			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
+			'requiredBy'   => array_map(static fn (ExtensionManifest $other): array => self::describe($other, $text), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,
-			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned]) : null,
-			'suggests'     => $this->suggests($extension)
+			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned], $text) : null,
+			'suggests'     => $this->suggests($extension, $text)
 		];
+	}
+
+	/**
+	 * A requirement as the admin shows it, labeled with the installed
+	 * extension it names, translated when given the text (D-824).
+	 *
+	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}
+	 */
+	private function row(Requirement $requirement, ?ExtensionText $text): array
+	{
+		$row       = $requirement->toArray();
+		$installed = $this->installed[$requirement->name] ?? null;
+
+		return $text === null || $installed === null ? $row : [...$row, 'label' => (string) $text->label($installed)];
 	}
 
 	/**
@@ -248,7 +263,7 @@ final readonly class ExtensionState
 	 *
 	 * @return list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>
 	 */
-	private function suggests(ExtensionManifest $extension): array
+	private function suggests(ExtensionManifest $extension, ?ExtensionText $text): array
 	{
 		$suggests = [];
 
@@ -258,7 +273,7 @@ final readonly class ExtensionState
 			$suggests[] = [
 				'name'      => $name,
 				'reason'    => $reason,
-				'extension' => $installed === null ? null : self::describe($installed),
+				'extension' => $installed === null ? null : self::describe($installed, $text),
 				'loaded'    => str_starts_with($name, 'ext-') ? extension_loaded(substr($name, 4)) : null
 			];
 		}
@@ -267,13 +282,14 @@ final readonly class ExtensionState
 	}
 
 	/**
-	 * An extension as the admin names and links to it.
+	 * An extension as the admin names and links to it, its label
+	 * translated when given the text (D-824).
 	 *
 	 * @return array{name: string, label: string, kind: string}
 	 */
-	private static function describe(ExtensionManifest $extension): array
+	private static function describe(ExtensionManifest $extension, ?ExtensionText $text = null): array
 	{
-		return ['name' => $extension->name, 'label' => $extension->label, 'kind' => $extension->kind()->value];
+		return ['name' => $extension->name, 'label' => $text === null ? $extension->label : (string) $text->label($extension), 'kind' => $extension->kind()->value];
 	}
 
 	/**
@@ -299,7 +315,7 @@ final readonly class ExtensionState
 	 *
 	 * @return array{conflictedBy: list<array{name: string, label: string, kind: string}>, replacedBy: list<array{name: string, label: string, kind: string}>, providedBy: list<array{name: string, label: string, kind: string}>}
 	 */
-	public function opposite(ExtensionManifest $extension): array
+	public function opposite(ExtensionManifest $extension, ?ExtensionText $text = null): array
 	{
 		$conflicted = [];
 		$replaced   = [];
@@ -317,18 +333,18 @@ final readonly class ExtensionState
 					: array_any(['replace', 'provide'], static fn (string $link): bool => ($in = Requirements::provided($extension, (string) $name, $link)) !== null && VersionConstraint::matches($constraint, $in));
 
 				if ($stands) {
-					$conflicted[] = self::describe($other);
+					$conflicted[] = self::describe($other, $text);
 
 					break;
 				}
 			}
 
 			if (array_key_exists($extension->name, $other->replace)) {
-				$replaced[] = self::describe($other);
+				$replaced[] = self::describe($other, $text);
 			}
 
 			if (array_key_exists($extension->name, $other->provide)) {
-				$provided[] = self::describe($other);
+				$provided[] = self::describe($other, $text);
 			}
 		}
 
@@ -345,7 +361,7 @@ final readonly class ExtensionState
 	 * @return list<array{name: string, label: string, kind: string}>
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public function stops(ExtensionManifest $extension): array
+	public function stops(ExtensionManifest $extension, ?ExtensionText $text = null): array
 	{
 		if ($this->runs($extension->name)) {
 			return [];
@@ -362,7 +378,7 @@ final readonly class ExtensionState
 			static fn (ExtensionManifest $other): bool => $extension->kind() !== ExtensionKind::Theme || $other->kind() !== ExtensionKind::Theme
 		);
 
-		return array_values(array_map(self::describe(...), $stopped));
+		return array_values(array_map(static fn (ExtensionManifest $other): array => self::describe($other, $text), $stopped));
 	}
 
 	/**

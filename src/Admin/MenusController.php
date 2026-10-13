@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use JsonException;
 use stdClass;
 use Psr\Http\Message\ResponseInterface;
@@ -110,7 +111,8 @@ final readonly class MenusController
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private RouteTable $routes,
-		private AppConfig $app
+		private AppConfig $app,
+		private ExtensionText $text
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -398,7 +400,7 @@ final readonly class MenusController
 			];
 		}
 
-		return ['theme' => $chain->active()->label, 'menus' => $menus, 'locations' => $this->locations($chain, $assigned), 'kinds' => $this->kinds(), 'locale' => $this->app->locale];
+		return ['theme' => (string) $this->text->label($chain->active()), 'menus' => $menus, 'locations' => $this->locations($chain, $assigned), 'kinds' => $this->kinds(), 'locale' => $this->app->locale];
 	}
 
 	/**
@@ -426,7 +428,7 @@ final readonly class MenusController
 				'editable' => $problems === [],
 				'problems' => $problems
 			],
-			'theme'     => $chain->active()->label,
+			'theme'     => (string) $this->text->label($chain->active()),
 			'locations' => $this->locations($chain, $assigned),
 			'menus'     => array_map(fn (MenuRecord $other): array => ['name' => $other->name, 'label' => $this->labelText($other->label)], array_values($this->menus->menus())),
 			'kinds'     => $this->kinds(),
@@ -457,9 +459,10 @@ final readonly class MenusController
 		$locations = [];
 
 		foreach ($this->menus->locations($chain) as $name => $location) {
+			$label       = (string) $location->label;
 			$locations[] = [
 				'name'     => $name,
-				'label'    => $location->label !== '' ? $location->label : $name,
+				'label'    => $label !== '' ? $label : $name,
 				'depth'    => $location->depth,
 				'defaults' => self::count($location->items),
 				'menu'     => $assigned[$name] ?? null

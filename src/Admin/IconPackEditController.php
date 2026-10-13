@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -76,7 +77,8 @@ final readonly class IconPackEditController
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
 		private Filesystem $filesystem,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -101,7 +103,7 @@ final readonly class IconPackEditController
 		$checked = $this->extensions->check($pack);
 
 		if ($enable && ! Requirements::met($checked)) {
-			return self::error(sprintf('%s can\'t be turned on. %s', $pack->label, Requirements::reason($checked)), Status::UnprocessableContent);
+			return self::error(sprintf('%s can\'t be turned on. %s', $this->text->label($pack), Requirements::reason($checked)), Status::UnprocessableContent);
 		}
 
 		try {
@@ -117,7 +119,7 @@ final readonly class IconPackEditController
 		// What else starts or stops with it, of every kind: a plugin that
 		// requires it, say (D-431).
 		$after   = $this->extensions->with(icons: new IconConfig(saved: self::names($saved->get(Setting::IconPacks))));
-		$label   = static fn (ExtensionManifest $other): string => $other->label;
+		$label   = fn (ExtensionManifest $other): string => (string) $this->text->label($other);
 		$started = array_map($label, $after->runningNotIn($this->extensions, $pack->name));
 		$stopped = array_map($label, $this->extensions->runningNotIn($after, $pack->name));
 		$refresh = $started !== [] || $stopped !== [];

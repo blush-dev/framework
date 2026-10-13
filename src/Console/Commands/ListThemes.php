@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
+use Blush\Extension\ExtensionText;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\Themes;
 
@@ -28,7 +29,8 @@ final readonly class ListThemes
 {
 	public function __construct(
 		private Themes $themes,
-		private ThemeConfig $config
+		private ThemeConfig $config,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(Output $output): ExitCode
@@ -38,7 +40,7 @@ final readonly class ListThemes
 		foreach ($this->themes->all() as $name => $theme) {
 			$rows[] = [
 				$name === $this->config->active ? "* {$name}" : "  {$name}",
-				$theme->label,
+				(string) $this->text->label($theme),
 				$theme->namespace,
 				$theme->version,
 				$theme->parent ?? '',

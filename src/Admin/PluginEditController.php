@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -81,7 +82,8 @@ final readonly class PluginEditController
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
 		private Filesystem $filesystem,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -122,7 +124,7 @@ final readonly class PluginEditController
 			$checked = $before->check($plugin);
 
 			if (! Requirements::met($checked)) {
-				return self::error(sprintf('%s can\'t be turned on. %s', $plugin->label, Requirements::reason($checked)), Status::UnprocessableContent);
+				return self::error(sprintf('%s can\'t be turned on. %s', $this->text->label($plugin), Requirements::reason($checked)), Status::UnprocessableContent);
 			}
 		}
 
@@ -139,7 +141,7 @@ final readonly class PluginEditController
 		// What runs once it's saved, of every kind, to say what else starts
 		// or stops (D-431).
 		$after = $before->with(new PluginConfig(saved: self::names($saved->get(Setting::Plugins))));
-		$label = static fn (ExtensionManifest $other): string => $other->label;
+		$label = fn (ExtensionManifest $other): string => (string) $this->text->label($other);
 
 		$this->bootstrap->clearCompiled(CompiledCache::ContentTypes, CompiledCache::Routes);
 		$this->version->bump();
@@ -176,7 +178,7 @@ final readonly class PluginEditController
 
 		// A broken one never runs (D-394), but config may still name it.
 		$named = $plugin->name ?? $broken->name ?? '';
-		$label = $plugin->label ?? $where;
+		$label = $plugin === null ? $where : (string) $this->text->label($plugin);
 
 		if ($this->plugins->has($named)) {
 			return self::error(sprintf('%s is on. Turn it off before deleting it.', $label), Status::Conflict);

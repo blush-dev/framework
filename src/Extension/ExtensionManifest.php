@@ -36,6 +36,16 @@ interface ExtensionManifest
 	public string $label { get; }
 
 	/**
+	 * What the extension is, in a sentence (`''` when it doesn't say).
+	 */
+	public string $description { get; }
+
+	/**
+	 * The extension's absolute folder.
+	 */
+	public string $path { get; }
+
+	/**
 	 * The extension's version, as its manifest, `composer.json`, or
 	 * Composer gives it (`''` when none does).
 	 */

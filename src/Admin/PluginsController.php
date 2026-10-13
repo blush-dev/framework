@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
@@ -84,7 +85,8 @@ final readonly class PluginsController
 		private ExtensionState $extensions,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -111,10 +113,10 @@ final readonly class PluginsController
 
 			$plugins[] = [
 				'name'         => $plugin->name,
-				'label'        => $plugin->label,
+				'label'        => (string) $this->text->label($plugin),
 				'namespace'    => $plugin->namespace,
 				'version'      => $plugin->version,
-				'description'  => $plugin->description,
+				'description'  => (string) $this->text->description($plugin),
 				'authors'      => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $plugin->authors),
 				'license'      => $plugin->license,
 				'licenses'     => ExtensionLicense::parts($plugin->license),
@@ -126,9 +128,9 @@ final readonly class PluginsController
 				'folder'       => $folder,
 				'enabled'      => $this->config->isEnabled($plugin),
 				'running'      => $running,
-				...$this->extensions->report($plugin),
-				...$this->extensions->opposite($plugin),
-				'stops'        => $this->extensions->stops($plugin),
+				...$this->extensions->report($plugin, $this->text),
+				...$this->extensions->opposite($plugin, $this->text),
+				'stops'        => $this->extensions->stops($plugin, $this->text),
 				'clashes'      => $running ? $this->clashes($name) : [],
 				'deletable'    => $folder !== null && ! $running && ! self::namedByConfig($this->config, $name),
 				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)

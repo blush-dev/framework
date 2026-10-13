@@ -406,7 +406,7 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testLangExtractWritesTheCatalogThemeCheckCompares(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": "Primary"}}');
 		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '<?= e($messages->t("entry.by", "By {author}", author: "Ada")) ?>');
 		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', "{\n\t\"@@locale\": \"en\",\n\t\"@@domain\": \"acme/nova\",\n\t\"entry\": {\n\t\t\"by\": \"Old text\"\n\t}\n}\n");
 
@@ -419,11 +419,20 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->command(['lang:extract', 'acme/nova']);
 
-		$this->assertStringContainsString("\t\"entry\": {\n\t\t\"by\": \"By {author}\"\n\t}", (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json'));
+		$catalog = (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json');
+
+		$this->assertStringContainsString("\t\"entry\": {\n\t\t\"by\": \"By {author}\"\n\t}", $catalog);
+		$this->assertStringContainsString('"label": "Nova"', $catalog, 'The manifest\'s text is written too (D-824).');
+		$this->assertStringContainsString('"primary": "Primary"', $catalog);
 		$this->assertStringNotContainsString('entry.by', $this->command(['theme:check', 'acme/nova'])->output);
+
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova Two", "namespace": "nova", "menus": {"primary": "Primary"}}');
+
+		$this->assertMatchesRegularExpression('#warning\s+theme\.json:1 \(acme/nova\)\s+"manifest\.label" reads otherwise in lang/en\.json; run lang:extract\.#', $this->command(['theme:check', 'acme/nova'])->output);
+
 		$missing = $this->command(['lang:extract', 'acme/none']);
 
-		$this->assertStringContainsString('No theme or plugin named "acme/none"', $missing->output . $missing->errors);
+		$this->assertStringContainsString('No theme, plugin, or icon pack named "acme/none"', $missing->output . $missing->errors);
 	}
 
 	public function testAnotherThemesComponentsAreLeftOut(): void

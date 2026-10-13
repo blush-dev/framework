@@ -64,7 +64,7 @@ final readonly class ListMenus
 				$menu     = $record !== null || $default ? $this->menus->forLocation($chain, $name) : null;
 				$rows[]   = [
 					$name,
-					$location->label,
+					(string) $location->label,
 					match (true) {
 						$menuName !== null => $record === null ? "{$menuName} (missing)" : $menuName,
 						$default           => '(theme default)',

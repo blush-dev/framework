@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use JsonException;
 use Throwable;
 use Psr\Http\Message\ResponseInterface;
@@ -93,7 +94,8 @@ final readonly class SettingsEditController
 		private FieldContext $context,
 		private Themes $themes,
 		private ExtensionState $extensions,
-		private Roles $roles
+		private Roles $roles,
+		private ExtensionText $text
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
@@ -144,7 +146,12 @@ final readonly class SettingsEditController
 			self::assertUploads($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
-			$settings = $this->store->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
+			$settings = $this->store->update(function (Settings $settings) use ($removed, $builtIns, $site): Settings {
+				$updated = $settings->without(...$removed)->with($builtIns)->withSite($site);
+				$this->bootstrap->checkSettings($updated);
+
+				return $updated;
+			});
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
@@ -303,7 +310,9 @@ final readonly class SettingsEditController
 		$unmet = $this->extensions->with(theme: $theme)->themes->unmet();
 
 		if ($unmet !== []) {
-			throw new InvalidSetting(sprintf('%s can\'t be activated. %s', $this->themes->find($theme)->label ?? $theme, Requirements::reason(array_merge(...array_values($unmet)))));
+			$found = $this->themes->find($theme);
+
+			throw new InvalidSetting(sprintf('%s can\'t be activated. %s', $found === null ? $theme : $this->text->label($found), Requirements::reason(array_merge(...array_values($unmet)))));
 		}
 	}
 

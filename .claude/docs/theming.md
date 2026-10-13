@@ -614,8 +614,12 @@ overrides its ancestors message by message (D-107); a theme no longer
 rewords a plugin's or core's text by sharing a key (D-784). `$messages`
 is a `Messages` per file (D-816), its `t()` a `Text` printed in the
 current language (`CurrentLocale`, which `Views` sets to the page's
-while a file renders). Groups (`tGroup()`, D-450) are gone. The translator itself is CMS-wide; see
-`architecture.md` → Translation.
+while a file renders). Groups (`tGroup()`, D-450) are gone. A theme's
+`theme.json` text (its `label` and `description`, menu location labels,
+and settings' `label` and `description`) is translated from its own
+catalog under `manifest.` keys (`ExtensionText`, D-824), as plugins' and
+icon packs' labels and descriptions are. The translator itself is
+CMS-wide; see `architecture.md` → Translation.
 
 ## Accessibility (D-030)
 

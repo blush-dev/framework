@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
@@ -80,7 +81,8 @@ final readonly class ThemesController
 		private AppConfig $app,
 		private Paths $paths,
 		private Permissions $permissions,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -109,10 +111,10 @@ final readonly class ThemesController
 
 		$themes = array_values(array_map(fn (ThemeManifest $theme): array => [
 			'name'        => $theme->name,
-			'label'       => $theme->label,
+			'label'       => (string) $this->text->label($theme),
 			'namespace'   => $theme->namespace,
 			'version'     => $theme->version,
-			'description' => $theme->description,
+			'description' => (string) $this->text->description($theme),
 			'parent'      => $theme->parent,
 			'source'      => $theme->source->value,
 			'active'      => $theme->name === $active,
@@ -170,7 +172,7 @@ final readonly class ThemesController
 	private function requirements(ThemeManifest $theme, string $active): array
 	{
 		$state  = $theme->name === $active ? $this->extensions : $this->extensions->with(theme: $theme->name);
-		$report = [...$state->report($theme), ...$this->extensions->opposite($theme), 'stops' => $this->extensions->stops($theme)];
+		$report = [...$state->report($theme, $this->text), ...$this->extensions->opposite($theme, $this->text), 'stops' => $this->extensions->stops($theme, $this->text)];
 
 		try {
 			$this->themes->chain($theme->name);

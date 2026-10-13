@@ -21,6 +21,7 @@ use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
+use Blush\Extension\ExtensionText;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -28,6 +29,8 @@ use Blush\Field\Violation;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Translation\CatalogCheck;
+use Blush\Translation\SourceCatalog;
+use Blush\Translation\TranslationException;
 
 /**
  * Checks every installed icon pack (or one, by name), as `plugin:check`
@@ -35,9 +38,9 @@ use Blush\Translation\CatalogCheck;
  * is met (checking one that's off as if it were on), and its `version`
  * is one Composer can read. A pack that's on but can't load is an error,
  * which fails the command; one that's off and couldn't be turned on, a
- * broken one, an unreadable version, an abandoned pack (D-433), and a
- * `lang/` catalog whose `@@locale` or `@@domain` doesn't match (D-452)
- * are warnings.
+ * broken one, an unreadable version, an abandoned pack (D-433), a
+ * `lang/` catalog whose `@@locale` or `@@domain` doesn't match (D-452),
+ * and manifest text `lang/en.json` has otherwise (D-824) are warnings.
  */
 #[Command('icon-pack:check', 'Check icon packs\' manifests and requirements.')]
 final readonly class CheckIconPacks
@@ -45,7 +48,8 @@ final readonly class CheckIconPacks
 	public function __construct(
 		private IconPacks $packs,
 		private ExtensionState $extensions,
-		private CatalogCheck $catalogs
+		private CatalogCheck $catalogs,
+		private SourceCatalog $sourceCatalog
 	) {}
 
 	public function __invoke(
@@ -69,6 +73,14 @@ final readonly class CheckIconPacks
 			// Its catalogs against what they say they translate (D-452);
 			// notices (a catalog without them) are `theme:check --strict`'s.
 			$catalogs = array_filter($this->catalogs->check("{$pack->path}/lang", $pack->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
+
+			// Its manifest's text against lang/en.json (D-824); a catalog
+			// that can't be read is reported above.
+			try {
+				$catalogs = [...$catalogs, ...$this->sourceCatalog->compare(ExtensionText::extracted($pack), SourceCatalog::path("{$pack->path}/lang"))];
+			} catch (TranslationException) {
+				// Reported by the catalog check.
+			}
 
 			foreach ($catalogs as $violation) {
 				$lines[] = new StatusLine(Outcome::of($violation->severity), $pack->name, "{$violation->field} {$violation->message}");

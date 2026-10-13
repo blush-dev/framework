@@ -23,6 +23,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\ExtensionText;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Icon\IconPack;
@@ -81,7 +82,8 @@ final readonly class ExtensionInstaller
 
 	public function __construct(
 		private Paths $paths,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private ExtensionText $text
 	) {}
 
 	/**
@@ -311,7 +313,7 @@ final readonly class ExtensionInstaller
 	{
 		$plugin = LocalPluginFinder::manifest($folder);
 
-		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $folder, true, $plugin->abandoned, $plugin->suggest);
+		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, (string) $this->text->label($plugin), $plugin->namespace, $plugin->version, $folder, true, $plugin->abandoned, $plugin->suggest);
 	}
 
 	/**
@@ -325,7 +327,7 @@ final readonly class ExtensionInstaller
 			throw new ThemeException(sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT));
 		}
 
-		return new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
+		return new ExtensionPackage(ExtensionKind::Theme, $theme->name, (string) $this->text->label($theme), $theme->namespace, $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
 	}
 
 	/**
@@ -335,7 +337,7 @@ final readonly class ExtensionInstaller
 	{
 		$pack = IconPack::fromArray($folder, ManifestFile::load($folder, ExtensionKind::IconPack));
 
-		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $folder, true, $pack->abandoned, $pack->suggest);
+		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, (string) $this->text->label($pack), $pack->namespace, $pack->version, $folder, true, $pack->abandoned, $pack->suggest);
 	}
 
 	/**
@@ -420,15 +422,15 @@ final readonly class ExtensionInstaller
 		$packages = [];
 
 		foreach ($plugins as $plugin) {
-			$packages[] = new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $plugin->path, $plugin->source === PluginSource::Local && LocalExtensions::contains($this->paths, $plugin->path));
+			$packages[] = new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, (string) $this->text->label($plugin), $plugin->namespace, $plugin->version, $plugin->path, $plugin->source === PluginSource::Local && LocalExtensions::contains($this->paths, $plugin->path));
 		}
 
 		foreach (new ThemeDiscovery($this->paths)->discover()->all() as $theme) {
-			$packages[] = new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $theme->path, $theme->source === ThemeSource::Local && LocalExtensions::contains($this->paths, $theme->path));
+			$packages[] = new ExtensionPackage(ExtensionKind::Theme, $theme->name, (string) $this->text->label($theme), $theme->namespace, $theme->version, $theme->path, $theme->source === ThemeSource::Local && LocalExtensions::contains($this->paths, $theme->path));
 		}
 
 		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
-			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path));
+			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, (string) $this->text->label($pack), $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path));
 		}
 
 		return $packages;

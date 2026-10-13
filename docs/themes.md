@@ -848,6 +848,39 @@ when a key or text isn't plain text it can collect (such as
 something else). Templates in other languages,
 such as Blade, aren't read.
 
+#### Your manifest's text
+
+The text in `theme.json` is translated too: your theme's `label` and
+`description`, your [menu locations'](menus.md) labels, and your
+[settings'](#your-own-settings) `label` and `description`. Write them in
+`theme.json` as usual; a catalog translates each under a `manifest.`
+key:
+
+```json
+{
+	"@@locale": "fr",
+	"@@domain": "acme/notebook",
+	"manifest": {
+		"label": "Carnet",
+		"description": "Un thème sobre pour écrire.",
+		"menus": {
+			"primary": "Principal"
+		},
+		"settings": {
+			"wide": { "label": "Mise en page large", "description": "Occupe toute la fenêtre." }
+		}
+	}
+}
+```
+
+The admin, the CLI, and the API show them in their language, and a
+menu block names its menu by its location's label in the page's. Each
+is read from your theme's own catalogs, even while another theme is
+active, and without a translation, `theme.json`'s text shows.
+`lang:extract` writes them to `lang/en.json` with your code's text, and
+`theme:check` compares them. Keys under `manifest` are kept for this, so
+don't use them for your own text.
+
 Keys that start with `@` aren't messages, so they never show on a page.
 They let a catalog be recognized on its own, away from its folder, such
 as when it's sent to a translator and back. Every catalog Blush ships

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
@@ -60,7 +61,8 @@ final readonly class ThemeEditController
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
 		private Filesystem $filesystem,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
 	) {}
 
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -109,7 +111,7 @@ final readonly class ThemeEditController
 	private function inUse(ThemeManifest $theme): ?string
 	{
 		if ($theme->name === $this->config->active) {
-			return sprintf('%s is the active theme. Activate another theme before deleting it.', $theme->label);
+			return sprintf('%s is the active theme. Activate another theme before deleting it.', $this->text->label($theme));
 		}
 
 		try {
@@ -122,9 +124,9 @@ final readonly class ThemeEditController
 			return null;
 		}
 
-		$active = $this->themes->find($this->config->active)->label ?? $this->config->active;
+		$active = $this->themes->find($this->config->active);
 
-		return sprintf('The active theme, %s, falls back to %s. Activate another theme before deleting it.', $active, $theme->label);
+		return sprintf('The active theme, %s, falls back to %s. Activate another theme before deleting it.', $active === null ? $this->config->active : $this->text->label($active), $this->text->label($theme));
 	}
 
 	private static function error(string $message, Status $status): ResponseInterface

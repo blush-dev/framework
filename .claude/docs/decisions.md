@@ -25863,3 +25863,64 @@ decision, add a new entry that supersedes it and mark the old one
   previous argument"), but the extractor read `key:` as the key and
   wrote `social.image` to jtcom's catalog.
 - **Status:** Built (2026-10-13).
+
+### D-824: Manifest text is translated under `manifest.` keys
+
+- **Date:** 2026-10-13
+- **Decision:** the author's calls (a `manifest.` prefix; settings
+  labels included; plugins and icon packs too). The display text an
+  extension's manifest writes is translated from its own `lang/`
+  catalog, with the manifest's text shown when the catalog has none:
+  - `manifest.label` and `manifest.description`, for every kind;
+  - `manifest.menus.{location}`, a theme's menu location labels;
+  - `manifest.settings.{name}.label` and `.description`, a theme's
+    settings.
+  - **`Blush\Extension\ExtensionText`** gives each as a `Text`,
+    translated where it's shown (D-816), read from the extension's own
+    folder whether it runs or not, so an inactive theme's or a
+    turned-off plugin's label translates. Manifests stay plain data
+    (`ExtensionManifest` gains `description` and `path`); what shows
+    the text calls the service: the admin's Themes, Plugins, and Icon
+    Packs screens and their messages, Provenance, Site Health, the
+    Menus screen, `ExtensionState`'s reports (given it, since it's
+    built before the container), the installer's packages, `theme:list`,
+    `plugin:list`, `menu:list`, and `theme:new`'s parent picker.
+    `MenuLocation::$label` is a `Stringable|string`, a `Text` once
+    `Menus` reads it, so the menu block, the API, and the CLI print it
+    in their language. `SettingsResolver` labels each setting's field
+    with it (translated when set, as D-818's fields are).
+  - **`lang:extract`** writes a manifest's messages beside its code's,
+    with notes for translators (`ExtensionText::extracted()`), and
+    takes icon packs (their manifest alone). `theme:check`,
+    `plugin:check`, and `icon-pack:check` compare them with
+    `lang/en.json`.
+  - Left out: a theme's `preview.type`, and a menu location's default
+    items, which become site content once a menu is saved. Notes in
+    `Requirements` (core's English sentences) keep the manifest's label;
+    the admin's dependency rows show the translated one.
+- **Why:** the jtcom i18n review: `theme.json`'s label, description,
+  and menu names showed as written, in every language.
+- **Status:** Built (2026-10-13).
+
+### D-825: A listed language's code makes it the default; settings are checked against the config before they're saved
+
+- **Date:** 2026-10-13
+- **Decision:** the author's call ("it shouldn't break the site when I
+  pick a language as the default"), from a crash on the trial site:
+  setting the locale to `es` on General, with `es` listed in
+  `config/app.php` as `es_ES`, stopped every request, the admin's too.
+  - **`Languages::fromArray()`** still makes a listed language with the
+    site's exact locale the default (D-455). When none has it, a listed
+    language whose code is the locale's language (`es` for `es` or
+    `es_MX`) becomes the default, in the site's locale, keeping its
+    label. Before, that was refused as two languages sharing a code.
+    `toArray()` writes the entry as the config listed it, so changing
+    the locale back leaves the language's own locale in place. The
+    error for a default sharing a listed code is gone; nothing reaches
+    it now.
+  - **`Bootstrap::checkSettings()`** lays the settings over the config
+    files as a build does, every group at once, and the Settings
+    screens' save (`SettingsEditController::update()`) calls it on the
+    updated settings in the store's transaction: a value a config
+    object refuses is a 422 with its message and nothing is written,
+    never a site that won't boot.

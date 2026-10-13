@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
+use Blush\Extension\ExtensionText;
 use Blush\Core\Framework;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\Plugins;
@@ -30,7 +31,8 @@ final readonly class ListPlugins
 {
 	public function __construct(
 		private Plugins $plugins,
-		private PluginConfig $config
+		private PluginConfig $config,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(Output $output): ExitCode
@@ -49,7 +51,7 @@ final readonly class ListPlugins
 		foreach ($installed as $plugin) {
 			$rows[] = [
 				$plugin->name,
-				$plugin->label,
+				(string) $this->text->label($plugin),
 				$plugin->namespace,
 				$plugin->version,
 				$plugin->source->value,

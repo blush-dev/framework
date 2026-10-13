@@ -31,6 +31,9 @@ use Blush\Config\InvalidConfig;
  * The default language's content has no suffix and its URLs no prefix.
  * Its code is the site locale's language (`en`), unless a listed
  * language has the site's locale, which makes that entry the default.
+ * When none has it, a listed language whose code is the locale's
+ * language becomes the default with the site's locale (D-825): a locale
+ * of `es` or `es_MX` makes a listed `es` the default, keeping its label.
  * Every other language's files carry its code as a suffix and its URLs
  * sit under `/{code}`.
  */
@@ -38,12 +41,12 @@ final readonly class Languages
 {
 	/**
 	 * @param array<string, Language> $others The other languages, by code.
-	 * @param bool                    $listed Whether the config lists the default language.
+	 * @param ?Language                $listed The config's entry for the default language, if it lists one.
 	 */
 	private function __construct(
 		public Language $default,
 		private array $others,
-		private bool $listed = false
+		private ?Language $listed = null
 	) {}
 
 	/**
@@ -68,22 +71,22 @@ final readonly class Languages
 			}
 		}
 
-		$listed  = $default !== null;
-		$default ??= new Language(Language::codeOf($locale), $locale);
+		$listed = $default;
+		$code   = Language::codeOf($locale);
+
+		if ($default === null && isset($others[$code])) {
+			$listed  = $others[$code];
+			$default = new Language($code, $locale, $listed->label);
+			unset($others[$code]);
+		}
+
+		$default ??= new Language($code, $locale);
 
 		$locales = array_count_values(array_map(static fn (Language $language): string => $language->locale, [$default, ...array_values($others)]));
 		$shared  = array_keys(array_filter($locales, static fn (int $count): bool => $count > 1));
 
 		if ($shared !== []) {
 			throw new InvalidConfig(sprintf('Two languages have the locale "%s"; each language needs its own.', $shared[0]));
-		}
-
-		if (isset($others[$default->code])) {
-			throw new InvalidConfig(sprintf(
-				'The language "%s" is the site\'s default language (from its locale, "%s"); give it the site\'s locale or another code.',
-				$default->code,
-				$locale
-			));
 		}
 
 		return new self($default, $others, $listed);
@@ -152,7 +155,8 @@ final readonly class Languages
 	}
 
 	/**
-	 * Returns the config's form: codes to a locale and label.
+	 * Returns the config's form: codes to a locale and label, with the
+	 * default language's entry as the config listed it.
 	 *
 	 * @return array<string, array{locale: string, label: string}>
 	 */
@@ -160,7 +164,7 @@ final readonly class Languages
 	{
 		return array_map(
 			static fn (Language $language): array => ['locale' => $language->locale, 'label' => $language->label],
-			$this->listed ? $this->all() : $this->others
+			$this->listed === null ? $this->others : [$this->listed->code => $this->listed, ...$this->others]
 		);
 	}
 

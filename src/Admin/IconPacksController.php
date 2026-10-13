@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
@@ -82,7 +83,8 @@ final readonly class IconPacksController
 		private Paths $paths,
 		private SettingsStore $settings,
 		private Permissions $permissions,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -148,10 +150,10 @@ final readonly class IconPacksController
 
 		return [
 			'name'        => $pack->name,
-			'label'       => $pack->label,
+			'label'       => (string) $this->text->label($pack),
 			'namespace'   => $pack->namespace,
 			'version'     => $pack->version,
-			'description' => $pack->description,
+			'description' => (string) $this->text->description($pack),
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $pack->authors),
 			'license'     => $pack->license,
 			'licenses'    => ExtensionLicense::parts($pack->license),
@@ -163,9 +165,9 @@ final readonly class IconPacksController
 			'folder'      => $folder,
 			'enabled'     => $this->packs->isEnabled($pack->name),
 			'running'     => $this->extensions->runs($pack->name),
-			...$this->extensions->report($pack),
-			...$this->extensions->opposite($pack),
-			'stops'       => $this->extensions->stops($pack),
+			...$this->extensions->report($pack, $this->text),
+			...$this->extensions->opposite($pack, $this->text),
+			'stops'       => $this->extensions->stops($pack, $this->text),
 			'deletable'   => $folder !== null,
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::IconPack, $folder === null ? null : $pack->path, $pack->name),
 			'count'       => count($files),

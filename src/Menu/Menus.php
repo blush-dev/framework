@@ -16,6 +16,7 @@ namespace Blush\Menu;
 use Closure;
 use Psr\Log\LoggerInterface;
 use Blush\Core\AppConfig;
+use Blush\Extension\ExtensionText;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
@@ -92,7 +93,8 @@ final class Menus
 		private readonly FieldFactory $fields,
 		private readonly FieldContext $fieldContext,
 		private readonly AppConfig $app,
-		private readonly LoggerInterface $logger
+		private readonly LoggerInterface $logger,
+		private readonly ExtensionText $text
 	) {}
 
 	/**
@@ -152,7 +154,8 @@ final class Menus
 
 		foreach (array_reverse($chain->themes) as $theme) {
 			foreach ($theme->menus() as $name => $declaration) {
-				$locations[$name] = MenuLocation::fromDeclaration($name, $declaration, $theme->name);
+				$location         = MenuLocation::fromDeclaration($name, $declaration, $theme->name);
+				$locations[$name] = $location->withLabel($this->text->menu($theme, $name, (string) $location->label));
 			}
 		}
 
@@ -407,7 +410,7 @@ final class Menus
 		$resolved = $this->items($items ?? $menu->items, $location, $schema, $locale, 1, '', $subject, $problems);
 		$label    = trim($label ?? '');
 
-		return new Menu($location->name, $menu->name, $label !== '' ? $label : $location->label, $resolved);
+		return new Menu($location->name, $menu->name, $label !== '' ? $label : (string) $location->label, $resolved);
 	}
 
 	/**

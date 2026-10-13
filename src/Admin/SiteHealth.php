@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use DateTimeInterface;
 use DateTimeZone;
 use Psr\Clock\ClockInterface;
@@ -105,7 +106,8 @@ final readonly class SiteHealth
 		private MediaLibrary $library,
 		private ClockInterface $clock,
 		private HealthReportStore $store,
-		private IgnoredProblems $ignored
+		private IgnoredProblems $ignored,
+		private ExtensionText $text
 	) {}
 
 	/**
@@ -604,13 +606,13 @@ final readonly class SiteHealth
 					&& ! (VersionConstraint::satisfies(SetupChecks::MINIMUM_PHP, $requirement->constraint) && $requirement->met);
 
 				if (! $requirement->conflict && ($php || $requirement->kind === RequirementKind::Extension)) {
-					$required[$php ? 'php' : strtolower($requirement->name)][$extension->label] = $requirement;
+					$required[$php ? 'php' : strtolower($requirement->name)][(string) $this->text->label($extension)] = $requirement;
 				}
 			}
 
 			foreach ($extension->suggest as $name => $reason) {
 				if (str_starts_with($name, 'ext-')) {
-					$suggested[strtolower($name)][$extension->label] = $reason;
+					$suggested[strtolower($name)][(string) $this->text->label($extension)] = $reason;
 				}
 			}
 		}
@@ -665,7 +667,7 @@ final readonly class SiteHealth
 	{
 		$languages = $this->app->languages->all();
 		$theme     = $this->extensions->themes->find($this->extensions->theme);
-		$label     = $theme->label ?? $this->extensions->theme;
+		$label     = $theme === null ? $this->extensions->theme : (string) $this->text->label($theme);
 		$driver    = CacheDriver::tryFrom($this->cache->driver);
 		$zone      = $this->app->timezone();
 		$entries   = number_format($this->content->query()->any()->count());

@@ -287,6 +287,20 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'fallback']])->getStatusCode());
 	}
 
+	public function testSavesAListedLanguageAsTheDefault(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['environment' => 'development', 'languages' => ['es' => ['locale' => 'es_ES', 'label' => 'Español'], 'fr' => 'fr_FR']]);\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.locale' => 'es']]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+
+		$languages = $this->scratchApplication()->container()->make(AppConfig::class)->languages;
+		$this->assertSame(['es', 'fr'], array_keys($languages->all()), 'Spanish is the default (D-825).');
+		$this->assertSame(['es', 'Español'], [$languages->default->locale, $languages->default->name()]);
+	}
+
 	public function testShowsAndSavesSignups(): void
 	{
 		$this->boot(roles: ['administrator']);

@@ -1507,6 +1507,11 @@ without it. `plugin:check` warns when that file reads otherwise than
 your code, since its text would win (see
 [Translations](themes.md#translations)).
 
+Your `plugin.json` `label` and `description` are translated the same
+way, under `manifest.label` and `manifest.description` in your catalogs,
+and `lang:extract` writes them too (see
+[Your manifest's text](themes.md#your-manifests-text)).
+
 ### Template engines from a plugin
 
 Templates are plain PHP, but a plugin can add another template
@@ -1835,7 +1840,10 @@ on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
 `:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.
-Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`:
+Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`, and
+the pack's own `label` and `description` are translated under
+`manifest.label` and `manifest.description` (see
+[Your manifest's text](themes.md#your-manifests-text)):
 
 ```json
 {

@@ -21,6 +21,7 @@ use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
+use Blush\Extension\ExtensionText;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -83,9 +84,10 @@ final readonly class CheckPlugins
 			// notices (a catalog without them) are `theme:check --strict`'s.
 			$catalogs = array_filter($this->catalogs->check("{$plugin->path}/lang", $plugin->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
 
-			// The messages its code writes against lang/en.json (D-784);
-			// a catalog that can't be read is reported above.
+			// The messages its code and manifest write against lang/en.json
+			// (D-784, D-824); a catalog that can't be read is reported above.
 			[$messages, $problems] = $this->extractor->extract($plugin->path);
+			$messages              = [...ExtensionText::extracted($plugin), ...$messages];
 
 			try {
 				$problems = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path("{$plugin->path}/lang"))];

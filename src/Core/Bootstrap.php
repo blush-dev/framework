@@ -59,6 +59,7 @@ use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
+use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingGroups;
 use Blush\Settings\Settings;
@@ -324,6 +325,19 @@ final readonly class Bootstrap
 	private function env(): Env
 	{
 		return Env::load($this->paths->root . '/.env', $this->environment);
+	}
+
+	/**
+	 * Checks that settings fit the site's config (D-825): they're laid
+	 * over the config files as a build lays them, every group at once, so
+	 * a value the config refuses is refused when it's saved rather than
+	 * on every request after.
+	 *
+	 * @throws InvalidSetting When a config object refuses a value.
+	 */
+	public function checkSettings(Settings $settings): void
+	{
+		$settings->apply($this->config($this->env(), settings: false));
 	}
 
 	/**

@@ -13,12 +13,17 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
+use Stringable;
+
 /**
  * A place a theme shows a menu, declared in `theme.json` `menus` (D-199,
  * D-200): a label string, or an object with a `label`, the deepest
  * nesting it shows (`depth`), extra per-item `fields` (field
  * definitions, as theme settings are), and the `items` it shows until
  * the site assigns it a menu (D-676), as a menu's items are written.
+ * Its label is translated from the theme's catalog
+ * (`manifest.menus.{name}`, D-824) once `Menus` has read it, so it's
+ * text, printed in the current language.
  *
  * ```json
  * "menus": {
@@ -36,7 +41,7 @@ final readonly class MenuLocation
 	 */
 	public function __construct(
 		public string $name,
-		public string $label = '',
+		public Stringable|string $label = '',
 		public ?int $depth = null,
 		public array $fields = [],
 		public array $items = []
@@ -80,5 +85,13 @@ final readonly class MenuLocation
 
 		/** @var array<string, array<array-key, mixed>> $fields */
 		return new self($name, trim($label), $depth, $fields, $items);
+	}
+
+	/**
+	 * Returns a copy with another label.
+	 */
+	public function withLabel(Stringable|string $label): self
+	{
+		return new self($this->name, $label, $this->depth, $this->fields, $this->items);
 	}
 }

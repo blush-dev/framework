@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Extension\ExtensionText;
 use Blush\Icon\IconPacks;
 use Blush\Plugin\Plugins;
 use Blush\Theme\ThemeChain;
@@ -28,7 +29,8 @@ final readonly class Provenance
 {
 	public function __construct(
 		private Plugins $plugins,
-		private IconPacks $packs
+		private IconPacks $packs,
+		private ExtensionText $text
 	) {}
 
 	/**
@@ -41,19 +43,19 @@ final readonly class Provenance
 	{
 		foreach ($chain->themes as $theme) {
 			if ($theme->namespace === $namespace) {
-				return ['kind' => 'theme', 'label' => $theme->label];
+				return ['kind' => 'theme', 'label' => (string) $this->text->label($theme)];
 			}
 		}
 
 		$pack = $this->packs->byNamespace($namespace);
 
 		if ($pack !== null) {
-			return ['kind' => 'icon-pack', 'label' => $pack->label];
+			return ['kind' => 'icon-pack', 'label' => (string) $this->text->label($pack)];
 		}
 
 		foreach ($this->plugins->all() as $plugin) {
 			if ($plugin->namespace === $namespace) {
-				return ['kind' => 'plugin', 'label' => $plugin->label];
+				return ['kind' => 'plugin', 'label' => (string) $this->text->label($plugin)];
 			}
 		}
 
@@ -82,6 +84,6 @@ final readonly class Provenance
 
 		$plugin = $this->plugins->owning($class);
 
-		return $plugin === null ? ['kind' => 'other', 'label' => 'Elsewhere'] : ['kind' => 'plugin', 'label' => $plugin->label];
+		return $plugin === null ? ['kind' => 'other', 'label' => 'Elsewhere'] : ['kind' => 'plugin', 'label' => (string) $this->text->label($plugin)];
 	}
 }

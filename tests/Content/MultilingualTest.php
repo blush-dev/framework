@@ -176,11 +176,20 @@ final class MultilingualTest extends TestCase
 		$this->assertSame('uk', $listed->default->code);
 		$this->assertSame(['uk', 'fr'], array_keys($listed->toArray()));
 		$this->assertSame(['fr' => ['locale' => 'fr_FR', 'label' => '']], AppConfig::fromArray(['languages' => ['fr' => 'fr_FR']])->toArray()['languages']);
+
+		// Without one, a listed language with the locale's code is the
+		// default, in the site's locale (D-825), and is kept as listed.
+		$coded = Languages::fromArray('es', ['es' => ['locale' => 'es_ES', 'label' => 'Español'], 'en' => 'en_US']);
+
+		$this->assertSame(['es', 'en'], array_keys($coded->all()));
+		$this->assertSame(['es', 'Español'], [$coded->default->locale, $coded->default->label]);
+		$this->assertSame(['es' => ['locale' => 'es_ES', 'label' => 'Español'], 'en' => ['locale' => 'en_US', 'label' => '']], $coded->toArray());
+		$this->assertSame('es_MX', Languages::fromArray('es_MX', ['es' => 'es_ES'])->default->locale);
 	}
 
 	public function testInvalidLanguages(): void
 	{
-		foreach ([['FR' => 'fr_FR'], ['pt_br' => 'pt_BR'], ['en' => 'en_GB'], ['fr' => ['label' => 'Français']], ['fr' => 'not a locale']] as $languages) {
+		foreach ([['FR' => 'fr_FR'], ['pt_br' => 'pt_BR'], ['fr' => ['label' => 'Français']], ['fr' => 'not a locale']] as $languages) {
 			try {
 				Languages::fromArray('en_US', $languages);
 				$this->fail('Expected InvalidConfig for ' . json_encode($languages));

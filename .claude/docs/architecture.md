@@ -329,6 +329,20 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   (`lang:extract`) and compares them (`theme:check`, `plugin:check`).
   Catalog keys starting with `@` are notes (`@{key}: {context}`), never
   messages.
+- **Manifest text (D-824):** `Blush\Extension\ExtensionText` gives an
+  extension's `label` and `description` (every kind), a theme's menu
+  location labels, and its settings' `label` and `description` as
+  `Text` under `manifest.` keys (`manifest.label`,
+  `manifest.menus.{location}`, `manifest.settings.{name}.label`), read
+  from the extension's own `lang/` whether it runs or not (a
+  `Translator::withDomains()` copy per extension, memoized per
+  request). The manifests stay plain data; whatever shows the text
+  calls it (the admin's extension lists and messages, Site Health, the
+  Menus screen, the CLI's lists, the installer, `ExtensionState`'s
+  reports when given it). `Menus` stores the label on each
+  `MenuLocation` as a `Text`; `SettingsResolver` labels each setting's
+  field with it. `ExtensionText::extracted()` feeds `lang:extract`,
+  `theme:check`, `plugin:check`, and `icon-pack:check`.
 - **Locale fallback:** `en_US` → `en` → the default locale and its
   language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
