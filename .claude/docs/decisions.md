@@ -25848,3 +25848,18 @@ decision, add a new entry that supersedes it and mark the old one
   `mention__at`). `with()` also takes another `BemClass`, for a mix
   (`audio-card playlist__card`). jtcom's views on the trial site too.
 - **Status:** Built (2026-10-13).
+
+### D-823: `lang:extract` reports a `key:` or `text:` parameter beside its key or text
+
+- **Refines:** D-784 (`MessageExtractor`'s checks).
+- **Decision:** a `t()` call that gives its key or text by position and
+  also passes a parameter named `key:` or `text:` (such as
+  `t('fields.social', 'As {key}.', key: 'social.image')`) is a warning,
+  "It passes "key:" as well as its key, which PHP refuses; rename the
+  parameter.", and isn't collected. Positional arguments win when the
+  extractor reads a call, so `key:` and `text:` count only when they're
+  the key and text themselves (`t(key: '…', text: '…')`).
+- **Why:** PHP refuses the call ("Named parameter $key overwrites
+  previous argument"), but the extractor read `key:` as the key and
+  wrote `social.image` to jtcom's catalog.
+- **Status:** Built (2026-10-13).

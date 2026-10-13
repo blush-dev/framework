@@ -30,8 +30,10 @@ use Blush\Support\Filesystem;
  * (`'…'` or `"…"` with nothing interpolated); `context:` is its note for
  * translators. A call without text (a key looked up alone) is left out.
  * Problems, as warnings: a key or text that isn't a plain string, so it
- * can't be collected (write it out, or make it an ICU `select`); one key
- * with two texts; and text that isn't a valid ICU message.
+ * can't be collected (write it out, or make it an ICU `select`); a
+ * `key:` or `text:` parameter beside the key or text it would replace,
+ * which PHP refuses; one key with two texts; and text that isn't a valid
+ * ICU message.
  *
  * Templates other engines read (Blade's `.blade.php`) aren't PHP to the
  * tokenizer, so their calls aren't found.
@@ -77,8 +79,14 @@ final readonly class MessageExtractor
 					continue;
 				}
 
-				foreach (self::calls($code) as [$line, $key, $text, $context]) {
+				foreach (self::calls($code) as [$line, $key, $text, $context, $clash]) {
 					$where = "{$path}:{$line}";
+
+					if ($clash !== null) {
+						$problems[] = new Violation($where, sprintf('It passes "%1$s:" as well as its %1$s, which PHP refuses; rename the parameter.', $clash), Severity::Warning);
+
+						continue;
+					}
 
 					if ($text === null) {
 						continue;
@@ -127,9 +135,10 @@ final readonly class MessageExtractor
 	/**
 	 * Returns a file's `->t()` calls: the line, then the key, text, and
 	 * context, each a string, `null` when it isn't given, or `false` when
-	 * it isn't a plain string.
+	 * it isn't a plain string, and the name of a parameter given both by
+	 * position and by name (`key` or `text`), else `null`.
 	 *
-	 * @return list<array{int, string|false, string|false|null, string|false|null}>
+	 * @return list<array{int, string|false, string|false|null, string|false|null, ?string}>
 	 */
 	private static function calls(string $code): array
 	{
@@ -144,15 +153,18 @@ final readonly class MessageExtractor
 
 			$args = self::arguments($tokens, $i + 3);
 
-			$key     = $args['key'] ?? $args[0] ?? null;
-			$text    = $args['text'] ?? $args[1] ?? null;
+			$key     = $args[0] ?? $args['key'] ?? null;
+			$text    = $args[1] ?? $args['text'] ?? null;
 			$context = $args['context'] ?? null;
+
+			$clash = array_find_key(['key' => 0, 'text' => 1], static fn (int $position, string $name): bool => isset($args[$position], $args[$name]));
 
 			$calls[] = [
 				$tokens[$i + 1]->line,
 				$key === null ? false : (self::literal($key) ?? false),
 				$text === null ? null : self::literal($text),
-				$context === null ? null : self::literal($context)
+				$context === null ? null : self::literal($context),
+				$clash
 			];
 		}
 

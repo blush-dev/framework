@@ -843,7 +843,9 @@ text to show; it's for translators. `theme:check` warns when
 `lang/en.json` reads otherwise than your code (its text would win),
 when one key has two texts, when text isn't a valid ICU message, and
 when a key or text isn't plain text it can collect (such as
-`"status.{$status}"`; use a `select`). Templates in other languages,
+`"status.{$status}"`; use a `select`), and when a call names a parameter
+`key:` or `text:` beside its key and text, which PHP refuses (name it
+something else). Templates in other languages,
 such as Blade, aren't read.
 
 Keys that start with `@` aren't messages, so they never show on a page.

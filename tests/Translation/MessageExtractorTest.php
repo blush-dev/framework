@@ -39,6 +39,8 @@ final class MessageExtractorTest extends TestCase
 			<p><?= e($messages->t('keyed.only', minutes: 5)) ?></p>
 			<p><?= e($messages->t("status.{$status}", 'A status')) ?></p>
 			<p><?= e($messages->t('broken', '{count, plural, one {#}')) ?></p>
+			<p><?= e($messages->t('fields.social', 'As {key}.', key: 'social.image')) ?></p>
+			<p><?= e($messages->t('fields.style', 'Style', text: 'Other')) ?></p>
 			PHP);
 		$this->writeTemporaryFile('acme/src/Provider.php', "<?php\n\$x = \$this?->t('entry.by', 'Written by {author}');\n\$y = \$this->t('tools.export', 'Export');\n");
 		$this->writeTemporaryFile('acme/vendor/lib/thing.php', "<?php\n\$this->t('vendor.key', 'Never read');\n");
@@ -59,7 +61,10 @@ final class MessageExtractorTest extends TestCase
 
 		$found = array_map(static fn (Violation $problem): string => "{$problem->field} {$problem->message}", $problems);
 
-		$this->assertCount(3, $found);
+		$this->assertCount(5, $found);
+		$this->assertContainsEquals('views/single.php:8 It passes "key:" as well as its key, which PHP refuses; rename the parameter.', $found);
+		$this->assertContainsEquals('views/single.php:9 It passes "text:" as well as its text, which PHP refuses; rename the parameter.', $found);
+		$this->assertArrayNotHasKey('social.image', $messages);
 		$this->assertContainsEquals('views/single.php:6 Its key isn\'t a plain string, so it can\'t be collected; write it out, or choose with an ICU select.', $found);
 		$this->assertStringContainsString('"broken" isn\'t a valid ICU message', implode("\n", $found));
 		$this->assertStringContainsString('"entry.by" has other text at views/single.php:2', implode("\n", $found));
