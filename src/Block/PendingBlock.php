@@ -38,12 +38,14 @@ final class PendingBlock implements SafeHtml
 
 	/**
 	 * @param array<string, mixed> $props
+	 * @param bool                 $optional Whether it renders `''` when the block isn't registered (`blockIf()`, D-826).
 	 */
 	public function __construct(
 		private readonly Views $views,
 		private readonly ViewContext $context,
 		private readonly string $name,
-		private readonly array $props
+		private readonly array $props,
+		private readonly bool $optional = false
 	) {}
 
 	/**
@@ -58,12 +60,18 @@ final class PendingBlock implements SafeHtml
 	}
 
 	/**
-	 * Renders the block.
+	 * Renders the block, or returns `''` when it's optional and isn't
+	 * registered. An optional block's name must still be valid: a
+	 * full name, or a core block's short name.
 	 *
 	 * @throws ViewException
 	 */
 	public function render(): string
 	{
+		if ($this->optional && BlockName::parse($this->name) !== null && ! $this->views->hasBlock($this->name)) {
+			return '';
+		}
+
 		return $this->views->block($this->name, $this->props, $this->content, $this->context);
 	}
 

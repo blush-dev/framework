@@ -46,12 +46,14 @@ final class PendingComponent implements SafeHtml
 
 	/**
 	 * @param array<string, mixed> $props
+	 * @param bool                 $optional Whether it renders `''` when the component doesn't exist (`componentIf()`, D-826).
 	 */
 	public function __construct(
 		private readonly Views $views,
 		private readonly ViewContext $context,
 		private readonly string $name,
-		private readonly array $props
+		private readonly array $props,
+		private readonly bool $optional = false
 	) {}
 
 	/**
@@ -75,12 +77,17 @@ final class PendingComponent implements SafeHtml
 	}
 
 	/**
-	 * Renders the component.
+	 * Renders the component, or returns `''` when it's optional and
+	 * doesn't exist. An optional component's name must still be valid.
 	 *
 	 * @throws ViewException
 	 */
 	public function render(): string
 	{
+		if ($this->optional && ComponentName::parse($this->name) !== null && ! $this->views->hasComponent($this->name)) {
+			return '';
+		}
+
 		return $this->views->component($this->name, $this->props, $this->content, new Slots($this->slots), $this->context);
 	}
 

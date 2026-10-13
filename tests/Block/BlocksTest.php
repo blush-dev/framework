@@ -497,6 +497,34 @@ final class BlocksTest extends TestCase
 		$views->block('acme/note', [], '', new ViewContext());
 	}
 
+	public function testOptionalBlocksRenderNothingWhenUnregistered(): void
+	{
+		$this->view('blocks/acme-note', '[<?= $block->content() ?>]');
+		$this->view('page', '<?= $template->blockIf("acme/note")->content("a") ?>|<?= $template->blockIf("acme/nope", variant: "x")->content("b") ?>|<?= $template->hasBlock("acme/note") ? "y" : "n" ?><?= $template->hasBlock("acme/nope") ? "y" : "n" ?><?= $template->hasBlock("callout") ? "y" : "n" ?>');
+		$this->view('invalid', '<?= $template->blockIf("nope") ?>');
+		$this->view('broken', '<?= $template->blockIf("acme/bare") ?>');
+
+		$views    = $this->boot();
+		$registry = $this->app->container()->make(BlockRegistry::class);
+
+		$this->assertSame('||nny', $views->render('page'), 'An unregistered optional block is nothing (D-826).');
+
+		$registry->register('acme/note', Box::class);
+		$registry->register('acme/bare', Box::class);
+
+		$this->assertSame('[a]||yny', $views->render('page'));
+
+		try {
+			$views->render('invalid');
+			$this->fail('An optional block\'s name should still be valid.');
+		} catch (ViewException $error) {
+			$this->assertStringContainsString('"nope" isn\'t a core block, so it needs its namespace', $error->getMessage());
+		}
+
+		$this->expectException(ViewNotFound::class);
+		$views->render('broken');
+	}
+
 	public function testBlocksRenderInEntries(): void
 	{
 		$this->writeTemporaryFile('config/embed.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Embed\\EmbedConfig(enabled: ['vimeo', 'youtube']);\n");

@@ -421,14 +421,27 @@ final readonly class Views
 
 	/**
 	 * Returns whether a component exists (D-532): a class is registered
-	 * for it, or the chain has its template. `$name` is a full name.
+	 * for it, or it's in a theme's namespace and the chain has its
+	 * template. A template for another namespace's component only
+	 * draws its class, so it's nothing without one (D-826): a theme's
+	 * template for a plugin's component, with the plugin off. `$name`
+	 * is a full name.
 	 */
 	public function hasComponent(string $name): bool
 	{
 		$parsed = ComponentName::parse($name);
 
 		return $parsed !== null
-			&& ($this->services->components->isRegistered((string) $parsed) || $this->finder->nearest([$parsed->view()]) !== null);
+			&& ($this->services->components->isRegistered((string) $parsed) || $this->isTemplateComponent($parsed));
+	}
+
+	/**
+	 * Returns whether a component without a class is one of the
+	 * chain's themes' and has a template in the chain (D-532, D-826).
+	 */
+	private function isTemplateComponent(ComponentName $name): bool
+	{
+		return in_array($name->namespace, $this->chain->namespaces(), true) && $this->finder->nearest([$name->view()]) !== null;
 	}
 
 	/**
@@ -491,7 +504,8 @@ final readonly class Views
 	 * `TemplateComponent`), which holds its content and slots (D-195,
 	 * D-196). Without a template in the chain, a component with a class
 	 * renders itself (`render()`, D-382): its HTML, or the template file
-	 * it ships with.
+	 * it ships with. One without a class is a theme's template, in its
+	 * namespace (D-826).
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
@@ -499,7 +513,12 @@ final readonly class Views
 	public function component(string $name, array $props, string $slot, Slots $slots, ViewContext $context): string
 	{
 		$parsed    = ComponentName::parse($name) ?? throw new ViewException(sprintf('"%s" is not a valid component name; a component is always "{namespace}/{name}", such as "%s/%s" (D-532).', $name, $this->chain->active()->namespace, $name));
-		$class     = $this->services->components->get((string) $parsed);
+		$class = $this->services->components->get((string) $parsed);
+
+		if ($class === null && ! $this->isTemplateComponent($parsed)) {
+			throw ViewNotFound::forNames([$parsed->view()]);
+		}
+
 		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
 
 		$component->attach($parsed, $props, $slot, $slots, $this->messagesFor($this->ownDomains($parsed->namespace)), $context);

@@ -205,6 +205,29 @@ final class Template
 	}
 
 	/**
+	 * Returns a component like `component()`, which renders `''` when
+	 * the component doesn't exist (D-826), so a theme can offer a spot
+	 * for one a plugin it suggests may add:
+	 * `<?= $template->componentIf('acme/powered-by') ?>`. Its name must
+	 * still be valid, and a component that exists but fails still
+	 * throws.
+	 */
+	#[ReturnsHtml]
+	public function componentIf(string $component, mixed ...$props): PendingComponent
+	{
+		return new PendingComponent($this->views, $this->context, $component, self::named($props), optional: true);
+	}
+
+	/**
+	 * Returns whether a component exists (D-532, D-826): a class is
+	 * registered for it, or the chain has its template.
+	 */
+	public function hasComponent(string $component): bool
+	{
+		return $this->views->hasComponent($component);
+	}
+
+	/**
 	 * Returns a block with named props, to print or to give content
 	 * first (D-532): what content would say, drawn by a template, as
 	 * `<?= $template->block('callout', variant: 'tip')->content($html) ?>`.
@@ -216,6 +239,27 @@ final class Template
 	public function block(string $block, mixed ...$props): PendingBlock
 	{
 		return new PendingBlock($this->views, $this->context, $block, self::named($props));
+	}
+
+	/**
+	 * Returns a block like `block()`, which renders `''` when the block
+	 * isn't registered (D-826): `<?= $template->blockIf('acme/share') ?>`.
+	 * Its name must still be valid, and a block that's registered but
+	 * fails still throws.
+	 */
+	#[ReturnsHtml]
+	public function blockIf(string $block, mixed ...$props): PendingBlock
+	{
+		return new PendingBlock($this->views, $this->context, $block, self::named($props), optional: true);
+	}
+
+	/**
+	 * Returns whether a block is registered (D-532, D-826). `$block` is
+	 * a full name or a core block's short name.
+	 */
+	public function hasBlock(string $block): bool
+	{
+		return $this->views->hasBlock($block);
 	}
 
 	/**

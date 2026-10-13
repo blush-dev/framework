@@ -198,6 +198,52 @@ final class ComponentsTest extends TestCase
 		$views->component('../x', [], '', new Slots(), new ViewContext());
 	}
 
+	public function testOptionalComponentsRenderNothingWhenMissing(): void
+	{
+		$this->view('components/site-box', '[<?= $component->content() ?>|<?= $component->slots->footer ?>]');
+		$this->view('page', '<?= $template->componentIf("site/box")->content("a")->slot("footer", "b") ?>|<?= $template->componentIf("acme/nope", tone: "x")->slot("footer", "c") ?>|<?= $template->hasComponent("site/box") ? "y" : "n" ?><?= $template->hasComponent("acme/nope") ? "y" : "n" ?>');
+		$this->view('invalid', '<?= $template->componentIf("box") ?>');
+		$this->view('components/site-bad', '<?php throw new RuntimeException("Broken."); ?>');
+		$this->view('broken', '<?= $template->componentIf("site/bad") ?>');
+
+		$views = $this->boot();
+
+		$this->assertSame('[a|b]||yn', $views->render('page'), 'An optional component renders when it exists and is nothing when it doesn\'t (D-826).');
+
+		try {
+			$views->render('invalid');
+			$this->fail('An optional component\'s name should still be valid.');
+		} catch (ViewException $error) {
+			$this->assertStringContainsString('"box" is not a valid component name;', $error->getMessage());
+		}
+
+		$this->expectExceptionMessage('Broken.');
+		$views->render('broken');
+	}
+
+	public function testATemplateForAnotherNamespacesComponentNeedsItsClass(): void
+	{
+		$this->view('components/acme-chip', 'theme chip: <?= e($component->text) ?>');
+		$this->view('page', '[<?= $template->componentIf("acme/chip", text: "Paid") ?>]');
+
+		$views = $this->boot();
+
+		$this->assertFalse($views->hasComponent('acme/chip'), 'A theme\'s template for a plugin\'s component is nothing without the plugin (D-826).');
+		$this->assertSame('[]', $views->render('page'));
+
+		try {
+			$views->component('acme/chip', [], '', new Slots(), new ViewContext());
+			$this->fail('A template for another namespace\'s component should need its class.');
+		} catch (ViewNotFound $error) {
+			$this->assertSame('No view found for: components/acme-chip.', $error->getMessage());
+		}
+
+		$this->app->container()->make(ComponentRegistry::class)->register('acme/chip', Chip::class);
+
+		$this->assertTrue($views->hasComponent('acme/chip'));
+		$this->assertSame('[theme chip: Paid]', $views->render('page'), 'With its class, the theme\'s template draws it.');
+	}
+
 	public function testContentCantNameAComponent(): void
 	{
 		$this->view('components/site-box', 'a box');

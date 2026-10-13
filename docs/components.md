@@ -39,6 +39,33 @@ content, and **named slots** hold other pieces, filled with `->slot()`:
 	->slot('footer', '<a href="/more">More</a>') ?>
 ```
 
+A component that doesn't exist is an error. When a component comes from
+a plugin the site may not have, such as one your theme
+[suggests](extending.md#plugins), use `componentIf()`: it renders
+nothing when the component doesn't exist, and takes props and slots the
+same way:
+
+```php
+<?= $template->componentIf('acme/powered-by') ?>
+```
+
+To wrap it in markup of your own, ask first with `hasComponent()`:
+
+```php
+<?php if ($template->hasComponent('acme/powered-by')) : ?>
+	<div class="site-footer__credit"><?= $template->component('acme/powered-by') ?></div>
+<?php endif ?>
+```
+
+A theme can draw a plugin's component with a template of its own, named
+for it (`views/components/acme-powered-by.php`). That template is used
+only while the plugin is on: without the plugin's class, the component
+doesn't exist, and `componentIf()` prints nothing.
+
+`componentIf()` covers only a missing component. A name that isn't
+`{namespace}/{name}`, or a component that's there but fails, is still an
+error.
+
 To see every component the active theme can draw, run:
 
 ```sh

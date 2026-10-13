@@ -452,7 +452,11 @@ What a template can use:
 | `$template->includeUnless($condition, 'partials/x')` | Include it unless the condition is true |
 | `$template->each('partials/card', $entries, as: 'entry', empty: 'partials/none')` | Include a template once per item (see below) |
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
+| `$template->componentIf('acme/powered-by')` | Render a component only if it exists, such as one from a plugin the theme suggests |
+| `$template->hasComponent('acme/powered-by')` | Whether a component exists |
 | `$template->block('callout', variant: 'tip')` | Render a block, as content would (see [Blocks](blocks.md#using-blocks-in-templates)) |
+| `$template->blockIf('acme/share')` | Render a block only if it's registered |
+| `$template->hasBlock('acme/share')` | Whether a block is registered |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](blocks.md#icons)) |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |

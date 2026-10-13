@@ -25924,3 +25924,42 @@ decision, add a new entry that supersedes it and mark the old one
     updated settings in the store's transaction: a value a config
     object refuses is a 422 with its message and nothing is written,
     never a site that won't boot.
+
+### D-826: `componentIf()` and `blockIf()` render nothing for what isn't there
+
+- **Date:** 2026-10-13
+- **Decision:** the author's call, for a theme that suggests a plugin
+  (D-434), such as a small PoweredBy plugin rendering its text as a
+  component, and prints it without breaking when the plugin isn't on.
+  - **`$template->componentIf()`** and **`$template->blockIf()`** take
+    the same arguments as `component()` and `block()` and return the
+    same `PendingComponent` and `PendingBlock`, made optional, so
+    `->content()` and `->slot()` still chain. One renders `''` when the
+    component doesn't exist (no class registered and no template in the
+    chain) or the block isn't registered.
+  - **Only "not there" is quiet.** A name that isn't valid (a component
+    without its namespace, a short name that isn't a core block's)
+    still throws, and so does a component or block that exists but
+    fails, so typos and broken plugins still show.
+  - **`$template->hasComponent()`** and **`$template->hasBlock()`** are
+    thin calls to `Views`', for a theme wrapping one in markup of its
+    own.
+  - `component()` and `block()` still throw for what isn't there.
+  - **A component without a class is a theme's**: it exists when its
+    namespace is one of the chain's themes and the chain has its
+    template. A theme's template for another namespace's component (a
+    plugin's) only draws that component's class, so without the class
+    the component doesn't exist: `hasComponent()` is false,
+    `componentIf()` prints nothing, and `component()` throws
+    `ViewNotFound`, as `components()` already listed such a template as
+    stray. Before, it rendered as a `TemplateComponent` and failed on
+    the class's methods.
+  - **The Powered By plugin** (`justintadlock/powered-by` on the trial
+    site, the `poweredby/powered-by` component) is the first use:
+    jtcom's "Powered by" lines (D-818) moved out of the theme, which
+    suggests the plugin, prints it with `componentIf()`, and draws it
+    with its own template.
+- **Why:** `$template` couldn't ask whether a component or block
+  exists, so a theme couldn't offer a spot for a suggested plugin's
+  without the page failing when it was off. Named after `includeIf()`.
+- **Status:** Built (2026-10-13).

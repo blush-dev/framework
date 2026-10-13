@@ -1174,7 +1174,10 @@ why, as in `composer.json`: other plugins, themes, or icon packs by
 ```
 
 Nothing is checked or installed for it: an extension runs the same with
-or without what it suggests. The admin lists them on the extension's
+or without what it suggests. A theme that suggests a plugin for a
+component or block prints it with `$template->componentIf()` or
+`$template->blockIf()`, which print nothing without it (see
+[Components](components.md#using-components-in-templates)). The admin lists them on the extension's
 details, under **Suggests**, each with why beneath it, linking one
 that's installed and saying whether a PHP extension is loaded, and
 installing an extension from a zip lists what it suggests. In a manifest, anything but an object of
