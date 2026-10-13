@@ -11,8 +11,7 @@
  *     Pick the one that fits.
  *     :::
  *
- * @var Blush\View\Template            $template
- * @var Blush\Directive\Layout\Stack   $directive
+ * @var Blush\Directive\Layout\Stack $directive
  */
 
 declare(strict_types=1);

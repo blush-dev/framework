@@ -9,8 +9,7 @@
  *     Some blocks.
  *     :::
  *
- * @var Blush\View\Template           $template
- * @var Blush\Directive\Layout\Group  $directive
+ * @var Blush\Directive\Layout\Group $directive
  */
 
 declare(strict_types=1);

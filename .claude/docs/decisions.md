@@ -25557,3 +25557,194 @@ decision, add a new entry that supersedes it and mark the old one
     initials; they move to `AdminAvatar` when those payloads carry the
     portrait.
 - **Status:** Built (2026-10-12).
+
+### D-813: `$entry->byline()` is `$entry->creators()`
+
+- **Supersedes:** in part, D-804 (the method's name).
+- **Decision:** the author's call: `byline()` was a singular word for a
+  list, and `bylines()` reads as several bylines. `creators()` is plural,
+  fits any type (a post's authors, a recipe's cooks, a podcast's hosts),
+  and reads as the main part of `credits()` (D-808). Same answer as
+  before: the profiles the type's byline relation links, memoized, empty
+  without a byline. `EntryGraph::byline()` is `creators()` too.
+  Unchanged: the type's `byline` option, `ContentTypes::byline()`,
+  `RelatedEntries::$byline`, and "byline" in the admin; whether the
+  option follows is part of the byline flow's overhaul
+  (`open-questions.md`). No 2.x sites to keep working, so no alias. The
+  default theme's `entry-meta`, second-proof, the tests, and the docs
+  call `creators()`.
+- **Status:** Built (2026-10-13).
+
+### D-814: `$media` in every template, and `MediaItem` with `img()`
+
+- **Supersedes:** in part, D-773 and D-802 (`$template->media()` gone;
+  `$entry->media()` returns a `MediaItem`, not the index's record).
+- **Decision:** the author's call, after D-811: the media library is a
+  service anyone reads, and templates get it as a variable.
+  - **`Blush\Media\MediaItems`**, a singleton, is passed to every view
+    as `$media` (beside `$site`). `find($value)` takes a file's id or
+    an older path and returns a `MediaItem`, or `null` (also when the
+    library can't be read). `$entry->media('image')` goes through it
+    (`EntryGraph::media()`), so a file reached from an entry, a
+    template, or code is one lookup and one object. Queries
+    (`$media->images()`) can come later over `MediaQuery`.
+  - **`MediaItem`**: `url`, `width`, `height`, `mime`, `kind()`,
+    `metadata()`, `alt()`, `id()`, `sizes()`, the index's `record` for
+    code that needs more, and **`img(...$attributes): SafeHtml`** for
+    images: `src`, `width`, `height`, the library's alt text (`alt:`
+    replaces it), a `srcset` of the sizes the library keeps (D-488) and
+    the image itself by width, `loading="lazy"` and
+    `decoding="async"`, and attributes by name as `link()` takes them.
+    Empty for any other kind.
+  - **Memoized at the bottom** (D-807): `MediaValues::record()` keeps
+    each answer for the request, and `MediaLibrary` drops the memo when
+    it writes its index; `MediaItems` keeps its items. `MediaValues` is
+    a singleton too.
+  - **`Blush\View\HtmlAttributes`** prints attributes by name for both
+    `link()` and `img()`; `InvalidLinkAttribute` is now
+    `Blush\View\InvalidHtmlAttribute`.
+  - **A theme's own images stay with `asset()`** and `inline()`: they
+    aren't in the library, and the theme writes their alt text.
+  - Sounds, videos, and other files print through their directives
+    from templates, not from `MediaItem` (discussed, next).
+- **Why:** templates and code read media one way, and an image prints
+  with its size, alt text, and `srcset` without theme code.
+- **Status:** Built (2026-10-13).
+
+### D-815: `$theme`, `$site->setting()`, and `$entry->archiveUrl()` in place of `Template` methods
+
+- **Supersedes:** in part, D-158, D-343, D-596, and D-602 (where these
+  are called from), and D-151 (`inline()` moves).
+- **Decision:** the author's call, taking lookups and data off
+  `Template` (D-811); `Template` keeps the render, text and dates in the
+  page's language, routes, and menus.
+  - **`$theme`**, a `Blush\Theme\ActiveTheme` every template gets (from
+    `Views`, beside `$site` and `$media`): `setting($name)`,
+    `asset($path)`, `inline($path)`, each through the chain, and `name`.
+    `$template->setting()`, `asset()`, and `inline()` are gone. A
+    theme's images stay files it links with `$theme->asset()` (D-814).
+  - **`$site->setting($name)`**: `Site` carries the site settings
+    (`SiteSettings`), so `$template->site()` is gone.
+  - **`$entry->archiveUrl($type, ?$relation)`**: an entry's archive
+    under a type, through the type's byline without a relation
+    (`$profile->archiveUrl($entry->type) ?: $profile->url()`), worked
+    out and memoized in `EntryGraph`. `$template->archiveUrl()` is gone;
+    its list form (no target) had no use, and code has
+    `ContentUrls::relatedList()`.
+  - **`$template->profile()` is gone**: no theme used it; code has
+    `AccountProfiles::find()`, and templates reach profiles through
+    entries (`creators()`).
+  - **`requestedLayout()` and `openSections()` are gone** from
+    `Template`: the layout a template asks for and the sections it
+    leaves open are a `TemplateState` that `Views` makes and reads.
+  - Core's views, the default theme, second-proof, jtcom, the tests, and
+    the docs moved over. `tGroup()` is next to talk through.
+- **Status:** Built (2026-10-13).
+
+### D-816: One `Messages::t()` everywhere, printed in the current language
+
+- **Supersedes:** in part, D-784 (`$template->t()`, the providers' and
+  renderables' own `t()`, and text deferred only from providers and
+  `Messages`), and D-450 (message groups: `tGroup()`,
+  `Translator::group()`, `DomainTranslator::group()`, and the default
+  footer's random lines).
+- **Decision:** the author's call: one service for text that core,
+  plugins, and themes all call the same way, anywhere, including the
+  front end.
+  - **`Messages` is the one service**, its `t($key, ?$text, ...named)`
+    the one method. A class asks for it (the container gives its
+    extension's, by namespace, as before); service providers,
+    components, and directives have `$this->messages`; every template
+    has `$messages`, for the domains of the code that wrote the file
+    (a theme's chain, a plugin's, core's). `$template->t()` and
+    `tGroup()` are gone, and so are `ServiceProvider::t()` and
+    `Renderable::t()`.
+  - **`t()` returns a `Text`, translated when it's printed** (cast or
+    echoed) in the current language, so building one costs nothing and
+    a component can make every line it might show and print one (the
+    author's `defer()` question: `t()` already defers). Where a screen
+    knows a better language, it translates the `Text` itself
+    (`Translator::text()`, `Views::text()`), so APIs that take display
+    text accept `string|Stringable` (`EntryTemplate` now; the rest are
+    the next stage). A `raw()` (`SafeHtml`) parameter makes it HTML:
+    `isHtml()`, and `e()` prints it as is, the message's own text and
+    other parameters escaped (D-559 as before; `Translator::render()`).
+    A parameter that's a `Text` is translated in the same language.
+  - **`CurrentLocale`** holds the language text prints in: the site's,
+    reset on each `RequestReceived`; `Views` sets a file's page locale
+    (a translation's, D-455) while it renders, and while a directive or
+    component renders its own markup (`in()`, restored after, errors
+    too). The admin has no language preference yet, so it's the site's.
+  - The default theme's footer is "Powered by Blush." (`powered_by`).
+    The product name is written in the text, not
+    `Framework::NAME` ("Blush Framework").
+- **Next stages (agreed):** `string|Stringable` for every API that takes
+  display text from extensions (tools first, with reading-time as the
+  example); jtcom's "Powered by" lines as a component class; and
+  `theme:check` no longer warning about keys `en.json` lacks.
+- **Status:** Built (2026-10-13), stages 1–3.
+
+### D-817: Core's templates are linted
+
+- **Supersedes:** in part, D-110 ("Templates are checked with `php -l`;
+  PHPCS covers `src`, `tests`, and `benchmarks` only").
+- **Decision:** the author's call: `composer lint` checks core's
+  templates too (`resources/views`, `resources/directives`,
+  `resources/themes`, and `resources/server.php`), under every rule
+  code gets, except four that fight markup, turned off for those
+  folders only: `Generic.WhiteSpace.ScopeIndent` (loops in feeds and
+  sitemaps stay at the margin), `Squiz.ControlStructures.ControlSignature.NewlineAfterOpenBrace`
+  (inline elements stay on one line, since a newline is whitespace on the
+  page), `PSR2.Files.ClosingTag.NotAllowed` (a template may end with an
+  echo tag), and `PSR12.Files.FileHeader.IncorrectOrder` and
+  `.SpacingAfterDocblockBlock` (a helper closure's docblock after
+  `declare` isn't a second header). Every view also declares the
+  variables it uses with `@var`, and only those (the code style skill).
+- **Status:** Built (2026-10-13).
+
+### D-818: D-816's later stages: display text from extensions, jtcom's footer, optional catalogs
+
+- **Decision:** the author's go on D-816's next stages.
+  - **Display text from extensions is `string|Stringable`**, a `Text`
+    from `t()` kept as it is and translated where it's shown:
+    `Tool::title()`, `description()`, and `confirm()`; `ToolResult`'s
+    text and details; `Capabilities::register()`'s label and group; and
+    `Job::label()` (with `EntryTemplate`, D-816). Each consumer (the
+    Tools screen, Settings, MCP, jobs, `blush tool`) casts it, in the
+    current language. `Field::labeled()` and `described()` take one too
+    but translate it when they're set: field labels are read as text in
+    some 330 places, and the admin shows the site's language until
+    accounts have one. `Text` is `JsonSerializable` (as its text), so
+    one reaching JSON is never `{}`.
+  - **reading-time** (the example plugin) is the worked example: its
+    tool's title, description, and result are `t()` calls, its result
+    an ICU plural. The `GreetTool` fixture writes its text the same way,
+    so the Tools screen's and MCP's tests prove it reaches JSON as text.
+  - **jtcom's "Powered by" lines** are a `jtcom/powered-by` component
+    (`Jtcom\View\PoweredBy`), their text in the class; only the line
+    picked is translated.
+  - **Catalogs are optional:** `theme:check` and `plugin:check` no
+    longer warn about a key `lang/en.json` lacks, nor note a missing
+    `lang/en.json`; the code's text shows. Text the catalog has
+    otherwise is still a warning, since the catalog's wins.
+- **Status:** Built (2026-10-13).
+
+### D-819: `$template` is the render, not the data
+
+- **Decision:** the author's rule, closing the `$template` pass (D-813
+  to D-818). `$template` holds what only a render has: the layout,
+  sections, includes, `each()`, components, directives, icons, the
+  head and foot, assets (`enqueue()`), and fragment caching; and what
+  depends on the page being rendered: dates and times in its language,
+  `widont()`, routes (in its language), menus (with its item current),
+  and body classes. Everything else a template reads is an object it's
+  given, each a thin call to a service core and plugins call too
+  (D-811): `$entry` (relations, URL, media, avatar, archives), `$site`
+  (and `setting()`), `$theme` (`setting()`, `asset()`, `inline()`),
+  `$media`, and `$messages` (`t()`). A new template helper goes on one
+  of those objects, or a new one, before `$template`; one that does go
+  there says what about the render it needs. In AGENTS.md.
+- **Open, not decided:** whether `date()`, `time()`, `datetime()`, and
+  `widont()` also get shared helpers for code outside templates (feeds,
+  mail); the error pages' `Views::$messages` as a `Messages`.
+- **Status:** Rule (2026-10-13).

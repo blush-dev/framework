@@ -1467,14 +1467,14 @@ Write text where it's used, with a key and the text beside it, as
 [themes do](themes.md#translations). Blush works out whose text it is
 from where the code lives, so you never name your plugin:
 
-- **In a template** the plugin ships: `$template->t('key', 'Text')`.
+- **In a template** the plugin ships: `$messages->t('key', 'Text')`.
 - **In a directive or component class**, and **in your provider**:
-  `$this->t('key', 'Text')`. A provider's comes back as a message that's
-  translated where it's shown, so a label you register reads in the
-  page's or the admin's language:
+  `$this->messages->t('key', 'Text')`. A label you register is
+  translated where it's shown, so it reads in the page's or the
+  admin's language:
 
   ```php
-  $registry->register(new EntryTemplate('template-wide', label: $this->t('templates.wide.label', 'Wide')));
+  $registry->register(new EntryTemplate('template-wide', label: $this->messages->t('templates.wide.label', 'Wide')));
   ```
 
 - **In any other class**, ask for `Messages` in the constructor. You
@@ -1496,9 +1496,16 @@ from where the code lives, so you never name your plugin:
   }
   ```
 
+It's the same `t()` everywhere, and it gives back a message that's
+translated when it's printed, in the current language: the page's on a
+page, the site's elsewhere. Print it, or cast it with `(string)` where
+you need a string now.
+
 `bin/blush lang:extract acme/hello` writes it all to `lang/en.json` for
-translators, and `plugin:check` warns when that file is behind your
-code (see [Translations](themes.md#translations)).
+translators when you want them. It's optional: your code's text shows
+without it. `plugin:check` warns when that file reads otherwise than
+your code, since its text would win (see
+[Translations](themes.md#translations)).
 
 ### Template engines from a plugin
 

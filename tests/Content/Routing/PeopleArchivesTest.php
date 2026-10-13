@@ -45,11 +45,7 @@ use Blush\Routing\UrlSource;
 use Blush\Sitemap\SitemapBuilder;
 use Blush\Support\RequestMemo;
 use Blush\Tests\Content\BuildsContentSite;
-use Blush\Theme\ThemeResolver;
 use Blush\View\Hierarchy;
-use Blush\View\Template;
-use Blush\View\ViewContext;
-use Blush\View\ViewFactory;
 
 /**
  * People archives as credit relations' archives (D-602): what were people
@@ -61,7 +57,6 @@ use Blush\View\ViewFactory;
 #[CoversClass(ProfileController::class)]
 #[CoversClass(RelationArchives::class)]
 #[CoversClass(ProfileList::class)]
-#[CoversClass(Template::class)]
 #[CoversClass(RelatedEntries::class)]
 #[CoversClass(RequestMemo::class)]
 #[CoversClass(Avatars::class)]
@@ -271,8 +266,6 @@ final class PeopleArchivesTest extends TestCase
 	{
 		$app       = $this->boot();
 		$container = $app->container();
-		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
-		$template  = new Template($views, new ViewContext());
 		$spring    = $container->make(Entries::class)->named('post', 'spring');
 
 		$this->assertNotNull($spring);
@@ -285,10 +278,10 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertSame('Justin Tadlock', $authors->first()?->title, 'The byline\'s first profile.');
 		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn (Entry $profile): string => $profile->title, $authors->all()));
 		$this->assertCount(2, $authors);
-		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn (Entry $profile): string => $profile->title, $spring->byline()->all()), 'The byline, shorter (D-804).');
-		$this->assertTrue($spring->byline()->byline);
+		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn (Entry $profile): string => $profile->title, $spring->creators()->all()), 'The byline, shorter (D-804).');
+		$this->assertTrue($spring->creators()->byline);
 		$this->assertSame(['Art', 'Book Reviews'], array_map(static fn (Entry $linked): string => $linked->title, $spring->classifications()->all()), 'What it\'s filed under, every classify relation (D-808).');
-		$this->assertSame($spring->byline()->all(), $spring->credits()->all(), 'Every credit relation, the byline first.');
+		$this->assertSame($spring->creators()->all(), $spring->credits()->all(), 'Every credit relation, the byline first.');
 		$this->assertTrue($spring->references()->isEmpty());
 		$this->assertSame(['en' => $spring], $spring->translations());
 		$this->assertSame($spring->classifications(), $spring->classifications(), 'Kept for the request (D-807).');
@@ -296,17 +289,21 @@ final class PeopleArchivesTest extends TestCase
 		$about = $container->make(Entries::class)->named('page', 'about');
 
 		$this->assertNotNull($about);
-		$this->assertTrue($about->byline()->isEmpty(), 'A type without a byline has none.');
+		$this->assertTrue($about->creators()->isEmpty(), 'A type without a byline has none.');
 		$this->assertFalse($spring->related('category')->byline);
 		$this->assertTrue($spring->related('nothing')->isEmpty(), 'A relation the type hasn\'t leads nowhere.');
 		$this->assertNull($spring->related('nothing')->relation);
 		$this->assertSame('<a href="/archives/spring" class="entry-link" data-entry-id="7" aria-current="page" hidden>spring</a>', (string) $spring->link(class: 'entry-link', dataEntryId: 7, ariaCurrent: 'page', hidden: true, title: null, download: false), 'Attributes by name, dashed (D-803).');
-		$this->assertSame('/archives/authors/guest', $template->archiveUrl('post', null, 'guest'), 'The byline\'s archive.');
-		$this->assertSame('/archives/authors', $template->archiveUrl('post', 'authors'));
-		$this->assertSame('', $template->archiveUrl('post', 'nope'));
-		$this->assertNull($template->profile('nobody'));
+		$guest = $container->make(Entries::class)->named('profile', 'guest');
 
-		$sam = $template->profile('sam');
+		$this->assertNotNull($guest);
+		$this->assertSame('/archives/authors/guest', $guest->archiveUrl('post'), 'The byline\'s archive (D-815).');
+		$this->assertSame('/archives/authors/guest', $guest->archiveUrl($spring->type, 'authors'), 'By the relation\'s name.');
+		$this->assertSame($guest->archiveUrl('post'), $guest->archiveUrl('post'));
+		$this->assertSame('', $guest->archiveUrl('post', 'nope'));
+		$this->assertSame('', $guest->archiveUrl('nothing'));
+
+		$sam = $container->make(Entries::class)->named('profile', 'sam');
 
 		$this->assertNotNull($sam);
 		$this->assertSame('Sam', $sam->title);
@@ -345,7 +342,6 @@ final class PeopleArchivesTest extends TestCase
 	{
 		$container = $this->boot()->container();
 		$content   = $container->make(Entries::class);
-		$template  = new Template($container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active()), new ViewContext());
 		$spring    = $content->named('post', 'spring');
 		$guest     = $content->named('profile', 'guest');
 
@@ -353,19 +349,18 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertNotNull($guest);
 		$this->assertSame($guest, $content->find((string) $guest->id), 'One object per entry, however it\'s reached (D-806).');
 		$this->assertSame($guest, $content->term('profile', 'guest'));
-		$this->assertSame($guest, $template->profile('guest'));
-		$this->assertSame($guest, $spring->byline()->all()[1] ?? null);
+		$this->assertSame($guest, $spring->creators()->all()[1] ?? null);
 		$this->assertSame($spring, $content->query()->type('post')->names('spring')->get()->first());
 		$this->assertSame($content->query()->type('post')->get(), $content->query()->type('post')->get(), 'A query asked twice is one lookup.');
-		$this->assertSame($spring->byline(), $spring->byline(), 'Asked again, it\'s kept (D-805).');
-		$this->assertSame($spring->related('authors'), $spring->byline());
-		$this->assertSame($spring->byline()->published(), $spring->byline()->published());
+		$this->assertSame($spring->creators(), $spring->creators(), 'Asked again, it\'s kept (D-805).');
+		$this->assertSame($spring->related('authors'), $spring->creators());
+		$this->assertSame($spring->creators()->published(), $spring->creators()->published());
 		$this->assertSame($spring->url(), $spring->url());
 		$this->assertSame($spring->excerpt(), $spring->excerpt());
 
 		$content->change($guest, new EntryChanges(set: ['title' => 'A Visitor']));
 
-		$this->assertSame(['Justin Tadlock', 'A Visitor'], array_map(static fn (Entry $profile): string => $profile->title, $spring->byline()->all()), 'A write drops what was kept.');
+		$this->assertSame(['Justin Tadlock', 'A Visitor'], array_map(static fn (Entry $profile): string => $profile->title, $spring->creators()->all()), 'A write drops what was kept.');
 	}
 
 	public function testATypeCreditsPeopleInItsOwnWords(): void

@@ -15,6 +15,7 @@ namespace Blush\View;
 
 use JsonException;
 use Stringable;
+use Blush\Translation\Text;
 
 /**
  * Escapes values for each output context of a template. These are pure
@@ -40,7 +41,7 @@ final class Escaper
 	 */
 	public static function html(Stringable|string|int|float|bool|null $value): string
 	{
-		return $value instanceof SafeHtml ? (string) $value : self::text($value);
+		return $value instanceof SafeHtml || ($value instanceof Text && $value->isHtml()) ? (string) $value : self::text($value);
 	}
 
 	/**

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Override;
-use Blush\Translation\DomainTranslator;
+use Blush\Translation\Messages;
 use Blush\View\Renderable;
 use Blush\View\ViewContext;
 
@@ -92,10 +92,10 @@ abstract class Component extends Renderable
 		array $props,
 		string $content = '',
 		?Slots $slots = null,
-		?DomainTranslator $translator = null,
+		?Messages $messages = null,
 		?ViewContext $context = null
 	): void {
-		$this->attachRenderable($name->name, $props, $content, $translator, $context);
+		$this->attachRenderable($name->name, $props, $content, $messages, $context);
 
 		$this->namedSlots = $slots;
 	}

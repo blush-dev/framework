@@ -7,8 +7,7 @@
  *
  *     The launch is :time[next Tuesday]{datetime=2026-10-06}.
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Inline\Time  $directive
+ * @var Blush\Directive\Inline\Time $directive
  */
 
 declare(strict_types=1);

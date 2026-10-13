@@ -5,8 +5,9 @@
  * a skip link, the site header and footer, and the page's `content`
  * section in the `<main>` landmark.
  *
- * @var Blush\View\Template $template
- * @var Blush\View\Site     $site
+ * @var Blush\View\Template        $template
+ * @var Blush\View\Site            $site
+ * @var Blush\Translation\Messages $messages
  */
 
 declare(strict_types=1);
@@ -19,7 +20,7 @@ declare(strict_types=1);
 
 </head>
 <body class="<?= attr($template->bodyClass()) ?>">
-<a class="skip-link" href="#main"><?= e($template->t('skip_to_content')) ?></a>
+<a class="skip-link" href="#main"><?= e($messages->t('skip_to_content')) ?></a>
 
 <?= $template->include('partials/header') ?>
 

@@ -7,8 +7,7 @@
  *     :icon[Home]{name=house}
  *     :icon[]{name=heart .loved}
  *
- * @var Blush\View\Template   $template
- * @var Blush\Directive\Icon  $directive
+ * @var Blush\Directive\Icon $directive
  */
 
 declare(strict_types=1);

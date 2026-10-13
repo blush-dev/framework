@@ -31,8 +31,10 @@ final class MediaServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
+		MediaItems::class,
 		MediaResolver::class,
 		MediaSchemas::class,
+		MediaValues::class,
 		Index\MediaIndex::class,
 		Index\MediaLibrary::class,
 		EmbeddedMetadataReader::class

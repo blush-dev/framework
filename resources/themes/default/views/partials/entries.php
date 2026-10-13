@@ -4,6 +4,7 @@
  * A page's listed entries, with pagination.
  *
  * @var Blush\View\Template            $template
+ * @var Blush\Translation\Messages     $messages
  * @var Blush\Content\Http\ContentPage $page
  */
 
@@ -13,7 +14,7 @@ $entries = $page->entries;
 
 ?>
 <?php if ($entries === null || count($entries) === 0) : ?>
-	<p class="no-entries"><?= e($template->t('no_entries')) ?></p>
+	<p class="no-entries"><?= e($messages->t('no_entries')) ?></p>
 <?php else : ?>
 	<ul class="entries" role="list">
 		<?php foreach ($entries as $item) : ?>

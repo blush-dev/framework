@@ -75,6 +75,8 @@ final readonly class ToolButtons
 	 */
 	public static function confirm(Tool $tool): ?string
 	{
-		return $tool->confirm() ?? ($tool->annotations()->destructive ? sprintf('%s may remove something that can\'t be put back.', $tool->title()) : null);
+		$confirm = $tool->confirm();
+
+		return $confirm !== null ? (string) $confirm : ($tool->annotations()->destructive ? sprintf('%s may remove something that can\'t be put back.', $tool->title()) : null);
 	}
 }

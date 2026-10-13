@@ -79,7 +79,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<a href="/topics/art" class="entry-meta__term">Art</a>', $home);
 		$this->assertStringContainsString('<a href="/topics/book-reviews" class="entry-meta__term">Book Reviews</a>', $home);
 		$this->assertStringContainsString('<p>Spring is here.</p>', $home);
-		$this->assertMatchesRegularExpression('#<p>Powered by [^<]+\.</p>\s*</footer>#', $home, '1.x\'s lines (D-450).');
+		$this->assertMatchesRegularExpression('#<p>Powered by Blush\.</p>\s*</footer>#', $home, 'One line (D-816).');
 
 		$single = $this->body('/archives/spring', $app);
 
@@ -179,12 +179,12 @@ final class ThemedRenderingTest extends TestCase
 	public function testSiteTranslationsOverrideThemes(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/lang/en/extensions/blush/default.json', '{"@@locale": "en", "@@domain": "blush/default", "skip_to_content": "Jump to the post", "powered_by": {"tea": "Powered by tea."}}');
+		$this->writeTemporaryFile('user/lang/en/extensions/blush/default.json', '{"@@locale": "en", "@@domain": "blush/default", "skip_to_content": "Jump to the post", "powered_by": "Powered by tea."}');
 
 		$single = $this->body('/archives/spring');
 
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Jump to the post</a>', $single);
-		$this->assertStringContainsString('<p>Powered by tea.</p>', $single, 'An override\'s group replaces the theme\'s.');
+		$this->assertStringContainsString('<p>Powered by tea.</p>', $single, 'An override replaces the theme\'s text.');
 	}
 
 	public function testAnEntrysImageBecomesTheSharingImage(): void

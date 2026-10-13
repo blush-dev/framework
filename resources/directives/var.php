@@ -5,8 +5,7 @@
  *
  *     Solve for :var[x].
  *
- * @var Blush\View\Template              $template
- * @var Blush\Directive\Inline\Variable  $directive
+ * @var Blush\Directive\Inline\Variable $directive
  */
 
 declare(strict_types=1);

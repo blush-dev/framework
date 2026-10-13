@@ -7,8 +7,7 @@
  *
  *     ::progress[Reading challenge]{value=12 max=50}
  *
- * @var Blush\View\Template       $template
- * @var Blush\Directive\Progress  $directive
+ * @var Blush\Directive\Progress $directive
  */
 
 declare(strict_types=1);

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Job;
 
+use Stringable;
 use Throwable;
 
 /**
@@ -33,7 +34,7 @@ abstract class Job
 	/**
 	 * Returns what the job does, for lists ("Reindex content").
 	 */
-	abstract public function label(): string;
+	abstract public function label(): string|Stringable;
 
 	/**
 	 * Returns what one run of the job does, for lists of runs: by
@@ -41,7 +42,7 @@ abstract class Job
 	 */
 	public function describe(JobRecord $job): string
 	{
-		return $this->label();
+		return (string) $this->label();
 	}
 
 	/**

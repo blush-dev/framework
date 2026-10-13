@@ -64,7 +64,7 @@ function css(Stringable|string|int|float|null $value): string
  * Marks trusted, already-rendered HTML (such as an entry body) for output
  * as is (D-559). It prints the same as the value it's given; marked, it
  * also survives being passed on: `e()` leaves it alone, and in a
- * translation (`$template->t('by', names: raw($links))`) it goes in
+ * translation (`$messages->t('by', names: raw($links))`) it goes in
  * unescaped while the rest is escaped. Never mark text a visitor or a
  * writer typed.
  */

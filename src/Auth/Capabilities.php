@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Stringable;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\MediaKind;
 
@@ -35,16 +36,16 @@ final class Capabilities
 	public const string NAME = '/^[a-z][a-z0-9_-]*(\.([a-z0-9_-]+|\*))*$/';
 
 	/**
-	 * Labels by capability name.
+	 * Labels by capability name, translated where they're shown (D-816).
 	 *
-	 * @var array<string, string>
+	 * @var array<string, string|Stringable>
 	 */
 	private array $labels = [];
 
 	/**
 	 * Groups by capability name.
 	 *
-	 * @var array<string, string>
+	 * @var array<string, string|Stringable>
 	 */
 	private array $groups = [];
 
@@ -92,7 +93,7 @@ final class Capabilities
 	 *
 	 * @throws AuthException For an invalid name.
 	 */
-	public function register(string $name, string $label, ?string $group = null): void
+	public function register(string $name, string|Stringable $label, string|Stringable|null $group = null): void
 	{
 		if (preg_match(self::NAME, $name) !== 1) {
 			throw new AuthException(sprintf('"%s" can\'t be a capability; use dotted lowercase words such as "shop.orders.edit".', $name));
@@ -118,7 +119,7 @@ final class Capabilities
 	 */
 	public function all(): array
 	{
-		return [...$this->labels, ...array_map(static fn (array $item): string => $item[0], $this->content())];
+		return [...array_map(static fn (string|Stringable $label): string => (string) $label, $this->labels), ...array_map(static fn (array $item): string => $item[0], $this->content())];
 	}
 
 	/**
@@ -128,7 +129,7 @@ final class Capabilities
 	 */
 	public function group(string $name): string
 	{
-		return $this->groups[$name] ?? $this->content()[$name][1] ?? ucfirst(explode('.', $name)[0]);
+		return (string) ($this->groups[$name] ?? $this->content()[$name][1] ?? ucfirst(explode('.', $name)[0]));
 	}
 
 	/**

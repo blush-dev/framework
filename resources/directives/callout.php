@@ -9,8 +9,7 @@
  *     Back up your site first.
  *     :::
  *
- * @var Blush\View\Template      $template
- * @var Blush\Directive\Callout  $directive
+ * @var Blush\Directive\Callout $directive
  */
 
 declare(strict_types=1);

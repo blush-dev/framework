@@ -236,7 +236,7 @@ final class PageMarkup
 	/**
 	 * Removes a tag by its key (see `has()`), such as a theme stylesheet
 	 * a standalone page doesn't want:
-	 * `$template->head()->remove('style:' . $template->asset('style.css'))` (D-154).
+	 * `$template->head()->remove('style:' . $theme->asset('style.css'))` (D-154).
 	 */
 	public function remove(string $key): self
 	{

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Invalid link attribute.
+ * Invalid HTML attribute.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,14 +11,15 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Entry;
+namespace Blush\View;
 
 use InvalidArgumentException;
 use Blush\Core\BlushException;
 
 /**
- * `Entry::link()` was given an attribute without a name (D-803).
+ * A method printing a tag, such as `link()` or `img()`, was given an
+ * attribute without a name (D-803, D-814).
  */
-final class InvalidLinkAttribute extends InvalidArgumentException implements BlushException
+final class InvalidHtmlAttribute extends InvalidArgumentException implements BlushException
 {
 }

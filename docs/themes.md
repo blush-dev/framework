@@ -99,15 +99,15 @@ or `settings:api`.
 
 The set's fields show as a panel of their own on that screen, and what's
 saved goes in `user/data/settings/site.json`. Read them in a
-template with `$template->site()`:
+template with `$site->setting()`:
 
 ```php
-<p class="tagline"><?= e((string) $template->site('tagline')) ?></p>
+<p class="tagline"><?= e((string) $site->setting('tagline')) ?></p>
 ```
 
 It returns the saved value, read through its field (a date is a date),
 or the field's `default`, or the second argument when there's neither:
-`$template->site('accent', 'red')`. Settings share one name space across
+`$site->setting('accent', 'red')`. Settings share one name space across
 the screens, so two sets can't both add a `tagline`; `bin/blush
 content:lint` says so.
 
@@ -137,13 +137,9 @@ stylesheets have other names, list them the same way. Icons work the same way
 (the child's `icons/`), and a child's catalogs reword its parent's text
 (see [Translations](#translations)).
 
-The default footer ends with a "Powered by" line ("Powered by coffee.",
-"Powered by sleepless nights.", and others), picked at random
-from `$template->tGroup('powered_by')`. To use your own lines, you don't
-need to copy the template: see [Your own wording](#your-own-wording). Each line has its own key
-under `powered_by` in the theme's `lang/en.json` (`powered_by.coffee`).
-A translation's `powered_by` replaces the whole group, so it can have
-more lines or fewer, and none of the English ones show through.
+The default footer ends with "Powered by Blush." To reword it, you don't
+need to copy the template: its key is `powered_by` (see
+[Your own wording](#your-own-wording)).
 
 Not sure which file is in charge of a view? Ask:
 
@@ -414,7 +410,7 @@ $template->layout('base');
 <article class="entry">
 	<h1><?= e($entry->title) ?></h1>
 
-	<?php if ($template->setting('showDate')) : ?>
+	<?php if ($theme->setting('showDate')) : ?>
 		<p><?= e($template->date($entry->published)) ?></p>
 	<?php endif ?>
 
@@ -423,13 +419,15 @@ $template->layout('base');
 ```
 
 `$template` is the template itself: it's how a template reaches the calls
-below. Its data (such as `$entry`, `$page`, and `$site`) are plain
-variables. For editor autocomplete, list them at the top of the file:
+below. Its data (such as `$entry`, `$page`, `$site`, and `$messages`)
+are plain variables. For editor autocomplete, list the ones a file uses
+at the top of it:
 
 ```php
 /**
- * @var Blush\View\Template       $template
- * @var Blush\Content\Entry\Entry $entry
+ * @var Blush\View\Template        $template
+ * @var Blush\Translation\Messages $messages
+ * @var Blush\Content\Entry\Entry  $entry
  */
 ```
 
@@ -457,20 +455,11 @@ What a template can use:
 | `$template->directive('callout', variant: 'tip')` | Render a directive, as content would (see [Directives](directives.md#using-directives-in-templates)) |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
-| `$template->profile('jane')` | A published profile by its slug, or `null` |
-| `$template->media($template->site('logo'))` | The media file a value names, such as a site setting's (an entry's is `$entry->media('image')`), or `null` |
-| `$template->archiveUrl($type, 'cooks', $profile)` | A [relation's archive](content-types.md#linking-entries-to-other-entries) under a type for one target, such as `/recipes/cooks/jane`, or with no target the list of what it links to (`/recipes/cooks`); `null` for the relation is the type's byline. `''` when there's none, so a byline links with `archiveUrl($entry->type, null, $person) ?: $person->url()` |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
 | `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
-| `$template->setting('name')` | A theme setting |
-| `$template->site('name')` | A site setting a field set adds ([Your own settings](#your-own-settings)) |
-| `$template->asset('app.js')` | A theme file's URL, versioned |
-| `$template->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
 | `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
 | `$template->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
-| `$template->t('key', 'Text', ...)` | A translated string, with its text for when no catalog has it ([Translations](#translations)) |
-| `$template->tGroup('group')` | The translated strings of a group in `lang/` (the keys under `group`), keyed by name |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
 | `$template->foot()` | Add scripts to the end of the page, and print them just before `</body>` in the base layout |
 | `$template->bodyClass()` | The `<body>` classes |
@@ -495,7 +484,16 @@ ICU patterns aren't PHP's
 For a machine-readable date, such as a `<time datetime="">`, use
 `$date->format(DATE_ATOM)`.
 
-Every template gets `$site` (name, URL, and language). Content pages also
+Every template gets four objects besides `$template`:
+
+| Variable | What it is |
+|---|---|
+| `$site` | The site: `name`, `url`, `description`, `locale`, `lang`, and `dir`, and `$site->setting('name')` for a site setting a field set adds ([Your own settings](#your-own-settings)) |
+| `$theme` | Your theme and its parents: `$theme->setting('name')` for a theme setting, `$theme->asset('app.js')` for a file's URL (versioned), `$theme->inline('svg/logo.svg')` for a file's contents (such as an SVG to print with `raw()`), each found in a child theme first; and its `name` |
+| `$media` | The media library: `$media->find($value)` (see [Media](#media)) |
+| `$messages` | Your text: `$messages->t('key', 'Text', ...)`, with its text for when no catalog has it ([Translations](#translations)) |
+
+Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
 one), `$type`, and `$title`, and so do their layouts, partials,
 directives, and components, so you don't have to pass them along. Anything you pass to
@@ -527,7 +525,8 @@ An entry also leads to the entries and files it's linked to:
 | `$entry->link()` | A link to it: `<a href="…">Its title</a>`, escaped and ready to print. Attributes go by name: `link(class: 'tag', ariaCurrent: 'page')` (a camelCase name is dashed, so `ariaCurrent` is `aria-current`; `true` prints the name alone, and `false` or `null` leaves it out). An entry without a title reads "Untitled", and one without a page prints its title alone |
 | `$entry->related('tag')` | The entries it [links to](content-types.md#linking-entries-to-other-entries) through one of its type's relations, such as its tags or a movie's `actors`, in order, each in its language when it's translated |
 | `$entry->referencedBy('actors')` | The entries linking to it through a relation, newest first: by its name, or `'movie.actors'` for one type's |
-| `$entry->byline()` | The profiles its type's [byline relation](content-types.md#crediting-people) credits, such as a post's `authors`, in order, as `related()` gives them; none when the type has no byline |
+| `$profile->archiveUrl($entry->type)` | Its [archive](content-types.md#linking-entries-to-other-entries) under a type: that type's entries crediting it through the byline, or through a relation you name (`$cook->archiveUrl('recipe', 'cooks')` is `/recipes/cooks/jane`). `''` when there's none, so a byline links with `$profile->archiveUrl($entry->type) ?: $profile->url()` |
+| `$entry->creators()` | Who made it: the profiles its type's [byline relation](content-types.md#crediting-people) credits, such as a post's `authors` or a recipe's `cooks`, in order, as `related()` gives them; none when the type has no byline |
 | `$entry->classifications()` | What it's filed under: the entries every one of its type's classify relations links (its categories and tags), merged, each once |
 | `$entry->credits()` | The profiles it credits through every credit relation (its authors, photographers), the byline first, merged, each once |
 | `$entry->references()` | The other entries it refers to through every reference relation (a movie's actors, related posts), merged, each once |
@@ -537,7 +536,7 @@ An entry also leads to the entries and files it's linked to:
 | `$entry->parent()` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, or `null` |
 | `$entry->ancestors()` | Its parents from the top down, for breadcrumbs |
 | `$entry->children()` | A page's subpages or a nesting collection's child entries, by `position` and then title |
-| `$entry->media('image')` | The media file a media field names, such as its `image`, or `null` |
+| `$entry->media('image')` | The media file a media field names, such as its `image`, or `null`; the same as `$media->find()` gives (see [Media](#media)) |
 
 `related()` and `referencedBy()` give a list to loop over and count,
 with a little more:
@@ -552,7 +551,7 @@ with a little more:
 | `->byline` | Whether it's the entry type's byline relation, such as a post's `authors` |
 
 Each is looked up once per request and kept, so call them as often as
-you like (`$entry->byline()` in a condition and again in a loop is one
+you like (`$entry->creators()` in a condition and again in a loop is one
 lookup); there's no need to save them in a variable first. An entry's
 `excerpt()`, `wordCount()`, and `readingTime()` are kept the same way.
 
@@ -607,7 +606,7 @@ site's other [languages](content.md#translations), and on an entry's page, a des
 field, `og:image` and a Twitter card. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
-`$template->head()->remove('style:' . $template->asset('style.css'))`.
+`$template->head()->remove('style:' . $theme->asset('style.css'))`.
 `$template->head()` prints everything inside `<head>`, and
 `$template->foot()` prints the scripts that load at the end of the page,
 so your base layout needs only:
@@ -641,20 +640,38 @@ wherever it prints. Every line is indented by one
 tab. `bin/blush theme:check` warns if your layout prints the charset,
 `viewport`, `generator`, or `<title>` itself as well.
 The head prints root-relative links and scripts (`/feed`,
-`$template->asset(...)`) as full URLs on your site's `url`, so pass
+`$theme->asset(...)`) as full URLs on your site's `url`, so pass
 paths as they are. Meta tag values print as given, so give `og:image`
 and the like a full URL.
 
+### Media
+
 A media field, such as an entry's `image`, holds the file's id. Get the
-file with `$entry->media('image')`, which also reads an older value
-written as a path, and returns `null` for none (for a value that isn't
-an entry's, such as a site setting, use `$template->media($value)`):
+file with `$entry->media('image')`. For any other value, such as a site
+setting's, every template has the media library as `$media`:
+`$media->find($value)`. Both read an older value written as a path too,
+return `null` for none, and give the same file, looked up once a
+request.
+
+A file has its `url`, `width`, `height`, `mime`, `kind()`, and details
+(`metadata()`, with its `alt` text and `caption`). An image prints
+itself with `img()`: its size, the library's alt text, and a `srcset`
+of the sizes the library keeps of it, lazy-loaded. Pass attributes by
+name, as `link()` takes them, to add or change any:
 
 ```php
 <?php if ($image = $entry->media('image')) : ?>
-	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>" width="<?= attr((string) $image->width) ?>" height="<?= attr((string) $image->height) ?>">
+	<?= $image->img(class: 'hero', loading: 'eager', sizes: '100vw') ?>
+<?php endif ?>
+
+<?php if ($logo = $media->find($site->setting('logo'))) : ?>
+	<?= $logo->img(class: 'site-logo', alt: $site->name) ?>
 <?php endif ?>
 ```
+
+Give `alt: ''` for a decorative image. Sounds, videos, and other files
+print nothing from `img()`. Your theme's own images aren't in the
+library: link them with `$theme->asset('img/logo.png')`.
 
 ### Scripts and styles
 
@@ -746,14 +763,14 @@ provider, or `"core/player": {}` under `assets`.
 Write your text where it's used, with a key that names it:
 
 ```php
-<?= e($template->t('entry.by', 'By {author}', author: $name)) ?>
+<?= e($messages->t('entry.by', 'By {author}', author: $name)) ?>
 ```
 
 The second argument is the text, in whatever language you write your
 theme in. It's shown wherever no catalog has the key, so your theme
 reads well before anyone translates it. Values are named (`author:`),
 and every value is named, never positional. Leave the text out
-(`$template->t('read_more', title: $title)`) to read a key from your
+(`$messages->t('read_more', title: $title)`) to read a key from your
 catalogs alone; a key no catalog has then shows as itself.
 
 Text is an [ICU message](https://unicode-org.github.io/icu/userguide/format_parse/messages/),
@@ -761,29 +778,35 @@ so one message can cover what would otherwise be several:
 
 ```php
 // Plurals: # is the number; other is required.
-$template->t('comments', '{count, plural, =0 {No comments} one {# comment} other {# comments}}', count: $n);
+$messages->t('comments', '{count, plural, =0 {No comments} one {# comment} other {# comments}}', count: $n);
 
 // Choosing by a value, instead of building keys from it.
-$template->t('status', '{status, select, draft {Draft} scheduled {Scheduled} other {Published}}', status: $status);
+$messages->t('status', '{status, select, draft {Draft} scheduled {Scheduled} other {Published}}', status: $status);
 
 // Numbers and dates, in the page's language.
-$template->t('since', '{views, number} views since {date, date, long}', views: $views, date: $since);
+$messages->t('since', '{views, number} views since {date, date, long}', views: $views, date: $since);
 ```
 
 Keep a sentence as one message, so a translator can reorder it. A note
 for translators goes in `context:`, which is never a value:
 
 ```php
-$template->t('actions.post', 'Post', context: 'A button that publishes, not a blog post');
+$messages->t('actions.post', 'Post', context: 'A button that publishes, not a blog post');
 ```
 
-Classes write text the same way. A [component or directive class](#directives-and-components)
-calls `$this->t()`. So does your theme's provider, for text it hands
-to something else to show later, such as a
-[template's label](#templates-for-single-entries): it's translated where
-it's shown, in that page's or the admin's language. Any other class of
-your theme asks for `Messages` in its constructor and calls
-`$this->messages->t()`.
+Classes write text the same way, with the same `t()`. A
+[component or directive class](#directives-and-components) and your
+theme's provider have `$this->messages->t()`; any other class asks for
+`Messages` in its constructor and calls `$this->messages->t()`. Core and
+plugins write theirs the same way.
+
+`t()` gives back the message, not yet translated: it's translated when
+it's printed, in the page's language. So a component can make all the
+lines it might show and print only one, and only that one is looked
+up. A message you hand to something else to show later, such as a
+[template's label](#templates-for-single-entries), is translated where
+it's shown, in that page's or the admin's language. Where you need the
+text as a string right away, cast it: `(string) $text`.
 
 Text is looked up in your theme's catalogs (a child theme's first),
 then Blush's. A plugin's text is the plugin's, and Blush's is its own,
@@ -815,8 +838,9 @@ language you haven't translated shows your English text.
 text you've changed (translators should recheck those), keeps
 everything else, and writes each `context:` beside its message as
 `@{key}`. Give `--locale=fr` when your code's text is French, and
-`--dry-run` to see what would change. `theme:check` warns when
-`lang/en.json` is missing a key your code writes or reads otherwise,
+`--dry-run` to see what would change. You don't need the file for your
+text to show; it's for translators. `theme:check` warns when
+`lang/en.json` reads otherwise than your code (its text would win),
 when one key has two texts, when text isn't a valid ICU message, and
 when a key or text isn't plain text it can collect (such as
 `"status.{$status}"`; use a `select`). Templates in other languages,
@@ -836,15 +860,15 @@ is, and the message's own words and every other value are still
 escaped.
 
 ```php
-<?= e($template->t('posted_by', names: raw($links), date: $date)) ?>
+<?= e($messages->t('posted_by', names: raw($links), date: $date)) ?>
 ```
 
 `attr()` escapes it all, so the same message can go in a `title` too.
 
 A child theme's catalogs come before its parent's, message by message,
 so a child rewords only what it needs to. A message given as a value
-can be translated too: `$template->t($label)` prints a label a provider
-registered, in the page's language.
+prints in the page's language too: `<?= e($label) ?>` prints a label a
+provider registered.
 
 #### Your own wording
 
@@ -865,18 +889,14 @@ user/lang/
 Your catalog wins over the package's, message by message, so it only
 needs what you change, and the rest still comes from the package. The
 language is checked first, so the package's own `fr.json` still beats
-your `en` folder on a French page. For a group such as the default
-footer's `powered_by` lines, your group replaces the theme's: list only
-the lines you want.
+your `en` folder on a French page.
 
 ```json
 {
 	"@@locale": "en",
 	"@@domain": "blush/default",
 	"skip_to_content": "Jump to the post",
-	"powered_by": {
-		"tea": "Powered by tea."
-	}
+	"powered_by": "Powered by tea."
 }
 ```
 
@@ -955,7 +975,7 @@ square box with up to two initials of its name ("Jane Doe" is JD), as an
 inline SVG. Give a size in pixels (48 by default):
 
 ```php
-<?php if ($author = $entry->byline()->published()->first()) : ?>
+<?php if ($author = $entry->creators()->published()->first()) : ?>
 	<p class="byline">
 		<?= $author->avatar(32) ?>
 		<?= e($author->title) ?>
@@ -999,8 +1019,7 @@ Blush picks the most specific template your theme (or its parents) has:
 | A site with no homepage yet | `welcome` |
 
 On a relation's list (`/recipes/cooks`), `$entries` holds what it links
-to (link each with `$template->archiveUrl($type, $page->relation->name,
-$target)`), `$page->relation` is the relation, and `$entry` is its
+to (link each with `$target->archiveUrl($type, $page->relation->name)`), `$page->relation` is the relation, and `$entry` is its
 list page (`_cooks`), when it has one. On one target's archive,
 `$entry` is the page written for it (`_cooks/jane`) or else the target,
 `$page->target` is always the target (a profile, for a credit),
@@ -1238,9 +1257,9 @@ extensions/acme/notebook/
 ```
 
 List your source files in `theme.json`. Blush reads Vite's manifest and
-links the built files, and `$template->asset('resources/fonts/body.woff2')`
+links the built files, and `$theme->asset('resources/fonts/body.woff2')`
 finds a font your CSS uses the same way. Copied files are reached by
-their path: `$template->asset('public/img/icon.png')`.
+their path: `$theme->asset('public/img/icon.png')`.
 
 Every theme asset URL ends in `?v=` and a hash of the file's contents,
 so browsers can cache files for as long as they like and still get a

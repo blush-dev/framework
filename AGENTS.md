@@ -367,6 +367,15 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   call (`Blush\Auth\Avatars`), and make template helpers and entry
   methods thin calls to it. Templates get data passed in; they're never
   the only way to reach it.
+- **`$template` is the render, not the data** (D-819). It holds what
+  only a render has: the layout, sections, includes, components,
+  directives, icons, the head and foot, assets, fragment caching, and
+  what depends on the page (dates in its language, routes, menus, body
+  classes). Everything else is an object the template is given, each
+  a thin call to a service: `$entry` (its relations, URL, media,
+  avatar), `$site` (and its settings), `$theme` (its settings and
+  files), `$media`, and `$messages` (text). A new template helper goes
+  on one of those objects, or a new one, before `$template`.
 - **The admin shares what repeats** (D-505 to D-509). Before writing
   admin UI, use the shared components (`resources/admin/js/components`),
   classes (`admin.css`), and modules (`resources/admin/js/*.ts`) that

@@ -14,10 +14,13 @@ declare(strict_types=1);
 namespace Blush\Translation;
 
 /**
- * The text of one domain (D-784), for any class that writes text: ask
- * for it in the constructor, and the container gives the one for the
- * extension the class belongs to, by its namespace (`ClassDomains`), or
- * core's for a class outside every extension.
+ * The one way to write text (D-784, D-816), from core, a plugin, or a
+ * theme, in a class or a template: `$messages->t($key, $text)`. A class
+ * asks for it in its constructor, and the container gives the one for
+ * the extension the class belongs to, by its namespace (`ClassDomains`),
+ * or core's; a template has it as `$messages`, for the domains of the
+ * code that wrote the file; service providers, components, and
+ * directives have it as `$this->messages`.
  *
  * ```php
  * public function __construct(private Messages $messages) {}
@@ -27,31 +30,51 @@ namespace Blush\Translation;
  *     return $this->messages->t('tools.export.label', 'Export');
  * }
  * ```
+ *
+ * `t()` returns a `Text`, translated when it's printed, in the current
+ * language (`CurrentLocale`), or where it's shown, in that screen's.
  */
 final readonly class Messages
 {
-	public function __construct(public string $domain = Translator::CORE)
-	{}
+	/**
+	 * The domains its text is looked up in, in order, core's last.
+	 *
+	 * @var list<string>
+	 */
+	public array $domains;
 
 	/**
-	 * Returns a message to translate when it's shown: its key, the text
-	 * written beside it, and named parameters, with `context:` a note for
-	 * translators, never a parameter.
+	 * The domain its text belongs to: the first it's looked up in.
+	 */
+	public string $domain;
+
+	/**
+	 * @param string|list<string> $domains Its domain, or the domains to look in, in order (core's is added last).
+	 */
+	public function __construct(
+		string|array $domains = Translator::CORE,
+		private ?Translator $translator = null,
+		private ?CurrentLocale $locale = null
+	) {
+		$domains       = is_string($domains) ? [$domains] : $domains;
+		$this->domains = array_values(array_unique([...$domains, Translator::CORE]));
+		$this->domain  = $this->domains[0];
+	}
+
+	/**
+	 * Returns a message: its key, the text written beside it (an ICU
+	 * message, shown when no catalog has the key; without it, the key
+	 * shows), and named parameters, with `context:` a note for
+	 * translators, never a parameter. It's translated when it's printed.
+	 *
+	 * A parameter marked with `raw()` (any `SafeHtml`) is HTML (D-559): the
+	 * message prints as HTML, with that parameter as given and the
+	 * message's own text and every other parameter escaped, so
+	 * `e($messages->t('by', names: raw($links)))` keeps the links.
 	 *
 	 * @throws TranslationException When a parameter isn't named.
 	 */
 	public function t(string $key, ?string $text = null, mixed ...$params): Text
-	{
-		return self::text($this->domain, $key, $text, $params);
-	}
-
-	/**
-	 * Builds a message for a domain from `t()`'s arguments.
-	 *
-	 * @param  array<array-key, mixed> $params
-	 * @throws TranslationException When a parameter isn't named.
-	 */
-	public static function text(string $domain, string $key, ?string $text, array $params): Text
 	{
 		$named = [];
 
@@ -66,6 +89,24 @@ final readonly class Messages
 		$context = $named['context'] ?? null;
 		unset($named['context']);
 
-		return new Text($key, $text, $domain, $named, is_string($context) ? $context : null);
+		return new Text($key, $text, $this->domain, $named, is_string($context) ? $context : null, $this->domains, $this->translator, $this->locale);
+	}
+
+	/**
+	 * Returns whether a key has a message in a catalog.
+	 */
+	public function has(string $key): bool
+	{
+		return $this->translator?->has($key, $this->domains, $this->locale?->get()) ?? false;
+	}
+
+	/**
+	 * Returns one for other domains, with the same translator.
+	 *
+	 * @param string|list<string> $domains
+	 */
+	public function for(string|array $domains): self
+	{
+		return new self($domains, $this->translator, $this->locale);
 	}
 }

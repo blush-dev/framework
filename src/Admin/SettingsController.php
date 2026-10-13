@@ -674,8 +674,8 @@ final readonly class SettingsController
 			$sources[$group] ??= [...$source, 'tools' => []];
 			$sources[$group]['tools'][] = [
 				'name'        => ToolRegistry::flatName($key),
-				'title'       => $tool->title(),
-				'description' => $tool->description(),
+				'title'       => (string) $tool->title(),
+				'description' => (string) $tool->description(),
 				'needs'       => Tools::capabilityName($tool)
 			];
 		}

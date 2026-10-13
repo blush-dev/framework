@@ -5,7 +5,7 @@
  * gives the title and message.
  *
  * @var Blush\View\Template        $template
- * @var int                        $status
+ * @var Blush\Translation\Messages $messages
  * @var string                     $title
  * @var ?Blush\Content\Entry\Entry $entry
  * @var string                     $description
@@ -33,6 +33,6 @@ $template->layout('base');
 			<p class="error-details"><code><?= e($message) ?></code></p>
 		<?php endif ?>
 
-		<p><a href="/"><?= e($template->t('error.home')) ?></a></p>
+		<p><a href="/"><?= e($messages->t('error.home')) ?></a></p>
 	</div>
 </article>

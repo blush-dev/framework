@@ -157,7 +157,7 @@ final class Meter extends Directive
 	 */
 	public function text(): string
 	{
-		return $this->isPercent() ? $this->percent : $this->t('measure.value', value: $this->valueText, max: $this->maxText);
+		return $this->isPercent() ? $this->percent : (string) $this->messages->t('measure.value', value: $this->valueText, max: $this->maxText);
 	}
 
 	/**
@@ -175,7 +175,7 @@ final class Meter extends Directive
 			'low'        => $this->lowAttribute,
 			'high'       => $this->highAttribute,
 			'optimum'    => $this->optimumAttribute,
-			'aria-label' => trim($this->label) === '' ? $this->t('meter.label') : null
+			'aria-label' => trim($this->label) === '' ? (string) $this->messages->t('meter.label') : null
 		]);
 	}
 

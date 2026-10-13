@@ -103,7 +103,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   screens are field set targets (`settings:{screen}`, `SettingsTargets`;
   plugins' AI settings go on `settings:ai`, D-397); a set's settings are saved
   raw in the `site` group and read through their fields by
-  `SiteSettings` (`$template->site()`).
+  `SiteSettings` (`$site->setting()`).
 - **Errors** (`Blush\Error`, D-059):
   - Every exception implements `Blush\Core\BlushException` (D-055).
   - `ErrorHandler` converts warnings to exceptions, logs deprecations, and
@@ -315,12 +315,16 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   class from its namespace (`Views::ownDomains()`). So a plugin's own
   template reads its catalog, its keys aren't shadowed by core's, and a
   theme's key never rewords a plugin's or core's text (the site's
-  `user/lang` does). Providers (`ServiceProvider::t()`) and other
-  classes (`Messages`, given per class by the container's
+  `user/lang` does). One service writes text everywhere (D-816):
+  `Messages::t()`, for classes (given per class by the container's
   `whenAnyNeedsType()` from `ClassDomains`, which maps PHP namespaces
-  to extensions by `autoload` and provider) make a `Text`, translated
-  where it's shown (`Translator::text()`, `Views::text()`,
-  `$template->t($text)`). `MessageExtractor` (PHP's tokenizer) collects
+  to extensions by `autoload` and provider), providers, components,
+  and directives (`$this->messages`), and templates (`$messages`, per
+  file). It returns a `Text`, translated when it's printed in the
+  current language (`CurrentLocale`: the site's, each request; a page
+  render's while it renders), or where it's shown in that screen's
+  (`Translator::text()`, `Views::text()`). A `Text` with a `raw()`
+  parameter prints as HTML (`isHtml()`, which `e()` honors). `MessageExtractor` (PHP's tokenizer) collects
   `->t()` calls with text; `SourceCatalog` writes them to `lang/en.json`
   (`lang:extract`) and compares them (`theme:check`, `plugin:check`).
   Catalog keys starting with `@` are notes (`@{key}: {context}`), never
@@ -329,7 +333,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
-- **Available in:** views (`$template->t()`), directives, components, controllers, the CLI,
+- **Available in:** views (`$messages->t()`), directives, components, controllers, the CLI,
   and later the admin.
 - **Multilingual content** (the same entry in several languages) is separate
   from UI translation (D-036, D-455, D-456). `config/app.php`'s
@@ -344,7 +348,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   unless given another (`language()`, `anyLanguage()`), and each other
   language's routes are registered again under `/{code}` (named
   `{code}:{name}`, `language` parameter). A page's locale follows its
-  language, so `$template->t()`, dates, `$site->lang`, and `$site->dir`
+  language, so `$messages->t()`, dates, `$site->lang`, and `$site->dir`
   (`Locale::isRightToLeft()`, D-471) do too, and
   its directives and components get a `LocalizedRepository` in its language (D-458,
   `ViewContext::$language`), in a translation's Markdown too: the

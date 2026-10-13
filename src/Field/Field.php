@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Stringable;
 use NoDiscard;
 
 /**
@@ -232,21 +233,23 @@ abstract class Field
 	}
 
 	/**
-	 * Returns a copy with a label.
+	 * Returns a copy with a label: text, or a `Text` from `t()`,
+	 * translated now, in the current language (D-816).
 	 */
 	#[NoDiscard]
-	public function labeled(string $label): static
+	public function labeled(string|Stringable $label): static
 	{
-		return clone($this, ['label' => $label]);
+		return clone($this, ['label' => (string) $label]);
 	}
 
 	/**
-	 * Returns a copy with help text.
+	 * Returns a copy with help text: text, or a `Text` from `t()`,
+	 * translated now (D-816).
 	 */
 	#[NoDiscard]
-	public function described(string $description): static
+	public function described(string|Stringable $description): static
 	{
-		return clone($this, ['description' => $description]);
+		return clone($this, ['description' => (string) $description]);
 	}
 
 

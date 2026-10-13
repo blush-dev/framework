@@ -6,8 +6,7 @@
  *
  *     ::meter[Battery]{value=62 low=20 high=80 optimum=100}
  *
- * @var Blush\View\Template    $template
- * @var Blush\Directive\Meter  $directive
+ * @var Blush\Directive\Meter $directive
  */
 
 declare(strict_types=1);

@@ -75,7 +75,7 @@ use Blush\Field\FieldSource;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
 use Blush\Markdown\MentionResolver;
-use Blush\Media\MediaValues;
+use Blush\Media\MediaItems;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
@@ -212,7 +212,7 @@ final class ContentServiceProvider extends ServiceProvider
 					$resolver->make(ContentUrls::class),
 					$resolver->make(EntryRelations::class),
 					$resolver->make(Relations::class),
-					$resolver->make(MediaValues::class),
+					$resolver->make(MediaItems::class),
 					$resolver->make(Translator::class),
 					$resolver->make(Messages::class),
 					$resolver->make(RequestMemo::class),

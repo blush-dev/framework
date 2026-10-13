@@ -23,8 +23,8 @@ Move each item to `decisions.md` once it's answered.
     the first credit added becomes the byline by default;
   - wording by type ("names the recipe's cooks"), and what New Type
     offers beyond the shared `authors`;
-  - the method's name: `byline()` is singular for a list (`creators()`
-    suggested, with the type's `byline` option following it).
+  - whether the type's `byline` option follows the method, renamed
+    `creators()` (D-813), or keeps its name.
 
 - **Status API** (D-732; discussed 2026-10-10). Leaning, from Drupal's
   workflows mapped onto Blush:
@@ -527,7 +527,7 @@ Move each item to `decisions.md` once it's answered.
     into a large object whose names have to say what they're about
     (`$template->link($entry)`, `$template->byline($entry)`).
   - **Behavior on what it's about:** `$entry->link()`,
-    `$entry->byline()`, `$page->heading`, `$page->total()`,
+    `$entry->creators()`, `$page->heading`, `$page->total()`,
     `$item->ariaCurrent()`, with `$template` kept for rendering
     (`layout`, `include`, `component`, `t`, `asset`, `head`, `cache`).
     Shorter names that read as English. But `Entry` is content, and
@@ -543,7 +543,7 @@ Move each item to `decisions.md` once it's answered.
   second direction, with view objects, but without theme authors
   learning many variable names). Proposed: a view gets one variable,
   and everything is reached through it, so autocomplete shows the rest:
-  `$view->entry->byline()`, `$view->entries`, `$view->page->pager()`,
+  `$view->entry->creators()`, `$view->entries`, `$view->page->pager()`,
   `$view->site`, `$view->menu('primary')`. The only names an author
   picks are their own loop variables. A view marks what it draws with
   one line, `/** @var Blush\View\Listing $view */`: the object is typed
@@ -2285,7 +2285,7 @@ Move each item to `decisions.md` once it's answered.
   already deferred (or modules), so the gaps are styles that aren't
   render-critical and inline scripts (`Head` has no inline-script
   method at all). Today a theme can print tags in its footer part with
-  `$template->asset()`, but those aren't printed once by key, and
+  `$theme->asset()`, but those aren't printed once by key, and
   plugins and components can't add to them. The likely shape needs
   two pieces:
   - **A placement flag** on `Head`'s `script()`, `style()`, and

@@ -87,20 +87,6 @@ final class TranslatorTest extends TestCase
 
 		$this->assertSame('Au revoir', $translator->translate('bye', [], 'theme'));
 		$this->assertSame('Hello', $translator->translate('hello', [], 'theme'), 'A package with only English shows English, not its key.');
-		$this->assertSame(['one' => 'One'], $translator->group('lines', [], 'theme'));
-	}
-
-	public function testGroupsComeWholeFromOneLocale(): void
-	{
-		$this->writeTemporaryFile('parent/fr.json', '{"lines": {"cafe": "Au café, {name}."}}');
-		$this->writeTemporaryFile('parent/en.json', '{"lines": {"coffee": "Coffee, {name}.", "love": "Love."}, "linesmith": "Not in the group"}');
-		$this->writeTemporaryFile('child/en.json', '{"lines": {"mixtape": "A mixtape."}}');
-
-		$translator = $this->translator();
-
-		$this->assertSame(['mixtape' => 'A mixtape.', 'coffee' => 'Coffee, Ada.', 'love' => 'Love.'], $translator->group('lines', ['name' => 'Ada'], 'theme'), 'A child theme adds to the group.');
-		$this->assertSame(['cafe' => 'Au café, Ada.'], $translator->group('lines', ['name' => 'Ada'], 'theme', 'fr'), 'No English lines mixed in.');
-		$this->assertSame([], $translator->group('missing', [], 'theme'));
 	}
 
 	public function testMetadataKeysArentMessages(): void
@@ -152,7 +138,6 @@ final class TranslatorTest extends TestCase
 		$this->assertSame('Howdy', $translator->translate('hello', [], $chain));
 		$this->assertSame('Bye', $translator->translate('bye', [], $chain));
 		$this->assertSame('Au revoir', $translator->translate('bye', [], $chain, 'fr'), 'The locale comes first, then the domains.');
-		$this->assertSame(['one' => 'Child one', 'two' => 'Parent two'], $translator->group('lines', [], $chain), 'A child adds to its parent\'s group.');
 		$this->assertTrue($translator->has('bye', $chain));
 	}
 
@@ -170,7 +155,6 @@ final class TranslatorTest extends TestCase
 		$this->assertSame('Hi there', $translator->translate('hello', [], 'acme/hello'));
 		$this->assertSame('Bye', $translator->translate('bye', [], 'acme/hello'), 'Keys the override doesn\'t have come from the package.');
 		$this->assertSame('Bonjour', $translator->translate('hello', [], 'acme/hello', 'fr'), 'The package\'s French beats the override\'s English.');
-		$this->assertSame(['mine' => 'Mine'], $translator->group('lines', [], 'acme/hello'), 'An override\'s group replaces the package\'s.');
 		$this->assertSame('Site framework', $translator->translate('hello', [], 'core'));
 		$this->assertSame("{$root}/user/lang/fr/extensions/acme/hello", $translator->overridePath('acme/hello', 'fr'));
 		$this->assertSame("{$root}/user/lang/fr/app", $translator->overridePath('app', 'fr'));

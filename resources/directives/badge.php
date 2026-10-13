@@ -7,8 +7,7 @@
  *
  *     Comments :badge[Beta]{variant=info}
  *
- * @var Blush\View\Template           $template
- * @var Blush\Directive\Inline\Badge  $directive
+ * @var Blush\Directive\Inline\Badge $directive
  */
 
 declare(strict_types=1);

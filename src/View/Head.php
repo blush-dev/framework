@@ -142,7 +142,7 @@ final class Head implements SafeHtml
 	 * stylesheet uses, once per URL. What it is comes from its extension
 	 * (`as`, and a font's `type`; fonts are fetched `crossorigin`, as
 	 * browsers require); attributes given win:
-	 * `preload($template->asset('fonts/body.woff2'))`.
+	 * `preload($theme->asset('fonts/body.woff2'))`.
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
@@ -295,7 +295,7 @@ final class Head implements SafeHtml
 	/**
 	 * Removes a tag by its key, such as a theme stylesheet a standalone
 	 * page doesn't want:
-	 * `$template->head()->remove('style:' . $template->asset('style.css'))` (D-154).
+	 * `$template->head()->remove('style:' . $theme->asset('style.css'))` (D-154).
 	 */
 	public function remove(string $key): self
 	{

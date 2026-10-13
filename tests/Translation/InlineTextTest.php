@@ -98,6 +98,6 @@ final class InlineTextTest extends TestCase
 		$this->assertSame(Translator::CORE, new Messages()->t('hello')->domain);
 
 		$this->expectException(TranslationException::class);
-		Messages::text('acme/hello', 'hello', 'Hello', [3]);
+		new Messages('acme/hello')->t('hello', 'Hello', 3);
 	}
 }

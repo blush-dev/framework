@@ -13,13 +13,16 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Stringable;
 use Throwable;
+use Blush\Theme\ActiveTheme;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeSettings;
 use Blush\Icon\IconName;
 use Blush\Translation\DomainTranslator;
+use Blush\Translation\Messages;
 use Blush\Translation\Text;
 use Blush\Translation\Translator;
 use Blush\Component\ComponentListing;
@@ -41,7 +44,8 @@ use Blush\Data\InvalidData;
  * template calls `layout()`, its output becomes the `content` section
  * and the layout renders next, with the same data plus the layout's own
  * (layouts may have layouts). Partials see the shared data (the site,
- * and on content and error pages the page's data, D-146) plus what
+ * `$media`, and on content and error pages the page's data, D-146),
+ * `$theme` (D-815), plus what
  * they're given, not their caller's variables. Context providers attached
  * to a view add their data under what the view is given.
  *
@@ -67,6 +71,11 @@ final readonly class Views
 	 */
 	public DomainTranslator $messages;
 
+	/**
+	 * The chain as templates read it, `$theme` (D-815).
+	 */
+	public ActiveTheme $theme;
+
 	public function __construct(
 		public ViewFinder $finder,
 		public ThemeAssets $assets,
@@ -76,6 +85,7 @@ final readonly class Views
 	) {
 		$this->chain    = $assets->chain;
 		$this->messages = new DomainTranslator($translator, [...$this->chain->names(), Translator::CORE]);
+		$this->theme    = new ActiveTheme($assets, $settings);
 	}
 
 	/**
@@ -156,10 +166,10 @@ final readonly class Views
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function text(string|Text $text, ?string $locale = null): string
+	public function text(string|Stringable $text, ?string $locale = null): string
 	{
-		if (is_string($text)) {
-			return $text;
+		if (! $text instanceof Text) {
+			return (string) $text;
 		}
 
 		return $this->translator->translate($text->key, $text->params, $this->domainsOfNamespaceOrDomain($text->domain), $locale, $text->text);
@@ -385,7 +395,7 @@ final readonly class Views
 		$directive  = $this->services->factory->make($definition->class, $props, $context->language);
 		$variant    = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 
-		$directive->attach($parsed, $props, $content, new DomainTranslator($this->translator, $this->ownDomains($parsed->namespace)), $context, $variant, $container);
+		$directive->attach($parsed, $props, $content, $this->messagesFor($this->ownDomains($parsed->namespace)), $context, $variant, $container);
 
 		if (! $directive->shouldRender()) {
 			return '';
@@ -404,7 +414,7 @@ final readonly class Views
 			return $this->renderFile($found[0], $found[1], ['directive' => $directive], $context);
 		}
 
-		$own = $directive->render();
+		$own = $this->services->locale->in($context->locale, $directive->render(...));
 
 		return $this->renderOwn('directive', (string) $parsed, $directive, $parsed->views()[0], $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
 	}
@@ -492,7 +502,7 @@ final readonly class Views
 		$class     = $this->services->components->get((string) $parsed);
 		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
 
-		$component->attach($parsed, $props, $slot, $slots, new DomainTranslator($this->translator, $this->ownDomains($parsed->namespace)), $context);
+		$component->attach($parsed, $props, $slot, $slots, $this->messagesFor($this->ownDomains($parsed->namespace)), $context);
 
 		if (! $component->shouldRender()) {
 			return '';
@@ -508,7 +518,7 @@ final readonly class Views
 			return $this->renderFile($found[0], $found[1], ['component' => $component], $context);
 		}
 
-		$own = $component->render();
+		$own = $this->services->locale->in($context->locale, $component->render(...));
 
 		return $this->renderOwn('component', (string) $parsed, $component, $parsed->view(), $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
 	}
@@ -584,6 +594,17 @@ final readonly class Views
 	}
 
 	/**
+	 * Returns the text of a list of domains (D-816), translated in the
+	 * current language.
+	 *
+	 * @param list<string> $domains
+	 */
+	private function messagesFor(array $domains): Messages
+	{
+		return new Messages($domains, $this->translator, $this->services->locale);
+	}
+
+	/**
 	 * Returns a domain's lookup domains: the chain's, child first, for a
 	 * theme in the chain; otherwise its own; each then core's.
 	 *
@@ -655,10 +676,12 @@ final readonly class Views
 	 */
 	private function renderFile(string $name, string $file, array $data, ViewContext $context): string
 	{
-		$template = new Template($this, $context, new DomainTranslator($this->translator, $this->domainsFor($file)));
-		$data     = [...$context->shared, ...$data];
-		$output   = $this->evaluate($template, $file, $this->services->providers->apply($name, $data));
-		$layout   = $template->requestedLayout();
+		$state    = new TemplateState();
+		$template = new Template($this, $context, $state);
+		$data     = [...$context->shared, 'theme' => $this->theme, ...$data, 'messages' => $this->messagesFor($this->domainsFor($file))];
+		$data     = $this->services->providers->apply($name, $data);
+		$output   = $this->services->locale->in($context->locale, fn (): string => $this->evaluate($template, $state, $file, $data));
+		$layout   = $state->layout;
 
 		if ($layout === null) {
 			return $output;
@@ -681,7 +704,7 @@ final readonly class Views
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
 	 */
-	private function evaluate(Template $template, string $file, array $data): string
+	private function evaluate(Template $template, TemplateState $state, string $file, array $data): string
 	{
 		try {
 			$output = $this->services->engines->forFile($file)->render($file, $data, $template);
@@ -691,7 +714,7 @@ final readonly class Views
 				: new ViewException(sprintf('%s in view %s', $exception->getMessage(), $file), 0, $exception);
 		}
 
-		$open = $template->openSections();
+		$open = $state->capturing;
 
 		if ($open !== []) {
 			throw new ViewException(sprintf('Section "%s" was never stopped in view %s.', array_last($open), $file));

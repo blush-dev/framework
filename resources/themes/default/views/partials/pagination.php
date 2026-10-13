@@ -3,7 +3,7 @@
 /**
  * Numbered page links for a listing.
  *
- * @var Blush\View\Template            $template
+ * @var Blush\Translation\Messages     $messages
  * @var Blush\Content\Http\ContentPage $page
  */
 
@@ -11,16 +11,16 @@ declare(strict_types=1);
 
 use Blush\Content\Query\PageLinkKind;
 
-$label = static fn (Blush\Content\Query\PageLink $link): string => match ($link->kind) {
-	PageLinkKind::Previous => $template->t('pagination.previous'),
-	PageLinkKind::Next     => $template->t('pagination.next'),
+$label = static fn (Blush\Content\Query\PageLink $link): Stringable|string => match ($link->kind) {
+	PageLinkKind::Previous => $messages->t('pagination.previous'),
+	PageLinkKind::Next     => $messages->t('pagination.next'),
 	PageLinkKind::Dots     => '…',
 	default                => (string) $link->number
 };
 
 ?>
 <?php if ($links = $page->pageLinks()) : ?>
-	<nav class="pagination" aria-label="<?= attr($template->t('pagination.label')) ?>">
+	<nav class="pagination" aria-label="<?= attr($messages->t('pagination.label')) ?>">
 		<ul class="pagination__items">
 			<?php foreach ($links as $link) : ?>
 				<li class="pagination__item pagination__item--<?= attr($link->kind->value) ?>">

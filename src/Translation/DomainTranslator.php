@@ -17,8 +17,8 @@ use Blush\Data\InvalidData;
 
 /**
  * The translator bound to a list of domains, searched in order (D-451):
- * a theme chain's, child first, for `$template->t()`, or a directive's or
- * component's, the chain's and then its own extension's.
+ * a theme chain's, child first, for the messages a theme may supply in
+ * core's place (error pages, `document_title`).
  */
 final readonly class DomainTranslator
 {
@@ -47,18 +47,6 @@ final readonly class DomainTranslator
 	public function translate(string $key, array $params = [], ?string $locale = null, ?string $text = null): string
 	{
 		return $this->translator->translate($key, $params, $this->domains, $locale, $text);
-	}
-
-	/**
-	 * Returns a group's messages, keyed by name.
-	 *
-	 * @param  array<string, mixed> $params
-	 * @return array<string, string>
-	 * @throws InvalidData When a catalog can't be parsed.
-	 */
-	public function group(string $key, array $params = [], ?string $locale = null): array
-	{
-		return $this->translator->group($key, $params, $this->domains, $locale);
 	}
 
 	/**

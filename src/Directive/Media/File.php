@@ -110,7 +110,7 @@ final class File extends Directive
 	public function details(): string
 	{
 		return match (true) {
-			$this->format !== '' && $this->size !== '' => $this->t('media.file_details', format: $this->format, size: $this->size),
+			$this->format !== '' && $this->size !== '' => (string) $this->messages->t('media.file_details', format: $this->format, size: $this->size),
 			default                                    => $this->format . $this->size
 		};
 	}

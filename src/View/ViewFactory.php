@@ -154,7 +154,7 @@ final class ViewFactory
 		$language ??= $entry?->language;
 		$context = new ViewContext(
 			$markup,
-			['site' => Site::fromConfig($this->services->app, $locale)],
+			['site' => Site::fromConfig($this->services->app, $locale, $this->services->site), 'media' => $this->services->media],
 			$path,
 			$locale,
 			$language !== null && $this->services->app->languages->isOther($language) ? $language : ''
@@ -180,7 +180,7 @@ final class ViewFactory
 
 		return new ViewContext(
 			new PageMarkup($this->services->app->name, origin: $this->services->app->origin()),
-			['site' => Site::fromConfig($this->services->app, $locale)],
+			['site' => Site::fromConfig($this->services->app, $locale, $this->services->site), 'media' => $this->services->media],
 			locale: $locale,
 			language: $found !== null && $this->services->app->languages->isOther($found->code) ? $found->code : ''
 		);

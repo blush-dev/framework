@@ -8,6 +8,10 @@
 	<file>tests</file>
 	<file>benchmarks</file>
 	<file>scripts</file>
+	<file>resources/server.php</file>
+	<file>resources/views</file>
+	<file>resources/directives</file>
+	<file>resources/themes</file>
 
 	<!-- Only check the PHP files. -->
 	<arg name="extensions" value="php"/>
@@ -63,5 +67,29 @@
 
 	<!-- Disallow long arrays. -->
 	<rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+	<!--
+	########################################################################
+	Templates: markup decides their layout. Inline elements stay on one
+	line (a newline is whitespace on the page), loops in feeds and
+	sitemaps stay at the margin, a template may end in an echo tag, and a
+	helper closure's docblock isn't a second file header.
+	########################################################################
+	-->
+	<rule ref="Generic.WhiteSpace.ScopeIndent">
+		<exclude-pattern>*/resources/(views|directives|themes)/*</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.ControlStructures.ControlSignature.NewlineAfterOpenBrace">
+		<exclude-pattern>*/resources/(views|directives|themes)/*</exclude-pattern>
+	</rule>
+	<rule ref="PSR2.Files.ClosingTag.NotAllowed">
+		<exclude-pattern>*/resources/(views|directives|themes)/*</exclude-pattern>
+	</rule>
+	<rule ref="PSR12.Files.FileHeader.IncorrectOrder">
+		<exclude-pattern>*/resources/(views|directives|themes)/*</exclude-pattern>
+	</rule>
+	<rule ref="PSR12.Files.FileHeader.SpacingAfterDocblockBlock">
+		<exclude-pattern>*/resources/(views|directives|themes)/*</exclude-pattern>
+	</rule>
 
 </ruleset>

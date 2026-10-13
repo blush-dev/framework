@@ -7,12 +7,13 @@
  * in the type's folder), when it has one, gives the title and introduces
  * the list.
  *
- * @var Blush\View\Template             $template
- * @var Blush\Content\Http\ContentPage  $page
- * @var ?Blush\Content\Entry\Entry      $entry
- * @var Blush\Content\Type\ContentType  $type
- * @var ?Blush\Content\Query\Paginator  $entries
- * @var string                          $title
+ * @var Blush\View\Template            $template
+ * @var Blush\Translation\Messages     $messages
+ * @var Blush\Content\Http\ContentPage $page
+ * @var ?Blush\Content\Entry\Entry     $entry
+ * @var Blush\Content\Type\ContentType $type
+ * @var ?Blush\Content\Query\Paginator $entries
+ * @var string                         $title
  */
 
 declare(strict_types=1);
@@ -33,12 +34,12 @@ $relation = $page->relation->name ?? '';
 </header>
 
 <?php if ($entries === null || count($entries) === 0) : ?>
-	<p class="no-entries"><?= e($template->t('people.none')) ?></p>
+	<p class="no-entries"><?= e($messages->t('people.none')) ?></p>
 <?php else : ?>
 	<ul class="people" role="list">
 		<?php foreach ($entries as $person) : ?>
 			<li class="people__item">
-				<h2 class="people__name"><a href="<?= url($template->archiveUrl($type, $relation, $person)) ?>"><?= e($person->title) ?></a></h2>
+				<h2 class="people__name"><a href="<?= url($person->archiveUrl($type, $relation)) ?>"><?= e($person->title) ?></a></h2>
 
 				<?php if ($person->raw() !== '') : ?>
 					<div class="people__bio">

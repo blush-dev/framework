@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
-use Blush\Translation\DomainTranslator;
+use Blush\Translation\Messages;
 
 /**
  * What directives and components have in common (D-532): they're two
@@ -74,10 +74,19 @@ abstract class Renderable
 	private array $props = [];
 
 	/**
-	 * The translator bound to the theme chain's domains and then its own
-	 * namespace's (D-451).
+	 * Its text (D-784, D-816): `$this->messages->t('toc.label', 'Contents')`,
+	 * looked up through the theme chain, child first, then its own
+	 * extension's, then core's, and printed in the page's language. Until
+	 * it's attached (in a constructor), it's core's; a constructor that
+	 * needs text asks for `Messages` instead.
 	 */
-	private ?DomainTranslator $translator = null;
+	// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.
+	protected Messages $messages {
+		get => $this->attachedMessages ??= new Messages();
+	}
+	// phpcs:enable
+
+	private ?Messages $attachedMessages = null;
 
 	/**
 	 * The render it's part of.
@@ -213,7 +222,7 @@ abstract class Renderable
 	}
 
 	/**
-	 * Gives it its name, props, content, the theme's translator, and the
+	 * Gives it its name, props, content, its text (`Messages`), and the
 	 * render it's part of.
 	 *
 	 * @param array<string, mixed> $props
@@ -222,16 +231,16 @@ abstract class Renderable
 		string $shortName,
 		array $props,
 		string $content,
-		?DomainTranslator $translator,
+		?Messages $messages,
 		?ViewContext $context
 	): void {
-		$this->shortName   = $shortName;
-		$this->props       = $props;
-		$this->class       = is_string($props['class'] ?? null) ? trim($props['class']) : '';
-		$this->id          = is_string($props['id'] ?? null) ? trim($props['id']) : '';
-		$this->content     = $content;
-		$this->translator  = $translator;
-		$this->viewContext = $context;
+		$this->shortName        = $shortName;
+		$this->props            = $props;
+		$this->class            = is_string($props['class'] ?? null) ? trim($props['class']) : '';
+		$this->id               = is_string($props['id'] ?? null) ? trim($props['id']) : '';
+		$this->content          = $content;
+		$this->attachedMessages = $messages;
+		$this->viewContext      = $context;
 	}
 
 	/**
@@ -296,25 +305,6 @@ abstract class Renderable
 	protected function contentOr(string $text): string
 	{
 		return $this->content !== '' ? $this->content : Escaper::html(trim($text));
-	}
-
-	/**
-	 * Translates a message as a template's `$template->t()` does, with
-	 * the text it reads when no catalog has it (D-784), from the class's
-	 * own domain (its namespace's extension, a theme's through the chain,
-	 * child first), then core's. `context:` is a note for translators.
-	 * Without a translator (one built outside `Views`), it returns the
-	 * text, else the key. Text is in the page's locale, so a translation's
-	 * directives and components speak its language (D-462).
-	 */
-	protected function t(string $key, ?string $text = null, string|int|float ...$params): string
-	{
-		$locale = $this->viewContext->locale ?? '';
-
-		unset($params['context']);
-
-		/** @var array<string, string|int|float> $params */
-		return $this->translator?->translate($key, $params, $locale === '' ? null : $locale, $text) ?? $text ?? $key;
 	}
 
 	/**

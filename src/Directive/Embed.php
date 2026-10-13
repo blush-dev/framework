@@ -228,7 +228,7 @@ final class Embed extends Directive
 	 */
 	public function credit(): string
 	{
-		return $this->isPhoto() && $this->author !== '' ? $this->t('embed.credit', author: $this->author, provider: $this->providerLabel) : '';
+		return $this->isPhoto() && $this->author !== '' ? (string) $this->messages->t('embed.credit', author: $this->author, provider: $this->providerLabel) : '';
 	}
 
 	/**
@@ -261,7 +261,7 @@ final class Embed extends Directive
 			$this->title !== ''      => $this->title,
 			$this->embedTitle !== '' => $this->embedTitle,
 			trim($this->label) !== '' => trim($this->label),
-			default                  => $this->t('embed.title', provider: $this->providerLabel)
+			default                  => (string) $this->messages->t('embed.title', provider: $this->providerLabel)
 		};
 	}
 

@@ -5,8 +5,7 @@
  *
  *     From :cite[The Hobbit].
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Inline\Cite  $directive
+ * @var Blush\Directive\Inline\Cite $directive
  */
 
 declare(strict_types=1);

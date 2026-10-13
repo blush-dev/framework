@@ -21,10 +21,10 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Media\Index\MediaRecord;
-use Blush\Media\MediaException;
-use Blush\Media\MediaValues;
+use Blush\Media\MediaItem;
+use Blush\Media\MediaItems;
 use Blush\Support\RequestMemo;
 use Blush\Translation\Messages;
 use Blush\Translation\Translator;
@@ -53,7 +53,7 @@ final readonly class EntryGraph
 		private ContentUrls $urls,
 		private EntryRelations $relations,
 		private Relations $definitions,
-		private MediaValues $media,
+		private MediaItems $media,
 		private Translator $translator,
 		private Messages $messages,
 		private RequestMemo $memo,
@@ -114,10 +114,10 @@ final readonly class EntryGraph
 	}
 
 	/**
-	 * Returns the profiles an entry's byline credits, or none when its
-	 * type has no byline.
+	 * Returns an entry's creators: the profiles its byline credits, or
+	 * none when its type has no byline.
 	 */
-	public function byline(Entry $entry): RelatedEntries
+	public function creators(Entry $entry): RelatedEntries
 	{
 		$byline = $this->types->byline($entry->type->name);
 
@@ -194,19 +194,32 @@ final readonly class EntryGraph
 
 	/**
 	 * Returns the media file a value names (a file's id, or an older
-	 * path), or `null`.
+	 * path), or `null`, from `MediaItems` (D-814).
 	 */
-	public function media(mixed $value): ?MediaRecord
+	public function media(mixed $value): ?MediaItem
 	{
-		$find = function () use ($value): ?MediaRecord {
-			try {
-				return $this->media->record($value);
-			} catch (MediaException) {
-				return null;
-			}
-		};
+		return $this->media->find($value);
+	}
 
-		return is_string($value) ? $this->memo->remember("media|{$value}", $find) : $find();
+	/**
+	 * Returns the URL path of an entry's archive under a type (D-596,
+	 * D-602, D-815): the entries of the type linking to it through a
+	 * relation, by name, or the type's byline for `null`, such as
+	 * `/recipes/cooks/jane`. `''` when the type has no such archive.
+	 */
+	public function archiveUrl(Entry $entry, ContentType|string $type, ?string $relation): string
+	{
+		$type = is_string($type) ? $this->types->find($type) : $type;
+
+		if ($type === null) {
+			return '';
+		}
+
+		return $this->memo->remember(self::key("archive|{$type->name}|" . ($relation ?? ''), $entry), function () use ($entry, $type, $relation): string {
+			$found = $relation === null ? $this->types->byline($type->name) : $this->types->relationArchives($type)[$relation] ?? null;
+
+			return $found === null ? '' : $this->urls->related($type, $found, $entry->slug) ?? '';
+		});
 	}
 
 	/**

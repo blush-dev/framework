@@ -5,6 +5,7 @@
  * `partials/entries` (D-632).
  *
  * @var Blush\View\Template            $template
+ * @var Blush\Translation\Messages     $messages
  * @var Blush\Content\Http\ContentPage $page
  */
 
@@ -14,7 +15,7 @@ $entries = $page->entries;
 
 ?>
 <?php if ($entries === null || count($entries) === 0) : ?>
-	<p><?= e($template->t('no_entries')) ?></p>
+	<p><?= e($messages->t('no_entries')) ?></p>
 <?php else : ?>
 	<?php foreach ($entries as $item) : ?>
 		<?= $template->include('partials/entry-summary', entry: $item) ?>

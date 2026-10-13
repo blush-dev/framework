@@ -13,28 +13,77 @@ declare(strict_types=1);
 
 namespace Blush\Translation;
 
+use JsonSerializable;
+use Override;
+use Stringable;
+use Blush\View\SafeHtml;
+
 /**
- * A message to translate when it's shown, not when it's written (D-784):
- * what a provider or a service hands a registry, such as a template's
- * label, before anyone knows the locale it'll be read in. It holds the
- * catalog key, the text written beside it in the code (in whatever
- * language the code is written in, shown when no catalog has the key),
- * the domain of the code that wrote it, its named parameters, and a note
- * for translators.
+ * A message from `t()` (D-784, D-816): its catalog key, the text written
+ * beside it in the code (in whatever language the code is written in,
+ * shown when no catalog has the key), the domains it's looked up in (the
+ * code's own, then core's), its named parameters, and a note for
+ * translators. Nothing is looked up until it's printed or cast to a
+ * string, so building one costs nothing: then it's translated in the
+ * current language (`CurrentLocale`). Code that knows a better language,
+ * such as a screen in its reader's, gives it to `Translator::text()`.
  *
- * It's made by `t()` (a provider's, a `Messages`'), never by hand, and
- * read by `Translator::text()` or `Views::text()`.
+ * It's made by `Messages::t()`, never by hand.
  */
-final readonly class Text
+final readonly class Text implements Stringable, JsonSerializable
 {
 	/**
+	 * The domains it's looked up in, in order.
+	 *
+	 * @var list<string>
+	 */
+	public array $domains;
+
+	/**
 	 * @param array<string, mixed> $params
+	 * @param list<string>         $domains The domains it's looked up in; its domain and core's when empty.
 	 */
 	public function __construct(
 		public string $key,
 		public ?string $text = null,
 		public string $domain = Translator::CORE,
 		public array $params = [],
-		public ?string $context = null
-	) {}
+		public ?string $context = null,
+		array $domains = [],
+		private ?Translator $translator = null,
+		private ?CurrentLocale $locale = null
+	) {
+		$this->domains = $domains === [] ? Translator::domainsOf($domain) : $domains;
+	}
+
+	/**
+	 * Returns it translated, for JSON: text, never an object (D-816).
+	 */
+	#[Override]
+	public function jsonSerialize(): string
+	{
+		return (string) $this;
+	}
+
+	/**
+	 * Returns whether it prints as HTML: one of its parameters is
+	 * (`raw()`, any `SafeHtml`, D-559).
+	 */
+	public function isHtml(): bool
+	{
+		return array_any($this->params, static fn (mixed $value): bool => $value instanceof SafeHtml);
+	}
+
+	/**
+	 * Returns it translated in the current language (as HTML when
+	 * `isHtml()`), or, made without a translator, its text formatted
+	 * (else its key).
+	 */
+	#[Override]
+	public function __toString(): string
+	{
+		return $this->translator === null
+			? Translator::render($this, $this->text ?? $this->key, $this->locale?->get() ?? Translator::LAST)
+			: $this->translator->text($this, $this->locale?->get());
+	}
 }

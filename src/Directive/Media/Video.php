@@ -171,7 +171,7 @@ final class Video extends Directive
 			'kind'    => 'captions',
 			'src'     => $this->track,
 			'srclang' => $this->trackLang,
-			'label'   => $this->t('media.captions'),
+			'label'   => (string) $this->messages->t('media.captions'),
 			'default' => true
 		]);
 	}

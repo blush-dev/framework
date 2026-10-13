@@ -21,16 +21,8 @@ use Blush\Cache\CacheException;
 use Blush\Cache\CacheNamespace;
 use Blush\Clock\DateFormat;
 use Blush\Clock\DateStyle;
-use Blush\Content\Entry\Entry;
-use Blush\Content\Type\ContentType;
-use Blush\Data\InvalidData;
-use Blush\Media\Index\MediaRecord;
-use Blush\Media\MediaException;
 use Blush\Menu\Menu;
 use Blush\Routing\UrlGenerationException;
-use Blush\Theme\ThemeException;
-use Blush\Translation\DomainTranslator;
-use Blush\Translation\Text;
 use Blush\Component\PendingComponent;
 use Blush\Directive\PendingDirective;
 
@@ -53,26 +45,12 @@ use Blush\Directive\PendingDirective;
 final class Template
 {
 	/**
-	 * The layout this template asked for, and its data.
-	 *
-	 * @var ?array{string, array<string, mixed>}
-	 */
-	private ?array $layout = null;
-
-	/**
-	 * Sections being captured, innermost last.
-	 *
-	 * @var list<string>
-	 */
-	private array $capturing = [];
-
-	/**
-	 * @param ?DomainTranslator $messages The domains of the code that wrote the template (D-784); the chain's, by default.
+	 * @param TemplateState $state What it leaves for `Views`: its layout and open sections (D-815).
 	 */
 	public function __construct(
 		private readonly Views $views,
 		private readonly ViewContext $context,
-		private readonly ?DomainTranslator $messages = null
+		private readonly TemplateState $state = new TemplateState()
 	) {}
 
 	/**
@@ -82,19 +60,7 @@ final class Template
 	 */
 	public function layout(string $name, mixed ...$data): void
 	{
-		$this->layout = ["layouts/{$name}", self::named($data)];
-	}
-
-	/**
-	 * Returns the layout this template asked for, and its data. Used by
-	 * `Views` after the template runs.
-	 *
-	 * @internal
-	 * @return ?array{string, array<string, mixed>}
-	 */
-	public function requestedLayout(): ?array
-	{
-		return $this->layout;
+		$this->state->layout = ["layouts/{$name}", self::named($data)];
 	}
 
 	/**
@@ -112,7 +78,7 @@ final class Template
 	 */
 	public function start(string $name): void
 	{
-		$this->capturing[] = $name;
+		$this->state->capturing[] = $name;
 		ob_start();
 	}
 
@@ -123,21 +89,9 @@ final class Template
 	 */
 	public function stop(): void
 	{
-		$name = array_pop($this->capturing) ?? throw new ViewException('stop() was called without start().');
+		$name = array_pop($this->state->capturing) ?? throw new ViewException('stop() was called without start().');
 
 		$this->context->setSection($name, (string) ob_get_clean());
-	}
-
-	/**
-	 * Returns the sections still being captured, innermost last. Used by
-	 * `Views` to catch a missing `stop()`.
-	 *
-	 * @internal
-	 * @return list<string>
-	 */
-	public function openSections(): array
-	{
-		return $this->capturing;
 	}
 
 	/**
@@ -300,86 +254,6 @@ final class Template
 	}
 
 	/**
-	 * Returns a theme setting's value (from the theme's own group of
-	 * settings, or the theme's default), or `$default` when no theme in the chain
-	 * declares it.
-	 */
-	public function setting(string $name, mixed $default = null): mixed
-	{
-		return $this->views->settings->get($name, $default);
-	}
-
-	/**
-	 * Returns a site setting's value (D-343): one a field set adds to the
-	 * admin's Settings screens, saved in the `site` group of settings, or its
-	 * field's default, or `$default` when it has neither.
-	 */
-	public function site(string $name, mixed $default = null): mixed
-	{
-		return $this->views->services->site->get($name, $default);
-	}
-
-	/**
-	 * Translates a message with named parameters, with the text it reads
-	 * when no catalog has it written beside its key (D-784):
-	 * `$template->t('reading_time', '{minutes, plural, one {# min} other {# mins}} read', minutes: 5)`.
-	 * The text is an ICU message, in whatever language the template is
-	 * written in; without it, a missing key shows as itself. `context:` is
-	 * a note for translators, never a parameter. The key is looked up in
-	 * the domains of the code that wrote the template: a theme's chain,
-	 * child first, a plugin's own, or core's, each then core's. A message
-	 * made to be translated later (a `Text`) is translated here. It's
-	 * text, so print it with `e()` or `attr()`.
-	 *
-	 * A parameter marked with `raw()` is HTML (D-559): the message comes
-	 * back as HTML, with that parameter as given and the message's own
-	 * text and every other parameter escaped, so
-	 * `e($template->t('by', names: raw($links)))` keeps the links. `attr()`
-	 * still escapes it all.
-	 *
-	 * @throws InvalidData When a catalog can't be parsed.
-	 */
-	public function t(string|Text $key, ?string $text = null, mixed ...$params): string|SafeHtml
-	{
-		if ($key instanceof Text) {
-			return $this->views->text($key, $this->locale());
-		}
-
-		$params = self::named($params);
-		$html   = [];
-
-		unset($params['context']);
-
-		// Each marked parameter is held by a private-use token while the
-		// message is formatted and escaped, then put back as given.
-		foreach ($params as $name => $value) {
-			if ($value instanceof SafeHtml) {
-				$token         = "\u{E000}" . count($html) . "\u{E001}";
-				$html[$token]  = (string) $value;
-				$params[$name] = $token;
-			}
-		}
-
-		$message = ($this->messages ?? $this->views->messages)->translate($key, $params, $this->locale(), $text);
-
-		return $html === [] ? $message : new TrustedHtml(strtr(Escaper::html($message), $html));
-	}
-
-	/**
-	 * Translates a group of messages from the theme's catalogs (the keys
-	 * under `$key`), keyed by name, such as the default footer's
-	 * `powered_by` lines (D-450). A group comes whole from one locale.
-	 * Empty when no locale has it.
-	 *
-	 * @return array<string, string>
-	 * @throws InvalidData When a catalog can't be parsed.
-	 */
-	public function tGroup(string $key, mixed ...$params): array
-	{
-		return ($this->messages ?? $this->views->messages)->group($key, self::named($params), $this->locale());
-	}
-
-	/**
 	 * Returns the page's `Head`.
 	 */
 	public function head(): Head
@@ -397,28 +271,6 @@ final class Template
 	public function foot(): Foot
 	{
 		return $this->context->markup->foot;
-	}
-
-	/**
-	 * Returns a theme asset's URL (from a build manifest, or versioned by
-	 * mtime), resolved through the theme chain, or `''` when no theme
-	 * has it.
-	 *
-	 * @throws ThemeException When a build manifest is invalid.
-	 */
-	public function asset(string $path): string
-	{
-		return $this->views->assets->url($path) ?? '';
-	}
-
-	/**
-	 * Returns a theme asset's contents, resolved through the theme chain,
-	 * or `''` when no theme has it: `<?= raw($template->inline('svg/github.svg')) ?>`
-	 * (D-151). Only servable assets can be read, never views or PHP.
-	 */
-	public function inline(string $path): string
-	{
-		return $this->views->assets->contents($path);
 	}
 
 	/**
@@ -482,7 +334,7 @@ final class Template
 	 * `<?= $template->widont($title) ?>`.
 	 */
 	#[ReturnsHtml]
-	public function widont(string $text): string
+	public function widont(Stringable|string $text): string
 	{
 		$html  = e($text);
 		$words = preg_split('/ +/', trim($html), -1, PREG_SPLIT_NO_EMPTY) ?: [];
@@ -516,67 +368,6 @@ final class Template
 		}
 
 		return $router->to($name, $params, $absolute);
-	}
-
-	/**
-	 * Returns a published profile by its slug (D-351), or `null` when
-	 * there's none, or the site has no profiles type.
-	 */
-	public function profile(string $slug): ?Entry
-	{
-		$profiles = $this->views->services->types->profiles();
-		$profile  = $profiles === null ? null : $this->views->services->content->term($profiles->name, $slug);
-
-		return $profile !== null && $profile->isPublished() && $profile->isRoutable() ? $profile : null;
-	}
-
-	/**
-	 * Returns the media file a value names (D-773), or `null`: its `url`,
-	 * its `width` and `height`, and its details (`metadata()`, with the
-	 * alt text). A media value is the file's id; an older value, a path,
-	 * is read too. It's for values that aren't an entry's, such as a site
-	 * setting's; an entry's field is `$entry->media('image')` (D-802).
-	 *
-	 * ```php
-	 * <?php if ($image = $template->media($template->site('logo'))) : ?>
-	 * 	<img src="<?= url($image->url) ?>" alt="<?= attr($image->metadata()->alt) ?>">
-	 * <?php endif ?>
-	 * ```
-	 */
-	public function media(mixed $value): ?MediaRecord
-	{
-		try {
-			return $this->views->services->media->record($value);
-		} catch (MediaException) {
-			return null;
-		}
-	}
-
-	/**
-	 * Returns the URL path of a relation archive under a type (D-596,
-	 * D-602): one target's, such as `/recipes/cooks/jane` or
-	 * `/movies/directors/penny`, or with no target, the list of what the
-	 * relation links to (`/recipes/cooks`). `$relation` is the relation's
-	 * name, or `null` for the type's byline. `''` when there's no such
-	 * archive; a byline's link can fall back to the profile's own page:
-	 *
-	 * ```php
-	 * <?= url($template->archiveUrl($entry->type, null, $person) ?: $person->url()) ?>
-	 * ```
-	 */
-	public function archiveUrl(ContentType|string $type, ?string $relation = null, Entry|string|null $target = null): string
-	{
-		$services = $this->views->services;
-		$type     = is_string($type) ? $services->types->find($type) : $type;
-		$found    = $type === null ? null : ($relation === null ? $services->types->byline($type->name) : $services->types->relationArchives($type)[$relation] ?? null);
-
-		if ($type === null || $found === null) {
-			return '';
-		}
-
-		$slug = $target instanceof Entry ? $target->slug : $target;
-
-		return ($slug === null ? $services->urls->relatedList($type, $found) : $services->urls->related($type, $found, $slug)) ?? '';
 	}
 
 	/**

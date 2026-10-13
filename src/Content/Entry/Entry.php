@@ -24,9 +24,11 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Visibility;
 use Blush\Markdown\MarkdownException;
-use Blush\Media\Index\MediaRecord;
+use Blush\Media\MediaItem;
 use Blush\View\Avatar;
 use Blush\View\Escaper;
+use Blush\View\HtmlAttributes;
+use Blush\View\InvalidHtmlAttribute;
 use Blush\View\SafeHtml;
 use Blush\View\TrustedHtml;
 
@@ -225,13 +227,14 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns the profiles its byline credits (D-804): `related()` for its
-	 * type's byline relation (D-602), such as a post's `authors`, or none
-	 * when the type has no byline.
+	 * Returns its creators (D-804, D-813): the profiles its byline
+	 * credits, `related()` for its type's byline relation (D-602), such
+	 * as a post's `authors` or a recipe's `cooks`, or none when the type
+	 * has no byline.
 	 */
-	public function byline(): RelatedEntries
+	public function creators(): RelatedEntries
 	{
-		return $this->graph?->byline($this) ?? new RelatedEntries();
+		return $this->graph?->creators($this) ?? new RelatedEntries();
 	}
 
 	/**
@@ -246,7 +249,7 @@ final readonly class Entry implements Stringable
 
 	/**
 	 * Returns the profiles it credits (D-808): every one of its type's
-	 * credit relations, the byline first, merged, each once. `byline()`
+	 * credit relations, the byline first, merged, each once. `creators()`
 	 * is the byline alone.
 	 */
 	public function credits(): RelatedEntries
@@ -329,7 +332,7 @@ final readonly class Entry implements Stringable
 	 * empty title reads "Untitled" in its language; without a URL, it's
 	 * the title alone.
 	 *
-	 * @throws InvalidLinkAttribute When an attribute isn't named.
+	 * @throws InvalidHtmlAttribute When an attribute isn't named.
 	 */
 	public function link(string|int|bool|null ...$attributes): SafeHtml
 	{
@@ -340,22 +343,24 @@ final readonly class Entry implements Stringable
 			return new TrustedHtml(Escaper::html($title));
 		}
 
-		$html = '<a href="' . Escaper::url($url) . '"';
+		return new TrustedHtml('<a href="' . Escaper::url($url) . '"' . HtmlAttributes::render($attributes, 'link()') . '>' . Escaper::html($title) . '</a>');
+	}
 
-		foreach ($attributes as $name => $value) {
-			if (! is_string($name)) {
-				throw new InvalidLinkAttribute('Pass link() attributes by name, such as link(class: \'entry-link\').');
-			}
-
-			if ($value === false || $value === null) {
-				continue;
-			}
-
-			$name  = strtolower((string) preg_replace('/[A-Z]/', '-$0', $name));
-			$html .= $value === true ? " {$name}" : " {$name}=\"" . Escaper::attr($value) . '"';
-		}
-
-		return new TrustedHtml($html . '>' . Escaper::html($title) . '</a>');
+	/**
+	 * Returns the URL path of its archive under a type (D-596, D-815):
+	 * that type's entries linking to it through a relation, by name, or
+	 * through the type's byline without one, such as a profile's posts
+	 * (`/archives/authors/jane`) or a cook's recipes
+	 * (`$cook->archiveUrl('recipe', 'cooks')`). `''` when there's no such
+	 * archive; a byline's link can fall back to the profile's own page:
+	 *
+	 * ```php
+	 * <?= url($profile->archiveUrl($entry->type) ?: $profile->url()) ?>
+	 * ```
+	 */
+	public function archiveUrl(ContentType|string $type, ?string $relation = null): string
+	{
+		return $this->graph?->archiveUrl($this, $type, $relation) ?? '';
 	}
 
 	/**
@@ -420,11 +425,12 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns the media file a media field names (D-773), or `null`: its
-	 * `url`, its `width` and `height`, and its details (`metadata()`, with
-	 * the alt text).
+	 * Returns the media file a media field names (D-773, D-814), or
+	 * `null`: the same `MediaItem` as `$media->find()` gives, with its
+	 * `url`, `width` and `height`, details (`metadata()`, with the alt
+	 * text), and, for an image, `img()`.
 	 */
-	public function media(string $field): ?MediaRecord
+	public function media(string $field): ?MediaItem
 	{
 		return $this->graph?->media($this->field($field));
 	}

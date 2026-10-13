@@ -115,7 +115,7 @@ final class Menu extends Directive
 			}
 		}
 
-		return $this->t('menu.label');
+		return (string) $this->messages->t('menu.label');
 	}
 
 	/**
@@ -183,7 +183,7 @@ final class Menu extends Directive
 			'type'          => 'button',
 			'aria-expanded' => $item->ancestor ? 'true' : 'false',
 			'aria-controls' => $this->submenuId($trail),
-			'aria-label'    => $this->t('menu.toggle', label: $item->label),
+			'aria-label'    => (string) $this->messages->t('menu.toggle', label: $item->label),
 			'hidden'        => true
 		]);
 	}

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tool;
 
+use Stringable;
 use Blush\Job\JobRecord;
 
 /**
@@ -25,22 +26,23 @@ use Blush\Job\JobRecord;
 final readonly class ToolResult
 {
 	/**
-	 * @param array<string, mixed> $data
-	 * @param list<string>         $details
+	 * @param array<string, mixed>     $data
+	 * @param list<string|Stringable> $details
 	 */
 	public function __construct(
 		public array $data = [],
-		public ?string $text = null,
+		public string|Stringable|null $text = null,
 		public array $details = [],
 		public ?string $job = null
 	) {}
 
 	/**
-	 * A tool that did what it was asked, said in words, with no data.
+	 * A tool that did what it was asked, said in words (text, or a `Text`
+	 * from `t()`, D-816), with no data.
 	 *
-	 * @param list<string> $details
+	 * @param list<string|Stringable> $details
 	 */
-	public static function done(string $text, array $details = []): self
+	public static function done(string|Stringable $text, array $details = []): self
 	{
 		return new self(text: $text, details: $details);
 	}

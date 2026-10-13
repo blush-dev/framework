@@ -13,8 +13,7 @@
  *     Third.
  *     :::
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Layout\Grid  $directive
+ * @var Blush\Directive\Layout\Grid $directive
  */
 
 declare(strict_types=1);

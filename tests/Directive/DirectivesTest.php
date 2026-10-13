@@ -279,10 +279,10 @@ final class DirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"greeting": "Theme greeting", "progress": {"label": "Theme progress"}}');
-		$this->writeTemporaryFile('extensions/acme/alt/views/page.php', '<?= e($template->t("greeting")) ?>|<?= e($template->t("theme.only", "Only {n, plural, one {# thing} other {# things}}", n: 2, context: "A note")) ?>');
+		$this->writeTemporaryFile('extensions/acme/alt/views/page.php', '<?= e($messages->t("greeting")) ?>|<?= e($messages->t("theme.only", "Only {n, plural, one {# thing} other {# things}}", n: 2, context: "A note")) ?>');
 		$this->writeTemporaryFile('extensions/fixture/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Directive\\\\OrphanProvider"}');
 		$this->writeTemporaryFile('extensions/fixture/hello/lang/en.json', '{"greeting": "Plugin greeting", "progress": {"label": "Plugin progress"}}');
-		$this->writeTemporaryFile('extensions/fixture/hello/views/greet.php', '<?= e($template->t("greeting")) ?>|<?= e($template->t("hello.inline", "Inline {name}", name: "Ada")) ?>');
+		$this->writeTemporaryFile('extensions/fixture/hello/views/greet.php', '<?= e($messages->t("greeting")) ?>|<?= e($messages->t("hello.inline", "Inline {name}", name: "Ada")) ?>');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['fixture/hello']);\n");
 

@@ -21,7 +21,7 @@ use Blush\Field\SchemaResult;
 
 /**
  * The settings field sets add to the Settings screens (D-343), for
- * themes (`$template->site('tagline')`) and extensions: each value saved
+ * themes (`$site->setting('tagline')`) and extensions: each value saved
  * in the `site` group of saved settings (`user/data/settings/site.json`), read through its field
  * (normalized, then hydrated, as an entry's fields are), or the field's
  * default. A saved value that no longer fits its field is left out, as

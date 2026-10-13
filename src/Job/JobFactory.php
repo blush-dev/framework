@@ -55,7 +55,7 @@ final readonly class JobFactory
 		try {
 			$made = $this->make($key);
 
-			return $job instanceof JobRecord ? $made->describe($job) : $made->label();
+			return $job instanceof JobRecord ? $made->describe($job) : (string) $made->label();
 		} catch (JobException) {
 			return $key;
 		}

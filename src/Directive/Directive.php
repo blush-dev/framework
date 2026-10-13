@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Directive;
 
 use Override;
-use Blush\Translation\DomainTranslator;
+use Blush\Translation\Messages;
 use Blush\View\Renderable;
 use Blush\View\ViewContext;
 
@@ -131,12 +131,12 @@ abstract class Directive extends Renderable
 		DirectiveName $name,
 		array $props,
 		string $content = '',
-		?DomainTranslator $translator = null,
+		?Messages $messages = null,
 		?ViewContext $context = null,
 		?Variant $variant = null,
 		?DirectiveName $container = null
 	): void {
-		$this->attachRenderable($name->name, $props, $content, $translator, $context);
+		$this->attachRenderable($name->name, $props, $content, $messages, $context);
 
 		$this->variantInfo = $variant;
 		$this->variant     = $variant->name ?? Variant::DEFAULT;

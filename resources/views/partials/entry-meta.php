@@ -6,8 +6,9 @@
  * it's filed under (D-808). Each profile links to its archive under the
  * relation, else its own page.
  *
- * @var Blush\View\Template       $template
- * @var Blush\Content\Entry\Entry $entry
+ * @var Blush\View\Template        $template
+ * @var Blush\Translation\Messages $messages
+ * @var Blush\Content\Entry\Entry  $entry
  */
 
 declare(strict_types=1);
@@ -24,14 +25,14 @@ foreach ($entry->relations(Blush\Content\Relation\RelationKind::Credit) as $rela
 		continue;
 	}
 
-	$names = array_map(static function (Blush\Content\Entry\Entry $profile) use ($template, $entry, $relation): string {
-		$link = $template->archiveUrl($entry->type, $relation->name, $profile) ?: $profile->url();
+	$names = array_map(static function (Blush\Content\Entry\Entry $profile) use ($entry, $relation): string {
+		$link = $profile->archiveUrl($entry->type, $relation->name) ?: $profile->url();
 
 		return $link === '' ? e($profile->title) : '<a href="' . url($link) . '">' . e($profile->title) . '</a>';
 	}, $profiles->all());
 
 	$credits[] = [
-		$profiles->byline ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
+		$profiles->byline ? $messages->t('people.byline') : $messages->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
 		implode(', ', $names)
 	];
 }
@@ -50,7 +51,7 @@ $terms = array_map(static fn (Blush\Content\Entry\Entry $term): string => (strin
 		<?php endforeach ?>
 
 		<?php if ($terms !== []) : ?>
-			<span><?= e($template->t('terms.label')) ?>: <?= raw(implode(', ', $terms)) ?></span>
+			<span><?= e($messages->t('terms.label')) ?>: <?= raw(implode(', ', $terms)) ?></span>
 		<?php endif ?>
 	</p>
 <?php endif ?>

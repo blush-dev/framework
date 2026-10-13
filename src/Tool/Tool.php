@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tool;
 
+use Stringable;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 
@@ -40,15 +41,16 @@ abstract class Tool
 {
 	/**
 	 * A short name for people, as a button or an app shows it, in Title
-	 * Case.
+	 * Case: text, or a `Text` from `t()`, translated where it's shown
+	 * (D-816).
 	 */
-	abstract public function title(): string;
+	abstract public function title(): string|Stringable;
 
 	/**
 	 * What it does, written for the AI: when to use it and what it
 	 * answers.
 	 */
-	abstract public function description(): string;
+	abstract public function description(): string|Stringable;
 
 	/**
 	 * Does what it's asked.
@@ -142,7 +144,7 @@ abstract class Tool
 	 * A question to ask before the Tools screen runs it, or `null` for
 	 * none; a tool that may destroy something is asked about anyway.
 	 */
-	public function confirm(): ?string
+	public function confirm(): string|Stringable|null
 	{
 		return null;
 	}

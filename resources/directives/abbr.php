@@ -6,8 +6,7 @@
  *
  *     :abbr[CMS]{title="content management system"}
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Inline\Abbr  $directive
+ * @var Blush\Directive\Inline\Abbr $directive
  */
 
 declare(strict_types=1);

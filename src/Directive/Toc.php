@@ -91,7 +91,7 @@ final class Toc extends Directive
 	 */
 	public function navLabel(): string
 	{
-		return trim($this->label) !== '' ? trim($this->label) : $this->t('toc.label');
+		return trim($this->label) !== '' ? trim($this->label) : (string) $this->messages->t('toc.label');
 	}
 
 	/**

@@ -168,8 +168,8 @@ found by its name like any other.
   which load only on pages it's drawn on; override `assets()` to decide
   each time.
 - **`modifiers()`** and **`rootAttributes()`** add BEM modifiers and
-  other attributes to the root element, and **`$this->t('key', 'Text')`**
-  translates text from its own extension's catalogs (a theme's chain,
+  other attributes to the root element, and **`$this->messages->t('key', 'Text')`**
+  writes text from its own extension's catalogs (a theme's chain,
   or its plugin's), then Blush's, showing the text when none has the key
   (see [Translations](themes.md#translations)).
 

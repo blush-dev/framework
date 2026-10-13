@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Mcp;
 
 use JsonException;
+use Stringable;
 use Throwable;
 use Psr\Log\LoggerInterface;
 use Blush\Auth\TokenScope;
@@ -98,11 +99,11 @@ final readonly class McpTools
 
 			$described[] = [
 				'name'        => $name,
-				'title'       => $tool->title(),
-				'description' => $tool->description(),
+				'title'       => (string) $tool->title(),
+				'description' => (string) $tool->description(),
 				'inputSchema' => (object) $tool->input(),
 				...($output === null ? [] : ['outputSchema' => (object) $output]),
-				'annotations' => ['title' => $tool->title(), ...$tool->annotations()->toArray()]
+				'annotations' => ['title' => (string) $tool->title(), ...$tool->annotations()->toArray()]
 			];
 		}
 
@@ -204,7 +205,7 @@ final readonly class McpTools
 	 */
 	private static function result(ToolResult $result): array
 	{
-		$text = implode("\n", array_filter([$result->text, ...$result->details], static fn (?string $line): bool => $line !== null && $line !== ''));
+		$text = implode("\n", array_filter(array_map(static fn (string|Stringable|null $line): string => (string) $line, [$result->text, ...$result->details]), static fn (string $line): bool => $line !== ''));
 
 		if ($result->data === []) {
 			return ['content' => [['type' => 'text', 'text' => $text === '' ? 'Done.' : $text]], 'isError' => false];

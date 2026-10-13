@@ -29,7 +29,7 @@ trait PlayerLabels
 		$attributes = [];
 
 		foreach (self::LABELS as $name) {
-			$attributes["label-{$name}"] = $this->t('player.' . str_replace('-', '_', $name));
+			$attributes["label-{$name}"] = (string) $this->messages->t('player.' . str_replace('-', '_', $name));
 		}
 
 		return self::html($attributes);

@@ -24,6 +24,7 @@ use Blush\Media\MediaDates;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadata;
+use Blush\Support\RequestMemo;
 
 /**
  * The media library, read from the media index (D-288). The index is
@@ -66,7 +67,8 @@ final class MediaLibrary
 		private readonly MediaIndexer $indexer,
 		private readonly MediaConfig $config,
 		private readonly AppConfig $app,
-		private readonly JobQueue $jobs
+		private readonly JobQueue $jobs,
+		private readonly RequestMemo $memo
 	) {}
 
 	/**
@@ -122,6 +124,11 @@ final class MediaLibrary
 	private function catchUp(array $written = []): MediaIndexReport
 	{
 		$report = $this->indexer->index(written: $written, limit: MediaIndexJob::BATCH);
+
+		// What was looked up in the old index is out of date (D-814).
+		if ($report->written) {
+			$this->memo->forget();
+		}
 
 		if ($report->pending > 0) {
 			try {

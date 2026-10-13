@@ -7,8 +7,7 @@
  *
  *     ::file[The annual report]{src=report.pdf}
  *
- * @var Blush\View\Template         $template
- * @var Blush\Directive\Media\File  $directive
+ * @var Blush\Directive\Media\File $directive
  */
 
 declare(strict_types=1);

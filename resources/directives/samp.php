@@ -5,8 +5,7 @@
  *
  *     It prints :samp[File not found.]
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Inline\Samp  $directive
+ * @var Blush\Directive\Inline\Samp $directive
  */
 
 declare(strict_types=1);

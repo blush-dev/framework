@@ -407,15 +407,15 @@ final class ThemeCommandsTest extends TestCase
 	public function testLangExtractWritesTheCatalogThemeCheckCompares(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '<?= e($template->t("entry.by", "By {author}", author: "Ada")) ?>');
-		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', "{\n\t\"@@locale\": \"en\",\n\t\"@@domain\": \"acme/nova\"\n}\n");
+		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '<?= e($messages->t("entry.by", "By {author}", author: "Ada")) ?>');
+		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', "{\n\t\"@@locale\": \"en\",\n\t\"@@domain\": \"acme/nova\",\n\t\"entry\": {\n\t\t\"by\": \"Old text\"\n\t}\n}\n");
 
-		$this->assertMatchesRegularExpression('#warning\s+views/single\.php:1 \(acme/nova\)\s+"entry\.by" isn\'t in lang/en\.json; run lang:extract\.#', $this->command(['theme:check', 'acme/nova'])->output);
+		$this->assertMatchesRegularExpression('#warning\s+views/single\.php:1 \(acme/nova\)\s+"entry\.by" reads otherwise in lang/en\.json; run lang:extract\.#', $this->command(['theme:check', 'acme/nova'])->output);
 
 		$dry = $this->command(['lang:extract', 'acme/nova', '--dry-run']);
 
-		$this->assertMatchesRegularExpression('#entry\.by\s+Added\.#', $dry->output);
-		$this->assertStringNotContainsString('entry', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json'));
+		$this->assertMatchesRegularExpression('#entry\.by\s+Its text changed#', $dry->output);
+		$this->assertStringContainsString('Old text', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/nova/lang/en.json'));
 
 		$this->command(['lang:extract', 'acme/nova']);
 

@@ -88,7 +88,7 @@ final readonly class RunTool
 			return ExitCode::Success;
 		}
 
-		$output->success($result->text ?? 'Done.');
+		$output->success((string) ($result->text ?? 'Done.'));
 
 		foreach ($result->details as $detail) {
 			$output->line("  {$detail}");
@@ -117,7 +117,7 @@ final readonly class RunTool
 		$rows = [];
 
 		foreach ($tools as $key => $tool) {
-			$rows[] = [$key, $tool->title(), $tool->annotations()->readOnly ? 'reads' : 'writes', Tools::capabilityName($tool) ?? 'anyone'];
+			$rows[] = [$key, (string) $tool->title(), $tool->annotations()->readOnly ? 'reads' : 'writes', Tools::capabilityName($tool) ?? 'anyone'];
 		}
 
 		$output->table(['Tool', 'Title', 'Does', 'Needs'], $rows);

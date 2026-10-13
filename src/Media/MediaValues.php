@@ -16,6 +16,7 @@ namespace Blush\Media;
 use Blush\Core\Paths;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaRecord;
+use Blush\Support\RequestMemo;
 use Blush\Support\Uuid;
 
 /**
@@ -36,7 +37,8 @@ final readonly class MediaValues
 	public function __construct(
 		private MediaLibrary $library,
 		private MediaResolver $resolver,
-		private Paths $paths
+		private Paths $paths,
+		private RequestMemo $memo
 	) {}
 
 	/**
@@ -59,17 +61,21 @@ final readonly class MediaValues
 			return null;
 		}
 
-		if (self::isId($value)) {
-			return $this->library->findId($value);
-		}
+		// Kept for the request (D-807, D-814); the library drops it when
+		// it writes its index.
+		return $this->memo->remember("media|record|{$value}", function () use ($value): ?MediaRecord {
+			if (self::isId($value)) {
+				return $this->library->findId($value);
+			}
 
-		$file = $this->resolver->resolve(trim($value));
+			$file = $this->resolver->resolve(trim($value));
 
-		if ($file === null || ! str_starts_with($file->path, $this->paths->media . '/')) {
-			return null;
-		}
+			if ($file === null || ! str_starts_with($file->path, $this->paths->media . '/')) {
+				return null;
+			}
 
-		return $this->library->find(substr($file->path, strlen($this->paths->media) + 1));
+			return $this->library->find(substr($file->path, strlen($this->paths->media) + 1));
+		});
 	}
 
 	/**

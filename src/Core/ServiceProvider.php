@@ -21,9 +21,9 @@ use Blush\Core\Bootable;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageResolver;
 use Blush\Translation\ClassDomains;
+use Blush\Translation\CurrentLocale;
 use Blush\Translation\Messages;
-use Blush\Translation\Text;
-use Blush\Translation\TranslationException;
+use Blush\Translation\Translator;
 
 /**
  * Service providers allow you to connect services to the application container.
@@ -212,17 +212,20 @@ abstract class ServiceProvider implements Bootable
 	}
 
 	/**
-	 * Returns a message to translate when it's shown (D-784), in the
-	 * domain of the extension the provider belongs to, so a label it
-	 * registers reads in the page's or the admin's language:
-	 * `$this->t('templates.compact.label', 'Compact List')`. The text is
-	 * an ICU message, shown when no catalog has the key; `context:` is a
-	 * note for translators, and every other parameter is named.
-	 *
-	 * @throws TranslationException When a parameter isn't named.
+	 * The provider's text (D-784, D-816), in the domain of the extension it
+	 * belongs to, so a label it registers reads in the page's or the
+	 * admin's language: `$this->messages->t('templates.compact.label',
+	 * 'Compact List')`. Made on first use.
 	 */
-	protected function t(string $key, ?string $text = null, mixed ...$params): Text
-	{
-		return Messages::text($this->container->make(ClassDomains::class)->of(static::class), $key, $text, $params);
+	// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.
+	protected Messages $messages {
+		get => $this->ownMessages ??= new Messages(
+			$this->container->make(ClassDomains::class)->of(static::class),
+			$this->container->has(Translator::class) ? $this->container->make(Translator::class) : null,
+			$this->container->has(CurrentLocale::class) ? $this->container->make(CurrentLocale::class) : null
+		);
 	}
+	// phpcs:enable
+
+	private ?Messages $ownMessages = null;
 }

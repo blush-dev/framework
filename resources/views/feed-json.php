@@ -3,8 +3,7 @@
 /**
  * JSON Feed 1.1. Themes may override it, or add `feed-json-{type}`.
  *
- * @var Blush\View\Template $template
- * @var Blush\Feed\Feed     $feed
+ * @var Blush\Feed\Feed $feed
  */
 
 declare(strict_types=1);

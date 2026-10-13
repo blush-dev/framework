@@ -8,8 +8,7 @@
  *     ![Describe the photo](photo.jpg)
  *     :::
  *
- * @var Blush\View\Template           $template
- * @var Blush\Directive\Layout\Figure  $directive
+ * @var Blush\Directive\Layout\Figure $directive
  */
 
 declare(strict_types=1);

@@ -7,8 +7,8 @@
  *
  *     ::video[Launch day]{src=launch.mp4 poster=launch.jpg track=launch.vtt}
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Media\Video  $directive
+ * @var Blush\Translation\Messages  $messages
+ * @var Blush\Directive\Media\Video $directive
  */
 
 declare(strict_types=1);
@@ -20,7 +20,7 @@ declare(strict_types=1);
 			<?php if ($directive->track !== '') : ?>
 				<track <?= $directive->trackAttributes() ?>>
 			<?php endif ?>
-			<a href="<?= url($directive->src) ?>"><?= e($template->t('media.video_fallback')) ?></a>
+			<a href="<?= url($directive->src) ?>"><?= e($messages->t('media.video_fallback')) ?></a>
 		</video>
 	</blush-video-player>
 	<?php if ($directive->caption() !== '') : ?>

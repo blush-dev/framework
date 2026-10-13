@@ -11,8 +11,7 @@
  *     ![](c.jpg)
  *     :::
  *
- * @var Blush\View\Template            $template
- * @var Blush\Directive\Media\Gallery  $directive
+ * @var Blush\Directive\Media\Gallery $directive
  */
 
 declare(strict_types=1);

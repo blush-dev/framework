@@ -48,9 +48,11 @@ final readonly class SourceCatalog
 	}
 
 	/**
-	 * Compares a catalog with the messages the code writes: a key it
-	 * lacks, or text it has otherwise, is a warning to run `lang:extract`.
-	 * Without the catalog, one notice says so.
+	 * Compares a catalog with the messages the code writes: text it has
+	 * otherwise is a warning to run `lang:extract`, since the catalog's
+	 * wins over the code's. The code is the source (D-816), so a key the
+	 * catalog lacks, or no catalog at all, is fine: the code's text
+	 * shows.
 	 *
 	 * @param  array<string, ExtractedMessage> $messages
 	 * @return list<Violation>
@@ -65,7 +67,7 @@ final readonly class SourceCatalog
 		$name    = basename(dirname($file)) . '/' . basename($file);
 
 		if ($catalog === null) {
-			return [new Violation($name, sprintf('The code writes %d %s, but there\'s no %s; run lang:extract to write it for translators.', count($messages), count($messages) === 1 ? 'message' : 'messages', $name), Severity::Notice)];
+			return [];
 		}
 
 		$problems = [];
@@ -73,9 +75,7 @@ final readonly class SourceCatalog
 		foreach ($messages as $key => $message) {
 			$found = self::at($catalog, $key);
 
-			if ($found === null) {
-				$problems[] = new Violation($message->where(), sprintf('"%s" isn\'t in %s; run lang:extract.', $key, $name), Severity::Warning);
-			} elseif ($found !== $message->text) {
+			if ($found !== null && $found !== $message->text) {
 				$problems[] = new Violation($message->where(), sprintf('"%s" reads otherwise in %s; run lang:extract.', $key, $name), Severity::Warning);
 			}
 		}

@@ -11,8 +11,7 @@
  *     ::embed[A caption]{url="https://www.flickr.com/photos/…" alt="…"}
  *     ::embed{url="https://x.com/…/status/…"}
  *
- * @var Blush\View\Template    $template
- * @var Blush\Directive\Embed  $directive
+ * @var Blush\Directive\Embed $directive
  */
 
 declare(strict_types=1);

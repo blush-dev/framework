@@ -1292,6 +1292,22 @@ Other starting points the author may pick up (none decided):
 
 ---
 
+### Backlog
+
+Agreed, not scheduled; built when the author says so.
+
+- **Media directives from templates, with shortcuts** (D-814, author
+  2026-10-13): a media directive's `#[MediaProp]` values (`src`,
+  `poster`, `track`, `art`) are resolved only in Markdown today, so a
+  template passes `$item->url`. Resolve them on the template path too
+  (`PendingDirective`), taking a file's id, an older path, or a
+  `MediaItem`, and add shortcuts over the directives as `icon()` is:
+  `$template->video($item)`, `$template->audio($item, variant: 'card')`,
+  `$template->file($item)`, each taking the directive's props by name.
+  One markup per kind (the directive's template, which themes
+  override), and the player's scripts and styles asked for as
+  directives ask. Images keep `MediaItem::img()`.
+
 ## M7 (Static export): done
 
 **Removed** 2026-10-04 (D-476): `Blush\Export`, `build`, and

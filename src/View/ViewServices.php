@@ -20,7 +20,8 @@ use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
-use Blush\Media\MediaValues;
+use Blush\Media\MediaItems;
+use Blush\Translation\CurrentLocale;
 use Blush\Menu\Menus;
 use Blush\Routing\UrlGenerator;
 use Blush\Settings\SiteSettings;
@@ -56,8 +57,9 @@ final readonly class ViewServices
 		public ViewEngines $engines,
 		public Assets $assets,
 		public AssetCollector $collector,
-		public MediaValues $media,
+		public MediaItems $media,
 		public EntryTemplateRegistry $templates,
+		public CurrentLocale $locale,
 		public ?ContentCache $cache = null
 	) {}
 }

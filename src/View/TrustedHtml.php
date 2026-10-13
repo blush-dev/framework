@@ -17,7 +17,7 @@ use Override;
 
 /**
  * HTML a template marked as trusted with `raw()` (D-559). It prints as
- * is, `e()` leaves it alone, and a translation (`$template->t()`) puts
+ * is, `e()` leaves it alone, and a translation (`$messages->t()`) puts
  * it in its message unescaped while escaping the rest.
  */
 final readonly class TrustedHtml implements SafeHtml

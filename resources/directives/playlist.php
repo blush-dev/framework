@@ -14,8 +14,8 @@
  *     ::audio{src=river-song.mp3}
  *     :::
  *
- * @var Blush\View\Template             $template
- * @var Blush\Directive\Media\Playlist  $directive
+ * @var Blush\Translation\Messages     $messages
+ * @var Blush\Directive\Media\Playlist $directive
  */
 
 declare(strict_types=1);
@@ -44,14 +44,14 @@ $first = $directive->firstTrack();
 				<?php endif ?>
 				<blush-audio-player <?= $directive->labelAttributes() ?>>
 					<audio <?= $directive->playerAttributes() ?>>
-						<a href="<?= url($first->src) ?>"><?= e($template->t('media.audio_fallback')) ?></a>
+						<a href="<?= url($first->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 					</audio>
 				</blush-audio-player>
 			</div>
 		<?php else : ?>
 			<blush-audio-player <?= $directive->labelAttributes() ?>>
 				<audio <?= $directive->playerAttributes() ?>>
-					<a href="<?= url($first->src) ?>"><?= e($template->t('media.audio_fallback')) ?></a>
+					<a href="<?= url($first->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 				</audio>
 			</blush-audio-player>
 		<?php endif ?>

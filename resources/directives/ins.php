@@ -6,8 +6,7 @@
  *
  *     The plugin is ~~$20~~ :ins[free]{datetime=2026-10-06}.
  *
- * @var Blush\View\Template         $template
- * @var Blush\Directive\Inline\Ins  $directive
+ * @var Blush\Directive\Inline\Ins $directive
  */
 
 declare(strict_types=1);

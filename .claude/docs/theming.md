@@ -151,7 +151,7 @@ active theme (config and user/data settings over its defaults)
   sitemaps, `welcome` and `partials/welcome`, and plain `single`,
   `collection`, `error`, `partials/entries`, `entry-summary`,
   `entry-meta`, and `pagination`. Their text is in the `core` domain,
-  which `$template->t()` searches after the chain's.
+  which `$messages->t()` searches after the chain's.
 - Views resolve through each theme's `views/`, the active theme first
   (D-103). The site has no views of its own (D-617): a site changes a
   theme with a child theme.
@@ -189,8 +189,8 @@ $template->layout('base', title: $entry->title);
 <article class="entry">
 	<h1><?= e($entry->title) ?></h1>
 
-	<?php if ($template->setting('showReadingTime')) : ?>
-		<p><?= e($template->t('reading_time', minutes: $entry->readingTime)) ?></p>
+	<?php if ($theme->setting('showReadingTime')) : ?>
+		<p><?= e($messages->t('reading_time', minutes: $entry->readingTime)) ?></p>
 	<?php endif ?>
 
 	<?= raw($entry->body()) ?>
@@ -225,7 +225,7 @@ The template API (kept deliberately small; D-103):
 
 What leads from an entry is the entry's (D-802), not `Template`'s:
 `$entry->url()`, `link(...$attributes)`, `relations(?RelationKind)`,
-`related()`, `referencedBy()`, `byline()` (D-804), one method a
+`related()`, `referencedBy()`, `creators()` (D-804, D-813), one method a
 relation kind (D-808: `classifications()`, `credits()`, `references()`,
 `parent()`, `translations()`), `linksTo($relation, $id)`,
 `ancestors()`, `children()`, and `media($field)`, through the
@@ -240,21 +240,33 @@ addresses reads them through the `@internal` `slugs()` and `links()`.
 Every `EntryGraph` answer is kept in the shared `RequestMemo` (D-805),
 by entry id, version, and language, and `RelatedEntries::published()`
 and `Body`'s excerpt, word count, and summary are kept too, so a
-template calls `$entry->byline()` as often as it likes without saving
+template calls `$entry->creators()` as often as it likes without saving
 it in a variable. The memo is dropped on every write through
 `Entries`, on `ContentIndexed`, on `RequestReceived`, before each job,
 and before each MCP stdio message. `StoredEntries` keeps one object per entry
 (by id, version, and status now) however it's reached, queries' records
-by compiled query, and `ContentUrls` its URLs (D-806). `Template` keeps what needs the render: building the
-page, its head and foot, text and dates in its language, theme and site
-settings, assets, routes, menus, and lookups that aren't an entry's
-(`profile()`, `media($value)`, `archiveUrl()`). A profile's avatar is
+by compiled query, and `ContentUrls` its URLs (D-806). `Template` is the
+render, not the data (D-819): it keeps what only a render has (building
+the page, sections, includes, components, directives, icons, its head
+and foot, assets, fragment caching) and what depends on the page (dates
+in its language, routes, menus, body classes); data and text are the
+objects a template is given (`$entry`, `$site`, `$theme`, `$media`,
+`$messages`), each over a service code can call (D-811), and a new
+helper goes on one of them before `$template` (D-815, D-816). Site settings are `$site->setting()`, the theme's
+settings and files `$theme` (`ActiveTheme`: `setting()`, `asset()`,
+`inline()`, `name`), and a relation archive's address
+`$entry->archiveUrl($type, $relation)` (`EntryGraph`, memoized); the
+layout and open sections a template leaves are `TemplateState`, which
+`Views` reads, not public methods. A profile's avatar is
 `$profile->avatar()` (D-809, D-810): `Blush\Auth\Avatars` builds it
 (its portrait, its `avatar` field, else its initials), memoized by
 size, and draws accounts' avatars outside templates with
 `Avatars::account()`; empty for an entry that isn't a profile.
 
-Every template also gets `$site` (name, URL, locale, `lang`). Content
+Every template also gets `$site` (name, URL, locale, `lang`,
+`setting()`), `$theme` (D-815), and
+`$media` (`MediaItems`, D-814: `find($value)` gives a memoized
+`MediaItem`, the same one `$entry->media()` gives, with `img()`). Content
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages
 get `$status`, `$reason`, `$title`, `$entry`, `$description`, and
 `$message` (debug only).
@@ -588,15 +600,16 @@ D-199 to D-204 and D-676; the user guide is `docs/menus.md`.
 
 Themes ship `lang/{locale}.json` catalogs, each in its own domain, the
 theme's `vendor/name` (D-451), and templates call
-`$template->t($key, $text, ...named)` (D-784), with the text in the
+`$messages->t($key, $text, ...named)` (D-784), with the text in the
 template's language beside the key, shown when no catalog has it. A
 template's text is in the domain of the code that wrote it: a theme's
 file searches the chain's domains, child first, then core's; a
 plugin's own file its plugin's; the framework's core's. A child theme
 overrides its ancestors message by message (D-107); a theme no longer
-rewords a plugin's or core's text by sharing a key (D-784). `$template->tGroup('group')` returns a group's messages (the keys
-under `group`), keyed by name; a group comes
-whole from one locale (`Translator::group()`, D-450). The translator itself is CMS-wide; see
+rewords a plugin's or core's text by sharing a key (D-784). `$messages`
+is a `Messages` per file (D-816), its `t()` a `Text` printed in the
+current language (`CurrentLocale`, which `Views` sets to the page's
+while a file renders). Groups (`tGroup()`, D-450) are gone. The translator itself is CMS-wide; see
 `architecture.md` → Translation.
 
 ## Accessibility (D-030)

@@ -28,6 +28,6 @@ final class CoreKey extends Directive
 	#[Override]
 	public function render(): string
 	{
-		return Escaper::html($this->t('progress.label') . '|' . $this->t('hello.new', 'Brand new, {name}', name: 'Ada'));
+		return Escaper::html((string) $this->messages->t('progress.label') . '|' . (string) $this->messages->t('hello.new', 'Brand new, {name}', name: 'Ada'));
 	}
 }

@@ -117,7 +117,7 @@ final class Progress extends Directive
 		return match (true) {
 			$this->valueAttribute === null => '',
 			$this->isPercent()             => $this->percent,
-			default                        => $this->t('measure.value', value: $this->valueText, max: $this->maxText)
+			default                        => (string) $this->messages->t('measure.value', value: $this->valueText, max: $this->maxText)
 		};
 	}
 
@@ -132,7 +132,7 @@ final class Progress extends Directive
 			'class'      => $this->block() . '__bar',
 			'max'        => $this->maxAttribute,
 			'value'      => $this->valueAttribute,
-			'aria-label' => trim($this->label) === '' ? $this->t('progress.label') : null
+			'aria-label' => trim($this->label) === '' ? (string) $this->messages->t('progress.label') : null
 		]);
 	}
 

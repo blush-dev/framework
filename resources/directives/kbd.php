@@ -6,8 +6,7 @@
  *
  *     Save with :kbd[Ctrl+S].
  *
- * @var Blush\View\Template         $template
- * @var Blush\Directive\Inline\Kbd  $directive
+ * @var Blush\Directive\Inline\Kbd $directive
  */
 
 declare(strict_types=1);

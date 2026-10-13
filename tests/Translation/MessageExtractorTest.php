@@ -33,16 +33,16 @@ final class MessageExtractorTest extends TestCase
 	{
 		$this->writeTemporaryFile('acme/views/single.php', <<<'PHP'
 			<?php $template->layout('base') ?>
-			<p><?= e($template->t('entry.by', 'By {author}', author: $name)) ?></p>
-			<p><?= e($template->t('comments', '{count, plural, one {# comment} other {# comments}}', count: $n, context: 'Under a post')) ?></p>
-			<p><?= e($template->t(key: 'named.key', text: "Named \"text\"")) ?></p>
-			<p><?= e($template->t('keyed.only', minutes: 5)) ?></p>
-			<p><?= e($template->t("status.{$status}", 'A status')) ?></p>
-			<p><?= e($template->t('broken', '{count, plural, one {#}')) ?></p>
+			<p><?= e($messages->t('entry.by', 'By {author}', author: $name)) ?></p>
+			<p><?= e($messages->t('comments', '{count, plural, one {# comment} other {# comments}}', count: $n, context: 'Under a post')) ?></p>
+			<p><?= e($messages->t(key: 'named.key', text: "Named \"text\"")) ?></p>
+			<p><?= e($messages->t('keyed.only', minutes: 5)) ?></p>
+			<p><?= e($messages->t("status.{$status}", 'A status')) ?></p>
+			<p><?= e($messages->t('broken', '{count, plural, one {#}')) ?></p>
 			PHP);
 		$this->writeTemporaryFile('acme/src/Provider.php', "<?php\n\$x = \$this?->t('entry.by', 'Written by {author}');\n\$y = \$this->t('tools.export', 'Export');\n");
 		$this->writeTemporaryFile('acme/vendor/lib/thing.php', "<?php\n\$this->t('vendor.key', 'Never read');\n");
-		$this->writeTemporaryFile('acme/views/page.blade.php', "{{ \$template->t('blade.key', 'Not PHP') }}");
+		$this->writeTemporaryFile('acme/views/page.blade.php', "{{ \$messages->t('blade.key', 'Not PHP') }}");
 
 		return $this->temporaryDirectory() . '/acme';
 	}
@@ -73,11 +73,11 @@ final class MessageExtractorTest extends TestCase
 		$catalog               = new SourceCatalog();
 		$file                  = SourceCatalog::path("{$root}/lang");
 
-		$this->assertSame(Severity::Notice, $catalog->compare($messages, $file)[0]->severity ?? null, 'No catalog yet.');
+		$this->assertSame([], $catalog->compare($messages, $file), 'No catalog yet: the code\'s text shows (D-816).');
 
 		$this->writeTemporaryFile('acme/lang/en.json', "{\n\t\"@@locale\": \"en\",\n\t\"@@domain\": \"acme/hello\",\n\t\"keyed\": {\n\t\t\"only\": \"{minutes} min\"\n\t},\n\t\"entry\": {\n\t\t\"by\": \"Old text\"\n\t},\n\t\"empty\": {}\n}\n");
 
-		$this->assertCount(4, $catalog->compare($messages, $file), 'Three missing and one changed.');
+		$this->assertCount(1, $catalog->compare($messages, $file), 'One reads otherwise; the missing ones are fine.');
 
 		$result = $catalog->write($messages, $file, 'acme/hello');
 

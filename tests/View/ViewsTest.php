@@ -23,6 +23,7 @@ use Blush\Tests\BootsScratchSite;
 use Blush\Tests\SavedSettings;
 use Blush\Tests\WritesContentConfig;
 use Blush\Tests\WritesThemeViews;
+use Blush\Theme\ActiveTheme;
 use Blush\Theme\ThemeResolver;
 use Blush\View\PageMarkup;
 use Blush\View\Site;
@@ -32,10 +33,13 @@ use Blush\View\ViewException;
 use Blush\View\ViewFactory;
 use Blush\View\ViewFinder;
 use Blush\View\ViewNotFound;
+use Blush\View\TemplateState;
 use Blush\View\Views;
 use Blush\View\ViewServiceProvider;
 
 #[CoversClass(Views::class)]
+#[CoversClass(TemplateState::class)]
+#[CoversClass(ActiveTheme::class)]
 #[CoversClass(Template::class)]
 #[CoversClass(ViewContext::class)]
 #[CoversClass(ViewFinder::class)]
@@ -240,7 +244,7 @@ final class ViewsTest extends TestCase
 	{
 		$this->themeView('helpers.php', <<<'PHP'
 			<?php $template->head()->title('Helpers'); $template->head()->meta('robots', 'noindex') ?>
-			<?= $template->t('pagination.page', page: 2, pages: 9) ?>|<?= $template->t('no.such.key') ?>|<?= $template->date($when) ?>|<?= $template->date($when, 'MMMM y') ?>|<?= $template->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $template->asset('nope.css') ?>|<?= $template->bodyClass() ?>
+			<?= $messages->t('pagination.page', page: 2, pages: 9) ?>|<?= $messages->t('no.such.key') ?>|<?= $template->date($when) ?>|<?= $template->date($when, 'MMMM y') ?>|<?= $theme->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $theme->asset('nope.css') ?>|<?= $template->bodyClass() ?>
 			PHP);
 
 		$context = new ViewContext(new PageMarkup('Test Site'));
@@ -261,7 +265,7 @@ final class ViewsTest extends TestCase
 	public function testTranslationsKeepHtmlMarkedWithRaw(): void
 	{
 		$this->themeView('marked.php', <<<'PHP'
-			<?= e($template->t('pagination.page', page: raw('<b>2</b>'), pages: '<9>')) ?>|<?= attr($template->t('pagination.page', page: raw('<b>2</b>'), pages: 9)) ?>|<?= e($template->t('pagination.page', page: '<b>2</b>', pages: 9)) ?>
+			<?= e($messages->t('pagination.page', page: raw('<b>2</b>'), pages: '<9>')) ?>|<?= attr($messages->t('pagination.page', page: raw('<b>2</b>'), pages: 9)) ?>|<?= e($messages->t('pagination.page', page: '<b>2</b>', pages: 9)) ?>
 			PHP);
 
 		$this->assertSame(
@@ -308,7 +312,7 @@ final class ViewsTest extends TestCase
 	public function testInlineReadsOnlyServableThemeAssets(): void
 	{
 		$this->themeView('inline.php', <<<'PHP'
-			<?= strlen($template->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $template->inline('views/single.php') ?>|<?= $template->inline('theme.json') ?>|<?= $template->inline('../../../composer.json') ?>|<?= $template->inline('nope.svg') ?>
+			<?= strlen($theme->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $theme->inline('views/single.php') ?>|<?= $theme->inline('theme.json') ?>|<?= $theme->inline('../../../composer.json') ?>|<?= $theme->inline('nope.svg') ?>
 			PHP);
 
 		$this->assertSame('css||||', trim($this->render('inline')));

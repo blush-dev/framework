@@ -52,7 +52,9 @@ final class ToolJob extends Job
 	{
 		$key = $job->data['tool'] ?? null;
 
-		return (is_string($key) ? $this->tools->get($key)?->title() : null) ?? $this->label();
+		$title = is_string($key) ? $this->tools->get($key)?->title() : null;
+
+		return $title !== null ? (string) $title : (string) $this->label();
 	}
 
 	/**
@@ -92,6 +94,6 @@ final class ToolJob extends Job
 			return JobResult::failed($error->getMessage(), $error->details);
 		}
 
-		return JobResult::done($result->text ?? 'Done.', $result->details, $result->data);
+		return JobResult::done((string) ($result->text ?? 'Done.'), array_map(strval(...), $result->details), $result->data);
 	}
 }

@@ -12,8 +12,8 @@
  *     ::audio[Episode 12]{src=episode.mp3}
  *     ::audio{src=song.mp3 variant=card}
  *
- * @var Blush\View\Template          $template
- * @var Blush\Directive\Media\Audio  $directive
+ * @var Blush\Translation\Messages  $messages
+ * @var Blush\Directive\Media\Audio $directive
  */
 
 declare(strict_types=1);
@@ -48,7 +48,7 @@ declare(strict_types=1);
 	<?php endif ?>
 	<blush-audio-player <?= $directive->labelAttributes() ?>>
 		<audio <?= $directive->playerAttributes() ?>>
-			<a href="<?= url($directive->src) ?>"><?= e($template->t('media.audio_fallback')) ?></a>
+			<a href="<?= url($directive->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 		</audio>
 	</blush-audio-player>
 </figure>
@@ -56,7 +56,7 @@ declare(strict_types=1);
 <figure <?= $directive->attributes() ?>>
 	<blush-audio-player <?= $directive->labelAttributes() ?>>
 		<audio <?= $directive->playerAttributes() ?>>
-			<a href="<?= url($directive->src) ?>"><?= e($template->t('media.audio_fallback')) ?></a>
+			<a href="<?= url($directive->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 		</audio>
 	</blush-audio-player>
 	<?php if ($directive->caption() !== '') : ?>

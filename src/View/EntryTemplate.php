@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Stringable;
 use Blush\Translation\Text;
 
 /**
@@ -26,8 +27,8 @@ use Blush\Translation\Text;
  * ```php
  * $registry->register(new EntryTemplate(
  *     'template-compact',
- *     label: $this->t('templates.compact.label', 'Compact List'),
- *     description: $this->t('templates.compact.description', 'Every post on a line of its own.'),
+ *     label: $this->messages->t('templates.compact.label', 'Compact List'),
+ *     description: $this->messages->t('templates.compact.description', 'Every post on a line of its own.'),
  *     types: ['page']
  * ));
  * ```
@@ -43,15 +44,15 @@ final readonly class EntryTemplate
 	 */
 	public function __construct(
 		public string $name,
-		public string|Text $label,
-		public string|Text $description = '',
+		public string|Stringable $label,
+		public string|Stringable $description = '',
 		public array $types = []
 	) {
 		if (! ViewFinder::isValidName($name)) {
 			throw new ViewException(sprintf('"%s" isn\'t a view name for a template; name it as under views/, without the extension, such as "template-wide".', $name));
 		}
 
-		if (is_string($label) ? trim($label) === '' : trim($label->text ?? $label->key) === '') {
+		if (trim($label instanceof Text ? $label->text ?? $label->key : (string) $label) === '') {
 			throw new ViewException(sprintf('The "%s" template needs a label.', $name));
 		}
 	}

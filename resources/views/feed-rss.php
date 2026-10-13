@@ -3,9 +3,8 @@
 /**
  * RSS 2.0 feed. Themes may override it, or add `feed-rss-{type}`.
  *
- * @var Blush\View\Template $template
- * @var Blush\View\Site     $site
- * @var Blush\Feed\Feed     $feed
+ * @var Blush\View\Site $site
+ * @var Blush\Feed\Feed $feed
  */
 
 declare(strict_types=1);

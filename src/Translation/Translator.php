@@ -18,6 +18,8 @@ use MessageFormatter;
 use NoDiscard;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
+use Blush\View\Escaper;
+use Blush\View\SafeHtml;
 
 /**
  * The CMS-wide translator (D-028). Messages are ICU MessageFormat
@@ -189,7 +191,44 @@ final class Translator
 	 */
 	public function text(Text $text, ?string $locale = null): string
 	{
-		return $this->translate($text->key, $text->params, self::domainsOf($text->domain), $locale, $text->text);
+		$locale ??= $this->locale;
+
+		foreach (self::fallbacks($locale, $this->locale) as $candidate) {
+			$message = $this->find($text->domains, $candidate, $text->key);
+
+			if ($message !== null) {
+				return self::render($text, $message, $candidate);
+			}
+		}
+
+		return self::render($text, $text->text ?? $text->key, $locale);
+	}
+
+	/**
+	 * Formats a message's pattern with its parameters (D-816): one that's
+	 * a message itself is translated in the same locale, and when one is
+	 * HTML (`raw()`, D-559), the whole comes back as HTML, that parameter
+	 * as given and the rest escaped. Each is held by a private-use token
+	 * while the pattern is formatted and escaped, then put back.
+	 */
+	public static function render(Text $text, string $pattern, string $locale): string
+	{
+		$params = [];
+		$html   = [];
+
+		foreach ($text->params as $name => $value) {
+			if ($value instanceof SafeHtml) {
+				$token         = "\u{E000}" . count($html) . "\u{E001}";
+				$html[$token]  = (string) $value;
+				$params[$name] = $token;
+			} else {
+				$params[$name] = $value instanceof Text ? (string) $value : $value;
+			}
+		}
+
+		$message = self::format($pattern, $params, $locale);
+
+		return $html === [] ? $message : strtr(Escaper::html($message), $html);
 	}
 
 	/**
@@ -201,53 +240,6 @@ final class Translator
 	public static function domainsOf(string $domain): array
 	{
 		return $domain === self::CORE ? [self::CORE] : [$domain, self::CORE];
-	}
-
-	/**
-	 * Returns the messages nested under a key, formatted and keyed by
-	 * their last segment, from the first fallback locale that has any
-	 * (D-450): a group comes whole from one locale, so a translation can
-	 * have more or fewer messages in it than the default. Within a domain,
-	 * the site's override replaces the package's group; across a list of
-	 * domains, the groups add up, earlier ones winning, so a child theme
-	 * adds to its parent's. Empty when no locale has the group.
-	 *
-	 * @param  array<string, mixed> $params
-	 * @param  string|list<string>  $domain
-	 * @return array<string, string>
-	 * @throws InvalidData When a catalog can't be parsed.
-	 */
-	public function group(string $key, array $params = [], string|array $domain = self::CORE, ?string $locale = null): array
-	{
-		$prefix = "{$key}.";
-
-		foreach (self::fallbacks($locale ?? $this->locale, $this->locale) as $candidate) {
-			$messages = [];
-
-			foreach ((array) $domain as $name) {
-				foreach ($this->layers($name, $candidate) as $layer) {
-					$found = [];
-
-					foreach ($layer as $id => $message) {
-						if (str_starts_with($id, $prefix)) {
-							$found[substr($id, strlen($prefix))] = self::format($message, $params, $candidate);
-						}
-					}
-
-					if ($found !== []) {
-						$messages += $found;
-
-						break;
-					}
-				}
-			}
-
-			if ($messages !== []) {
-				return $messages;
-			}
-		}
-
-		return [];
 	}
 
 	/**
@@ -369,7 +361,7 @@ final class Translator
 	 *
 	 * @param array<string, mixed> $params
 	 */
-	private static function format(string $pattern, array $params, string $locale): string
+	public static function format(string $pattern, array $params, string $locale): string
 	{
 		if (! str_contains($pattern, '{')) {
 			return $pattern;

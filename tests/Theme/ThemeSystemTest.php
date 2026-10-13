@@ -249,7 +249,7 @@ final class ThemeSystemTest extends TestCase
 		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts']]], 'home' => 'post']);
 		$this->writeTemporaryFile('user/content/_post/hello.md', "---\nid: b12471fd-d907-a48f-cf04-4812e1eea8d8\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
-		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
+		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$theme->setting('note')) ?></p>");
 		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain note', $this->get('/'));
@@ -271,7 +271,7 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('user/content/_post/hello.md', "---\nid: b12471fd-d907-a48f-cf04-4812e1eea8d8\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('user/data/fields/brand.json', '{"targets":["settings:general"],"fields":{"tagline":{"default":"Plain tagline"}}}');
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
-		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
+		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$site->setting('tagline')) ?>|<?= e((string) \$site->setting('missing', 'none')) ?></p>");
 		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');

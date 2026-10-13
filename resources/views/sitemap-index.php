@@ -3,7 +3,6 @@
 /**
  * Sitemap index: one sitemap per content type.
  *
- * @var Blush\View\Template            $template
  * @var list<Blush\Sitemap\SitemapUrl> $sitemaps
  */
 

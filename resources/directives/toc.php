@@ -7,8 +7,7 @@
  *
  *     ::toc[On this page]{max=4}
  *
- * @var Blush\View\Template  $template
- * @var Blush\Directive\Toc  $directive
+ * @var Blush\Directive\Toc $directive
  */
 
 declare(strict_types=1);

@@ -7,8 +7,9 @@
  * end of the body. A theme's own base layout replaces it whole, with its
  * header and footer.
  *
- * @var Blush\View\Template $template
- * @var Blush\View\Site     $site
+ * @var Blush\View\Template        $template
+ * @var Blush\View\Site            $site
+ * @var Blush\Translation\Messages $messages
  */
 
 declare(strict_types=1);
@@ -21,7 +22,7 @@ declare(strict_types=1);
 
 </head>
 <body class="<?= attr($template->bodyClass()) ?>">
-<a href="#main"><?= e($template->t('skip_to_content')) ?></a>
+<a href="#main"><?= e($messages->t('skip_to_content')) ?></a>
 
 <main id="main" tabindex="-1">
 <?= $template->section('content') ?>

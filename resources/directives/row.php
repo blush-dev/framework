@@ -11,8 +11,7 @@
  *     [Next](/three)
  *     :::
  *
- * @var Blush\View\Template         $template
- * @var Blush\Directive\Layout\Row  $directive
+ * @var Blush\Directive\Layout\Row $directive
  */
 
 declare(strict_types=1);

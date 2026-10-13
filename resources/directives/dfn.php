@@ -6,8 +6,7 @@
  *
  *     :dfn[Blush] is a flat-file CMS.
  *
- * @var Blush\View\Template         $template
- * @var Blush\Directive\Inline\Dfn  $directive
+ * @var Blush\Directive\Inline\Dfn $directive
  */
 
 declare(strict_types=1);

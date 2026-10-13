@@ -29,8 +29,8 @@ final class HelloProvider extends ServiceProvider
 	{
 		$this->container->make(EntryTemplateRegistry::class)->register(new EntryTemplate(
 			'single',
-			label: $this->t('templates.hello.label', 'Hello Template'),
-			description: $this->t('templates.hello.description', 'For {count, plural, one {# type} other {# types}}.', count: 2)
+			label: $this->messages->t('templates.hello.label', 'Hello Template'),
+			description: $this->messages->t('templates.hello.description', 'For {count, plural, one {# type} other {# types}}.', count: 2)
 		));
 	}
 }

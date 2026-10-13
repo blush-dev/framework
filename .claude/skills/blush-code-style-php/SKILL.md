@@ -215,7 +215,15 @@ functions and `use` aren't allowed in constant expressions:
 
 - Short echo tags for output: `<?= e($entry->title) ?>`.
 - Use alternative syntax for control structures in templates:
-  `<?php if ($entry->hasTerms()) : ?> … <?php endif ?>`.
+  `<?php if (! $entry->creators()->isEmpty()) : ?> … <?php endif ?>`.
+- **Every view file declares each variable it uses**, and only those,
+  with `@var` lines in its file docblock, types aligned: the shared ones
+  (`Blush\View\Template $template`, `Blush\Translation\Messages
+  $messages`, `Blush\Theme\ActiveTheme $theme`, `Blush\View\Site $site`,
+  `Blush\Media\MediaItems $media`), the page's (`$entry`, `$page`, ...),
+  a directive's or component's class (`$directive`, `$component`), and
+  a partial's parameters (`?string $label` when it falls back with
+  `??=`).
 - **Escape everything at the point of output** with the most specific helper:
   `e()` (HTML text), `attr()`, `url()`, `js()`, `css()`. Use `raw()` only for
   trusted, already-rendered HTML (for example, an entry body).

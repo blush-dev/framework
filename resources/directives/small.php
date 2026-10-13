@@ -5,8 +5,7 @@
  *
  *     :small[Prices include tax.]
  *
- * @var Blush\View\Template           $template
- * @var Blush\Directive\Inline\Small  $directive
+ * @var Blush\Directive\Inline\Small $directive
  */
 
 declare(strict_types=1);

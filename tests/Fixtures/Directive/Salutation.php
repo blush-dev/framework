@@ -28,6 +28,6 @@ final class Salutation extends Directive
 	#[Override]
 	public function render(): string
 	{
-		return '<p>' . Escaper::html($this->t('greeting', name: 'Ada')) . '</p>';
+		return '<p>' . Escaper::html((string) $this->messages->t('greeting', name: 'Ada')) . '</p>';
 	}
 }

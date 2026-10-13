@@ -65,8 +65,8 @@ final readonly class ToolController
 			$groups[$group] ??= ['source' => $source, 'tools' => []];
 			$groups[$group]['tools'][] = [
 				'key'         => $key,
-				'title'       => $tool->title(),
-				'description' => $tool->description(),
+				'title'       => (string) $tool->title(),
+				'description' => (string) $tool->description(),
 				'confirm'     => ToolButtons::confirm($tool)
 			];
 		}
@@ -104,7 +104,7 @@ final readonly class ToolController
 		}
 
 		return $result->job === null
-			? self::json(['successful' => true, 'message' => $result->text ?? 'Done.', 'details' => $result->details])
+			? self::json(['successful' => true, 'message' => (string) ($result->text ?? 'Done.'), 'details' => array_map(strval(...), $result->details)])
 			: self::json(['job' => $result->job]);
 	}
 
