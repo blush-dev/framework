@@ -77,14 +77,14 @@ function keydown(event: KeyboardEvent): void {
 
 .summary__text {
 	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	line-height: 1.5;
 	overflow-wrap: anywhere;
 }
 
 .summary__edit {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .summary__label {
@@ -94,7 +94,7 @@ function keydown(event: KeyboardEvent): void {
 }
 
 .summary__count {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-weight: 400;
 }
 

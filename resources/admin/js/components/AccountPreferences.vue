@@ -1,18 +1,22 @@
 <script setup lang="ts">
 /**
  * The signed-in account's look (D-235, D-273, D-317): the admin's theme
- * and color scheme, shown on Your Account (D-369). Each theme is drawn
- * as a small swatch of itself in the current color scheme (the profiles
- * sketch's), from its `--preview-*` tokens, whichever theme is showing. Both belong to the
+ * and color scheme, shown on Your Account (D-369). The themes are the
+ * admin themes that are on (D-827), each drawn as a small swatch of
+ * itself in the current color scheme (the profiles sketch's,
+ * `AdminThemeSketch`), from its own colors, whichever theme is showing. Choosing the site's default
+ * follows it, so the account changes with it. Both belong to the
  * account, not the browser, so they follow it to any device and never
  * change what anyone else sees; they aren't the site's theme.
  */
 
 import { ref } from 'vue';
 import { useAction } from '../action';
-import type { AdminTheme, ColorScheme } from '../api';
+import type { ColorScheme } from '../api';
 import AdminIcon from './AdminIcon.vue';
-import { adminTheme, saveAdminTheme } from '../admin-theme';
+import AdminThemeSketch from './AdminThemeSketch.vue';
+import { adminTheme, adminThemes, defaultAdminTheme, saveAdminTheme } from '../admin-theme';
+import type { AdminThemeChoice } from '../config';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import type { IconName } from '../icons';
 
@@ -22,22 +26,21 @@ const schemes: { value: ColorScheme; label: string; hint: string; icon: IconName
 	{ value: 'dark', label: 'Dark', hint: 'Always dark', icon: 'moon' }
 ];
 
-// The admin's two looks (D-317): a per-account choice, like the scheme.
-const themes: { value: AdminTheme; label: string; hint: string }[] = [
-	{ value: 'neutral', label: 'Neutral', hint: 'Cool gray, a cobalt accent' },
-	{ value: 'editorial', label: 'Editorial', hint: 'Warm paper, a teal accent, serif titles' }
-];
+// What a theme is, and whether it's the site's default.
+function hint(theme: AdminThemeChoice): string {
+	return [theme.description, theme.name === defaultAdminTheme.value ? 'Site default' : ''].filter(Boolean).join(' · ');
+}
 
 const message = ref('');
 
 const { busy: saving, error, run } = useAction();
 
-async function chooseTheme(theme: AdminTheme): Promise<void> {
+async function chooseTheme(theme: AdminThemeChoice): Promise<void> {
 	message.value = '';
 
 	await run('Your theme couldn\'t be saved.', async () => {
-		await saveAdminTheme(theme);
-		message.value = `Saved. The admin is ${theme === 'neutral' ? 'Neutral' : 'Editorial'} on every device you sign in on.`;
+		await saveAdminTheme(theme.name === defaultAdminTheme.value ? null : theme.name);
+		message.value = `Saved. The admin is ${theme.label} on every device you sign in on.`;
 	});
 }
 
@@ -60,12 +63,12 @@ async function choose(scheme: ColorScheme): Promise<void> {
 		<div class="panel__body">
 			<fieldset class="schemes" :disabled="saving">
 				<legend class="schemes__legend">Theme</legend>
-				<label v-for="theme in themes" :key="theme.value" class="scheme">
-					<input class="visually-hidden" type="radio" name="admin-theme" :value="theme.value" :checked="adminTheme === theme.value" @change="chooseTheme(theme.value)">
-					<span class="swatch" :class="`swatch--${theme.value}`" aria-hidden="true"><span class="swatch__rail" /><span class="swatch__card" /><span class="swatch__dot" /><span class="swatch__line" /><span class="swatch__line swatch__line--short" /></span>
+				<label v-for="theme in adminThemes" :key="theme.name" class="scheme">
+					<input class="visually-hidden" type="radio" name="admin-theme" :value="theme.name" :checked="adminTheme?.name === theme.name" @change="chooseTheme(theme)">
+					<AdminThemeSketch class="swatch" :preview="theme.preview" />
 					<span class="scheme__text">
 						<span class="scheme__label">{{ theme.label }}</span>
-						<span class="scheme__hint">{{ theme.hint }}</span>
+						<span v-if="hint(theme)" class="scheme__hint">{{ hint(theme) }}</span>
 					</span>
 				</label>
 			</fieldset>
@@ -106,8 +109,8 @@ async function choose(scheme: ColorScheme): Promise<void> {
 .schemes__legend {
 	margin-bottom: var(--s-2);
 	padding: 0;
-	color: var(--fg);
-	font-size: var(--base);
+	color: var(--color-text);
+	font-size: var(--font-size-base);
 }
 
 .scheme {
@@ -117,25 +120,25 @@ async function choose(scheme: ColorScheme): Promise<void> {
 	gap: var(--s-3);
 	min-width: 0;
 	padding: var(--s-3) var(--s-4);
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	color: var(--fg-2);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
 .scheme:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .scheme:has(:checked) {
-	border-color: var(--accent);
-	background: var(--accent-soft);
-	color: var(--accent);
+	border-color: var(--color-accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .scheme:has(:focus-visible) {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
 }
 
@@ -149,92 +152,25 @@ async function choose(scheme: ColorScheme): Promise<void> {
 }
 
 .scheme__label {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 600;
 }
 
 .scheme__hint {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 }
 
-/* A theme in miniature: its rail, a card, an accent, and two lines of
-   ink, in the theme's own colors. */
+/* A theme in miniature (`AdminThemeSketch`), a swatch's size. */
 .swatch {
-	position: relative;
 	flex: none;
-	overflow: hidden;
 	width: 46px;
-	height: 34px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--sw-bg);
-}
-
-.swatch--neutral {
-	--sw-bg: var(--preview-neutral-bg);
-	--sw-surface: var(--preview-neutral-surface);
-	--sw-accent: var(--preview-neutral-accent);
-	--sw-fg: var(--preview-neutral-fg);
-}
-
-.swatch--editorial {
-	--sw-bg: var(--preview-editorial-bg);
-	--sw-surface: var(--preview-editorial-surface);
-	--sw-accent: var(--preview-editorial-accent);
-	--sw-fg: var(--preview-editorial-fg);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
 }
 
 .scheme:has(:checked) .swatch {
-	border-color: var(--accent);
-}
-
-.swatch > span {
-	position: absolute;
-	display: block;
-}
-
-.swatch__rail {
-	top: 0;
-	bottom: 0;
-	left: 0;
-	width: 11px;
-	border-right: 1px solid color-mix(in srgb, var(--sw-fg) 14%, transparent);
-	background: var(--sw-surface);
-}
-
-.swatch__card {
-	top: 5px;
-	right: 4px;
-	bottom: 5px;
-	left: 15px;
-	border-radius: 3px;
-	background: var(--sw-surface);
-}
-
-.swatch__dot {
-	top: 9px;
-	left: 19px;
-	width: 13px;
-	height: 3px;
-	border-radius: 2px;
-	background: var(--sw-accent);
-}
-
-.swatch__line {
-	top: 16px;
-	left: 19px;
-	width: 17px;
-	height: 2px;
-	border-radius: 1px;
-	background: var(--sw-fg);
-	opacity: .5;
-}
-
-.swatch__line--short {
-	top: 21px;
-	width: 11px;
-	opacity: .28;
+	border-color: var(--color-accent);
 }
 
 .profile__status:empty {
@@ -242,7 +178,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 }
 
 .profile__status {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 </style>

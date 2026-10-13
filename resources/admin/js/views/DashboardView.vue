@@ -314,10 +314,10 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
+	padding: var(--s-4) var(--padding-inline);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-large);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-1);
 }
 
@@ -327,9 +327,9 @@ onMounted(() => {
 	place-items: center;
 	width: 38px;
 	height: 38px;
-	border-radius: var(--r-2);
-	background: var(--accent-soft);
-	color: var(--accent);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .resume__mark .icon {
@@ -344,8 +344,8 @@ onMounted(() => {
 
 .resume__kicker {
 	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;
@@ -355,18 +355,18 @@ onMounted(() => {
 	display: block;
 	margin-top: 3px;
 	overflow: hidden;
-	color: var(--fg);
-	font-family: var(--font-title);
-	font-size: var(--title-lead);
-	font-weight: var(--title-weight);
-	letter-spacing: var(--title-track);
+	color: var(--color-text);
+	font-family: var(--font-family-title);
+	font-size: var(--font-size-entry-title-lead);
+	font-weight: var(--font-weight-entry-title);
+	letter-spacing: var(--letter-spacing-entry-title);
 	text-decoration: none;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .resume__title:hover {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .resume__meta {
@@ -375,12 +375,12 @@ onMounted(() => {
 	align-items: center;
 	gap: var(--s-2);
 	margin: 4px 0 0;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .resume__dot {
-	color: var(--border-strong);
+	color: var(--border-color-strong);
 }
 
 .dashboard__env {
@@ -389,12 +389,12 @@ onMounted(() => {
 	height: 20px;
 	margin-left: var(--s-2);
 	padding: 0 7px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface-2);
-	color: var(--fg-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	vertical-align: middle;
 }
 
@@ -417,11 +417,11 @@ onMounted(() => {
 	grid-template-columns: auto minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 14px;
-	padding: var(--pad-row) var(--pad-x);
+	padding: var(--padding-row) var(--padding-inline);
 }
 
 .setup__step + .setup__step {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .setup__number {
@@ -430,10 +430,10 @@ onMounted(() => {
 	width: 24px;
 	height: 24px;
 	border-radius: 50%;
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -443,8 +443,8 @@ onMounted(() => {
 }
 
 .is-done .setup__number {
-	background: var(--good-soft);
-	color: var(--good);
+	background: var(--color-success-subtle);
+	color: var(--color-success);
 }
 
 .setup__text {
@@ -457,12 +457,12 @@ onMounted(() => {
 }
 
 .is-done .setup__title {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .setup__hint {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .setup__note {

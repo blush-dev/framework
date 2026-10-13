@@ -393,27 +393,27 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	width: 100%;
 	min-height: var(--ctl);
 	padding: 0 10px 0 12px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text);
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
 }
 
 .select__button:hover {
-	border-color: var(--fg-3);
+	border-color: var(--color-text-muted);
 }
 
 .select__button:focus-visible,
 .select__button[aria-expanded="true"] {
-	border-color: var(--accent);
+	border-color: var(--color-accent);
 	outline-offset: 0;
 }
 
 .select__button[aria-invalid="true"] {
-	border-color: var(--danger);
+	border-color: var(--color-danger);
 }
 
 .select__button--plain {
@@ -421,13 +421,13 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	padding: 7px 8px;
 	border-color: transparent;
 	background: none;
-	color: var(--accent);
-	font-size: var(--text-sm);
+	color: var(--color-accent);
+	font-size: var(--font-size-small);
 }
 
 .select__button--plain:hover {
 	border-color: transparent;
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .select__button:disabled {
@@ -445,21 +445,21 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 
 .select__hint {
 	margin-left: var(--s-2);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .select__mark {
 	flex: none;
 	width: 20px;
 	height: 20px;
-	font-size: var(--text-2xs);
+	font-size: var(--font-size-xxsmall);
 }
 
 .select__caret {
 	flex: none;
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>
 
@@ -474,9 +474,9 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	max-width: calc(100vw - 16px);
 	max-height: min(320px, 60vh);
 	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
 }
 
@@ -495,8 +495,8 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	gap: 9px;
 	height: var(--ctl);
 	padding: 0 12px;
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-3);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-muted);
 }
 
 .select-list__search svg {
@@ -512,9 +512,9 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	padding: 0;
 	border: 0;
 	background: none;
-	color: var(--fg);
+	color: var(--color-text);
 	font: inherit;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .select-list__search input:focus-visible {
@@ -532,8 +532,8 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 .select-list__group {
 	margin: 0;
 	padding: var(--s-3) var(--s-3) var(--s-1);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	font-weight: 600;
 }
 
@@ -545,23 +545,23 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	flex: none;
 	margin: 0;
 	padding: var(--s-2) var(--s-3);
-	border-top: 1px solid var(--border);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-top: 1px solid var(--border-color);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-variant-numeric: tabular-nums;
 }
 
 .select-list__empty {
 	margin: 0;
 	padding: 7px var(--s-3);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* What's always there (Other…) sits apart from what the search finds. */
 .select-list__option:not(.select-list__option--pinned) + .select-list__option--pinned {
 	margin-top: 6px;
-	box-shadow: 0 -4px 0 -3px var(--border);
+	box-shadow: 0 -4px 0 -3px var(--border-color);
 }
 
 .select-list__option {
@@ -570,9 +570,9 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	gap: var(--s-2);
 	padding: 7px var(--s-3);
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
@@ -580,18 +580,18 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 
 .select-list__option:hover,
 .select-list__option:focus-visible {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 	outline: none;
 }
 
 .select-list__option.is-active {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .select-list__option[aria-selected="true"] {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
@@ -608,8 +608,8 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 
 .select-list__hint {
 	flex: none;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	font-weight: 400;
 }
 
@@ -617,13 +617,13 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	flex: none;
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .select-list__tick {
 	flex: none;
 	width: 14px;
 	height: 14px;
-	color: var(--accent);
+	color: var(--color-accent);
 }
 </style>

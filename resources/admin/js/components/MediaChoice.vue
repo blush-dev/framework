@@ -68,17 +68,17 @@ watch(model, async (value) => {
 	min-width: 0;
 	overflow: hidden;
 	align-self: center;
-	color: var(--fg);
-	font-size: var(--text-sm);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .media-choice.is-empty {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .media-choice.is-missing {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 </style>

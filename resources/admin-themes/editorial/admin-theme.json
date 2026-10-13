@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/editorial",
+	"label": "Editorial",
+	"description": "Warm paper, a teal accent, serif titles",
+	"license": "MIT"
+}

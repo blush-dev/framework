@@ -1742,16 +1742,17 @@ by source, keeps recents, and writes the block text). The
 
 *Extensions* is the umbrella for everything a site installs. Each is one
 of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
-and **icon packs**; **admin themes** are planned on the same pieces.
+**icon packs**, and **admin themes** (D-827).
 
 - **Shared by every kind** (`Blush\Extension`): a manifest named for its
-  kind (`plugin.json`, `theme.json`, `icons.json`; `ManifestFile`,
+  kind (`plugin.json`, `theme.json`, `icons.json`, `admin-theme.json`; `ManifestFile`,
   JSON only, D-631), one folder for every kind,
   `extensions/{vendor}/{name}` (D-418; `LocalExtensions` finds a kind's
   folders, `LocalExtension` reads one, and a folder claiming two kinds
   is broken for each), a Composer package type per kind
-  (`blush-plugin`, `blush-theme`, `blush-icons`), and whether it runs
-  code (plugins and themes do; icon packs don't). A folder's kind is its
+  (`blush-plugin`, `blush-theme`, `blush-icons`, `blush-admin-theme`),
+  and whether it runs code (plugins and themes do; icon packs and admin
+  themes don't). A folder's kind is its
   manifest file or its `composer.json`'s `type`, either or both, which
   must agree (D-432, `LocalExtensions::claims()`); a manifest file is
   optional for every kind and source, Composer's too.
@@ -1862,9 +1863,46 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `IconConfig::$saved`); discovery is lenient (broken packs are listed) and compiled to
   `storage/cache/icon-packs.php`. The folders of the packs that are on
   seed `IconRegistry`, so themes and the site can restyle them.
-- **Admin:** Extensions lists Themes, Plugins, and Icon Packs. Themes
-  are activated and deleted (D-381); plugins and icon packs are turned on
-  and off and deleted (D-385), each saved in its group of settings.
+- **Admin themes** (`Blush\AdminTheme`, D-827): a skin over the admin,
+  shipped as data. `admin-theme.json` (`AdminTheme`: the shared manifest
+  keys, no `namespace`, which is refused) and `tokens.json`
+  (`AdminTokens`), CSS-shaped groups (`color`, `border.color`,
+  `border.radius`, `boxShadow.color`, `typography.fontFamily`,
+  `fontSize`, `fontWeight`, `letterSpacing`, `fontFace`, `padding`),
+  each token an `AdminToken` case with a `TokenType` and, for lengths,
+  weights, and letter spacing, a range; a group's `default` may be given
+  as the group. Colors are `ColorValue`s (`light-dark()` of two
+  `CssColor`s, or one: hex, `rgb()`, `hsl()`, `oklch()`,
+  `transparent`), families `FontFamily` stacks (quoted names, bare
+  generics, `var(--font-system)` after a stack without one), fonts
+  `FontFace`s (a `.woff2` inside the theme, up to 512 KB). Anything else
+  is refused, so Blush writes every theme's stylesheet
+  (`AdminTheme::stylesheet()`: its faces, and its tokens under
+  `:root[data-admin-theme="{name}"]`, which outweighs the admin's
+  `:root`). Discovery (`AdminThemeDiscovery`) finds the framework's
+  (`resources/admin-themes`: `blush/neutral`, whose `tokens.json` is
+  every token but the families and matches `tokens.css`, kept so by
+  `NeutralTokensTest`, and `blush/editorial`), Composer's, and local
+  ones, refusing a framework name; compiled to
+  `storage/cache/admin-themes.php` with their tokens. Which are on is
+  `AdminThemeConfig` (`config/admin-themes.php`: `enabled`, `saved`,
+  `default`), as for icon packs, with Neutral always on; `ExtensionState`
+  settles their requirements with every kind's (an unmet one isn't
+  offered), and `Bootstrap` breaks one whose name another kind has.
+  `AdminThemes::inUse()` is an account's choice when offered, else the
+  default, else Neutral; `preview()` and `resolved()` lay a theme over
+  Neutral's tokens, for swatches and `AdminThemeContrast` (WCAG ratios
+  in both schemes, warnings only, in `admin-theme:check`). The shell
+  links the theme in use's stylesheet, served with its fonts by
+  `AdminThemeAssetController` at
+  `{path}/assets/admin-themes/{vendor}/{name}/`, and sets
+  `data-admin-theme`; the app's `admin-theme.ts` swaps both.
+- **Admin:** Extensions lists Themes, Plugins, Icon Packs, and Admin
+  Themes. Themes are activated and deleted (D-381); plugins, icon packs,
+  and admin themes are turned on and off and deleted (D-385, D-827), each
+  saved in its group of settings, and an admin theme is made the site's
+  default (`admin-themes.default`; `AdminThemesController`,
+  `AdminThemeEditController`, Neutral and the default locked on).
   **Install** takes a `.zip` (D-392).
 - **Installing** (`Extension\Install`, D-388, D-392, D-418):
   `ExtensionInstaller` installs a `.zip` of a folder into

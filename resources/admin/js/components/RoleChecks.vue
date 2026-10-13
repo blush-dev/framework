@@ -65,17 +65,17 @@ function locked(role: RoleInfo): boolean {
 	align-items: center;
 	gap: var(--s-3);
 	padding: var(--s-3);
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 	cursor: pointer;
 }
 
 .role-check:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .role-check--on,
 .role-check--on:hover {
-	background: var(--accent-soft);
+	background: var(--color-accent-subtle);
 }
 
 .role-check--locked {
@@ -103,7 +103,7 @@ function locked(role: RoleInfo): boolean {
 }
 
 .role-check__about {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 }
 </style>

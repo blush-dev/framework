@@ -47,8 +47,10 @@ defineProps<{
 				</dd>
 				<dt>License</dt>
 				<dd :class="{ mono: extension.licenses.length }"><LicenseLinks :parts="extension.licenses" /></dd>
-				<dt>Namespace</dt>
-				<dd class="mono">{{ namespace ?? extension.namespace }}</dd>
+				<template v-if="namespace ?? extension.namespace">
+					<dt>Namespace</dt>
+					<dd class="mono">{{ namespace ?? extension.namespace }}</dd>
+				</template>
 				<slot name="kind" />
 				<dt>Installed by</dt>
 				<dd>{{ installedBy }}</dd>

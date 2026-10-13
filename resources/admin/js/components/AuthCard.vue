@@ -49,10 +49,10 @@ defineProps<{
 	place-items: center;
 	width: 32px;
 	height: 32px;
-	border-radius: var(--r-1);
-	background: var(--accent);
-	color: var(--accent-fg);
-	font-family: var(--font-display);
+	border-radius: var(--border-radius-small);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
+	font-family: var(--font-family-display);
 	font-weight: 600;
 	text-transform: uppercase;
 }

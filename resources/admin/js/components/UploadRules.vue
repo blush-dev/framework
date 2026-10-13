@@ -343,9 +343,9 @@ async function insert(row: Row, token: string): Promise<void> {
 
 <style scoped>
 .uploads__note {
-	padding: var(--s-4) var(--pad-x);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: var(--s-4) var(--padding-inline);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .uploads__note p {
@@ -358,7 +358,7 @@ async function insert(row: Row, token: string): Promise<void> {
 }
 
 .uploads__note strong {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
@@ -372,11 +372,11 @@ async function insert(row: Row, token: string): Promise<void> {
 
 .uploads__table th[scope="col"] {
 	padding: var(--s-2) var(--s-3);
-	border-top: 1px solid var(--border);
-	border-bottom: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-top: 1px solid var(--border-color);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .06em;
 	text-align: left;
@@ -385,7 +385,7 @@ async function insert(row: Row, token: string): Promise<void> {
 
 .uploads__table th[scope="col"]:nth-child(1) {
 	width: 210px;
-	padding-left: var(--pad-x);
+	padding-left: var(--padding-inline);
 }
 
 .uploads__table th[scope="col"]:nth-child(2) {
@@ -397,25 +397,25 @@ async function insert(row: Row, token: string): Promise<void> {
 }
 
 .uploads__table th[scope="col"]:last-child {
-	padding-right: var(--pad-x);
+	padding-right: var(--padding-inline);
 }
 
 /* Top-aligned, so a row growing (its tokens, an example) grows down. */
 .uploads__table td,
 .uploads__table th[scope="row"] {
 	padding: var(--s-3);
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 	font-weight: 400;
 	text-align: left;
 	vertical-align: top;
 }
 
 .uploads__table th[scope="row"] {
-	padding-left: var(--pad-x);
+	padding-left: var(--padding-inline);
 }
 
 .uploads__table td:last-child {
-	padding-right: var(--pad-x);
+	padding-right: var(--padding-inline);
 }
 
 .uploads__kind {
@@ -429,12 +429,12 @@ async function insert(row: Row, token: string): Promise<void> {
 	display: flex;
 	align-items: center;
 	gap: var(--s-2);
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .uploads__name :deep(.icon) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .is-all .uploads__name {
@@ -442,7 +442,7 @@ async function insert(row: Row, token: string): Promise<void> {
 }
 
 .uploads__row.is-off:not(.is-all) .uploads__name {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .uploads__cell {
@@ -462,24 +462,24 @@ async function insert(row: Row, token: string): Promise<void> {
 }
 
 .uploads__unit {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .uploads__problem {
 	display: flex;
 	gap: var(--s-1);
 	margin: var(--s-1) 0 0;
-	color: var(--warn);
-	font-size: var(--text-sm);
+	color: var(--color-warning);
+	font-size: var(--font-size-small);
 }
 
 .uploads__problem :deep(.icon) {
 	width: 14px;
 	height: 14px;
 	margin-top: 1px;
-	color: var(--warn-dot);
+	color: var(--color-warning-indicator);
 }
 
 .uploads__path {
@@ -494,34 +494,34 @@ async function insert(row: Row, token: string): Promise<void> {
 	align-items: stretch;
 	min-height: var(--ctl);
 	overflow: hidden;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
 }
 
 .uploads__prefix:hover {
-	border-color: var(--fg-3);
+	border-color: var(--color-text-muted);
 }
 
 .uploads__prefix:focus-within {
-	border-color: var(--accent);
-	outline: 2px solid var(--accent);
+	border-color: var(--color-accent);
+	outline: 2px solid var(--color-accent);
 }
 
 .uploads__prefix.is-disabled {
-	border-color: var(--border);
-	background: var(--surface-2);
+	border-color: var(--border-color);
+	background: var(--color-surface-subtle);
 }
 
 .uploads__lead {
 	display: flex;
 	align-items: center;
 	padding: 0 var(--s-2) 0 var(--s-3);
-	border-right: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--fg-3);
+	border-right: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	white-space: nowrap;
 }
 
@@ -532,13 +532,13 @@ async function insert(row: Row, token: string): Promise<void> {
 	border: 0;
 	outline: 0;
 	background: none;
-	color: var(--fg);
-	font-size: var(--text-sm);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 }
 
 .uploads__prefix input::placeholder,
 .uploads__size input::placeholder {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .uploads__prefix input:disabled {
@@ -547,9 +547,9 @@ async function insert(row: Row, token: string): Promise<void> {
 
 .uploads__example {
 	margin: 0;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	overflow-wrap: anywhere;
 }
 
@@ -562,18 +562,18 @@ async function insert(row: Row, token: string): Promise<void> {
 .uploads__tokens button {
 	height: 24px;
 	padding: 0 var(--s-2);
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	cursor: pointer;
 }
 
 .uploads__tokens button:hover {
-	border-color: var(--accent-line);
-	background: var(--accent-soft);
-	color: var(--accent);
+	border-color: var(--color-accent-border);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 /* The panel's footer or a bar draws the line under the last row. */
@@ -592,11 +592,11 @@ async function insert(row: Row, token: string): Promise<void> {
 	display: flex;
 	align-items: flex-start;
 	gap: var(--s-3);
-	padding: var(--s-3) var(--pad-x) var(--s-4);
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: var(--s-3) var(--padding-inline) var(--s-4);
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .uploads__bar p {
@@ -610,27 +610,27 @@ async function insert(row: Row, token: string): Promise<void> {
 
 .uploads__bar > :deep(.icon) {
 	margin-top: 1px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .uploads__bar--warn {
-	background: var(--warn-soft);
+	background: var(--color-warning-subtle);
 }
 
 .uploads__bar--warn > :deep(.icon) {
-	color: var(--warn-dot);
+	color: var(--color-warning-indicator);
 }
 
 .uploads__bar--warn strong {
-	color: var(--warn);
+	color: var(--color-warning);
 }
 
 .uploads__who {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .uploads__who strong {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-weight: 500;
 }
 
@@ -647,7 +647,7 @@ async function insert(row: Row, token: string): Promise<void> {
 
 .uploads--narrow .uploads__table th[scope="row"] {
 	padding: 0;
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 	border-bottom: 0;
 }
 
@@ -656,16 +656,16 @@ async function insert(row: Row, token: string): Promise<void> {
 	grid-template-columns: 160px minmax(0, 1fr);
 	gap: var(--s-2) var(--s-4);
 	align-items: start;
-	padding: var(--s-3) var(--pad-x);
-	border-top: 1px solid var(--border);
+	padding: var(--s-3) var(--padding-inline);
+	border-top: 1px solid var(--border-color);
 	border-bottom: 0;
 }
 
 .uploads--narrow .uploads__table td::before {
 	content: attr(data-label);
 	padding-top: 8px;
-	color: var(--fg);
-	font-size: var(--text-sm);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 }
 
@@ -683,7 +683,7 @@ async function insert(row: Row, token: string): Promise<void> {
 	align-items: center;
 	gap: 2px var(--s-2);
 	width: 100%;
-	padding: var(--s-4) var(--pad-x);
+	padding: var(--s-4) var(--padding-inline);
 	border: 0;
 	background: none;
 	color: inherit;
@@ -693,11 +693,11 @@ async function insert(row: Row, token: string): Promise<void> {
 }
 
 .uploads__head:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .uploads__chevron {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	transition: transform .14s ease-out;
 }
 
@@ -708,8 +708,8 @@ async function insert(row: Row, token: string): Promise<void> {
 .uploads__summary {
 	flex-basis: 100%;
 	padding-left: calc(16px + var(--s-2));
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 @container (width < 560px) {

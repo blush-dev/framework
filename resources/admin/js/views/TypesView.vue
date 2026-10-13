@@ -145,8 +145,8 @@ function origin(type: ContentTypeSummary): string {
 
 <style scoped>
 .types-count {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .types-search {
@@ -162,6 +162,6 @@ function origin(type: ContentTypeSummary): string {
 .type-name > svg {
 	flex: none;
 	margin-top: 2px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

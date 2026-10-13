@@ -30,16 +30,17 @@ use Blush\Core\Framework;
  */
 enum RequirementKind: string
 {
-	case Blush     = 'blush';
-	case Php       = 'php';
-	case Extension = 'extension';
-	case Plugin    = 'plugin';
-	case Theme     = 'theme';
-	case IconPack  = 'icon-pack';
-	case Library   = 'library';
-	case Composer  = 'composer';
-	case Missing   = 'missing';
-	case Unknown   = 'unknown';
+	case Blush      = 'blush';
+	case Php        = 'php';
+	case Extension  = 'extension';
+	case Plugin     = 'plugin';
+	case Theme      = 'theme';
+	case IconPack   = 'icon-pack';
+	case AdminTheme = 'admin-theme';
+	case Library    = 'library';
+	case Composer   = 'composer';
+	case Missing    = 'missing';
+	case Unknown    = 'unknown';
 
 	/**
 	 * The kind a `require` key names, given the extension installed at
@@ -69,9 +70,10 @@ enum RequirementKind: string
 	public static function for(ExtensionKind $kind): self
 	{
 		return match ($kind) {
-			ExtensionKind::Plugin   => self::Plugin,
-			ExtensionKind::Theme    => self::Theme,
-			ExtensionKind::IconPack => self::IconPack
+			ExtensionKind::Plugin     => self::Plugin,
+			ExtensionKind::Theme      => self::Theme,
+			ExtensionKind::IconPack   => self::IconPack,
+			ExtensionKind::AdminTheme => self::AdminTheme
 		};
 	}
 }

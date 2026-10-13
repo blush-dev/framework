@@ -271,22 +271,22 @@ async function makeLink(account: AccountInfo): Promise<void> {
 
 .account-cell__link {
 	overflow: hidden;
-	color: var(--fg);
-	font-family: var(--font-title);
-	font-size: var(--title-size);
-	font-weight: var(--title-weight);
-	letter-spacing: var(--title-track);
+	color: var(--color-text);
+	font-family: var(--font-family-title);
+	font-size: var(--font-size-entry-title);
+	font-weight: var(--font-weight-entry-title);
+	letter-spacing: var(--letter-spacing-entry-title);
 	text-decoration: none;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .account-cell__link:hover {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .account-cell__none {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 </style>

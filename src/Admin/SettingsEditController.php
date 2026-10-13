@@ -349,7 +349,7 @@ final readonly class SettingsEditController
 		$needs = array_map(static fn (mixed $key): string => self::capability(is_string($key) ? Setting::tryFrom($key) : null), $keys ?? []);
 
 		return $keys === null
-			? array_any([null, Setting::Theme, Setting::Plugins, Setting::IconPacks], fn (?Setting $setting): bool => $this->permissions->can($account, self::capability($setting)))
+			? array_any([null, Setting::Theme, Setting::Plugins, Setting::IconPacks, Setting::AdminThemes], fn (?Setting $setting): bool => $this->permissions->can($account, self::capability($setting)))
 			: array_all(array_unique($needs ?: [Capability::SiteSettings->value]), fn (string $capability): bool => $this->permissions->can($account, $capability));
 	}
 
@@ -364,6 +364,8 @@ final readonly class SettingsEditController
 			Setting::Theme     => ExtensionAction::Activate->on(ExtensionKind::Theme),
 			Setting::Plugins   => ExtensionAction::Activate->on(ExtensionKind::Plugin),
 			Setting::IconPacks => ExtensionAction::Activate->on(ExtensionKind::IconPack),
+			Setting::AdminThemes,
+			Setting::AdminThemeDefault => ExtensionAction::Activate->on(ExtensionKind::AdminTheme),
 			default            => Capability::SiteSettings->value
 		};
 	}

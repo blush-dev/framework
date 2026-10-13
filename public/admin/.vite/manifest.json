@@ -20,6 +20,20 @@
       "css/AdminSelect.css"
     ]
   },
+  "_AdminThemeSketch.css": {
+    "file": "css/AdminThemeSketch.css",
+    "src": "_AdminThemeSketch.css"
+  },
+  "_AdminThemeSketch.js": {
+    "file": "js/AdminThemeSketch.js",
+    "name": "AdminThemeSketch",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/AdminThemeSketch.css"
+    ]
+  },
   "_CapabilitySections.css": {
     "file": "css/CapabilitySections.css",
     "src": "_CapabilitySections.css"
@@ -81,9 +95,9 @@
       "js/admin.ts",
       "_references.js",
       "_AdminSelect.js",
+      "_ToggleSwitch.js",
       "_IconField.js",
-      "_media.js",
-      "_ToggleSwitch.js"
+      "_media.js"
     ],
     "css": [
       "css/FieldInput.css"
@@ -114,8 +128,8 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_FieldInput.js",
       "_ToggleSwitch.js",
+      "_FieldInput.js",
       "_type-form.js",
       "_ItemTree.js"
     ],
@@ -189,8 +203,8 @@
     "name": "MarkdownEditor",
     "imports": [
       "js/admin.ts",
-      "_RawValues.js",
-      "_drop.js"
+      "_drop.js",
+      "_RawValues.js"
     ],
     "css": [
       "css/MarkdownEditor.css"
@@ -205,8 +219,8 @@
     "name": "MediaPicker",
     "imports": [
       "js/admin.ts",
-      "_media.js",
-      "_drop.js"
+      "_drop.js",
+      "_media.js"
     ],
     "css": [
       "css/MediaPicker.css"
@@ -321,6 +335,14 @@
       "css/TypeBehaviorFields.css"
     ]
   },
+  "_admin-themes.js": {
+    "file": "js/admin-themes.js",
+    "name": "admin-themes",
+    "imports": [
+      "js/admin.ts",
+      "_extensions.js"
+    ]
+  },
   "_density.js": {
     "file": "js/density.js",
     "name": "density",
@@ -367,9 +389,9 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_drop.js",
+      "_extensions.js",
       "_density.js",
-      "_extensions.js"
+      "_drop.js"
     ],
     "css": [
       "css/install.css"
@@ -477,22 +499,6 @@
     "file": "fonts/fira-code-latin-ext-600-normal.woff2",
     "src": "fonts/fira-code-latin-ext-600-normal.woff2"
   },
-  "fonts/karla-latin-ext-wght-normal.woff2": {
-    "file": "fonts/karla-latin-ext-wght-normal.woff2",
-    "src": "fonts/karla-latin-ext-wght-normal.woff2"
-  },
-  "fonts/karla-latin-wght-normal.woff2": {
-    "file": "fonts/karla-latin-wght-normal.woff2",
-    "src": "fonts/karla-latin-wght-normal.woff2"
-  },
-  "fonts/newsreader-latin-ext-opsz-normal.woff2": {
-    "file": "fonts/newsreader-latin-ext-opsz-normal.woff2",
-    "src": "fonts/newsreader-latin-ext-opsz-normal.woff2"
-  },
-  "fonts/newsreader-latin-opsz-normal.woff2": {
-    "file": "fonts/newsreader-latin-opsz-normal.woff2",
-    "src": "fonts/newsreader-latin-opsz-normal.woff2"
-  },
   "js/admin.ts": {
     "file": "js/admin.js",
     "name": "admin",
@@ -507,6 +513,8 @@
       "js/views/FieldSetView.vue",
       "js/views/FieldSetsView.vue",
       "js/views/HealthView.vue",
+      "js/views/AdminThemeView.vue",
+      "js/views/AdminThemesView.vue",
       "js/views/IconPackView.vue",
       "js/views/IconPacksView.vue",
       "js/views/MediaFileView.vue",
@@ -543,11 +551,7 @@
       "fonts/fira-code-latin-500-normal.woff2",
       "fonts/fira-code-latin-ext-500-normal.woff2",
       "fonts/fira-code-latin-600-normal.woff2",
-      "fonts/fira-code-latin-ext-600-normal.woff2",
-      "fonts/karla-latin-wght-normal.woff2",
-      "fonts/karla-latin-ext-wght-normal.woff2",
-      "fonts/newsreader-latin-opsz-normal.woff2",
-      "fonts/newsreader-latin-ext-opsz-normal.woff2"
+      "fonts/fira-code-latin-ext-600-normal.woff2"
     ]
   },
   "js/views/AccountView.vue": {
@@ -557,6 +561,7 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
+      "_AdminThemeSketch.js",
       "_CapabilitySections.js",
       "_RoleChecks.js",
       "_PickModal.js",
@@ -578,6 +583,42 @@
     ],
     "css": [
       "css/AccountsView.css"
+    ]
+  },
+  "js/views/AdminThemeView.vue": {
+    "file": "js/AdminThemeView.js",
+    "name": "AdminThemeView",
+    "src": "js/views/AdminThemeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminThemeSketch.js",
+      "_PreviousVersion.js",
+      "_DangerZone.js",
+      "_ToggleSwitch.js",
+      "_admin-themes.js"
+    ],
+    "css": [
+      "css/AdminThemeView.css"
+    ]
+  },
+  "js/views/AdminThemesView.vue": {
+    "file": "js/AdminThemesView.js",
+    "name": "AdminThemesView",
+    "src": "js/views/AdminThemesView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminThemeSketch.js",
+      "_extensions.js",
+      "_ToggleSwitch.js",
+      "_admin-themes.js",
+      "_ExtensionCard.js",
+      "_density.js",
+      "_install.js"
+    ],
+    "css": [
+      "css/AdminThemesView.css"
     ]
   },
   "js/views/AuthorizeView.vue": {
@@ -627,12 +668,12 @@
       "_references.js",
       "_AdminSelect.js",
       "_SkeletonTable.js",
+      "_query.js",
+      "_density.js",
       "_referrers.js",
       "_homepage.js",
       "_ListPager.js",
-      "_density.js",
-      "_search-key.js",
-      "_query.js"
+      "_search-key.js"
     ],
     "css": [
       "css/EntriesView.css"
@@ -672,8 +713,8 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_jobs.js",
       "_density.js",
+      "_jobs.js",
       "_search-key.js"
     ]
   },
@@ -684,9 +725,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_ToggleSwitch.js",
       "_PreviousVersion.js",
       "_DangerZone.js",
+      "_ToggleSwitch.js",
       "_icon-packs.js"
     ],
     "css": [
@@ -700,12 +741,12 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_ToggleSwitch.js",
-      "_density.js",
       "_extensions.js",
-      "_icon-packs.js",
+      "_ToggleSwitch.js",
       "_ExtensionCard.js",
-      "_install.js"
+      "_density.js",
+      "_install.js",
+      "_icon-packs.js"
     ],
     "css": [
       "css/IconPacksView.css"
@@ -825,9 +866,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_ToggleSwitch.js",
       "_PreviousVersion.js",
       "_DangerZone.js",
+      "_ToggleSwitch.js",
       "_plugins.js"
     ],
     "css": [
@@ -841,8 +882,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_ToggleSwitch.js",
       "_extensions.js",
+      "_ToggleSwitch.js",
       "_install.js",
       "_plugins.js"
     ],
@@ -858,8 +899,8 @@
     "imports": [
       "js/admin.ts",
       "_PickModal.js",
-      "_referrers.js",
-      "_ToggleSwitch.js"
+      "_ToggleSwitch.js",
+      "_referrers.js"
     ],
     "css": [
       "css/ProfileDetailView.css"
@@ -874,10 +915,10 @@
       "js/admin.ts",
       "_AdminSelect.js",
       "_SkeletonTable.js",
-      "_ListPager.js",
-      "_density.js",
-      "_search-key.js",
       "_query.js",
+      "_density.js",
+      "_ListPager.js",
+      "_search-key.js",
       "_LinkPicker.js"
     ],
     "css": [
@@ -892,10 +933,10 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_FieldInput.js",
-      "_ToggleSwitch.js",
-      "_type-form.js",
       "_DangerZone.js",
+      "_ToggleSwitch.js",
+      "_FieldInput.js",
+      "_type-form.js",
       "_relations.js"
     ],
     "css": [
@@ -964,8 +1005,8 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_FieldInput.js",
       "_ToggleSwitch.js",
+      "_FieldInput.js",
       "_SaveBar.js"
     ],
     "css": [
@@ -1008,9 +1049,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_density.js",
       "_extensions.js",
       "_ExtensionCard.js",
+      "_density.js",
       "_install.js",
       "_themes.js"
     ],
@@ -1056,9 +1097,9 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
+      "_DangerZone.js",
       "_type-form.js",
       "_FieldTree.js",
-      "_DangerZone.js",
       "_SaveBar.js",
       "_TypeBehaviorFields.js",
       "_relations.js"

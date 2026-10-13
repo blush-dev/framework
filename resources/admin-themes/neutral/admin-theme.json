@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/neutral",
+	"label": "Neutral",
+	"description": "Cool gray, a cobalt accent",
+	"license": "MIT"
+}

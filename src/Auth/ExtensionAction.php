@@ -38,18 +38,18 @@ enum ExtensionAction: string
 	 */
 	public static function kinds(): array
 	{
-		return [ExtensionKind::Theme, ExtensionKind::Plugin, ExtensionKind::IconPack];
+		return [ExtensionKind::Theme, ExtensionKind::Plugin, ExtensionKind::IconPack, ExtensionKind::AdminTheme];
 	}
 
 	/**
 	 * Whether the action changes the code a site runs on a kind:
 	 * installing, updating, or deleting a plugin or theme (D-500). The
 	 * administrator role leaves these out, since whoever holds them can
-	 * do anything an owner can. Icon packs have no code.
+	 * do anything an owner can. Icon packs and admin themes have no code.
 	 */
 	public function changesCode(ExtensionKind $kind): bool
 	{
-		return $kind !== ExtensionKind::IconPack && ($this === self::Install || $this === self::Update || $this === self::Delete);
+		return $kind->runsCode() && ($this === self::Install || $this === self::Update || $this === self::Delete);
 	}
 
 	/**
@@ -71,7 +71,11 @@ enum ExtensionAction: string
 			self::View     => "See {$plural}",
 			self::Install  => "Install {$plural}",
 			self::Update   => "Update {$plural}",
-			self::Activate => $kind === ExtensionKind::Theme ? 'Activate themes' : "Turn {$plural} on and off",
+			self::Activate => match ($kind) {
+				ExtensionKind::Theme      => 'Activate themes',
+				ExtensionKind::AdminTheme => 'Turn admin themes on and off, and choose the site\'s default',
+				default                   => "Turn {$plural} on and off"
+			},
 			self::Delete   => "Delete {$plural}"
 		};
 	}
@@ -82,9 +86,10 @@ enum ExtensionAction: string
 	public static function group(ExtensionKind $kind): string
 	{
 		return match ($kind) {
-			ExtensionKind::Plugin   => 'Plugins',
-			ExtensionKind::Theme    => 'Themes',
-			ExtensionKind::IconPack => 'Icon Packs'
+			ExtensionKind::Plugin     => 'Plugins',
+			ExtensionKind::Theme      => 'Themes',
+			ExtensionKind::IconPack   => 'Icon Packs',
+			ExtensionKind::AdminTheme => 'Admin Themes'
 		};
 	}
 
@@ -113,9 +118,10 @@ enum ExtensionAction: string
 	private static function segment(ExtensionKind $kind): string
 	{
 		return match ($kind) {
-			ExtensionKind::Plugin   => 'plugins',
-			ExtensionKind::Theme    => 'themes',
-			ExtensionKind::IconPack => 'icon-packs'
+			ExtensionKind::Plugin     => 'plugins',
+			ExtensionKind::Theme      => 'themes',
+			ExtensionKind::IconPack   => 'icon-packs',
+			ExtensionKind::AdminTheme => 'admin-themes'
 		};
 	}
 }

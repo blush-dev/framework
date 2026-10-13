@@ -545,7 +545,7 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 }
 
 .item-tree__item + .item-tree__item {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .item-tree__row {
@@ -554,20 +554,20 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 	align-items: center;
 	gap: var(--s-2);
 	min-height: 50px;
-	padding: 8px var(--pad-x) 8px calc(var(--pad-x) - 8px);
+	padding: 8px var(--padding-inline) 8px calc(var(--padding-inline) - 8px);
 }
 
 .item-tree__item:hover > .item-tree__row {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .item-tree__item.is-selected > .item-tree__row,
 .item-tree__item.is-editing > .item-tree__row {
-	background: var(--accent-soft);
+	background: var(--color-accent-subtle);
 }
 
 .item-tree__item:has(> .item-tree__row .item-tree__pick:focus-visible) > .item-tree__row {
-	box-shadow: inset 0 0 0 2px var(--accent);
+	box-shadow: inset 0 0 0 2px var(--color-accent);
 }
 
 .item-tree__item.is-dragging {
@@ -579,11 +579,11 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 .item-tree__item.is-drop-before > .item-tree__row::before,
 .item-tree__item.is-drop-after > .item-tree__row::after {
 	position: absolute;
-	right: var(--pad-x);
-	left: calc(var(--pad-x) + 18px + var(--drop-depth) * var(--tree-step));
+	right: var(--padding-inline);
+	left: calc(var(--padding-inline) + 18px + var(--drop-depth) * var(--tree-step));
 	height: 2px;
 	border-radius: 2px;
-	background: var(--accent);
+	background: var(--color-accent);
 	content: "";
 }
 
@@ -596,8 +596,8 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 }
 
 .item-tree__item.is-drop-inside > .item-tree__row {
-	background: var(--accent-soft);
-	box-shadow: inset 0 0 0 2px var(--accent);
+	background: var(--color-accent-subtle);
+	box-shadow: inset 0 0 0 2px var(--color-accent);
 }
 
 .item-tree__grip {
@@ -606,7 +606,7 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 	place-items: center;
 	width: 18px;
 	height: 28px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	cursor: grab;
 	opacity: .55;
 }
@@ -636,12 +636,12 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 	border: 0;
 	border-radius: 4px;
 	background: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 button.item-tree__twist:hover {
-	background: var(--surface-3);
-	color: var(--fg);
+	background: var(--color-surface-strong);
+	color: var(--color-text);
 }
 
 .item-tree__twist .icon {
@@ -674,8 +674,8 @@ button.item-tree__twist:hover {
 
 .item-tree__under {
 	flex: none;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	white-space: nowrap;
 }
 
@@ -698,7 +698,7 @@ button.item-tree__twist:hover {
 	width: 1px;
 	height: 18px;
 	margin: 0 4px;
-	background: var(--border);
+	background: var(--border-color);
 }
 
 .item-tree__controls :deep(.item-tree__button) {
@@ -708,14 +708,14 @@ button.item-tree__twist:hover {
 	height: 30px;
 	padding: 0;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .item-tree__controls :deep(.item-tree__button:hover) {
-	background: var(--surface-3);
-	color: var(--fg);
+	background: var(--color-surface-strong);
+	color: var(--color-text);
 }
 
 .item-tree__controls :deep(.item-tree__button[disabled]) {
@@ -724,8 +724,8 @@ button.item-tree__twist:hover {
 }
 
 .item-tree__controls :deep(.item-tree__button[aria-expanded="true"]) {
-	background: var(--accent);
-	color: var(--accent-fg);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
 }
 
 .item-tree__controls :deep(.item-tree__button .icon) {

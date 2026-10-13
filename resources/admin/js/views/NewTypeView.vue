@@ -278,8 +278,8 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 	align-items: center;
 	gap: var(--s-4);
 	margin: 0;
-	padding: var(--s-4) var(--pad-x);
-	border-bottom: 1px solid var(--border);
+	padding: var(--s-4) var(--padding-inline);
+	border-bottom: 1px solid var(--border-color);
 	list-style: none;
 }
 
@@ -287,17 +287,17 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 	display: flex;
 	align-items: center;
 	gap: 7px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .step[aria-current="step"] {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .step--done {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .step__number {
@@ -305,10 +305,10 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 	place-items: center;
 	width: 23px;
 	height: 23px;
-	border: 1px solid var(--border-strong);
+	border: 1px solid var(--border-color-strong);
 	border-radius: 99px;
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .step__number :deep(svg) {
@@ -317,15 +317,15 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 }
 
 .step[aria-current="step"] .step__number {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: var(--accent-fg);
+	border-color: var(--color-accent);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
 }
 
 .step--done .step__number {
-	border-color: var(--good-dot);
-	background: var(--good-soft);
-	color: var(--good);
+	border-color: var(--color-success-indicator);
+	background: var(--color-success-subtle);
+	color: var(--color-success);
 }
 
 .kinds {
@@ -337,24 +337,24 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 	display: grid;
 	gap: 4px;
 	padding: var(--s-3) var(--s-4);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	cursor: pointer;
 }
 
 .kind:hover {
-	border-color: var(--border-strong);
+	border-color: var(--border-color-strong);
 }
 
 .kind:has(input:focus-visible) {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
 }
 
 .kind--on {
-	border-color: var(--accent);
-	background: var(--accent-soft);
+	border-color: var(--color-accent);
+	background: var(--color-accent-subtle);
 }
 
 .kind__name {
@@ -362,16 +362,16 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 }
 
 .kind__text {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .wizard__foot {
 	display: flex;
 	justify-content: space-between;
 	gap: var(--s-2);
-	padding: var(--s-4) var(--pad-x);
-	border-top: 1px solid var(--border);
+	padding: var(--s-4) var(--padding-inline);
+	border-top: 1px solid var(--border-color);
 }
 
 @media (width <= 1100px) {

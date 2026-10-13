@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\AdminTheme\AdminThemeConfig;
+use Blush\AdminTheme\AdminThemes;
 use Blush\Icon\IconConfig;
 use Blush\Icon\IconPacks;
 use Blush\Plugin\BrokenPlugin;
@@ -25,12 +27,14 @@ use Blush\Theme\Themes;
 
 /**
  * Which extensions run, with every kind's `require` enforced the same
- * way (D-431): the plugins and icon packs that are on, and the active
- * theme's chain, are settled together (`Requirements::settle()`), since
- * any of them may require any other by its `vendor/name`.
+ * way (D-431): the plugins, icon packs, and admin themes that are on, and
+ * the active theme's chain, are settled together
+ * (`Requirements::settle()`), since any of them may require any other by
+ * its `vendor/name`.
  *
  * - A plugin whose requirements aren't met doesn't run (D-385).
  * - An icon pack whose requirements aren't met doesn't load.
+ * - An admin theme whose requirements aren't met isn't offered (D-827).
  * - A chain runs whole or not at all: when a theme in the active chain
  *   has a requirement that isn't met, the default theme runs in its
  *   place (`Themes::running()`).
@@ -72,31 +76,34 @@ final readonly class ExtensionState
 		public IconPacks $packs,
 		public PluginConfig $config,
 		public string $theme,
-		private Requirements $requirements = new Requirements()
+		private Requirements $requirements = new Requirements(),
+		public AdminThemes $adminThemes = new AdminThemes()
 	) {
-		$this->installed = self::index($plugins->installed(), $themes, $packs);
+		$this->installed = self::index($plugins->installed(), $themes, $packs, $adminThemes);
 
 		$running = [];
 
 		// The default theme runs even when the active chain can't be built.
 		$chain = self::chain($themes, $themes->running($theme)) ?: self::chain($themes, Themes::DEFAULT);
 
-		foreach ([...$plugins->all(), ...array_values($packs->enabled()), ...$chain] as $extension) {
+		foreach ([...$plugins->all(), ...array_values($packs->enabled()), ...array_values($adminThemes->enabled()), ...$chain] as $extension) {
 			$running[$extension->name] = true;
 		}
 
 		$this->running = $running;
-		$this->blocked = array_fill_keys(array_map(strval(...), array_keys([...$plugins->unmet(), ...$themes->unmet(), ...$packs->unmet()])), true);
+		$this->blocked = array_fill_keys(array_map(strval(...), array_keys([...$plugins->unmet(), ...$themes->unmet(), ...$packs->unmet(), ...$adminThemes->unmet()])), true);
 	}
 
 	/**
 	 * Settles which extensions run: the plugins config turns on, the icon
-	 * packs that are on, and the active theme's chain, each only when its
-	 * requirements are met by the site and by the others that run.
+	 * packs and admin themes that are on, and the active theme's chain,
+	 * each only when its requirements are met by the site and by the
+	 * others that run.
 	 *
-	 * @param  list<PluginManifest> $plugins Every installed plugin.
-	 * @param  list<BrokenPlugin>   $broken  The plugins whose manifests can't be read.
-	 * @param  IconPacks            $packs   With config saying which are on.
+	 * @param  list<PluginManifest> $plugins     Every installed plugin.
+	 * @param  list<BrokenPlugin>   $broken      The plugins whose manifests can't be read.
+	 * @param  IconPacks            $packs       With config saying which are on.
+	 * @param  AdminThemes          $adminThemes With config saying which are on.
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
 	public static function settle(
@@ -106,14 +113,15 @@ final readonly class ExtensionState
 		Themes $themes,
 		string $theme,
 		IconPacks $packs,
-		Requirements $requirements = new Requirements()
+		Requirements $requirements = new Requirements(),
+		AdminThemes $adminThemes = new AdminThemes()
 	): self {
 		$chain   = self::chain($themes, $theme);
 		$group   = array_values(array_diff(array_map(static fn (ThemeManifest $member): string => $member->name, $chain), [Themes::DEFAULT]));
-		$enabled = [...array_values(array_filter($plugins, $config->isEnabled(...))), ...array_values($packs->on()), ...$chain];
+		$enabled = [...array_values(array_filter($plugins, $config->isEnabled(...))), ...array_values($packs->on()), ...array_values($adminThemes->on()), ...$chain];
 
-		$installed = self::index($plugins, $themes, $packs);
-		$unmet     = [ExtensionKind::Plugin->value => [], ExtensionKind::Theme->value => [], ExtensionKind::IconPack->value => []];
+		$installed = self::index($plugins, $themes, $packs, $adminThemes);
+		$unmet     = array_fill_keys(array_map(static fn (ExtensionKind $kind): string => $kind->value, ExtensionKind::cases()), []);
 
 		foreach ($requirements->settle($enabled, $installed, $group === [] ? [] : [$group]) as $name => $requirementsUnmet) {
 			$kind = ($installed[$name] ?? null)?->kind();
@@ -129,18 +137,19 @@ final readonly class ExtensionState
 			$packs->withUnmet($unmet[ExtensionKind::IconPack->value]),
 			$config,
 			$theme,
-			$requirements
+			$requirements,
+			$adminThemes->withUnmet($unmet[ExtensionKind::AdminTheme->value])
 		);
 	}
 
 	/**
 	 * Settles again with other choices: other plugins on, another active
-	 * theme, other packs on, or freshly discovered plugins.
+	 * theme, other packs or admin themes on, or freshly discovered plugins.
 	 *
 	 * @param  ?array{list<PluginManifest>, list<BrokenPlugin>} $discovered Every installed plugin, and the broken ones.
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public function with(?PluginConfig $plugins = null, ?string $theme = null, ?IconConfig $icons = null, ?array $discovered = null): self
+	public function with(?PluginConfig $plugins = null, ?string $theme = null, ?IconConfig $icons = null, ?array $discovered = null, ?AdminThemeConfig $adminThemes = null): self
 	{
 		[$manifests, $broken] = $discovered ?? [$this->plugins->installed(), $this->plugins->broken()];
 
@@ -151,7 +160,8 @@ final readonly class ExtensionState
 			$this->themes,
 			$theme ?? $this->theme,
 			$icons === null ? $this->packs : $this->packs->withConfig($icons),
-			$this->requirements
+			$this->requirements,
+			$adminThemes === null ? $this->adminThemes : $this->adminThemes->withConfig($adminThemes)
 		);
 	}
 
@@ -166,8 +176,8 @@ final readonly class ExtensionState
 	}
 
 	/**
-	 * Whether an extension runs: a plugin or pack that's on with its
-	 * requirements met, or a theme in the chain that runs.
+	 * Whether an extension runs: a plugin, pack, or admin theme that's on
+	 * with its requirements met, or a theme in the chain that runs.
 	 */
 	public function runs(string $name): bool
 	{
@@ -368,9 +378,10 @@ final readonly class ExtensionState
 		}
 
 		$after = match ($extension->kind()) {
-			ExtensionKind::Plugin   => $this->with($this->config->with($extension->name)),
-			ExtensionKind::IconPack => $this->with(icons: $this->packs->configWith($extension->name)),
-			ExtensionKind::Theme    => $this->with(theme: $extension->name)
+			ExtensionKind::Plugin     => $this->with($this->config->with($extension->name)),
+			ExtensionKind::IconPack   => $this->with(icons: $this->packs->configWith($extension->name)),
+			ExtensionKind::AdminTheme => $this->with(adminThemes: $this->adminThemes->configWith($extension->name)),
+			ExtensionKind::Theme      => $this->with(theme: $extension->name)
 		};
 
 		$stopped = array_filter(
@@ -398,17 +409,17 @@ final readonly class ExtensionState
 
 	/**
 	 * Every installed extension, of every kind, by name. Names are each
-	 * one extension's (`Bootstrap` leaves out a theme or pack whose name
+	 * one extension's (`Bootstrap` leaves out a theme, pack, or admin theme whose name
 	 * another kind has); the first kind found keeps one that isn't.
 	 *
 	 * @param  list<PluginManifest>             $plugins
 	 * @return array<string, ExtensionManifest>
 	 */
-	private static function index(array $plugins, Themes $themes, IconPacks $packs): array
+	private static function index(array $plugins, Themes $themes, IconPacks $packs, AdminThemes $adminThemes): array
 	{
 		$installed = [];
 
-		foreach ([...$plugins, ...array_values($themes->all()), ...array_values($packs->all())] as $extension) {
+		foreach ([...$plugins, ...array_values($themes->all()), ...array_values($packs->all()), ...array_values($adminThemes->all())] as $extension) {
 			$installed[$extension->name] ??= $extension;
 		}
 

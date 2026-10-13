@@ -898,12 +898,14 @@ includes it.
 
 ## Extensions
 
-Extensions are what a site installs. There are three kinds:
+Extensions are what a site installs. There are four kinds:
 
 - **Plugins** are where a site's code belongs, so it can be turned on,
   off, and reused across sites: a manifest plus, usually, a service provider. Below.
 - **[Themes](themes.md)** control how the site looks.
 - **[Icon packs](#icon-packs)** are SVG icons, with no code.
+- **[Admin themes](admin-themes.md)** change how the admin looks, with no
+  code: colors, fonts, and sizes. They have a name but no namespace.
 
 Every extension's manifest has the same three keys:
 
@@ -935,8 +937,9 @@ side. The folder must match the manifest's `name`. One that doesn't is
 listed as broken, saying where it belongs.
 
 What kind an extension is comes from its manifest file, `plugin.json`,
-`theme.json`, or `icons.json`, or from the `type` in its
-`composer.json`: `blush-plugin`, `blush-theme`, or `blush-icons`, as
+`theme.json`, `icons.json`, or `admin-theme.json`, or from the `type` in its
+`composer.json`: `blush-plugin`, `blush-theme`, `blush-icons`, or
+`blush-admin-theme`, as
 Composer has it. Either is enough, and a folder may have both, as long
 as they name the same kind. A folder holds one kind, so one that names
 two (two manifests, or a manifest and another kind's `type`) is broken.
@@ -982,15 +985,16 @@ Packs), and installs them from a `.zip` (see
 
 ## Installing from a zip
 
-**Install Theme**, **Install Plugin**, and **Install Icon Pack** take a
-`.zip` of an extension's folder, up to 25 MB (or less, if PHP's upload
-limit is lower). The manifest (`plugin.json`, `theme.json`, or
-`icons.json`, or a `composer.json` of the kind's `type`) can be at the
+**Install Theme**, **Install Plugin**, **Install Icon Pack**, and
+**Install Admin Theme** take a `.zip` of an extension's folder, up to 25
+MB (or less, if PHP's upload limit is lower). The manifest
+(`plugin.json`, `theme.json`, `icons.json`, or `admin-theme.json`, or a
+`composer.json` of the kind's `type`) can be at the
 zip's root or inside one folder, as GitHub's release zips have it. It's unpacked into `extensions/` at the name in
 its manifest (or its `composer.json`): `acme/hello` goes in
 `extensions/acme/hello`, whatever the zip or its folder is called.
-Nothing is turned on: a plugin or icon pack arrives off, and a theme
-inactive.
+Nothing is turned on: a plugin, icon pack, or admin theme arrives off,
+and a theme inactive.
 
 Blush checks the zip before anything is written, and installs nothing
 when:
@@ -1066,7 +1070,9 @@ doesn't name is off, including a plugin Composer installs later: turn
 it on in the admin. **Use `config/plugins.php`'s list** (or
 `config/icons.php`'s) on the screen goes back to the defaults.
 Themes work as they always have: one is active, set in
-`config/theme.php` or on **Extend → Themes**.
+`config/theme.php` or on **Extend → Themes**. Admin themes are turned on
+the same way, in `config/admin-themes.php` (see
+[Admin themes](admin-themes.md#turning-admin-themes-on)).
 
 ## Plugins
 
@@ -1192,7 +1198,7 @@ fit is left out.
 }
 ```
 
-They aren't shown anywhere. The admin's Themes, Plugins, and Icon Packs
+They aren't shown anywhere. The admin's Themes, Plugins, Icon Packs, and Admin Themes
 screens search them, with an extension's label, name, and description,
 so someone filtering for "images" finds it. In a manifest, anything but
 a list of strings is an error; in `composer.json`, anything that isn't
@@ -1289,8 +1295,9 @@ One with no `version` counts as `0.0.0`.
   package, and Blush can't.
 
 No two extensions share a name, of any kind, so a name in `require`
-always means one extension. A theme or icon pack with the name of an
-extension found before it (plugins first, then themes) is broken.
+always means one extension. A theme, icon pack, or admin theme with the
+name of an extension found before it (plugins first, then themes, then
+icon packs) is broken.
 
 When requirements aren't met:
 
@@ -1298,6 +1305,8 @@ When requirements aren't met:
   says why.
 - **An icon pack** adds no icons, even when it's on, and the Icon Packs
   screen says why.
+- **An admin theme** isn't offered, even when it's on, so no account can
+  choose it, and anyone who had sees the site's default.
 - **A theme** can't be activated, in the admin or with `theme:activate`.
   If the active theme stops meeting them (a plugin it needs is turned
   off, say), visitors see the default theme in its place until that's
@@ -1313,7 +1322,8 @@ admin names what stopped. A plugin's requirements are loaded before it.
 A Composer package's `require` is read from its `composer.json` too, as
 Composer reads it, unless its manifest (or, for a plugin, `extra.blush`)
 has one.
-`bin/blush plugin:check`, `theme:check`, and `icon-pack:check` check
+`bin/blush plugin:check`, `theme:check`, `icon-pack:check`, and
+`admin-theme:check` check
 each kind from the command line, and `doctor` warns of anything that's
 on but can't run.
 

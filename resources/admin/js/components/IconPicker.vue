@@ -203,7 +203,7 @@ function use(icon: SiteIcon | undefined): void {
 	display: flex;
 	flex: 1;
 	min-height: 0;
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .icon-picker__groups {
@@ -214,8 +214,8 @@ function use(icon: SiteIcon | undefined): void {
 	width: 210px;
 	padding: var(--s-3);
 	overflow-y: auto;
-	border-right: 1px solid var(--border);
-	background: var(--bg);
+	border-right: 1px solid var(--border-color);
+	background: var(--color-background);
 }
 
 .icon-picker__groups button {
@@ -225,29 +225,29 @@ function use(icon: SiteIcon | undefined): void {
 	width: 100%;
 	padding: 9px 11px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	text-align: left;
 	cursor: pointer;
 }
 
 .icon-picker__groups button:hover {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .icon-picker__groups button[aria-current="true"] {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .icon-picker__n {
 	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 400;
 }
 
@@ -260,7 +260,7 @@ function use(icon: SiteIcon | undefined): void {
 
 .icon-picker__heading {
 	padding-bottom: var(--s-3);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 [role="group"] + [role="group"] .icon-picker__heading {
@@ -280,19 +280,19 @@ function use(icon: SiteIcon | undefined): void {
 	gap: 10px;
 	min-width: 0;
 	padding: var(--s-4) var(--s-2);
-	border-radius: var(--r-2);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-medium);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
 .icon-picker__cell:hover {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .icon-picker__cell.is-active {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .icon-picker__glyph {
@@ -309,8 +309,8 @@ function use(icon: SiteIcon | undefined): void {
 .icon-picker__name {
 	max-width: 100%;
 	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	line-height: 1.3;
 	text-align: center;
 	text-overflow: ellipsis;
@@ -318,16 +318,16 @@ function use(icon: SiteIcon | undefined): void {
 }
 
 .icon-picker__cell:hover .icon-picker__name {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .icon-picker__cell.is-active .icon-picker__name {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .icon-picker__skeleton {
 	height: 76px;
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 }
 
 /* Narrow: the groups turn into one scrolling row. */
@@ -341,7 +341,7 @@ function use(icon: SiteIcon | undefined): void {
 		width: auto;
 		overflow-x: auto;
 		border-right: 0;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--border-color);
 	}
 
 	.icon-picker__groups button {

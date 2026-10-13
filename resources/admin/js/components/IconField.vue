@@ -72,27 +72,27 @@ function choose(icon: SiteIcon): void {
 	width: var(--ctl);
 	height: var(--ctl);
 	padding: 0;
-	border: 1px dashed var(--border-strong);
-	border-radius: var(--r-1);
+	border: 1px dashed var(--border-color-strong);
+	border-radius: var(--border-radius-small);
 	background: transparent;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .icon-field__tile:hover {
-	border-color: var(--fg-3);
-	color: var(--fg);
+	border-color: var(--color-text-muted);
+	color: var(--color-text);
 }
 
 .icon-field__tile.is-set {
 	border-style: solid;
-	border-color: var(--border);
-	background: var(--surface);
-	color: var(--fg);
+	border-color: var(--border-color);
+	background: var(--color-surface);
+	color: var(--color-text);
 }
 
 .icon-field__tile.is-set:hover {
-	border-color: var(--accent);
-	color: var(--accent);
+	border-color: var(--color-accent);
+	color: var(--color-accent);
 }
 
 .icon-field__tile .icon {

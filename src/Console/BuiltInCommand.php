@@ -20,6 +20,7 @@ use Blush\Console\Commands\AssignMenu;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\ChangeRelation;
+use Blush\Console\Commands\CheckAdminThemes;
 use Blush\Console\Commands\CheckIconPacks;
 use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
@@ -121,6 +122,7 @@ enum BuiltInCommand: string
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
 	case IconPackCheck = 'icon-pack:check';
+	case AdminThemeCheck = 'admin-theme:check';
 	case LangExtract   = 'lang:extract';
 	case MenuList      = 'menu:list';
 	case MenuShow      = 'menu:show';
@@ -196,6 +198,7 @@ enum BuiltInCommand: string
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
 			self::IconPackCheck => CheckIconPacks::class,
+			self::AdminThemeCheck => CheckAdminThemes::class,
 			self::LangExtract   => ExtractMessages::class,
 			self::MenuList      => ListMenus::class,
 			self::MenuShow      => ShowMenu::class,

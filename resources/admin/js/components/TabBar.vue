@@ -75,8 +75,8 @@ async function keydown(event: KeyboardEvent): Promise<void> {
 	border: 0;
 	border-bottom: 2px solid transparent;
 	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	white-space: nowrap;
 	cursor: pointer;
 }
@@ -92,12 +92,12 @@ async function keydown(event: KeyboardEvent): Promise<void> {
 }
 
 .tab-bar__tab:hover {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .tab-bar__tab[aria-selected="true"] {
-	border-bottom-color: var(--accent);
-	color: var(--fg);
+	border-bottom-color: var(--color-accent);
+	color: var(--color-text);
 	font-weight: 500;
 }
 </style>

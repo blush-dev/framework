@@ -162,13 +162,13 @@ function blank(item: FormGroup): boolean {
 	display: grid;
 	margin: 0;
 	padding: 0;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
 	list-style: none;
 }
 
 .repeater__item + .repeater__item {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .repeater__row {
@@ -179,15 +179,15 @@ function blank(item: FormGroup): boolean {
 	padding: var(--s-2) var(--s-3);
 	border: 0;
 	background: none;
-	color: var(--fg);
+	color: var(--color-text);
 	font: inherit;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	text-align: left;
 	cursor: pointer;
 }
 
 .repeater__row:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .repeater__summary {
@@ -199,14 +199,14 @@ function blank(item: FormGroup): boolean {
 }
 
 .repeater__summary.is-blank {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .repeater__caret {
 	flex: none;
 	width: 13px;
 	height: 13px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	transition: transform .15s;
 }
 
@@ -218,7 +218,7 @@ function blank(item: FormGroup): boolean {
 	display: grid;
 	gap: var(--s-4);
 	padding: var(--s-3) var(--s-3) var(--s-4);
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .repeater__actions {

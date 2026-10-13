@@ -28,7 +28,9 @@ use Blush\Session\StartSession;
  * round trip and the admin's addresses stay as it writes them.
  *
  * - `GET {path}` and every screen under it: the app's page.
- * - `GET {path}/assets/{file}`: the app's built files.
+ * - `GET {path}/assets/{file}`: the app's built files, and
+ *   `{path}/assets/admin-themes/{vendor}/{name}/{file}` an admin theme's
+ *   stylesheet and fonts (D-827).
  * - The JSON API, under `{path}/api`. Every API route starts a session
  *   and checks CSRF; all but signing in (and asking who's signed in)
  *   need an account.
@@ -144,6 +146,12 @@ use Blush\Session\StartSession;
  *     icon-packs/{vendor}/{name}` turns one on or off, and `DELETE
  *     icon-packs/{vendor}/{name}` deletes one from `extensions/`
  *     (`IconPackEditController`, D-385).
+ *   - `GET  admin-themes`: the installed admin themes and the site's
+ *     default, and `GET admin-themes/{vendor}/{name}` one
+ *     (`AdminThemesController`); `PUT admin-themes/{vendor}/{name}`
+ *     turns one on or off, `PUT admin-themes/default` sets the default,
+ *     and `DELETE admin-themes/{vendor}/{name}` deletes one from
+ *     `extensions/` (`AdminThemeEditController`, D-827).
  *   - `GET  settings/{screen}`: a Settings screen's settings
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
  *     the admin can change in the saved settings (`user/data/settings/`), and `POST
@@ -313,6 +321,14 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackIconPack'])->named('icon-pack.rollback')->middleware(Authenticate::class),
 			Route::delete('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardIconPack'])->named('icon-pack.backup.discard')->middleware(Authenticate::class),
 			Route::delete('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPackEditController::class, 'delete'])->named('icon-pack.delete')->middleware(Authenticate::class),
+			Route::get('/admin-themes', AdminThemesController::class)->named('admin-themes')->middleware(Authenticate::class),
+			Route::put('/admin-themes/default', [AdminThemeEditController::class, 'setDefault'])->named('admin-theme.default')->middleware(Authenticate::class),
+			Route::get('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [AdminThemesController::class, 'show'])->named('admin-theme')->middleware(Authenticate::class),
+			Route::post('/admin-themes', [ExtensionInstallController::class, 'adminTheme'])->named('admin-theme.install')->middleware(Authenticate::class),
+			Route::put('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [AdminThemeEditController::class, 'toggle'])->named('admin-theme.toggle')->middleware(Authenticate::class),
+			Route::post('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackAdminTheme'])->named('admin-theme.rollback')->middleware(Authenticate::class),
+			Route::delete('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardAdminTheme'])->named('admin-theme.backup.discard')->middleware(Authenticate::class),
+			Route::delete('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [AdminThemeEditController::class, 'delete'])->named('admin-theme.delete')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
 			Route::get('/settings/date-format', [SettingsController::class, 'format'])->named('settings.date-format')->middleware(Authenticate::class),
@@ -321,6 +337,7 @@ final readonly class AdminRoutes implements RouteSource
 		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class], exact: true);
 
 		$app = Route::group($this->config->path, [
+			Route::get('/assets/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/{file:[A-Za-z0-9._/-]+}', AdminThemeAssetController::class)->named('admin-theme.asset'),
 			Route::get('/assets/{file:.+}', AssetController::class)->named('asset'),
 			Route::get('/', ShellController::class)->named('app'),
 			Route::get('/{screen:(?!api/|assets/)[A-Za-z0-9_./-]+}', ShellController::class)->named('screen')

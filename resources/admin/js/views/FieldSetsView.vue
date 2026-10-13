@@ -170,6 +170,6 @@ async function remove(set: FieldSetSummary): Promise<void> {
 
 <style scoped>
 .field-sets__none {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

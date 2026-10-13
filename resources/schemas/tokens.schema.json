@@ -1,0 +1,430 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework admin theme tokens",
+	"description": "What an admin theme changes: colors, fonts, type sizes, radii, and padding. Anything it leaves out is the Neutral theme's. Every color is light-dark(light, dark), or one color for both schemes.",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"color": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"background": {
+					"type": "string",
+					"description": "--color-background: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+				},
+				"surface": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-surface: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-surface: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-surface-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"strong": {
+									"type": "string",
+									"description": "--color-surface-strong: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"text": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-text: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-text: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"secondary": {
+									"type": "string",
+									"description": "--color-text-secondary: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"muted": {
+									"type": "string",
+									"description": "--color-text-muted: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"accent": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-accent: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-accent: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"hover": {
+									"type": "string",
+									"description": "--color-accent-hover: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"text": {
+									"type": "string",
+									"description": "--color-accent-text: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-accent-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"border": {
+									"type": "string",
+									"description": "--color-accent-border: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"success": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-success: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-success: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-success-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"indicator": {
+									"type": "string",
+									"description": "--color-success-indicator: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"warning": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-warning: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-warning: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-warning-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"indicator": {
+									"type": "string",
+									"description": "--color-warning-indicator: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"danger": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-danger: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-danger: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-danger-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"indicator": {
+									"type": "string",
+									"description": "--color-danger-indicator: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"border": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"color": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--border-color: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--border-color: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"strong": {
+									"type": "string",
+									"description": "--border-color-strong: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								}
+							}
+						}
+					]
+				},
+				"radius": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"small": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--border-radius-small: pixels, from 0px to 24px."
+						},
+						"medium": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--border-radius-medium: pixels, from 0px to 24px."
+						},
+						"large": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--border-radius-large: pixels, from 0px to 24px."
+						}
+					}
+				}
+			}
+		},
+		"boxShadow": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"color": {
+					"type": "string",
+					"description": "--box-shadow-color: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+				}
+			}
+		},
+		"typography": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"fontFamily": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"ui": {
+							"type": "array",
+							"minItems": 1,
+							"items": {
+								"type": "string"
+							},
+							"description": "--font-family-ui: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."
+						},
+						"display": {
+							"type": "array",
+							"minItems": 1,
+							"items": {
+								"type": "string"
+							},
+							"description": "--font-family-display: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."
+						},
+						"title": {
+							"type": "array",
+							"minItems": 1,
+							"items": {
+								"type": "string"
+							},
+							"description": "--font-family-title: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."
+						}
+					}
+				},
+				"fontSize": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"base": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-base: pixels, from 12px to 16px."
+						},
+						"small": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-small: pixels, from 11px to 14px."
+						},
+						"xsmall": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-xsmall: pixels, from 10px to 13px."
+						},
+						"xxsmall": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-xxsmall: pixels, from 9px to 12px."
+						},
+						"pageTitle": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-page-title: pixels, from 20px to 40px."
+						},
+						"panelTitle": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-panel-title: pixels, from 13px to 20px."
+						},
+						"entryTitle": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-entry-title: pixels, from 12px to 18px."
+						},
+						"editor": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-editor: pixels, from 13px to 18px."
+						},
+						"editorTitle": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-editor-title: pixels, from 26px to 44px."
+						},
+						"stat": {
+							"type": "string",
+							"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+							"description": "--font-size-stat: pixels, from 24px to 40px."
+						}
+					}
+				},
+				"fontWeight": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"entryTitle": {
+							"type": "integer",
+							"minimum": 400,
+							"maximum": 700,
+							"description": "--font-weight-entry-title: a weight from 400 to 700."
+						}
+					}
+				},
+				"letterSpacing": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"pageTitle": {
+							"type": "string",
+							"pattern": "^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$",
+							"description": "--letter-spacing-page-title: ems, from -0.05em to 0.05em."
+						},
+						"entryTitle": {
+							"type": "string",
+							"pattern": "^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$",
+							"description": "--letter-spacing-entry-title: ems, from -0.05em to 0.05em."
+						}
+					}
+				},
+				"fontFace": {
+					"type": "array",
+					"description": "The fonts the theme ships, as @font-face has them: woff2 files inside the theme, up to 512 KB each.",
+					"items": {
+						"type": "object",
+						"required": [
+							"fontFamily",
+							"src"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"fontFamily": {
+								"type": "string",
+								"description": "The family name the fontFamily tokens use, such as \"Karla\"."
+							},
+							"src": {
+								"type": "string",
+								"pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\.woff2$",
+								"description": "The .woff2 file, relative to the theme, such as \"fonts/karla.woff2\"."
+							},
+							"fontWeight": {
+								"type": [
+									"string",
+									"integer"
+								],
+								"default": "400",
+								"description": "A weight, or a variable font's range of two, such as \"200 800\"."
+							},
+							"fontStyle": {
+								"enum": [
+									"normal",
+									"italic",
+									"oblique"
+								],
+								"default": "normal"
+							},
+							"unicodeRange": {
+								"type": "string",
+								"description": "The characters it covers, such as \"U+0000-00FF, U+0131\"."
+							}
+						}
+					}
+				}
+			}
+		},
+		"padding": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"row": {
+					"type": "string",
+					"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+					"description": "--padding-row: pixels, from 10px to 20px."
+				},
+				"panel": {
+					"type": "string",
+					"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+					"description": "--padding-panel: pixels, from 12px to 24px."
+				},
+				"inline": {
+					"type": "string",
+					"pattern": "^(0|\\d+(\\.\\d+)?px)$",
+					"description": "--padding-inline: pixels, from 16px to 32px."
+				}
+			}
+		}
+	}
+}

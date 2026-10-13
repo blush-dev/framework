@@ -231,7 +231,8 @@ final readonly class SiteChecks
 
 		$kinds = [
 			['plugins', 'Plugins', 'plugin', array_keys($this->extensions->plugins->unmet()), 'plugin:check'],
-			['icon-packs', 'Icon packs', 'icon pack', array_keys($this->extensions->packs->unmet()), 'icon-pack:check']
+			['icon-packs', 'Icon packs', 'icon pack', array_keys($this->extensions->packs->unmet()), 'icon-pack:check'],
+			['admin-themes', 'Admin themes', 'admin theme', array_keys($this->extensions->adminThemes->unmet()), 'admin-theme:check']
 		];
 
 		foreach ($kinds as [$key, $label, $kind, $names, $command]) {

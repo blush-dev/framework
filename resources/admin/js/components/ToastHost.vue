@@ -83,29 +83,29 @@ function keydown(event: KeyboardEvent, item: Toast): void {
 	max-width: min(430px, calc(100vw - 32px));
 	overflow: hidden;
 	padding: 12px 12px 12px 16px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
-	color: var(--fg);
-	font-size: var(--base);
+	color: var(--color-text);
+	font-size: var(--font-size-base);
 	pointer-events: auto;
 }
 
 .toast > .icon {
-	color: var(--good-dot);
+	color: var(--color-success-indicator);
 }
 
 .toast--warn > .icon {
-	color: var(--warn-dot);
+	color: var(--color-warning-indicator);
 }
 
 .toast--danger > .icon {
-	color: var(--danger-dot);
+	color: var(--color-danger-indicator);
 }
 
 .toast--info > .icon {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .toast__message {
@@ -119,7 +119,7 @@ function keydown(event: KeyboardEvent, item: Toast): void {
 	align-self: stretch;
 	width: 1px;
 	margin-block: 3px;
-	background: var(--border);
+	background: var(--border-color);
 }
 
 .toast__undo {
@@ -130,16 +130,16 @@ function keydown(event: KeyboardEvent, item: Toast): void {
 	height: var(--ctl-sm);
 	padding: 0 11px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--accent);
+	color: var(--color-accent);
 	cursor: pointer;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 }
 
 .toast__undo:hover {
-	background: var(--accent-soft);
+	background: var(--color-accent-subtle);
 }
 
 .toast__undo .icon {
@@ -161,20 +161,20 @@ function keydown(event: KeyboardEvent, item: Toast): void {
 .toast__bar i {
 	display: block;
 	height: 100%;
-	background: var(--good-dot);
+	background: var(--color-success-indicator);
 	transform-origin: left center;
 }
 
 .toast--warn .toast__bar i {
-	background: var(--warn-dot);
+	background: var(--color-warning-indicator);
 }
 
 .toast--danger .toast__bar i {
-	background: var(--danger-dot);
+	background: var(--color-danger-indicator);
 }
 
 .toast--info .toast__bar i {
-	background: var(--accent);
+	background: var(--color-accent);
 }
 
 /* The clock that dismisses a toast is a timer in `toast.ts`, never the

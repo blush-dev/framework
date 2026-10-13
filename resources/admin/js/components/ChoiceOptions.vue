@@ -164,13 +164,13 @@ function dropped(): void {
 	gap: var(--s-2);
 	align-items: center;
 	padding: 5px 8px 5px 6px;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .choice-options__head {
 	padding-block: 6px;
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xxsmall);
 	font-weight: 600;
 	letter-spacing: .06em;
 	text-transform: uppercase;
@@ -182,20 +182,20 @@ function dropped(): void {
 }
 
 .choice-options__row:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .choice-options__row .input {
 	width: 100%;
 	min-height: var(--ctl-sm);
 	padding-inline: 9px;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .choice-options__grip {
 	display: grid;
 	place-items: center;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	cursor: grab;
 	opacity: .55;
 }
@@ -214,10 +214,10 @@ function dropped(): void {
 }
 
 .choice-options__row.is-drop-before {
-	box-shadow: inset 0 2px 0 var(--accent);
+	box-shadow: inset 0 2px 0 var(--color-accent);
 }
 
 .choice-options__row.is-drop-after {
-	box-shadow: inset 0 -2px 0 var(--accent);
+	box-shadow: inset 0 -2px 0 var(--color-accent);
 }
 </style>

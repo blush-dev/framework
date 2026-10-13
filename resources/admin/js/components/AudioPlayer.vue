@@ -52,8 +52,8 @@ watch(() => props.artwork, () => {
 .audio-card__art--none {
 	display: grid;
 	place-items: center;
-	background: var(--surface-2);
-	color: var(--fg-3);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
 }
 
 .audio-card__art--none :deep(svg) {

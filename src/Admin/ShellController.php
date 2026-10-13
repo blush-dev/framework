@@ -15,13 +15,14 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Auth\AdminTheme;
+use Blush\AdminTheme\AdminThemes;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
 use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Core\AppConfig;
 use Blush\Core\Language;
+use Blush\Extension\ExtensionText;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Markdown\Html\HtmlRules;
@@ -34,8 +35,10 @@ use Blush\Session\SessionReader;
  * under it (the app routes in the browser). The page holds the app's
  * script and styles and a JSON block with what the app needs to start:
  * its base path, the API's, the site's name, and the signed-in account's
- * color scheme (D-235), which is also set on `<html>` so the first frame
- * is right, whether mentions are on (D-493), the HTML rules (D-495),
+ * color scheme (D-235) and admin theme (D-827), which are also set on
+ * `<html>`, with the theme's stylesheet linked, so the first frame is
+ * right (the site's default theme when no one is signed in), the admin
+ * themes an account may choose, whether mentions are on (D-493), the HTML rules (D-495),
  * so the editor can mark what its account couldn't add, and the site's
  * date and time formats and language, which the admin shows dates read
  * as dates in (D-693). Everything else comes from the API. The session is only
@@ -58,7 +61,9 @@ final readonly class ShellController
 		private SessionReader $sessions,
 		private Authenticator $authenticator,
 		private MediaConfig $media,
-		private MarkdownConfig $markdown
+		private MarkdownConfig $markdown,
+		private AdminThemes $themes,
+		private ExtensionText $text
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -86,14 +91,22 @@ final readonly class ShellController
 
 		$preferences = $this->preferences($request);
 		$scheme      = $preferences?->colorScheme;
-		$theme       = $preferences?->adminTheme;
+		$choice      = $preferences?->adminTheme;
+		$theme       = $this->themes->inUse($choice);
+		$skinned     = $theme !== null && $theme->name !== AdminThemes::BASE;
+
+		if ($skinned) {
+			$styles .= sprintf("<link rel=\"stylesheet\" id=\"blush-admin-theme\" href=\"%s\">\n", self::escape($this->app->themeUrl($theme)));
+		}
+
 		$config = json_encode([
 			'base'        => $this->config->path,
 			'api'         => "{$this->config->path}/api",
 			'site'        => ['name' => $this->site->name, 'url' => $this->site->url],
 			'media'       => ['url' => $this->media->url],
 			'colorScheme' => $scheme?->value,
-			'adminTheme'  => $theme?->value,
+			'adminTheme'  => $choice,
+			'adminThemes' => $this->adminThemes(),
 			'mentions'    => $this->markdown->mentions,
 			'dates'       => [
 				'locale' => str_replace('_', '-', $this->site->locale),
@@ -116,7 +129,7 @@ final readonly class ShellController
 		$script = self::escape($this->app->url($entry['script']));
 		$id     = self::CONFIG_ID;
 		$html   = ($scheme === null || $scheme === ColorScheme::System ? '' : " data-color-scheme=\"{$scheme->value}\"")
-			. ($theme === null || $theme === AdminTheme::Neutral ? '' : " data-admin-theme=\"{$theme->value}\"");
+			. ($skinned ? ' data-admin-theme="' . self::escape($theme->name) . '"' : '');
 
 		return Response::html(<<<HTML
 			<!doctype html>
@@ -138,8 +151,29 @@ final readonly class ShellController
 	}
 
 	/**
-	 * Escapes text for HTML.
+	 * Returns the admin themes an account may choose (Neutral first), each
+	 * with its stylesheet's URL (none for Neutral, the admin's own) and
+	 * its colors for a swatch, and the site's default (D-827).
+	 *
+	 * @return array{default: ?string, offered: list<array{name: string, label: string, description: string, stylesheet: ?string, preview: array{background: string, surface: string, accent: string, text: string}}>}
 	 */
+	private function adminThemes(): array
+	{
+		$offered = [];
+
+		foreach ($this->themes->offered() as $theme) {
+			$offered[] = [
+				'name'        => $theme->name,
+				'label'       => (string) $this->text->label($theme),
+				'description' => (string) $this->text->description($theme),
+				'stylesheet'  => $theme->name === AdminThemes::BASE ? null : $this->app->themeUrl($theme),
+				'preview'     => $this->themes->preview($theme)
+			];
+		}
+
+		return ['default' => $this->themes->default()?->name, 'offered' => $offered];
+	}
+
 	/**
 	 * Returns the signed-in account's preferences (its color scheme and
 	 * admin theme), or `null` when no one is signed in.
@@ -155,6 +189,9 @@ final readonly class ShellController
 		}
 	}
 
+	/**
+	 * Escapes text for HTML.
+	 */
 	private static function escape(string $text): string
 	{
 		return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');

@@ -104,10 +104,10 @@ defineExpose({ add });
 .field-tree__bar {
 	display: flex;
 	justify-content: flex-end;
-	padding: 0 var(--pad-x) var(--s-3);
+	padding: 0 var(--padding-inline) var(--s-3);
 }
 
 .field-tree--bare :deep(.item-tree) {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 </style>

@@ -26,4 +26,5 @@ enum CompiledCache: string
 	case ContentTypes = 'content-types';
 	case Themes       = 'themes';
 	case IconPacks    = 'icon-packs';
+	case AdminThemes  = 'admin-themes';
 }

@@ -53,13 +53,13 @@ const perOptions = computed<SelectOption[]>(() => props.options.map((count) => (
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-3);
-	padding: var(--s-4) var(--pad-x);
-	border-top: 1px solid var(--border);
+	padding: var(--s-4) var(--padding-inline);
+	border-top: 1px solid var(--border-color);
 }
 
 .pager__status {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .pager__end {

@@ -459,9 +459,9 @@ async function finish(): Promise<void> {
 .field-form {
 	display: grid;
 	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x) var(--s-5) calc(var(--pad-x) + var(--tree-indent, 0px));
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
+	padding: var(--s-4) var(--padding-inline) var(--s-5) calc(var(--padding-inline) + var(--tree-indent, 0px));
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
 }
 
 .field-form__ident,
@@ -481,27 +481,27 @@ async function finish(): Promise<void> {
 	width: 100%;
 	min-height: var(--ctl);
 	padding: 0 10px 0 12px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text);
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
 }
 
 .field-form__control:hover:not(:disabled) {
-	border-color: var(--fg-3);
+	border-color: var(--color-text-muted);
 }
 
 .field-form__control:focus-visible {
-	border-color: var(--accent);
+	border-color: var(--color-accent);
 	outline-offset: 0;
 }
 
 .field-form__control:disabled {
-	border-color: var(--border);
-	background: var(--surface-2);
+	border-color: var(--border-color);
+	background: var(--color-surface-subtle);
 	cursor: default;
 }
 
@@ -509,22 +509,22 @@ async function finish(): Promise<void> {
 	flex: none;
 	width: 16px;
 	height: 16px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .field-form__control strong {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .field-form__change {
-	color: var(--accent);
-	font-size: var(--text-sm);
+	color: var(--color-accent);
+	font-size: var(--font-size-small);
 }
 
 .field-form__section-head {
@@ -543,28 +543,28 @@ async function finish(): Promise<void> {
 	align-items: flex-start;
 	gap: var(--s-2);
 	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .field-form__section {
 	display: grid;
 	gap: var(--s-3);
 	padding-top: var(--s-4);
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .field-form__more {
 	padding-top: var(--s-3);
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .field-form__more > summary {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--s-1);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 	cursor: pointer;
 	list-style: none;

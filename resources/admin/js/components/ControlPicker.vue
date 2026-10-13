@@ -160,9 +160,9 @@ function choose(key: string): void {
 	min-height: 86px;
 	padding: 12px 8px;
 	border: 1px solid transparent;
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 	background: transparent;
-	color: var(--fg);
+	color: var(--color-text);
 	font: inherit;
 	text-align: center;
 	cursor: pointer;
@@ -170,30 +170,30 @@ function choose(key: string): void {
 
 .control-picker__tile:hover,
 .control-picker__tile:focus-visible {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .control-picker__tile[aria-checked="true"] {
-	border-color: var(--accent);
-	background: var(--accent-soft);
-	color: var(--accent);
+	border-color: var(--color-accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .control-picker__tile .icon {
 	width: 20px;
 	height: 20px;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .control-picker__tile:hover .icon,
 .control-picker__tile:focus-visible .icon,
 .control-picker__tile[aria-checked="true"] .icon {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .control-picker__name {
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-weight: 500;
 	line-height: 1.3;
 	text-wrap: balance;
@@ -201,8 +201,8 @@ function choose(key: string): void {
 
 .control-picker__none {
 	padding: var(--s-5) 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* What the footer says keeps its height, so the button never moves. */
@@ -216,10 +216,10 @@ function choose(key: string): void {
 }
 
 .control-picker__hint span {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .control-picker__quiet {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

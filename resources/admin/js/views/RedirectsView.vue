@@ -658,7 +658,7 @@ const siteHost = computed(() => {
 .redirects-table__chip {
 	height: 21px;
 	border: 0;
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	cursor: pointer;
 }
 
@@ -676,17 +676,17 @@ const siteHost = computed(() => {
 }
 
 .redirects-table__gone {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	text-decoration: line-through;
 }
 
 .redirects-table__away {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	overflow-wrap: anywhere;
 }
 
 .redirects-table__away strong {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
@@ -707,14 +707,14 @@ const siteHost = computed(() => {
 }
 
 .redirects-table__code {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .redirects-table__how {
 	display: block;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .panel--compact .redirects-table__how {
@@ -738,8 +738,8 @@ const siteHost = computed(() => {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .06em;
 	text-transform: uppercase;
@@ -757,24 +757,24 @@ const siteHost = computed(() => {
 	align-items: center;
 	gap: 5px;
 	padding: 1px 8px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg);
-	font-size: var(--text-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 }
 
 .redirect-trace__step .icon {
 	width: 13px;
 	height: 13px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .redirect-trace__step.is-nf,
 .redirect-trace__step.is-gone {
-	border-color: var(--danger-dot);
-	background: var(--danger-soft);
-	color: var(--danger);
+	border-color: var(--color-danger-indicator);
+	background: var(--color-danger-subtle);
+	color: var(--color-danger);
 }
 
 .redirect-trace__step.is-nf .icon,
@@ -787,8 +787,8 @@ const siteHost = computed(() => {
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .redirect-trace__arrow .icon {
@@ -797,8 +797,8 @@ const siteHost = computed(() => {
 }
 
 .redirect-trace__say {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .redirects-code > .lnk {
@@ -826,12 +826,12 @@ const siteHost = computed(() => {
 .redirects-code__list .icon {
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .redirects-code__type {
 	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 </style>

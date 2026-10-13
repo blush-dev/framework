@@ -253,9 +253,9 @@ defineExpose({ show });
 	padding: 4px 6px;
 	margin-left: -6px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--accent);
+	color: var(--color-accent);
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
@@ -263,24 +263,24 @@ defineExpose({ show });
 
 .date:hover,
 .date[aria-expanded="true"] {
-	background: var(--accent-soft);
+	background: var(--color-accent-subtle);
 }
 
 .date[aria-invalid="true"] {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .date__time-text {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .date__caret {
 	flex: none;
 	width: 13px;
 	height: 13px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>
 
@@ -292,9 +292,9 @@ defineExpose({ show });
 	gap: var(--s-3);
 	width: 284px;
 	padding: var(--s-3);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
 }
 
@@ -317,37 +317,37 @@ defineExpose({ show });
 }
 
 .date-panel__week {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .date__day {
 	aspect-ratio: 1;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg);
+	color: var(--color-text);
 	font: inherit;
 	font-variant-numeric: tabular-nums;
 	cursor: pointer;
 }
 
 .date__day:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .date__day.is-out {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .date__day.is-today {
-	box-shadow: inset 0 0 0 1px var(--border-strong);
+	box-shadow: inset 0 0 0 1px var(--border-color-strong);
 }
 
 /* Soft, not solid: it's only saying "this one". */
 .date__day.is-chosen {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 	font-weight: 600;
 }
 
@@ -356,36 +356,36 @@ defineExpose({ show });
 	align-items: center;
 	gap: 6px;
 	padding-top: var(--s-3);
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .date-panel__label {
 	margin-right: auto;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .date-panel__field {
 	width: 3.2em;
 	min-height: var(--ctl-sm);
 	padding: 0;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text);
 	text-align: center;
 }
 
 .date-panel__field:focus-visible {
-	border-color: var(--accent);
+	border-color: var(--color-accent);
 	outline-offset: 0;
 }
 
 .date-panel__meridiem {
 	display: inline-flex;
 	margin-left: 6px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
 	overflow: hidden;
 }
 
@@ -393,16 +393,16 @@ defineExpose({ show });
 	min-height: calc(var(--ctl-sm) - 2px);
 	padding: 0 9px;
 	border: 0;
-	background: var(--surface);
-	color: var(--fg-2);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
 	font: inherit;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	cursor: pointer;
 }
 
 .date-panel__meridiem button[aria-pressed="true"] {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 	font-weight: 600;
 }
 

@@ -227,7 +227,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 <style scoped>
 .extension-card__placeholder {
 	aspect-ratio: 16 / 10;
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .skeleton--title {

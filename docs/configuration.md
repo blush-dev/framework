@@ -14,8 +14,10 @@ A few settings can also be changed in the admin's
 [Settings](admin.md#settings) screens: the site's name, language, and
 time zone, the homepage, the trailing slash, feeds, and the sitemap;
 the [Themes](admin.md#themes) screen activates a theme; and the
-[Plugins](admin.md#plugins) and [Icon Packs](admin.md#icon-packs)
-screens turn plugins and icon packs on and off. The admin saves them in
+[Plugins](admin.md#plugins), [Icon Packs](admin.md#icon-packs), and
+[Admin Themes](admin.md#admin-themes) screens turn plugins, icon packs,
+and admin themes on and off, and the last chooses the site's admin
+theme. The admin saves them in
 `user/data/settings/`, a file for each group, named for its config file,
 with the same keys:
 
@@ -28,6 +30,7 @@ user/data/settings/sitemap.json   {"enabled": true, "disallow": ["/drafts/"]}
 user/data/settings/theme.json     {"active": "acme/notebook"}
 user/data/settings/plugins.json   {"enabled": ["acme/gallery"]}
 user/data/settings/icons.json     {"enabled": ["acme/brands"]}
+user/data/settings/admin-themes.json  {"enabled": ["blush/editorial", "blush/neutral"], "default": "blush/editorial"}
 ```
 
 (Feeds' full content is saved as `fullContent`, though `config/feed.php`
@@ -587,7 +590,13 @@ either way.
   name (`new IconConfig(enabled: ['acme/brands'])`). A local pack is off
   until it's named; a Composer pack is on. The admin's own list, naming
   every pack that's on, replaces this one when it's saved.
-- Neither has a list of what's off: config only says what's on
+- `config/admin-themes.php` · `Blush\AdminTheme\AdminThemeConfig`:
+  `enabled`, the [admin themes](admin-themes.md) in `extensions/` to turn
+  on, by name, and `default`, the theme anyone who hasn't chosen one sees,
+  and the sign-in screen (`'blush/neutral'` by default). Neutral is always
+  on; the framework's and Composer's themes are on until a list says
+  otherwise.
+- None has a list of what's off: config only says what's on
   ([Turning extensions on](extending.md#turning-extensions-on)).
 - `config/http.php` · `Blush\Http\HttpConfig`: `middleware`, a list of
   PSR-15 middleware classes run on every request.

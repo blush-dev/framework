@@ -151,7 +151,7 @@ function done(): void {
 <style scoped>
 .menu-settings__lead {
 	margin: 0;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .menu-settings__snippet {
@@ -186,7 +186,7 @@ function done(): void {
 }
 
 .menu-settings__location-name {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 

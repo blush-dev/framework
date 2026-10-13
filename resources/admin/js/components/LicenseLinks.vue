@@ -22,6 +22,6 @@ defineProps<{ parts: LicensePart[] }>();
 
 <style scoped>
 .license-operator {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

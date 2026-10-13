@@ -16,7 +16,7 @@ import StatusPill from './StatusPill.vue';
 import { debounced, latest } from '../action';
 import { errorMessage, request, type EntryList, type EntrySummary } from '../api';
 import { loadAccounts, type AccountInfo } from '../people';
-import { adminTheme, saveAdminTheme } from '../admin-theme';
+import { adminTheme, adminThemes, defaultAdminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import { useModalDialog } from '../dialog';
@@ -71,6 +71,7 @@ const everywhere = computed<Command[]>(() => {
 		['themes', 'Go to Themes', 'paintbrush', 'extensions.themes.view', 'appearance look'],
 		['plugins', 'Go to Plugins', 'plug', 'extensions.plugins.view', 'addons extensions'],
 		['icon-packs', 'Go to Icon Packs', 'shapes', 'extensions.icon-packs.view', 'icons extensions'],
+		['admin-themes', 'Go to Admin Themes', 'swatch-book', 'extensions.admin-themes.view', 'admin look skin appearance extensions'],
 		['accounts', 'Go to Accounts', 'key-round', 'accounts.view', 'people users sign in'],
 		['roles', 'Go to Roles', 'shield', 'accounts.view', 'capabilities']
 	];
@@ -112,13 +113,15 @@ const everywhere = computed<Command[]>(() => {
 			keywords: 'theme dark light mode appearance',
 			run: () => void saveColorScheme(colorScheme.value === 'dark' ? 'light' : 'dark').catch(() => undefined)
 		},
-		{
-			id: 'admin-theme',
-			label: adminTheme.value === 'editorial' ? 'Use the Neutral theme' : 'Use the Editorial theme',
-			icon: adminTheme.value === 'editorial' ? 'layout-dashboard' : 'book-open',
-			keywords: 'admin theme look appearance neutral editorial',
-			run: () => void saveAdminTheme(adminTheme.value === 'editorial' ? 'neutral' : 'editorial').catch(() => undefined)
-		}
+		// Each other admin theme that's on (D-827); the site's default is
+		// followed rather than chosen.
+		...adminThemes.filter((theme) => theme.name !== adminTheme.value?.name).map((theme) => ({
+			id: `admin-theme-${theme.name}`,
+			label: `Use the ${theme.label} admin theme`,
+			icon: 'swatch-book' as const,
+			keywords: `admin theme look appearance skin ${theme.label} ${theme.name}`,
+			run: () => void saveAdminTheme(theme.name === defaultAdminTheme.value ? null : theme.name).catch(() => undefined)
+		}))
 	);
 
 	return found;
@@ -285,15 +288,15 @@ const commandCount = computed(() => commands.value.length);
 	margin: 14vh auto auto;
 	padding: 0;
 	overflow: hidden;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-3);
-	background: var(--surface);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-large);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-3);
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .palette::backdrop {
-	background: color-mix(in srgb, var(--fg) 30%, transparent);
+	background: color-mix(in srgb, var(--color-text) 30%, transparent);
 }
 
 .palette__input {
@@ -301,8 +304,8 @@ const commandCount = computed(() => commands.value.length);
 	align-items: center;
 	gap: 11px;
 	padding: 18px var(--s-5);
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-3);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-muted);
 }
 
 .palette__input input {
@@ -310,8 +313,8 @@ const commandCount = computed(() => commands.value.length);
 	min-width: 0;
 	border: 0;
 	background: none;
-	color: var(--fg);
-	font-size: var(--doc);
+	color: var(--color-text);
+	font-size: var(--font-size-editor);
 	outline: none;
 }
 
@@ -323,7 +326,7 @@ const commandCount = computed(() => commands.value.length);
 
 .palette__section {
 	padding: var(--s-3) 10px var(--s-1);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .palette__item {
@@ -331,8 +334,8 @@ const commandCount = computed(() => commands.value.length);
 	align-items: center;
 	gap: 11px;
 	padding: 10px;
-	border-radius: var(--r-1);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-small);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
@@ -340,16 +343,16 @@ const commandCount = computed(() => commands.value.length);
 	flex: none;
 	width: 16px;
 	height: 16px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .palette__item.is-active {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .palette__item.is-active > :deep(svg) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .palette__title {
@@ -362,8 +365,8 @@ const commandCount = computed(() => commands.value.length);
 .palette__type {
 	flex: none;
 	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .palette__shortcut {
@@ -372,7 +375,7 @@ const commandCount = computed(() => commands.value.length);
 
 .palette__none {
 	padding: 22px 8px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	text-align: center;
 }
 
@@ -380,9 +383,9 @@ const commandCount = computed(() => commands.value.length);
 	display: flex;
 	gap: var(--s-4);
 	padding: 12px var(--s-5);
-	border-top: 1px solid var(--border);
-	background: var(--bg);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-top: 1px solid var(--border-color);
+	background: var(--color-background);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 </style>

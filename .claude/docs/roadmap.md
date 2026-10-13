@@ -893,7 +893,10 @@ write conflicts through the API, not by editing files on disk.
 What the first screen loads under **500 KB of JavaScript**
 (`public/admin/js/admin.js`) and **100 KB of CSS**
 (`public/admin/css/admin.css`), unzipped, as a standing goal met over
-time, and maybe lowered later (D-510). Since D-687 some screens load on
+time, and maybe lowered later (D-510). The CSS limit is set aside since
+2026-10-13, at the author's word, when D-827's clearer token names took
+`admin.css` past it (it's back to 99.95 KB once Editorial moved out);
+CSS sizes are still reported. Since D-687 some screens load on
 demand, so report the total of every script and stylesheet beside them
 too: splitting moves bytes; it doesn't remove them. On 2026-10-05 they
 were 748 KB and 165 KB (one file each). On 2026-10-09, after the editor's
@@ -1289,6 +1292,26 @@ Other starting points the author may pick up (none decided):
 - Local development: `serve`, DDEV, and theme builds (Vite, D-155).
 - The docs' installation guide (`docs/installation.md`) as the script
   for all of it.
+
+### Admin themes (D-827): planned
+
+Each stage ends with `composer check`, `npm run admin:build` where the
+admin changed, and `docs/`.
+
+1. **Tokens in `light-dark()` under their new names** (built): `tokens.css` as
+   one `:root` block with `color-scheme` picking the scheme; the CSS
+   custom properties renamed to the token names across the admin's CSS
+   and components; Neutral and Editorial look as they do now.
+2. **The kind** (built): `ExtensionKind::AdminTheme`, `admin-theme.json`, and
+   `tokens.json` read into a typed token set, checked, and compiled to a
+   stylesheet the shell links after the admin's CSS; font faces served
+   from the theme's folder; the `tokens.json` JSON Schema; Editorial
+   moved out as a bundled admin theme; the account's preference holding
+   a theme's name, and `AdminTheme` (the enum) removed.
+3. **Extend → Admin Themes** (built): the list and details screens from the
+   Plugins and Icon Packs pieces, switches, the site's default, install
+   from a `.zip`, delete, and the capabilities; Your profile's picker
+   from the themes that are on, with previews from each theme's colors.
 
 ---
 

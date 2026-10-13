@@ -179,9 +179,9 @@ onBeforeUnmount(() => {
 	display: grid;
 	min-width: 212px;
 	padding: 7px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
 }
 
@@ -207,10 +207,10 @@ onBeforeUnmount(() => {
 	width: 100%;
 	padding: 8px 11px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
-	font-size: var(--base);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-base);
 	text-align: left;
 	text-decoration: none;
 	white-space: nowrap;
@@ -218,8 +218,8 @@ onBeforeUnmount(() => {
 }
 
 .menu-button__list :deep(.menu-item:hover) {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .menu-button__list :deep(.menu-item[aria-current='true']),
@@ -227,8 +227,8 @@ onBeforeUnmount(() => {
 .menu-button__list :deep(.menu-item[aria-current='true'] .menu-item__name),
 .menu-button__list :deep(.menu-item[aria-pressed='true']),
 .menu-button__list :deep(.menu-item[aria-pressed='true'] svg) {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 /* A format's keys, at the row's end. */
@@ -243,12 +243,12 @@ onBeforeUnmount(() => {
 }
 
 .menu-button__list :deep(.menu-item--danger) {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .menu-button__list :deep(.menu-item--danger:hover) {
-	background: var(--danger-soft);
-	color: var(--danger);
+	background: var(--color-danger-subtle);
+	color: var(--color-danger);
 }
 
 .menu-button__list :deep(.menu-item svg) {
@@ -260,15 +260,15 @@ onBeforeUnmount(() => {
 .menu-button__list :deep(.menu-divider) {
 	height: 1px;
 	margin: 7px -7px;
-	background: var(--border);
+	background: var(--border-color);
 }
 
 /* A section's name: a heading says how two groups differ, where a rule
    only says that they do. */
 .menu-button__list :deep(.menu-heading) {
 	padding: 8px 11px 4px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;
@@ -282,9 +282,9 @@ onBeforeUnmount(() => {
 .menu-button__list :deep(.menu-kbd) {
 	margin-left: auto;
 	padding-left: 12px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 /* An item with a line saying what it does, under its name. */
@@ -298,24 +298,24 @@ onBeforeUnmount(() => {
 
 .menu-button__list :deep(.menu-item--described svg) {
 	margin-top: 2px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .menu-button__list :deep(.menu-item--described:hover svg) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .menu-button__list :deep(.menu-item__name) {
 	display: block;
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .menu-button__list :deep(.menu-item__text) {
 	display: block;
 	margin-top: 2px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	line-height: 1.45;
 }
 </style>

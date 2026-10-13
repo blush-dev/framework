@@ -14,6 +14,10 @@ declare(strict_types=1);
 namespace Blush\Core;
 
 use Blush\Admin\AdminConfig;
+use Blush\AdminTheme\AdminThemeCache;
+use Blush\AdminTheme\AdminThemeConfig;
+use Blush\AdminTheme\AdminThemeDiscovery;
+use Blush\AdminTheme\AdminThemes;
 use Blush\Api\ApiConfig;
 use Blush\Auth\AuthConfig;
 use Blush\Cache\CacheConfig;
@@ -98,15 +102,17 @@ use Blush\Theme\Themes;
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container, those a group of
  *    settings lays over when it's first read.
- * 5. Plugins, themes, and icon packs are discovered (or read from
- *    cache). A theme or icon pack whose namespace or name an installed
- *    plugin (or, for a pack, a theme) claims is left out as broken
- *    (D-378, D-431).
+ * 5. Plugins, themes, icon packs, and admin themes are discovered (or
+ *    read from cache). A theme or icon pack whose namespace or name an
+ *    installed plugin (or, for a pack, a theme) claims is left out as
+ *    broken, as is an admin theme whose name another kind has (D-378,
+ *    D-431, D-827).
  * 6. Which run is settled across every kind (`ExtensionState`, D-431):
  *    the plugins config and the settings turn on (by default Composer's
  *    and the local ones config names, or only what the admin's saved
  *    list names; D-390, D-391), the packs that are on (`IconConfig`),
- *    and the active theme's chain, each only when its `require` is met
+ *    the admin themes that are on (`AdminThemeConfig`), and the active
+ *    theme's chain, each only when its `require` is met
  *    (D-385). A chain that can't run falls back to the default theme;
  *    packs that are off or can't load are kept but add no icons. The
  *    local plugins that run, and the running chain's local themes, are
@@ -171,7 +177,7 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Compiles the config, plugin, theme, icon pack, route, content type,
+	 * Compiles the config, plugin, theme, icon pack, admin theme, route, content type,
 	 * and container-plan caches. The routes, content types, and container
 	 * plans are gathered by booting a fresh application, so every
 	 * provider and bootable service gets planned, and then by planning
@@ -190,6 +196,7 @@ final readonly class Bootstrap
 		new PluginCache($this->file(CompiledCache::Plugins))->write(new DiscoveredPlugins($built->plugins->installed(), $built->plugins->broken()));
 		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
 		new IconPackCache($this->file(CompiledCache::IconPacks))->write($built->iconPacks);
+		new AdminThemeCache($this->file(CompiledCache::AdminThemes))->write($built->adminThemes);
 
 		$built->application->boot();
 
@@ -258,10 +265,11 @@ final readonly class Bootstrap
 
 		$installed = $this->discoverPlugins($app->environment);
 
-		[$themes, $iconPacks] = $this->settleNamespaces(
+		[$themes, $iconPacks, $adminThemes] = $this->settleNamespaces(
 			$installed->manifests,
 			$this->discoverThemes($app->environment),
-			$this->discoverIconPacks($app->environment)
+			$this->discoverIconPacks($app->environment),
+			$this->discoverAdminThemes($app->environment)
 		);
 
 		// Every kind's requirements, settled together (D-431).
@@ -272,11 +280,13 @@ final readonly class Bootstrap
 			$themes,
 			$config->get(ThemeConfig::class)->active,
 			$iconPacks->withConfig($config->get(IconConfig::class)),
-			new Requirements(composer: new ComposerInstalled($this->paths->vendor))
+			new Requirements(composer: new ComposerInstalled($this->paths->vendor)),
+			$adminThemes->withConfig($config->get(AdminThemeConfig::class))
 		);
-		$plugins   = $extensions->plugins;
-		$themes    = $extensions->themes;
-		$iconPacks = $extensions->packs;
+		$plugins     = $extensions->plugins;
+		$themes      = $extensions->themes;
+		$iconPacks   = $extensions->packs;
+		$adminThemes = $extensions->adminThemes;
 
 		$themeProviders = [];
 		$autoloader     = new LocalAutoloader();
@@ -303,6 +313,7 @@ final readonly class Bootstrap
 		$container->instance(Plugins::class, $plugins);
 		$container->instance(Themes::class, $themes);
 		$container->instance(IconPacks::class, $iconPacks);
+		$container->instance(AdminThemes::class, $adminThemes);
 		$container->instance(ExtensionState::class, $extensions);
 		$container->instance(LocalAutoloader::class, $autoloader);
 
@@ -316,7 +327,7 @@ final readonly class Bootstrap
 			...$app->providers
 		);
 
-		return new BootstrapResult($application, $container, $config, $plugins, $autoloader, $themes, $iconPacks);
+		return new BootstrapResult($application, $container, $config, $plugins, $autoloader, $themes, $iconPacks, $adminThemes);
 	}
 
 	/**
@@ -355,6 +366,7 @@ final readonly class Bootstrap
 			new LogConfig(),
 			new PluginConfig(),
 			new IconConfig(),
+			new AdminThemeConfig(),
 			new HttpConfig(),
 			new RouteConfig(),
 			new MarkdownConfig(),
@@ -493,18 +505,32 @@ final readonly class Bootstrap
 	}
 
 	/**
+	 * Returns every installed admin theme: from the cache outside
+	 * development when it exists, otherwise by discovery.
+	 */
+	private function discoverAdminThemes(Environment $environment): AdminThemes
+	{
+		$cached = $environment->isDevelopment()
+			? null
+			: new AdminThemeCache($this->file(CompiledCache::AdminThemes))->read();
+
+		return $cached ?? new AdminThemeDiscovery($this->paths)->discover();
+	}
+
+	/**
 	 * Leaves out the themes and icon packs whose namespace or name an
 	 * extension before them claims (D-378, D-431): installed plugins
 	 * first, since they're code a site may depend on, then themes, then
-	 * icon packs. Each one left out is recorded as broken, naming the
-	 * claimant. (Plugins that share one fail discovery, and themes or
-	 * packs that do are broken.) A name is one extension's across kinds,
-	 * so `require` can name any of them.
+	 * icon packs, then admin themes, which have only a name (D-827). Each
+	 * one left out is recorded as broken, naming the claimant. (Plugins
+	 * that share one fail discovery, and themes or packs that do are
+	 * broken.) A name is one extension's across kinds, so `require` can
+	 * name any of them.
 	 *
 	 * @param  list<PluginManifest> $plugins
-	 * @return array{Themes, IconPacks}
+	 * @return array{Themes, IconPacks, AdminThemes}
 	 */
-	private function settleNamespaces(array $plugins, Themes $themes, IconPacks $packs): array
+	private function settleNamespaces(array $plugins, Themes $themes, IconPacks $packs, AdminThemes $adminThemes): array
 	{
 		$claims  = [];
 		$names   = [];
@@ -538,10 +564,21 @@ final readonly class Bootstrap
 				$reasons[$pack->name] = [$where, sprintf('Its namespace, "%s", is %s\'s.', $pack->namespace, $claims[$pack->namespace])];
 			} elseif (isset($names[$pack->name])) {
 				$reasons[$pack->name] = [$where, sprintf('Its name, "%s", is %s too.', $pack->name, $names[$pack->name])];
+			} else {
+				$names[$pack->name] = 'an icon pack\'s';
 			}
 		}
 
-		return [$themes, $packs->without($reasons)];
+		$packs   = $packs->without($reasons);
+		$reasons = [];
+
+		foreach ($adminThemes->all() as $adminTheme) {
+			if (isset($names[$adminTheme->name])) {
+				$reasons[$adminTheme->name] = [AdminThemeDiscovery::where($adminTheme, $this->paths), sprintf('Its name, "%s", is %s too.', $adminTheme->name, $names[$adminTheme->name])];
+			}
+		}
+
+		return [$themes, $packs, $adminThemes->without($reasons)];
 	}
 
 	/**

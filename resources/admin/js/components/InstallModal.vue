@@ -52,7 +52,8 @@ const emit = defineEmits<{
 const KINDS: Record<InstallKind, { title: string; noun: string; plural: string; path: string; capability: string; drag: string; next: string; after: string }> = {
 	'theme': { title: 'Install Theme', noun: 'theme', plural: 'Themes', path: '/themes', capability: 'extensions.themes', drag: 'Drag a Theme Here', next: 'Activate', after: 'and nothing is activated' },
 	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn On', after: 'and arrives turned off' },
-	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn On', after: 'and arrives turned off' }
+	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn On', after: 'and arrives turned off' },
+	'admin-theme': { title: 'Install Admin Theme', noun: 'admin theme', plural: 'Admin Themes', path: '/admin-themes', capability: 'extensions.admin-themes', drag: 'Drag an Admin Theme Here', next: 'Turn On', after: 'and arrives turned off' }
 };
 
 type Phase = 'idle' | 'working' | 'done' | 'clash' | 'error';
@@ -281,72 +282,72 @@ const replaceLabel = computed(() => {
 	gap: var(--s-2);
 	margin-top: var(--s-4);
 	padding: var(--s-6) var(--s-5);
-	border: 1px dashed var(--border-strong);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
+	border: 1px dashed var(--border-color-strong);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-subtle);
 	text-align: center;
 	transition: border-color .14s ease-out, background .14s ease-out;
 }
 
 .drop.is-over {
-	border-color: var(--accent);
-	background: var(--accent-soft);
+	border-color: var(--color-accent);
+	background: var(--color-accent-subtle);
 }
 
 .drop > :deep(svg) {
 	width: 24px;
 	height: 24px;
 	margin-bottom: var(--s-1);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .drop__heading {
 	margin: 0;
-	font-family: var(--font-display);
+	font-family: var(--font-family-display);
 	font-weight: 600;
 }
 
 .drop__text {
 	max-width: 40ch;
 	margin: 0 0 var(--s-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .drop__hint {
 	margin: var(--s-1) 0 0;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 /* Working, done, and failed each take the zone's place. */
 .slab {
 	margin-top: var(--s-4);
 	padding: var(--s-5);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-subtle);
 }
 
 .slab--good {
-	border-color: var(--good-dot);
-	background: var(--good-soft);
+	border-color: var(--color-success-indicator);
+	background: var(--color-success-subtle);
 }
 
 .slab--warn {
-	border-color: var(--warn-dot);
-	background: var(--warn-soft);
+	border-color: var(--color-warning-indicator);
+	background: var(--color-warning-subtle);
 }
 
 .slab--bad {
-	border-color: var(--danger-dot);
-	background: var(--danger-soft);
+	border-color: var(--color-danger-indicator);
+	background: var(--color-danger-subtle);
 }
 
 .slab p {
 	margin: 0 0 var(--s-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .slab p:last-child {
@@ -357,21 +358,21 @@ const replaceLabel = computed(() => {
 	display: flex;
 	align-items: center;
 	gap: var(--s-2);
-	color: var(--fg);
-	font-size: var(--base);
+	color: var(--color-text);
+	font-size: var(--font-size-base);
 	font-weight: 600;
 }
 
 .slab--good .slab__head {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .slab--warn .slab__head {
-	color: var(--warn);
+	color: var(--color-warning);
 }
 
 .slab--bad .slab__head {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .slab__head :deep(svg) {
@@ -385,16 +386,16 @@ const replaceLabel = computed(() => {
 	grid-template-columns: auto 1fr;
 	gap: var(--s-1) var(--s-4);
 	margin: var(--s-3) 0 0;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .slab dt {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .slab dd {
 	margin: 0;
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .bar {
@@ -402,14 +403,14 @@ const replaceLabel = computed(() => {
 	margin: var(--s-3) 0 var(--s-2);
 	overflow: hidden;
 	border-radius: 999px;
-	background: var(--surface-3);
+	background: var(--color-surface-strong);
 }
 
 .bar i {
 	display: block;
 	height: 100%;
 	border-radius: 999px;
-	background: var(--accent);
+	background: var(--color-accent);
 	transition: width .3s ease-out;
 }
 
@@ -417,14 +418,14 @@ const replaceLabel = computed(() => {
 	min-width: 0;
 	margin-right: auto;
 	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .install-status b {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 </style>

@@ -256,7 +256,7 @@ async function save(): Promise<void> {
 
 .redirect-form__lead {
 	margin: 0;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .redirect-form__notes {
@@ -273,7 +273,7 @@ async function save(): Promise<void> {
 }
 
 .redirect-form__say {
-	color: var(--danger);
-	font-size: var(--text-sm);
+	color: var(--color-danger);
+	font-size: var(--font-size-small);
 }
 </style>

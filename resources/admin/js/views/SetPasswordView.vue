@@ -80,6 +80,6 @@ async function submit(): Promise<void> {
 
 <style scoped>
 .set-password__intro {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 </style>

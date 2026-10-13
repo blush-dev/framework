@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use NoDiscard;
+use Blush\Extension\ExtensionName;
 
 /**
  * How an account likes the admin (D-235): settings that belong to the
  * person, not the site, and follow them to any device: the color scheme,
- * and the admin theme (D-317). The dashboard keeps two more (D-539): the
+ * and the admin theme, by name, or none to follow the site's default
+ * (D-317, D-827). The dashboard keeps two more (D-539): the
  * id of the entry the account last saved, for "You Were Editing", and
  * whether it skipped the setup path. And its shortcuts (D-547): the
  * screens pinned in Home's panel, in order, by the ids the admin gives
@@ -32,7 +34,7 @@ final readonly class Preferences
 	 */
 	public function __construct(
 		public ColorScheme $colorScheme = ColorScheme::System,
-		public AdminTheme $adminTheme = AdminTheme::Neutral,
+		public ?string $adminTheme = null,
 		public ?string $lastEdited = null,
 		public bool $setupSkipped = false,
 		public ?array $shortcuts = null
@@ -68,10 +70,11 @@ final readonly class Preferences
 	}
 
 	/**
-	 * Returns a copy with another admin theme.
+	 * Returns a copy with another admin theme, by name, or `null` to
+	 * follow the site's default (D-827).
 	 */
 	#[NoDiscard]
-	public function withAdminTheme(AdminTheme $theme): self
+	public function withAdminTheme(?string $theme): self
 	{
 		return clone($this, ['adminTheme' => $theme]);
 	}
@@ -120,7 +123,7 @@ final readonly class Preferences
 
 		return new self(
 			colorScheme: (is_string($scheme) ? ColorScheme::tryFrom($scheme) : null) ?? ColorScheme::System,
-			adminTheme: (is_string($theme) ? AdminTheme::tryFrom($theme) : null) ?? AdminTheme::Neutral,
+			adminTheme: is_string($theme) && ExtensionName::isValid($theme) ? $theme : null,
 			lastEdited: is_string($edited) && $edited !== '' ? $edited : null,
 			setupSkipped: ($data['setupSkipped'] ?? false) === true,
 			shortcuts: self::isShortcuts($data['shortcuts'] ?? null) ? $data['shortcuts'] : null
@@ -130,13 +133,13 @@ final readonly class Preferences
 	/**
 	 * Returns every preference by name.
 	 *
-	 * @return array{colorScheme: string, adminTheme: string, lastEdited: ?string, setupSkipped: bool, shortcuts: ?list<string>}
+	 * @return array{colorScheme: string, adminTheme: ?string, lastEdited: ?string, setupSkipped: bool, shortcuts: ?list<string>}
 	 */
 	public function toArray(): array
 	{
 		return [
 			'colorScheme'  => $this->colorScheme->value,
-			'adminTheme'   => $this->adminTheme->value,
+			'adminTheme'   => $this->adminTheme,
 			'lastEdited'   => $this->lastEdited,
 			'setupSkipped' => $this->setupSkipped,
 			'shortcuts'    => $this->shortcuts

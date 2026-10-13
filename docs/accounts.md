@@ -301,8 +301,9 @@ The rest are for the whole site:
 | `api.connect` | Connecting [AI apps](mcp.md#connecting-an-app) to act as you (every role but Member, by default) |
 
 Each kind of extension has its own, with the kind in the middle:
-`themes`, `plugins`, or `icon-packs` (`extensions.plugins.delete` is
-deleting plugins):
+`themes`, `plugins`, `icon-packs`, or `admin-themes`
+(`extensions.plugins.delete` is deleting plugins). For admin themes,
+`activate` also chooses the site's admin theme:
 
 | Capability | Allows |
 |---|---|

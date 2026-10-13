@@ -57,23 +57,23 @@ watch(() => props.file.reference, () => {
 	min-width: 0;
 	padding: 0;
 	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	color: var(--fg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
+	color: var(--color-text);
 	text-align: left;
 	text-decoration: none;
 	cursor: pointer;
 }
 
 .media-card:hover {
-	border-color: var(--border-strong);
-	color: var(--fg);
+	border-color: var(--border-color-strong);
+	color: var(--color-text);
 }
 
 .media-card[aria-pressed="true"] {
-	border-color: var(--accent);
-	box-shadow: 0 0 0 2px var(--accent-soft);
+	border-color: var(--color-accent);
+	box-shadow: 0 0 0 2px var(--color-accent-subtle);
 }
 
 .media-card__thumb {
@@ -82,8 +82,8 @@ watch(() => props.file.reference, () => {
 	place-items: center;
 	aspect-ratio: 4 / 3;
 	overflow: hidden;
-	background: var(--surface-2);
-	color: var(--fg-3);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
 }
 
 .media-card__thumb img {
@@ -106,11 +106,11 @@ watch(() => props.file.reference, () => {
 	top: 9px;
 	left: 9px;
 	padding: 1px 4px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-2);
-	font-size: var(--text-2xs);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xxsmall);
 	letter-spacing: .04em;
 	text-transform: uppercase;
 }
@@ -124,8 +124,8 @@ watch(() => props.file.reference, () => {
 	width: 22px;
 	height: 22px;
 	border-radius: 50%;
-	background: var(--accent);
-	color: var(--accent-fg);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
 	opacity: 0;
 	transform: scale(.7);
 	transition: opacity 120ms, transform 120ms;
@@ -138,7 +138,7 @@ watch(() => props.file.reference, () => {
 }
 
 .media-card__order {
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 }
@@ -153,7 +153,7 @@ watch(() => props.file.reference, () => {
 	gap: 4px;
 	min-width: 0;
 	padding: var(--s-3) var(--s-4);
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .media-card__name,
@@ -164,11 +164,11 @@ watch(() => props.file.reference, () => {
 }
 
 .media-card__name {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .media-card__meta {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 </style>

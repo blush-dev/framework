@@ -52,16 +52,17 @@ final readonly class Requirement
 		$extension  = $this->label !== '' ? $this->label : $this->name;
 
 		$what = match ($this->kind) {
-			RequirementKind::Blush     => "Blush {$this->constraint}",
-			RequirementKind::Php       => "PHP {$this->constraint}",
-			RequirementKind::Extension => 'the PHP extension ' . substr($this->name, 4) . $constraint,
+			RequirementKind::Blush      => "Blush {$this->constraint}",
+			RequirementKind::Php        => "PHP {$this->constraint}",
+			RequirementKind::Extension  => 'the PHP extension ' . substr($this->name, 4) . $constraint,
 			RequirementKind::Plugin,
 			RequirementKind::Theme,
-			RequirementKind::IconPack  => $extension . $constraint,
+			RequirementKind::IconPack,
+			RequirementKind::AdminTheme => $extension . $constraint,
 			RequirementKind::Library,
 			RequirementKind::Composer,
-			RequirementKind::Missing   => $this->name . $constraint,
-			RequirementKind::Unknown   => "{$this->name} {$this->constraint}"
+			RequirementKind::Missing    => $this->name . $constraint,
+			RequirementKind::Unknown    => "{$this->name} {$this->constraint}"
 		};
 
 		return trim($what) . ($this->note === '' ? '' : " ({$this->note})");

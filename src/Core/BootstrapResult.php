@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Core;
 
+use Blush\AdminTheme\AdminThemes;
 use Blush\Config\ConfigRepository;
 use Blush\Container\ServiceContainer;
 use Blush\Extension\LocalAutoloader;
@@ -35,7 +36,8 @@ final readonly class BootstrapResult
 		public Plugins $plugins,
 		public LocalAutoloader $autoloader,
 		public Themes $themes,
-		public IconPacks $iconPacks
+		public IconPacks $iconPacks,
+		public AdminThemes $adminThemes
 	) {
 	}
 }

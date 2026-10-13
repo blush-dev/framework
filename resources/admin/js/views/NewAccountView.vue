@@ -306,7 +306,7 @@ async function submit(): Promise<void> {
 
 .field__optional {
 	margin-left: var(--s-1);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-weight: 400;
 }
 </style>

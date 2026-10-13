@@ -77,9 +77,9 @@ const name = (node: MenuNode): string => shown(node, props.locale);
 <style scoped>
 /* Plain text, often a heading over the items under it. */
 .item-tree__title.is-plain {
-	color: var(--fg-2);
-	font-family: var(--font-ui);
-	font-size: var(--text-2xs);
+	color: var(--color-text-secondary);
+	font-family: var(--font-family-ui);
+	font-size: var(--font-size-xxsmall);
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;

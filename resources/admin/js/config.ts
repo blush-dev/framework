@@ -3,6 +3,8 @@
  * prints (`ShellController`). Everything else comes from the API.
  */
 
+import type { AdminThemePreview } from './api';
+
 export interface AdminConfig {
 	base: string;
 	api: string;
@@ -11,8 +13,12 @@ export interface AdminConfig {
 	media: { url: string };
 	// The signed-in account's, or `null` when no one is (D-235).
 	colorScheme: 'system' | 'light' | 'dark' | null;
-	// The signed-in account's admin theme (D-317), or `null`.
-	adminTheme: 'neutral' | 'editorial' | null;
+	// The admin theme the signed-in account chose (D-827), by name, or
+	// `null` when it follows the site's default or no one is signed in.
+	adminTheme: string | null;
+	// The admin themes an account may choose, Neutral first, and the
+	// site's default (D-827).
+	adminThemes: { default: string | null; offered: AdminThemeChoice[] };
 	// Whether `@name` links to a profile (`MarkdownConfig`, D-493).
 	mentions: boolean;
 	// The site's language (a BCP 47 tag) and its date and time formats,
@@ -23,6 +29,16 @@ export interface AdminConfig {
 	languages: { code: string; label: string }[];
 	// What raw HTML each level may add (`HtmlRules`, D-495).
 	html: HtmlRules;
+}
+
+export interface AdminThemeChoice {
+	name: string;
+	label: string;
+	description: string;
+	// Its stylesheet's URL, or `null` for Neutral, the admin's own look.
+	stylesheet: string | null;
+	// Its colors for a sketch, each as CSS writes it (`light-dark()`).
+	preview: AdminThemePreview;
 }
 
 export interface HtmlRules {

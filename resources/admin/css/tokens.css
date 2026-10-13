@@ -1,68 +1,80 @@
 /**
- * Admin design tokens (D-231). These are everything an admin theme may
- * redefine, and the only place literal colors, fonts, type sizes, and
- * radii appear; the rest of the admin's CSS reads `var(--token)`.
+ * Admin design tokens (D-231, D-827): the only place literal colors,
+ * fonts, type sizes, and radii appear; the rest of the admin's CSS reads
+ * `var(--token)`.
  *
- * Two attributes on `<html>` pick the look:
+ * These are Neutral's (`blush/neutral`). Two attributes on `<html>` pick
+ * the look:
  *
- *   data-admin-theme="neutral" | "editorial"    absent: neutral
- *   data-color-scheme="light" | "dark"          absent: the system's
+ *   data-admin-theme="vendor/name"     absent: Neutral
+ *   data-color-scheme="light" | "dark"  absent: the system's
  *
- * The cascade order matters. Every token is first defined on bare
- * `:root`, so it applies to viewers who set nothing; dark values follow,
- * once for a dark system and once for an explicit choice.
+ * Every color is one value, `light-dark(light, dark)`, and the color
+ * scheme is the `color-scheme` property alone: `light dark` follows the
+ * system, and an explicit choice narrows it. A token's name is its place
+ * in an admin theme's `tokens.json` (`color.surface.subtle` is
+ * `--color-surface-subtle`; a `default` key drops from the name).
  *
- *   :root                                     every token, light
- *   @media (prefers-color-scheme: dark)
- *     :root:not([data-color-scheme="light"])  dark, from the system
- *   :root[data-color-scheme="dark"]           dark, chosen
- *
- * Another admin theme repeats this shape under its own
- * `[data-admin-theme="id"]` selectors, changing values, never names.
+ * Another admin theme is a `tokens.json`, never CSS: Blush writes its
+ * stylesheet, setting values under `:root[data-admin-theme="vendor/name"]`,
+ * never names. The tokens it can't set (space, layout, control heights,
+ * the mono font, the media overlay, and the shadows' geometry) are
+ * Neutral's alone. `resources/admin-themes/neutral/tokens.json` holds
+ * these same values, every token a theme may set but the families, and a
+ * test keeps the two alike.
  */
 
 /* Neutral: cool gray chrome, a cobalt accent, roomy rows. */
 
 :root {
+	color-scheme: light dark;
+
 	/* Surfaces, back to front. */
-	--bg: #f5f6f9;          /* the app's ground, behind panels */
-	--surface: #ffffff;     /* panels, the table, the rail, the top bar */
-	--surface-2: #f0f2f6;   /* row hover, chips, inset fills */
-	--surface-3: #e7eaf0;   /* pressed, avatar ground */
+	--color-background: light-dark(#f5f6f9, #0b0d12);      /* the app's ground, behind panels */
+	--color-surface: light-dark(#ffffff, #13161d);         /* panels, the table, the rail, the top bar */
+	--color-surface-subtle: light-dark(#f0f2f6, #1a1e27);  /* row hover, chips, inset fills */
+	--color-surface-strong: light-dark(#e7eaf0, #222733);  /* pressed, avatar ground */
 
 	/* Lines. */
-	--border: #e2e5ec;          /* the default hairline */
-	--border-strong: #ccd2dd;   /* checkboxes, hover borders, floating edges */
+	--border-color: light-dark(#e2e5ec, #242936);          /* the default hairline */
+	--border-color-strong: light-dark(#ccd2dd, #353c4c);   /* checkboxes, hover borders, floating edges */
 
 	/* Ink. */
-	--fg: #11141b;     /* primary text */
-	--fg-2: #535b6b;   /* secondary text, icons, labels */
-	--fg-3: #858d9d;   /* muted: slugs, timestamps, placeholders */
+	--color-text: light-dark(#11141b, #e9ebf0);            /* primary text */
+	--color-text-secondary: light-dark(#535b6b, #a3abba);  /* secondary text, icons, labels */
+	--color-text-muted: light-dark(#858d9d, #747d8e);      /* muted: slugs, timestamps, placeholders */
 
 	/* Accent: one hue, for the primary action, selection, and focus. */
-	--accent: #2f5fe0;
-	--accent-hover: #2650c4;
-	--accent-fg: #ffffff;      /* text on a filled accent */
-	--accent-soft: #e9effc;    /* selected rows, soft pills */
-	--accent-line: #bdcdf7;    /* borders on soft accent fills */
+	--color-accent: light-dark(#2f5fe0, #7295f7);
+	--color-accent-hover: light-dark(#2650c4, #8aa8f9);
+	--color-accent-text: light-dark(#ffffff, #0b0d12);     /* text on a filled accent */
+	--color-accent-subtle: light-dark(#e9effc, #182444);   /* selected rows, soft pills */
+	--color-accent-border: light-dark(#bdcdf7, #2c3d68);   /* borders on soft accent fills */
 
 	/* Status: reserved for state, never decoration or a chart series. */
-	--good: #136b43;
-	--good-soft: #e2f3e9;
-	--good-dot: #1f9d5f;
-	--warn: #8a5806;
-	--warn-soft: #faf0d9;
-	--warn-dot: #cf8d16;
-	--danger: #a92420;
-	--danger-soft: #fbeae9;
-	--danger-dot: #d6403a;
+	--color-success: light-dark(#136b43, #5ecb92);
+	--color-success-subtle: light-dark(#e2f3e9, #102a1e);
+	--color-success-indicator: light-dark(#1f9d5f, #35b877);
+	--color-warning: light-dark(#8a5806, #e3b360);
+	--color-warning-subtle: light-dark(#faf0d9, #2b2312);
+	--color-warning-indicator: light-dark(#cf8d16, #d69f3c);
+	--color-danger: light-dark(#a92420, #f28d84);
+	--color-danger-subtle: light-dark(#fbeae9, #301917);
+	--color-danger-indicator: light-dark(#d6403a, #e0655c);
 
 	/* Elevation. Flat by default: borders and surface steps separate
 	   things, and a shadow is spent only where something sits above the
-	   page. */
-	--shadow-1: none;                                                        /* resting surfaces */
-	--shadow-2: 0 2px 8px rgb(17 20 27 / 5%), 0 1px 2px rgb(17 20 27 / 4%);  /* menus, popovers, toasts */
-	--shadow-3: 0 10px 28px rgb(17 20 27 / 9%), 0 2px 6px rgb(17 20 27 / 5%); /* modals and drawers */
+	   page. A theme sets the shadows' color, at its strongest (a modal's
+	   wide layer); the geometry and each layer's share of it are core's. */
+	--box-shadow-color: light-dark(rgb(17 20 27 / 9%), rgb(0 0 0 / 45%));
+
+	--shadow-1: none; /* resting surfaces */
+	--shadow-2: /* menus, popovers, toasts */
+		0 2px 8px color-mix(in srgb, var(--box-shadow-color) 55.6%, transparent),
+		0 1px 2px color-mix(in srgb, var(--box-shadow-color) 44.4%, transparent);
+	--shadow-3: /* modals and drawers */
+		0 10px 28px var(--box-shadow-color),
+		0 2px 6px color-mix(in srgb, var(--box-shadow-color) 55.6%, transparent);
 
 	/* Over a video's picture, whatever the theme: the player's controls
 	   (D-554). */
@@ -70,9 +82,9 @@
 	--media-overlay-fg: #fff;
 
 	/* Radius. */
-	--r-1: 6px;    /* controls: buttons, inputs, chips */
-	--r-2: 10px;   /* menus, small cards */
-	--r-3: 16px;   /* panels, the table's shell */
+	--border-radius-small: 6px;    /* controls: buttons, inputs, chips */
+	--border-radius-medium: 10px;  /* menus, small cards */
+	--border-radius-large: 16px;   /* panels, the table's shell */
 
 	/* Space: one scale, and nothing invents its own gap. */
 	--s-1: 4px;    /* inside a control: icon to label */
@@ -88,34 +100,34 @@
 	   system-ui, which names the static Segoe UI on Windows 11, so 500
 	   is a real weight there. */
 	--font-system: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Noto Sans", Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
-	--font-ui: var(--font-system);
-	--font-display: var(--font-system);
-	--font-title: var(--font-system);
+	--font-family-ui: var(--font-system);
+	--font-family-display: var(--font-system);
+	--font-family-title: var(--font-system);
 	--font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-	--base: 13px;            /* body and control text */
-	--text-sm: 12px;         /* secondary text */
-	--text-xs: 11px;         /* uppercase micro-labels, badges */
-	--text-2xs: 10px;        /* the section rail's labels */
-	--h1: 26px;              /* page titles */
-	--h1-track: -.024em;
-	--h2: 15px;              /* panel headings */
-	--title-size: 13.5px;    /* entry titles in lists */
-	--title-weight: 500;
-	--title-track: -.005em;
-	--title-lead: calc(var(--title-size) + 3px); /* an entry title that leads, as "You Were Editing" */
-	--doc: 14px;             /* the editor's text */
-	--doc-title: 34px;       /* the editor's title, part of the document */
+	--font-size-base: 13px;                /* body and control text */
+	--font-size-small: 12px;               /* secondary text */
+	--font-size-xsmall: 11px;              /* uppercase micro-labels, badges */
+	--font-size-xxsmall: 10px;             /* the section rail's labels */
+	--font-size-page-title: 26px;          /* page titles */
+	--letter-spacing-page-title: -.024em;
+	--font-size-panel-title: 15px;         /* panel headings */
+	--font-size-entry-title: 13.5px;       /* entry titles in lists */
+	--font-weight-entry-title: 500;
+	--letter-spacing-entry-title: -.005em;
+	--font-size-entry-title-lead: calc(var(--font-size-entry-title) + 3px); /* an entry title that leads, as "You Were Editing" */
+	--font-size-editor: 14px;              /* the editor's text */
+	--font-size-editor-title: 34px;        /* the editor's title, part of the document */
+	--font-size-stat: 30px;                /* stat tile figures */
 
-	/* Density: a theme may loosen these. --pad-x is shared by panels,
-	   table cells, and list rows, so their content lines up down the
-	   screen; --ctl is the one control height. */
-	--pad-row: 14px;     /* table cells and list rows, vertical */
-	--pad-panel: 17px;   /* panel headers, vertical */
-	--pad-x: 22px;       /* panels, cells, and rows, horizontal */
-	--ctl: 34px;         /* buttons, inputs, selects, search fields */
-	--ctl-sm: 30px;      /* the same inside a panel header or a row */
-	--stat-v: 30px;      /* stat tile figures */
+	/* Density: a theme may loosen these. --padding-inline is shared by
+	   panels, table cells, and list rows, so their content lines up down
+	   the screen; --ctl is the one control height. */
+	--padding-row: 14px;     /* table cells and list rows, vertical */
+	--padding-panel: 17px;   /* panel headers, vertical */
+	--padding-inline: 22px;  /* panels, cells, and rows, horizontal */
+	--ctl: 34px;             /* buttons, inputs, selects, search fields */
+	--ctl-sm: 30px;          /* the same inside a panel header or a row */
 
 	/* Layout. */
 	--railbar: 74px;     /* the section rail */
@@ -125,212 +137,12 @@
 	--measure: 640px;    /* the editor's writing column */
 	--bar: 62px;         /* the top bar and the site header */
 	--work-max: 1400px;
+}
 
-	/* Each bundled admin theme's preview, for the theme picker's swatches
-	   (D-370): its own background, surface, accent, and ink in this color
-	   scheme, whichever theme is showing. Admin themes don't redefine them. */
-	--preview-neutral-bg: #f5f6f9;
-	--preview-neutral-surface: #ffffff;
-	--preview-neutral-accent: #2f5fe0;
-	--preview-neutral-fg: #11141b;
-	--preview-editorial-bg: #f6f2ec;
-	--preview-editorial-surface: #fffdfa;
-	--preview-editorial-accent: #17595e;
-	--preview-editorial-fg: #23201b;
-
+:root[data-color-scheme="light"] {
 	color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root:not([data-color-scheme="light"]) {
-		--bg: #0b0d12;
-		--surface: #13161d;
-		--surface-2: #1a1e27;
-		--surface-3: #222733;
-		--border: #242936;
-		--border-strong: #353c4c;
-		--fg: #e9ebf0;
-		--fg-2: #a3abba;
-		--fg-3: #747d8e;
-		--accent: #7295f7;
-		--accent-hover: #8aa8f9;
-		--accent-fg: #0b0d12;
-		--accent-soft: #182444;
-		--accent-line: #2c3d68;
-		--good: #5ecb92;
-		--good-soft: #102a1e;
-		--good-dot: #35b877;
-		--warn: #e3b360;
-		--warn-soft: #2b2312;
-		--warn-dot: #d69f3c;
-		--danger: #f28d84;
-		--danger-soft: #301917;
-		--danger-dot: #e0655c;
-		--shadow-1: none;
-		--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
-		--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
-		--preview-neutral-bg: #0b0d12;
-		--preview-neutral-surface: #13161d;
-		--preview-neutral-accent: #7295f7;
-		--preview-neutral-fg: #e9ebf0;
-		--preview-editorial-bg: #15120e;
-		--preview-editorial-surface: #1d1915;
-		--preview-editorial-accent: #72bec2;
-		--preview-editorial-fg: #f0e9dd;
-
-		color-scheme: dark;
-	}
-}
-
 :root[data-color-scheme="dark"] {
-	--bg: #0b0d12;
-	--surface: #13161d;
-	--surface-2: #1a1e27;
-	--surface-3: #222733;
-	--border: #242936;
-	--border-strong: #353c4c;
-	--fg: #e9ebf0;
-	--fg-2: #a3abba;
-	--fg-3: #747d8e;
-	--accent: #7295f7;
-	--accent-hover: #8aa8f9;
-	--accent-fg: #0b0d12;
-	--accent-soft: #182444;
-	--accent-line: #2c3d68;
-	--good: #5ecb92;
-	--good-soft: #102a1e;
-	--good-dot: #35b877;
-	--warn: #e3b360;
-	--warn-soft: #2b2312;
-	--warn-dot: #d69f3c;
-	--danger: #f28d84;
-	--danger-soft: #301917;
-	--danger-dot: #e0655c;
-	--shadow-1: none;
-	--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
-	--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
-
-	--preview-neutral-bg: #0b0d12;
-	--preview-neutral-surface: #13161d;
-	--preview-neutral-accent: #7295f7;
-	--preview-neutral-fg: #e9ebf0;
-	--preview-editorial-bg: #15120e;
-	--preview-editorial-surface: #1d1915;
-	--preview-editorial-accent: #72bec2;
-	--preview-editorial-fg: #f0e9dd;
-
-	color-scheme: dark;
-}
-
-/* Editorial (D-317): warm paper, a teal accent, serif titles, and looser
-   rows. It redefines type and density as well as color, which is what an
-   admin theme may do, and the most it may do. */
-
-:root[data-admin-theme="editorial"] {
-	--bg: #f6f2ec;
-	--surface: #fffdfa;
-	--surface-2: #f1ece3;
-	--surface-3: #e7e0d4;
-	--border: #e5ded2;
-	--border-strong: #cdc3b3;
-	--fg: #23201b;
-	--fg-2: #5d564c;
-	--fg-3: #8e867a;
-	--accent: #17595e;
-	--accent-hover: #124a4e;
-	--accent-fg: #fffdfa;
-	--accent-soft: #e2eded;
-	--accent-line: #b6d3d5;
-	--good: #4c6d2c;
-	--good-soft: #edf1e2;
-	--good-dot: #6f9b45;
-	--warn: #8a5a14;
-	--warn-soft: #f8eeda;
-	--warn-dot: #c58a2a;
-	--danger: #9c3327;
-	--danger-soft: #f8e7e2;
-	--danger-dot: #c2503f;
-	--shadow-1: none;
-	--shadow-2: 0 2px 8px rgb(60 48 32 / 5%), 0 1px 2px rgb(60 48 32 / 4%);
-	--shadow-3: 0 10px 28px rgb(60 48 32 / 9%), 0 2px 6px rgb(60 48 32 / 5%);
-	--r-1: 8px;
-	--r-2: 12px;
-	--r-3: 20px;
-	--font-ui: "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-	--font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-	--font-title: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-	--base: 13.5px;
-	--h1: 32px;
-	--h1-track: -.014em;
-	--title-size: 15.5px;
-	--title-weight: 500;
-	--title-track: 0;
-	--pad-row: 16px;
-	--pad-panel: 19px;
-	--pad-x: 26px;
-	--stat-v: 34px;
-}
-
-@media (prefers-color-scheme: dark) {
-	:root:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
-		--bg: #15120e;
-		--surface: #1d1915;
-		--surface-2: #26211a;
-		--surface-3: #322b22;
-		--border: #302a21;
-		--border-strong: #463e31;
-		--fg: #f0e9dd;
-		--fg-2: #b4a996;
-		--fg-3: #877c6c;
-		--accent: #72bec2;
-		--accent-hover: #8bcccf;
-		--accent-fg: #15120e;
-		--accent-soft: #113032;
-		--accent-line: #1d4a4d;
-		--good: #9cc16b;
-		--good-soft: #1c2413;
-		--good-dot: #84ad55;
-		--warn: #dcae63;
-		--warn-soft: #2c2314;
-		--warn-dot: #c79646;
-		--danger: #e8897b;
-		--danger-soft: #2f1a16;
-		--danger-dot: #cf6a5c;
-		--shadow-1: none;
-		--shadow-2: 0 2px 8px rgb(0 0 0 / 34%);
-		--shadow-3: 0 10px 28px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 34%);
-
-		color-scheme: dark;
-	}
-}
-
-:root[data-color-scheme="dark"][data-admin-theme="editorial"] {
-	--bg: #15120e;
-	--surface: #1d1915;
-	--surface-2: #26211a;
-	--surface-3: #322b22;
-	--border: #302a21;
-	--border-strong: #463e31;
-	--fg: #f0e9dd;
-	--fg-2: #b4a996;
-	--fg-3: #877c6c;
-	--accent: #72bec2;
-	--accent-hover: #8bcccf;
-	--accent-fg: #15120e;
-	--accent-soft: #113032;
-	--accent-line: #1d4a4d;
-	--good: #9cc16b;
-	--good-soft: #1c2413;
-	--good-dot: #84ad55;
-	--warn: #dcae63;
-	--warn-soft: #2c2314;
-	--warn-dot: #c79646;
-	--danger: #e8897b;
-	--danger-soft: #2f1a16;
-	--danger-dot: #cf6a5c;
-	--shadow-1: none;
-	--shadow-2: 0 2px 8px rgb(0 0 0 / 34%);
-	--shadow-3: 0 10px 28px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 34%);
-
 	color-scheme: dark;
 }

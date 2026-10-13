@@ -423,7 +423,7 @@ function use(chosen: MediaItem[]): void {
 	display: block;
 	height: auto;
 	aspect-ratio: 188 / 190;
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 }
 
 .picker__more {
@@ -439,9 +439,9 @@ function use(chosen: MediaItem[]): void {
 	justify-items: center;
 	gap: var(--s-3);
 	padding: 64px var(--s-6);
-	border: 1.5px dashed var(--border-strong);
-	border-radius: var(--r-3);
-	background: var(--bg);
+	border: 1.5px dashed var(--border-color-strong);
+	border-radius: var(--border-radius-large);
+	background: var(--color-background);
 	text-align: center;
 	transition: border-color 120ms, background 120ms;
 }
@@ -449,18 +449,18 @@ function use(chosen: MediaItem[]): void {
 .picker__drop > :deep(svg) {
 	width: 28px;
 	height: 28px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .picker__drop-heading {
-	font-family: var(--font-display);
-	font-size: var(--h2);
+	font-family: var(--font-family-display);
+	font-size: var(--font-size-panel-title);
 	font-weight: 600;
 }
 
 .picker__drop-text {
 	max-width: 46ch;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	line-height: 1.6;
 }
 
@@ -469,17 +469,17 @@ function use(chosen: MediaItem[]): void {
 }
 
 .picker__drop-hint {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .picker.is-dragging .picker__drop {
-	border-color: var(--accent);
-	background: var(--accent-soft);
+	border-color: var(--color-accent);
+	background: var(--color-accent-subtle);
 }
 
 .picker.is-dragging .picker__drop > :deep(svg) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .picker__added .modal__count {
@@ -487,7 +487,7 @@ function use(chosen: MediaItem[]): void {
 }
 
 .picker__show {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	font-weight: 400;
 	letter-spacing: normal;
 	text-transform: none;
@@ -506,23 +506,23 @@ function use(chosen: MediaItem[]): void {
 	align-items: center;
 	gap: var(--s-3);
 	padding: 12px var(--s-4);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	font-size: var(--text-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
+	font-size: var(--font-size-small);
 }
 
 .picker__row > :deep(svg) {
 	flex: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .picker__row--done > :deep(svg) {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .picker__row--failed > :deep(svg) {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .picker__row-name {
@@ -537,16 +537,16 @@ function use(chosen: MediaItem[]): void {
 	flex: none;
 	max-width: 60%;
 	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .picker__row--failed .picker__row-sub {
 	flex: 1 1 auto;
-	color: var(--danger);
-	font-family: var(--font-ui);
+	color: var(--color-danger);
+	font-family: var(--font-family-ui);
 	white-space: normal;
 }
 

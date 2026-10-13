@@ -131,11 +131,11 @@ watch([model, custom, () => props.locale], ask, { immediate: true });
 
 .date-format-picker__preview {
 	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .date-format-picker__preview.is-invalid {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 </style>

@@ -15,6 +15,7 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\AdminTheme\AdminTheme;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -84,6 +85,11 @@ final readonly class ExtensionBackupController
 		return $this->rollback($request, ExtensionKind::IconPack, "{$vendor}/{$name}");
 	}
 
+	public function rollbackAdminTheme(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
+	{
+		return $this->rollback($request, ExtensionKind::AdminTheme, "{$vendor}/{$name}");
+	}
+
 	public function discardTheme(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		return $this->discard($request, ExtensionKind::Theme, "{$vendor}/{$name}");
@@ -97,6 +103,11 @@ final readonly class ExtensionBackupController
 	public function discardIconPack(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		return $this->discard($request, ExtensionKind::IconPack, "{$vendor}/{$name}");
+	}
+
+	public function discardAdminTheme(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
+	{
+		return $this->discard($request, ExtensionKind::AdminTheme, "{$vendor}/{$name}");
 	}
 
 	private function rollback(ServerRequestInterface $request, ExtensionKind $kind, string $name): ResponseInterface
@@ -126,9 +137,10 @@ final readonly class ExtensionBackupController
 		}
 
 		$this->bootstrap->clearCompiled(match ($kind) {
-			ExtensionKind::Plugin   => CompiledCache::Plugins,
-			ExtensionKind::Theme    => CompiledCache::Themes,
-			ExtensionKind::IconPack => CompiledCache::IconPacks
+			ExtensionKind::Plugin     => CompiledCache::Plugins,
+			ExtensionKind::Theme      => CompiledCache::Themes,
+			ExtensionKind::IconPack   => CompiledCache::IconPacks,
+			ExtensionKind::AdminTheme => CompiledCache::AdminThemes
 		});
 
 		if ($live) {
@@ -139,7 +151,7 @@ final readonly class ExtensionBackupController
 		return Response::json([
 			'rolledBack' => ExtensionInstallController::describe($this->paths, $result->package),
 			'from'       => $result->replaced?->version,
-			'refresh'    => $live && $kind !== ExtensionKind::IconPack
+			'refresh'    => $live && $kind->runsCode()
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -173,9 +185,10 @@ final readonly class ExtensionBackupController
 	{
 		try {
 			$older = match ($kind) {
-				ExtensionKind::Plugin   => LocalPluginFinder::manifest($backup),
-				ExtensionKind::Theme    => ThemeManifest::fromArray($backup, ManifestFile::load($backup, ExtensionKind::Theme)),
-				ExtensionKind::IconPack => IconPack::fromArray($backup, ManifestFile::load($backup, ExtensionKind::IconPack))
+				ExtensionKind::Plugin     => LocalPluginFinder::manifest($backup),
+				ExtensionKind::Theme      => ThemeManifest::fromArray($backup, ManifestFile::load($backup, ExtensionKind::Theme)),
+				ExtensionKind::IconPack   => IconPack::fromArray($backup, ManifestFile::load($backup, ExtensionKind::IconPack)),
+				ExtensionKind::AdminTheme => AdminTheme::fromArray($backup, ManifestFile::load($backup, ExtensionKind::AdminTheme))
 			};
 
 			if ($kind === ExtensionKind::Plugin || $live) {

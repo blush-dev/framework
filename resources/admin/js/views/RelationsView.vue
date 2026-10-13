@@ -231,7 +231,7 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 	width: 13px;
 	height: 13px;
 	margin-inline: 2px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	vertical-align: -2px;
 }
 
@@ -244,7 +244,7 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 .relation-name > .icon {
 	flex: none;
 	margin-top: 2px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .relation-name__legacy {
@@ -253,13 +253,13 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 	align-items: center;
 	gap: 4px var(--s-2);
 	margin-top: 2px;
-	color: var(--warn);
-	font-size: var(--text-xs);
+	color: var(--color-warning);
+	font-size: var(--font-size-xsmall);
 }
 
 .relation-name__legacy .icon {
 	width: 13px;
 	height: 13px;
-	color: var(--warn-dot);
+	color: var(--color-warning-indicator);
 }
 </style>

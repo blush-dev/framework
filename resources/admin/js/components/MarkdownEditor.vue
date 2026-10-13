@@ -1133,7 +1133,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	padding: 0;
 	border: 0;
 	font-family: var(--font-mono);
-	font-size: var(--doc);
+	font-size: var(--font-size-editor);
 	font-weight: 400;
 	line-height: 2;
 	letter-spacing: normal;
@@ -1144,7 +1144,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 }
 
 .md__highlight {
-	color: var(--fg);
+	color: var(--color-text);
 	pointer-events: none;
 }
 
@@ -1155,18 +1155,18 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	overflow: hidden;
 	background: transparent;
 	color: transparent;
-	caret-color: var(--accent);
+	caret-color: var(--color-accent);
 	resize: none;
 }
 
 .md__field::placeholder {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* The field's text is transparent, so its selection is a tint over the
    highlighted copy, never a fill that would hide it. */
 .md__field::selection {
-	background: color-mix(in srgb, var(--accent) 26%, transparent);
+	background: color-mix(in srgb, var(--color-accent) 26%, transparent);
 	color: transparent;
 }
 
@@ -1176,8 +1176,8 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 
 /* A file held over the text says it can be dropped there. */
 .md__source.is-dropping {
-	border-radius: var(--r-2);
-	box-shadow: 0 0 0 2px var(--accent-line);
+	border-radius: var(--border-radius-medium);
+	box-shadow: 0 0 0 2px var(--color-accent-border);
 }
 
 .md__field:focus-visible {
@@ -1185,12 +1185,12 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 }
 
 .md__highlight :deep(.md-mark) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* Headings read by weight, not size. */
 .md__highlight :deep(.md-heading) {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
@@ -1202,7 +1202,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 
 .md__highlight :deep(.md-strong__text),
 .md__highlight :deep(.md-em__text) {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .md__highlight :deep(.md-em__text) {
@@ -1210,25 +1210,25 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 }
 
 .md__highlight :deep(.md-strike__text) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	text-decoration: line-through;
 }
 
 /* Raw HTML reads as markup (D-495); what the account couldn't add is
    underlined in the danger color, and a save that adds it is refused. */
 .md__highlight :deep(.md-html) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .md__highlight :deep(.md-refused) {
-	color: var(--danger);
+	color: var(--color-danger);
 	text-decoration: wavy underline;
-	text-decoration-color: var(--danger);
+	text-decoration-color: var(--color-danger);
 }
 
 /* A mention reads as a link would (D-493). */
 .md__highlight :deep(.md-mention) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 /* The profiles to mention, under the `@` being typed (D-498). */
@@ -1241,12 +1241,12 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	margin: 6px 0 0;
 	padding: 5px;
 	overflow-y: auto;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
-	font-family: var(--font-ui);
-	font-size: var(--base);
+	font-family: var(--font-family-ui);
+	font-size: var(--font-size-base);
 	list-style: none;
 	overscroll-behavior: contain;
 }
@@ -1262,58 +1262,58 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	justify-content: space-between;
 	gap: var(--s-3);
 	padding: var(--s-2) var(--s-3);
-	border-radius: var(--r-1);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-small);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
 .md__person.is-active {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .md__people-note {
 	padding: var(--s-2) var(--s-3);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .md__person-slug {
 	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 /* A highlighter's yellow, as the site's <mark> is by default. */
 .md__highlight :deep(.md-marked__text) {
-	background: var(--warn-soft);
-	color: var(--fg);
+	background: var(--color-warning-subtle);
+	color: var(--color-text);
 }
 
 .md__highlight :deep(.md-quote) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .md__highlight :deep(.md-bullet) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-weight: 600;
 }
 
 /* A task's box; its text is never struck through. */
 .md__highlight :deep(.md-task) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-weight: 500;
 }
 
 .md__highlight :deep(.md-task--done) {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 /* A table's header cells, and a delimiter row's alignment colons, the
    one part of it that says something. */
 .md__highlight :deep(.md-th) {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 600;
 }
 
@@ -1322,23 +1322,23 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 }
 
 .md__highlight :deep(.md-talign) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-weight: 600;
 }
 
 /* A definition list's term reads heavier; its definitions are prose. */
 .md__highlight :deep(.md-dt) {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 600;
 }
 
 .md__highlight :deep(.md-dd) {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 /* A rule is a divider: it should divide. */
 .md__highlight :deep(.md-rule) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-weight: 500;
 }
 
@@ -1353,22 +1353,22 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	display: block;
 	margin-inline: calc(-1 * var(--s-3));
 	padding-inline: var(--s-3);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
-	box-shadow: inset 0 0 0 1px var(--border);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-subtle);
+	box-shadow: inset 0 0 0 1px var(--border-color);
+	color: var(--color-text-secondary);
 }
 
 .md__highlight :deep(.md-fence__lang) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-weight: 500;
 }
 
 .md__highlight :deep(.md-code) {
 	padding-block: 1px;
 	border-radius: 3px;
-	background: var(--surface-2);
-	color: var(--fg-2);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
 }
 
 .md__highlight :deep(.md-code),
@@ -1384,35 +1384,35 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 .md__highlight :deep(.md-link__text),
 .md__highlight :deep(.md-image__text),
 .md__highlight :deep(.md-footnote) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .md__highlight :deep(.md-link__url) {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* An image's quoted title is its caption on the site, which the reader
    sees: full ink, a step heavier. */
 .md__highlight :deep(.md-image__caption) {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 /* A block is named in the accent and left unboxed; the box is for
    the one the caret is in. */
 .md__highlight :deep(.md-block__name) {
-	color: var(--accent);
+	color: var(--color-accent);
 	font-weight: 500;
 }
 
 .md__highlight :deep(.md-block__label) {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 /* A container's opening and closing colons, while the caret is on
    either line: a pair, as matching brackets are. */
 .md__highlight :deep(.md-mark--pair) {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 /* A closing line names what it closes, by its full name, after its
@@ -1423,9 +1423,9 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	content: attr(data-name);
 	position: absolute;
 	margin-inline-start: var(--s-2);
-	font-size: var(--text-sm);
-	line-height: calc(var(--doc) * 2);
-	color: var(--fg-3);
+	font-size: var(--font-size-small);
+	line-height: calc(var(--font-size-editor) * 2);
+	color: var(--color-text-muted);
 	white-space: nowrap;
 }
 
@@ -1433,8 +1433,8 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 .md__highlight :deep(.md-selected) {
 	padding-block: 1px;
 	border-radius: 3px;
-	background: var(--accent-soft);
-	box-shadow: 0 0 0 1px var(--accent-line);
+	background: var(--color-accent-subtle);
+	box-shadow: 0 0 0 1px var(--color-accent-border);
 }
 
 /* Attributes are metadata about the line they hang off: a gray chip,
@@ -1442,18 +1442,18 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 .md__highlight :deep(.md-attr) {
 	padding-block: 1px;
 	border-radius: 3px;
-	background: var(--surface-2);
-	box-shadow: 0 0 0 1px var(--border);
-	color: var(--fg-3);
+	background: var(--color-surface-subtle);
+	box-shadow: 0 0 0 1px var(--border-color);
+	color: var(--color-text-muted);
 }
 
 .md__highlight :deep(.md-attr__name) {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .md__highlight :deep(.md-attr__key),
 .md__highlight :deep(.md-attr__value) {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 </style>

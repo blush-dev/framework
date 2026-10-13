@@ -17,8 +17,6 @@ namespace Blush\Extension;
  * The kinds of extension a site installs (D-378). Each kind has its own
  * manifest file and its own Composer package type, either of which says
  * a folder is one (D-432), and says whether it runs code.
- *
- * Admin themes are planned as a fourth kind, on the same pieces.
  */
 enum ExtensionKind: string
 {
@@ -31,28 +29,33 @@ enum ExtensionKind: string
 	/** SVG icons in the pack's namespace. Many are on at once (D-385). */
 	case IconPack = 'icon-pack';
 
+	/** A skin over the admin, as tokens (D-827). Many are on; each account picks one. */
+	case AdminTheme = 'admin-theme';
+
 	/**
 	 * Returns the kind's name, for messages.
 	 */
 	public function label(): string
 	{
 		return match ($this) {
-			self::Plugin   => 'plugin',
-			self::Theme    => 'theme',
-			self::IconPack => 'icon pack'
+			self::Plugin     => 'plugin',
+			self::Theme      => 'theme',
+			self::IconPack   => 'icon pack',
+			self::AdminTheme => 'admin theme'
 		};
 	}
 
 	/**
 	 * Returns the manifest's file name, without its format
-	 * (`plugin.json`, `theme.json`, `icons.json`).
+	 * (`plugin.json`, `theme.json`, `icons.json`, `admin-theme.json`).
 	 */
 	public function manifest(): string
 	{
 		return match ($this) {
-			self::Plugin   => 'plugin',
-			self::Theme    => 'theme',
-			self::IconPack => 'icons'
+			self::Plugin     => 'plugin',
+			self::Theme      => 'theme',
+			self::IconPack   => 'icons',
+			self::AdminTheme => 'admin-theme'
 		};
 	}
 
@@ -62,9 +65,10 @@ enum ExtensionKind: string
 	public function packageType(): string
 	{
 		return match ($this) {
-			self::Plugin   => 'blush-plugin',
-			self::Theme    => 'blush-theme',
-			self::IconPack => 'blush-icons'
+			self::Plugin     => 'blush-plugin',
+			self::Theme      => 'blush-theme',
+			self::IconPack   => 'blush-icons',
+			self::AdminTheme => 'blush-admin-theme'
 		};
 	}
 
@@ -82,6 +86,6 @@ enum ExtensionKind: string
 	 */
 	public function runsCode(): bool
 	{
-		return $this !== self::IconPack;
+		return $this !== self::IconPack && $this !== self::AdminTheme;
 	}
 }

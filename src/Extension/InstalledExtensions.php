@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\AdminTheme\AdminThemeDiscovery;
 use Blush\Core\Paths;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Plugin\PluginDiscovery;
@@ -43,7 +44,7 @@ final readonly class InstalledExtensions
 				return sprintf('A %s named "%s" is already installed.', $installedKind->label(), $name);
 			}
 
-			if ($installedNamespace === $namespace) {
+			if ($installedNamespace !== '' && $installedNamespace === $namespace) {
 				return sprintf('The "%s" %s already has the namespace "%s"; pass another with --namespace.', $installedName, $installedKind->label(), $namespace);
 			}
 		}
@@ -71,6 +72,11 @@ final readonly class InstalledExtensions
 
 		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
 			$installed[] = [ExtensionKind::IconPack, $pack->name, $pack->namespace];
+		}
+
+		// An admin theme has a name but no namespace (D-827).
+		foreach (new AdminThemeDiscovery($this->paths)->discover()->all() as $adminTheme) {
+			$installed[] = [ExtensionKind::AdminTheme, $adminTheme->name, ''];
 		}
 
 		return $installed;

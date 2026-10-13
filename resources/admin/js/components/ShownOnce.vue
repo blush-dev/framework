@@ -62,6 +62,6 @@ function selectAll(event: Event): void {
 .shown-once__value {
 	flex: 1;
 	min-width: 0;
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 </style>

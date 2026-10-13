@@ -107,9 +107,9 @@ function loaded(event: Event): void {
 .image-preview {
 	position: relative;
 	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-subtle);
 }
 
 .image-preview__frame {
@@ -135,8 +135,8 @@ function loaded(event: Event): void {
 	justify-items: center;
 	gap: var(--s-2);
 	height: 100%;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .image-preview__missing :deep(svg) {
@@ -155,7 +155,7 @@ function loaded(event: Event): void {
 }
 
 .image-preview__veil {
-	background: var(--surface);
+	background: var(--color-surface);
 }
 
 .image-preview__actions {
@@ -189,7 +189,7 @@ function loaded(event: Event): void {
 	place-items: center;
 	aspect-ratio: 4 / 3;
 	border-style: dashed;
-	background: var(--bg);
+	background: var(--color-background);
 }
 
 .image-preview__about {

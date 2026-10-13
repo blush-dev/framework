@@ -80,17 +80,17 @@ const colors = computed(() => {
 	aspect-ratio: 16 / 10;
 	overflow: hidden;
 	container-type: inline-size;
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 /* No palette: the admin's own quiet colors. */
 .sketch--plain {
-	--t-background: var(--surface);
-	--t-surface: var(--surface-2);
-	--t-text: var(--fg-2);
-	--t-muted: var(--fg-3);
-	--t-accent: var(--border-strong);
-	--t-border: var(--border);
+	--t-background: var(--color-surface);
+	--t-surface: var(--color-surface-subtle);
+	--t-text: var(--color-text-secondary);
+	--t-muted: var(--color-text-muted);
+	--t-accent: var(--border-color-strong);
+	--t-border: var(--border-color);
 }
 
 .sketch i {
@@ -257,8 +257,8 @@ const colors = computed(() => {
 	place-content: center;
 	justify-items: center;
 	gap: var(--s-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .sketch__none .icon {

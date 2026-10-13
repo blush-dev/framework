@@ -513,20 +513,20 @@ function flipAll(): void {
 
 .sections__note {
 	margin-right: auto;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* A caption, so content types and terms don't read as one list. */
 .sections__caption {
-	padding: 11px var(--pad-x) 7px;
-	border-bottom: 1px solid var(--border);
-	background: var(--surface-2);
+	padding: 11px var(--padding-inline) 7px;
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
 }
 
 /* A section's icon, which this file gives it. */
 .section__icon {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 @media (width <= 640px) {

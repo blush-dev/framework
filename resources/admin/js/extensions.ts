@@ -22,7 +22,8 @@ export type ExtensionKind = ExtensionDependent['kind'];
 export const KIND_PATHS: Record<ExtensionKind, string> = {
 	'theme': 'themes',
 	'plugin': 'plugins',
-	'icon-pack': 'icon-packs'
+	'icon-pack': 'icon-packs',
+	'admin-theme': 'admin-themes'
 };
 
 // Each kind's glyph, as the Extend panel draws it, for a row naming an
@@ -30,7 +31,8 @@ export const KIND_PATHS: Record<ExtensionKind, string> = {
 export const KIND_ICONS: Record<ExtensionKind, IconName> = {
 	'theme': 'paintbrush',
 	'plugin': 'plug',
-	'icon-pack': 'shapes'
+	'icon-pack': 'shapes',
+	'admin-theme': 'swatch-book'
 };
 
 // What turning an extension on or off needs of it.
@@ -162,7 +164,7 @@ function folderPath(folder: string): string {
 
 // The kind of an installed extension a requirement names, or `null`.
 export function requirementKind(requirement: ExtensionRequirement): ExtensionKind | null {
-	return requirement.kind === 'plugin' || requirement.kind === 'theme' || requirement.kind === 'icon-pack' ? requirement.kind : null;
+	return requirement.kind === 'plugin' || requirement.kind === 'theme' || requirement.kind === 'icon-pack' || requirement.kind === 'admin-theme' ? requirement.kind : null;
 }
 
 // A requirement as a person reads it: `Blush ^2.0`, `PHP Extension:
@@ -180,6 +182,7 @@ export function requirementText(requirement: ExtensionRequirement): string {
 		case 'plugin':
 		case 'theme':
 		case 'icon-pack':
+		case 'admin-theme':
 			return `${requirement.label || requirement.name}${constraint}`;
 		default:
 			return `${requirement.name}${constraint}`;

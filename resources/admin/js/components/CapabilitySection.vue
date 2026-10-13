@@ -77,12 +77,12 @@ const emit = defineEmits<{
 	display: flex;
 	flex-wrap: wrap;
 	align-items: stretch;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .section:last-child {
 	border-bottom: 0;
-	border-radius: 0 0 var(--r-3) var(--r-3);
+	border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
 }
 
 .section__head {
@@ -91,7 +91,7 @@ const emit = defineEmits<{
 	align-items: center;
 	gap: var(--s-3);
 	min-width: 0;
-	padding: var(--pad-row) var(--s-2) var(--pad-row) var(--pad-x);
+	padding: var(--padding-row) var(--s-2) var(--padding-row) var(--padding-inline);
 	border: 0;
 	background: none;
 	color: inherit;
@@ -102,13 +102,13 @@ const emit = defineEmits<{
 
 .section__head:hover,
 .section:has(.section__head:hover) .section__end {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .section__twisty {
 	width: 13px;
 	height: 13px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .section__head[aria-expanded="true"] .section__twisty {
@@ -136,10 +136,10 @@ const emit = defineEmits<{
 
 .section__title {
 	overflow: hidden;
-	font-family: var(--font-title);
-	font-size: var(--title-size);
-	font-weight: var(--title-weight);
-	letter-spacing: var(--title-track);
+	font-family: var(--font-family-title);
+	font-size: var(--font-size-entry-title);
+	font-weight: var(--font-weight-entry-title);
+	letter-spacing: var(--letter-spacing-entry-title);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -147,15 +147,15 @@ const emit = defineEmits<{
 .section__pill {
 	height: 19px;
 	padding: 0 8px 0 7px;
-	font-size: var(--text-2xs);
+	font-size: var(--font-size-xxsmall);
 }
 
 .section__key {
 	display: none;
 	margin-top: 3px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-2xs);
+	font-size: var(--font-size-xxsmall);
 }
 
 .sections--keys .section__key {
@@ -166,8 +166,8 @@ const emit = defineEmits<{
 	display: block;
 	max-width: 76ch;
 	margin-top: 4px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	text-wrap: pretty;
 }
 
@@ -179,7 +179,7 @@ const emit = defineEmits<{
 	display: flex;
 	flex: none;
 	align-items: center;
-	padding-right: var(--pad-x);
+	padding-right: var(--padding-inline);
 }
 
 /* The ⋮ shows on hover, and always to the keyboard. */
@@ -201,22 +201,22 @@ const emit = defineEmits<{
 
 /* Every Type, first, since it decides what's fixed in the types below. */
 .section--every {
-	border-bottom-color: var(--border-strong);
-	background: var(--surface-2);
+	border-bottom-color: var(--border-color-strong);
+	background: var(--color-surface-subtle);
 }
 
 .section--every .section__head:hover,
 .section--every:has(.section__head:hover) .section__end {
-	background: var(--surface-3);
+	background: var(--color-surface-strong);
 }
 
 .section__body {
 	flex: 0 0 100%;
 	box-sizing: border-box;
 	min-width: 0;
-	padding: var(--s-3) var(--pad-x) var(--s-3) calc(var(--pad-x) + 25px);
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
+	padding: var(--s-3) var(--padding-inline) var(--s-3) calc(var(--padding-inline) + 25px);
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
 }
 
 /* Three columns, in every section, so the boxes line up down the page. */
@@ -230,8 +230,8 @@ const emit = defineEmits<{
 .section__note {
 	max-width: 60ch;
 	padding-top: var(--s-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* Two where three would cut the labels short. */

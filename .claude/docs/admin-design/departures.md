@@ -62,6 +62,30 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px),
   `--text-2xs` (10px), and `--h2` (15px since D-265), so no type size is a
   literal.
+- **Tokens renamed for admin themes' `tokens.json`, every color in
+  `light-dark()`** (D-827): the direction's names, used in the notes
+  below, are now `--bg` → `--color-background`; `--surface`, `-2`, `-3`
+  → `--color-surface`, `-subtle`, `-strong`; `--fg`, `-2`, `-3` →
+  `--color-text`, `-secondary`, `-muted`; `--accent`, `-hover`, `-fg`,
+  `-soft`, `-line` → `--color-accent`, `-hover`, `-text`, `-subtle`,
+  `-border`; `--good`, `--warn`, `--danger` and their `-soft`, `-dot` →
+  `--color-success`, `--color-warning`, `--color-danger` and `-subtle`,
+  `-indicator`; `--border`, `-strong` → `--border-color`, `-strong`;
+  `--r-1`, `-2`, `-3` → `--border-radius-small`, `-medium`, `-large`;
+  `--font-ui`, `-display`, `-title` → `--font-family-…`; `--base`,
+  `--text-sm`, `-xs`, `-2xs` → `--font-size-base`, `-small`, `-xsmall`,
+  `-xxsmall`; `--h1`, `--h2` → `--font-size-page-title`,
+  `-panel-title`; `--title-size`, `-lead` → `--font-size-entry-title`,
+  `-entry-title-lead`; `--title-weight` → `--font-weight-entry-title`;
+  `--h1-track`, `--title-track` → `--letter-spacing-page-title`,
+  `-entry-title`; `--doc`, `--doc-title` → `--font-size-editor`,
+  `-editor-title`; `--stat-v` → `--font-size-stat`; `--pad-row`,
+  `-panel`, `-x` → `--padding-row`, `-panel`, `-inline`. The space
+  scale, control heights, layout, mono, and media overlay keep theirs.
+  The theming cascade is one `:root` block with `color-scheme` picking
+  the scheme, not light and dark blocks; the shadows are built from one
+  `--box-shadow-color`, so dark menus' shadows are a little softer, in
+  two layers.
 - **Shared pieces are global classes** in `admin.css` when they're only
   how something looks (buttons, panels, pills, tables, stat tiles,
   notices), and components, without a `Base` prefix, when the same
@@ -236,8 +260,18 @@ Each is recorded in `.claude/docs/decisions.md`.
   D-380) is the fifth section, **Extend** (D-616), with the `package`
   icon: Themes, Plugins, and Icon Packs in one group with no heading.
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme
-  choice on Your profile beside the color scheme, with Editorial's
-  fonts (Karla and Newsreader) served with the admin like the others.
+  choice on Your profile beside the color scheme. Since D-827 they're
+  admin theme extensions (`blush/neutral`, `blush/editorial`), any
+  others that are on join the choice, and Editorial's fonts (Karla and
+  Newsreader) are served with it from its own folder. Each swatch is
+  drawn from the theme's own colors, and the site's default is marked
+  **Site default**; choosing it follows the default. The palette offers
+  each other theme ("Use the Editorial admin theme").
+- **Extend → Admin Themes** (D-827) has no sketch: it's the Icon Packs
+  screen's pieces, each card's media the admin in miniature
+  (`AdminThemeSketch`, the profiles sketch's swatch scaled up), with
+  **Make Default** beside the switch and a **Site default** pill, as the
+  Themes screen has Activate and Active.
 - **The command palette** (D-248): the screen's own commands come first
   (the editor's), then going places and New {singular}, then entries;
   switching the color scheme saves it to the account.

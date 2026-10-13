@@ -16,6 +16,7 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Admin\AdminApp;
+use Blush\Admin\AdminThemeAssetController;
 use Blush\Admin\AssetController;
 use Blush\Admin\DashboardController;
 use Blush\Admin\LogController;
@@ -36,6 +37,7 @@ use Blush\Tool\Tools\Reindex;
 #[CoversClass(AdminApp::class)]
 #[CoversClass(ShellController::class)]
 #[CoversClass(AssetController::class)]
+#[CoversClass(AdminThemeAssetController::class)]
 #[CoversClass(DashboardController::class)]
 #[CoversClass(ToolController::class)]
 #[CoversClass(ToolButtons::class)]
@@ -138,11 +140,54 @@ final class AdminAppTest extends TestCase
 		$this->assertStringContainsString('<html lang="en">', $body, 'System sets no attribute.');
 		$this->assertStringContainsString('"colorScheme":"system"', $body);
 
-		$this->send('PATCH', '/preferences', '{"adminTheme": "editorial"}', ['X-CSRF-Token' => $token]);
+		$this->assertStringContainsString('"adminTheme":null', $body);
+		$this->assertStringNotContainsString('id="blush-admin-theme"', $body, 'Neutral is the admin\'s own; it links nothing.');
+
+		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/editorial"}', ['X-CSRF-Token' => $token]);
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en" data-admin-theme="editorial">', $body);
-		$this->assertStringContainsString('"adminTheme":"editorial"', $body);
+		$this->assertStringContainsString('<html lang="en" data-admin-theme="blush/editorial">', $body);
+		$this->assertStringContainsString('"adminTheme":"blush/editorial"', $body);
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" id="blush-admin-theme" href="/admin/assets/admin-themes/blush/editorial/theme\.css\?v=[0-9a-f]{8}">#', $body);
+		$this->assertStringContainsString('"default":"blush/neutral"', $body);
+		$this->assertStringContainsString('"name":"blush/neutral","label":"Neutral"', $body, 'Neutral is offered first.');
+	}
+
+	public function testTheSignInScreenShowsTheSitesDefaultAdminTheme(): void
+	{
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\AdminTheme\\AdminThemeConfig(default: 'blush/editorial');\n");
+		$this->boot();
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<html lang="en" data-admin-theme="blush/editorial">', $body);
+		$this->assertStringContainsString('"default":"blush/editorial"', $body);
+
+		$token = $this->token();
+		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/neutral"}', ['X-CSRF-Token' => $token]);
+
+		$this->assertStringContainsString('<html lang="en">', (string) $this->visit('GET', '/admin')->getBody(), 'An account\'s own choice wins.');
+	}
+
+	public function testAnAdminThemesStylesheetAndFontsAreServed(): void
+	{
+		$this->boot();
+
+		$css = $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/theme.css?v=1');
+
+		$this->assertSame(200, $css->getStatusCode());
+		$this->assertStringStartsWith('text/css', $css->getHeaderLine('Content-Type'));
+		$this->assertStringContainsString('immutable', $css->getHeaderLine('Cache-Control'));
+		$this->assertStringContainsString(':root[data-admin-theme="blush/editorial"] {', (string) $css->getBody());
+		$this->assertStringContainsString('src: url("fonts/karla-latin-wght-normal.woff2") format("woff2");', (string) $css->getBody());
+
+		$font = $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/fonts/karla-latin-wght-normal.woff2');
+
+		$this->assertSame(200, $font->getStatusCode());
+		$this->assertSame('font/woff2', $font->getHeaderLine('Content-Type'));
+
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/tokens.json')->getStatusCode(), 'Only its stylesheet and fonts.');
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/fonts/LICENSE')->getStatusCode());
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/acme/missing/theme.css')->getStatusCode());
 	}
 
 	public function testTheShellCarriesTheSitesDateFormats(): void

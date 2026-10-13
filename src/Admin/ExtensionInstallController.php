@@ -77,6 +77,11 @@ final readonly class ExtensionInstallController
 		return $this->install($request, ExtensionKind::IconPack);
 	}
 
+	public function adminTheme(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->install($request, ExtensionKind::AdminTheme);
+	}
+
 	/**
 	 * What a kind's screen shows before anything is chosen (its list's
 	 * `upload`): the largest archive taken (`limit`, in bytes), and why
@@ -160,9 +165,10 @@ final readonly class ExtensionInstallController
 		}
 
 		$this->bootstrap->clearCompiled(match ($kind) {
-			ExtensionKind::Plugin   => CompiledCache::Plugins,
-			ExtensionKind::Theme    => CompiledCache::Themes,
-			ExtensionKind::IconPack => CompiledCache::IconPacks
+			ExtensionKind::Plugin     => CompiledCache::Plugins,
+			ExtensionKind::Theme      => CompiledCache::Themes,
+			ExtensionKind::IconPack   => CompiledCache::IconPacks,
+			ExtensionKind::AdminTheme => CompiledCache::AdminThemes
 		});
 
 		// Replacing what runs changes the site at once.
@@ -177,7 +183,7 @@ final readonly class ExtensionInstallController
 			'installed' => self::describe($this->paths, $result->package),
 			'replaced'  => $result->replaced?->version,
 			'backup'    => $result->backup,
-			'refresh'   => $live && $kind !== ExtensionKind::IconPack
+			'refresh'   => $live && $kind->runsCode()
 		], Status::Created, ['Cache-Control' => 'no-store']);
 	}
 

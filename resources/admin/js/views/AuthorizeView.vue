@@ -153,11 +153,11 @@ async function switchAccount(): Promise<void> {
 .connect__host,
 .connect__account,
 .connect__expect {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .connect__expect {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .connect__actions {

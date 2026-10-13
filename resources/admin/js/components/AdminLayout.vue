@@ -158,7 +158,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const extensions = [
 		...(can('extensions.themes.view') ? [screen('themes', 'Themes', 'paintbrush')] : []),
 		...(can('extensions.plugins.view') ? [screen('plugins', 'Plugins', 'plug')] : []),
-		...(can('extensions.icon-packs.view') ? [screen('icon-packs', 'Icon Packs', 'shapes')] : [])
+		...(can('extensions.icon-packs.view') ? [screen('icon-packs', 'Icon Packs', 'shapes')] : []),
+		...(can('extensions.admin-themes.view') ? [screen('admin-themes', 'Admin Themes', 'swatch-book')] : [])
 	];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
@@ -760,8 +761,8 @@ async function leave(): Promise<void> {
 	left: 8px;
 	z-index: 30;
 	padding: 8px 12px;
-	border-radius: var(--r-1);
-	background: var(--surface);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
 	transform: translateY(-200%);
 }
@@ -785,8 +786,8 @@ async function leave(): Promise<void> {
 	gap: var(--s-1);
 	width: var(--railbar);
 	padding: var(--s-3) 0;
-	border-right: 1px solid var(--border);
-	background: var(--surface);
+	border-right: 1px solid var(--border-color);
+	background: var(--color-surface);
 }
 
 .railbar__mark {
@@ -795,17 +796,17 @@ async function leave(): Promise<void> {
 	width: 34px;
 	height: 34px;
 	margin-bottom: var(--s-3);
-	border-radius: var(--r-2);
-	background: var(--fg);
-	color: var(--bg);
-	font-family: var(--font-display);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-text);
+	color: var(--color-background);
+	font-family: var(--font-family-display);
 	font-weight: 600;
 	text-decoration: none;
 	text-transform: uppercase;
 }
 
 .railbar__mark:hover {
-	color: var(--bg);
+	color: var(--color-background);
 }
 
 .railbar__section {
@@ -816,10 +817,10 @@ async function leave(): Promise<void> {
 	width: 60px;
 	padding: 10px 2px 8px;
 	border: 0;
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 	background: none;
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xxsmall);
 	font-weight: 500;
 	line-height: 1.2;
 	cursor: pointer;
@@ -832,13 +833,13 @@ async function leave(): Promise<void> {
 }
 
 .railbar__section:hover {
-	background: var(--surface-2);
-	color: var(--fg-2);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
 }
 
 .railbar__section[aria-current="true"] {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .panel-nav {
@@ -848,8 +849,8 @@ async function leave(): Promise<void> {
 	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
-	border-right: 1px solid var(--border);
-	background: var(--surface);
+	border-right: 1px solid var(--border-color);
+	background: var(--color-surface);
 	transition: width 160ms ease-out;
 }
 
@@ -865,15 +866,15 @@ async function leave(): Promise<void> {
 	gap: var(--s-2);
 	min-height: var(--bar);
 	padding: 0 var(--s-4);
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .panel-nav__head h2 {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
-	font-family: var(--font-display);
-	font-size: var(--h2);
+	font-family: var(--font-family-display);
+	font-size: var(--font-size-panel-title);
 	font-weight: 600;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -882,9 +883,9 @@ async function leave(): Promise<void> {
 .panel-nav__sub {
 	display: block;
 	overflow: hidden;
-	color: var(--fg-3);
-	font-family: var(--font-ui);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-family: var(--font-family-ui);
+	font-size: var(--font-size-xsmall);
 	font-weight: 400;
 	text-overflow: ellipsis;
 	margin-top: 2px;
@@ -902,7 +903,7 @@ async function leave(): Promise<void> {
 
 .panel-nav__heading {
 	padding: 0 var(--s-2) var(--s-2);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .panel-nav__nav ul {
@@ -920,15 +921,15 @@ async function leave(): Promise<void> {
 	gap: 11px;
 	min-height: 36px;
 	padding: 0 10px;
-	border-radius: var(--r-1);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-small);
+	color: var(--color-text-secondary);
 	font-weight: 500;
 	text-decoration: none;
 }
 
 .panel-nav__link:hover {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .panel-nav__label {
@@ -944,9 +945,9 @@ async function leave(): Promise<void> {
 
 .panel-nav__count {
 	flex: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-weight: 400;
 }
 
@@ -967,11 +968,11 @@ async function leave(): Promise<void> {
 	margin-right: 4px;
 	padding: 2px 6px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font: inherit;
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .06em;
 	text-transform: uppercase;
@@ -979,12 +980,12 @@ async function leave(): Promise<void> {
 }
 
 .panel-nav__edit:hover {
-	background: var(--surface-2);
-	color: var(--fg-2);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
 }
 
 .panel-nav__edit[aria-pressed="true"] {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .panel-nav__link.is-editing {
@@ -1009,20 +1010,20 @@ async function leave(): Promise<void> {
 	height: 24px;
 	padding: 0;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	cursor: pointer;
 }
 
 .panel-nav__tool:hover:not(:disabled) {
-	background: var(--surface-3);
-	color: var(--fg);
+	background: var(--color-surface-strong);
+	color: var(--color-text);
 }
 
 .panel-nav__tool--remove:hover:not(:disabled) {
-	background: var(--danger-soft);
-	color: var(--danger);
+	background: var(--color-danger-subtle);
+	color: var(--color-danger);
 }
 
 .panel-nav__tool:disabled {
@@ -1038,8 +1039,8 @@ async function leave(): Promise<void> {
 .panel-nav__empty {
 	margin: 0;
 	padding: var(--s-1) 10px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .panel-nav__add {
@@ -1054,9 +1055,9 @@ async function leave(): Promise<void> {
 	min-height: 36px;
 	padding: 0 10px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font: inherit;
 	font-weight: 500;
 	text-align: left;
@@ -1065,8 +1066,8 @@ async function leave(): Promise<void> {
 
 .panel-nav__add :deep(.panel-nav__add-button:hover),
 .panel-nav__add :deep(.panel-nav__add-button[aria-expanded="true"]) {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .panel-nav__add :deep(.menu-button) {
@@ -1105,13 +1106,13 @@ async function leave(): Promise<void> {
 	bottom: 3px;
 	left: 18px;
 	width: 1px;
-	background: var(--border);
+	background: var(--border-color);
 }
 
 .panel-nav__link[aria-current="page"],
 .panel-nav__link.is-current {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .panel-nav__link[aria-current="page"]::before,
@@ -1123,7 +1124,7 @@ async function leave(): Promise<void> {
 	left: calc(-1 * var(--s-3));
 	width: 3px;
 	border-radius: 0 3px 3px 0;
-	background: var(--accent);
+	background: var(--color-accent);
 }
 
 /* Drawer: the rail and panel slide in together. */
@@ -1159,7 +1160,7 @@ async function leave(): Promise<void> {
 	position: fixed;
 	inset: 0;
 	z-index: 10;
-	background: var(--fg);
+	background: var(--color-text);
 	opacity: .3;
 }
 
@@ -1189,8 +1190,8 @@ async function leave(): Promise<void> {
 	align-items: center;
 	gap: var(--s-2);
 	padding: 0 var(--s-4);
-	background: var(--surface);
-	border-bottom: 1px solid var(--border);
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .bar__crumbs {
@@ -1207,30 +1208,30 @@ async function leave(): Promise<void> {
 	padding: 0;
 	border: 0;
 	background: none;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font: inherit;
 	text-overflow: ellipsis;
 	cursor: pointer;
 }
 
 .bar__root:hover {
-	color: var(--fg);
+	color: var(--color-text);
 	text-decoration: underline;
 }
 
 .bar__sep {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .bar__link {
 	overflow: hidden;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	text-decoration: none;
 	text-overflow: ellipsis;
 }
 
 .bar__link:hover {
-	color: var(--fg);
+	color: var(--color-text);
 	text-decoration: underline;
 }
 
@@ -1247,16 +1248,16 @@ async function leave(): Promise<void> {
 	min-width: 220px;
 	height: var(--ctl);
 	padding: 0 12px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--bg);
-	color: var(--fg-3);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-background);
+	color: var(--color-text-muted);
 	cursor: pointer;
 }
 
 .bar__search:hover {
-	border-color: var(--border-strong);
-	color: var(--fg-2);
+	border-color: var(--border-color-strong);
+	color: var(--color-text-secondary);
 }
 
 .bar__search :deep(svg) {
@@ -1266,7 +1267,7 @@ async function leave(): Promise<void> {
 
 .bar__search-text {
 	flex: 1;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	text-align: left;
 }
 
@@ -1283,9 +1284,9 @@ async function leave(): Promise<void> {
 	height: 29px;
 	border: 0;
 	border-radius: 50%;
-	background: var(--surface-3);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	background: var(--color-surface-strong);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: 0.02em;
 	text-transform: uppercase;
@@ -1301,22 +1302,22 @@ async function leave(): Promise<void> {
 }
 
 .bar :deep(.account[aria-expanded="true"]) {
-	background: var(--accent);
-	color: var(--accent-fg);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
 }
 
 .account__who {
 	display: grid;
 	padding: 10px 11px 12px;
 	margin-bottom: 7px;
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 	font-weight: 500;
 }
 
 .account__username,
 .account__roles {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 400;
 }
 
@@ -1326,10 +1327,10 @@ async function leave(): Promise<void> {
 	align-items: center;
 	gap: 11px;
 	padding: 11px var(--s-5);
-	border-bottom: 1px solid var(--warn-dot);
-	background: var(--warn-soft);
-	color: var(--warn);
-	font-size: var(--text-sm);
+	border-bottom: 1px solid var(--color-warning-indicator);
+	background: var(--color-warning-subtle);
+	color: var(--color-warning);
+	font-size: var(--font-size-small);
 }
 
 .offline svg {

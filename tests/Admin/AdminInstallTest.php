@@ -280,6 +280,32 @@ final class AdminInstallTest extends TestCase
 		$this->assertSame([false], array_column(is_array($packs) ? $packs : [], 'enabled'), 'It arrives off.');
 	}
 
+	public function testInstallsAdminThemes(): void
+	{
+		$this->site(['administrator']);
+
+		$theme = $this->upload('/admin-themes', 'harbor.zip', $this->zip(['admin-theme.json' => '{"name": "acme/harbor", "label": "Harbor"}', 'tokens.json' => '{"color": {"accent": "#1d4e89"}}']));
+
+		$this->assertSame(201, $theme->getStatusCode(), (string) $theme->getBody());
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/harbor');
+
+		$this->reboot();
+		$themes = self::json($this->send('GET', '/admin-themes'))['themes'] ?? [];
+		$harbor = array_find(is_array($themes) ? $themes : [], static fn (mixed $theme): bool => is_array($theme) && ($theme['name'] ?? null) === 'acme/harbor');
+		$this->assertIsArray($harbor);
+		$this->assertFalse($harbor['enabled'] ?? null, 'It arrives off.');
+
+		$bad = $this->upload('/admin-themes', 'loud.zip', $this->zip(['admin-theme.json' => '{"name": "acme/loud"}', 'tokens.json' => '{"color": {"accent": "red; } body { display: none"}}']));
+
+		$this->assertSame(422, $bad->getStatusCode(), 'An administrator may install one, since it has no code, but only one that\'s only tokens.');
+		$this->assertStringContainsString('must be a color', (string) $bad->getBody());
+
+		$framework = $this->upload('/admin-themes', 'neutral.zip', $this->zip(['admin-theme.json' => '{"name": "blush/neutral"}', 'tokens.json' => '{}']));
+
+		$this->assertSame(422, $framework->getStatusCode());
+		$this->assertStringContainsString('is a framework admin theme\'s name', (string) $framework->getBody());
+	}
+
 	/**
 	 * Sends a request with the CSRF token.
 	 */

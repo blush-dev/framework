@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\AdminTheme\AdminThemes;
+use Blush\AdminTheme\AdminThemeSource;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\LocalExtensions;
@@ -38,7 +40,8 @@ final readonly class InstalledExtensions
 		private Plugins $plugins,
 		private Themes $themes,
 		private ThemeConfig $theme,
-		private IconPacks $packs
+		private IconPacks $packs,
+		private AdminThemes $adminThemes
 	) {}
 
 	/**
@@ -49,9 +52,10 @@ final readonly class InstalledExtensions
 	public function folder(ExtensionKind $kind, string $name): ?string
 	{
 		$path = match ($kind) {
-			ExtensionKind::Plugin   => array_find($this->plugins->installed(), static fn (PluginManifest $plugin): bool => $plugin->name === $name && $plugin->source === PluginSource::Local)?->path,
-			ExtensionKind::Theme    => ($theme = $this->themes->find($name)) !== null && $theme->source === ThemeSource::Local ? $theme->path : null,
-			ExtensionKind::IconPack => ($pack = $this->packs->find($name)) !== null && $pack->source === IconPackSource::Local ? $pack->path : null
+			ExtensionKind::Plugin     => array_find($this->plugins->installed(), static fn (PluginManifest $plugin): bool => $plugin->name === $name && $plugin->source === PluginSource::Local)?->path,
+			ExtensionKind::Theme      => ($theme = $this->themes->find($name)) !== null && $theme->source === ThemeSource::Local ? $theme->path : null,
+			ExtensionKind::IconPack   => ($pack = $this->packs->find($name)) !== null && $pack->source === IconPackSource::Local ? $pack->path : null,
+			ExtensionKind::AdminTheme => ($adminTheme = $this->adminThemes->find($name)) !== null && $adminTheme->source === AdminThemeSource::Local ? $adminTheme->path : null
 		};
 
 		return $path !== null && LocalExtensions::contains($this->paths, $path) ? $path : null;
@@ -59,15 +63,16 @@ final readonly class InstalledExtensions
 
 	/**
 	 * Whether an extension runs on this site: a running plugin, a theme in
-	 * the active chain, or a pack that's on.
+	 * the active chain, or a pack or admin theme that's on.
 	 */
 	public function live(ExtensionKind $kind, string $name): bool
 	{
 		try {
 			return match ($kind) {
-				ExtensionKind::Plugin   => $this->plugins->has($name),
-				ExtensionKind::Theme    => in_array($name, $this->themes->chain($this->theme->active)->names(), true),
-				ExtensionKind::IconPack => $this->packs->isEnabled($name)
+				ExtensionKind::Plugin     => $this->plugins->has($name),
+				ExtensionKind::Theme      => in_array($name, $this->themes->chain($this->theme->active)->names(), true),
+				ExtensionKind::IconPack   => $this->packs->isEnabled($name),
+				ExtensionKind::AdminTheme => $this->adminThemes->isEnabled($name)
 			};
 		} catch (ThemeException) {
 			return false;

@@ -15,10 +15,10 @@ body {
 
 body {
 	margin: 0;
-	background: var(--bg);
-	color: var(--fg);
-	font-family: var(--font-ui);
-	font-size: var(--base);
+	background: var(--color-background);
+	color: var(--color-text);
+	font-family: var(--font-family-ui);
+	font-size: var(--font-size-base);
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 
@@ -35,14 +35,14 @@ h1,
 h2,
 h3 {
 	margin: 0;
-	font-family: var(--font-display);
+	font-family: var(--font-family-display);
 	text-wrap: balance;
 }
 
 h1 {
-	font-size: var(--h1);
+	font-size: var(--font-size-page-title);
 	font-weight: 600;
-	letter-spacing: var(--h1-track);
+	letter-spacing: var(--letter-spacing-page-title);
 	line-height: 1.2;
 }
 
@@ -52,12 +52,12 @@ h1:focus {
 
 @media (width <= 640px) {
 	h1 {
-		font-size: calc(var(--h1) - 4px);
+		font-size: calc(var(--font-size-page-title) - 4px);
 	}
 }
 
 h2 {
-	font-size: var(--h2);
+	font-size: var(--font-size-panel-title);
 	font-weight: 600;
 }
 
@@ -66,12 +66,12 @@ p {
 }
 
 a {
-	color: var(--accent);
+	color: var(--color-accent);
 	text-underline-offset: .15em;
 }
 
 a:hover {
-	color: var(--accent-hover);
+	color: var(--color-accent-hover);
 }
 
 code,
@@ -83,12 +83,12 @@ samp {
 
 kbd {
 	padding: 1px 4px;
-	border: 1px solid var(--border);
+	border: 1px solid var(--border-color);
 	border-bottom-width: 2px;
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 button,
@@ -100,9 +100,9 @@ textarea {
 }
 
 :focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 }
 
 /* Digits that stack in a column line up. */

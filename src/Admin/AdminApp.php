@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use JsonException;
+use Blush\AdminTheme\AdminTheme;
 
 /**
  * The built admin front end (D-221, D-222): the framework's bundled Vue
@@ -57,6 +58,15 @@ final readonly class AdminApp
 		$path = $this->asset($file);
 
 		return $path === null ? $url : $url . '?v=' . hash_file('crc32b', $path);
+	}
+
+	/**
+	 * Returns an admin theme's stylesheet URL (D-827), versioned by what
+	 * it holds.
+	 */
+	public function themeUrl(AdminTheme $theme): string
+	{
+		return sprintf('%s/assets/admin-themes/%s/%s?v=%s', $this->config->path, $theme->name, AdminTheme::STYLESHEET, hash('crc32b', $theme->stylesheet()));
 	}
 
 	/**

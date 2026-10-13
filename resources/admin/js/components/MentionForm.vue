@@ -110,8 +110,8 @@ function key(event: KeyboardEvent): void {
 <style scoped>
 .mention-form__note {
 	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .mention-form__list {
@@ -129,17 +129,17 @@ function key(event: KeyboardEvent): void {
 	justify-content: space-between;
 	gap: var(--s-3);
 	padding: var(--s-2) var(--s-3);
-	border-radius: var(--r-1);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-small);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
 .mention-form__item.is-active {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .mention-form__slug {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

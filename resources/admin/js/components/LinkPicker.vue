@@ -229,14 +229,14 @@ defineExpose({ focus: () => field.value?.focus() });
 }
 
 .link-picker__chosen.is-invalid {
-	border-color: var(--danger-dot);
+	border-color: var(--color-danger-indicator);
 }
 
 .link-picker__chosen > .icon {
 	flex: none;
 	width: 15px;
 	height: 15px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .link-picker__chosen strong {
@@ -270,8 +270,8 @@ defineExpose({ focus: () => field.value?.focus() });
 }
 
 .link-picker__at {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .select-list__option .link-picker__at {

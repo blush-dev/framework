@@ -107,27 +107,27 @@ async function discard(): Promise<void> {
 	align-items: center;
 	gap: var(--s-3);
 	margin-bottom: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
+	padding: var(--s-4) var(--padding-inline);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-large);
+	background: var(--color-surface);
 }
 
 .previous > :deep(svg) {
 	flex: none;
 	width: 16px;
 	height: 16px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .previous p {
 	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .previous b {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 600;
 }
 

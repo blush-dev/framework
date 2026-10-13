@@ -245,12 +245,12 @@ async function remove(): Promise<void> {
 }
 
 .browse-bar__field input {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .browse-bar__count {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 /* Every icon, at a size to judge. */
@@ -266,23 +266,23 @@ async function remove(): Promise<void> {
 	gap: var(--s-2);
 	min-width: 0;
 	padding: var(--s-4) var(--s-2);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	color: var(--fg-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
 	font: inherit;
 	text-align: center;
 	cursor: pointer;
 }
 
 .browse__icon:hover {
-	border-color: var(--border-strong);
-	background: var(--surface-2);
-	color: var(--fg);
+	border-color: var(--border-color-strong);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .browse__icon:focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
 }
 
@@ -305,14 +305,14 @@ async function remove(): Promise<void> {
 	overflow: hidden;
 	border: 0;
 	background: none;
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xxsmall);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .browse__icon:hover code {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .skeleton--title {

@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace Blush\JsonSchema;
 
 use JsonException;
+use Blush\AdminTheme\AdminToken;
+use Blush\AdminTheme\FontFace;
+use Blush\AdminTheme\TokenType;
 use Blush\Asset\Asset;
 use Blush\Block\BlockName;
 use Blush\Block\Variant;
@@ -94,14 +97,16 @@ final readonly class JsonSchemas
 	public function all(): array
 	{
 		return [
-			'entry.schema.json'     => $this->entry(),
-			'field-set.schema.json' => $this->fieldSet(),
-			'icons.schema.json'     => $this->iconPack(),
-			'media.schema.json'     => $this->media(),
-			'menu.schema.json'      => $this->menu(),
-			'plugin.schema.json'    => $this->plugin(),
-			'relation.schema.json'  => $this->relation(),
-			'theme.schema.json'     => $this->theme()
+			'admin-theme.schema.json' => $this->adminTheme(),
+			'entry.schema.json'       => $this->entry(),
+			'field-set.schema.json'   => $this->fieldSet(),
+			'icons.schema.json'       => $this->iconPack(),
+			'media.schema.json'       => $this->media(),
+			'menu.schema.json'        => $this->menu(),
+			'plugin.schema.json'      => $this->plugin(),
+			'relation.schema.json'    => $this->relation(),
+			'theme.schema.json'       => $this->theme(),
+			'tokens.schema.json'      => $this->tokens()
 		];
 	}
 
@@ -348,6 +353,141 @@ final readonly class JsonSchemas
 				'authors'     => $this->authors('icon pack'),
 				'license'     => $this->license('icon pack'),
 				...$this->links('icon pack')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for an admin theme's `admin-theme.json` (D-827):
+	 * an icon pack's keys, without a namespace or folder.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function adminTheme(): array
+	{
+		$identity = $this->identity('admin theme');
+		unset($identity['namespace']);
+
+		return [
+			'$schema'     => self::DRAFT,
+			'title'       => sprintf('%s admin theme manifest', Framework::NAME),
+			'description' => 'An admin theme\'s admin-theme.json: its name, label, and description. What it changes is in tokens.json beside it.',
+			'type'        => 'object',
+			'required'    => [],
+			'properties'  => [
+				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				...$identity,
+				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
+				'description' => ['type' => 'string', 'description' => 'What the theme looks like, in a few words, shown beside its swatch.'],
+				'require'     => $this->requires('What the theme needs, as composer.json says it, with version constraints: blush-dev/framework for Blush, and other extensions by vendor/name. A theme whose requirements aren\'t met isn\'t offered. Without it, the require in the composer.json beside this file is used.'),
+				'conflict'    => $this->requires('What the theme can\'t be offered with, as composer.json says it, each with the versions it can\'t. Without it, the conflict in the composer.json beside this file is used.'),
+				'replace'     => $this->requires('The packages the theme stands in for, as composer.json says it. Without it, the replace in the composer.json beside this file is used.'),
+				'provide'     => $this->requires('The packages the theme provides an implementation of, as composer.json says it. Without it, the provide in the composer.json beside this file is used.'),
+				'authors'     => $this->authors('admin theme'),
+				'license'     => $this->license('admin theme'),
+				...$this->links('admin theme')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for an admin theme's `tokens.json` (D-827): every
+	 * token it may set (`AdminToken`), by group, each value's form and
+	 * range, and its font faces.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function tokens(): array
+	{
+		return [
+			'$schema'              => self::DRAFT,
+			'title'                => sprintf('%s admin theme tokens', Framework::NAME),
+			'description'          => 'What an admin theme changes: colors, fonts, type sizes, radii, and padding. Anything it leaves out is the Neutral theme\'s. Every color is light-dark(light, dark), or one color for both schemes.',
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => ['$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'], ...$this->tokenGroup('')['properties']]
+		];
+	}
+
+	/**
+	 * Returns the schema of the tokens under a path (`color`,
+	 * `color.surface`), a group's `default` also given as the group itself.
+	 *
+	 * @return array{type: string, additionalProperties: false, properties: array<string, mixed>}
+	 */
+	private function tokenGroup(string $prefix): array
+	{
+		$properties = [];
+
+		foreach (AdminToken::cases() as $token) {
+			if ($prefix !== '' && ! str_starts_with($token->value, "{$prefix}.")) {
+				continue;
+			}
+
+			$key  = explode('.', $prefix === '' ? $token->value : substr($token->value, strlen($prefix) + 1))[0];
+			$path = $prefix === '' ? $key : "{$prefix}.{$key}";
+
+			if (isset($properties[$key])) {
+				continue;
+			}
+
+			$leaf    = AdminToken::tryFrom($path);
+			$default = AdminToken::tryFrom("{$path}.default");
+
+			$properties[$key] = match (true) {
+				$leaf !== null    => $this->token($leaf),
+				$default !== null => ['oneOf' => [$this->token($default), $this->tokenGroup($path)]],
+				default           => $this->tokenGroup($path)
+			};
+		}
+
+		if ($prefix === 'typography') {
+			$properties['fontFace'] = $this->fontFaces();
+		}
+
+		return ['type' => 'object', 'additionalProperties' => false, 'properties' => $properties];
+	}
+
+	/**
+	 * Returns one token's schema.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function token(AdminToken $token): array
+	{
+		$range = $token->range() ?? [0, 0];
+		$name  = "--{$token->property()}";
+
+		return match ($token->type()) {
+			TokenType::Color         => ['type' => 'string', 'description' => "{$name}: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."],
+			TokenType::FontFamily    => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string'], 'description' => "{$name}: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."],
+			TokenType::FontWeight    => ['type' => 'integer', 'minimum' => $range[0], 'maximum' => $range[1], 'description' => "{$name}: a weight from {$range[0]} to {$range[1]}."],
+			TokenType::Length        => ['type' => 'string', 'pattern' => '^(0|\\d+(\\.\\d+)?px)$', 'description' => "{$name}: pixels, from {$range[0]}px to {$range[1]}px."],
+			TokenType::LetterSpacing => ['type' => 'string', 'pattern' => '^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$', 'description' => sprintf('%s: ems, from %sem to %sem.', $name, $range[0], $range[1])]
+		};
+	}
+
+	/**
+	 * Returns `typography.fontFace`'s schema.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function fontFaces(): array
+	{
+		return [
+			'type'        => 'array',
+			'description' => sprintf('The fonts the theme ships, as @font-face has them: woff2 files inside the theme, up to %d KB each.', FontFace::MAX_BYTES / 1024),
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['fontFamily', 'src'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'fontFamily'   => ['type' => 'string', 'description' => 'The family name the fontFamily tokens use, such as "Karla".'],
+					'src'          => ['type' => 'string', 'pattern' => '^' . trim(self::PATH_PATTERN, '^$') . '\\.woff2$', 'description' => 'The .woff2 file, relative to the theme, such as "fonts/karla.woff2".'],
+					'fontWeight'   => ['type' => ['string', 'integer'], 'default' => '400', 'description' => 'A weight, or a variable font\'s range of two, such as "200 800".'],
+					'fontStyle'    => ['enum' => ['normal', 'italic', 'oblique'], 'default' => 'normal'],
+					'unicodeRange' => ['type' => 'string', 'description' => 'The characters it covers, such as "U+0000-00FF, U+0131".']
+				]
 			]
 		];
 	}

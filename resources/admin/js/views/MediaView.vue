@@ -201,7 +201,7 @@ function closed(): void {
 	display: block;
 	height: auto;
 	aspect-ratio: 172 / 180;
-	border-radius: var(--r-2);
+	border-radius: var(--border-radius-medium);
 }
 
 .more {

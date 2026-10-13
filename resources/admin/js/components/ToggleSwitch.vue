@@ -93,15 +93,15 @@ function changed(event: Event): void {
 	display: grid;
 	gap: 2px;
 	min-width: 0;
-	color: var(--fg);
-	font-size: var(--text-sm);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 	user-select: text;
 }
 
 .switch__text :deep(small) {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 400;
 	line-height: 1.45;
 }
@@ -120,9 +120,9 @@ function changed(event: Event): void {
 	flex: none;
 	width: 34px;
 	height: 20px;
-	border: 1px solid var(--border-strong);
+	border: 1px solid var(--border-color-strong);
 	border-radius: 999px;
-	background: var(--surface-3);
+	background: var(--color-surface-strong);
 	transition: background .14s ease-out, border-color .14s ease-out;
 }
 
@@ -133,14 +133,14 @@ function changed(event: Event): void {
 	width: 14px;
 	height: 14px;
 	border-radius: 50%;
-	background: var(--surface);
+	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
 	transition: transform .14s ease-out;
 }
 
 .switch input:checked + .switch__track {
-	border-color: var(--good-dot);
-	background: var(--good-dot);
+	border-color: var(--color-success-indicator);
+	background: var(--color-success-indicator);
 }
 
 .switch input:checked + .switch__track .switch__knob {
@@ -148,14 +148,14 @@ function changed(event: Event): void {
 }
 
 .switch input:focus-visible + .switch__track {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
 }
 
 .switch__word {
 	width: 22px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 }
 
@@ -176,20 +176,20 @@ function changed(event: Event): void {
 }
 
 .switch input:checked ~ .switch__word {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .switch--form input:checked + .switch__track {
-	border-color: var(--accent);
-	background: var(--accent);
+	border-color: var(--color-accent);
+	background: var(--color-accent);
 }
 
 .switch--form input:checked + .switch__track .switch__knob {
-	background: var(--accent-fg);
+	background: var(--color-accent-text);
 }
 
 .switch--form input:checked ~ .switch__word {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .switch.is-locked {

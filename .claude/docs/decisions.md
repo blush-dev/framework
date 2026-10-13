@@ -7892,6 +7892,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-317: The shell's rail toggle and section trail, and the Editorial admin theme
 - **Date:** 2026-10-01
+- **Status:** The admin theme half is superseded by D-827 (planned):
+  admin themes become an extension kind, Editorial one of them.
 - **Decision:** From the split direction's decisions log (*The shell*,
   *Theming*) and its requests to foundations, at the author's request to
   keep going with the design's changes. Supersedes D-231's "only the
@@ -10441,7 +10443,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-378: Extensions are a type system: plugins, themes, icon packs, and admin themes
 - **Date:** 2026-10-02
 - **Status:** Built (plugins, themes, and icon packs) by D-379; admin
-  themes and installing from the admin are still planned (D-388
+  themes are planned as their own kind by D-827, and installing from
+  the admin is still planned (D-388
   decides the admin installs into `user/`). Icon packs
   can be turned off since D-385. Every kind's `require` is enforced, and
   names are one extension's across kinds, since D-431. Supersedes
@@ -25963,3 +25966,162 @@ decision, add a new entry that supersedes it and mark the old one
   exists, so a theme couldn't offer a spot for a suggested plugin's
   without the page failing when it was off. Named after `includeIf()`.
 - **Status:** Built (2026-10-13).
+
+### D-827: Admin themes are an extension kind: a skin of tokens in `tokens.json`
+
+- **Date:** 2026-10-13
+- **Status:** Built, in three stages (`roadmap.md`, "Admin themes"):
+  the tokens renamed, every color in `light-dark()`, `tokens.css` one
+  `:root` block; the kind, its tokens, stylesheets, and the account's
+  choice; and the Admin Themes screens. The author set the
+  admin's CSS size budget aside for this (2026-10-13). Amends
+  D-378's admin theme kind and supersedes D-317's fixed `AdminTheme`
+  enum, its `data-admin-theme` attribute, and `tokens.css`'s light and
+  dark blocks per theme.
+- **Decision:** from a discussion with the author.
+  - **A fourth kind:** `ExtensionKind::AdminTheme`, manifest
+    `admin-theme.json`, Composer package type `blush-admin-theme`,
+    running no code. It lives in `extensions/{vendor}/{name}` like every
+    kind (D-418) and has the shared manifest base. Its identity is its
+    `vendor/name`; it has no `namespace` property, since it has no
+    blocks, components, icons, or text.
+  - **A skin, never layout or behavior.** A theme ships data: its
+    tokens in `tokens.json` beside the manifest, and font files. No CSS,
+    no JS, no selectors. Blush checks every value against its token's
+    type and writes the stylesheet itself, so a theme can't hide, move,
+    or break anything; it can only set the tokens it's given. That is
+    also why it can be installed from a `.zip` (D-392).
+  - **`tokens.json` follows CSS:** groups named for what CSS calls
+    them, keys in camelCase as CSS properties are in script, values
+    written as CSS writes them (`"8px"`, `"-.014em"`, `500`):
+    - `color`: `background`; `surface` (`default`, `subtle`, `strong`);
+      `text` (`default`, `secondary`, `muted`); `accent` (`default`,
+      `hover`, `text`, `subtle`, `border`); `success`, `warning`,
+      `danger` (each `default`, `subtle`, `indicator`).
+    - `border`: `color` (`default`, `strong`), `radius` (`small`,
+      `medium`, `large`).
+    - `boxShadow`: `color`, at its strongest (a modal's wide layer).
+      Core keeps each shadow's geometry and builds the other layers
+      from it with `color-mix()` (5/9 and 4/9 of it), so light shadows
+      are as before and dark menus' are a little softer, in two
+      layers.
+    - `typography`: `fontFamily` (`ui`, `display`, `title`; a list of
+      family names, with a generic fallback added by Blush), `fontFace`
+      (a list, as `@font-face` has it: `fontFamily`, `src` inside the
+      theme's folder, woff2 only, `fontWeight`, `fontStyle`,
+      `unicodeRange`), `fontSize`, `fontWeight`, `letterSpacing`.
+    - `padding`: `row`, `panel`, `inline` (density).
+    - The names are a starting set and expected to change during
+      development.
+  - **Every color is one value, written with `light-dark()`**
+    (`"light-dark(#f6f2ec, #15120e)"`), or a single color for both
+    schemes; never separate light and dark properties. The admin's own
+    tokens do the same: `tokens.css` becomes one `:root` block, and the
+    color scheme is the `color-scheme` property alone (`light dark` by
+    default, `light` or `dark` under `data-color-scheme`), so a theme's
+    compiled `:root`, loaded after it, overrides it.
+  - **The CSS custom properties take the tokens' names:**
+    `color.surface.subtle` is `--color-surface-subtle` (a `default` key
+    drops from the name), `border.radius.small` is
+    `--border-radius-small`, `typography.fontSize.base` is
+    `--font-size-base`, `padding.inline` is `--padding-inline`. The
+    tokens a theme can't set (the space scale, layout widths, control
+    heights, the mono font, the media overlay) keep their names.
+  - **What a theme may set:** colors, families, and font faces freely;
+    radii, font sizes, weights, letter spacing, and padding within a
+    range for each (density and type count as skin, the author's call:
+    try it and see). Anything it leaves out is Neutral's.
+  - **Checked:** values that aren't of the token's type, out of range,
+    or files outside the theme's folder are refused; weak contrast
+    (text on the background and surfaces, accent text on the accent, in
+    both schemes) is warned of, not refused.
+  - **Neutral stays built in** (`tokens.css`, the base and the last
+    fallback, never deletable); **Editorial becomes an admin theme**
+    bundled with the framework, with its Karla and Newsreader files.
+  - **Choosing:** each account still picks its own (Your profile), from
+    the themes that are on, and may follow the site's default. On
+    **Extend → Admin Themes**, an owner or administrator turns themes
+    on and off and sets the site's default
+    (`extensions.admin-themes.{view, activate, install, delete}`; setting
+    the default is `activate`). The sign-in screen shows the site's
+    default. An account's theme that's turned off or removed falls back
+    to the default, then Neutral.
+  - **Previews** come from each theme's own colors, sent by the API and
+    drawn as the site themes' sketches are; the `--preview-*` tokens go.
+  - **Settled while building stage 2** (the details the plan left
+    open):
+    - **Neutral is a theme too,** `blush/neutral`, bundled with
+      Editorial in `resources/admin-themes`, so it's listed and chosen
+      like any other. Its `tokens.json` sets every token but the
+      families (its fonts are the platform's, D-568, which a list of
+      names can't say), and is what previews and contrast checks lay a
+      theme over; `NeutralTokensTest` keeps it equal to `tokens.css`.
+      Neutral links no stylesheet and sets no attribute, being the
+      admin's own. The framework's theme names can't be taken.
+    - **A theme's stylesheet** is scoped to
+      `:root[data-admin-theme="{name}"]`, which outweighs the admin's
+      `:root` whatever order the two load in (the app's on-demand
+      screen styles load after it), and served, with only the fonts
+      its `fontFace` names, at
+      `{path}/assets/admin-themes/{vendor}/{name}/theme.css`, versioned
+      by its contents; no session is needed.
+    - **Values are CSS strings,** checked: colors in hex, `rgb()`,
+      `hsl()`, `oklch()`, or `transparent` (no names, `var()`, or other
+      functions), lengths in `px`, letter spacing in `em`, weights as
+      numbers, and every key a token (a group's `default` may be the
+      group itself). The ranges are `AdminToken::range()`; Neutral's and
+      Editorial's values sit inside them. A family stack without a
+      generic family ends in `var(--font-system)`. Fonts are woff2, up
+      to 512 KB each.
+    - **Shadows:** `--box-shadow-color` is the color at its strongest
+      (a modal's wide layer); the other layers are 5/9 and 4/9 of it,
+      `color-mix()` with `transparent`.
+    - **Which are on:** `AdminThemeConfig` (`config/admin-themes.php`:
+      `enabled`, `saved`, `default`), as icon packs' (D-390, D-391): the
+      framework's and Composer's on, a local one when named, Neutral
+      always.
+    - **An account's choice** is a theme's name or `null` (follow the
+      default). Choosing the theme that's the default stores `null`, so
+      the account follows it if it changes; it's marked **Site
+      default**. A choice that isn't offered (off, removed, or its
+      requirements unmet) shows the default, then Neutral. The browser
+      no longer caches the theme for the sign-in screen, which shows the
+      default. Stored `neutral` or `editorial` values from before read
+      as `null`.
+    - **Contrast warnings** (`AdminThemeContrast`): text on the
+      background and surface (4.5:1), secondary text on the surface
+      (4.5:1), muted text on the surface (3:1), accent text on the
+      accent (4.5:1), the accent on the surface (3:1), and each status
+      color on its soft fill (4.5:1), in both schemes, skipping colors
+      with transparency. Neutral and Editorial pass.
+    - **`admin-theme:check`** checks them, and Site Health and `doctor`
+      warn of a theme that's on but can't be offered.
+  - **Settled while building stage 3** (the screens):
+    - **Extend → Admin Themes** (`AdminThemesView`, after Icon Packs) is
+      built from the Icon Packs screen's pieces, with no sketch of its
+      own: cards (or compact rows, each marked with the accent), the
+      filters, switches, the menu, install, and delete. Each card's
+      media is the admin in miniature (`AdminThemeSketch`, which also
+      replaced Your Account's swatch markup), from the theme's
+      `preview` colors, never by loading it.
+    - **Make Default** on a theme that's on saves `admin-themes.default`
+      (`PUT admin-themes/default`); the switches save
+      `admin-themes.enabled` (the `saved` list), both in the
+      `admin-themes` group, a boot group, over `config/admin-themes.php`,
+      each with a link back to config's. The default is marked **Site
+      default**; it and Neutral are locked on, and the default can't be
+      deleted, until another is chosen. The admin page follows a new
+      default at once (`followDefault()`); a theme turned on shows up in
+      Your Account's choice on the next load.
+    - **A theme's details** (`AdminThemeView`) show it in both schemes
+      (each sketch pinned with `color-scheme`), what it changes by group
+      of tokens and the fonts it brings, its contrast warnings (or that
+      its text is easy to read), then Details (no Namespace row:
+      `ExtensionFacts` leaves it out without one) and Dependencies, its
+      earlier version, and delete.
+    - **Capabilities:** `extensions.admin-themes.{view, install, update,
+      activate, delete}`, `activate` choosing the default too. None
+      changes code (D-500), so the administrator role has them all.
+- **Why:** the author wants admin themes as a real extension kind that
+  only reskins the admin, with standard, CSS-shaped tokens and colors in
+  `light-dark()`.

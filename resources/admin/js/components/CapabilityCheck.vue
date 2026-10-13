@@ -38,17 +38,17 @@ const emit = defineEmits<{ change: [on: boolean] }>();
 	gap: 10px;
 	min-width: 0;
 	padding: 7px 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	cursor: pointer;
 }
 
 .capability:hover {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .capability.is-off {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .capability.is-locked {
@@ -56,15 +56,15 @@ const emit = defineEmits<{ change: [on: boolean] }>();
 }
 
 .capability:not(.is-locked):hover .check-box {
-	border-color: var(--accent);
+	border-color: var(--color-accent);
 }
 
 /* A capability that's on but can't change stays the accent, faded, not
    the global gray: here it's most often one the role has through every
    type, or one you can't give. */
 .check-input:checked:disabled + .check-box {
-	border-color: var(--accent);
-	background: var(--accent);
+	border-color: var(--color-accent);
+	background: var(--color-accent);
 	opacity: .45;
 }
 
@@ -76,7 +76,7 @@ const emit = defineEmits<{ change: [on: boolean] }>();
 }
 
 .capability__from {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .capability__key {
@@ -84,9 +84,9 @@ const emit = defineEmits<{ change: [on: boolean] }>();
 	flex: none;
 	margin-left: auto;
 	padding-left: var(--s-3);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-2xs);
+	font-size: var(--font-size-xxsmall);
 }
 
 .sections--keys .capability__key {

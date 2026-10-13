@@ -99,6 +99,7 @@ function linkOf(item: HealthCheck): object | null {
 		case 'themes':
 		case 'plugins':
 		case 'icon-packs':
+		case 'admin-themes':
 			return can(`extensions.${item.link}.view`) ? { name: item.link } : null;
 		case 'account':
 			return { name: 'account', params: { username: session.account?.username ?? '' } };
@@ -324,15 +325,15 @@ onMounted(() => {
 }
 
 .site-health__value {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .site-health__why {
 	display: block;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	overflow-wrap: anywhere;
 }
 

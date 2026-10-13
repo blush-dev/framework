@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\AdminTheme\AdminThemeConfig;
 use Blush\Api\ApiAccess;
 use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
@@ -107,6 +108,8 @@ enum Setting: string
 	case Theme            = 'theme.active';
 	case Plugins          = 'plugins.enabled';
 	case IconPacks        = 'icons.enabled';
+	case AdminThemes      = 'admin-themes.enabled';
+	case AdminThemeDefault = 'admin-themes.default';
 
 	/**
 	 * The most entries a feed may hold.
@@ -163,7 +166,8 @@ enum Setting: string
 	public function screen(): ?SettingsScreen
 	{
 		return match ($this) {
-			self::Theme, self::Plugins, self::IconPacks                   => null,
+			self::Theme, self::Plugins, self::IconPacks,
+			self::AdminThemes, self::AdminThemeDefault                    => null,
 			self::Name, self::Description, self::Email, self::Locale, self::Untranslated,
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
@@ -236,7 +240,9 @@ enum Setting: string
 			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.'),
 			self::Theme           => new TextField('active')->labeled('Theme'),
 			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
-			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on')
+			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on'),
+			self::AdminThemes     => new ListField('enabled')->labeled('Admin themes turned on'),
+			self::AdminThemeDefault => new TextField('default')->labeled('The site\'s admin theme')
 		};
 
 		// A screen's fields are one schema, so a key an earlier setting on
@@ -356,7 +362,7 @@ enum Setting: string
 	public function configKey(): string
 	{
 		return match ($this) {
-			self::Plugins, self::IconPacks => 'saved',
+			self::Plugins, self::IconPacks, self::AdminThemes => 'saved',
 			self::FeedContent              => 'content',
 			default                        => $this->key()
 		};
@@ -378,6 +384,7 @@ enum Setting: string
 			'theme'   => ThemeConfig::class,
 			'plugins' => PluginConfig::class,
 			'icons'   => IconConfig::class,
+			'admin-themes' => AdminThemeConfig::class,
 			'llms'    => LlmsConfig::class,
 			'api'     => ApiConfig::class,
 			'mcp'     => McpConfig::class,
@@ -441,6 +448,8 @@ enum Setting: string
 			self::Theme           => self::theme($value),
 			self::Plugins         => self::names($value, 'plugins'),
 			self::IconPacks       => self::names($value, 'icon packs'),
+			self::AdminThemes     => self::names($value, 'admin themes'),
+			self::AdminThemeDefault => self::adminTheme($value),
 			self::Embeds          => self::providers($value),
 			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
 		};
@@ -618,6 +627,16 @@ enum Setting: string
 		return is_string($value) && ExtensionName::isValid($value)
 			? $value
 			: throw new InvalidSetting('The theme must be a theme\'s name (vendor/name), such as "acme/nova".');
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function adminTheme(mixed $value): string
+	{
+		return is_string($value) && ExtensionName::isValid($value)
+			? $value
+			: throw new InvalidSetting('The site\'s admin theme must be an admin theme\'s name (vendor/name), such as "blush/editorial".');
 	}
 
 	/**

@@ -54,10 +54,11 @@ final class ExtensionNamespacesTest extends TestCase
 
 	public function testKindsHaveTheirOwnManifestsAndPackageTypes(): void
 	{
-		$this->assertSame(['plugin', 'theme', 'icons'], array_map(static fn (ExtensionKind $kind): string => $kind->manifest(), ExtensionKind::cases()));
-		$this->assertSame(['blush-plugin', 'blush-theme', 'blush-icons'], array_map(static fn (ExtensionKind $kind): string => $kind->packageType(), ExtensionKind::cases()));
+		$this->assertSame(['plugin', 'theme', 'icons', 'admin-theme'], array_map(static fn (ExtensionKind $kind): string => $kind->manifest(), ExtensionKind::cases()));
+		$this->assertSame(['blush-plugin', 'blush-theme', 'blush-icons', 'blush-admin-theme'], array_map(static fn (ExtensionKind $kind): string => $kind->packageType(), ExtensionKind::cases()));
 		$this->assertTrue(ExtensionKind::Theme->runsCode(), 'Themes can run PHP.');
 		$this->assertFalse(ExtensionKind::IconPack->runsCode());
+		$this->assertFalse(ExtensionKind::AdminTheme->runsCode(), 'Admin themes are data (D-827).');
 	}
 
 	public function testNamesAreVendorSlashName(): void

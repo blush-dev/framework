@@ -252,19 +252,19 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 	display: grid;
 	grid-template-columns: repeat(6, 1fr);
 	gap: 1px;
-	background: var(--border);
+	background: var(--border-color);
 }
 
 .glyphs > span {
 	display: grid;
 	place-items: center;
 	aspect-ratio: 1;
-	background: var(--surface-2);
-	color: var(--fg-2);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
 }
 
 .is-off .glyphs > span {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .glyphs__glyph {
@@ -284,9 +284,9 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 }
 
 .glyphs__more {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-2xs);
+	font-size: var(--font-size-xxsmall);
 }
 
 .glyphs--placeholder,
@@ -296,9 +296,9 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 	justify-content: center;
 	gap: var(--s-2);
 	aspect-ratio: 3 / 1;
-	background: var(--surface-2);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .glyphs--broken .icon {

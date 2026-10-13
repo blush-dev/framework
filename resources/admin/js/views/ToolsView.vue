@@ -510,11 +510,11 @@ onMounted(() => {
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: start;
 	gap: 0 16px;
-	padding: var(--pad-row) var(--pad-x);
+	padding: var(--padding-row) var(--padding-inline);
 }
 
 .tool + .tool {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .tool__text {
@@ -528,14 +528,14 @@ onMounted(() => {
 }
 
 .tool__asks {
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	font-weight: 400;
 }
 
 .tool__description {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .tool__result {
@@ -574,12 +574,12 @@ onMounted(() => {
 .tools__log {
 	max-height: 60vh;
 	margin: 0;
-	padding: var(--s-4) var(--pad-x);
+	padding: var(--s-4) var(--padding-inline);
 	overflow: auto;
 	list-style: none;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	line-height: 2;
 }
 
@@ -600,7 +600,7 @@ summary.tools__line::-webkit-details-marker {
 }
 
 summary.tools__line:hover .tools__message {
-	color: var(--fg);
+	color: var(--color-text);
 }
 
 .tools__message {
@@ -611,7 +611,7 @@ summary.tools__line:hover .tools__message {
 /* An entry with a trace says so after its message, and opens to show it. */
 summary.tools__line .tools__message::after {
 	content: " …";
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .tools__entry[open] .tools__message {
@@ -623,21 +623,21 @@ summary.tools__line .tools__message::after {
 	margin: 2px 0 var(--s-2) 2ch;
 	padding-left: var(--s-3);
 	overflow-x: auto;
-	border-left: 1px solid var(--border);
-	color: var(--fg-3);
+	border-left: 1px solid var(--border-color);
+	color: var(--color-text-muted);
 	font: inherit;
 }
 
 .tools__time,
 .is-info {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .is-error {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .is-warn {
-	color: var(--warn);
+	color: var(--color-warning);
 }
 </style>

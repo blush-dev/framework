@@ -201,10 +201,10 @@ defineExpose({ move, choose, focus });
 <style scoped>
 .inserter__note {
 	margin: 0;
-	padding: var(--s-2) var(--pad-x);
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: var(--s-2) var(--padding-inline);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .inserter {
@@ -216,8 +216,8 @@ defineExpose({ move, choose, focus });
 }
 
 .inserter__count {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 /* One band, one control: the grid's headings already show the
@@ -227,9 +227,9 @@ defineExpose({ move, choose, focus });
 	flex: none;
 	align-items: center;
 	gap: 11px;
-	padding: 14px var(--pad-x);
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-3);
+	padding: 14px var(--padding-inline);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-muted);
 }
 
 .inserter__search input {
@@ -237,7 +237,7 @@ defineExpose({ move, choose, focus });
 	min-width: 0;
 	border: 0;
 	background: none;
-	color: var(--fg);
+	color: var(--color-text);
 	outline: none;
 }
 
@@ -271,8 +271,8 @@ defineExpose({ move, choose, focus });
 	align-items: center;
 	gap: 9px;
 	padding: var(--s-3) 5px;
-	border-radius: var(--r-2);
-	color: var(--fg-2);
+	border-radius: var(--border-radius-medium);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 	transition: background 100ms, color 100ms;
 }
@@ -284,18 +284,18 @@ defineExpose({ move, choose, focus });
 }
 
 .inserter__tile:hover {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .inserter__tile.is-active {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 .inserter__name {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	font-weight: 500;
 	line-height: 1.35;
 	text-align: center;
@@ -304,22 +304,22 @@ defineExpose({ move, choose, focus });
 }
 
 .inserter__tile.is-active .inserter__name {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .inserter__source {
 	padding: 2px 8px;
 	border-radius: 99px;
-	background: var(--warn-soft);
-	color: var(--warn);
-	font-size: var(--text-2xs);
+	background: var(--color-warning-subtle);
+	color: var(--color-warning);
+	font-size: var(--font-size-xxsmall);
 	font-weight: 500;
 }
 
 .inserter__empty {
 	padding: 32px 10px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	line-height: 1.6;
 	text-align: center;
 }
@@ -329,9 +329,9 @@ defineExpose({ move, choose, focus });
 	flex: none;
 	gap: 4px;
 	min-height: 76px;
-	padding: var(--s-4) var(--pad-x);
-	border-top: 1px solid var(--border);
-	background: var(--bg);
+	padding: var(--s-4) var(--padding-inline);
+	border-top: 1px solid var(--border-color);
+	background: var(--color-background);
 }
 
 .inserter__preview-title {
@@ -339,21 +339,21 @@ defineExpose({ move, choose, focus });
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px;
-	color: var(--fg);
-	font-size: var(--text-sm);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 }
 
 .inserter__preview-text {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	line-height: 1.5;
 }
 
 .inserter__preview-hint {
 	margin-top: 4px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 @media (width <= 640px) {

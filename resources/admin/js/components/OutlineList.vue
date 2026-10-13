@@ -91,32 +91,32 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 	padding: 7px 10px 7px calc(10px + var(--depth) * 13px);
 	overflow: hidden;
 	border: 0;
-	border-radius: var(--r-1);
-	background: repeating-linear-gradient(to right, var(--border-strong) 0 1px, transparent 1px 13px) 15px 4px / calc(var(--depth) * 13px) calc(100% - 8px) no-repeat;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	border-radius: var(--border-radius-small);
+	background: repeating-linear-gradient(to right, var(--border-color-strong) 0 1px, transparent 1px 13px) 15px 4px / calc(var(--depth) * 13px) calc(100% - 8px) no-repeat;
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	text-align: left;
 	cursor: pointer;
 }
 
 .outline__row:hover {
-	background-color: var(--surface-2);
-	color: var(--fg);
+	background-color: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .outline__row.is-current {
-	background-color: var(--accent-soft);
+	background-color: var(--color-accent-subtle);
 }
 
 .outline__row svg {
 	flex: none;
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .outline__row.is-current svg {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 /* The type name is a quiet column; the excerpt flows out of it, and both
@@ -126,35 +126,35 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 	min-width: 74px;
 	max-width: 50%;
 	overflow: hidden;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .outline__row.is-placed .outline__name,
 .outline__row.is-current .outline__name {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .outline__text {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .outline__row:hover .outline__text {
-	color: var(--fg);
+	color: var(--color-text);
 }
 .outline__row svg.outline__stray {
-	color: var(--warn);
+	color: var(--color-warning);
 }
 
 .outline__row.is-stray .outline__text {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 </style>

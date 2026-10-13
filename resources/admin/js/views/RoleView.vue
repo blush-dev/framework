@@ -346,11 +346,11 @@ guardLeave(() => changed.value);
 	width: 22px;
 	height: 22px;
 	margin-right: -6px;
-	border: 2px solid var(--bg);
+	border: 2px solid var(--color-background);
 	border-radius: 50%;
-	background: var(--surface-3);
-	color: var(--fg-2);
-	font-size: var(--text-2xs);
+	background: var(--color-surface-strong);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xxsmall);
 	font-weight: 600;
 }
 
@@ -376,27 +376,27 @@ guardLeave(() => changed.value);
 	display: flex;
 	align-items: flex-start;
 	gap: var(--s-4);
-	padding: var(--s-6) var(--pad-x);
+	padding: var(--s-6) var(--padding-inline);
 }
 
 .role__everything > svg {
 	width: 20px;
 	height: 20px;
 	margin-top: 2px;
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .role__everything h3 {
-	font-family: var(--font-display);
-	font-size: var(--h2);
+	font-family: var(--font-family-display);
+	font-size: var(--font-size-panel-title);
 	font-weight: 600;
 }
 
 .role__everything p {
 	max-width: 64ch;
 	margin-top: 7px;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	line-height: 1.6;
 }
 

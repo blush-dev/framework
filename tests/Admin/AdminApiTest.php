@@ -24,7 +24,6 @@ use Blush\Admin\ProfileController;
 use Blush\Admin\SessionController;
 use Blush\Auth\Accounts;
 use Blush\Auth\Authenticator;
-use Blush\Auth\AdminTheme;
 use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Auth\LoginThrottle;
@@ -146,29 +145,30 @@ final class AdminApiTest extends TestCase
 		$token = self::json($this->login())['csrfToken'] ?? null;
 		$this->assertIsString($token);
 
-		$this->assertSame(['colorScheme' => 'system', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null);
+		$this->assertSame(['colorScheme' => 'system', 'adminTheme' => null, 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null);
 
 		$answer = $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => $token]);
 
 		$this->assertSame(200, $answer->getStatusCode());
-		$this->assertSame(['preferences' => ['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null]], self::json($answer));
+		$this->assertSame(['preferences' => ['colorScheme' => 'dark', 'adminTheme' => null, 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null]], self::json($answer));
 		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(Accounts::class)->find('jane')?->preferences->colorScheme);
-		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
+		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => null, 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
 
-		$this->send('PATCH', '/preferences', '{"adminTheme": "editorial"}', ['X-CSRF-Token' => $token]);
+		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/editorial"}', ['X-CSRF-Token' => $token]);
 
 		$saved = $this->app->container()->make(Accounts::class)->find('jane');
 
 		$this->assertNotNull($saved);
-		$this->assertSame(AdminTheme::Editorial, $saved->preferences->adminTheme);
+		$this->assertSame('blush/editorial', $saved->preferences->adminTheme);
 		$this->assertSame(ColorScheme::Dark, $saved->preferences->colorScheme, 'One preference leaves the other.');
 		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"adminTheme": "loud"}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"adminTheme": "acme/missing"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a theme that\'s offered.');
 
 		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"colorScheme": "purple"}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(400, $this->send('PATCH', '/preferences', '"dark"', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('PATCH', '/preferences', '{"colorScheme": "light"}')->getStatusCode(), 'CSRF is checked.');
 
-		$this->send('PATCH', '/preferences', '{"colorScheme": "system", "adminTheme": "neutral"}', ['X-CSRF-Token' => $token]);
+		$this->send('PATCH', '/preferences', '{"colorScheme": "system", "adminTheme": null}', ['X-CSRF-Token' => $token]);
 		$file = (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json');
 
 		$this->assertStringNotContainsString('preferences', $file, 'Defaults aren\'t stored.');

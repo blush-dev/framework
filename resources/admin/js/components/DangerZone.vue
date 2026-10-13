@@ -24,17 +24,17 @@ defineProps<{
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
+	padding: var(--s-4) var(--padding-inline);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-large);
+	background: var(--color-surface);
 }
 
 .danger-zone__text {
 	flex: 1 1 20rem;
 	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .danger-zone__actions {

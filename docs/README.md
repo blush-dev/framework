@@ -30,11 +30,12 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 | [The API](api.md) | Your site as JSON, for other front ends, apps, and AI tools |
 | [AI apps and MCP](mcp.md) | Connecting Claude, ChatGPT, and other AI apps to work on your site, and undoing what they change |
 | [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
+| [Admin themes](admin-themes.md) | Choosing how the admin looks, and making a theme for it |
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, and webhooks |
 | [Command line](cli.md) | Every `bin/blush` command |
-| [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins and icon packs |
+| [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins, icon packs, and admin themes |
 | [Coming from Blush 1.x](coming-from-1x.md) | What carries over and what changed |
 
 ## How a Blush site is laid out

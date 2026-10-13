@@ -466,7 +466,7 @@ final readonly class SiteHealth
 	 */
 	private function site(): array
 	{
-		$links  = ['theme' => 'themes', 'plugins' => 'plugins', 'icon-packs' => 'icon-packs', 'owner' => 'account'];
+		$links  = ['theme' => 'themes', 'plugins' => 'plugins', 'icon-packs' => 'icon-packs', 'admin-themes' => 'admin-themes', 'owner' => 'account'];
 		$checks = [];
 
 		foreach ($this->checks->byArea() as $area => $results) {

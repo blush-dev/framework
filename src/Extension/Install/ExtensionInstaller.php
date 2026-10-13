@@ -19,6 +19,9 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Throwable;
 use ZipArchive;
+use Blush\AdminTheme\AdminTheme;
+use Blush\AdminTheme\AdminThemeDiscovery;
+use Blush\AdminTheme\AdminThemeSource;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
@@ -295,9 +298,10 @@ final readonly class ExtensionInstaller
 	{
 		try {
 			return match ($kind) {
-				ExtensionKind::Plugin   => $this->plugin($folder),
-				ExtensionKind::Theme    => $this->theme($folder),
-				ExtensionKind::IconPack => $this->pack($folder)
+				ExtensionKind::Plugin     => $this->plugin($folder),
+				ExtensionKind::Theme      => $this->theme($folder),
+				ExtensionKind::IconPack   => $this->pack($folder),
+				ExtensionKind::AdminTheme => $this->adminTheme($folder)
 			};
 		} catch (ExtensionException | ThemeException $error) {
 			$reason = str_replace($folder, $kind->manifest(), $error->getMessage());
@@ -341,6 +345,23 @@ final readonly class ExtensionInstaller
 	}
 
 	/**
+	 * Reads an admin theme, which has no namespace (D-827) and may not
+	 * take a framework admin theme's name.
+	 *
+	 * @throws ExtensionException
+	 */
+	private function adminTheme(string $folder): ExtensionPackage
+	{
+		$theme = AdminTheme::fromArray($folder, ManifestFile::load($folder, ExtensionKind::AdminTheme));
+
+		if (new AdminThemeDiscovery($this->paths)->discover()->find($theme->name)?->source === AdminThemeSource::Framework) {
+			throw new ExtensionException(sprintf('"%s" is a framework admin theme\'s name.', $theme->name));
+		}
+
+		return new ExtensionPackage(ExtensionKind::AdminTheme, $theme->name, (string) $this->text->label($theme), '', $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
+	}
+
+	/**
 	 * Checks the unpacked extension against the site, and returns the
 	 * installed one with its name, if any.
 	 *
@@ -365,7 +386,7 @@ final readonly class ExtensionInstaller
 				}
 
 				$existing = $package;
-			} elseif ($package->namespace === $incoming->namespace) {
+			} elseif ($incoming->namespace !== '' && $package->namespace === $incoming->namespace) {
 				throw new InstallException(sprintf('%s can\'t be installed: its namespace, "%s", is the %s %s\'s.', $name, $incoming->namespace, $package->kind->label(), $package->name));
 			}
 		}
@@ -431,6 +452,10 @@ final readonly class ExtensionInstaller
 
 		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
 			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, (string) $this->text->label($pack), $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path));
+		}
+
+		foreach (new AdminThemeDiscovery($this->paths)->discover()->all() as $adminTheme) {
+			$packages[] = new ExtensionPackage(ExtensionKind::AdminTheme, $adminTheme->name, (string) $this->text->label($adminTheme), '', $adminTheme->version, $adminTheme->path, $adminTheme->source === AdminThemeSource::Local && LocalExtensions::contains($this->paths, $adminTheme->path));
 		}
 
 		return $packages;
@@ -521,10 +546,10 @@ final readonly class ExtensionInstaller
 	}
 
 	/**
-	 * "a plugin", "a theme", "an icon pack".
+	 * "a plugin", "a theme", "an icon pack", "an admin theme".
 	 */
 	private static function a(ExtensionKind $kind): string
 	{
-		return ($kind === ExtensionKind::IconPack ? 'an ' : 'a ') . $kind->label();
+		return ($kind === ExtensionKind::IconPack || $kind === ExtensionKind::AdminTheme ? 'an ' : 'a ') . $kind->label();
 	}
 }

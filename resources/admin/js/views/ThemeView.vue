@@ -242,8 +242,8 @@ async function remove(): Promise<void> {
 }
 
 .theme-appearance .sketch {
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
 }
 
 .theme-appearance figcaption {
@@ -268,26 +268,26 @@ async function remove(): Promise<void> {
 	gap: var(--s-2);
 	min-width: 0;
 	padding: 2px 0;
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .palette-legend i {
 	width: 16px;
 	height: 16px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
 }
 
 .palette-legend dt {
 	overflow: hidden;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .palette-legend dd {
 	margin: 0;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 @media (width <= 600px) {

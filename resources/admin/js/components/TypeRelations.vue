@@ -156,14 +156,14 @@ async function remove(relation: RelationInfo): Promise<void> {
 
 .type-relations__sub {
 	display: block;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .type-relations__key-text {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	overflow-wrap: anywhere;
 }
 
@@ -172,7 +172,7 @@ async function remove(relation: RelationInfo): Promise<void> {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--s-2);
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .type-relations__takes-text .icon,
@@ -180,11 +180,11 @@ async function remove(relation: RelationInfo): Promise<void> {
 	flex: none;
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .type-relations__code {
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 </style>

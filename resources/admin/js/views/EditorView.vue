@@ -3560,8 +3560,8 @@ function fieldKey(field: FieldDescription): string {
 	gap: 10px;
 	min-height: 68px;
 	padding: var(--s-3) var(--s-5);
-	border-bottom: 1px solid var(--border);
-	background: var(--surface);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface);
 }
 
 /* The most used toolbar in the admin: bigger targets, further apart. */
@@ -3590,12 +3590,12 @@ function fieldKey(field: FieldDescription): string {
 .editor__head :deep(.editor__wide .editor__caret) {
 	width: 12px;
 	height: 12px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .editor__head :deep(.is-on) {
-	background: var(--accent-soft);
-	color: var(--accent);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
 }
 
 /* Moving an element: two stacked chevrons, one control. */
@@ -3613,19 +3613,19 @@ function fieldKey(field: FieldDescription): string {
 	height: 17px;
 	padding: 0;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	cursor: pointer;
 }
 
 .editor__spin-button:hover:not(:disabled) {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .editor__spin-button:disabled {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	opacity: .5;
 	cursor: default;
 }
@@ -3650,7 +3650,7 @@ function fieldKey(field: FieldDescription): string {
 	width: 1px;
 	height: 22px;
 	margin: 0 var(--s-1);
-	background: var(--border);
+	background: var(--border-color);
 }
 
 .editor__grow {
@@ -3666,10 +3666,10 @@ function fieldKey(field: FieldDescription): string {
 	align-items: center;
 	gap: var(--s-3);
 	padding: 12px var(--s-5);
-	border-bottom: 1px solid var(--border);
-	background: var(--warn-soft);
-	color: var(--warn);
-	font-size: var(--text-sm);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-warning-subtle);
+	color: var(--color-warning);
+	font-size: var(--font-size-small);
 }
 
 .editor__notice > svg {
@@ -3691,13 +3691,13 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__notice--danger {
-	background: var(--danger-soft);
-	color: var(--danger);
+	background: var(--color-danger-subtle);
+	color: var(--color-danger);
 }
 
 .editor__notice--good {
-	background: var(--good-soft);
-	color: var(--good);
+	background: var(--color-success-subtle);
+	color: var(--color-success);
 }
 
 /* The column, and the drawer that pushes it aside. */
@@ -3715,7 +3715,7 @@ function fieldKey(field: FieldDescription): string {
 	flex-direction: column;
 	min-width: 0;
 	min-height: 0;
-	background: var(--surface);
+	background: var(--color-surface);
 }
 
 .editor__scroll {
@@ -3738,9 +3738,9 @@ function fieldKey(field: FieldDescription): string {
 	overflow: hidden;
 	border: 0;
 	background: none;
-	color: var(--fg);
-	font-family: var(--font-display);
-	font-size: var(--doc-title);
+	color: var(--color-text);
+	font-family: var(--font-family-display);
+	font-size: var(--font-size-editor-title);
 	font-weight: 600;
 	letter-spacing: -.028em;
 	line-height: 1.18;
@@ -3750,7 +3750,7 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__title::placeholder {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	opacity: .6;
 }
 
@@ -3759,7 +3759,7 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__title[aria-invalid="true"] {
-	text-decoration: underline wavy var(--danger-dot);
+	text-decoration: underline wavy var(--color-danger-indicator);
 	text-decoration-skip-ink: none;
 	text-underline-offset: .2em;
 }
@@ -3786,10 +3786,10 @@ function fieldKey(field: FieldDescription): string {
 	align-items: center;
 	gap: var(--s-2);
 	padding: 11px var(--s-5);
-	border-top: 1px solid var(--border);
-	background: var(--surface);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .editor__sep {
@@ -3842,10 +3842,10 @@ function fieldKey(field: FieldDescription): string {
 	padding: 3px 6px;
 	overflow: hidden;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	cursor: pointer;
@@ -3856,17 +3856,17 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__crumb:hover {
-	background: var(--surface-2);
-	color: var(--fg);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
 }
 
 .editor__crumb.is-here {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .editor__crumb.is-placed {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .editor__crumb :deep(svg),
@@ -3880,7 +3880,7 @@ function fieldKey(field: FieldDescription): string {
 	flex: none;
 	width: 11px;
 	height: 11px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .editor__chip {
@@ -3889,19 +3889,19 @@ function fieldKey(field: FieldDescription): string {
 	gap: 6px;
 	margin-left: 8px;
 	padding: 2px 8px;
-	border: 1px solid var(--accent-line);
+	border: 1px solid var(--color-accent-border);
 	border-radius: 99px;
-	background: var(--accent-soft);
-	color: var(--accent);
-	font-size: var(--text-xs);
+	background: var(--color-accent-subtle);
+	color: var(--color-accent);
+	font-size: var(--font-size-xsmall);
 	font-weight: 500;
 	cursor: pointer;
 }
 
 .editor__chip:hover {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: var(--accent-fg);
+	border-color: var(--color-accent);
+	background: var(--color-accent);
+	color: var(--color-accent-text);
 }
 
 .editor__chip svg {
@@ -3931,13 +3931,13 @@ function fieldKey(field: FieldDescription): string {
 	width: 0;
 	min-height: 0;
 	overflow: hidden;
-	background: var(--surface);
+	background: var(--color-surface);
 	transition: width 180ms ease;
 }
 
 .editor__inserter:not([inert]) {
 	width: var(--inserter);
-	border-right: 1px solid var(--border);
+	border-right: 1px solid var(--border-color);
 }
 
 /* Settings push the column aside, so nothing is hidden behind them. */
@@ -3947,13 +3947,13 @@ function fieldKey(field: FieldDescription): string {
 	width: 0;
 	min-height: 0;
 	overflow: hidden;
-	background: var(--surface);
+	background: var(--color-surface);
 	transition: width 180ms ease;
 }
 
 .is-side-open .editor__side {
 	width: var(--drawer);
-	border-left: 1px solid var(--border);
+	border-left: 1px solid var(--border-color);
 }
 
 .editor__side-inner {
@@ -3979,7 +3979,7 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__pinned {
 	margin-top: auto;
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 /* The group right above the rows leaves the line to them, so a long
@@ -4005,8 +4005,8 @@ function fieldKey(field: FieldDescription): string {
 	align-items: center;
 	gap: var(--s-1);
 	padding-right: var(--s-3);
-	border-bottom: 1px solid var(--border);
-	background: var(--surface);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface);
 }
 
 .editor__tablist {
@@ -4043,8 +4043,8 @@ function fieldKey(field: FieldDescription): string {
 	justify-items: center;
 	gap: 6px;
 	padding: 52px var(--s-5) 46px;
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-2);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-secondary);
 	text-align: center;
 }
 
@@ -4052,20 +4052,20 @@ function fieldKey(field: FieldDescription): string {
 	width: 22px;
 	height: 22px;
 	margin-bottom: 6px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .editor__none-heading {
-	color: var(--fg);
-	font-family: var(--font-display);
-	font-size: var(--h2);
+	color: var(--color-text);
+	font-family: var(--font-family-display);
+	font-size: var(--font-size-panel-title);
 	font-weight: 600;
 }
 
 .editor__none-text {
 	max-width: 34ch;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	line-height: 1.6;
 }
 
@@ -4076,10 +4076,10 @@ function fieldKey(field: FieldDescription): string {
 	gap: var(--s-2);
 	margin: 0;
 	padding: var(--s-3) var(--s-5);
-	border-bottom: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	line-height: 1.5;
 }
 
@@ -4088,12 +4088,12 @@ function fieldKey(field: FieldDescription): string {
 	width: 13px;
 	height: 13px;
 	margin-top: 2px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .editor__group-type {
 	margin-left: var(--s-1);
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-weight: 400;
 	letter-spacing: 0;
 	text-transform: none;
@@ -4105,7 +4105,7 @@ function fieldKey(field: FieldDescription): string {
 	gap: 6px;
 	align-self: flex-start;
 	margin-top: var(--s-2);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-weight: 500;
 }
 
@@ -4126,8 +4126,8 @@ function fieldKey(field: FieldDescription): string {
 	align-items: baseline;
 	gap: var(--s-3);
 	padding: 9px 0;
-	border-bottom: 1px solid var(--border);
-	font-size: var(--text-sm);
+	border-bottom: 1px solid var(--border-color);
+	font-size: var(--font-size-small);
 }
 
 .editor__facts div:last-child {
@@ -4137,26 +4137,26 @@ function fieldKey(field: FieldDescription): string {
 .editor__facts dt {
 	flex: none;
 	width: 92px;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .editor__facts dd {
 	min-width: 0;
 	margin: 0;
-	color: var(--fg);
+	color: var(--color-text);
 	overflow-wrap: anywhere;
 }
 
 .editor__facts dd a {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 
 .editor__facts .mono {
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 }
 
 .editor__dim {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* The entry's settings as label → value rows (admin.md §8, The document
@@ -4178,8 +4178,8 @@ function fieldKey(field: FieldDescription): string {
 	flex: none;
 	width: 84px;
 	padding-left: 8px;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .settings__row dd {
@@ -4207,11 +4207,11 @@ function fieldKey(field: FieldDescription): string {
 	margin: 0;
 	padding: 7px 8px;
 	border: 0;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--accent);
+	color: var(--color-accent);
 	font: inherit;
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	text-align: left;
 	cursor: pointer;
 }
@@ -4224,19 +4224,19 @@ function fieldKey(field: FieldDescription): string {
 .settings__row :deep(.settings__value[aria-expanded="true"]),
 .settings__row :deep(.date:hover),
 .settings__row :deep(.date[aria-expanded="true"]) {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 /* Status says its state in its own ink, never color alone: an icon and a
    word go with it. */
 .settings__row :deep(.settings__value--published),
 .settings__value--published {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .settings__row :deep(.settings__value--draft),
 .settings__value--draft {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 }
 
 .settings__row :deep(.settings__value svg),
@@ -4258,7 +4258,7 @@ function fieldKey(field: FieldDescription): string {
 	width: 13px;
 	height: 13px;
 	margin-left: auto;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .settings__input {
@@ -4267,25 +4267,25 @@ function fieldKey(field: FieldDescription): string {
 	min-width: 0;
 	padding: 7px 8px;
 	border: 1px solid transparent;
-	border-radius: var(--r-1);
+	border-radius: var(--border-radius-small);
 	background: none;
-	color: var(--accent);
-	font-size: var(--text-sm);
+	color: var(--color-accent);
+	font-size: var(--font-size-small);
 }
 
 .settings__input:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .settings__input:focus-visible {
-	border-color: var(--accent);
+	border-color: var(--color-accent);
 	outline: none;
-	background: var(--surface);
-	box-shadow: 0 0 0 3px var(--accent-soft);
+	background: var(--color-surface);
+	box-shadow: 0 0 0 3px var(--color-accent-subtle);
 }
 
 .settings__input[aria-invalid="true"] {
-	border-color: var(--danger);
+	border-color: var(--color-danger);
 }
 
 /* In the drawer, typed-into fields are filled wells, as the panel's
@@ -4293,23 +4293,23 @@ function fieldKey(field: FieldDescription): string {
 .editor__side :deep(.field input:not([type="checkbox"])),
 .editor__side :deep(.field textarea),
 .editor__side :deep(.select__button:not(.select__button--plain)) {
-	border-color: var(--border);
-	background: var(--bg);
-	font-size: var(--text-sm);
+	border-color: var(--border-color);
+	background: var(--color-background);
+	font-size: var(--font-size-small);
 }
 
 .editor__side :deep(.field input:not([type="checkbox"]):focus-visible),
 .editor__side :deep(.field textarea:focus-visible) {
-	border-color: var(--accent);
-	background: var(--surface);
-	box-shadow: 0 0 0 3px var(--accent-soft);
+	border-color: var(--color-accent);
+	background: var(--color-surface);
+	box-shadow: 0 0 0 3px var(--color-accent-subtle);
 }
 
 /* A quiet line under a group, tucked up to what it describes. */
 .editor__group-note {
 	margin-top: -11px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	line-height: 1.5;
 }
 

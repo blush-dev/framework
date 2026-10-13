@@ -16,9 +16,9 @@ namespace Blush\Admin;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\AdminTheme\AdminThemes;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
-use Blush\Auth\AdminTheme;
 use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Http\Response;
@@ -28,7 +28,8 @@ use Blush\Http\Status;
  * Answers `PATCH {path}/api/preferences` (D-235): changes the signed-in
  * account's own preferences, which any account may do, and answers with
  * all of them: `colorScheme` (`system`, `light`, or `dark`),
- * `adminTheme`, `setupSkipped` (D-539), and `shortcuts` (D-547, a list
+ * `adminTheme` (an offered admin theme's name, or `null` to follow the
+ * site's default, D-827), `setupSkipped` (D-539), and `shortcuts` (D-547, a list
  * of screen ids, or `null` for the default); preferences not sent are left
  * as they are. The entry last saved (`lastEdited`) is written by saving
  * one, not here.
@@ -36,7 +37,8 @@ use Blush\Http\Status;
 final readonly class PreferencesController
 {
 	public function __construct(
-		private Accounts $accounts
+		private Accounts $accounts,
+		private AdminThemes $themes
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -70,10 +72,10 @@ final readonly class PreferencesController
 		}
 
 		if (array_key_exists('adminTheme', $input)) {
-			$theme = is_string($input['adminTheme']) ? AdminTheme::tryFrom($input['adminTheme']) : null;
+			$theme = $input['adminTheme'];
 
-			if ($theme === null) {
-				return self::json(['error' => '"adminTheme" must be neutral or editorial.'], Status::BadRequest);
+			if ($theme !== null && (! is_string($theme) || ! $this->themes->isOffered($theme))) {
+				return self::json(['error' => '"adminTheme" must be null, to follow the site\'s default, or the name of an admin theme that\'s turned on.'], Status::BadRequest);
 			}
 
 			$preferences = $preferences->withAdminTheme($theme);

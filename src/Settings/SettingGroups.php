@@ -52,9 +52,10 @@ final class SettingGroups
 
 	/**
 	 * The groups the bootstrap reads before the container: the site's
-	 * language and time, and the theme, plugins, and icon packs that boot.
+	 * language and time, and the theme, plugins, icon packs, and admin
+	 * themes that boot.
 	 */
-	public const array BOOT = ['app', 'theme', 'plugins', 'icons'];
+	public const array BOOT = ['app', 'theme', 'plugins', 'icons', 'admin-themes'];
 
 	/**
 	 * Site Health's group.

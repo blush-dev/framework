@@ -110,8 +110,8 @@ function siteCount(role: RoleInfo): string {
 
 <style scoped>
 .roles__description {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .roles__capabilities {
@@ -120,8 +120,8 @@ function siteCount(role: RoleInfo): string {
 
 .roles__site {
 	display: block;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* On a phone, the role's name and readouts need the room. */

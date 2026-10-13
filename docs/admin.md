@@ -109,10 +109,13 @@ and opens it. If you can edit accounts (`accounts.edit`), you can also
 unlink your profile, link an existing one, or create one, as on anyone's
 account.
 
-**Theme and Color Scheme** sets how the admin looks to you. The theme is **Neutral** (cool gray
-with a blue accent, the default) or **Editorial** (warm paper, a teal
-accent, and serif titles). The color scheme is light, dark, or your
-device's setting (the default). Each choice is saved with your
+**Theme and Color Scheme** sets how the admin looks to you. The theme is
+one of the [admin themes](admin-themes.md) that are on, such as
+**Neutral** (cool gray with a blue accent) or **Editorial** (warm paper,
+a teal accent, and serif titles), each drawn as a swatch of itself. The
+one marked **Site default** is what you see until you choose another,
+and choosing it follows the default when it changes. The color scheme is
+light, dark, or your device's setting (the default). Each choice is saved with your
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
 
@@ -223,12 +226,12 @@ screens your roles allow: Media needs one of the media capabilities
 Roles `accounts.view` (and New Account `accounts.create`, New Role
 `roles.manage`), Profiles editing profiles, each content type
 editing its entries,
-Content types and Settings `site.settings`, and Themes, Plugins, and
-Icon Packs seeing that kind (`extensions.themes.view`, and so on; see
+Content types and Settings `site.settings`, and Themes, Plugins, Icon
+Packs, and Admin Themes seeing that kind (`extensions.themes.view`, and so on; see
 [Capabilities](accounts.md#capabilities)). On those screens, activating
-a theme or turning a plugin or pack on and off needs the kind's
-`activate`, and deleting its `delete`; without them, the buttons aren't
-shown.
+a theme, turning a plugin, pack, or admin theme on and off, or choosing
+the site's admin theme needs the kind's `activate`, and deleting its
+`delete`; without them, the buttons aren't shown.
 
 The tabs above a list show all of them, or only published entries,
 drafts, or scheduled ones, with a count on each. For a type that credits
@@ -1630,9 +1633,9 @@ sketch of a page in the theme's colors (from its `theme.json`'s
 its label, version, and description, where it's installed, and the
 theme it falls back to, if it has a parent. The icons above the cards switch to a compact
 list, a row for each theme; the choice is kept in this browser, and
-Icon Packs shares it.
+Icon Packs and Admin Themes share it.
 
-Above the list (on Plugins and Icon Packs too), **Filter themes** finds
+Above the list (on Plugins, Icon Packs, and Admin Themes too), **Filter themes** finds
 a theme by its label, name, description, or
 [keywords](extending.md#plugins); **Status** narrows it to the active
 theme, the inactive ones, or those that need attention (one that can't
@@ -1776,6 +1779,40 @@ icons it has; click one to copy how it's used
 (`weather/sun`). **Delete Icon Pack** removes a pack's folder (or a
 broken pack's) from `extensions/`. **Install Icon Pack** installs one
 from a `.zip`, as **Install Theme** does; it arrives turned off.
+
+## Admin themes
+
+With `extensions.admin-themes.view`, **Extend → Admin Themes** shows
+every installed [admin theme](admin-themes.md), Neutral first, then by
+label, each as a sketch of the admin in its own colors, with its
+version, where it's installed, and a switch. A theme that's on can be
+chosen by anyone on Your Account; one that's off can't, and anyone who
+had chosen it sees the site's default. Neutral is always on.
+
+**Make Default** makes a theme the site's default: what anyone who
+hasn't chosen a theme sees, and the sign-in screen. The default is
+marked **Site default**, and can't be turned off or deleted until
+another theme is the default. A theme whose
+[requirements](extending.md#requirements) aren't met can't be turned on,
+and says what it needs. One whose text is hard to read says so; it
+still works. A theme that can't be used is listed by where it was
+found, with the reason. The filters and the compact list work as on
+[Themes](#themes), each row marked with the theme's accent.
+
+A theme in `extensions/` is off until it's turned on here or named in
+`config/admin-themes.php`'s `enabled` list; the framework's and
+Composer's are on. Once a switch is used, the saved list names every
+theme that's on; the switches and the default are saved in
+`user/data/settings/admin-themes.json`, over that file, with **Use
+`config/admin-themes.php`'s list** (and **its default**) to go back. A
+theme's name, or **Admin theme details** in its menu, opens its details:
+the admin in its colors, light and dark, what it changes (the rest is
+Neutral's), the fonts it brings, whether its text is easy to read, then
+**Details** and **Dependencies**, as a plugin's are. **Delete Admin
+Theme** removes a theme's folder (or a broken one's) from `extensions/`.
+**Install Admin Theme** installs one from a `.zip`, as **Install Theme**
+does; it arrives turned off. Since an admin theme has no code, an
+administrator may install, replace, and delete them, as an owner may.
 
 ## Accounts and roles
 
@@ -2219,8 +2256,15 @@ file's contents to its URL, so browsers cache the files until they
 change. The page also includes a JSON block (`#blush-admin-config`)
 with the admin's path, the API's path, the site's name, and the
 signed-in account's `colorScheme` and `adminTheme` (`null` when no one
-is signed in). For a light or dark account, `<html>` also carries
-`data-color-scheme`, and for an Editorial one, `data-admin-theme`.
+is signed in, or when the account follows the site's default), and
+`adminThemes`: the site's `default` and the `offered` themes, each with
+its `name`, `label`, `description`, `stylesheet` (`null` for Neutral),
+and `preview` colors. For a light or dark account, `<html>` also carries
+`data-color-scheme`, and for any admin theme but Neutral (the account's,
+or the site's default), `data-admin-theme` with its name, and the page
+links its stylesheet (`#blush-admin-theme`), served from
+`/admin/assets/admin-themes/{vendor}/{name}/theme.css` with its fonts
+beside it.
 
 The API is JSON under `/admin/api`, and uses the session cookie:
 
@@ -2230,7 +2274,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
-| `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`), `adminTheme` (`neutral` or `editorial`), `setupSkipped` (`true` or `false`), and `shortcuts` (a list of up to 30 screen ids, such as `"media"`, `"type:post"`, or `"settings:general"`, or `null` for the default), such as `{"colorScheme": "dark"}`; answers `{"preferences"}`, which also has `lastEdited`, the id of the entry the account last saved |
+| `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`), `adminTheme` (an admin theme's name, of one that's on, or `null` to follow the site's default), `setupSkipped` (`true` or `false`), and `shortcuts` (a list of up to 30 screen ids, such as `"media"`, `"type:post"`, or `"settings:general"`, or `null` for the default), such as `{"colorScheme": "dark"}`; answers `{"preferences"}`, which also has `lastEdited`, the id of the entry the account last saved |
 | `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "published", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes", "media", "others"}`: the pages type, the newest page, whether the site has a type of its own, whether the library has files, and whether another account exists; the last two `false` without the capability to see them) |
 | `GET counts` | What the section panel needs counted: `tools` (how many of the Tools screen's buttons the account may use), and, with `site.health`, `health` (how many checks need a look in Site Health's last check) |
 | `GET tools` | The Tools screen's buttons the account may use, as `{"groups": [{"source": {"kind", "label"}, "tools": [{"key", "title", "description", "confirm"}]}]}`; a source's `kind` is `core`, `site`, `plugin`, or `other` |
@@ -2270,9 +2314,14 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET icon-packs/{vendor}/{name}`, `GET icon-packs/core` | One pack (`{"pack"}`) or the core set (`{"core"}`), with every icon. Needs `extensions.icon-packs.view` |
 | `PUT icon-packs/{vendor}/{name}` | Turns a pack on or off: send `{"enabled": true}` or `false`. Saves `icons.enabled` in `user/data/settings/icons.json`: every pack that's on, Composer's included, starting from what's on by default. Answers `{"enabled", "started", "stopped", "refresh"}`, as `PUT plugins` does. One whose requirements aren't met is a `422`. Needs `extensions.icon-packs.activate` |
 | `DELETE icon-packs/{vendor}/{name}` | Deletes a pack's folder (or a broken pack's) from `extensions/`: `{"deleted"}`. Needs `extensions.icon-packs.delete` |
-| `POST themes`, `POST plugins`, `POST icon-packs` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
-| `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
-| `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
+| `GET admin-themes` | Every installed admin theme, Neutral first, then by label: `{"themes": [{"name", "label", "version", "description", "authors", "license", "licenses", "links", "funding", "keywords", "source", "path", "folder", "enabled", "running", "offered", "base", "default", "requirements", "conflicts", "replaces", "provides", "blocked", "requiredBy", "abandoned", "replacement", "suggests", "conflictedBy", "replacedBy", "providedBy", "stops", "deletable", "backup", "preview", "changes", "fonts", "contrast"}], "invalid", "default", "saved", "defaultSaved", "config", "upload"}`. `offered` is whether an account may choose it, `base` whether it's Neutral, `preview` its background, surface, accent, and text colors, `changes` the tokens it sets, `fonts` the families it brings, and `contrast` where its text is hard to read. Needs `extensions.admin-themes.view` |
+| `GET admin-themes/{vendor}/{name}` | One theme (`{"theme"}`). Needs `extensions.admin-themes.view` |
+| `PUT admin-themes/{vendor}/{name}` | Turns a theme on or off: send `{"enabled": true}` or `false`. Saves `admin-themes.enabled` in `user/data/settings/admin-themes.json`: every theme that's on, starting from what's on by default. Answers `{"enabled", "started", "stopped", "refresh"}`, as `PUT plugins` does. Turning off Neutral or the site's default, or turning on one whose requirements aren't met, is a `422`. Needs `extensions.admin-themes.activate` |
+| `PUT admin-themes/default` | Makes a theme the site's default: send `{"name"}`. Saves `admin-themes.default`, and answers `{"default"}`. One that isn't offered is a `422`. Needs `extensions.admin-themes.activate` |
+| `DELETE admin-themes/{vendor}/{name}` | Deletes a theme's folder (or a broken one's) from `extensions/`: `{"deleted"}`. The site's default is a `422`. Needs `extensions.admin-themes.delete` |
+| `POST themes`, `POST plugins`, `POST icon-packs`, `POST admin-themes` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
+| `POST {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
+| `DELETE {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), and `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
 | `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |

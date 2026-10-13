@@ -96,10 +96,10 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 	align-items: flex-start;
 	gap: var(--s-3);
 	padding: 15px var(--s-5);
-	border-bottom: 1px solid var(--border-strong);
-	background: var(--surface-2);
-	color: var(--fg);
-	font-size: var(--text-sm);
+	border-bottom: 1px solid var(--border-color-strong);
+	background: var(--color-surface-subtle);
+	color: var(--color-text);
+	font-size: var(--font-size-small);
 }
 
 .conflict__bar > svg {
@@ -107,7 +107,7 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 	width: 16px;
 	height: 16px;
 	margin-top: 2px;
-	color: var(--warn);
+	color: var(--color-warning);
 }
 
 .conflict__text {
@@ -118,13 +118,13 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 }
 
 .conflict__text h2 {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 }
 
 .conflict__text p {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .conflict__buttons {
@@ -139,8 +139,8 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 .compare {
 	max-height: 40vh;
 	overflow: auto;
-	border-bottom: 1px solid var(--border-strong);
-	background: var(--surface);
+	border-bottom: 1px solid var(--border-color-strong);
+	background: var(--color-surface);
 }
 
 .compare__fields td {
@@ -151,13 +151,13 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 .compare__body {
 	display: grid;
 	gap: 8px;
-	padding: 12px var(--pad-x) 16px;
+	padding: 12px var(--padding-inline) 16px;
 }
 
 .compare__same {
-	padding: 12px var(--pad-x);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: 12px var(--padding-inline);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .compare__label {
@@ -166,8 +166,8 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 8px;
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	font-weight: 500;
 	letter-spacing: .06em;
 	text-transform: uppercase;
@@ -184,21 +184,21 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 }
 
 .compare__mark--theirs {
-	color: var(--danger);
+	color: var(--color-danger);
 }
 
 .compare__mark--mine {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .compare__lines {
 	display: grid;
 	margin: 0;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+	background: var(--color-surface-subtle);
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	line-height: 1.6;
 }
 
@@ -210,13 +210,13 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 }
 
 .compare__line--theirs {
-	background: var(--danger-soft);
-	color: var(--danger);
+	background: var(--color-danger-subtle);
+	color: var(--color-danger);
 }
 
 .compare__line--mine {
-	background: var(--good-soft);
-	color: var(--good);
+	background: var(--color-success-subtle);
+	color: var(--color-success);
 }
 
 .compare__sign {
@@ -228,9 +228,9 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 .compare__skip {
 	display: block;
 	padding: 2px 10px;
-	border-block: 1px dashed var(--border);
-	color: var(--fg-3);
-	font-family: var(--font-ui);
-	font-size: var(--text-xs);
+	border-block: 1px dashed var(--border-color);
+	color: var(--color-text-muted);
+	font-family: var(--font-family-ui);
+	font-size: var(--font-size-xsmall);
 }
 </style>

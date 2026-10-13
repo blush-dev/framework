@@ -728,7 +728,7 @@ const snippet = computed(() => {
 }
 
 .head__folder {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* The preview: an image or video fills its card; a sound is its art,
@@ -743,7 +743,7 @@ const snippet = computed(() => {
 	height: auto;
 	max-height: 70vh;
 	object-fit: contain;
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .preview__video {
@@ -762,9 +762,9 @@ const snippet = computed(() => {
 	align-items: center;
 	gap: var(--s-2);
 	padding: var(--s-7) var(--s-5);
-	background: var(--surface-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 	text-align: center;
 }
 
@@ -775,10 +775,10 @@ const snippet = computed(() => {
 
 .preview__ext {
 	padding: 2px 8px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 	letter-spacing: .08em;
 }
 
@@ -788,7 +788,7 @@ const snippet = computed(() => {
 	display: grid;
 	place-items: center;
 	padding: var(--s-5);
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 .preview__sheet {
@@ -798,23 +798,23 @@ const snippet = computed(() => {
 	gap: 7px;
 	width: min(248px, 62%);
 	padding: var(--s-5) var(--s-4);
-	border: 1px solid var(--border-strong);
+	border: 1px solid var(--border-color-strong);
 	border-radius: 3px;
-	background: var(--surface);
+	background: var(--color-surface);
 }
 
 .preview__line {
 	display: block;
 	height: 5px;
 	border-radius: 2px;
-	background: var(--surface-3);
+	background: var(--color-surface-strong);
 }
 
 .preview__line--head {
 	width: 62%;
 	height: 9px;
 	margin-bottom: 5px;
-	background: var(--border-strong);
+	background: var(--border-color-strong);
 }
 
 .preview__line--short {
@@ -830,11 +830,11 @@ const snippet = computed(() => {
 	right: -9px;
 	bottom: -9px;
 	padding: 2px 7px;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
+	border: 1px solid var(--border-color-strong);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
 }
 
 /* Artwork (D-581): the picture beside what it is, then what can be
@@ -859,16 +859,16 @@ const snippet = computed(() => {
 	flex: none;
 	width: 72px;
 	height: 72px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface-2);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface-subtle);
 	object-fit: cover;
 }
 
 .art__image--none {
 	display: grid;
 	place-items: center;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 .art__image--none :deep(svg) {
@@ -884,8 +884,8 @@ const snippet = computed(() => {
 }
 
 .art__note {
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .art__actions {
@@ -916,13 +916,13 @@ const snippet = computed(() => {
 	align-items: baseline;
 	gap: var(--s-2);
 	margin: 0 0 6px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .usage__label span {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	font-weight: 500;
 }
 
@@ -936,10 +936,10 @@ const snippet = computed(() => {
 	min-width: 0;
 	padding: 5px 8px;
 	overflow-x: auto;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface-2);
-	font-size: var(--text-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-small);
+	background: var(--color-surface-subtle);
+	font-size: var(--font-size-small);
 	white-space: nowrap;
 }
 
@@ -975,9 +975,9 @@ const snippet = computed(() => {
 
 .used a {
 	min-width: 0;
-	font-family: var(--font-title);
-	font-size: var(--title-size);
-	font-weight: var(--title-weight);
+	font-family: var(--font-family-title);
+	font-size: var(--font-size-entry-title);
+	font-weight: var(--font-weight-entry-title);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -986,16 +986,16 @@ const snippet = computed(() => {
 .used__type {
 	flex: none;
 	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .facts dd.mono {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 .facts__none {
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 }
 
 /* A size's file name, and its facts under it. */
@@ -1016,13 +1016,13 @@ const snippet = computed(() => {
 }
 
 .sizes a {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 	overflow-wrap: anywhere;
 }
 
 .sizes__facts {
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 /* The form's controls, read-only as one when they can't be changed. */
@@ -1057,8 +1057,8 @@ fieldset.text {
 	align-items: center;
 	gap: 6px;
 	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-small);
 }
 
 .offer :deep(.icon) {
@@ -1068,7 +1068,7 @@ fieldset.text {
 }
 
 .offer q {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	overflow-wrap: anywhere;
 }
 
@@ -1077,11 +1077,11 @@ fieldset.text {
 }
 
 .offer--taken {
-	color: var(--good);
+	color: var(--color-success);
 }
 
 .offer--taken :deep(.icon) {
-	color: var(--good-dot);
+	color: var(--color-success-indicator);
 }
 
 /* A field set's fields, under its label (D-341), as the editor's panel
@@ -1090,7 +1090,7 @@ fieldset.text {
 	display: grid;
 	gap: var(--s-4);
 	padding-top: var(--s-4);
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .text__set > .field__help {
@@ -1099,8 +1099,8 @@ fieldset.text {
 
 .text__set-heading {
 	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;

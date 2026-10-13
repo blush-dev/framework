@@ -1,0 +1,229 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework admin theme manifest",
+	"description": "An admin theme's admin-theme.json: its name, label, and description. What it changes is in tokens.json beside it.",
+	"type": "object",
+	"required": [],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
+			"description": "The admin theme's name, the key it's known by: vendor/name, such as \"acme/gallery\". Its folder is extensions/{vendor}/{name}, so it must match the folder. Without it, the name in the composer.json beside this file is used; for a Composer package, it's the package name."
+		},
+		"label": {
+			"type": "string",
+			"minLength": 1,
+			"description": "The admin theme's title, as people read it. Without one, it's shown by its name."
+		},
+		"version": {
+			"type": "string",
+			"description": "The theme's version, such as 1.0.0."
+		},
+		"description": {
+			"type": "string",
+			"description": "What the theme looks like, in a few words, shown beside its swatch."
+		},
+		"require": {
+			"type": "object",
+			"description": "What the theme needs, as composer.json says it, with version constraints: blush-dev/framework for Blush, and other extensions by vendor/name. A theme whose requirements aren't met isn't offered. Without it, the require in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"conflict": {
+			"type": "object",
+			"description": "What the theme can't be offered with, as composer.json says it, each with the versions it can't. Without it, the conflict in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"replace": {
+			"type": "object",
+			"description": "The packages the theme stands in for, as composer.json says it. Without it, the replace in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"provide": {
+			"type": "object",
+			"description": "The packages the theme provides an implementation of, as composer.json says it. Without it, the provide in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"authors": {
+			"type": "array",
+			"description": "Who made the admin theme, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"description": "Their name."
+					},
+					"email": {
+						"type": "string",
+						"format": "email",
+						"description": "Their email address."
+					},
+					"homepage": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Their website."
+					},
+					"role": {
+						"type": "string",
+						"description": "What they did, such as \"Developer\" or \"Designer\"."
+					}
+				}
+			}
+		},
+		"license": {
+			"description": "How the admin theme may be used: an SPDX identifier such as \"MIT\", a list of them any of which applies, \"(MIT or Apache-2.0)\", \"(MIT and OFL-1.1)\" when all apply, or \"proprietary\". Common open source licenses link to their text in the admin. Without it, the license in the composer.json beside this file is used.",
+			"oneOf": [
+				{
+					"type": "string"
+				},
+				{
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			]
+		},
+		"homepage": {
+			"type": "string",
+			"format": "uri",
+			"pattern": "^https?://",
+			"description": "The admin theme's website. Without it, the homepage in the composer.json beside this file is used."
+		},
+		"support": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Where to get help with the admin theme, as composer.json has it. Without it, the support in the composer.json beside this file is used.",
+			"properties": {
+				"docs": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The documentation."
+				},
+				"source": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "Where to browse or download the source."
+				},
+				"issues": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The issue tracker."
+				},
+				"forum": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The forum."
+				},
+				"chat": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "A chat channel."
+				},
+				"wiki": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The wiki."
+				},
+				"irc": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^ircs?://",
+					"description": "An IRC channel, such as irc://irc.libera.chat/example."
+				},
+				"rss": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "An RSS feed."
+				},
+				"security": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "How to report a security issue."
+				},
+				"email": {
+					"type": "string",
+					"format": "email",
+					"description": "An email address for support."
+				}
+			}
+		},
+		"funding": {
+			"type": "array",
+			"description": "Where to fund the admin theme, as composer.json has it. Without it, the funding in the composer.json beside this file is used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"url"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "The kind of funding, such as github, patreon, opencollective, tidelift, ko-fi, or custom."
+					},
+					"url": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Where to fund it."
+					}
+				}
+			}
+		},
+		"abandoned": {
+			"oneOf": [
+				{
+					"type": "boolean"
+				},
+				{
+					"type": "string",
+					"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$"
+				}
+			],
+			"description": "Whether the admin theme is no longer maintained: true, or the name of the package to use instead (vendor/name), as composer.json has it. It only warns. Without it, the abandoned in the composer.json beside this file is used."
+		},
+		"suggest": {
+			"type": "object",
+			"description": "Packages that would work well with the admin theme, each mapped to why, as composer.json has it: other plugins, themes, or icon packs by vendor/name, libraries, or ext-{name} for PHP extensions. It's only shown, never enforced. Without it, the suggest in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"keywords": {
+			"type": "array",
+			"description": "Words the admin theme is about, as composer.json has them. They aren't shown; the admin's lists search them. Without it, the keywords in the composer.json beside this file are used.",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

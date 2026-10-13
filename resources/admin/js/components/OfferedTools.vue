@@ -72,14 +72,14 @@ function parts(text: string): { text: string; code: boolean }[] {
 	grid-template-columns: 16px minmax(0, 1fr) auto;
 	gap: var(--s-3);
 	align-items: center;
-	padding-inline: var(--pad-x);
+	padding-inline: var(--padding-inline);
 }
 
 .offered-tools__columns {
 	padding-block: var(--s-2);
-	border-bottom: 1px solid var(--border);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	border-bottom: 1px solid var(--border-color);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 	font-weight: 600;
 	letter-spacing: .06em;
 	text-transform: uppercase;
@@ -91,7 +91,7 @@ function parts(text: string): { text: string; code: boolean }[] {
 }
 
 .offered-tools__group + .offered-tools__group {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .offered-tools__source {
@@ -100,15 +100,15 @@ function parts(text: string): { text: string; code: boolean }[] {
 	align-items: center;
 	gap: var(--s-2);
 	margin: 0;
-	padding: var(--s-2) var(--pad-x);
-	border-bottom: 1px solid var(--border);
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: var(--s-2) var(--padding-inline);
+	border-bottom: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 }
 
 .offered-tools__source strong {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 600;
 }
 
@@ -125,9 +125,9 @@ function parts(text: string): { text: string; code: boolean }[] {
 
 .offered-tools__count {
 	margin-left: auto;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -138,7 +138,7 @@ function parts(text: string): { text: string; code: boolean }[] {
 }
 
 .offered-tools__list li + li {
-	border-top: 1px solid var(--border);
+	border-top: 1px solid var(--border-color);
 }
 
 .offered-tools__row {
@@ -153,26 +153,26 @@ function parts(text: string): { text: string; code: boolean }[] {
 }
 
 .offered-tools__row:hover {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 /* An open tool is gray as a whole, its row and its description, so it
    stands apart from the rows around it and the space above its
    description matches the space below, hovered or not. */
 .offered-tools__list li:has(> [aria-expanded="true"]) {
-	background: var(--surface-2);
+	background: var(--color-surface-subtle);
 }
 
 /* A line between an open row and its description, with the same space
    on each side of the description. */
 .offered-tools__row[aria-expanded="true"] {
-	border-bottom: 1px solid var(--border);
+	border-bottom: 1px solid var(--border-color);
 }
 
 .offered-tools__twisty {
 	width: 14px;
 	height: 14px;
-	color: var(--fg-3);
+	color: var(--color-text-muted);
 	transition: transform .12s;
 }
 
@@ -189,33 +189,33 @@ function parts(text: string): { text: string; code: boolean }[] {
 }
 
 .offered-tools__title {
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .offered-tools__name code {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .offered-tools__needs {
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	white-space: nowrap;
 }
 
 .offered-tools__needs.is-anyone {
-	color: var(--fg-3);
-	font-family: var(--font-ui);
+	color: var(--color-text-muted);
+	font-family: var(--font-family-ui);
 }
 
 .offered-tools__description {
 	max-width: calc(90ch + 60px);
 	margin: 0;
-	padding: var(--s-3) var(--pad-x) var(--s-3) calc(var(--pad-x) + 16px + var(--s-3));
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding: var(--s-3) var(--padding-inline) var(--s-3) calc(var(--padding-inline) + 16px + var(--s-3));
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-small);
 	line-height: 1.6;
 }
 
@@ -234,7 +234,7 @@ function parts(text: string): { text: string; code: boolean }[] {
 	}
 
 	.offered-tools__description {
-		padding-left: var(--pad-x);
+		padding-left: var(--padding-inline);
 	}
 }
 

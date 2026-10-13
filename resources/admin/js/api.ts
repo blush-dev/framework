@@ -31,11 +31,11 @@ export interface Account {
 
 export type ColorScheme = 'system' | 'light' | 'dark';
 
-export type AdminTheme = 'neutral' | 'editorial';
-
 export interface Preferences {
 	colorScheme: ColorScheme;
-	adminTheme: AdminTheme;
+	// The admin theme the account chose, by name, or `null` to follow the
+	// site's default (D-827).
+	adminTheme: string | null;
 	// The entry the account last saved, and whether it skipped the setup
 	// path (D-539).
 	lastEdited: string | null;
@@ -692,7 +692,7 @@ export interface ExtensionRequirement {
 	// `library` is a package Composer installed that isn't an extension;
 	// `composer` is what only Composer checks (`lib-*`, `composer-runtime-api`;
 	// D-438); `missing` is a `vendor/name` that isn't installed.
-	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'theme' | 'icon-pack' | 'library' | 'composer' | 'missing' | 'unknown';
+	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'theme' | 'icon-pack' | 'admin-theme' | 'library' | 'composer' | 'missing' | 'unknown';
 	met: boolean;
 	// What the site has: `this site runs 8.5.1`, `isn't installed`, `is turned off`, `isn't active`.
 	note: string;
@@ -710,7 +710,7 @@ export interface ExtensionRequirement {
 export interface ExtensionDependent {
 	name: string;
 	label: string;
-	kind: 'plugin' | 'theme' | 'icon-pack';
+	kind: 'plugin' | 'theme' | 'icon-pack' | 'admin-theme';
 }
 
 // A package an extension suggests (D-434): only shown, never enforced.
@@ -793,7 +793,8 @@ export interface PluginSummary {
  * What every kind of extension has (D-509), for the pieces their screens
  * share: who made it, its license and links, and its package relations.
  */
-export type ExtensionSummary = Pick<PluginSummary, 'name' | 'label' | 'namespace' | 'version' | 'description' | 'authors' | 'licenses' | 'links' | 'funding' | 'keywords' | 'requirements' | 'conflicts' | 'replaces' | 'provides' | 'conflictedBy' | 'replacedBy' | 'providedBy' | 'requiredBy' | 'suggests'>;
+// An admin theme has no namespace (D-827).
+export type ExtensionSummary = Pick<PluginSummary, 'name' | 'label' | 'version' | 'description' | 'authors' | 'licenses' | 'links' | 'funding' | 'keywords' | 'requirements' | 'conflicts' | 'replaces' | 'provides' | 'conflictedBy' | 'replacedBy' | 'providedBy' | 'requiredBy' | 'suggests'> & { namespace?: string };
 
 /**
  * A plugin whose manifest can't be read (D-394): listed, never run.
@@ -916,6 +917,52 @@ export interface IconPacks {
 	// Whether the packs turned on are saved in `user/data/settings.json`.
 	saved: boolean;
 	// Whether `config/icons.php` exists.
+	config: boolean;
+	upload: ExtensionUpload;
+}
+
+/**
+ * An installed admin theme (`GET admin-themes`, D-827): an icon pack's
+ * facts, without a namespace or icons, and what it changes.
+ */
+export interface AdminThemeSummary extends Omit<IconPackSummary, 'namespace' | 'count' | 'icons' | 'source'> {
+	source: 'local' | 'composer' | 'framework';
+	// Whether an account may choose it: on, with its requirements met.
+	offered: boolean;
+	// Neutral, the admin's own look: always on, never deleted.
+	base: boolean;
+	// The site's default, which anyone who hasn't chosen one sees.
+	default: boolean;
+	// Its colors for a sketch, each as CSS writes it (`light-dark()`).
+	preview: AdminThemePreview;
+	// The tokens it sets, by their place in `tokens.json`.
+	changes: string[];
+	// The font families it ships.
+	fonts: string[];
+	// Where its colors are hard to read, in either scheme.
+	contrast: string[];
+}
+
+export interface AdminThemePreview {
+	background: string;
+	surface: string;
+	accent: string;
+	text: string;
+}
+
+/**
+ * The installed admin themes (`GET admin-themes`), the broken ones by
+ * where they were found, and the site's default.
+ */
+export interface AdminThemes {
+	themes: AdminThemeSummary[];
+	invalid: { where: string; reason: string; deletable: boolean }[];
+	default: string | null;
+	// Whether the themes turned on, and the default, are saved over
+	// `config/admin-themes.php`.
+	saved: boolean;
+	defaultSaved: boolean;
+	// Whether `config/admin-themes.php` exists.
 	config: boolean;
 	upload: ExtensionUpload;
 }

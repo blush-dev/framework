@@ -1,0 +1,268 @@
+<?php
+
+/**
+ * Admin tokens tests.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Tests\AdminTheme;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use Blush\AdminTheme\AdminToken;
+use Blush\AdminTheme\AdminTokens;
+use Blush\AdminTheme\ColorValue;
+use Blush\AdminTheme\CssColor;
+use Blush\AdminTheme\FontFace;
+use Blush\AdminTheme\FontFamily;
+use Blush\Auth\ColorScheme;
+use Blush\Extension\ExtensionException;
+use Blush\Tests\TemporaryDirectory;
+
+#[CoversClass(AdminTokens::class)]
+#[CoversClass(AdminToken::class)]
+#[CoversClass(ColorValue::class)]
+#[CoversClass(CssColor::class)]
+#[CoversClass(FontFace::class)]
+#[CoversClass(FontFamily::class)]
+final class AdminTokensTest extends TestCase
+{
+	use TemporaryDirectory;
+
+	protected function tearDown(): void
+	{
+		$this->removeTemporaryDirectory();
+	}
+
+	public function testTokensAreNamedForTheirPlaceInTokensJson(): void
+	{
+		$this->assertSame('color-background', AdminToken::Background->property());
+		$this->assertSame('color-surface-subtle', AdminToken::SurfaceSubtle->property());
+		$this->assertSame('color-text', AdminToken::Text->property(), 'A default key drops from the name.');
+		$this->assertSame('border-color', AdminToken::BorderColor->property());
+		$this->assertSame('border-radius-small', AdminToken::BorderRadiusSmall->property());
+		$this->assertSame('box-shadow-color', AdminToken::BoxShadowColor->property());
+		$this->assertSame('font-family-ui', AdminToken::FontFamilyUi->property(), 'typography. drops too.');
+		$this->assertSame('font-size-page-title', AdminToken::FontSizePageTitle->property());
+		$this->assertSame('letter-spacing-entry-title', AdminToken::LetterSpacingEntryTitle->property());
+		$this->assertSame('padding-inline', AdminToken::PaddingInline->property());
+		$this->assertSame(AdminToken::Surface, AdminToken::at('color.surface'));
+		$this->assertNull(AdminToken::at('spacing.huge'));
+	}
+
+	public function testReadsTokensAndWritesTheirStylesheet(): void
+	{
+		$tokens = AdminTokens::fromArray([
+			'$schema' => 'tokens.schema.json',
+			'color'   => [
+				'background' => 'light-dark(#F6F2EC, #15120e)',
+				'surface'    => '#fff',
+				'accent'     => ['default' => 'oklch(55% 0.1 200)']
+			],
+			'border'     => ['radius' => ['small' => '8px', 'large' => '0']],
+			'typography' => [
+				'fontFamily'    => ['ui' => ['Karla', 'sans-serif'], 'title' => ['Newsreader']],
+				'fontWeight'    => ['entryTitle' => 600],
+				'letterSpacing' => ['pageTitle' => '-.014em']
+			],
+			'padding' => ['inline' => '26px']
+		], $this->temporaryDirectory());
+
+		$this->assertSame('light-dark(#f6f2ec, #15120e)', $tokens->get(AdminToken::Background));
+		$this->assertSame('#fff', $tokens->get(AdminToken::Surface), 'A group\'s default may be the group itself.');
+		$this->assertNull($tokens->get(AdminToken::SurfaceSubtle), 'What it leaves out is Neutral\'s.');
+
+		$css = $tokens->css(':root[data-admin-theme="acme/harbor"]');
+
+		$this->assertStringContainsString(":root[data-admin-theme=\"acme/harbor\"] {\n", $css);
+		$this->assertStringContainsString("\t--color-background: light-dark(#f6f2ec, #15120e);\n", $css);
+		$this->assertStringContainsString("\t--color-accent: oklch(55% 0.1 200);\n", $css);
+		$this->assertStringContainsString("\t--border-radius-large: 0;\n", $css);
+		$this->assertStringContainsString("\t--font-family-ui: \"Karla\", sans-serif;\n", $css);
+		$this->assertStringContainsString("\t--font-family-title: \"Newsreader\", var(--font-system);\n", $css, 'A stack without a generic family falls back to the platform\'s.');
+		$this->assertStringContainsString("\t--font-weight-entry-title: 600;\n", $css);
+		$this->assertStringContainsString("\t--letter-spacing-page-title: -.014em;\n", $css);
+		$this->assertStringContainsString("\t--padding-inline: 26px;\n", $css);
+		$this->assertSame('', new AdminTokens()->css(':root'), 'No tokens, no rule.');
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, string}>
+	 */
+	public static function refused(): array
+	{
+		return [
+			'not a token'       => [['color' => ['sidebar' => '#fff']], '"color.sidebar", which isn\'t a token'],
+			'layout'            => [['space' => ['gutter' => '40px']], '"space.gutter", which isn\'t a token'],
+			'not a color'       => [['color' => ['background' => 'url(evil.png)']], '"color.background" must be a color'],
+			'CSS in a color'    => [['color' => ['background' => '#fff; } body { display: none']], '"color.background" must be a color'],
+			'one color of two'  => [['color' => ['background' => 'light-dark(#fff, nope)']], '"color.background" must be a color'],
+			'too big'           => [['padding' => ['row' => '60px']], '"padding.row" must be from 10px to 20px'],
+			'no unit'           => [['typography' => ['fontSize' => ['base' => '14']]], '"typography.fontSize.base" must be from 12px to 16px'],
+			'other unit'        => [['border' => ['radius' => ['small' => '1rem']]], '"border.radius.small" must be from 0px to 24px'],
+			'weight out'        => [['typography' => ['fontWeight' => ['entryTitle' => 900]]], 'must be a weight from 400 to 700'],
+			'family not a list' => [['typography' => ['fontFamily' => ['ui' => 'Karla']]], 'must be a list of font family names'],
+			'family with CSS'   => [['typography' => ['fontFamily' => ['ui' => ['Karla"; color: red']]]], 'must be a list of font family names']
+		];
+	}
+
+	/**
+	 * @param array<string, mixed> $data
+	 */
+	#[DataProvider('refused')]
+	public function testRefusesWhatIsntATokensValue(array $data, string $message): void
+	{
+		$this->expectException(ExtensionException::class);
+		$this->expectExceptionMessage($message);
+
+		AdminTokens::fromArray($data, $this->temporaryDirectory());
+	}
+
+	public function testReadsFontFacesInsideTheTheme(): void
+	{
+		$this->writeTemporaryFile('fonts/karla.woff2', 'wOF2');
+
+		$tokens = AdminTokens::fromArray(['typography' => ['fontFace' => [
+			['fontFamily' => 'Karla', 'src' => 'fonts/karla.woff2', 'fontWeight' => '200 800', 'unicodeRange' => 'u+0000-00ff, U+0131']
+		]]], $this->temporaryDirectory());
+
+		$this->assertCount(1, $tokens->faces);
+		$this->assertSame(<<<'CSS'
+			@font-face {
+				font-family: "Karla";
+				font-style: normal;
+				font-weight: 200 800;
+				font-display: swap;
+				src: url("fonts/karla.woff2") format("woff2");
+				unicode-range: U+0000-00FF, U+0131;
+			}
+			CSS, $tokens->faces[0]->css());
+		$this->assertStringStartsWith('@font-face {', $tokens->css(':root'));
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, string}>
+	 */
+	public static function badFaces(): array
+	{
+		return [
+			'outside the theme' => [['fontFamily' => 'Karla', 'src' => '../secret.woff2'], 'needs a "src": a .woff2 file inside the theme'],
+			'absolute'          => [['fontFamily' => 'Karla', 'src' => '/etc/karla.woff2'], 'needs a "src"'],
+			'not woff2'         => [['fontFamily' => 'Karla', 'src' => 'fonts/karla.ttf'], 'needs a "src"'],
+			'missing file'      => [['fontFamily' => 'Karla', 'src' => 'fonts/gone.woff2'], 'isn\'t in the theme'],
+			'no family'         => [['src' => 'fonts/karla.woff2'], 'needs a "fontFamily"'],
+			'unknown key'       => [['fontFamily' => 'Karla', 'src' => 'fonts/karla.woff2', 'fontDisplay' => 'block'], '"fontDisplay", which isn\'t one of'],
+			'bad weight'        => [['fontFamily' => 'Karla', 'src' => 'fonts/karla.woff2', 'fontWeight' => 'bold'], '"fontWeight" must be a weight'],
+			'bad range'         => [['fontFamily' => 'Karla', 'src' => 'fonts/karla.woff2', 'unicodeRange' => 'all'], '"unicodeRange" must be code points']
+		];
+	}
+
+	/**
+	 * @param array<string, mixed> $face
+	 */
+	#[DataProvider('badFaces')]
+	public function testRefusesAFontFaceItCantServe(array $face, string $message): void
+	{
+		$this->writeTemporaryFile('fonts/karla.woff2', 'wOF2');
+
+		$this->expectException(ExtensionException::class);
+		$this->expectExceptionMessage($message);
+
+		AdminTokens::fromArray(['typography' => ['fontFace' => [$face]]], $this->temporaryDirectory());
+	}
+
+	public function testRefusesAFontFileTooBigToServe(): void
+	{
+		$this->writeTemporaryFile('fonts/huge.woff2', str_repeat('x', FontFace::MAX_BYTES + 1));
+
+		$this->expectException(ExtensionException::class);
+		$this->expectExceptionMessage('is over 512 KB');
+
+		AdminTokens::fromArray(['typography' => ['fontFace' => [['fontFamily' => 'Huge', 'src' => 'fonts/huge.woff2']]]], $this->temporaryDirectory());
+	}
+
+	public function testLaysOneThemesTokensOverAnothers(): void
+	{
+		$base  = AdminTokens::fromArray(['color' => ['background' => '#eee', 'text' => '#111']], $this->temporaryDirectory());
+		$theme = AdminTokens::fromArray(['color' => ['background' => '#000']], $this->temporaryDirectory());
+		$both  = $base->with($theme);
+
+		$this->assertSame('#000', $both->get(AdminToken::Background));
+		$this->assertSame('#111', $both->get(AdminToken::Text));
+	}
+
+	public function testReadsBackWhatTheCacheKept(): void
+	{
+		$tokens = AdminTokens::fromArray(['color' => ['background' => 'light-dark(#fff, #000)']], $this->temporaryDirectory());
+
+		$this->assertSame($tokens->css(':root'), AdminTokens::fromCache($tokens->toArray(), $this->temporaryDirectory())->css(':root'));
+	}
+
+	/**
+	 * @return array<string, array{string, ?string, ?array{int, int, int}}>
+	 */
+	public static function colors(): array
+	{
+		return [
+			'hex'               => ['#2F5FE0', '#2f5fe0', [47, 95, 224]],
+			'short hex'         => ['#fff', '#fff', [255, 255, 255]],
+			'hex with alpha'    => ['#00000080', '#00000080', [0, 0, 0]],
+			'rgb spaces'        => ['rgb(17 20 27 / 9%)', 'rgb(17 20 27 / 9%)', [17, 20, 27]],
+			'rgba commas'       => ['rgba(0, 0, 0, 0.5)', 'rgba(0 0 0 / 0.5)', [0, 0, 0]],
+			'hsl'               => ['hsl(0 100% 50%)', 'hsl(0 100% 50%)', [255, 0, 0]],
+			'oklch white'       => ['oklch(100% 0 0)', 'oklch(100% 0 0)', [255, 255, 255]],
+			'oklch blue'        => ['oklch(0.52 0.2 264)', 'oklch(0.52 0.2 264)', null],
+			'transparent'       => ['transparent', 'transparent', [0, 0, 0]],
+			'a name'            => ['rebeccapurple', null, null],
+			'a variable'        => ['var(--color-text)', null, null],
+			'color-mix'         => ['color-mix(in srgb, red, blue)', null, null],
+			'four channels'     => ['rgb(1 2 3 4)', null, null],
+			'nested'            => ['rgb(calc(1) 2 3)', null, null]
+		];
+	}
+
+	/**
+	 * @param ?array{int, int, int} $rgb
+	 */
+	#[DataProvider('colors')]
+	public function testReadsTheColorsItKnows(string $value, ?string $css, ?array $rgb): void
+	{
+		$color = CssColor::parse($value);
+
+		$this->assertSame($css, $color?->css);
+
+		if ($color !== null && $rgb !== null) {
+			$this->assertSame($rgb, [(int) round($color->red * 255), (int) round($color->green * 255), (int) round($color->blue * 255)]);
+		}
+	}
+
+	public function testWorksOutContrast(): void
+	{
+		$white = CssColor::parse('#fff');
+		$black = CssColor::parse('#000');
+
+		$this->assertNotNull($white);
+		$this->assertNotNull($black);
+		$this->assertEqualsWithDelta(21.0, $white->contrast($black), 0.001);
+		$this->assertEqualsWithDelta(1.0, $white->contrast($white), 0.001);
+	}
+
+	public function testAColorValueIsOneOrAPairInLightDark(): void
+	{
+		$pair = ColorValue::parse('light-dark(rgb(0, 0, 0), #ffffff)');
+
+		$this->assertNotNull($pair);
+		$this->assertSame('light-dark(rgb(0 0 0), #ffffff)', $pair->css(), 'The comma inside rgb() isn\'t the split.');
+		$this->assertSame('#ffffff', $pair->in(ColorScheme::Dark)->css);
+		$this->assertSame('rgb(0 0 0)', $pair->in(ColorScheme::Light)->css);
+		$this->assertSame('#abc', ColorValue::parse('light-dark(#abc, #abc)')?->css(), 'The same twice is one.');
+		$this->assertNull(ColorValue::parse('light-dark(#abc)'));
+	}
+}

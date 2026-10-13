@@ -497,29 +497,29 @@ async function link(): Promise<void> {
 
 .res__name {
 	display: block;
-	color: var(--fg);
+	color: var(--color-text);
 	font-weight: 500;
 }
 
 .res__about {
 	display: block;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-xsmall);
 }
 
 .res__path {
 	display: block;
 	overflow: hidden;
-	color: var(--fg-2);
+	color: var(--color-text-secondary);
 	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+	font-size: var(--font-size-xsmall);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .res tbody .res__default > *,
 .res tbody .res__default:hover > * {
-	background: var(--accent-soft);
+	background: var(--color-accent-subtle);
 }
 
 .res__off > * {

@@ -166,7 +166,7 @@ async function purge(): Promise<void> {
 }
 
 .trashed__keys :deep(dd) {
-	font-size: var(--text-sm);
+	font-size: var(--font-size-small);
 }
 
 @media (width <= 900px) {

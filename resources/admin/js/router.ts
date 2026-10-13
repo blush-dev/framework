@@ -31,6 +31,8 @@ const EntriesView = () => import('./views/EntriesView.vue');
 const FieldSetView = () => import('./views/FieldSetView.vue');
 const FieldSetsView = () => import('./views/FieldSetsView.vue');
 const HealthView = () => import('./views/HealthView.vue');
+const AdminThemeView = () => import('./views/AdminThemeView.vue');
+const AdminThemesView = () => import('./views/AdminThemesView.vue');
 const IconPackView = () => import('./views/IconPackView.vue');
 const IconPacksView = () => import('./views/IconPacksView.vue');
 const MediaFileView = () => import('./views/MediaFileView.vue');
@@ -113,6 +115,9 @@ export const router = createRouter({
 		// The core set has a details screen too, though it isn't a pack (D-385).
 		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: 'Core', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
 		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: 'Icon Pack', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
+		// How the admin looks (D-827).
+		{ path: '/admin-themes', name: 'admin-themes', component: AdminThemesView, meta: { title: 'Admin Themes', capability: 'extensions.admin-themes.view', area: 'extend' } },
+		{ path: '/admin-themes/:vendor/:name', name: 'admin-theme', component: AdminThemeView, meta: { title: 'Admin Theme', capability: 'extensions.admin-themes.view', area: 'extend', parent: 'admin-themes' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
 		// Accounts and profiles are two lists (D-353): who can sign in,

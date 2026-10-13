@@ -200,9 +200,9 @@ function key(event: KeyboardEvent): void {
 .menu-fields {
 	display: grid;
 	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x) var(--s-4) calc(var(--pad-x) + var(--tree-indent, 0px));
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
+	padding: var(--s-4) var(--padding-inline) var(--s-4) calc(var(--padding-inline) + var(--tree-indent, 0px));
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
 }
 
 .menu-fields .field-pair {
@@ -223,7 +223,7 @@ function key(event: KeyboardEvent): void {
 }
 
 .menu-fields__note.is-warn {
-	color: var(--warn);
+	color: var(--color-warning);
 }
 
 .menu-fields__foot {

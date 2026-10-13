@@ -21,6 +21,6 @@ const parts = computed(() => props.path.split(/(\{[^}]*\})/).filter((part) => pa
 }
 
 .redirect-path__placeholder {
-	color: var(--accent);
+	color: var(--color-accent);
 }
 </style>
