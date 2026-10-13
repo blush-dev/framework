@@ -5,7 +5,7 @@
  * uses. A search (names, labels, keywords, and groups), the groups down
  * the left (the core categories, then where the rest come from), a grid
  * of icons with their names, and a footer naming the selection with the
- * directive it writes.
+ * block it writes.
  *
  * A click selects an icon; **Insert**, Enter, or a double click inserts
  * it. The arrow keys move through the grid from the search field (left
@@ -22,7 +22,7 @@ import { gridColumns, gridMove, numbered, type Section } from '../grid';
 import { iconGroups, iconMask, iconMatches, loadIcons, type SiteIcon } from '../site-icons';
 
 defineProps<{
-	// The directive an icon would write, for the footer.
+	// The block an icon would write, for the footer.
 	preview: (icon: SiteIcon) => string;
 }>();
 

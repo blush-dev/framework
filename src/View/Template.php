@@ -24,7 +24,7 @@ use Blush\Clock\DateStyle;
 use Blush\Menu\Menu;
 use Blush\Routing\UrlGenerationException;
 use Blush\Component\PendingComponent;
-use Blush\Directive\PendingDirective;
+use Blush\Block\PendingBlock;
 
 /**
  * `$template` inside a template file: the small API templates use to build
@@ -205,17 +205,17 @@ final class Template
 	}
 
 	/**
-	 * Returns a directive with named props, to print or to give content
+	 * Returns a block with named props, to print or to give content
 	 * first (D-532): what content would say, drawn by a template, as
-	 * `<?= $template->directive('callout', variant: 'tip')->content($html) ?>`.
-	 * `$directive` is a full name (`acme/tabs`) or a core directive's
-	 * short name (D-171). (It isn't called `$name`, so a directive can
+	 * `<?= $template->block('callout', variant: 'tip')->content($html) ?>`.
+	 * `$block` is a full name (`acme/tabs`) or a core block's
+	 * short name (D-171). (It isn't called `$name`, so a block can
 	 * have a `name` prop, as the menu does.)
 	 */
 	#[ReturnsHtml]
-	public function directive(string $directive, mixed ...$props): PendingDirective
+	public function block(string $block, mixed ...$props): PendingBlock
 	{
-		return new PendingDirective($this->views, $this->context, $directive, self::named($props));
+		return new PendingBlock($this->views, $this->context, $block, self::named($props));
 	}
 
 	/**
@@ -224,17 +224,17 @@ final class Template
 	 * for one named by its label.
 	 */
 	#[ReturnsHtml]
-	public function icon(string $name, string $label = ''): PendingDirective
+	public function icon(string $name, string $label = ''): PendingBlock
 	{
-		return $this->directive('icon', name: $name, label: $label);
+		return $this->block('icon', name: $name, label: $label);
 	}
 
 	/**
 	 * Returns the menu a theme location shows (D-199), with the page's
 	 * item marked current, or `null` when it shows none, for markup of
 	 * the theme's own: the menu the site assigned it, else the theme's
-	 * default items (D-676). The `menu` directive prints one with the
-	 * default markup: `<?= $template->directive('menu', location: 'primary') ?>`.
+	 * default items (D-676). The `menu` block prints one with the
+	 * default markup: `<?= $template->block('menu', location: 'primary') ?>`.
 	 *
 	 * ```php
 	 * <?php if ($menu = $template->menu('social')) : ?>
@@ -282,7 +282,7 @@ final class Template
 	 *
 	 *     <?= $template->cache("archives.{$by}", fn () => $template->component('acme/post-archives', by: $by)) ?>
 	 *
-	 * The returned HTML is kept with the assets the fragment's directives
+	 * The returned HTML is kept with the assets the fragment's blocks
 	 * and components asked for (D-572), which are asked for again
 	 * whenever it's printed. Nothing else is, so a fragment shouldn't add
 	 * to the head or the `<body>` classes itself.
@@ -317,8 +317,8 @@ final class Template
 	 * Asks for registered assets by handle (D-570), such as
 	 * `core/player`, for the page this template is part of. They print
 	 * in its head (or a script's footer), after what they require, each
-	 * once. Asked for in a directive's template, they're kept with the
-	 * body it's in, as the directive's own are (D-572).
+	 * once. Asked for in a block's template, they're kept with the
+	 * body it's in, as the block's own are (D-572).
 	 */
 	public function enqueue(string ...$handles): void
 	{

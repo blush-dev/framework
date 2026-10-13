@@ -45,7 +45,7 @@ use Blush\Extension\ExtensionSuggest;
  * in the theme's group of settings (D-676); its `menus` declare the
  * locations the site fills (D-199), each a label or an object, with the
  * theme's default items if it has them. Its `variants` list
- * directive variants by directive (D-266). Its `preview` is what the
+ * block variants by block (D-266). Its `preview` is what the
  * admin sketches it from (D-381). Keys this version doesn't read (image
  * sizes) are kept in `$data`. Its `authors` are in `composer.json`'s
  * shape (D-384), its `license` a string or a list (D-427, D-428), and its
@@ -70,13 +70,13 @@ final readonly class ThemeManifest implements ExtensionManifest
 	public const string MENUS = 'menus';
 
 	/**
-	 * @param string               $name    The theme's `vendor/name`.
-	 * @param string               $path    The theme's absolute folder.
-	 * @param string               $label   The theme's title.
-	 * @param string               $namespace What its components, icons, and catalog keys go by.
-	 * @param list<string>         $styles  Stylesheet paths, relative to the theme (resolved through the chain).
-	 * @param list<string>         $scripts Script paths, relative to the theme.
-	 * @param list<string>         $preload Files every page preloads, relative to the theme, such as fonts (D-558).
+	 * @param string       $name      The theme's `vendor/name`.
+	 * @param string       $path      The theme's absolute folder.
+	 * @param string       $label     The theme's title.
+	 * @param string       $namespace What its components, icons, and catalog keys go by.
+	 * @param list<string> $styles    Stylesheet paths, relative to the theme (resolved through the chain).
+	 * @param list<string> $scripts   Script paths, relative to the theme.
+	 * @param list<string> $preload   Files every page preloads, relative to the theme, such as fonts (D-558).
 	 * @param array<string, mixed>  $data     The whole manifest.
 	 * @param ?string               $provider A service provider class.
 	 * @param Autoload              $autoload Its `psr-4` map and `files`, relative to the theme (D-418).
@@ -90,8 +90,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
-	 * @param list<string>          $keywords What it's about, searched by the admin (D-565).
-	 * @param list<Asset>           $assets   The assets it registers by handle (D-574).
+	 * @param list<string> $keywords What it's about, searched by the admin (D-565).
+	 * @param list<Asset>  $assets   The assets it registers by handle (D-574).
 	 */
 	public function __construct(
 		public string $name,
@@ -192,7 +192,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 		$variants = $data['variants'] ?? [];
 
 		if (! is_array($variants) || ($variants !== [] && array_is_list($variants)) || ! array_all($variants, static fn (mixed $list): bool => is_array($list) && array_is_list($list))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map directive names to lists of variants.', $theme));
+			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map block names to lists of variants.', $theme));
 		}
 
 		$bleed = $data['bleed'] ?? [];
@@ -300,9 +300,9 @@ final readonly class ThemeManifest implements ExtensionManifest
 	}
 
 	/**
-	 * Returns the manifest's directive variants, by directive name: each
+	 * Returns the manifest's block variants, by block name: each
 	 * a variant name or a `{"name", "modifier"}` object (see
-	 * `Directive\DirectiveVariants`).
+	 * `Block\BlockVariants`).
 	 *
 	 * @return array<string, list<mixed>>
 	 */

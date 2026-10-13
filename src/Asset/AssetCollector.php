@@ -20,7 +20,7 @@ use Closure;
  * reach the page that prints them, wherever they were asked for.
  *
  * A page opens a scope for its render (`Views::render()`), and so does
- * anything whose HTML is cached, such as a fragment: a directive or
+ * anything whose HTML is cached, such as a fragment: a block or
  * component adds its handles to the innermost scope, and a scope that
  * closes passes its handles out to the one around it. A cached fragment
  * keeps its handles beside its HTML and adds them again whenever it's
@@ -29,7 +29,7 @@ use Closure;
  * An entry's body renders in an isolated scope (`isolate()`), whose
  * handles don't pass out: the body keeps them and adds them only when
  * its HTML is asked for (`Body::html()`), so a listing that reads a body
- * only for its excerpt doesn't load what its directives need. Outside
+ * only for its excerpt doesn't load what its blocks need. Outside
  * any scope (a feed printing a body), handles go nowhere.
  *
  * It holds state only while something renders.

@@ -16,21 +16,21 @@
  * caret is in ("Callout", "Heading 2", else "Elements",
  * `elements.ts`): the most specific element wins, and a blank line
  * belongs to the element above it at its own level. It shows that
- * directive's options (`DirectiveOptions`), an image's (`ImageOptions`),
- * or a block's (`BlockOptions`), with a **Content** group, one level
+ * block's options (`BlockOptions`), an image's (`ImageOptions`),
+ * or a block's (`MarkdownBlockOptions`), with a **Content** group, one level
  * deep, for an element that holds others. The breadcrumb names where the
  * caret is, from the entry down, and each crumb selects what it names.
  *
  * The header's left half is what you do to the document (admin.md §8,
  * The toolbar; D-313), in the order a writer asks: what goes in the
- * document, block directives, in a panel that slides in from the left
+ * document, blocks, in a panel that slides in from the left
  * and stays open (also opened by typing `/`; the Markdown elements are
  * tiles in it too, and **Image** opens the media library), and media, a
  * menu of **Media Library** and **Upload a File** (D-268); then, while
  * the caret is in the text, moving the top-level element it's in (⌥↑,
  * ⌥↓); what goes in a sentence, bold, italic, a link (a small form, ⌘K),
  * the other inline elements (a short menu: struck, highlighted, and code
- * text, then the inline directives), and an icon (a library in a modal),
+ * text, then the inline blocks), and an icon (a library in a modal),
  * shown only where emphasis is emphasis; and how wide an element is,
  * bleed, for a top-level element. Contextual groups are hidden, not
  * disabled, and come after the fixed ones, so nothing that's always
@@ -100,9 +100,9 @@ import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type ContentTypeSummary, type EntryStatus, type LinkedGroup, type NewEntryDetail, type FieldDescription, type EntryTemplateOption, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
+import MarkdownBlockOptions from '../components/MarkdownBlockOptions.vue';
 import BlockOptions from '../components/BlockOptions.vue';
-import DirectiveOptions from '../components/DirectiveOptions.vue';
-import DirectivePanel from '../components/DirectivePanel.vue';
+import BlockPanel from '../components/BlockPanel.vue';
 import ConflictBar from '../components/ConflictBar.vue';
 import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
@@ -123,8 +123,8 @@ import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TabBar from '../components/TabBar.vue';
 import StatusPill from '../components/StatusPill.vue';
 import TypeIcon from '../components/TypeIcon.vue';
-import { BLOCK_KINDS } from '../blocks';
-import { bleedClasses, directiveIcon, directiveText, IMAGE_DIRECTIVE, imageVariants, loadDirectives, MARKDOWN_ELEMENTS, type BleedClasses, type DirectiveDescription, type DirectiveProp } from '../directives';
+import { MARKDOWN_BLOCK_KINDS } from '../markdown-blocks';
+import { bleedClasses, blockIcon, blockText, IMAGE_BLOCK, imageVariants, loadBlocks, MARKDOWN_ELEMENTS, type BleedClasses, type BlockDescription, type BlockProp } from '../blocks';
 import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
@@ -136,7 +136,7 @@ import { loadActivity, type ActivityChange } from '../activity';
 import ActivityRows from '../components/ActivityRows.vue';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
-import { attributeParts, attributeText, blocks, CORE, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, shortName, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
+import { attributeParts, attributeText, markdownBlocks, CORE, blockHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withMarkdownBlockParts, withBlockParts, withImage, withLink, withoutBlock, withoutImage, withoutLink, withParts, shortName, wordAt, wordCount, type Block, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { fieldValue, mediaName } from '../media';
 import { onPressOutside } from '../popover';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
@@ -1343,24 +1343,24 @@ const titleField = ref<HTMLTextAreaElement | null>(null);
 const sideOpen   = ref(drawerOpen());
 const tab        = ref<'document' | 'element'>('document');
 const caret      = ref(0);
-const available  = ref<DirectiveDescription[]>([]);
+const available  = ref<BlockDescription[]>([]);
 
-const directivesFailed = ref(false);
+const blocksFailed = ref(false);
 const imageStyles      = ref<Awaited<ReturnType<typeof imageVariants>>>([]);
 const bleeds           = ref<BleedClasses>({ wide: 'bleed-wide', full: 'bleed-full' });
 
-loadDirectives().then(async (directives) => {
-	available.value   = directives;
+loadBlocks().then(async (blocks) => {
+	available.value   = blocks;
 	imageStyles.value = await imageVariants();
 	bleeds.value      = await bleedClasses();
 }, () => {
-	directivesFailed.value = true;
+	blocksFailed.value = true;
 });
 
 // The block panel: open from its button, or for a slash typed at the
 // start of a line (then the query is in the text, and it closes once a
 // block replaces it).
-const panel      = ref<InstanceType<typeof DirectivePanel> | null>(null);
+const panel      = ref<InstanceType<typeof BlockPanel> | null>(null);
 const panelOpen  = ref(false);
 const panelSlash = ref(false);
 const panelQuery = ref('');
@@ -1424,16 +1424,16 @@ function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
 	}
 }
 
-// The panel offers the Markdown elements and block directives, the
+// The panel offers the Markdown elements and the blocks that aren't inline, the
 // Markdown first in each group, with a Markdown image first among the
 // media (D-268, D-313); inline ones have their own menu, less the icon,
 // which has its own picker.
-const blockDirectives  = computed(() => available.value.length === 0 ? [] : [...MARKDOWN_ELEMENTS, IMAGE_DIRECTIVE, ...available.value.filter((described) => described.kind !== 'inline')]);
+const offeredBlocks = computed(() => available.value.length === 0 ? [] : [...MARKDOWN_ELEMENTS, IMAGE_BLOCK, ...available.value.filter((described) => described.kind !== 'inline')]);
 // Inside a container that holds only some things, only those are offered.
-const panelDirectives = computed(() => {
+const panelBlocks = computed(() => {
 	const only = holder.value?.only;
 
-	return only ? blockDirectives.value.filter((described) => only.includes(described.name)) : blockDirectives.value;
+	return only ? offeredBlocks.value.filter((described) => only.includes(described.name)) : offeredBlocks.value;
 });
 
 const panelNote = computed(() => {
@@ -1448,17 +1448,17 @@ const panelNote = computed(() => {
 
 // "images", "images, buttons".
 function onlyNames(only: string[]): string {
-	return only.map((name) => name === 'image' ? 'images' : `${inSentence(directiveFor(name)?.label ?? name)}s`).join(', ');
+	return only.map((name) => name === 'image' ? 'images' : `${inSentence(blockFor(name)?.label ?? name)}s`).join(', ');
 }
 
 const panelNoteNames = computed(() => onlyNames(selected.value?.only ?? []));
 
-const inlineDirectives = computed(() => available.value.filter((described) => described.kind === 'inline' && described !== iconDirective.value));
+const inlineBlocks = computed(() => available.value.filter((described) => described.kind === 'inline' && described !== iconBlock.value));
 
-function chooseDirective(described: DirectiveDescription): void {
+function chooseBlock(described: BlockDescription): void {
 	const markdown = described.markdown;
 
-	if (described === IMAGE_DIRECTIVE) {
+	if (described === IMAGE_BLOCK) {
 		pickMedia('library', 'image');
 	} else if (markdown !== undefined) {
 		// The placeholder arrives selected, so the first keystroke replaces it.
@@ -1476,7 +1476,7 @@ function chooseDirective(described: DirectiveDescription): void {
 	}
 }
 
-function chooseInline(described: DirectiveDescription): void {
+function chooseInline(described: BlockDescription): void {
 	bodyEditor.value?.insert(described);
 }
 
@@ -1488,19 +1488,19 @@ function openIcons(): void {
 	iconsOpen.value = true;
 }
 
-const iconDirective = computed(() => directiveFor('icon'));
+const iconBlock = computed(() => blockFor('icon'));
 
 function iconPreview(icon: SiteIcon): string {
-	return `:${iconDirective.value?.name ?? `${CORE}/icon`}[]{${attributeText('name', icon.name)}}`;
+	return `:${iconBlock.value?.name ?? `${CORE}/icon`}[]{${attributeText('name', icon.name)}}`;
 }
 
 function chooseIcon(icon: SiteIcon): void {
 	iconsOpen.value = false;
 
-	if (iconDirective.value === undefined) {
+	if (iconBlock.value === undefined) {
 		bodyEditor.value?.insertText(iconPreview(icon));
 	} else {
-		bodyEditor.value?.insert(iconDirective.value, { name: icon.name });
+		bodyEditor.value?.insert(iconBlock.value, { name: icon.name });
 	}
 }
 
@@ -1510,7 +1510,7 @@ function closeIcons(): void {
 }
 
 // The media picker: inserting files, or choosing one for a field, a
-// directive's option, or an image. It opens on the Library tab, or on
+// block's option, or an image. It opens on the Library tab, or on
 // Upload from the media menu's Upload a File. Inserting takes several
 // (D-526); choosing a file for one place takes one.
 type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'file';
@@ -1559,8 +1559,8 @@ function insertFile(file: MediaItem): void {
 		return;
 	}
 
-	const name      = fileDirective(file);
-	const described = directiveFor(name);
+	const name      = fileBlock(file);
+	const described = blockFor(name);
 
 	if (described === undefined) {
 		bodyEditor.value?.insertText(`::${CORE}/${name}{${attributeText('src', file.reference)}}`);
@@ -1571,8 +1571,8 @@ function insertFile(file: MediaItem): void {
 	tab.value = 'element';
 }
 
-// The directive a file that isn't an image goes in as.
-function fileDirective(file: MediaItem): 'video' | 'audio' | 'file' {
+// The block a file that isn't an image goes in as.
+function fileBlock(file: MediaItem): 'video' | 'audio' | 'file' {
 	return file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
 }
 
@@ -1603,10 +1603,10 @@ function insertFiles(files: MediaItem[]): void {
 				return imageText(file.reference, (index === 0 ? selected : '') || file.alt, file.caption).text;
 			}
 
-			const name      = fileDirective(file);
-			const described = directiveFor(name);
+			const name      = fileBlock(file);
+			const described = blockFor(name);
 
-			return described === undefined ? `::${CORE}/${name}{${attributeText('src', file.reference)}}` : directiveText(described, false, '', { src: file.reference }).text;
+			return described === undefined ? `::${CORE}/${name}{${attributeText('src', file.reference)}}` : blockText(described, false, '', { src: file.reference }).text;
 		}).join(gap);
 
 		return { text, caret: text.length };
@@ -1661,8 +1661,8 @@ function pickForField(field: FieldDescription, root = field.name, steps: FieldSt
 	};
 }
 
-function pickForOption(prop: DirectiveProp): void {
-	const item = directive.value;
+function pickForOption(prop: BlockProp): void {
+	const item = block.value;
 
 	if (item === undefined) {
 		return;
@@ -1734,7 +1734,7 @@ useCommands(() => {
 		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
 		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
 		{ id: 'editor-outline', label: 'Outline', icon: 'list', keywords: 'elements structure contents blocks', run: () => void showOutline() },
-		{ id: 'editor-block', label: 'Insert a block', icon: 'plus', keywords: 'callout figure block directive component', shortcut: '/', run: () => void togglePanel() },
+		{ id: 'editor-block', label: 'Insert a block', icon: 'plus', keywords: 'callout figure block component', shortcut: '/', run: () => void togglePanel() },
 		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
 		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
@@ -1773,9 +1773,9 @@ useCommands(() => {
 });
 
 const markdown  = computed(() => outline(body.value));
-const allBlocks = computed(() => blocks(markdown.value));
-const words     = computed(() => wordCount(markdown.value));
-const items     = computed(() => outlineItems(body.value, markdown.value, allBlocks.value));
+const allMarkdownBlocks = computed(() => markdownBlocks(markdown.value));
+const words             = computed(() => wordCount(markdown.value));
+const items             = computed(() => outlineItems(body.value, markdown.value, allMarkdownBlocks.value));
 
 // An element chosen from the outline, a Content group, or the
 // breadcrumb, with where the caret was put for it. It stays chosen while
@@ -1799,54 +1799,54 @@ const selection = computed<ElementRef | null>(() => {
 		return choice.element;
 	}
 
-	return elementAt(markdown.value, allBlocks.value, caret.value);
+	return elementAt(markdown.value, allMarkdownBlocks.value, caret.value);
 });
 
-const directive = computed<Directive | undefined>(() => selection.value?.kind === 'directive' ? markdown.value.directives[selection.value.index] : undefined);
-const image     = computed(() => selection.value?.kind === 'image' ? markdown.value.images[selection.value.index] : undefined);
-const block     = computed(() => selection.value?.kind === 'block' ? allBlocks.value[selection.value.index] : undefined);
+const block         = computed<Block | undefined>(() => selection.value?.kind === 'block' ? markdown.value.blocks[selection.value.index] : undefined);
+const image         = computed(() => selection.value?.kind === 'image' ? markdown.value.images[selection.value.index] : undefined);
+const markdownBlock = computed(() => selection.value?.kind === 'markdown' ? allMarkdownBlocks.value[selection.value.index] : undefined);
 
 /**
- * The inserter's description of a directive, by its full or
+ * The inserter's description of a block, by its full or
  * core short name.
  */
-function directiveFor(name: string): DirectiveDescription | undefined {
+function blockFor(name: string): BlockDescription | undefined {
 	return available.value.find((described) => described.name === name || described.name === `${CORE}/${name}`);
 }
 
-function directiveName(name: string): string {
-	return directiveFor(name)?.label ?? humanize(name.replace(/^.*\//, ''));
+function blockName(name: string): string {
+	return blockFor(name)?.label ?? humanize(name.replace(/^.*\//, ''));
 }
 
-function directiveLabel(item: Directive): string {
-	return directiveName(item.name);
+function blockLabel(item: Block): string {
+	return blockName(item.name);
 }
 
-const selected = computed(() => directive.value === undefined ? undefined : directiveFor(directive.value.name));
+const selected = computed(() => block.value === undefined ? undefined : blockFor(block.value.name));
 
-// An element's name and icon: a directive's, "Image", or its block's.
+// An element's name and icon: a block's, "Image", or its Markdown block's.
 function nameOf(element: ElementRef): string {
-	return elementName(markdown.value, allBlocks.value, element, directiveName);
+	return elementName(markdown.value, allMarkdownBlocks.value, element, blockName);
 }
 
 function iconOf(element: ElementRef): IconName {
-	if (element.kind === 'directive') {
-		const known = directiveFor(markdown.value.directives[element.index]?.name ?? '');
+	if (element.kind === 'block') {
+		const known = blockFor(markdown.value.blocks[element.index]?.name ?? '');
 
-		return known === undefined ? 'code' : directiveIcon(known);
+		return known === undefined ? 'code' : blockIcon(known);
 	}
 
 	if (element.kind === 'image') {
 		return 'image';
 	}
 
-	return BLOCK_KINDS[allBlocks.value[element.index]?.kind ?? 'paragraph'].icon;
+	return MARKDOWN_BLOCK_KINDS[allMarkdownBlocks.value[element.index]?.kind ?? 'paragraph'].icon;
 }
 
 // Whether an element was placed, not written: a container or leaf
-// directive, which the outline and breadcrumb name in the accent.
+// block, which the outline and breadcrumb name in the accent.
 function placed(element: ElementRef): boolean {
-	return element.kind === 'directive' && markdown.value.directives[element.index]?.kind !== 'inline';
+	return element.kind === 'block' && markdown.value.blocks[element.index]?.kind !== 'inline';
 }
 
 // The tabs are named for what they hold: the entry's type ("Post"), and
@@ -1859,13 +1859,13 @@ const tabIcon  = computed<IconName>(() => selection.value === null ? 'list' : ic
 // holding the selected one, outermost first.
 const path = computed(() => {
 	const current = selection.value;
-	const span    = current === null ? undefined : (current.kind === 'directive' ? markdown.value.directives[current.index] : undefined);
+	const span    = current === null ? undefined : (current.kind === 'block' ? markdown.value.blocks[current.index] : undefined);
 
 	return pathTo(items.value, current, span);
 });
 
 // A holder's Content group: the elements directly inside it.
-const content = computed(() => selection.value !== null && holdsContent(markdown.value, allBlocks.value, selection.value) ? childrenOf(items.value, selection.value) : null);
+const content = computed(() => selection.value !== null && holdsContent(markdown.value, allMarkdownBlocks.value, selection.value) ? childrenOf(items.value, selection.value) : null);
 
 // What's in a container that it doesn't hold (D-314): the author can
 // always type anyway, and the site leaves it out (D-529), so its panel
@@ -1874,7 +1874,7 @@ const content = computed(() => selection.value !== null && holdsContent(markdown
 // paragraph to Markdown.
 const strays = computed<string[]>(() => {
 	const only = selected.value?.only;
-	const item = directive.value;
+	const item = block.value;
 
 	if (!only || item === undefined) {
 		return [];
@@ -1888,9 +1888,9 @@ const strays = computed<string[]>(() => {
 			continue;
 		}
 
-		// Inside an allowed directive, its own lines are its business.
+		// Inside an allowed block, its own lines are its business.
 		if (line.kind === 'open' || line.kind === 'leaf') {
-			const name = directiveFor(markdown.value.directives[line.directive ?? -1]?.name ?? '')?.name;
+			const name = blockFor(markdown.value.blocks[line.block ?? -1]?.name ?? '')?.name;
 
 			if (depth === 0 && (name === undefined || !only.includes(name))) {
 				found.push(line.text.trim());
@@ -1908,7 +1908,7 @@ const strays = computed<string[]>(() => {
 });
 
 // The elements directly in a container that it doesn't hold, by kind
-// and index, each with the container's label (D-529), and directives
+// and index, each with the container's label (D-529), and blocks
 // written as another kind than they're registered (D-531): the outline
 // marks them, and each one's own panel says the site leaves it out.
 const strayItems = computed(() => {
@@ -1916,14 +1916,14 @@ const strayItems = computed(() => {
 
 	for (const item of items.value) {
 		const parent = items.value[item.parent];
-		const holder = parent?.kind === 'directive' ? directiveFor(markdown.value.directives[parent.index]?.name ?? '') : undefined;
+		const holder = parent?.kind === 'block' ? blockFor(markdown.value.blocks[parent.index]?.name ?? '') : undefined;
 		const only   = holder?.only;
 
 		if (holder === undefined || !only) {
 			continue;
 		}
 
-		const name = item.kind === 'directive' ? directiveFor(markdown.value.directives[item.index]?.name ?? '')?.name : undefined;
+		const name = item.kind === 'block' ? blockFor(markdown.value.blocks[item.index]?.name ?? '')?.name : undefined;
 		const held = item.kind === 'image' ? only.includes('image') : (name !== undefined && only.includes(name));
 
 		if (!held) {
@@ -1931,22 +1931,22 @@ const strayItems = computed(() => {
 		}
 	}
 
-	// A directive written as another kind than it's registered (D-531),
+	// A block written as another kind than it's registered (D-531),
 	// anywhere, inline ones included.
-	markdown.value.directives.forEach((item, index) => {
-		const described = directiveFor(item.name);
+	markdown.value.blocks.forEach((item, index) => {
+		const described = blockFor(item.name);
 		const written   = item.misplaced ? 'container' : item.kind;
 
 		if (described !== undefined && !described.name.startsWith('markdown/') && described.kind !== written) {
-			found.set(`directive-${index}`, misplacedNote(described));
+			found.set(`block-${index}`, misplacedNote(described));
 		}
 	});
 
 	return found;
 });
 
-// What's said of a directive written as another kind than it is.
-function misplacedNote(described: DirectiveDescription): string {
+// What's said of a block written as another kind than it is.
+function misplacedNote(described: BlockDescription): string {
 	const name = shortName(described.name);
 	const how  = {
 		container: `wraps other content, written “:::${name}” … “:::”`,
@@ -1962,7 +1962,7 @@ const strayNote = computed(() => selection.value === null ? undefined : strayIte
 // How many of what it holds are in it: images, for a gallery, and
 // tracks, for a playlist (D-708).
 const held = computed(() => {
-	const item = directive.value;
+	const item = block.value;
 
 	if (item === undefined) {
 		return 0;
@@ -1970,7 +1970,7 @@ const held = computed(() => {
 
 	return selected.value?.only?.includes('image') === true
 		? markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length
-		: markdown.value.directives.filter((found) => found.start > item.start && found.end < item.end && directiveFor(found.name)?.name === `${CORE}/audio`).length;
+		: markdown.value.blocks.filter((found) => found.start > item.start && found.end < item.end && blockFor(found.name)?.name === `${CORE}/audio`).length;
 });
 
 // The rows pinned to the end of the Document tab (D-608) each open a
@@ -2200,21 +2200,21 @@ const archiveWithout = computed(() => {
 });
 
 /**
- * Where the caret goes for an element: in a directive's head, after an
+ * Where the caret goes for an element: in a block's head, after an
  * image, or at the start of a block's first line.
  */
 function caretFor(element: ElementRef): number {
-	if (element.kind === 'directive') {
-		const item = markdown.value.directives[element.index];
+	if (element.kind === 'block') {
+		const item = markdown.value.blocks[element.index];
 
-		return item === undefined ? 0 : directiveHead(body.value, item).end;
+		return item === undefined ? 0 : blockHead(body.value, item).end;
 	}
 
 	if (element.kind === 'image') {
 		return markdown.value.images[element.index]?.end ?? 0;
 	}
 
-	const found = allBlocks.value[element.index];
+	const found = allMarkdownBlocks.value[element.index];
 	const first = markdown.value.lines[found?.first ?? 0];
 
 	return first === undefined ? 0 : first.start + first.text.length - first.text.trimStart().length;
@@ -2248,7 +2248,7 @@ function openCrumb(item: OutlineItem | null): void {
 }
 
 function outlineText(item: ElementRef): string {
-	return excerpt(body.value, markdown.value, allBlocks.value, item);
+	return excerpt(body.value, markdown.value, allMarkdownBlocks.value, item);
 }
 
 // A row of the Outline or a Content group: what the element is, and its
@@ -2279,12 +2279,12 @@ function applyOption(edit: Edit): void {
 	}
 }
 
-function removeDirective(): void {
-	const item = directive.value;
+function removeBlock(): void {
+	const item = block.value;
 
 	if (item !== undefined) {
-		bodyEditor.value?.apply(withoutDirective(body.value, item));
-		toast(`Removed the ${inSentence(directiveLabel(item))}`, { kind: 'danger' });
+		bodyEditor.value?.apply(withoutBlock(body.value, item));
+		toast(`Removed the ${inSentence(blockLabel(item))}`, { kind: 'danger' });
 	}
 }
 
@@ -2342,9 +2342,9 @@ function textBlurred(event: FocusEvent): void {
 const extent    = ref(0);
 // A container that holds only some things (D-314, `only`): the innermost
 // one the caret is in, the selected one included.
-const holder = computed<DirectiveDescription | undefined>(() => {
+const holder = computed<BlockDescription | undefined>(() => {
 	for (const item of [...path.value].reverse()) {
-		const found = item.kind === 'directive' ? directiveFor(markdown.value.directives[item.index]?.name ?? '') : undefined;
+		const found = item.kind === 'block' ? blockFor(markdown.value.blocks[item.index]?.name ?? '') : undefined;
 
 		if (found?.only) {
 			return found;
@@ -2367,7 +2367,7 @@ const emphasis  = computed<Record<Emphasis, boolean>>(() => sentence.value ? emp
 const mover = computed<OutlineItem | undefined>(() => {
 	const last   = path.value.at(-1);
 	const parent = path.value.at(-2);
-	const kind   = (item: OutlineItem | undefined): string | undefined => item?.kind === 'block' ? allBlocks.value[item.index]?.kind : undefined;
+	const kind   = (item: OutlineItem | undefined): string | undefined => item?.kind === 'markdown' ? allMarkdownBlocks.value[item.index]?.kind : undefined;
 
 	return parent !== undefined && kind(parent) === 'definitions' ? parent : last;
 });
@@ -2381,9 +2381,9 @@ function moveElement(up: boolean): void {
 	let change   = moveIndex.value === -1 ? null : movedElement(body.value, runs.value, moveIndex.value, up, { from: Math.min(caret.value, extent.value), to: Math.max(caret.value, extent.value) });
 
 	// A numbered list counts on from the number it started at.
-	if (change !== null && item?.kind === 'block' && allBlocks.value[item.index]?.kind === 'item') {
+	if (change !== null && item?.kind === 'markdown' && allMarkdownBlocks.value[item.index]?.kind === 'item') {
 		const list  = items.value[item.parent];
-		const first = list?.kind === 'block' ? markdown.value.lines[allBlocks.value[list.index]?.first ?? -1]?.text : undefined;
+		const first = list?.kind === 'markdown' ? markdown.value.lines[allMarkdownBlocks.value[list.index]?.first ?? -1]?.text : undefined;
 		const start = /^ *(\d{1,9})[.)]/.exec(first ?? '')?.[1];
 
 		change = renumberedAt(change, change.from, start === undefined ? undefined : Number.parseInt(start, 10));
@@ -2570,17 +2570,17 @@ const bleedTarget = computed<ElementRef | null>(() => {
 
 // An element's classes and id, wherever its syntax keeps them.
 function partsOf(element: ElementRef): { classes: string[]; id: string } {
-	if (element.kind === 'directive') {
-		const item = markdown.value.directives[element.index];
+	if (element.kind === 'block') {
+		const item = markdown.value.blocks[element.index];
 
-		return attributeParts(item === undefined ? '' : (directiveHead(body.value, item).attributes?.text ?? ''));
+		return attributeParts(item === undefined ? '' : (blockHead(body.value, item).attributes?.text ?? ''));
 	}
 
 	if (element.kind === 'image') {
 		return attributeParts(markdown.value.images[element.index]?.attributes?.text ?? '');
 	}
 
-	return attributeParts(allBlocks.value[element.index]?.attributes?.text ?? '');
+	return attributeParts(allMarkdownBlocks.value[element.index]?.attributes?.text ?? '');
 }
 
 const bleed = computed<BleedName>(() => {
@@ -2607,18 +2607,18 @@ function setBleed(name: BleedName): void {
 	const next = name === 'base' ? kept : [bleeds.value[name], ...kept];
 	let edit: Edit | null = null;
 
-	if (target.kind === 'directive') {
-		const item = markdown.value.directives[target.index];
+	if (target.kind === 'block') {
+		const item = markdown.value.blocks[target.index];
 
-		edit = item === undefined ? null : withDirectiveParts(body.value, item, next, id);
+		edit = item === undefined ? null : withBlockParts(body.value, item, next, id);
 	} else if (target.kind === 'image') {
 		const item = markdown.value.images[target.index];
 
 		edit = item === undefined ? null : withImage(item, { attributes: withParts(item.attributes?.text ?? '', next, id) });
 	} else {
-		const item = allBlocks.value[target.index];
+		const item = allMarkdownBlocks.value[target.index];
 
-		edit = item === undefined ? null : withBlockParts(body.value, markdown.value, item, next, id);
+		edit = item === undefined ? null : withMarkdownBlockParts(body.value, markdown.value, item, next, id);
 	}
 
 	if (edit !== null) {
@@ -2838,7 +2838,7 @@ function fieldKey(field: FieldDescription): string {
 
 		<header class="editor__head">
 			<template v-if="entry">
-				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Blocks ( / )" aria-controls="editor-directives" :aria-expanded="panelOpen" @click="togglePanel">
+				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Blocks ( / )" aria-controls="editor-blocks" :aria-expanded="panelOpen" @click="togglePanel">
 					<AdminIcon name="plus" />
 					<span class="visually-hidden">Insert a block</span>
 				</button>
@@ -2914,10 +2914,10 @@ function fieldKey(field: FieldDescription): string {
 						<button v-if="canMention" type="button" class="menu-item" aria-haspopup="dialog" @mousedown.prevent @click="openMention">
 							<AdminIcon name="at-sign" /><span class="menu-item__name">Mention</span>
 						</button>
-						<template v-if="inlineDirectives.length">
+						<template v-if="inlineBlocks.length">
 							<div class="menu-divider" />
-							<button v-for="described in inlineDirectives" :key="described.name" type="button" class="menu-item menu-item--described" @click="chooseInline(described)">
-								<AdminIcon :name="directiveIcon(described)" />
+							<button v-for="described in inlineBlocks" :key="described.name" type="button" class="menu-item menu-item--described" @click="chooseInline(described)">
+								<AdminIcon :name="blockIcon(described)" />
 								<span>
 									<span class="menu-item__name">{{ described.label }}<template v-if="described.source"> · {{ described.source.label }}</template></span>
 									<span v-if="described.description" class="menu-item__text">{{ described.description }}</span>
@@ -3041,15 +3041,15 @@ function fieldKey(field: FieldDescription): string {
 		<ConflictBar v-if="conflict" :noun="noun" :safe="safe" :theirs="conflict.theirs" :loading="conflict.loading" :compare="differences" @keep-theirs="keepTheirs" @keep-mine="keepMine" @retry="fetchTheirs" />
 
 		<div class="editor__body">
-			<aside id="editor-directives" class="editor__inserter" aria-labelledby="directive-panel-heading" :inert="!panelOpen">
-				<DirectivePanel
+			<aside id="editor-blocks" class="editor__inserter" aria-labelledby="block-panel-heading" :inert="!panelOpen">
+				<BlockPanel
 					ref="panel"
 					v-model:query="panelQuery"
-					:directives="panelDirectives"
+					:blocks="panelBlocks"
 					:note="panelNote"
-					:failed="directivesFailed"
+					:failed="blocksFailed"
 					:slash="panelSlash"
-					@choose="chooseDirective"
+					@choose="chooseBlock"
 					@close="closePanel()"
 				/>
 			</aside>
@@ -3084,9 +3084,9 @@ function fieldKey(field: FieldDescription): string {
 							placeholder="Write in Markdown. Type / on an empty line, or use +, to add a block."
 							v-model:extent="extent"
 							:parsed="markdown"
-							:blocks="allBlocks"
+							:markdown-blocks="allMarkdownBlocks"
 							:slash-open="panelOpen && panelSlash"
-							:directive="selection?.kind === 'directive' ? selection.index : -1"
+							:block="selection?.kind === 'block' ? selection.index : -1"
 							:image="selection?.kind === 'image' ? selection.index : -1"
 							@slash="slashed"
 							@slash-key="slashKey"
@@ -3483,13 +3483,13 @@ function fieldKey(field: FieldDescription): string {
 									<span class="notice__text">{{ strayNote }}</span>
 								</p>
 							</OptionsGroup>
-							<DirectiveOptions
-								v-if="directive"
+							<BlockOptions
+								v-if="block"
 								:source="body"
-								:directive="directive"
+								:block="block"
 								:described="selected"
 								@edit="applyOption"
-								@remove="removeDirective"
+								@remove="removeBlock"
 								@pick="pickForOption"
 							>
 								<OptionsGroup v-if="content" heading="Content">
@@ -3498,7 +3498,7 @@ function fieldKey(field: FieldDescription): string {
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</OptionsGroup>
-							</DirectiveOptions>
+							</BlockOptions>
 							<ImageOptions
 								v-else-if="image"
 								:key="`image-${image.start}`"
@@ -3509,20 +3509,20 @@ function fieldKey(field: FieldDescription): string {
 								@remove="removeImage"
 								@pick="pickForImage"
 							/>
-							<BlockOptions
-								v-else-if="block"
-								:key="`block-${block.kind}-${block.start}`"
+							<MarkdownBlockOptions
+								v-else-if="markdownBlock"
+								:key="`markdown-block-${markdownBlock.kind}-${markdownBlock.start}`"
 								:source="body"
 								:markdown="markdown"
-								:blocks="allBlocks"
-								:block="block"
+								:markdown-blocks="allMarkdownBlocks"
+								:markdown-block="markdownBlock"
 								@edit="applyOption"
 							>
 								<OptionsGroup v-if="content" heading="Content">
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="content.length" class="field__help">{{ plural(content.length, 'element') }} directly inside. What's nested deeper is listed under the one holding it.</p>
 								</OptionsGroup>
-							</BlockOptions>
+							</MarkdownBlockOptions>
 						</template>
 
 						<div v-else class="editor__none">

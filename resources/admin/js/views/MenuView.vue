@@ -3,7 +3,7 @@
  * A menu (from the menus sketch), in the frame of the admin's other
  * detail screens (Roles): a back link, the title with its facts under
  * it (name, items, locations), and the actions at the right: Settings
- * (`MenuSettings`: label, name, the directive, locations), the save
+ * (`MenuSettings`: label, name, the block, locations), the save
  * button, and a menu with Duplicate and Delete. Below is the item tree
  * (`MenuTree`).
  *

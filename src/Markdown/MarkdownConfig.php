@@ -28,7 +28,7 @@ use Blush\Config\InvalidConfig;
  *
  * Blush's Markdown is one dialect on every site (D-492): CommonMark with
  * autolinks, struck text, tables, task lists, footnotes, definition
- * lists, highlighting, attributes, and directives, which the admin's
+ * lists, highlighting, attributes, and blocks, which the admin's
  * editor writes and reads. These settings change how it renders, not
  * what it means. The ones the Writing screen shows (D-494) can be saved
  * in the saved settings (`user/data/settings/`) over this file.
@@ -43,7 +43,7 @@ final readonly class MarkdownConfig implements Config
 	 * @param RawHtml              $html             What raw HTML does on a page.
 	 * @param bool                 $figures          Whether a lone image renders as a `<figure>`.
 	 * @param bool                 $absoluteLinks    Whether root-relative links become absolute.
-	 * @param bool                 $directives       Whether generic directives render (D-026, D-532).
+	 * @param bool                 $blocks           Whether blocks render (D-026, D-532).
 	 * @param HeadingAnchorOptions $anchors          How heading anchors look.
 	 * @param FootnoteOptions      $footnotes        How footnotes look.
 	 */
@@ -55,7 +55,7 @@ final readonly class MarkdownConfig implements Config
 		public RawHtml $html = RawHtml::Allow,
 		public bool $figures = true,
 		public bool $absoluteLinks = true,
-		public bool $directives = true,
+		public bool $blocks = true,
 		public HeadingAnchorOptions $anchors = new HeadingAnchorOptions(),
 		public FootnoteOptions $footnotes = new FootnoteOptions()
 	) {}
@@ -67,7 +67,7 @@ final readonly class MarkdownConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['smartPunctuation', 'headingAnchors', 'mentions', 'lineBreaks', 'html', 'figures', 'absoluteLinks', 'directives', 'anchors', 'footnotes']);
+		$values->assertKnownKeys(['smartPunctuation', 'headingAnchors', 'mentions', 'lineBreaks', 'html', 'figures', 'absoluteLinks', 'blocks', 'anchors', 'footnotes']);
 
 		return new static(
 			smartPunctuation: $values->bool('smartPunctuation', true),
@@ -77,7 +77,7 @@ final readonly class MarkdownConfig implements Config
 			html: $values->enum('html', RawHtml::class, RawHtml::Allow),
 			figures: $values->bool('figures', true),
 			absoluteLinks: $values->bool('absoluteLinks', true),
-			directives: $values->bool('directives', true),
+			blocks: $values->bool('blocks', true),
 			anchors: self::anchors($data['anchors'] ?? []),
 			footnotes: self::footnotes($data['footnotes'] ?? [])
 		);
@@ -97,7 +97,7 @@ final readonly class MarkdownConfig implements Config
 			'html'             => $this->html->value,
 			'figures'          => $this->figures,
 			'absoluteLinks'    => $this->absoluteLinks,
-			'directives'       => $this->directives,
+			'blocks'           => $this->blocks,
 			'anchors'          => $this->anchors->toArray(),
 			'footnotes'        => $this->footnotes->toArray()
 		];

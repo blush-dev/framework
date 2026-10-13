@@ -60,7 +60,7 @@ For work that needs more than constants, override `register()` or
 Blush finds nothing in your site by file: no templates, icons, or
 classes are picked up from folders, only what your provider registers.
 Templates and icons belong to [themes](themes.md) and icon packs, and
-directives, content types, and relations to plugins.
+blocks, content types, and relations to plugins.
 
 ## Your own pages
 
@@ -174,7 +174,7 @@ method's parameters, so `bin/blush help stats` is written for you.
 ## Finding entries
 
 `Blush\Content\Entries` finds entries. Ask for it in a
-constructor (a command's, a directive's, a component's), and build a
+constructor (a command's, a block's, a component's), and build a
 query from it:
 
 ```php
@@ -219,13 +219,13 @@ An entry can tell you what it is:
 To link to an entry you found some other way than a query (a parent, a
 child, a term), check `isPublished() && isRoutable()`.
 
-## Directives and components
+## Blocks and components
 
-Directives and components come from extensions, in the extension's
+Blocks and components come from extensions, in the extension's
 namespace, never from the site itself:
 
-- **[Directives](directives.md)** are what your content says, such as
-  `::acme/pricing`. They come from Blush and [plugins](#directives-and-components-from-a-plugin),
+- **[Blocks](blocks.md)** are what your content says, such as
+  `::acme/pricing`. They come from Blush and [plugins](#blocks-and-components-from-a-plugin),
   so they work with every theme, and content that uses them never
   breaks when you switch.
 - **[Components](components.md)** are pieces for templates, such as
@@ -257,7 +257,7 @@ plain provider needs no code: list it in
 A provider whose oEmbed answer is a quote its own script draws as a post
 (as X's is) overrides `frame()` to return `null` and `asset()` to name a
 [registered asset](#scripts-and-styles) holding that script, such as
-core's `core/embed-x`. The `embed` directive then shows the answer's
+core's `core/embed-x`. The `embed` block then shows the answer's
 `<blockquote>`, cleaned down to its text and links, and asks for the
 asset, so the script loads once on the page. The script is always the
 asset's, never the one in the answer.
@@ -912,7 +912,7 @@ Every extension's manifest has the same three keys:
   it's the package's name.
 - **`label`:** its title, as people read it. Optional: leave it out and
   the extension is shown by its `name`.
-- **`namespace`:** what its directives, components, icons, and translations go by
+- **`namespace`:** what its blocks, components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
   `core`, `theme`, and `default` are reserved. Optional, and
   best left out: without one, it's the name with a hyphen for the `/`
@@ -1231,7 +1231,7 @@ Every installed plugin is on. Turn one off on the admin's
 
 ### A plugin without a provider
 
-A provider is what connects a plugin's classes to Blush: directives,
+A provider is what connects a plugin's classes to Blush: blocks,
 components, icons, commands, listeners, and the rest. A plugin that has none of those
 can leave `provider` out. It can still:
 
@@ -1440,21 +1440,21 @@ when it's turned on, and the rest of the site carries on without it.
 The Plugins screen, `plugin:list`, and `plugin:check` list it by where
 it was found, such as `extensions/acme/hello`, with the reason.
 
-### Directives and components from a plugin
+### Blocks and components from a plugin
 
-A plugin's [directives](directives.md) use its namespace: `acme/hello`,
+A plugin's [blocks](blocks.md) use its namespace: `acme/hello`,
 with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
 text (labels, descriptions) goes in the plugin's `lang/en.json`, under
-`directives.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
+`blocks.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
 the top ([Translations](themes.md#translations)). Text written in the
 plugin's code (`t()` in its templates and classes, below) is the
 plugin's, looked up in its catalogs and then Blush's, never the
-theme's. A plugin's directive
+theme's. A plugin's block
 draws itself with its `render()`, usually a template file in the plugin
 returned by `$this->view(__DIR__ . '/../views/tabs.php')` (see
-[Rendering itself](directives.md#rendering-itself)); a theme (or a
-child theme) restyles it with `views/directives/hello-tabs.php`. Turning the
-plugin off turns its directives in your content into plain text.
+[Rendering itself](blocks.md#rendering-itself)); a theme (or a
+child theme) restyles it with `views/blocks/hello-tabs.php`. Turning the
+plugin off turns its blocks in your content into plain text.
 
 A plugin can also offer [components](components.md) for themes to use
 in their templates, such as a newsletter plugin's `newsletter/signup`,
@@ -1468,7 +1468,7 @@ Write text where it's used, with a key and the text beside it, as
 from where the code lives, so you never name your plugin:
 
 - **In a template** the plugin ships: `$messages->t('key', 'Text')`.
-- **In a directive or component class**, and **in your provider**:
+- **In a block or component class**, and **in your provider**:
   `$this->messages->t('key', 'Text')`. A label you register is
   translated where it's shown, so it reads in the page's or the
   admin's language:
@@ -1549,7 +1549,7 @@ builds with its own blocks, and `$template->layout('base')` to wrap a
 template in a layout. If your engine escapes output on its own, don't
 escape Blush's HTML a second time: methods marked with the
 `Blush\View\ReturnsHtml` attribute (`include()`, `section()`,
-`component()`, `directive()`, and others) return HTML, and so does any value that
+`component()`, `block()`, and others) return HTML, and so does any value that
 implements `Blush\View\SafeHtml`.
 
 ### Icons from a plugin
@@ -1855,7 +1855,7 @@ icon:list` and the admin's icon inserter. Turn one off on the admin's
 [Icon Packs](admin.md#icon-packs) screen, or by its name in
 [`config/icons.php`](configuration.md#plugins-and-middleware); its icons
 then show nowhere. A theme (or a child theme) can restyle one with
-`icons/brands/github.svg` (see [Icons](directives.md#icons)).
+`icons/brands/github.svg` (see [Icons](blocks.md#icons)).
 
 For autocomplete, point `$schema` at
 `vendor/blush-dev/framework/resources/schemas/icons.schema.json`.
@@ -1952,7 +1952,7 @@ listener.
 
 There are three ways to load an asset:
 
-- **Where it's drawn.** A [directive](directives.md#the-class) or
+- **Where it's drawn.** A [block](blocks.md#the-class) or
   [component](components.md) lists the handles it needs in `ASSETS`,
   and they load on every page it's drawn on, an entry's text included.
 - **From a template**: `$template->enqueue('acme/gallery')`.

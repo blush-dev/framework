@@ -15,7 +15,7 @@ namespace Blush\Markdown\Html;
 
 /**
  * What in a body could carry script (D-495): its raw HTML, as written,
- * and the addresses its links, images, and directives point at. HTML
+ * and the addresses its links, images, and blocks point at. HTML
  * inside code isn't raw HTML, so it isn't here.
  */
 final readonly class RawMarkup

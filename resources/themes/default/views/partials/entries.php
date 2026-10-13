@@ -10,15 +10,19 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entries');
+
 $entries = $page->entries;
 
 ?>
 <?php if ($entries === null || count($entries) === 0) : ?>
 	<p class="no-entries"><?= e($messages->t('no_entries')) ?></p>
 <?php else : ?>
-	<ul class="entries" role="list">
+	<ul class="<?= attr($bem->block()) ?>" role="list">
 		<?php foreach ($entries as $item) : ?>
-			<li class="entries__item"><?= $template->include('partials/entry-summary', entry: $item) ?></li>
+			<li class="<?= attr($bem->element('item')) ?>"><?= $template->include('partials/entry-summary', entry: $item) ?></li>
 		<?php endforeach ?>
 	</ul>
 

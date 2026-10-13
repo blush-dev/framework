@@ -13,25 +13,31 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Stringable;
+use Blush\Support\Bem;
+use Blush\Support\BemClass;
 use Blush\Translation\Messages;
 
 /**
- * What directives and components have in common (D-532): they're two
+ * What blocks and components have in common (D-532): they're two
  * things, but both are a class with typed props (by constructor
  * promotion) that draws one root element, so they share the props, the
  * content, the root element's attributes, and the theme's text.
  *
  * Every one has the `class` and `id` props (`.class` and `#id` in
  * Markdown), and its root element prints them with `attributes()`, which
- * also names its BEM block (`directive-{name}` or `component-{name}`,
- * D-182) and modifiers. Props are plain text: print them with `e()` or
+ * also names its BEM block (`block-{name}` or `component-{name}`,
+ * D-182) and modifiers. Its other class names come from the same
+ * block (`bem()`, D-821, D-822): `elementClass('title')` is
+ * `block-callout__title`, and `elementClass('item')->modifier('current')`
+ * is `block-menu__item block-menu__item--current`. Props are plain text: print them with `e()` or
  * `attr()`. Content (`content()` and methods that name it for its role,
  * such as a figure's `caption()`) is HTML: print it with `raw()`.
  */
 abstract class Renderable
 {
 	/**
-	 * The BEM block's prefix: `directive` or `component`.
+	 * The BEM block's prefix: `block` or `component`.
 	 */
 	protected const string BLOCK = '';
 
@@ -99,6 +105,11 @@ abstract class Renderable
 	private string $content = '';
 
 	/**
+	 * Its BEM block's class names, once asked for.
+	 */
+	private ?Bem $classNames = null;
+
+	/**
 	 * Returns the main content, as HTML (`''` when there's none). Print it
 	 * with `raw()`.
 	 */
@@ -146,24 +157,47 @@ abstract class Renderable
 	}
 
 	/**
-	 * Returns its BEM block class: `directive-{name}` or
+	 * Returns its BEM block's class names (D-821), for `block-{name}` or
 	 * `component-{name}`.
 	 */
-	public function block(): string
+	public function bem(): Bem
 	{
-		return static::BLOCK . '-' . ($this->shortName === '' ? self::fallbackName(static::class) : $this->shortName);
+		return $this->classNames ??= new Bem(static::BLOCK . '-' . ($this->shortName === '' ? self::fallbackName(static::class) : $this->shortName));
 	}
 
 	/**
-	 * Returns the root element's classes: the block, its modifiers, and
-	 * the `class` prop.
+	 * Returns its BEM block's class, `block-callout`, to chain on.
+	 */
+	public function blockClass(): BemClass
+	{
+		return $this->bem()->block();
+	}
+
+	/**
+	 * Returns an element's class, `block-menu__item`, to chain on:
+	 * `elementClass('item')->modifier('current')`.
+	 */
+	public function elementClass(string $element): BemClass
+	{
+		return $this->bem()->element($element);
+	}
+
+	/**
+	 * Returns its block's class with a modifier:
+	 * `block-callout block-callout--wide`.
+	 */
+	public function modifierClass(string $modifier): BemClass
+	{
+		return $this->bem()->modifier($modifier);
+	}
+
+	/**
+	 * Returns the root element's classes: the block, its modifiers
+	 * (`classModifiers()`), and the `class` prop.
 	 */
 	public function classes(): string
 	{
-		$block     = $this->block();
-		$modifiers = array_map(static fn (string $modifier): string => "{$block}--{$modifier}", array_values(array_unique($this->blockModifiers())));
-
-		return implode(' ', array_filter([$block, ...$modifiers, $this->class], static fn (string $class): bool => $class !== ''));
+		return (string) $this->blockClass()->modifier(...$this->classModifiers())->with($this->class);
 	}
 
 	/**
@@ -173,14 +207,15 @@ abstract class Renderable
 	 * and `''` values are left out, and `true` prints the name alone.
 	 *
 	 * ```php
-	 * <aside <?= $directive->attributes(['data-open' => true]) ?>>
+	 * <aside <?= $block->attributes(['data-open' => true]) ?>>
 	 * ```
 	 *
-	 * @param array<string, string|int|float|bool|null> $extra
+	 * @param array<string, Stringable|string|int|float|bool|null> $extra
 	 */
 	public function attributes(array $extra = []): string
 	{
-		$class      = trim($this->classes() . ' ' . (is_string($extra['class'] ?? null) ? $extra['class'] : ''));
+		$given      = $extra['class'] ?? null;
+		$class      = trim($this->classes() . ' ' . (is_string($given) || $given instanceof Stringable ? (string) $given : ''));
 		$attributes = ['id' => $this->id, ...$this->rootAttributes(), ...$extra];
 
 		unset($attributes['class']);
@@ -194,7 +229,7 @@ abstract class Renderable
 	 * attributes (`src`, `href`, and so on) are escaped like `url()`, so
 	 * one with an unsafe scheme (`javascript:`) is left out too.
 	 *
-	 * @param array<string, string|int|float|bool|null> $attributes
+	 * @param array<string, Stringable|string|int|float|bool|null> $attributes
 	 */
 	public static function html(array $attributes): string
 	{
@@ -241,22 +276,23 @@ abstract class Renderable
 		$this->content          = $content;
 		$this->attachedMessages = $messages;
 		$this->viewContext      = $context;
+		$this->classNames       = null;
 	}
 
 	/**
-	 * Returns every modifier its block gets: its own (`modifiers()`) by
-	 * default.
+	 * Returns every modifier its root element's block class gets: its
+	 * own (`modifiers()`) by default.
 	 *
 	 * @return list<string>
 	 */
-	protected function blockModifiers(): array
+	protected function classModifiers(): array
 	{
 		return $this->modifiers();
 	}
 
 	/**
 	 * Returns the block's modifiers for its current props, such as
-	 * `['icon-only']` for `directive-button--icon-only`.
+	 * `['icon-only']` for `block-button--icon-only`.
 	 *
 	 * @return list<string>
 	 */

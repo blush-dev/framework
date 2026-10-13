@@ -27,15 +27,15 @@ use Blush\Routing\UrlGenerator;
 use Blush\Settings\SiteSettings;
 use Blush\View\Engine\ViewEngines;
 use Blush\Component\ComponentRegistry;
-use Blush\Directive\DirectiveRegistry;
-use Blush\Directive\DirectiveVariants;
+use Blush\Block\BlockRegistry;
+use Blush\Block\BlockVariants;
 
 /**
  * The services every `Views` shares, whatever its theme chain: what
  * templates reach through `Template` (URLs, content, routes, the app
  * config, menus, the site settings field sets add, media files by
  * id), context
- * providers, directives and components (D-532), the view engines
+ * providers, blocks and components (D-532), the view engines
  * (D-502), and assets: what prints them into a page's head, and what
  * collects the handles rendering asks for (D-570, D-572).
  */
@@ -48,10 +48,10 @@ final readonly class ViewServices
 		public UrlGenerator $router,
 		public AppConfig $app,
 		public ContextProviders $providers,
-		public DirectiveRegistry $directives,
+		public BlockRegistry $blocks,
 		public ComponentRegistry $components,
 		public RenderableFactory $factory,
-		public DirectiveVariants $variants,
+		public BlockVariants $variants,
 		public Menus $menus,
 		public SiteSettings $site,
 		public ViewEngines $engines,

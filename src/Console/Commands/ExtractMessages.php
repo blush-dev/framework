@@ -111,7 +111,7 @@ final readonly class ExtractMessages
 	private function find(string $name): ?array
 	{
 		if ($name === Translator::CORE) {
-			return [Framework::path(), ['src', 'resources/views', 'resources/directives'], Framework::path('resources/lang')];
+			return [Framework::path(), ['src', 'resources/views', 'resources/blocks'], Framework::path('resources/lang')];
 		}
 
 		$theme = $this->themes->find($name);

@@ -1,0 +1,163 @@
+<?php
+
+/**
+ * Table of contents tests.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Tests\Block;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Blush\Content\Entries;
+use Blush\Core\Application;
+use Blush\Http\Kernel;
+use Blush\Http\Request;
+use Blush\Markdown\CommonMark\Block\CollectOutline;
+use Blush\Tests\BootsScratchSite;
+use Blush\Block\Toc;
+use Blush\Block\TocItem;
+
+#[CoversClass(Toc::class)]
+#[CoversClass(TocItem::class)]
+#[CoversClass(CollectOutline::class)]
+final class TocTest extends TestCase
+{
+	use BootsScratchSite;
+
+	private const string GUIDE = <<<'MD'
+		---
+		id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a01
+		title: Guide
+		---
+		::toc[On this page]
+
+		Intro words here.
+
+		## Install *it*
+
+		### Requirements
+
+		#### Too deep
+
+		## Setup
+
+		## Setup
+		MD;
+
+	/**
+	 * Heading anchors are on by default; these tests are about pages
+	 * without them, unless they say otherwise.
+	 */
+	private const string NO_ANCHORS = "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Markdown\\MarkdownConfig(headingAnchors: false);\n";
+
+	private function app(string $markdownConfig = self::NO_ANCHORS): Application
+	{
+		$this->writeTemporaryFile('user/content/guide.md', self::GUIDE);
+		$this->writeTemporaryFile('config/markdown.php', $markdownConfig);
+
+		$app = $this->scratchApplication();
+		$app->boot();
+
+		return $app;
+	}
+
+	private function page(Application $app, string $path): string
+	{
+		return (string) $app->container()->make(Kernel::class)->handle(Request::create($path))->getBody();
+	}
+
+	/**
+	 * Returns a tree's ids, with children under their parent's id.
+	 *
+	 * @param  list<TocItem> $items
+	 * @return list<mixed>
+	 */
+	private static function shape(array $items): array
+	{
+		return array_map(
+			static fn (TocItem $item): mixed => $item->children === [] ? $item->id : [$item->id => self::shape($item->children)],
+			$items
+		);
+	}
+
+	public function testHeadingsNestByLevel(): void
+	{
+		$headings = [
+			['level' => 3, 'text' => 'Early', 'id' => 'early'],
+			['level' => 2, 'text' => 'One', 'id' => 'one'],
+			['level' => 4, 'text' => 'Skipped a level', 'id' => 'skip'],
+			['level' => 3, 'text' => 'One A', 'id' => 'one-a'],
+			['level' => 2, 'text' => 'Two', 'id' => 'two'],
+			['level' => 5, 'text' => 'Out of range', 'id' => 'out']
+		];
+
+		$this->assertSame(['early', ['one' => ['skip', 'one-a']], 'two'], self::shape(new Toc(2, 4, $headings)->items));
+		$this->assertSame(['one', 'two'], self::shape(new Toc(2, 2, $headings)->items));
+		$this->assertSame(self::shape(new Toc(2, 4, $headings)->items), self::shape(new Toc(4, 2, $headings)->items));
+		$this->assertFalse(new Toc(6, 6, $headings)->shouldRender());
+		$this->assertFalse(new Toc()->shouldRender());
+	}
+
+	public function testItLinksToHeadingsItGivesIds(): void
+	{
+		$html = (string) preg_replace('/>\s+</', '><', $this->page($this->app(), '/guide'));
+
+		$this->assertStringContainsString('<nav class="block-toc" aria-label="On this page">', $html);
+		$this->assertStringContainsString('<p class="block-toc__title">On this page</p>', $html);
+		$this->assertStringContainsString(
+			'<ol class="block-toc__list"><li class="block-toc__item"><a class="block-toc__link" href="#install-it">Install it</a>'
+				. '<ol class="block-toc__list"><li class="block-toc__item"><a class="block-toc__link" href="#requirements">Requirements</a></li></ol></li>'
+				. '<li class="block-toc__item"><a class="block-toc__link" href="#setup">Setup</a></li>'
+				. '<li class="block-toc__item"><a class="block-toc__link" href="#setup-1">Setup</a></li></ol>',
+			$html
+		);
+		$this->assertStringContainsString('<h2 id="install-it">Install <em>it</em></h2>', $html);
+		$this->assertStringContainsString('<h4 id="too-deep">Too deep</h4>', $html);
+		$this->assertStringContainsString('<h2 id="setup-1">Setup</h2>', $html);
+		$this->assertStringNotContainsString('Too deep</a>', $html);
+	}
+
+	public function testItFollowsHeadingPermalinks(): void
+	{
+		$config = <<<'PHP'
+			<?php
+
+			declare(strict_types=1);
+
+			use Blush\Markdown\HeadingAnchorOptions;
+			use Blush\Markdown\MarkdownConfig;
+
+			return new MarkdownConfig(anchors: new HeadingAnchorOptions(prefix: 'h'));
+			PHP;
+
+		$html = $this->page($this->app($config), '/guide');
+
+		$this->assertStringContainsString('<a class="block-toc__link" href="#h-install-it">Install it</a>', $html);
+		$this->assertStringContainsString('id="h-install-it" href="#h-install-it"', $html);
+		$this->assertStringContainsString('<a class="block-toc__link" href="#h-setup-1">Setup</a>', $html);
+
+		// The permalink's anchor holds the id, so the heading gets none.
+		$this->assertStringNotContainsString('<h2 id=', $html);
+	}
+
+	public function testPagesWithoutOneAreUnchangedAndExcerptsSkipIt(): void
+	{
+		$app = $this->app();
+		$this->writeTemporaryFile('user/content/plain.md', "---\nid: 547d77ee-03e9-fd45-beeb-0eed17fde3b6\ntitle: Plain\n---\n## A heading\n\nText.\n");
+
+		$this->assertStringContainsString('<h2>A heading</h2>', $this->page($app, '/plain'));
+
+		$guide = $app->container()->make(Entries::class)->named('page', 'guide');
+
+		$this->assertNotNull($guide);
+		$this->assertStringStartsWith('<p>Intro words here.', $guide->excerpt());
+		$this->assertStringNotContainsString('Install it', $guide->excerpt());
+	}
+}

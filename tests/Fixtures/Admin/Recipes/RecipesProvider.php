@@ -14,13 +14,13 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Admin\Recipes;
 
 use Override;
-use Blush\Directive\DirectiveRegistry;
+use Blush\Block\BlockRegistry;
 use Blush\Console\CommandRegistry;
 use Blush\Content\Relation\RelationSource;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Core\ServiceProvider;
 use Blush\Icon\IconRegistry;
-use Blush\Tests\Fixtures\Directive\Stamp;
+use Blush\Tests\Fixtures\Block\Stamp;
 use Blush\Tool\ToolRegistry;
 
 /**
@@ -40,7 +40,7 @@ final class RecipesProvider extends ServiceProvider
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->make(DirectiveRegistry::class)->register('fixture/recipe-card', Stamp::class);
+		$this->container->make(BlockRegistry::class)->register('fixture/recipe-card', Stamp::class);
 		$this->container->make(IconRegistry::class)->add('fixture', __DIR__);
 		$this->container->make(ToolRegistry::class)->register('fixture/import-recipes', ImportTool::class);
 	}

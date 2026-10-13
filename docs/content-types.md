@@ -195,7 +195,7 @@ new Collection('person', labels: new TypeLabels('Person', plural: 'People'))
 `description` says what the type is for, in a sentence. The admin shows it
 on the type's screen and on its list while it's empty. `icon` names an
 icon to show the type with in the admin's menu, from the icons the `icon`
-directive offers (`bin/blush icon:list`), such as `film` or
+block offers (`bin/blush icon:list`), such as `film` or
 `book-open`. Without one, the type gets its kind's icon.
 
 `user/data/types/recipe.json`:

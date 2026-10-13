@@ -13,21 +13,25 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entry');
+
 $template->layout('base');
 
 ?>
-<article class="entry entry--single">
-	<header class="entry__header">
-		<h1 class="entry__title"><?= e($title !== '' ? $title : $entry->slug) ?></h1>
+<article class="<?= attr($bem->modifier('single')) ?>">
+	<header class="<?= attr($bem->element('header')) ?>">
+		<h1 class="<?= attr($bem->element('title')) ?>"><?= e($title !== '' ? $title : $entry->slug) ?></h1>
 
 		<?php if ($entry->subtitle() !== '') : ?>
-			<p class="entry__subtitle"><?= e($entry->subtitle()) ?></p>
+			<p class="<?= attr($bem->element('subtitle')) ?>"><?= e($entry->subtitle()) ?></p>
 		<?php endif ?>
 
 		<?= $template->include('partials/entry-meta', entry: $entry) ?>
 	</header>
 
-	<div class="entry__content">
+	<div class="<?= attr($bem->element('content')) ?>">
 		<?= raw($entry->content()) ?>
 	</div>
 </article>

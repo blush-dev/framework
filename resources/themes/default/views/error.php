@@ -14,15 +14,19 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entry');
+
 $template->layout('base');
 
 ?>
-<article class="entry entry--error">
-	<header class="entry__header">
-		<h1 class="entry__title"><?= e($title) ?></h1>
+<article class="<?= attr($bem->modifier('error')) ?>">
+	<header class="<?= attr($bem->element('header')) ?>">
+		<h1 class="<?= attr($bem->element('title')) ?>"><?= e($title) ?></h1>
 	</header>
 
-	<div class="entry__content">
+	<div class="<?= attr($bem->element('content')) ?>">
 		<?php if ($entry !== null && $entry->raw() !== '') : ?>
 			<?= raw($entry->content()) ?>
 		<?php else : ?>

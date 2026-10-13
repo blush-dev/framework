@@ -84,7 +84,7 @@ abstract readonly class ContentType
 
 	/**
 	 * The name of an icon the admin shows the type with (an `icon`
-	 * directive name, such as `film`), or `null` for its kind's.
+	 * block name, such as `film`), or `null` for its kind's.
 	 */
 	public ?string $icon;
 
@@ -109,24 +109,24 @@ abstract readonly class ContentType
 	public const array PLACEMENT = ['position', 'under'];
 
 	/**
-	 * @param  string            $name         Lowercase letters, digits, and underscores; not one of `RESERVED`.
-	 * @param  ?string           $folders      A folder pattern for the folders below the type's (`{year}`, D-629), or `null` for none.
-	 * @param  bool              $public       Whether the type is public at all.
-	 * @param  TypeUrls|false    $urls         URL settings, or `false` for no routes.
-	 * @param  Listing           $listing      How the type's listing page lists entries.
-	 * @param  TypeFeed|false    $feed         Feed settings, or `false` for no feed.
-	 * @param  bool              $sitemap      Whether entries are in the sitemap.
-	 * @param  DateArchives      $dateArchives How finely date archives go.
-	 * @param  iterable<Field>   $fields       Fields beyond the built-in ones.
-	 * @param  bool              $closed       Whether undeclared front matter is an error.
-	 * @param  ?TypeLabels       $labels       Defaults to labels made from the name.
-	 * @param  string            $description  What the type is for, in a sentence.
-	 * @param  ?string           $icon         An icon name for the admin.
-	 * @param  ?string           $byline       The credit relation that's its byline, or `null` for its only one.
-	 * @param  bool              $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
-	 * @param  ?FileName         $filename     How new files are named (D-511, D-514); the slug alone by default.
-	 * @param  ?int              $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
-	 * @param  ?string           $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
+	 * @param  string          $name         Lowercase letters, digits, and underscores; not one of `RESERVED`.
+	 * @param  ?string         $folders      A folder pattern for the folders below the type's (`{year}`, D-629), or `null` for none.
+	 * @param  bool            $public       Whether the type is public at all.
+	 * @param  TypeUrls|false  $urls         URL settings, or `false` for no routes.
+	 * @param  Listing         $listing      How the type's listing page lists entries.
+	 * @param  TypeFeed|false  $feed         Feed settings, or `false` for no feed.
+	 * @param  bool            $sitemap      Whether entries are in the sitemap.
+	 * @param  DateArchives    $dateArchives How finely date archives go.
+	 * @param  iterable<Field> $fields       Fields beyond the built-in ones.
+	 * @param  bool            $closed       Whether undeclared front matter is an error.
+	 * @param  ?TypeLabels     $labels       Defaults to labels made from the name.
+	 * @param  string          $description  What the type is for, in a sentence.
+	 * @param  ?string         $icon         An icon name for the admin.
+	 * @param  ?string         $byline       The credit relation that's its byline, or `null` for its only one.
+	 * @param  bool            $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
+	 * @param  ?FileName       $filename     How new files are named (D-511, D-514); the slug alone by default.
+	 * @param  ?int            $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
+	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(

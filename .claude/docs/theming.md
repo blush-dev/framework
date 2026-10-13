@@ -42,7 +42,7 @@ extensions/acme/nova/
   views/
     layouts/        base.php, …
     partials/          header.php, footer.php, pagination.php, …
-    directives/     callout.php, gallery.php (the look of core and plugin directives; D-532)
+    blocks/     callout.php, gallery.php (the look of core and plugin blocks; D-532)
     components/     {namespace}-card.php, the theme's own pieces (D-171, D-378, D-532)
     single.php  collection.php  …   (template hierarchy files)
   src/              Optional PHP: ThemeProvider, component classes, context providers
@@ -141,7 +141,7 @@ active theme (config and user/data settings over its defaults)
       → framework views (`resources/views`; views only, D-632)
 ```
 - The framework default theme (`resources/themes/default`, named
-  `blush/default`, namespace `default`; styles the core directives,
+  `blush/default`, namespace `default`; styles the core blocks,
   D-033, D-532) is in a chain only as the active theme or a `parent`
   (D-632). It's what runs when a chain's requirements aren't met
   (D-431).
@@ -155,7 +155,7 @@ active theme (config and user/data settings over its defaults)
 - Views resolve through each theme's `views/`, the active theme first
   (D-103). The site has no views of its own (D-617): a site changes a
   theme with a child theme.
-- The chain applies to views, directive and component templates, assets, settings defaults,
+- The chain applies to views, block and component templates, assets, settings defaults,
   and message catalogs; only views have the framework floor.
 - `theme:why <view>` (CLI) shows which file in the chain wins. This makes
   layering easy to debug.
@@ -208,7 +208,7 @@ The template API (kept deliberately small; D-103):
 | `includeIf()` / `includeWhen($when, ...)` / `includeUnless($unless, ...)` | Include only if a view exists, or on a condition (1.x's names, D-159) |
 | `each($views, $items, as:, empty:, ...$data)` | Include a partial per item (with `$index`), or `empty` when there are none (D-159) |
 | `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
-| `directive($name, ...$props)` | Render a directive, as content would; `->content($html)` fills it (D-532) |
+| `block($name, ...$props)` | Render a block, as content would; `->content($html)` fills it (D-532) |
 | `t($key, ...$params)` | Translate from the theme chain's domains, child first (D-028, D-107, D-451) |
 | `setting($key, $default)` | A theme setting's value |
 | `site($key, $default)` | A site setting a field set adds to the Settings screens (D-343), through its field, or its default |
@@ -247,7 +247,7 @@ and before each MCP stdio message. `StoredEntries` keeps one object per entry
 (by id, version, and status now) however it's reached, queries' records
 by compiled query, and `ContentUrls` its URLs (D-806). `Template` is the
 render, not the data (D-819): it keeps what only a render has (building
-the page, sections, includes, components, directives, icons, its head
+the page, sections, includes, components, blocks, icons, its head
 and foot, assets, fragment caching) and what depends on the page (dates
 in its language, routes, menus, body classes); data and text are the
 objects a template is given (`$entry`, `$site`, `$theme`, `$media`,
@@ -270,7 +270,7 @@ Every template also gets `$site` (name, URL, locale, `lang`,
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages
 get `$status`, `$reason`, `$title`, `$entry`, `$description`, and
 `$message` (debug only).
-This page data is shared (D-146): layouts, partials, directives, and components see
+This page data is shared (D-146): layouts, partials, blocks, and components see
 it without it being passed, and what a template passes wins. On an
 entry's page the head also gets its description and, from its `image`
 field, `og:image` and a Twitter card (D-149).
@@ -317,7 +317,7 @@ aren't candidates (D-104).
 - Themes can add candidates through their provider (for example by post
   format or by term).
 
-## Directives and components (D-532)
+## Blocks and components (D-532)
 
 Two things, registered, stored, and overridden separately (D-532
 supersedes the one-concept model of D-026, D-111, D-164, and D-171 to
@@ -325,94 +325,99 @@ D-173). What they share is `View\Renderable` (props, content, the root
 element's `attributes()`, `t()`), and `View\RenderableFactory` builds
 either from a class.
 
-### Directives
+### Blocks
 
 What content says: content vocabulary (D-026), core's (`core`) and
 plugins', never a theme's (D-532) or the site's (D-617).
 
-- **Names (D-171):** `{namespace}/{name}` (`DirectiveName`). Only core
-  directives have short names (`callout` is `core/callout`). The
-  template is `directives/{namespace}-{name}.php`; a core directive's
-  may also be `directives/{name}.php`, and the highest-precedence
+- **Names (D-171):** `{namespace}/{name}` (`BlockName`). Only core
+  blocks have short names (`callout` is `core/callout`). The
+  template is `blocks/{namespace}-{name}.php`; a core block's
+  may also be `blocks/{name}.php`, and the highest-precedence
   directory wins whichever name it uses (`ViewFinder::nearest()`).
-  Subfolders of `directives/` aren't directives.
-- **Every directive is a registered class (D-532, D-534):**
-  `DirectiveRegistry::register($name, $class)` stores a
-  `DirectiveDefinition` by full name, which reads the class: what it
+  Subfolders of `blocks/` aren't blocks.
+- **Every block is a registered class (D-532, D-534):**
+  `BlockRegistry::register($name, $class)` stores a
+  `BlockDefinition` by full name, which reads the class: what it
   wraps (`CONTENT`), how it's written (`KIND`, required: registering a
   class without one fails, as does a `KIND` that disagrees with
   `CONTENT`, D-531), what a container holds (`HOLDS`), its `VARIANTS`,
   and its props as schema `Field`s. There are no template-only
-  directives. An unregistered name is unknown and renders
-  as plain content; a template alone isn't a directive. Short names must
+  blocks. An unregistered name is unknown and renders
+  as plain content; a template alone isn't a block. Short names must
   be core; new `blush/*` names are refused; a provider may replace a core
-  directive. **Themes can't register directives:** a name in an
+  block. **Themes can't register blocks:** a name in an
   installed theme's namespace is refused (the registry asks `Themes`
   through a closure, lazily).
-- **Directives render themselves (D-382):** with no template for it in
-  the chain, the class draws it (`render()`: HTML, a `DirectiveView` it
-  ships, or `null`). Core directives' templates are the framework's
-  (`resources/directives/`); a theme's `directives/` template wins.
-- **Templates get `$directive` (D-195, D-196):** and `$template`;
+- **Blocks render themselves (D-382):** with no template for it in
+  the chain, the class draws it (`render()`: HTML, a `BlockView` it
+  ships, or `null`). Core blocks' templates are the framework's
+  (`resources/blocks/`); a theme's `blocks/` template wins.
+- **Templates get `$block` (D-195, D-196):** and `$template`;
   content is `content()`, role methods (`caption()`, `text()`,
   `heading()`) return the content or else the escaped `label`, props are
   public properties, and `attributes()` prints `class` (block, variant
   modifier, `modifiers()`, the `class` prop), `id`, and
-  `rootAttributes()`. Directives have no named slots.
-- **Classes (D-182, D-532):** BEM-style with a `directive-` prefix
-  (`directive-callout`, `directive-callout--warning`,
-  `directive-callout__title`).
-- **Variants (D-266):** a named style of any directive, `variant=name`,
-  whose modifier is `directive-{name}--{variant}` (or the variant's own
+  `rootAttributes()`. Blocks have no named slots.
+- **Classes (D-182, D-532, D-821):** BEM, with a `block-` prefix
+  (`block-callout`, `block-callout--warning`,
+  `block-callout__title`), built by `Blush\Support\Bem` and never by
+  hand: a block's or component's `bem()`, `blockClass()`,
+  `elementClass($element)`, and `modifierClass($modifier)`, each a
+  `BemClass` that chains (`->modifier()`, `->when()`, `->with()`, D-822)
+  and prints as its full class list; `classModifiers()` is the list
+  `classes()` adds (a variant's, then `modifiers()`). A theme's own
+  partials use `new Bem('pagination')`.
+- **Variants (D-266):** a named style of any block, `variant=name`,
+  whose modifier is `block-{name}--{variant}` (or the variant's own
   modifier). Default is always there, writes nothing, and adds no class.
   A class declares its own in `VARIANTS`, a theme in `theme.json` `variants` (how a
   theme adds looks without adding vocabulary), and anyone else from
-  `DirectiveVariantsCollecting`. `DirectiveVariants` collects them and
+  `BlockVariantsCollecting`. `BlockVariants` collects them and
   drops a theme's outside the chain; an unknown variant renders as
-  Default. `directives/{name}-{variant}` wins over the directive's
-  template. Text is `directives.{name}.variants.{variant}.label` and
+  Default. `blocks/{name}-{variant}` wins over the block's
+  template. Text is `blocks.{name}.variants.{variant}.label` and
   `.description` in the registrant's domain. `content:lint`
   (`VariantCheck`) and `theme:check` report problems.
-- **Image variants (D-268):** a Markdown image isn't a directive, but a
+- **Image variants (D-268):** a Markdown image isn't a block, but a
   theme lists classes for it under `theme.json`'s `variants.image`
   (`{.stretch-wide}`; `FigureRenderer` puts them on the figure), with
   text at `images.variants.{name}.label` and `.description` in the
-  theme's catalog. `DirectiveVariants::forImages()` collects them from
+  theme's catalog. `BlockVariants::forImages()` collects them from
   the chain, leaving out the framework default theme's when it's an
   ancestor rather than the active theme (D-632). The default theme offers and styles `stretch-wide`,
   `stretch-full`, `inline-left`, and `inline-right`.
-- **Text (D-172):** `Views::directiveText($name, 'label')` reads
-  `directives.{name}.{key}` from the namespace's catalog domain (`core`
-  or a plugin's), falling back to `DirectiveName::label()`.
-- **Discovery:** `DirectiveType` declares the core directives (the
-  registrar seeds them). `Views::directives()` lists every registered one
-  as a `DirectiveListing` (files in the chain, label, variants);
-  `strayDirectiveFiles()` returns templates in `directives/` for no
-  registered directive or variant. `directive:list` prints both;
+- **Text (D-172):** `Views::blockText($name, 'label')` reads
+  `blocks.{name}.{key}` from the namespace's catalog domain (`core`
+  or a plugin's), falling back to `BlockName::label()`.
+- **Discovery:** `BlockType` declares the core blocks (the
+  registrar seeds them). `Views::blocks()` lists every registered one
+  as a `BlockListing` (files in the chain, label, variants);
+  `strayBlockFiles()` returns templates in `blocks/` for no
+  registered block or variant. `block:list` prints both;
   `theme:check` warns about a class with no template and a stray file in
-  the theme ("themes can't add directives").
-- **In templates:** `$template->directive('callout', variant: 'tip')->content($html)`
-  (`PendingDirective`).
+  the theme ("themes can't add blocks").
+- **In templates:** `$template->block('callout', variant: 'tip')->content($html)`
+  (`PendingBlock`).
 - **In Markdown** (D-026):
   ```
   :::gallery{columns=3}
   ![](a.jpg) ![](b.jpg)
   :::
   ```
-  An unregistered directive, or a short name that isn't core, renders as
+  An unregistered block, or a short name that isn't core, renders as
   plain content. Core ships (D-033, D-113): `callout`, `gallery`,
   `figure` (D-267), and `embed`; the layouts `group`, `grid`, `row`, and
   `stack` (D-177, D-318; each renders as its `tag`, D-298); the media
-  directives `audio`, `video`, and `file` (D-179), and `playlist` (D-708;
-  `::audio` in it draws a row, `Directive::isIn()`); the inline `abbr`,
+  blocks `audio`, `video`, and `file` (D-179), and `playlist` (D-708;
+  `::audio` in it draws a row, `Block::isIn()`); the inline `abbr`,
   `kbd`, `time` (D-180), `badge`, `cite`, `dfn`, `ins`, `samp`, `small`,
   and `var` (D-305); `toc` (D-183), `icon` (D-187), `menu`, `progress` and
   `meter` (D-188), and `button` (D-189), so they work under any theme. A
-  directive's `media` props (`#[MediaProp]`) are resolved like images
-  (D-179). Directives render with the request's theme; attributes are
+  block's `media` props (`#[MediaProp]`) are resolved like images
+  (D-179). Blocks render with the request's theme; attributes are
   props, the `[label]` is the content (and the `label` prop), and a
-  container's blocks are its content (D-112). In the admin, directives
-  are called blocks.
+  container's blocks are its content (D-112).
 
 ### Components
 
@@ -529,7 +534,7 @@ doesn't offer, shows as "Not in this theme" and is kept until changed.
   (`/blush/{path}`, the framework's `public/site`), a plugin that runs
   (`/extensions/{vendor}/{name}/{path}`), a theme (`theme.asset`, with
   its manifest), or a URL; versioned with `?v={crc32}`. Pages ask by
-  handle: `Head::enqueue()`, `$template->enqueue()`, a directive's or
+  handle: `Head::enqueue()`, `$template->enqueue()`, a block's or
   component's `ASSETS` / `assets()`, or a `PageRendering` listener
   (D-571). The head prints them at the end of the render, required
   handles first, each file once.
@@ -583,7 +588,7 @@ D-199 to D-204 and D-676; the user guide is `docs/menus.md`.
   behavior.
 - **Text values** may be locale maps (`{en: About, fr_CA: À propos}`,
   D-202).
-- **Templates:** the core `menu` directive by `location` (or by menu
+- **Templates:** the core `menu` block by `location` (or by menu
   `name` in content), and `$template->menu($location)` for custom markup.
 - **Location labels** name the menu's `<nav>`: short, without
   "navigation".

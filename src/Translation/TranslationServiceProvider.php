@@ -30,7 +30,7 @@ use Blush\Plugin\Plugins;
  * Binds the translator in the site locale (D-451), with the framework's
  * own `core` domain and a domain for each enabled plugin and icon pack
  * that's on, by its `vendor/name` (its `lang` folder), with its namespace
- * mapped to it for directive and icon labels. The site's overrides in
+ * mapped to it for block and icon labels. The site's overrides in
  * `user/lang` win over them all. The view layer adds the theme chain's
  * domains.
  *

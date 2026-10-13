@@ -2,9 +2,9 @@
  * The site's audio and video players (D-573): defines
  * `<blush-audio-player>`, `<blush-video-player>`, and `<blush-playlist>`
  * (`resources/player`) for the `::audio`, `::video`, and `:::playlist`
- * directives (D-708), with their styles and the
+ * blocks (D-708), with their styles and the
  * site's defaults for their colors. Core registers it as the
- * `core/player` asset, which the directives ask for.
+ * `core/player` asset, which the blocks ask for.
  */
 
 import '../css/player.css';

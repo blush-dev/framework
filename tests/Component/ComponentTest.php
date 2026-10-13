@@ -52,7 +52,7 @@ final class ComponentTest extends TestCase
 
 		$this->assertSame('component-box wide "', $component->classes());
 		$this->assertSame('class="component-box wide &quot;" id="b" data-open', $component->attributes(['data-open' => true]));
-		$this->assertSame('component-card', new Card()->block(), 'An unattached one names its block from its class.');
+		$this->assertSame('component-card', (string) new Card()->blockClass(), 'An unattached one names its block from its class.');
 	}
 
 	public function testContentAndSlotsComeFromTheComponent(): void

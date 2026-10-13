@@ -19,6 +19,7 @@ use League\CommonMark\Extension\Mention\Mention;
 use League\CommonMark\Node\Inline\AbstractInline;
 use League\CommonMark\Node\Inline\Text;
 use Blush\Markdown\MentionResolver;
+use Blush\Support\Bem;
 
 /**
  * Links a mention, `@name`, where the `MentionResolver` says (D-493),
@@ -47,13 +48,15 @@ final readonly class MentionLinks implements MentionGeneratorInterface
 			return null;
 		}
 
+		$bem = new Bem('mention');
+
 		$mention->setUrl($url);
-		$mention->data->append('attributes/class', 'mention');
+		$mention->data->append('attributes/class', (string) $bem->block());
 		$mention->detachChildren();
 
 		foreach (['at' => $mention->getPrefix(), 'name' => $mention->getIdentifier()] as $part => $text) {
 			$span = new BracketedSpan();
-			$span->data->set('attributes', ['class' => "mention__{$part}"]);
+			$span->data->set('attributes', ['class' => (string) $bem->element($part)]);
 			$span->appendChild(new Text($text));
 			$mention->appendChild($span);
 		}

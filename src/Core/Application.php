@@ -27,7 +27,7 @@ use Blush\Container\Container;
 use Blush\Container\ContainerException;
 use Blush\Container\ServiceResolver;
 use Blush\Component\ComponentServiceProvider;
-use Blush\Directive\DirectiveServiceProvider;
+use Blush\Block\BlockServiceProvider;
 use Blush\Content\ContentServiceProvider;
 use Blush\Core\Events\ApplicationBooted;
 use Blush\Data\DataServiceProvider;
@@ -94,7 +94,7 @@ class Application implements Bootable
 		ThemeServiceProvider::class,
 		AssetServiceProvider::class,
 		ViewServiceProvider::class,
-		DirectiveServiceProvider::class,
+		BlockServiceProvider::class,
 		ComponentServiceProvider::class,
 		FeedServiceProvider::class,
 		SitemapServiceProvider::class,

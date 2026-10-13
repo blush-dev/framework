@@ -46,13 +46,13 @@ blush-framework/
     Content/            Source, Storage (D-485), Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter by id,
                         FilesystemContentWriter, FilesystemWriter by path, DocumentEditor,
                         YamlMap, EntryChanges; D-228, D-654)
-    Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
+    Markdown/           Parser interface + adapter; CommonMark/Block/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
                         themed renderers,
                         context providers, Renderable + RenderableFactory (D-532)
-    Directive/          Directive base, registry, registrar, names, variants,
-                        MarkdownDirectives, built-ins (Layout/, Media/, Inline/) (D-192, D-532)
+    Block/          Block base, registry, registrar, names, variants,
+                        RegisteredBlocks, built-ins (Layout/, Media/, Inline/) (D-192, D-532)
     Component/          Component base, registry, names, slots, listing (D-532)
     Asset/              Asset, Style, Script, AssetRegistry + AssetRegistrar, AssetUrls, Assets,
                         AssetCollector, AssetController, AssetRoutes (D-569 to D-573)
@@ -94,7 +94,7 @@ blush-framework/
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); lang/ (the `core` catalog domain); icons/core/ (the core
                         Lucide subset, D-187)
-    directives/         The core directives' own templates, which their render() returns (D-382, D-532)
+    blocks/         The core blocks' own templates, which their render() returns (D-382, D-532)
     player/             The shared audio and video players, `<blush-audio-player>` and
                         `<blush-video-player>` (D-553, D-554): plain DOM and CSS, used by
                         the admin now and meant for the site too

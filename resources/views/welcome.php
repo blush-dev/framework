@@ -10,15 +10,19 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entry');
+
 $template->layout('base');
 
 ?>
-<article class="entry entry--welcome">
-	<header class="entry__header">
-		<h1 class="entry__title"><?= e($messages->t('welcome.title', site: $site->name)) ?></h1>
+<article class="<?= attr($bem->modifier('welcome')) ?>">
+	<header class="<?= attr($bem->element('header')) ?>">
+		<h1 class="<?= attr($bem->element('title')) ?>"><?= e($messages->t('welcome.title', site: $site->name)) ?></h1>
 	</header>
 
-	<div class="entry__content">
+	<div class="<?= attr($bem->element('content')) ?>">
 		<?= $template->include('partials/welcome') ?>
 	</div>
 </article>

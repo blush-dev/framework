@@ -1,14 +1,14 @@
 /**
  * Reads a Markdown body the way the editor shows it (D-241): which lines
- * are headings, code, or directives, where each directive
+ * are headings, code, or blocks, where each block
  * starts and ends, and the body as highlighted HTML for the editor's
  * source view (D-253, D-265). The words are the point: every syntax
  * character is muted and what it wraps keeps full ink. Headings, strong
  * and emphasized text, quotes, lists and tasks, rules, tables, code,
  * links and images, footnotes, and attribute blocks are each marked as
  * they read; only valid syntax lights up, so the highlighting doubles as
- * a check. Directives follow the server's parser (D-026,
- * `Markdown\CommonMark\Directive`):
+ * a check. Blocks follow the server's parser (D-026,
+ * `Markdown\CommonMark\Block`):
  *
  * - a container opens with a line of `:::name[label]{attributes}` (three
  *   or more colons) and closes with a line of at least as many colons;
@@ -16,14 +16,14 @@
  *   for (D-320), and anything inside that, so nested containers can all
  *   use `:::`;
  * - a leaf is a line of `::name[label]{attributes}`;
- * - an inline directive is `:name[label]{attributes}`, not straight after
+ * - an inline block is `:name[label]{attributes}`, not straight after
  *   a letter, digit, underscore, or colon;
- * - a registered directive works only as the kind it's registered as
+ * - a registered block works only as the kind it's registered as
  *   (D-531), so a `:::` line for one that isn't a container is a line of
- *   its own (`misplaced`), never opening one, once the directives have
- *   loaded (`registerDirectiveKinds()`).
+ *   its own (`misplaced`), never opening one, once the blocks have
+ *   loaded (`registerBlockKinds()`).
  *
- * Nothing in fenced code is a directive. This isn't a Markdown parser:
+ * Nothing in fenced code is a block. This isn't a Markdown parser:
  * it's close enough to show structure while typing, and the site's own
  * rendering has the last word.
  *
@@ -38,34 +38,34 @@
 
 import { shallowRef } from 'vue';
 
-export type DirectiveKind = 'container' | 'leaf' | 'inline';
+export type BlockKind = 'container' | 'leaf' | 'inline';
 
-// How each registered directive is written, by full name (D-531). It's
-// reactive, so what's read from a body follows once the directives load.
-const registered = shallowRef(new Map<string, DirectiveKind>());
+// How each registered block is written, by full name (D-531). It's
+// reactive, so what's read from a body follows once the blocks load.
+const registered = shallowRef(new Map<string, BlockKind>());
 
 /**
- * Says how each registered directive is written, by full name.
+ * Says how each registered block is written, by full name.
  */
-export function registerDirectiveKinds(kinds: Map<string, DirectiveKind>): void {
+export function registerBlockKinds(kinds: Map<string, BlockKind>): void {
 	registered.value = kinds;
 }
 
 /**
- * How a registered directive is written, by its full name or a core
- * directive's short name, or `undefined` for one that isn't registered.
+ * How a registered block is written, by its full name or a core
+ * block's short name, or `undefined` for one that isn't registered.
  */
-export function registeredKind(name: string): DirectiveKind | undefined {
+export function registeredKind(name: string): BlockKind | undefined {
 	return registered.value.get(fullName(name));
 }
 
 /**
- * Core's namespace (D-714), which core's directives and icons go by.
+ * Core's namespace (D-714), which core's blocks and icons go by.
  */
 export const CORE = 'core';
 
 /**
- * A directive's full name: a core directive's short name with `core/`,
+ * A block's full name: a core block's short name with `core/`,
  * once it's registered; anything else as written.
  */
 export function fullName(name: string): string {
@@ -73,17 +73,17 @@ export function fullName(name: string): string {
 }
 
 /**
- * A core directive's name without `core/`; anything else as written.
+ * A core block's name without `core/`; anything else as written.
  */
 export function shortName(name: string): string {
 	return name.startsWith(`${CORE}/`) ? name.slice(CORE.length + 1) : name;
 }
 
-export interface Directive {
-	kind: DirectiveKind;
+export interface Block {
+	kind: BlockKind;
 	name: string;
 	// Offsets in the body: from the opening colons to the end of the
-	// closing line (a container), the line (a leaf), or the directive.
+	// closing line (a container), the line (a leaf), or the block.
 	start: number;
 	end: number;
 	// Whether a container has its closing line; one without runs to the
@@ -96,10 +96,10 @@ export interface Directive {
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
 
-type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'marked' | 'html' | 'mention' | 'attributes';
+type TokenKind = 'escape' | 'code' | 'block' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'marked' | 'html' | 'mention' | 'attributes';
 
 // The kinds in the order `INLINE` names their groups.
-const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'html', 'mention', 'strong', 'em', 'strike', 'marked', 'attributes'] as const;
+const KINDS = ['escape', 'code', 'block', 'link', 'footnote', 'autolink', 'html', 'mention', 'strong', 'em', 'strike', 'marked', 'attributes'] as const;
 
 interface Token {
 	kind: TokenKind;
@@ -109,7 +109,7 @@ interface Token {
 	// Where the text between the marks is (strong, emphasis, struck
 	// text, and a link's label), and what's in it.
 	inner?: { start: number; end: number; tokens: Token[] };
-	directive?: number;
+	block?: number;
 }
 
 type MarkKind = 'heading' | 'quote' | 'list' | 'rule';
@@ -118,8 +118,8 @@ interface Line {
 	kind: LineKind;
 	start: number;
 	text: string;
-	// The directive an `open`, `close`, or `leaf` line belongs to.
-	directive?: number;
+	// The block an `open`, `close`, or `leaf` line belongs to.
+	block?: number;
 	// The marks a line of text starts with (`> `, `## `, `- `), in order,
 	// each to where it ends in the line.
 	marks: { kind: MarkKind; end: number }[];
@@ -128,7 +128,7 @@ interface Line {
 
 export interface MarkdownOutline {
 	lines: Line[];
-	directives: Directive[];
+	blocks: Block[];
 	images: MarkdownImage[];
 }
 
@@ -181,7 +181,7 @@ const WORD   = '[\\p{L}\\p{N}_]';
 const INLINE = new RegExp([
 	'(?<escape>\\\\[!-/:-@[-`{-~])',
 	'(?<code>(?<ticks>`+).+?\\k<ticks>(?!`))',
-	`(?<directive>(?<![\\p{L}\\p{N}_:]):(?<name>${NAME})\\[[^\\]\\n]*\\](?:\\{[^}\\n]*\\})?)`,
+	`(?<block>(?<![\\p{L}\\p{N}_:]):(?<name>${NAME})\\[[^\\]\\n]*\\](?:\\{[^}\\n]*\\})?)`,
 	'(?<link>!?\\[(?<label>(?:\\\\[^\\n]|[^\\]\\\\\\n])*)\\]\\([^)\\n]*\\))',
 	'(?<footnote>\\[\\^[^\\]\\s]+\\])',
 	'(?<autolink><(?:https?:\\/\\/|mailto:)[^>\\s]+>)',
@@ -197,11 +197,11 @@ const INLINE = new RegExp([
 ].join('|'), 'gu');
 
 /**
- * Finds the body's lines and directives.
+ * Finds the body's lines and blocks.
  */
 export function outline(source: string): MarkdownOutline {
 	const lines: Line[] = [];
-	const directives: Directive[] = [];
+	const blocks: Block[] = [];
 	const images: MarkdownImage[] = [];
 	const open: { index: number; fence: number }[] = [];
 
@@ -226,34 +226,34 @@ export function outline(source: string): MarkdownOutline {
 			fence = match[1] ?? '```';
 			line.kind = 'fence';
 		} else if ((match = OPEN.exec(text)) !== null && (registeredKind(match[2] ?? '') ?? 'container') !== 'container') {
-			line.kind      = 'leaf';
-			line.directive = directives.push({ kind: 'leaf', name: match[2] ?? '', start: start + text.indexOf(':'), end, misplaced: true }) - 1;
+			line.kind  = 'leaf';
+			line.block = blocks.push({ kind: 'leaf', name: match[2] ?? '', start: start + text.indexOf(':'), end, misplaced: true }) - 1;
 		} else if ((match = OPEN.exec(text)) !== null) {
-			line.kind      = 'open';
-			line.directive = directives.push({ kind: 'container', name: match[2] ?? '', start: start + text.indexOf(':'), end: source.length }) - 1;
-			open.push({ index: line.directive, fence: match[1]?.length ?? 3 });
+			line.kind  = 'open';
+			line.block = blocks.push({ kind: 'container', name: match[2] ?? '', start: start + text.indexOf(':'), end: source.length }) - 1;
+			open.push({ index: line.block, fence: match[1]?.length ?? 3 });
 		} else if ((match = CLOSE.exec(text)) !== null && closes(open, match[1]?.length ?? 0) !== -1) {
 			const closed = open.splice(closes(open, match[1]?.length ?? 0));
 
 			for (const item of closed) {
-				const directive = directives[item.index];
+				const block = blocks[item.index];
 
-				if (directive !== undefined) {
-					directive.end    = end;
-					directive.closed = true;
+				if (block !== undefined) {
+					block.end    = end;
+					block.closed = true;
 				}
 			}
 
-			line.kind      = 'close';
-			line.directive = closed[0]?.index;
+			line.kind  = 'close';
+			line.block = closed[0]?.index;
 		} else if ((match = LEAF.exec(text)) !== null) {
-			line.kind      = 'leaf';
-			line.directive = directives.push({ kind: 'leaf', name: match[1] ?? '', start: start + text.indexOf(':'), end }) - 1;
+			line.kind  = 'leaf';
+			line.block = blocks.push({ kind: 'leaf', name: match[1] ?? '', start: start + text.indexOf(':'), end }) - 1;
 		} else {
 			const from = (line.marks = marks(text)).at(-1)?.end ?? 0;
 
 			line.kind   = HEADING.test(text) ? 'heading' : 'text';
-			line.tokens = line.marks.at(-1)?.kind === 'rule' ? [] : inline(text.slice(from), start + from, directives, from);
+			line.tokens = line.marks.at(-1)?.kind === 'rule' ? [] : inline(text.slice(from), start + from, blocks, from);
 
 			collectImages(line, line.tokens, images);
 		}
@@ -262,7 +262,7 @@ export function outline(source: string): MarkdownOutline {
 		start = end + 1;
 	}
 
-	return { lines, directives, images };
+	return { lines, blocks, images };
 }
 
 // An image's target: the address (bare, or in `<…>`), then any quoted
@@ -341,12 +341,12 @@ function marks(text: string): Line['marks'] {
 }
 
 /**
- * Finds the inline code, directives, links, strong, emphasized, and
+ * Finds the inline code, blocks, links, strong, emphasized, and
  * struck text in part of a line: `text`, which starts at `start` in the
  * body and `offset` in its line. What's inside marks is read the same
  * way, so marks nest.
  */
-function inline(text: string, start: number, directives: Directive[], offset = 0): Token[] {
+function inline(text: string, start: number, blocks: Block[], offset = 0): Token[] {
 	const tokens: Token[] = [];
 
 	for (const match of text.matchAll(INLINE)) {
@@ -359,11 +359,11 @@ function inline(text: string, start: number, directives: Directive[], offset = 0
 		const inside = (from: number, to: number): Token['inner'] => ({
 			start: token.start + from,
 			end: token.start + to,
-			tokens: inline(source.slice(from, to), start + match.index + from, directives, token.start + from)
+			tokens: inline(source.slice(from, to), start + match.index + from, blocks, token.start + from)
 		});
 
-		if (kind === 'directive') {
-			token.directive = directives.push({ kind: 'inline', name: groups.name ?? '', start: start + match.index, end: start + match.index + source.length }) - 1;
+		if (kind === 'block') {
+			token.block = blocks.push({ kind: 'inline', name: groups.name ?? '', start: start + match.index, end: start + match.index + source.length }) - 1;
 		} else if (kind === 'link') {
 			const from = source.startsWith('!') ? 2 : 1;
 
@@ -381,17 +381,17 @@ function inline(text: string, start: number, directives: Directive[], offset = 0
 }
 
 /**
- * The innermost directive at an offset in the body (a caret just after
+ * The innermost block at an offset in the body (a caret just after
  * one counts as in it), or -1.
  */
-export function directiveAt(directives: Directive[], offset: number): number {
+export function blockAt(blocks: Block[], offset: number): number {
 	let found  = -1;
 	let length = Infinity;
 
-	directives.forEach((directive, index) => {
-		if (directive.start <= offset && offset <= directive.end && directive.end - directive.start < length) {
+	blocks.forEach((block, index) => {
+		if (block.start <= offset && offset <= block.end && block.end - block.start < length) {
 			found  = index;
-			length = directive.end - directive.start;
+			length = block.end - block.start;
 		}
 	});
 
@@ -400,7 +400,7 @@ export function directiveAt(directives: Directive[], offset: number): number {
 
 /**
  * Counts the words a reader would see: headings and paragraphs, without
- * code, directive lines, link addresses, or attributes.
+ * code, block lines, link addresses, or attributes.
  */
 export function wordCount(markdown: MarkdownOutline): number {
 	let count = 0;
@@ -510,17 +510,17 @@ function attributesHtml(text: string): string {
 	return `<span class="md-attr">${markHtml('{')}${html}${escape(inner.slice(at))}${markHtml('}')}</span>`;
 }
 
-const DIRECTIVE_HEAD = new RegExp(`^(:+)(${NAME})(?:(\\[)([^\\]\\n]*)(\\]))?`);
+const BLOCK_HEAD = new RegExp(`^(:+)(${NAME})(?:(\\[)([^\\]\\n]*)(\\]))?`);
 
 /**
- * A directive: its colons muted, its name in the accent, its label in
+ * A block: its colons muted, its name in the accent, its label in
  * full ink, and its attributes as the gray chip. It isn't boxed: the box
  * is kept for the one the caret is in (`current`), so a box always means
  * "you are here". A container's colons are marked as a pair (`pair`)
  * while the caret is on its opening or closing line.
  */
-function directiveHtml(text: string, current: boolean, pair = false): string {
-	const match = DIRECTIVE_HEAD.exec(text);
+function blockHtml(text: string, current: boolean, pair = false): string {
+	const match = BLOCK_HEAD.exec(text);
 	const kind  = pair ? 'pair' : '';
 	// A container's closing line is all syntax.
 	let html    = /^:+\s*$/.test(text) ? markHtml(text, kind) : escape(text);
@@ -528,10 +528,10 @@ function directiveHtml(text: string, current: boolean, pair = false): string {
 	if (match !== null) {
 		const rest = text.slice(match[0].length);
 
-		html = markHtml(match[1] ?? '', kind) + `<span class="md-directive__name">${escape(match[2] ?? '')}</span>`;
+		html = markHtml(match[1] ?? '', kind) + `<span class="md-block__name">${escape(match[2] ?? '')}</span>`;
 
 		if (match[3] !== undefined) {
-			html += markHtml('[') + `<span class="md-directive__label">${escape(match[4] ?? '')}</span>` + markHtml(']');
+			html += markHtml('[') + `<span class="md-block__label">${escape(match[4] ?? '')}</span>` + markHtml(']');
 		}
 
 		html += rest.startsWith('{') && rest.trimEnd().endsWith('}')
@@ -539,7 +539,7 @@ function directiveHtml(text: string, current: boolean, pair = false): string {
 			: escape(rest);
 	}
 
-	return `<span class="md-directive${current ? ' is-current' : ''}">${html}</span>`;
+	return `<span class="md-block${current ? ' is-current' : ''}">${html}</span>`;
 }
 
 /**
@@ -561,11 +561,11 @@ function plainHtml(text: string, pipes: boolean): string {
 }
 
 /**
- * What's selected, for the highlight: a directive's index and an image's
+ * What's selected, for the highlight: a block's index and an image's
  * start in the body (-1 for none), and the start of the line being drawn.
  */
 interface Current {
-	directive: number;
+	block: number;
 	image: number;
 	line: number;
 }
@@ -611,8 +611,8 @@ function tokenHtml(text: string, token: Token, current: Current): string {
 	const source = text.slice(token.start, token.end);
 
 	switch (token.kind) {
-		case 'directive':
-			return directiveHtml(source, token.directive === current.directive);
+		case 'block':
+			return blockHtml(source, token.block === current.block);
 		case 'code': {
 			const ticks = /^`+/.exec(source)?.[0].length ?? 1;
 
@@ -705,11 +705,11 @@ type LineRole = 'head' | 'term' | 'definition';
 function lineRoles(found: MarkdownBlock[]): Map<number, LineRole> {
 	const roles = new Map<number, LineRole>();
 
-	for (const block of found) {
-		if (block.kind === 'table') {
-			roles.set(block.first, 'head');
-		} else if (block.kind === 'term' || block.kind === 'definition') {
-			roles.set(block.first, block.kind);
+	for (const markdownBlock of found) {
+		if (markdownBlock.kind === 'table') {
+			roles.set(markdownBlock.first, 'head');
+		} else if (markdownBlock.kind === 'term' || markdownBlock.kind === 'definition') {
+			roles.set(markdownBlock.first, markdownBlock.kind);
 		}
 	}
 
@@ -717,7 +717,7 @@ function lineRoles(found: MarkdownBlock[]): Map<number, LineRole> {
 }
 
 /**
- * One line of text (not code or a directive's own line), with its marks
+ * One line of text (not code or a block's own line), with its marks
  * and tokens.
  */
 function lineHtml(line: Line, current: Current, role: LineRole | undefined): string {
@@ -771,8 +771,8 @@ function lineHtml(line: Line, current: Current, role: LineRole | undefined): str
 }
 
 /**
- * The body as HTML for the editor's highlighted copy, with the directive
- * at `directive` or the image at `image` (indexes, -1 for none) boxed:
+ * The body as HTML for the editor's highlighted copy, with the block
+ * at `block` or the image at `image` (indexes, -1 for none) boxed:
  * the box means "you are here". A container is boxed on its opening and
  * closing lines only; its body is the writing, and stays untinted
  * (D-268). Every character of the source is in it, escaped, so it lines
@@ -788,7 +788,7 @@ function lineHtml(line: Line, current: Current, role: LineRole | undefined): str
  *
  * Each line's HTML is kept between calls, keyed on everything it depends
  * on (its kind and text, what the block scan says it is, and where in it
- * the selected directive or image is, if anywhere), so a keystroke
+ * the selected block or image is, if anywhere), so a keystroke
  * rebuilds the line it changed rather than the whole body (D-316). The
  * lines a call uses are what the next one keeps.
  *
@@ -796,9 +796,9 @@ function lineHtml(line: Line, current: Current, role: LineRole | undefined): str
  * on: both its lines' colons are marked as a pair, as an editor marks
  * the bracket matching the one at the caret.
  */
-export function highlight(markdown: MarkdownOutline, directive: number, image = -1, found: MarkdownBlock[] = blocks(markdown), paired = -1): string {
+export function highlight(markdown: MarkdownOutline, block: number, image = -1, found: MarkdownBlock[] = markdownBlocks(markdown), paired = -1): string {
 	const at      = markdown.images[image]?.start ?? -1;
-	const current = markdown.directives[directive];
+	const current = markdown.blocks[block];
 	const roles   = lineRoles(found);
 	const used    = new Map<string, string>();
 	let html      = '';
@@ -852,28 +852,28 @@ export function highlight(markdown: MarkdownOutline, directive: number, image = 
 			case 'open':
 			case 'leaf':
 			case 'close': {
-				const selected = line.directive === directive;
-				const pair     = paired !== -1 && line.directive === paired;
+				const selected = line.block === block;
+				const pair     = paired !== -1 && line.block === paired;
 				// What a closing line closes, named after it, since its
 				// colons alone don't say.
-				const closes = line.kind === 'close' ? fullName(markdown.directives[line.directive ?? -1]?.name ?? '') : '';
+				const closes = line.kind === 'close' ? fullName(markdown.blocks[line.block ?? -1]?.name ?? '') : '';
 
 				html += before + cached(`d\u0000${selected ? 1 : 0}\u0000${pair ? 1 : 0}\u0000${closes}\u0000${line.text}`, () => {
 					const indent = line.text.length - line.text.trimStart().length;
 
-					return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), selected, pair) + (closes === '' ? '' : closesHtml(closes));
+					return escape(line.text.slice(0, indent)) + blockHtml(line.text.slice(indent), selected, pair) + (closes === '' ? '' : closesHtml(closes));
 				});
 
 				return;
 			}
 			default: {
-				// The selected inline directive and image matter only on their
+				// The selected inline block and image matter only on their
 				// own line, by where they are in it.
 				const inline = current?.kind === 'inline' ? within(line, current.start) : -1;
 				const picked = within(line, at);
 				const role   = roles.get(index) ?? '';
 
-				html += before + cached(`${line.kind}\u0000${role}\u0000${inline}\u0000${picked}\u0000${line.text}`, () => lineHtml(line, { directive, image: at, line: line.start }, roles.get(index)));
+				html += before + cached(`${line.kind}\u0000${role}\u0000${inline}\u0000${picked}\u0000${line.text}`, () => lineHtml(line, { block, image: at, line: line.start }, roles.get(index)));
 			}
 		}
 	});
@@ -897,11 +897,11 @@ export interface Edit {
 }
 
 /**
- * Where a directive's head is: from its colons to the end of its
+ * Where a block's head is: from its colons to the end of its
  * `{attributes}`, with its `[label]` and attributes' bodies (without the
  * brackets), if it has them.
  */
-export interface DirectiveHead {
+export interface BlockHead {
 	start: number;
 	end: number;
 	nameEnd: number;
@@ -912,12 +912,12 @@ export interface DirectiveHead {
 const HEAD = new RegExp(`^:+(${NAME})(?:\\[([^\\]\\n]*)\\])?(?:\\{([^}\\n]*)\\})?`);
 
 /**
- * Reads a directive's head.
+ * Reads a block's head.
  */
-export function directiveHead(source: string, directive: Directive): DirectiveHead {
-	const text  = source.slice(directive.start, directive.kind === 'inline' ? directive.end : lineEnd(source, directive.start));
+export function blockHead(source: string, block: Block): BlockHead {
+	const text  = source.slice(block.start, block.kind === 'inline' ? block.end : lineEnd(source, block.start));
 	const match = HEAD.exec(text);
-	const start = directive.start;
+	const start = block.start;
 
 	if (match === null) {
 		return { start, end: start + text.length, nameEnd: start + text.length, label: null, attributes: null };
@@ -938,8 +938,8 @@ function lineEnd(source: string, from: number): number {
 	return end === -1 ? source.length : end;
 }
 
-// A directive's attributes, as the server reads them (D-026,
-// `DirectiveAttributes`): `key=value`, `key="a value"`, `key='a value'`,
+// A block's attributes, as the server reads them (D-026,
+// `BlockAttributes`): `key=value`, `key="a value"`, `key='a value'`,
 // `.class`, `#id`, and a bare `key` (read as `"true"`).
 const ATTRIBUTE = /([.#])([A-Za-z0-9_:-]+)|([A-Za-z_:][A-Za-z0-9_:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=]+)))?/g;
 
@@ -970,10 +970,10 @@ function tokens(body: string): AttributeToken[] {
 }
 
 /**
- * A directive's attributes, by name (classes joined, as the server does).
+ * A block's attributes, by name (classes joined, as the server does).
  */
-export function attributesOf(source: string, directive: Directive): Record<string, string> {
-	const body   = directiveHead(source, directive).attributes?.text ?? '';
+export function attributesOf(source: string, block: Block): Record<string, string> {
+	const body   = blockHead(source, block).attributes?.text ?? '';
 	const values: Record<string, string> = {};
 
 	for (const token of tokens(body)) {
@@ -1006,8 +1006,8 @@ export function attributeText(name: string, value: string): string {
  * is rewritten in place, a new one is added at the end, and braces left
  * empty are removed.
  */
-export function withAttribute(source: string, directive: Directive, name: string, value: string | null): Edit | null {
-	const head    = directiveHead(source, directive);
+export function withAttribute(source: string, block: Block, name: string, value: string | null): Edit | null {
+	const head    = blockHead(source, block);
 	const written = value === null ? '' : attributeText(name, value);
 
 	if (head.attributes === null) {
@@ -1065,12 +1065,12 @@ export function withAttribute(source: string, directive: Directive, name: string
 }
 
 /**
- * The edit that sets a directive's `[label]`. A label can't hold `]` or
+ * The edit that sets a block's `[label]`. A label can't hold `]` or
  * a line break, so they're left out. An empty label stays as `[]` on a
- * directive that had one.
+ * block that had one.
  */
-export function withLabel(source: string, directive: Directive, label: string): Edit {
-	const head = directiveHead(source, directive);
+export function withLabel(source: string, block: Block, label: string): Edit {
+	const head = blockHead(source, block);
 	const text = label.replace(/[\]\n]/g, '');
 
 	return head.label === null
@@ -1079,18 +1079,18 @@ export function withLabel(source: string, directive: Directive, label: string): 
 }
 
 /**
- * The edit that removes a directive. An inline directive's label stays,
+ * The edit that removes a block. An inline block's label stays,
  * as text; a leaf goes with its line, and a container with everything in
  * it (D-272), each with a blank line after it, so the text around closes
  * up.
  */
-export function withoutDirective(source: string, directive: Directive): Edit {
-	if (directive.kind === 'inline') {
-		return { from: directive.start, to: directive.end, text: directiveHead(source, directive).label?.text ?? '' };
+export function withoutBlock(source: string, block: Block): Edit {
+	if (block.kind === 'inline') {
+		return { from: block.start, to: block.end, text: blockHead(source, block).label?.text ?? '' };
 	}
 
-	const lineStart = source.lastIndexOf('\n', directive.start - 1) + 1;
-	const end       = directive.kind === 'leaf' ? lineEnd(source, directive.start) : directive.end;
+	const lineStart = source.lastIndexOf('\n', block.start - 1) + 1;
+	const end       = block.kind === 'leaf' ? lineEnd(source, block.start) : block.end;
 	let to          = end < source.length ? end + 1 : end;
 
 	if (to < source.length && source[to] === '\n') {
@@ -1197,11 +1197,11 @@ export function withParts(body: string, classes: string[], id: string): string {
 }
 
 /**
- * The edit that sets a directive's classes and id, leaving its other
+ * The edit that sets a block's classes and id, leaving its other
  * attributes as they were; braces left empty go.
  */
-export function withDirectiveParts(source: string, directive: Directive, classes: string[], id: string): Edit | null {
-	const head = directiveHead(source, directive);
+export function withBlockParts(source: string, block: Block, classes: string[], id: string): Edit | null {
+	const head = blockHead(source, block);
 	const next = withParts(head.attributes?.text ?? '', classes, id);
 
 	if (head.attributes === null) {
@@ -1219,16 +1219,16 @@ export function withDirectiveParts(source: string, directive: Directive, classes
 		: { from: head.attributes.start, to: head.attributes.end, text: next };
 }
 
-export type BlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'quote' | 'code' | 'table' | 'rule' | 'definitions' | 'term' | 'definition';
+export type MarkdownBlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'quote' | 'code' | 'table' | 'rule' | 'definitions' | 'term' | 'definition';
 
 /**
- * A block of Markdown outside directives' own lines: a heading, a
+ * A Markdown block, outside blocks' own lines: a heading, a
  * paragraph, a list and each of its items (with their continuation
  * lines), a quote, a fenced code block, a table, a rule, or a definition
  * list with each of its terms and definitions.
  */
 export interface MarkdownBlock {
-	kind: BlockKind;
+	kind: MarkdownBlockKind;
 	// Its first and last lines, by index: for a list item, its own text,
 	// without the lists nested under it.
 	first: number;
@@ -1252,7 +1252,7 @@ const ATTRIBUTE_LINE = new RegExp(`^ {0,3}(${ATTRIBUTES})[ \\t]*$`);
 const TRAILING       = new RegExp(`[ \\t]+(${ATTRIBUTES})[ \\t]*$`);
 const SETEXT         = /^ {0,3}(=+|-+)[ \t]*$/;
 
-// A definition: one colon (two would be a leaf directive), then a space.
+// A definition: one colon (two would be a leaf block), then a space.
 const DEFINITION = /^ {0,3}:(?!:)[ \t]+/;
 
 function blank(line: Line | undefined): boolean {
@@ -1274,7 +1274,7 @@ function indentOf(line: Line | undefined): number {
 /**
  * Whether a line starts a block, so it ends a paragraph or list item.
  */
-function startsBlock(line: Line, next: Line | undefined): boolean {
+function startsMarkdownBlock(line: Line, next: Line | undefined): boolean {
 	return ['fence', 'open', 'close', 'leaf', 'heading'].includes(line.kind)
 		|| ['quote', 'list', 'rule'].includes(line.marks[0]?.kind ?? '')
 		|| isAttributeLine(line)
@@ -1288,7 +1288,7 @@ function startsBlock(line: Line, next: Line | undefined): boolean {
 function termsEnd(lines: Line[], index: number): number {
 	let at = index;
 
-	while (!blank(lines[at]) && !isDefinition(lines[at]) && !startsBlock(lines[at] as Line, lines[at + 1]) && lines[at]?.kind === 'text') {
+	while (!blank(lines[at]) && !isDefinition(lines[at]) && !startsMarkdownBlock(lines[at] as Line, lines[at + 1]) && lines[at]?.kind === 'text') {
 		at++;
 	}
 
@@ -1327,7 +1327,7 @@ function definitionsEnd(lines: Line[], index: number): number {
  * The body's blocks, in order: a list before its first item, a definition
  * list before its first term.
  */
-export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
+export function markdownBlocks(markdown: MarkdownOutline): MarkdownBlock[] {
 	const { lines } = markdown;
 	const found: MarkdownBlock[] = [];
 	const lineEndOf = (index: number): number => (lines[index] as Line).start + (lines[index] as Line).text.length;
@@ -1351,7 +1351,7 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 		}
 
 		const lead = line.marks[0]?.kind;
-		let kind: BlockKind = 'paragraph';
+		let kind: MarkdownBlockKind = 'paragraph';
 		let last = index;
 		const more = (test: (next: Line) => boolean): void => {
 			while (!blank(lines[last + 1]) && test(lines[last + 1] as Line)) {
@@ -1371,14 +1371,14 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 			}
 		} else if (lead === 'quote') {
 			kind = 'quote';
-			more((next) => next.marks[0]?.kind === 'quote' || !startsBlock(next, lines[last + 2]));
+			more((next) => next.marks[0]?.kind === 'quote' || !startsMarkdownBlock(next, lines[last + 2]));
 		} else if (lead === 'rule') {
 			kind = 'rule';
 		} else if (line.kind === 'heading') {
 			kind = 'heading';
 		} else if (lead === 'list') {
 			kind = 'item';
-			more((next) => /^\s/.test(next.text) && !startsBlock(next, lines[last + 2]));
+			more((next) => /^\s/.test(next.text) && !startsMarkdownBlock(next, lines[last + 2]));
 		} else if (TABLE.test(line.text) && DELIMITER.test(lines[index + 1]?.text ?? '')) {
 			kind = 'table';
 			more((next) => next.text.includes('|'));
@@ -1399,7 +1399,7 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 			index = end + 1;
 			continue;
 		} else {
-			more((next) => SETEXT.test(next.text) || !startsBlock(next, lines[last + 2]));
+			more((next) => SETEXT.test(next.text) || !startsMarkdownBlock(next, lines[last + 2]));
 
 			if (last > index && SETEXT.test(lines[last]?.text ?? '')) {
 				kind = 'heading';
@@ -1416,22 +1416,22 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 			attributes = trailingAttributes(kind === 'heading' && last > index ? line : end);
 		}
 
-		const block: MarkdownBlock = { kind, first: index, last, start: above?.start ?? line.start, end: end.start + end.text.length, attributes };
+		const markdownBlock: MarkdownBlock = { kind, first: index, last, start: above?.start ?? line.start, end: end.start + end.text.length, attributes };
 
 		if (kind === 'item') {
 			// The item reaches over the lines indented under it.
 			let span = last;
 
-			block.indent = indentOf(line);
+			markdownBlock.indent = indentOf(line);
 
-			while (!blank(lines[span + 1]) && indentOf(lines[span + 1]) > block.indent && lines[span + 1]?.kind === 'text') {
+			while (!blank(lines[span + 1]) && indentOf(lines[span + 1]) > markdownBlock.indent && lines[span + 1]?.kind === 'text') {
 				span++;
 			}
 
-			block.end = lineEndOf(span);
+			markdownBlock.end = lineEndOf(span);
 		}
 
-		found.push(block);
+		found.push(markdownBlock);
 		above = null;
 		index = last + 1;
 	}
@@ -1471,7 +1471,7 @@ function ownAttributes(line: Line): NonNullable<MarkdownBlock['attributes']> {
  * A list's attributes are on a line of their own just above it.
  */
 function addLists(found: MarkdownBlock[], lines: Line[]): MarkdownBlock[] {
-	const items = found.filter((block) => block.kind === 'item');
+	const items = found.filter((markdownBlock) => markdownBlock.kind === 'item');
 	const lists: MarkdownBlock[] = [];
 	const open: { indent: number; first: number; last: number }[] = [];
 
@@ -1524,8 +1524,8 @@ function addLists(found: MarkdownBlock[], lines: Line[]): MarkdownBlock[] {
 
 // On the same span, what holds the rest comes first: a list before its
 // only item.
-function rank(block: MarkdownBlock): number {
-	return block.kind === 'list' || block.kind === 'definitions' ? 0 : 1;
+function rank(markdownBlock: MarkdownBlock): number {
+	return markdownBlock.kind === 'list' || markdownBlock.kind === 'definitions' ? 0 : 1;
 }
 
 /**
@@ -1533,11 +1533,11 @@ function rank(block: MarkdownBlock): number {
  * blank line belongs to the block before it (D-268). `null` above the
  * first.
  */
-export function blockAt(list: MarkdownBlock[], offset: number): number {
+export function markdownBlockAt(list: MarkdownBlock[], offset: number): number {
 	let found = -1;
 
-	list.forEach((block, index) => {
-		if (block.start <= offset) {
+	list.forEach((markdownBlock, index) => {
+		if (markdownBlock.start <= offset) {
 			found = index;
 		}
 	});
@@ -1551,8 +1551,8 @@ export function blockAt(list: MarkdownBlock[], offset: number): number {
  * a line of their own above the rest. Attributes left empty go, with
  * their line when they had one.
  */
-export function withBlockParts(source: string, markdown: MarkdownOutline, block: MarkdownBlock, classes: string[], id: string): Edit | null {
-	const current = block.attributes;
+export function withMarkdownBlockParts(source: string, markdown: MarkdownOutline, markdownBlock: MarkdownBlock, classes: string[], id: string): Edit | null {
+	const current = markdownBlock.attributes;
 	const next    = withParts(current?.text ?? '', classes, id);
 
 	if (current !== null) {
@@ -1580,10 +1580,10 @@ export function withBlockParts(source: string, markdown: MarkdownOutline, block:
 		return null;
 	}
 
-	const first = markdown.lines[block.first] as Line;
+	const first = markdown.lines[markdownBlock.first] as Line;
 
-	if (block.kind === 'heading' || block.kind === 'paragraph' || block.kind === 'item' || block.kind === 'term' || block.kind === 'definition') {
-		const holder = block.kind === 'heading' && block.last > block.first ? first : markdown.lines[block.last] as Line;
+	if (markdownBlock.kind === 'heading' || markdownBlock.kind === 'paragraph' || markdownBlock.kind === 'item' || markdownBlock.kind === 'term' || markdownBlock.kind === 'definition') {
+		const holder = markdownBlock.kind === 'heading' && markdownBlock.last > markdownBlock.first ? first : markdown.lines[markdownBlock.last] as Line;
 		const at     = holder.start + holder.text.trimEnd().length;
 
 		return { from: at, to: holder.start + holder.text.length, text: ` {${next}}` };
@@ -1597,11 +1597,11 @@ export function withBlockParts(source: string, markdown: MarkdownOutline, block:
 /**
  * A heading's level: its hashes, or 1 or 2 for an underlined one.
  */
-export function headingLevel(markdown: MarkdownOutline, block: MarkdownBlock): number {
-	const first = markdown.lines[block.first];
+export function headingLevel(markdown: MarkdownOutline, markdownBlock: MarkdownBlock): number {
+	const first = markdown.lines[markdownBlock.first];
 
-	if (block.last > block.first) {
-		return markdown.lines[block.last]?.text.trim().startsWith('=') ? 1 : 2;
+	if (markdownBlock.last > markdownBlock.first) {
+		return markdown.lines[markdownBlock.last]?.text.trim().startsWith('=') ? 1 : 2;
 	}
 
 	return /^ {0,3}(#{1,6})/.exec(first?.text ?? '')?.[1]?.length ?? 1;
@@ -1611,16 +1611,16 @@ export function headingLevel(markdown: MarkdownOutline, block: MarkdownBlock): n
  * The edit that sets a heading's level. An underlined heading becomes one
  * with hashes.
  */
-export function withHeadingLevel(markdown: MarkdownOutline, block: MarkdownBlock, level: number): Edit | null {
-	const first  = markdown.lines[block.first];
+export function withHeadingLevel(markdown: MarkdownOutline, markdownBlock: MarkdownBlock, level: number): Edit | null {
+	const first  = markdown.lines[markdownBlock.first];
 	const hashes = '#'.repeat(Math.min(6, Math.max(1, level)));
 
 	if (first === undefined) {
 		return null;
 	}
 
-	if (block.last > block.first) {
-		const last = markdown.lines[block.last] as Line;
+	if (markdownBlock.last > markdownBlock.first) {
+		const last = markdown.lines[markdownBlock.last] as Line;
 
 		return { from: first.start, to: last.start + last.text.length, text: `${hashes} ${first.text.trim()}` };
 	}
@@ -1635,15 +1635,15 @@ const FENCE_PARTS = /^(\s*(?:`{3,}|~{3,})[ \t]*)([^\s`{]*)/;
 /**
  * A code block's language: the first word of its fence's info string.
  */
-export function codeLanguage(markdown: MarkdownOutline, block: MarkdownBlock): string {
-	return FENCE_PARTS.exec(markdown.lines[block.first]?.text ?? '')?.[2] ?? '';
+export function codeLanguage(markdown: MarkdownOutline, markdownBlock: MarkdownBlock): string {
+	return FENCE_PARTS.exec(markdown.lines[markdownBlock.first]?.text ?? '')?.[2] ?? '';
 }
 
 /**
  * The edit that sets a code block's language.
  */
-export function withCodeLanguage(markdown: MarkdownOutline, block: MarkdownBlock, language: string): Edit | null {
-	const first = markdown.lines[block.first];
+export function withCodeLanguage(markdown: MarkdownOutline, markdownBlock: MarkdownBlock, language: string): Edit | null {
+	const first = markdown.lines[markdownBlock.first];
 	const match = FENCE_PARTS.exec(first?.text ?? '');
 
 	if (first === undefined || match === null) {
@@ -1660,8 +1660,8 @@ const ITEM_BOX = /^( *(?:[-*+]|\d{1,9}[.)]))( +)(?:\[([ xX])\] +)?/;
 /**
  * Whether a list item is a task, and whether it's done.
  */
-export function taskState(markdown: MarkdownOutline, block: MarkdownBlock): { task: boolean; done: boolean } {
-	const box = ITEM_BOX.exec(markdown.lines[block.first]?.text ?? '')?.[3];
+export function taskState(markdown: MarkdownOutline, markdownBlock: MarkdownBlock): { task: boolean; done: boolean } {
+	const box = ITEM_BOX.exec(markdown.lines[markdownBlock.first]?.text ?? '')?.[3];
 
 	return { task: box !== undefined, done: box !== undefined && box !== ' ' };
 }
@@ -1669,8 +1669,8 @@ export function taskState(markdown: MarkdownOutline, block: MarkdownBlock): { ta
 /**
  * The edit that makes a list item a task (open or done), or not one.
  */
-export function withTask(markdown: MarkdownOutline, block: MarkdownBlock, task: boolean, done = false): Edit | null {
-	const first = markdown.lines[block.first];
+export function withTask(markdown: MarkdownOutline, markdownBlock: MarkdownBlock, task: boolean, done = false): Edit | null {
+	const first = markdown.lines[markdownBlock.first];
 	const match = ITEM_BOX.exec(first?.text ?? '');
 
 	if (first === undefined || match === null) {
@@ -1691,7 +1691,7 @@ const ITEM_LINE = /^( *)([-*+]|\d{1,9}[.)])( +|$)(\[[ xX]\] +)?(.*)$/;
  * A list's items at its own indent, not the ones nested in them.
  */
 export function listItems(found: MarkdownBlock[], list: MarkdownBlock): MarkdownBlock[] {
-	return found.filter((block) => block.kind === 'item' && block.first >= list.first && block.last <= list.last && block.indent === list.indent);
+	return found.filter((markdownBlock) => markdownBlock.kind === 'item' && markdownBlock.first >= list.first && markdownBlock.last <= list.last && markdownBlock.indent === list.indent);
 }
 
 /**
@@ -2179,7 +2179,7 @@ function remap(before: string[], after: string[], position: number, lineMap: (li
  * Makes the lines in a selection headings of a level (⌘⌥1 to ⌘⌥6), or
  * paragraphs (level 0, ⌘⌥0): the hashes go after any quote or list
  * marks and replace any there. If every line is already that level, it
- * goes back to a paragraph. Code, directives' own lines, and blank lines
+ * goes back to a paragraph. Code, blocks' own lines, and blank lines
  * are left alone; `null` when nothing's left.
  */
 export function withHeading(source: string, start: number, end: number, level: number): Change | null {
@@ -2256,7 +2256,7 @@ function bodyTokens(line: Line, tokens: Token[] = line.tokens, found: BodyToken[
 /**
  * Whether Markdown's emphasis is emphasis at an offset (admin.md §8, The
  * toolbar): in prose, a paragraph, heading, list item, quote, a table's
- * cell, or a container's body; not in code, on a directive's own line, a
+ * cell, or a container's body; not in code, on a block's own line, a
  * rule, or a table's delimiter row, where a pair of stars is two stars.
  */
 export function inProse(markdown: MarkdownOutline, offset: number): boolean {
@@ -2523,14 +2523,14 @@ export function closingFence(source: string, position: number): Edit | null {
 export function closingContainer(source: string, position: number): { edit: Edit; caret: number } | null {
 	const markdown = outline(source);
 	const line     = markdown.lines[lineIndexAt(markdown, position)];
-	const opened   = line?.directive === undefined ? undefined : markdown.directives[line.directive];
+	const opened   = line?.block === undefined ? undefined : markdown.blocks[line.block];
 	const match    = /^( {0,3})(:{3,})/.exec(line?.text ?? '');
 
 	if (line === undefined || opened === undefined || match === null || line.kind !== 'open' || position !== line.start + line.text.length) {
 		return null;
 	}
 
-	if (!markdown.directives.some((directive) => directive.kind === 'container' && directive.closed !== true && directive.start <= opened.start)) {
+	if (!markdown.blocks.some((block) => block.kind === 'container' && block.closed !== true && block.start <= opened.start)) {
 		return null;
 	}
 
@@ -2643,7 +2643,7 @@ export function unmarked(source: string, position: number): Change | null {
  * a container it leaves open is closed at its end, so it can't take in
  * what follows; and every fence is written `:::` (D-320), one closing
  * line per container. `block` says whether it holds a container or leaf
- * directive, which goes on lines of its own. Code is left alone.
+ * block, which goes on lines of its own. Code is left alone.
  */
 export function pasted(text: string): { text: string; block: boolean } {
 	const markdown = outline(text.replace(/\r\n?/g, '\n'));
@@ -2664,10 +2664,10 @@ export function pasted(text: string): { text: string; block: boolean } {
 
 		if (line.kind === 'open') {
 			out.push(line.text.replace(/^( *):+/, '$1:::'));
-			open.push(line.directive ?? -1);
+			open.push(line.block ?? -1);
 			block = true;
 		} else if (line.kind === 'close') {
-			const closed = open.splice(open.indexOf(line.directive ?? -1));
+			const closed = open.splice(open.indexOf(line.block ?? -1));
 
 			out.push(...closed.map(() => `${indent}:::`));
 		} else if (line.kind === 'text' && CLOSE.test(line.text)) {
@@ -2688,7 +2688,7 @@ export function pasted(text: string): { text: string; block: boolean } {
 /**
  * Where text may go near `position` without breaking the syntax it
  * lands in (admin.md §8, You cannot write into the machinery; D-314),
- * and what to put before it. A directive's own line (its opening tag, a
+ * and what to put before it. A block's own line (its opening tag, a
  * leaf, or a closer) is moved past, onto a line of its own after it: the
  * body, for a container. Attributes at the end of a line, after a space,
  * describe the words before them, so text goes before them; inside an
@@ -2732,7 +2732,7 @@ export function safeSpot(source: string, position: number): { at: number; before
  * Where a character typed at `position` goes, when typing it there would
  * provably break something rather than edit it: right after a trailing
  * attribute block, at the very end of its line, it goes before the
- * block, at the end of the words; right after a directive's opening tag
+ * block, at the end of the words; right after a block's opening tag
  * or a leaf that ends in `]` or `}`, onto a new line after it. A
  * character typed inside braces or a name is someone editing by hand,
  * and stays. `null` when it stays.
@@ -2788,10 +2788,10 @@ export function quoted(source: string, start: number, end: number, outdent: bool
 	let { first, last } = selectedLines(source, start, end);
 
 	if (start === end) {
-		const block = blocks(markdown).find((item) => item.kind === 'quote' && item.first <= index && index <= item.last);
+		const markdownBlock = markdownBlocks(markdown).find((item) => item.kind === 'quote' && item.first <= index && index <= item.last);
 
-		first = block?.first ?? first;
-		last  = block?.last ?? last;
+		first = markdownBlock?.first ?? first;
+		last  = markdownBlock?.last ?? last;
 	}
 
 	const before = source.split('\n');

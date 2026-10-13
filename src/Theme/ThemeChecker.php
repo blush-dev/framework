@@ -17,9 +17,9 @@ use Throwable;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Blush\Content\Http\ContentPage;
-use Blush\Directive\DirectiveListing;
-use Blush\Directive\DirectiveName;
-use Blush\Directive\DirectiveVariants;
+use Blush\Block\BlockListing;
+use Blush\Block\BlockName;
+use Blush\Block\BlockVariants;
 use Blush\Content\Http\PageKind;
 use Blush\Core\Framework;
 use Blush\Core\ServiceProvider;
@@ -52,10 +52,10 @@ use Blush\View\EntryTemplateRegistry;
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
  *   (D-430, D-431); an abandoned theme (D-433); site setting values
- *   that don't fit; other broken themes; a directive or component with a
+ *   that don't fit; other broken themes; a block or component with a
  *   class but no template to render; a template declared for entries
- *   with no view (D-783); a template in `directives/` for no
- *   registered directive, or in `components/` not named for a component;
+ *   with no view (D-783); a template in `blocks/` for no
+ *   registered block, or in `components/` not named for a component;
  *   site menus or items that are invalid or don't resolve, and
  *   assignments to menus the site doesn't have (D-199, D-676); a theme's layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`, or `foot()` outside `<body>`, or one that prints a tag `head()`
@@ -142,7 +142,7 @@ final readonly class ThemeChecker
 			$problems = [
 				...$problems,
 				...$this->settings($chain),
-				...$this->directivesAndComponents($chain, $before),
+				...$this->blocksAndComponents($chain, $before),
 				...$this->menus->check($chain),
 				...$this->layout($chain)
 			];
@@ -260,30 +260,30 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks the directives and components (D-532). A directive or
+	 * Checks the blocks and components (D-532). A block or
 	 * component with a class but no template in the chain (and no other
 	 * view or markup of its own) fails whenever it's used. Themes can't
-	 * add directives, so a template in the theme's `directives/` that
-	 * isn't for a registered directive (or its variant) never renders;
+	 * add blocks, so a template in the theme's `blocks/` that
+	 * isn't for a registered block (or its variant) never renders;
 	 * nor does one in `components/` not named for a component
 	 * (`{namespace}-{name}`, D-171). Another theme's components are
 	 * skipped (its provider registers them when it's the active theme).
 	 * A template declared for entries needs its view (D-783), the
 	 * checked theme's own when it isn't the active one.
-	 * Its `theme.json` variants (D-266) must be for directives that exist
+	 * Its `theme.json` variants (D-266) must be for blocks that exist
 	 * and have valid names, and should have labels; a variant's template
-	 * mustn't also be a directive's own.
+	 * mustn't also be a block's own.
 	 *
 	 * @param  list<string> $others Templates registered by others, left out.
 	 * @return list<Violation>
 	 */
-	private function directivesAndComponents(ThemeChain $chain, array $others = []): array
+	private function blocksAndComponents(ThemeChain $chain, array $others = []): array
 	{
 		try {
 			$views           = $this->views->forChain($chain);
-			$directives      = $views->directives();
+			$blocks          = $views->blocks();
 			$components      = $views->components();
-			$strayDirectives = $views->strayDirectiveFiles();
+			$strayBlocks     = $views->strayBlockFiles();
 			$strayComponents = $views->strayComponentFiles();
 			$missing         = array_filter($views->missingEntryTemplates(), static fn (EntryTemplate $template): bool => ! in_array($template->name, $others, true));
 		} catch (Throwable) {
@@ -294,9 +294,9 @@ final readonly class ThemeChecker
 		$theme    = $chain->active();
 		$problems = [];
 
-		foreach ($directives as $directive) {
-			if ($directive->isMissingTemplate()) {
-				$problems[] = new Violation("directive {$directive->name}", sprintf('The "%s" directive (%s) has no %s template in the chain.', $directive->name, $directive->className(), array_last($directive->name->views())), Severity::Warning);
+		foreach ($blocks as $block) {
+			if ($block->isMissingTemplate()) {
+				$problems[] = new Violation("block {$block->name}", sprintf('The "%s" block (%s) has no %s template in the chain.', $block->name, $block->className(), array_last($block->name->views())), Severity::Warning);
 			}
 		}
 
@@ -314,11 +314,11 @@ final readonly class ThemeChecker
 			$problems[] = new Violation("template {$template->name}", sprintf('The "%s" template (%s) is declared for entries but has no %s view in the chain, so the editor doesn\'t offer it.', $template->name, $views->text($template->label), $template->name), Severity::Warning);
 		}
 
-		$problems = [...$problems, ...$this->variants($theme, $views, $directives)];
+		$problems = [...$problems, ...$this->variants($theme, $views, $blocks)];
 
-		foreach ($strayDirectives as $file) {
+		foreach ($strayBlocks as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
-				$problems[] = new Violation('directive ' . basename($file), sprintf('directives/%s isn\'t for a registered directive, so it never renders. Themes can\'t add directives (D-532): make it a component (components/%s-%s) for the theme\'s templates.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
+				$problems[] = new Violation('block ' . basename($file), sprintf('blocks/%s isn\'t for a registered block, so it never renders. Themes can\'t add blocks (D-532): make it a component (components/%s-%s) for the theme\'s templates.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
 			}
 		}
 
@@ -333,49 +333,49 @@ final readonly class ThemeChecker
 
 	/**
 	 * Checks the variants the theme's manifest lists, and variant
-	 * templates that are also a directive's own template name.
+	 * templates that are also a block's own template name.
 	 *
-	 * @param  list<DirectiveListing> $directives
+	 * @param  list<BlockListing> $blocks
 	 * @return list<Violation>
 	 */
-	private function variants(ThemeManifest $theme, Views $views, array $directives): array
+	private function variants(ThemeManifest $theme, Views $views, array $blocks): array
 	{
-		$known    = array_map(static fn (DirectiveListing $directive): string => (string) $directive->name, $directives);
+		$known    = array_map(static fn (BlockListing $block): string => (string) $block->name, $blocks);
 		$problems = [];
 
-		foreach ($theme->variants() as $directive => $list) {
-			if ($directive === DirectiveVariants::IMAGE) {
+		foreach ($theme->variants() as $block => $list) {
+			if ($block === BlockVariants::IMAGE) {
 				$problems = [...$problems, ...$this->imageVariants($theme, $views, $list)];
 
 				continue;
 			}
 
-			$name = DirectiveName::parse($directive);
+			$name = BlockName::parse($block);
 
 			if ($name === null || ! in_array((string) $name, $known, true)) {
-				$problems[] = new Violation("variants {$directive}", sprintf('theme.json lists variants for "%s", which isn\'t a directive.', $directive), Severity::Warning);
+				$problems[] = new Violation("variants {$block}", sprintf('theme.json lists variants for "%s", which isn\'t a block.', $block), Severity::Warning);
 
 				continue;
 			}
 
 			foreach ($list as $item) {
-				$variant = DirectiveVariants::manifestItem($item, $theme->namespace);
+				$variant = BlockVariants::manifestItem($item, $theme->namespace);
 
 				if ($variant === null) {
 					$problems[] = new Violation("variants {$name}", sprintf('theme.json lists a variant of "%s" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', $name), Severity::Warning);
 				} elseif ($views->variantText($name, $variant, 'label') === null) {
-					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "directives.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
+					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "blocks.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
 				}
 			}
 		}
 
-		$namespaces = array_values(array_unique(array_map(static fn (DirectiveListing $directive): string => $directive->name->namespace, $directives)));
+		$namespaces = array_values(array_unique(array_map(static fn (BlockListing $block): string => $block->name->namespace, $blocks)));
 
 		foreach ($views->variantFiles() as $fileName => [$name, $variant]) {
-			$other = DirectiveName::fromFileName($fileName, $namespaces);
+			$other = BlockName::fromFileName($fileName, $namespaces);
 
 			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
-				$problems[] = new Violation("directive {$other}", sprintf('directives/%s is both the "%s" directive\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
+				$problems[] = new Violation("block {$other}", sprintf('blocks/%s is both the "%s" block\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
 			}
 		}
 
@@ -394,7 +394,7 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		foreach ($list as $item) {
-			$variant = DirectiveVariants::manifestItem($item, $theme->namespace);
+			$variant = BlockVariants::manifestItem($item, $theme->namespace);
 
 			if ($variant === null) {
 				$problems[] = new Violation('variants image', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', Severity::Warning);

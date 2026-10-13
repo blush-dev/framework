@@ -17,7 +17,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Directive\PendingDirective;
+use Blush\Block\PendingBlock;
 use Blush\Support\RegistrationException;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\View\BladeEngine;
@@ -157,8 +157,8 @@ final class ViewEnginesTest extends TestCase
 			array_filter(new ReflectionClass(Template::class)->getMethods(), static fn (ReflectionMethod $method): bool => $method->getAttributes(ReturnsHtml::class) !== [])
 		);
 
-		$this->assertSame(['section', 'include', 'includeIf', 'includeWhen', 'includeUnless', 'each', 'component', 'directive', 'icon', 'cache', 'widont'], array_values($marked));
-		$this->assertContains(SafeHtml::class, class_implements(PendingDirective::class));
+		$this->assertSame(['section', 'include', 'includeIf', 'includeWhen', 'includeUnless', 'each', 'component', 'block', 'icon', 'cache', 'widont'], array_values($marked));
+		$this->assertContains(SafeHtml::class, class_implements(PendingBlock::class));
 		$this->assertContains(SafeHtml::class, class_implements(Head::class));
 	}
 }

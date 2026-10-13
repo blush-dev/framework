@@ -23,11 +23,11 @@ use Blush\Content\Entries;
 use Blush\Content\LocalizedEntries;
 
 /**
- * Builds directives and components (anything `Renderable`) with a class
+ * Builds blocks and components (anything `Renderable`) with a class
  * through the container. Props that match
  * constructor parameters are passed by name; string props are cast to a
  * parameter's `int`, `float`, `bool`, or backed enum type, since Markdown
- * directive attributes are always strings. A value the enum doesn't have
+ * block attributes are always strings. A value the enum doesn't have
  * is dropped, so the parameter's default applies. Props the constructor
  * doesn't take are left for `prop()`.
  */
@@ -37,7 +37,7 @@ final readonly class RenderableFactory
 	{}
 
 	/**
-	 * Builds a directive or component. On a page in another language
+	 * Builds a block or component. On a page in another language
 	 * (`$language`, a code; D-458), a `Entries` it asks for is
 	 * one in that language (`LocalizedEntries`), so its queries and
 	 * lookups find the page's entries.

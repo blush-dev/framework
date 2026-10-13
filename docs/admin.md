@@ -459,7 +459,7 @@ side is what you do to the text, in three groups:
   The site leaves out anything else typed inside it, so the Outline
   marks it, its settings say so, and the block's own settings list
   the lines that won't show. A block written another way than its
-  own (see [Using directives in content](directives.md#using-directives-in-content)),
+  own (see [Using blocks in content](blocks.md#using-blocks-in-content)),
   such as `::button[…]` for `:button[…]`, is marked the same way, and
   its settings say how it's written.
 - **Bleed**, for an element at the top of the entry: how far it reaches
@@ -792,7 +792,7 @@ lists.
 
 ### Inserting blocks
 
-Blocks are what Markdown calls [directives](directives.md): callouts,
+[Blocks](blocks.md) are callouts,
 galleries, buttons, and the rest, written as `:::callout` … `:::` and
 the like.
 
@@ -817,10 +817,10 @@ some text first to make it the block's text. Options the block
 needs are written empty for you to fill in, such as
 `::core/video{src=""}`. Undo takes an insertion back.
 
-The list has every registered directive with a class: the built-in
+The list has every registered block with a class: the built-in
 ones and your plugins' (grouped by where they come from).
 Themes don't add blocks; they style them. See
-[Making a directive](directives.md#making-a-directive) to add yours.
+[Making a block](blocks.md#making-a-block) to add yours.
 
 ### Inserting media and icons
 
@@ -868,7 +868,7 @@ image's **Replace**, or a field with a `kind`) shows only that kind,
 without the kind buttons, and its upload refuses a file of another
 kind, saying why.
 
-The shapes button opens your theme's [icons](directives.md#icons),
+The shapes button opens your theme's [icons](blocks.md#icons),
 grouped: the built-in icons by category (Status, Interface, Arrows, and
 so on), then your theme's, your icon packs', and your plugins'. Pick a
 group on the left, or search by name or what it shows (`home` finds the
@@ -903,7 +903,7 @@ item, and a definition list list what's directly inside them under
 **Content**; choose one to select it.
 
 A block's options are a form. A block with
-[variants](directives.md#variants) lists them first, under **Variant**,
+[variants](blocks.md#variants) lists them first, under **Variant**,
 with what each one looks like; **Default** writes nothing. Changing one
 rewrites just that option in the Markdown: the rest of what you wrote
 stays as it is. Setting an option back to its default removes it, so the
@@ -1374,7 +1374,7 @@ then discards it.
 
 Under the menu's label are its name, how many items it has, and the
 locations showing it. **Settings** opens its label (what screen readers
-call the navigation), its name, the directive to copy into an entry,
+call the navigation), its name, the block to copy into an entry,
 and the theme's locations, each saying what it will show once the menu
 is saved. Renaming is allowed: its locations follow the new name, but an
 entry that shows it by its old name doesn't. Everything, the items and
@@ -2237,13 +2237,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST tools/{vendor}/{name}` | Run a tool by its key; the answer is `{"successful", "message", "details"}`, or `{"job"}` for one that runs in the background |
 | `GET logs` | The end of the site's log, with `site.logs`: `{"driver", "file", "size", "entries"}`, its last 50 entries, newest first, each `{"time", "channel", "level", "message", "details"}` (`details` is the lines under it, such as an exception's trace); `file` is `null` unless the driver writes one |
 | `GET logs/download` | The whole log file, to save, with `site.logs` |
-| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a directive's |
+| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a block's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media` or its id (as media fields name it), with its details (see below) |
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `DELETE media/{path}` | Delete a library file, with its details (see below) |
-| `GET directives` | The directives the editor's inserter offers as blocks: `{"directives": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
+| `GET blocks` | The blocks the editor's inserter offers: `{"blocks": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability (`{"name", "label", "group"}`, and a content capability's `type`, `*` for every type, and `action`), the content `types` (`{"name", "label", "kind", "icon"}`), and every role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName", "avatar"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.view`, as do all of these; each change needs its own capability too (`accounts.create`, `accounts.edit`, `accounts.roles`, `accounts.suspend`, `accounts.delete`, or `roles.manage`; see [Capabilities](accounts.md#capabilities)) |
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
@@ -2385,10 +2385,10 @@ edit it; otherwise `index` is `null`. A relation archive's list page
 for which relation (`archiveLabel`). Pages written for one target's
 archive are left out. A page past the last has no entries.
 
-### Listing directives
+### Listing blocks
 
-`GET directives` lists the directives the editor's inserter offers as
-blocks: registered directives with a class. Each has:
+`GET blocks` lists the blocks the editor's inserter offers, the
+registered blocks with a class. Each has:
 
 | Key | What it is |
 |---|---|
@@ -2396,12 +2396,12 @@ blocks: registered directives with a class. Each has:
 | `label`, `description` | From the translation catalogs, or a label made from the name |
 | `content` | What it wraps: `none`, `text` (its `[label]`), or `blocks` |
 | `kind` | How it's written: `container` (`:::`), `leaf` (`::`), or `inline` (`:`) |
-| `category` | A built-in directive's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
+| `category` | A built-in block's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
 | `source` | Where the rest come from: `{"kind": "theme", "site", "icon-pack", or "plugin", "label"}`, else `null` |
 | `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
-| `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the directive's own namespace declared it, else like the directive's |
+| `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the block's own namespace declared it, else like the block's |
 
-Beside `directives`, `image` has the `variants` the active theme offers
+Beside `blocks`, `image` has the `variants` the active theme offers
 Markdown images (its `theme.json` `variants.image`): each a class, with
 its `name`, `label`, `description`, and `source` (`null`).
 

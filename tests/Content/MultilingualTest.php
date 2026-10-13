@@ -19,9 +19,9 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Config\InvalidConfig;
 use Blush\Component\Component;
 use Blush\Component\ComponentRegistry;
-use Blush\Directive\Directive;
+use Blush\Block\Block;
 use Blush\View\RenderableFactory;
-use Blush\Directive\DirectiveRegistry;
+use Blush\Block\BlockRegistry;
 use Blush\Component\Slots;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
@@ -70,7 +70,7 @@ use Blush\View\ViewFactory;
 #[CoversClass(LocalizedEntries::class)]
 #[CoversClass(RenderableFactory::class)]
 #[CoversClass(Component::class)]
-#[CoversClass(Directive::class)]
+#[CoversClass(Block::class)]
 #[CoversClass(EntryLink::class)]
 #[CoversClass(TermLink::class)]
 #[CoversClass(CollectionLink::class)]
@@ -400,7 +400,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(['Hello Bundle', 'Printemps', 'Welcome'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
 		$this->assertSame(['Printemps'], $titles($content->query()->type('post')->language('fr')->withOriginals(false)->limit(null)->get()));
 		$this->assertSame(['Hello Bundle', 'spring', 'Welcome'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
-		$this->assertContains('Welcome', $titles(new LocalizedEntries($content, 'fr')->query()->type('post')->limit(null)->get()), 'Directives and components list them too.');
+		$this->assertContains('Welcome', $titles(new LocalizedEntries($content, 'fr')->query()->type('post')->limit(null)->get()), 'Blocks and components list them too.');
 	}
 
 	public function testComponentsFollowThePageLanguage(): void
@@ -429,7 +429,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(['art' => 1], array_filter($localized->termCounts('category')));
 	}
 
-	public function testDirectivesInMarkdownFollowTheEntrysLanguage(): void
+	public function testBlocksInMarkdownFollowTheEntrysLanguage(): void
 	{
 		// The same file in both languages, so only the language tells the
 		// cached bodies apart.
@@ -437,7 +437,7 @@ final class MultilingualTest extends TestCase
 		$this->entry('lists.fr.md', 'title: Lists', "::acme/post-titles\n");
 
 		$app = $this->site();
-		$app->container()->make(DirectiveRegistry::class)->register('acme/post-titles', PostTitles::class);
+		$app->container()->make(BlockRegistry::class)->register('acme/post-titles', PostTitles::class);
 
 		$content = $app->container()->make(Entries::class);
 		$french  = $content->named('page', 'lists', 'fr')?->content() ?? '';
@@ -452,7 +452,7 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString("Printemps | L'art", (string) $app->container()->make(Kernel::class)->handle(Request::create('/fr/lists'))->getBody());
 	}
 
-	public function testDirectiveTextIsInThePageLanguage(): void
+	public function testBlockTextIsInThePageLanguage(): void
 	{
 		$this->writeTemporaryFile('user/lang/fr/core.json', '{"progress": {"label": "Avancement"}}');
 
@@ -463,12 +463,12 @@ final class MultilingualTest extends TestCase
 		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
 		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
 
-		$this->assertStringContainsString('aria-label="Avancement"', $views->directive('progress', ['value' => '1', 'max' => '2'], '', $french));
-		$this->assertStringContainsString('aria-label="Progress"', $views->directive('progress', ['value' => '1', 'max' => '2'], '', $english));
+		$this->assertStringContainsString('aria-label="Avancement"', $views->block('progress', ['value' => '1', 'max' => '2'], '', $french));
+		$this->assertStringContainsString('aria-label="Progress"', $views->block('progress', ['value' => '1', 'max' => '2'], '', $english));
 	}
 
 	/**
-	 * Returns a directive's props from a query string (`value=1&max=2`).
+	 * Returns a block's props from a query string (`value=1&max=2`).
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -480,14 +480,14 @@ final class MultilingualTest extends TestCase
 		return $props;
 	}
 
-	public function testDirectiveNumbersAndDatesAreInThePageLanguage(): void
+	public function testBlockNumbersAndDatesAreInThePageLanguage(): void
 	{
 		$container = $this->app->container();
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$content   = $this->content();
 		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
 		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
-		$render    = static fn (string $name, string $props, ViewContext $context): string => str_replace(["\u{202F}", "\u{A0}"], ' ', $views->directive($name, self::props($props), '', $context));
+		$render    = static fn (string $name, string $props, ViewContext $context): string => str_replace(["\u{202F}", "\u{A0}"], ' ', $views->block($name, self::props($props), '', $context));
 
 		$this->assertStringContainsString('1 250,5', $render('progress', 'value=1250.5&max=5000', $french));
 		$this->assertStringContainsString('1,250.5', $render('progress', 'value=1250.5&max=5000', $english));

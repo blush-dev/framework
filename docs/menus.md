@@ -52,7 +52,7 @@ menu for it, if the theme has one, and nothing otherwise. The default
 theme has a `primary` location in its header, with no default.
 
 To show a menu inside a page's content, name it in a
-[`menu` directive](directives.md#menus):
+[`menu` block](blocks.md#menus):
 
 ```md
 ::menu{name=social}
@@ -102,7 +102,7 @@ bin/blush menu:refs --write   # adds each id, and updates links to renamed entri
 |---|---|
 | `label` | The text shown. Needed for `route` and `url` links; for the others it replaces the title. |
 | `children` | A list of items shown under this one. An item with children and no link is a heading for them. |
-| `icon` | An [icon](directives.md#icons) shown with the label, such as `house` or `mytheme/github`. |
+| `icon` | An [icon](blocks.md#icons) shown with the label, such as `house` or `mytheme/github`. |
 | `description` | A short line of text under the label, for larger dropdown menus. |
 | `image` | The URL of a small image shown with the label. |
 | `badge` | A short tag, such as `New`. |
@@ -227,17 +227,17 @@ so none of your [settings](themes.md#settings) can be named `menus`.
 
 ### Printing a menu
 
-The `menu` directive prints what a location shows with accessible
+The `menu` block prints what a location shows with accessible
 markup: a `<nav>` named by the menu's label, nested lists, and
 `aria-current="page"` on the link to the current page.
 
 ```php
-<?= $template->directive('menu', location: 'primary') ?>
+<?= $template->block('menu', location: 'primary') ?>
 ```
 
 It prints nothing when the location has nothing to show. Its classes
-start with `directive-menu` (`directive-menu--primary`,
-`directive-menu__item--current`, `directive-menu__link`). Items with
+start with `block-menu` (`block-menu--primary`,
+`block-menu__item--current`, `block-menu__link`). Items with
 children get a toggle button, hidden, for a dropdown: your script can
 show it and open and close the submenu it controls (`aria-controls`),
 updating `aria-expanded`. Without a script, submenus stay open.

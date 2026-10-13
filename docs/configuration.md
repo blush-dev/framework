@@ -232,7 +232,7 @@ uploaded at.
 
 `config/embed.php` · `Blush\Embed\EmbedConfig`
 
-The [`embed` directive](directives.md#built-in-directives) asks each
+The [`embed` block](blocks.md#built-in-blocks) asks each
 video's site for its size and title (over [oEmbed](https://oembed.com)),
 once a month per URL. Built in are YouTube, Vimeo, TED, CodePen,
 Spotify, SoundCloud, Flickr, Twitch, and TikTok (CodePen and Twitch
@@ -291,7 +291,7 @@ every provider again.
 
 Blush's Markdown is the same on every site: CommonMark, plus autolinks,
 `~~struck~~` and `==highlighted==` text, tables, task lists, footnotes,
-definition lists, attributes, and [directives](directives.md) (see
+definition lists, attributes, and [blocks](blocks.md) (see
 [Markdown](content.md#markdown)). These options
 change how it renders, not what it means. The first five are on the
 [Writing settings screen](admin.md#settings) too.
@@ -305,7 +305,7 @@ change how it renders, not what it means. The first five are on the
 | `html` | `RawHtml::Allow` | What raw HTML in content does: `Allow` renders it, `Filter` shows script, frames, forms, and styles as text and drops `javascript:` link addresses, and `Escape` shows it all as text |
 | `lineBreaks` | `true` | A line break inside a paragraph is kept as `<br>`; off, it's a space |
 | `absoluteLinks` | `true` | Turn links starting with `/` into full URLs |
-| `directives` | `true` | Render [directives](directives.md) in Markdown |
+| `blocks` | `true` | Render [blocks](blocks.md) in Markdown |
 | `anchors` | see below | How heading anchors look: a `Blush\Markdown\HeadingAnchorOptions` |
 | `footnotes` | see below | How footnotes look: a `Blush\Markdown\FootnoteOptions` |
 
@@ -396,10 +396,10 @@ Agents and AI tools read Markdown more easily than HTML, so every
 published page also has a Markdown version at its address plus `.md`:
 `/archives/hello` is `/archives/hello.md`, `/about/` is `/about.md`, and
 the homepage is `/index.md`. It's the entry as you wrote it, with its
-title, address, dates, and summary at the top. Directives such as
+title, address, dates, and summary at the top. Blocks such as
 `:::figure` stay as written. Links and images get full addresses
 (`/about` becomes `https://example.com/about`, and media points at its
-media URL, as on the HTML page), in Markdown and in directives' URL
+media URL, as on the HTML page), in Markdown and in blocks' URL
 options, so the copy still works once it's read elsewhere. Code and
 HTML are left exactly as written. Unlisted entries have one; drafts,
 scheduled entries, and hidden entries don't. Each page links to its

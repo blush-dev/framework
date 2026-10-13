@@ -15,6 +15,10 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('archive-header');
+
 $template->layout('base');
 
 $heading = match (true) {
@@ -24,11 +28,11 @@ $heading = match (true) {
 };
 
 ?>
-<header class="archive-header">
-	<h1 class="archive-header__title"><?= e($heading) ?></h1>
+<header class="<?= attr($bem->block()) ?>">
+	<h1 class="<?= attr($bem->element('title')) ?>"><?= e($heading) ?></h1>
 
 	<?php if ($entry !== null && $entry->raw() !== '') : ?>
-		<div class="archive-header__description">
+		<div class="<?= attr($bem->element('description')) ?>">
 			<?= raw($entry->content()) ?>
 		</div>
 	<?php endif ?>

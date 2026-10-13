@@ -29,7 +29,7 @@
 					"default"
 				]
 			},
-			"description": "The namespace the theme's directives, components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one. Without one, it's the name with hyphens for the \"/\" and any \".\", such as \"acme-gallery\"."
+			"description": "The namespace the theme's blocks, components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one. Without one, it's the name with hyphens for the \"/\" and any \".\", such as \"acme-gallery\"."
 		},
 		"version": {
 			"type": "string",
@@ -586,7 +586,7 @@
 		},
 		"variants": {
 			"type": "object",
-			"description": "Variants the theme adds to directives, by directive name (such as \"callout\" or \"acme/tabs\"), and under \"image\", the classes it offers Markdown images (such as \"inline-left\"). Their labels and descriptions are in the theme's lang/ catalog, under directives.{name}.variants.{variant} (images.variants.{variant} for images).",
+			"description": "Variants the theme adds to blocks, by block name (such as \"callout\" or \"acme/tabs\"), and under \"image\", the classes it offers Markdown images (such as \"inline-left\"). Their labels and descriptions are in the theme's lang/ catalog, under blocks.{name}.variants.{variant} (images.variants.{variant} for images).",
 			"propertyNames": {
 				"pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?$"
 			},
@@ -600,7 +600,7 @@
 							"not": {
 								"const": "default"
 							},
-							"description": "The variant's name: lowercase letters, digits, and hyphens. Its class is directive-{name}--{variant}."
+							"description": "The variant's name: lowercase letters, digits, and hyphens. Its class is block-{name}--{variant}."
 						},
 						{
 							"type": "object",
@@ -620,7 +620,7 @@
 								"modifier": {
 									"type": "string",
 									"pattern": "^[a-z][a-z0-9-]*$",
-									"description": "The class modifier to add instead of the name: directive-{name}--{modifier}."
+									"description": "The class modifier to add instead of the name: block-{name}--{modifier}."
 								}
 							}
 						}

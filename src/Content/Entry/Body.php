@@ -27,7 +27,7 @@ use Blush\Markdown\MarkdownParser;
  * cached rendering means it isn't needed at all.
  *
  * It renders in its own asset scope (D-572) and keeps the assets its
- * directives asked for, adding them to the page only when its HTML is
+ * blocks asked for, adding them to the page only when its HTML is
  * asked for (`html()`), not when it's read for an excerpt or a count.
  *
  * What it works out from its HTML (an excerpt, its word count, its
@@ -39,7 +39,7 @@ final class Body
 	private ?string $html = null;
 
 	/**
-	 * The assets its directives asked for, by handle.
+	 * The assets its blocks asked for, by handle.
 	 *
 	 * @var list<string>
 	 */
@@ -54,7 +54,7 @@ final class Body
 
 	/**
 	 * @param string $hash     The source file's content hash, which keys the cache.
-	 * @param string $language The code of the entry's language when it isn't the default (D-459), which its directives follow, or `''`.
+	 * @param string $language The code of the entry's language when it isn't the default (D-459), which its blocks follow, or `''`.
 	 */
 	public function __construct(
 		private readonly BodySource $source,
@@ -74,7 +74,7 @@ final class Body
 	}
 
 	/**
-	 * Returns the rendered HTML, and asks for the assets its directives
+	 * Returns the rendered HTML, and asks for the assets its blocks
 	 * need, for the page that prints it.
 	 *
 	 * @throws MarkdownException
@@ -90,7 +90,7 @@ final class Body
 
 	/**
 	 * Returns the rendered HTML, rendering it (or reading it from the
-	 * cache) on first use, with the assets its directives asked for.
+	 * cache) on first use, with the assets its blocks asked for.
 	 *
 	 * @throws MarkdownException
 	 */
@@ -139,11 +139,11 @@ final class Body
 	 * The elements that aren't the post's prose, beyond `UNREAD`
 	 * (D-727): anything set apart (figures, asides such as callouts,
 	 * details, tables, code), forms and gauges, footnotes, and the
-	 * paragraphs and links directives draw, such as a file's link or a
+	 * paragraphs and links blocks draw, such as a file's link or a
 	 * button.
 	 */
 	private const string NOT_PROSE = 'figure, aside, details, table, pre, form, label, progress, meter, [role="doc-endnotes"], '
-		. 'p[class^="directive-"], p[class*=" directive-"], a[class^="directive-button"], a[class*=" directive-button"]';
+		. 'p[class^="block-"], p[class*=" block-"], a[class^="block-button"], a[class*=" block-button"]';
 
 	/**
 	 * The blocks prose is read from (D-727).
@@ -155,7 +155,7 @@ final class Body
 	 * 1.x's excerpts did, or `''` for a body without any. Prose is the
 	 * text of its paragraphs and list items (D-727), so headings, media,
 	 * figures and their captions, callouts, tables, code, footnotes, and
-	 * what directives draw that isn't text are left out. When the body is
+	 * what blocks draw that isn't text are left out. When the body is
 	 * longer, `$more` is appended inside the paragraph; it's HTML (D-150),
 	 * such as a "Continue reading" link, so escape any text in it.
 	 *
@@ -295,7 +295,7 @@ final class Body
 
 	/**
 	 * Returns what keys the body's cached renderings: its hash, and its
-	 * language when it isn't the default, since its directives follow it.
+	 * language when it isn't the default, since its blocks follow it.
 	 */
 	private function key(): string
 	{

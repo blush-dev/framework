@@ -18,16 +18,21 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$people        = new Bem('people');
+$archiveHeader = new Bem('archive-header');
+
 $template->layout('base');
 
 $relation = $page->relation->name ?? '';
 
 ?>
-<header class="archive-header">
-	<h1 class="archive-header__title"><?= e($title) ?></h1>
+<header class="<?= attr($archiveHeader->block()) ?>">
+	<h1 class="<?= attr($archiveHeader->element('title')) ?>"><?= e($title) ?></h1>
 
 	<?php if ($entry !== null && $entry->raw() !== '') : ?>
-		<div class="archive-header__description">
+		<div class="<?= attr($archiveHeader->element('description')) ?>">
 			<?= raw($entry->content()) ?>
 		</div>
 	<?php endif ?>
@@ -36,13 +41,13 @@ $relation = $page->relation->name ?? '';
 <?php if ($entries === null || count($entries) === 0) : ?>
 	<p class="no-entries"><?= e($messages->t('people.none')) ?></p>
 <?php else : ?>
-	<ul class="people" role="list">
+	<ul class="<?= attr($people->block()) ?>" role="list">
 		<?php foreach ($entries as $person) : ?>
-			<li class="people__item">
-				<h2 class="people__name"><a href="<?= url($person->archiveUrl($type, $relation)) ?>"><?= e($person->title) ?></a></h2>
+			<li class="<?= attr($people->element('item')) ?>">
+				<h2 class="<?= attr($people->element('name')) ?>"><a href="<?= url($person->archiveUrl($type, $relation)) ?>"><?= e($person->title) ?></a></h2>
 
 				<?php if ($person->raw() !== '') : ?>
-					<div class="people__bio">
+					<div class="<?= attr($people->element('bio')) ?>">
 						<?= raw($person->excerpt()) ?>
 					</div>
 				<?php endif ?>

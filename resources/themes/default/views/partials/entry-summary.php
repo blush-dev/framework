@@ -9,12 +9,16 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entry');
+
 $link  = $entry->url();
 $title = $entry->title !== '' ? $entry->title : $entry->slug;
 
 ?>
-<article class="entry entry--summary">
-	<h2 class="entry__title">
+<article class="<?= attr($bem->modifier('summary')) ?>">
+	<h2 class="<?= attr($bem->element('title')) ?>">
 		<?php if ($link !== '') : ?>
 			<a href="<?= url($link) ?>"><?= e($title) ?></a>
 		<?php else : ?>
@@ -24,7 +28,7 @@ $title = $entry->title !== '' ? $entry->title : $entry->slug;
 
 	<?= $template->include('partials/entry-meta', entry: $entry) ?>
 
-	<div class="entry__excerpt">
+	<div class="<?= attr($bem->element('excerpt')) ?>">
 		<?= raw($entry->excerpt()) ?>
 	</div>
 </article>

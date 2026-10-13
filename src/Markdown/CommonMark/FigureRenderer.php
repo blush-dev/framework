@@ -27,7 +27,7 @@ use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
 use League\CommonMark\Util\HtmlElement;
 use League\CommonMark\Util\Xml;
-use Blush\Markdown\CommonMark\Directive\ContainerDirective;
+use Blush\Markdown\CommonMark\Block\ContainerBlock;
 
 /**
  * Renders a paragraph holding nothing but an image (or a link around an
@@ -163,7 +163,7 @@ final readonly class FigureRenderer implements NodeRendererInterface
 	{
 		$parent = $node->parent();
 
-		return $parent instanceof ContainerDirective && in_array($parent->name, ['figure', 'core/figure'], true);
+		return $parent instanceof ContainerBlock && in_array($parent->name, ['figure', 'core/figure'], true);
 	}
 
 	/**

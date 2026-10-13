@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Directive variant check.
+ * Block variant check.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -13,24 +13,24 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Directive\DirectiveName;
-use Blush\Directive\DirectiveRegistry;
-use Blush\Directive\DirectiveVariants;
-use Blush\Directive\Variant;
+use Blush\Block\BlockName;
+use Blush\Block\BlockRegistry;
+use Blush\Block\BlockVariants;
+use Blush\Block\Variant;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
-use Blush\Markdown\CommonMark\Directive\DirectiveAttributes;
+use Blush\Markdown\CommonMark\Block\BlockAttributes;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 
 /**
- * Finds directives in a body that ask for a variant the directive doesn't
+ * Finds blocks in a body that ask for a variant the block doesn't
  * have under the active theme (D-266): they render as Default, which is
- * seldom what was meant. Only registered directives are checked, and nothing in fenced code. Like the editor's
+ * seldom what was meant. Only registered blocks are checked, and nothing in fenced code. Like the editor's
  * reading (`markdown.ts`), this isn't a Markdown parser, only close
- * enough to point at a directive.
+ * enough to point at a block.
  */
 final readonly class VariantCheck
 {
@@ -41,8 +41,8 @@ final readonly class VariantCheck
 
 	public function __construct(
 		private ThemeResolver $themes,
-		private DirectiveRegistry $directives,
-		private DirectiveVariants $variants
+		private BlockRegistry $blocks,
+		private BlockVariants $variants
 	) {}
 
 	/**
@@ -60,9 +60,9 @@ final readonly class VariantCheck
 
 		$violations = [];
 
-		foreach (self::directives(FrontMatter::split($contents)[1]) as [$line, $name, $attributes]) {
-			$variant = trim(DirectiveAttributes::parse($attributes)['variant'] ?? '');
-			$parsed  = DirectiveName::parse($name);
+		foreach (self::blocks(FrontMatter::split($contents)[1]) as [$line, $name, $attributes]) {
+			$variant = trim(BlockAttributes::parse($attributes)['variant'] ?? '');
+			$parsed  = BlockName::parse($name);
 
 			if ($variant === '' || $variant === Variant::DEFAULT || $parsed === null || ! $this->isKnown($parsed)) {
 				continue;
@@ -85,25 +85,25 @@ final readonly class VariantCheck
 	}
 
 	/**
-	 * Returns whether a directive is registered.
+	 * Returns whether a block is registered.
 	 */
-	private function isKnown(DirectiveName $name): bool
+	private function isKnown(BlockName $name): bool
 	{
-		return $this->directives->isRegistered((string) $name);
+		return $this->blocks->isRegistered((string) $name);
 	}
 
 	/**
-	 * Returns the directives in a body that have attributes, outside
+	 * Returns the blocks in a body that have attributes, outside
 	 * fenced code, as line number, name, and attribute text.
 	 *
 	 * @return list<array{int, string, string}>
 	 */
-	private static function directives(string $body): array
+	private static function blocks(string $body): array
 	{
 		$found = [];
 		$fence = null;
-		$block = '/^ {0,3}:{2,}\s*' . DirectiveAttributes::SYNTAX . '\s*$/';
-		$span  = '/(?<![\p{L}\p{N}_:]):' . DirectiveAttributes::NAME . '\[[^\]\n]*\]\{([^}\n]*)\}/u';
+		$block = '/^ {0,3}:{2,}\s*' . BlockAttributes::SYNTAX . '\s*$/';
+		$span  = '/(?<![\p{L}\p{N}_:]):' . BlockAttributes::NAME . '\[[^\]\n]*\]\{([^}\n]*)\}/u';
 
 		foreach (preg_split('/\R/', $body) ?: [] as $index => $text) {
 			if (preg_match('/^ {0,3}(`{3,}|~{3,})/', $text, $match) === 1) {

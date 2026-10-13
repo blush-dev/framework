@@ -19,7 +19,7 @@ use Blush\Theme\ThemeChain;
  * A named set of stylesheets and scripts that load together (D-569),
  * such as `core/player`, the site's audio and video players. Core,
  * plugins, and themes register assets by handle, a `vendor/name`;
- * pages, templates, directives, and components then ask for them by
+ * pages, templates, blocks, and components then ask for them by
  * handle, and the head prints each one once, after what it `requires`.
  *
  *     new Asset('acme/gallery',

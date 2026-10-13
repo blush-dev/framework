@@ -22,7 +22,7 @@ use Blush\View\ViewContext;
  * A component (D-025, D-532): a reusable piece of a template, named
  * markup with typed props (by constructor promotion) and slots, that a
  * theme calls from its layouts and templates. Content never names one;
- * what content says is a directive. Themes, the site, and plugins provide
+ * what content says is a block. Themes, the site, and plugins provide
  * them, and a theme or the site overrides one by name.
  *
  * A component needn't have a class: a template in `components/` is one

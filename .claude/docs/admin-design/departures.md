@@ -587,7 +587,7 @@ Each is recorded in `.claude/docs/decisions.md`.
     author, as on a theme's (D-384); License is the manifest's or its
     `composer.json`'s.
 - **Component options** (D-245, D-268): an option set back to its
-  default is removed from the directive; a required one left empty
+  default is removed from the block; a required one left empty
   stays as `key=""`. Removing a container removes its body too (D-272). Option changes
   are applied to the text directly, so they aren't in the field's own
   undo (a list's List Type too). Classes and ID are fields; other
@@ -812,7 +812,7 @@ Each is recorded in `.claude/docs/decisions.md`.
 
 - **Components are "Blocks"** (D-532, D-533): what the direction calls
   components (the inserter, the element tab's options, **Remove
-  Component**) are directives in the code, and the admin calls them
+  Component**) are blocks in the code, and the admin calls them
   blocks: "Insert a block", "Blocks ( / )", **Remove Block**. Components
   in Blush are now a theme's template pieces, which the admin doesn't
   show.
@@ -1140,7 +1140,7 @@ D-541). Where the admin differs from the sketch:
   plain-text rows) follows the sketch with tokens for its literal sizes.
 - **Plain text** is the item without a link; its kind tile is the
   `text` icon.
-- **Not built:** the entries that use the directive (listed on delete,
+- **Not built:** the entries that use the block (listed on delete,
   rewritten on rename), a location's own item fields, the sketch's
   harness modes (every row editable inline, rename in place), and its
   lab bar.

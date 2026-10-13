@@ -65,7 +65,7 @@ final class MarkdownLinksTest extends TestCase
 		);
 	}
 
-	public function testRewritesDirectiveUrlProps(): void
+	public function testRewritesBlockUrlProps(): void
 	{
 		$this->assertSame(
 			"::audio{src=http://localhost/user/media/clip.mp3 .wide}\n"

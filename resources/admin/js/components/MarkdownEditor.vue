@@ -4,8 +4,8 @@
  * typing, undo, spelling, and screen readers work as in any field, over a
  * highlighted copy of the same text (`markdown.ts`), where the syntax is
  * faint scaffolding and the words keep full ink (D-253, D-265), and the
- * directive or image selected (`directive`, `image`; by default, the
- * directive the caret is in) is boxed; a container only on its opening
+ * block or image selected (`block`, `image`; by default, the
+ * block the caret is in) is boxed; a container only on its opening
  * and closing lines (D-268). The copy is decoration and hidden from
  * assistive tech. It sits bare in the editor's writing column and grows
  * with its text; the editor around it scrolls, counts, and holds the
@@ -28,9 +28,9 @@
  * indented list item comes out a level first), leaving the words (D-314).
  * Text can't land in the syntax around it (D-314, `safeSpot()`,
  * `typedSpot()`): a character typed after a trailing attribute block
- * goes before it, one typed after a directive's tag that ends in `]` or
+ * goes before it, one typed after a block's tag that ends in `]` or
  * `}` goes on a new line, and an inserted or pasted piece is moved out of
- * a directive's own line and in front of trailing attributes. Tab and
+ * a block's own line and in front of trailing attributes. Tab and
  * Shift+Tab nest a list item one level deeper or shallower, give a quote
  * one `>` level more or less (the whole quote, or the selected lines;
  * D-315), and indent several selected lines of code by two spaces;
@@ -57,8 +57,8 @@ import { config } from '../config';
 import { useFileDrop } from '../drop';
 import { listMove } from '../grid';
 import { htmlCheck } from '../html';
-import { blocks, closingContainer, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
-import { directiveText, type DirectiveDescription } from '../directives';
+import { markdownBlocks, closingContainer, closingFence, setHtmlCheck, setMentions, continuation, blockAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
+import { blockText, type BlockDescription } from '../blocks';
 
 const props = defineProps<{
 	id: string;
@@ -67,16 +67,16 @@ const props = defineProps<{
 	// Whether the block panel is open for a slash, so its keys are
 	// passed on.
 	slashOpen?: boolean;
-	// What's selected, boxed in the text: a directive's or an image's
+	// What's selected, boxed in the text: a block's or an image's
 	// index in the outline, or -1.
-	directive?: number;
+	block?: number;
 	image?: number;
 	// Shown, not edited: a trashed entry's body (D-276).
 	readonly?: boolean;
 	// The body already read, when the page around has it (D-316), so a
 	// keystroke reads it once.
 	parsed?: MarkdownOutline;
-	blocks?: MarkdownBlock[];
+	markdownBlocks?: MarkdownBlock[];
 	// Finds profiles to mention by what's typed after `@` (D-498); without
 	// it, typing `@` suggests nothing.
 	people?: (query: string) => Promise<MentionSuggestion[]>;
@@ -111,7 +111,7 @@ const emit = defineEmits<{
 }>();
 
 const markdown = computed(() => props.parsed ?? outline(model.value));
-const current  = computed(() => props.directive ?? (props.image === undefined ? directiveAt(markdown.value.directives, caret.value) : -1));
+const current  = computed(() => props.block ?? (props.image === undefined ? blockAt(markdown.value.blocks, caret.value) : -1));
 
 // Raw HTML and addresses the account couldn't add are marked (D-495),
 // and mentions, where they link (D-493).
@@ -123,10 +123,10 @@ setMentions(config.mentions);
 const paired = computed(() => {
 	const line = markdown.value.lines.find((item) => item.start <= caret.value && caret.value <= item.start + item.text.length);
 
-	return (line?.kind === 'open' || line?.kind === 'close') && line.directive !== undefined ? line.directive : -1;
+	return (line?.kind === 'open' || line?.kind === 'close') && line.block !== undefined ? line.block : -1;
 });
 
-const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value), paired.value));
+const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.markdownBlocks ?? markdownBlocks(markdown.value), paired.value));
 
 const field  = ref<HTMLTextAreaElement | null>(null);
 const source = ref<HTMLElement | null>(null);
@@ -732,8 +732,8 @@ function beforeinput(event: InputEvent): void {
 }
 
 // An address pasted over selected words links them; files are passed on;
-// text pasted into a directive's tag or attributes goes where it's safe.
-// Pasted containers are balanced and written `:::`, and a directive goes
+// text pasted into a block's tag or attributes goes where it's safe.
+// Pasted containers are balanced and written `:::`, and a block goes
 // on lines of its own, as the inserter puts it (D-321).
 function paste(event: ClipboardEvent): void {
 	const element = field.value;
@@ -934,7 +934,7 @@ function place(inline: boolean): { from: number; to: number; before: string; aft
 	let before = '';
 	let after  = '';
 
-	// An inline piece can't go in a directive's tag or attributes.
+	// An inline piece can't go in a block's tag or attributes.
 	if (inline && from === to) {
 		const spot = safeSpot(value, from);
 
@@ -982,17 +982,17 @@ function write(spot: { from: number; to: number; before: string; after: string }
 }
 
 /**
- * Inserts a directive: an inline one at the caret, the rest on lines of
+ * Inserts a block: an inline one at the caret, the rest on lines of
  * their own (D-247). Selected text becomes its label or body; `values`
  * are its first attributes.
  */
-function insert(described: DirectiveDescription, values: Record<string, string> = {}): void {
+function insert(described: BlockDescription, values: Record<string, string> = {}): void {
 	const selected = field.value === null ? '' : field.value.value.slice(field.value.selectionStart, field.value.selectionEnd);
 	const inline   = described.kind === 'inline' && !selected.includes('\n');
 	const spot     = place(inline);
 
 	if (spot !== null) {
-		const { text, caret: at } = directiveText(described, inline, spot.inner, values);
+		const { text, caret: at } = blockText(described, inline, spot.inner, values);
 
 		write(spot, text, at);
 	}
@@ -1373,7 +1373,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 
 .md__highlight :deep(.md-code),
 .md__highlight :deep(.md-attr),
-.md__highlight :deep(.md-directive.is-current),
+.md__highlight :deep(.md-block.is-current),
 .md__highlight :deep(.md-selected) {
 	-webkit-box-decoration-break: clone;
 	box-decoration-break: clone;
@@ -1398,14 +1398,14 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	font-weight: 500;
 }
 
-/* A directive is named in the accent and left unboxed; the box is for
+/* A block is named in the accent and left unboxed; the box is for
    the one the caret is in. */
-.md__highlight :deep(.md-directive__name) {
+.md__highlight :deep(.md-block__name) {
 	color: var(--accent);
 	font-weight: 500;
 }
 
-.md__highlight :deep(.md-directive__label) {
+.md__highlight :deep(.md-block__label) {
 	color: var(--fg);
 }
 
@@ -1429,7 +1429,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	white-space: nowrap;
 }
 
-.md__highlight :deep(.md-directive.is-current),
+.md__highlight :deep(.md-block.is-current),
 .md__highlight :deep(.md-selected) {
 	padding-block: 1px;
 	border-radius: 3px;

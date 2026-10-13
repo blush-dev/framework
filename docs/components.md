@@ -6,7 +6,7 @@ it never writes the same markup twice, and a child theme can change one
 piece everywhere at once.
 
 Components belong to templates, never to content. What your content
-says, such as a callout or a gallery, is a [directive](directives.md).
+says, such as a callout or a gallery, is a [block](blocks.md).
 A template can draw either one.
 
 ## Component names
@@ -86,7 +86,9 @@ There's nothing to register. Everything about the component is on
 
 `$component->attributes()` prints its class, named after the component
 (`component-card`), plus the `class` and `id` props. Name the rest of its
-classes after it, BEM-style (`component-card__title`).
+classes after it, BEM-style, with `$component->elementClass('title')`
+(`component-card__title`), which chains:
+`$component->elementClass('title')->modifier('large')`. See [BEM classes anywhere](themes.md#bem-classes-anywhere).
 
 A file in `views/components/` that isn't named for a component (such as
 a theme's `card.php` instead of `notebook-card.php`) is never drawn;
@@ -180,8 +182,8 @@ A template in the theme chain's `views/components/` always wins over
 
 | Where                                                                                          | Available                                                                        |
 |------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| A theme's `views/components/` (and classes in its `src/`, registered by its provider)          | While that theme or a child of it is active. See [Themes](themes.md#directives-and-components). |
-| A plugin (its classes, registered by its provider)                                             | While it's on, for themes to use. See [Extending Blush](extending.md#directives-and-components-from-a-plugin). |
+| A theme's `views/components/` (and classes in its `src/`, registered by its provider)          | While that theme or a child of it is active. See [Themes](themes.md#blocks-and-components). |
+| A plugin (its classes, registered by its provider)                                             | While it's on, for themes to use. See [Extending Blush](extending.md#blocks-and-components-from-a-plugin). |
 
 The active theme's files come first, then its parents', and last the
 component's own `render()`. To change a theme's component, make a

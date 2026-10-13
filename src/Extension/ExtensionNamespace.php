@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use Blush\Directive\DirectiveName;
+use Blush\Block\BlockName;
 
 /**
  * The namespace an extension declares in its manifest (D-378): what its
- * directives and components (D-171, D-532), icons (D-187), and
+ * blocks and components (D-171, D-532), icons (D-187), and
  * translation domain go by (`jtcom`, for `jtcom/entry-terms` and
  * `jtcom/github`). No two installed extensions may claim one, and core's
  * (`core`), the theme chain's translation domain (`theme`), and the
@@ -37,7 +37,7 @@ final readonly class ExtensionNamespace
 	 *
 	 * @var list<string>
 	 */
-	public const array RESERVED = [DirectiveName::CORE, 'theme', 'default'];
+	public const array RESERVED = [BlockName::CORE, 'theme', 'default'];
 
 	/**
 	 * Returns whether a string is a valid namespace.

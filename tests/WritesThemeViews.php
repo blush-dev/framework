@@ -23,7 +23,7 @@ trait WritesThemeViews
 	use TemporaryDirectory;
 
 	/**
-	 * Writes a view, such as `single.php` or `directives/core-callout.php`,
+	 * Writes a view, such as `single.php` or `blocks/core-callout.php`,
 	 * into the test theme, and returns its path.
 	 */
 	private function themeView(string $view, string $contents): string

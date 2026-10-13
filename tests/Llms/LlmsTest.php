@@ -82,7 +82,7 @@ final class LlmsTest extends TestCase
 		$this->assertMatchesRegularExpression(
 			'#^---\ntitle: "Say \\\\"hi\\\\""\nurl: "http://localhost/archives/quoted"\npublished: "2009-01-01T10:00:00-06:00"\nupdated: "[^"]+"\nsummary: "A \*short\*\\\\nsummary."\n---\n\nSome text.\n\n:::figure\n!\[A photo\]\(http://localhost/media/photo.jpg\)\n:::\n$#',
 			(string) $response->getBody(),
-			'Front matter, then the body as written, directives included, with full URLs (D-396).'
+			'Front matter, then the body as written, blocks included, with full URLs (D-396).'
 		);
 	}
 

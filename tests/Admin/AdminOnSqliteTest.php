@@ -137,7 +137,7 @@ final class AdminOnSqliteTest extends TestCase
 		$id = $this->create(['type' => 'post', 'title' => 'Hello']);
 
 		$paths = [
-			'/dashboard', '/counts', '/actions', '/jobs', '/logs', '/types', '/types/post', '/relations', '/directives',
+			'/dashboard', '/counts', '/actions', '/jobs', '/logs', '/types', '/types/post', '/relations', '/blocks',
 			'/fields/types', '/fields/sets', '/icons', '/media', '/references/post', '/entries', '/entries?type=post',
 			'/entries/new?type=post', "/entries/{$id}", "/entries/{$id}/referrers", '/health', '/health/site', '/roles',
 			'/accounts', '/profiles', '/themes', '/plugins', '/icon-packs', '/icon-packs/core', '/settings/general'

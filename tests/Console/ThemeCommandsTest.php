@@ -20,7 +20,7 @@ use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\ListComponents;
-use Blush\Console\Commands\ListDirectives;
+use Blush\Console\Commands\ListBlocks;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Console;
@@ -45,7 +45,7 @@ use Blush\Theme\ThemeReport;
 #[CoversClass(CheckTheme::class)]
 #[CoversClass(ExplainView::class)]
 #[CoversClass(ListComponents::class)]
-#[CoversClass(ListDirectives::class)]
+#[CoversClass(ListBlocks::class)]
 #[CoversClass(PublishThemes::class)]
 #[CoversClass(ThemeChecker::class)]
 #[CoversClass(ThemeReport::class)]
@@ -320,17 +320,17 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('#error\s+manifest\s+The "acme\/missing" theme is not installed\.#', $this->command(['theme:check', 'acme/missing'])->output);
 	}
 
-	public function testListsDirectives(): void
+	public function testListsBlocks(): void
 	{
-		$this->themeView('directives/loose.php', 'loose');
+		$this->themeView('blocks/loose.php', 'loose');
 
-		$result = $this->command('directive:list');
+		$result = $this->command('block:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Directive\\\\Callout\s+[^|]*\s+\(its own\)#', $result->output);
-		$this->assertMatchesRegularExpression('#core/embed\s+Embed\s+Blush\\\\Directive\\\\Embed#', $result->output);
+		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Block\\\\Callout\s+[^|]*\s+\(its own\)#', $result->output);
+		$this->assertMatchesRegularExpression('#core/embed\s+Embed\s+Blush\\\\Block\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
-		$this->assertStringContainsString('extensions/test/site/views/directives/loose.php isn\'t for a registered directive, so nothing renders it.', $result->output . $result->errors);
+		$this->assertStringContainsString('extensions/test/site/views/blocks/loose.php isn\'t for a registered block, so nothing renders it.', $result->output . $result->errors);
 	}
 
 	public function testListsComponents(): void
@@ -342,46 +342,46 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertMatchesRegularExpression('#site/badge\s+extensions/test/site/views/components/site-badge\.php#', $result->output);
-		$this->assertStringNotContainsString('core/callout', $result->output, 'Directives aren\'t components (D-532).');
+		$this->assertStringNotContainsString('core/callout', $result->output, 'Blocks aren\'t components (D-532).');
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString("extensions/test/site/views/components/loose.php isn't named for a component, so nothing renders it.\n  Name it {namespace}-loose.php.", $result->output . $result->errors);
 	}
 
-	public function testDirectivesAndComponentsWithoutTemplatesAreFlagged(): void
+	public function testBlocksAndComponentsWithoutTemplatesAreFlagged(): void
 	{
-		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\OrphanProvider::class, Blush\\Tests\\Fixtures\\Directive\\OrphanProvider::class]);\n");
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\OrphanProvider::class, Blush\\Tests\\Fixtures\\Block\\OrphanProvider::class]);\n");
 
 		$components = $this->command('component:list');
 
 		$this->assertMatchesRegularExpression('#acme/orphan\s+.*Component\\\\Orphan\s+\(none\)#', $components->output);
 		$this->assertStringContainsString('"acme/orphan" has no components/acme-orphan template, so it can\'t render.', $components->output . $components->errors);
 
-		$directives = $this->command('directive:list');
+		$blocks = $this->command('block:list');
 
-		$this->assertMatchesRegularExpression('#acme/orphan\s+Orphan\s+.*Directive\\\\Orphan\s+\(none\)#', $directives->output);
-		$this->assertStringContainsString('"acme/orphan" has no directives/acme-orphan template, so it can\'t render.', $directives->output . $directives->errors);
+		$this->assertMatchesRegularExpression('#acme/orphan\s+Orphan\s+.*Block\\\\Orphan\s+\(none\)#', $blocks->output);
+		$this->assertStringContainsString('"acme/orphan" has no blocks/acme-orphan template, so it can\'t render.', $blocks->output . $blocks->errors);
 
 		$check = $this->command('theme:check');
 
 		$this->assertMatchesRegularExpression('#warning\s+component acme\/orphan\s+The "acme\/orphan" component \(Blush\\\\Tests\\\\Fixtures\\\\Component\\\\Orphan\) has no components\/acme\-orphan template in the chain\.#', $check->output);
-		$this->assertMatchesRegularExpression('#warning\s+directive acme\/orphan\s+The "acme\/orphan" directive \(Blush\\\\Tests\\\\Fixtures\\\\Directive\\\\Orphan\) has no directives\/acme\-orphan template in the chain\.#', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+block acme\/orphan\s+The "acme\/orphan" block \(Blush\\\\Tests\\\\Fixtures\\\\Block\\\\Orphan\) has no blocks\/acme\-orphan template in the chain\.#', $check->output);
 	}
 
-	public function testThemeCheckFlagsTemplatesNotForADirectiveOrComponent(): void
+	public function testThemeCheckFlagsTemplatesNotForABlockOrComponent(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
 		$this->writeTemporaryFile('extensions/acme/nova/views/components/card.php', 'card');
 		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'badge');
-		$this->writeTemporaryFile('extensions/acme/nova/views/directives/core-callout.php', 'callout');
-		$this->writeTemporaryFile('extensions/acme/nova/views/directives/callout-warning.php', 'a variant');
-		$this->writeTemporaryFile('extensions/acme/nova/views/directives/tabs.php', 'tabs');
+		$this->writeTemporaryFile('extensions/acme/nova/views/blocks/core-callout.php', 'callout');
+		$this->writeTemporaryFile('extensions/acme/nova/views/blocks/callout-warning.php', 'a variant');
+		$this->writeTemporaryFile('extensions/acme/nova/views/blocks/tabs.php', 'tabs');
 		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
 		$this->writeTemporaryFile('extensions/acme/other/views/components/loose.php', 'not in the chain');
 
 		$check = $this->command(['theme:check', 'acme/nova']);
 
 		$this->assertMatchesRegularExpression('#warning\s+component card\.php\s+components\/card\.php isn\'t named for a component, so it never renders; name it components\/nova\-card\.php\.#', $check->output);
-		$this->assertMatchesRegularExpression('#warning\s+directive tabs\.php\s+directives\/tabs\.php isn\'t for a registered directive, so it never renders\. Themes can\'t add directives \(D\-532\)\: make it a component \(components\/nova\-tabs\.php\) for the theme\'s templates\.#', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+block tabs\.php\s+blocks\/tabs\.php isn\'t for a registered block, so it never renders\. Themes can\'t add blocks \(D\-532\)\: make it a component \(components\/nova\-tabs\.php\) for the theme\'s templates\.#', $check->output);
 		$this->assertStringNotContainsString('nova-badge', $check->output);
 		$this->assertStringNotContainsString('core-callout', $check->output);
 		$this->assertStringNotContainsString('callout-warning', $check->output);
@@ -442,19 +442,19 @@ final class ThemeCommandsTest extends TestCase
 	public function testThemeCheckFlagsVariantProblems(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "button": ["pill"], "image": ["polaroid", "Bad", "inline-left"]}}');
-		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', '{"directives": {"callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
+		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', '{"blocks": {"callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
 
 		$check = $this->command(['theme:check', 'acme/nova', '--strict'])->output;
 
-		$this->assertMatchesRegularExpression('#warning\s+variants nova\/nothing\s+theme\.json lists variants for "nova\/nothing", which isn\'t a directive\.#', $check);
+		$this->assertMatchesRegularExpression('#warning\s+variants nova\/nothing\s+theme\.json lists variants for "nova\/nothing", which isn\'t a block\.#', $check);
 		$this->assertMatchesRegularExpression('#warning\s+variants core\/callout\s+theme\.json lists a variant of "core\/callout" that isn\'t valid#', $check);
-		$this->assertMatchesRegularExpression('#notice\s+variants core\/button\s+The "pill" variant of "core\/button" has no label; add "directives\.button\.variants\.pill\.label" to the theme\'s lang\/ catalog\.#', $check);
+		$this->assertMatchesRegularExpression('#notice\s+variants core\/button\s+The "pill" variant of "core\/button" has no label; add "blocks\.button\.variants\.pill\.label" to the theme\'s lang\/ catalog\.#', $check);
 		$this->assertStringNotContainsString('"bordered" variant', $check);
 		$this->assertMatchesRegularExpression('#warning\s+variants image\s+theme\.json lists an image variant that isn\'t valid#', $check);
 		$this->assertMatchesRegularExpression('#notice\s+variants image\s+The "polaroid" image variant has no label; add "images\.variants\.polaroid\.label" to the theme\'s lang\/ catalog\.#', $check);
 		$this->assertMatchesRegularExpression('#notice\s+variants image\s+The "inline\-left" image variant has no label#', $check, 'The default theme isn\'t in the chain to label it (D-632).');
-		$this->assertStringNotContainsString('"image", which isn\'t a directive', $check);
-		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Directive\\\\Callout\s+info, tip, warning, danger, bordered\s+#', $this->command(['directive:list', '--theme=acme/nova'])->output);
+		$this->assertStringNotContainsString('"image", which isn\'t a block', $check);
+		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Block\\\\Callout\s+info, tip, warning, danger, bordered\s+#', $this->command(['block:list', '--theme=acme/nova'])->output);
 	}
 
 	public function testExplainsWhichViewWins(): void

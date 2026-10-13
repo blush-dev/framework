@@ -1,121 +1,197 @@
 <script setup lang="ts">
 /**
- * The element tab for a block of plain Markdown (admin.md §8, Every
- * element is an object; D-268): the heading, paragraph, list, list item,
- * quote, code block, table, divider, or definition list (or one of its
- * terms or definitions) the caret is in, or the one above a blank line
- * it's on. Every one takes classes and an id (D-282 for a definition
- * list's), so they have the same two fields; above them is whatever else that block
- * has: a heading's level, a code block's language, a list's type, and
- * whether a list item is a task and done. Each change is written back
- * into the text as it's made (`markdown.ts`): attributes go where the
- * site reads them, at the end of a heading's, paragraph's, or list
- * item's, term's, or definition's line, or on a line of their own above
- * the rest (a list's and a definition list's always). What's in a list or
- * definition list is passed
- * in as the default slot, before the source.
+ * The editor's element tab for a block (admin.md §8, D-245): the options of the
+ * block the caret is in, as a form from its props (`GET blocks`),
+ * written back into its block as they change. Only the attribute
+ * that changed is rewritten; the rest of the author's text stays as it
+ * is. An option set back to its default is removed, so the default
+ * applies; a required one left empty stays, empty. Removing it takes a
+ * container's contents too (D-272). A block that
+ * takes a line of text has it here too, as its `[label]`.
+ *
+ * A block with variants (D-266) has a Variant select first, since
+ * the variant usually changes what the options mean. Default writes no
+ * attribute; any other writes `variant=name`. A variant the block
+ * doesn't have (another theme's, say) is kept and shown as such.
+ *
+ * A media option has **Choose**, which opens the media picker (D-247).
+ * There's no button to go to the block in the text: the caret is
+ * already in it (D-265).
+ *
+ * Every block takes classes and an id (D-268), so it has the same
+ * **Classes** and **ID** fields every object on the tab has. Other
+ * attributes the block doesn't declare are listed as written. A
+ * block that isn't in the list (not registered, or without a class)
+ * can only be edited in the text, but for those two fields.
  */
 
 import { computed } from 'vue';
+import AdminIcon from './AdminIcon.vue';
 import AttributeFields from './AttributeFields.vue';
+import FieldControl from './FieldControl.vue';
 import OptionSelect from './OptionSelect.vue';
 import OptionsGroup from './OptionsGroup.vue';
-import { BLOCK_KINDS, LIST_STYLES } from '../blocks';
-import {
-	attributeParts,
-	codeLanguage,
-	headingLevel,
-	listStyle,
-	taskState,
-	withBlockParts,
-	withCodeLanguage,
-	withHeadingLevel,
-	withListStyle,
-	withTask,
-	type Edit,
-	type ListStyle,
-	type MarkdownBlock,
-	type MarkdownOutline
-} from '../markdown';
+import RawValues from './RawValues.vue';
+import type { BlockDescription, BlockProp } from '../blocks';
+import type { FormValue } from '../fields';
+import { attributeParts, attributesOf, blockHead, withAttribute, withBlockParts, withLabel, type Block, type Edit } from '../markdown';
 
 const props = defineProps<{
 	source: string;
-	markdown: MarkdownOutline;
-	blocks: MarkdownBlock[];
-	block: MarkdownBlock;
+	block: Block;
+	described: BlockDescription | undefined;
 }>();
 
 const emit = defineEmits<{
 	edit: [edit: Edit];
+	remove: [];
+	// A media option's Choose button: the editor opens the media picker.
+	pick: [prop: BlockProp];
 }>();
 
-const kind     = computed(() => BLOCK_KINDS[props.block.kind]);
-const parts    = computed(() => attributeParts(props.block.attributes?.text ?? ''));
-const level    = computed(() => headingLevel(props.markdown, props.block));
-const language = computed(() => codeLanguage(props.markdown, props.block));
-const task     = computed(() => taskState(props.markdown, props.block));
-const style    = computed(() => listStyle(props.markdown, props.blocks, props.block));
+const head       = computed(() => blockHead(props.source, props.block));
+const attributes = computed(() => attributesOf(props.source, props.block));
 
+// The `label` prop is the block's `[label]`, shown as its text.
+const options = computed(() => (props.described?.props ?? []).filter((prop) => prop.name !== 'label'));
+const takesText = computed(() => props.described?.content === 'text' || head.value.label !== null);
 
-const levels = computed(() => Array.from({ length: 6 }, (_, index) => ({ value: String(index + 1), label: `Heading ${index + 1}` })));
-const styles = computed(() => (Object.keys(LIST_STYLES) as ListStyle[]).map((key) => ({ value: key, label: LIST_STYLES[key].label })));
+const variants = computed(() => props.described?.variants ?? []);
+const variant  = computed(() => attributes.value.variant ?? '');
+const chosen   = computed(() => variants.value.find((item) => item.name === variant.value));
 
-// The block's first line, as a reminder of which one this is.
-const firstLine = computed(() => props.markdown.lines[props.block.first]?.text ?? '');
+function changeVariant(value: string): void {
+	const edit  = withAttribute(props.source, props.block, 'variant', value === '' || value === 'default' ? null : value);
 
-function send(edit: Edit | null): void {
 	if (edit !== null) {
 		emit('edit', edit);
 	}
 }
 
+// Default first, then the block's variants here, and one it names
+// that isn't here, kept.
+const variantOptions = computed(() => [
+	{ value: '', label: 'Default' },
+	...variants.value.map((item) => ({ value: item.name, label: item.source ? `${item.label} (${item.source.label})` : item.label })),
+	...(variant.value !== '' && variant.value !== 'default' && !chosen.value ? [{ value: variant.value, label: `${variant.value} (not available here)` }] : [])
+]);
+
+const parts = computed(() => attributeParts(head.value.attributes?.text ?? ''));
+
 function changeParts(classes: string[], id: string): void {
-	send(withBlockParts(props.source, props.markdown, props.block, classes, id));
+	const edit = withBlockParts(props.source, props.block, classes, id);
+
+	if (edit !== null) {
+		emit('edit', edit);
+	}
 }
+
+const others = computed(() => {
+	const known = new Set([...options.value.map((prop) => prop.name), 'class', 'id', ...(variants.value.length ? ['variant'] : [])]);
+
+	return Object.entries(attributes.value).filter(([name]) => !known.has(name));
+});
+
+function isBool(prop: BlockProp): boolean {
+	return prop.type === 'bool';
+}
+
+function valueOf(prop: BlockProp): FormValue {
+	const written = attributes.value[prop.name];
+
+	if (isBool(prop)) {
+		return written === undefined ? prop.default === true : written !== 'false';
+	}
+
+	return written ?? (prop.default === undefined || prop.default === null ? '' : String(prop.default as string | number));
+}
+
+function change(prop: BlockProp, value: FormValue): void {
+	let written: string | null;
+
+	if (typeof value === 'boolean') {
+		written = value === (prop.default === true) ? null : String(value);
+	} else if (value === '') {
+		written = prop.required === true ? '' : null;
+	} else {
+		written = prop.default !== undefined && prop.default !== null && value === String(prop.default as string | number) ? null : value;
+	}
+
+	const edit = withAttribute(props.source, props.block, prop.name, written);
+
+	if (edit !== null) {
+		emit('edit', edit);
+	}
+}
+
+function changeLabel(event: Event): void {
+	emit('edit', withLabel(props.source, props.block, (event.target as HTMLInputElement).value));
+}
+
+const removal = computed(() => {
+	if (props.block.kind === 'leaf') {
+		return { label: 'Remove Block', note: 'Its line is removed.' };
+	}
+
+	return { label: 'Remove Block', note: props.block.kind === 'container' ? 'Everything inside it goes too.' : 'Its text stays in the sentence.' };
+});
 </script>
 
 <template>
 	<div class="options">
-		<OptionsGroup>
-			<p class="options__note">{{ kind.description }}</p>
+		<OptionsGroup v-if="described?.description || !described">
+			<p v-if="described?.description" class="options__note">{{ described.description }}</p>
+			<p v-else class="options__note">
+				<code>{{ block.name }}</code> isn't in the list of blocks this site offers, so its options can't be shown here. Edit it in the text.
+			</p>
 		</OptionsGroup>
 
-		<OptionsGroup v-if="block.kind === 'heading'" heading="Level">
-			<OptionSelect id="block-level" label="Level" :model-value="String(level)" :options="levels" help="The entry's title is the page's heading 1, so a body usually starts at 2." @update:model-value="send(withHeadingLevel(markdown, block, Number($event)))" />
+		<OptionsGroup v-if="variants.length" heading="Variant">
+			<OptionSelect id="option-variant" label="Variant" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" @update:model-value="changeVariant">
+				<template #help>
+					<template v-if="chosen">{{ chosen.description || 'A style the theme provides.' }}</template>
+					<template v-else-if="variant !== '' && variant !== 'default'">This site's theme doesn't have it, so it shows as Default.</template>
+					<template v-else>The theme's own styling for this block.</template>
+				</template>
+			</OptionSelect>
 		</OptionsGroup>
 
-		<OptionsGroup v-else-if="block.kind === 'code'" heading="Language">
-			<div class="field">
-				<label class="visually-hidden" for="block-language">Language</label>
-				<input id="block-language" class="mono" :value="language" placeholder="php" autocomplete="off" spellcheck="false" aria-describedby="block-language-help" @input="send(withCodeLanguage(markdown, block, ($event.target as HTMLInputElement).value))">
-				<p id="block-language-help" class="field__help">Sets the highlighting on the site. Leave it empty for none.</p>
+		<OptionsGroup v-if="takesText || options.length" heading="Options">
+			<div v-if="takesText" class="field">
+				<label for="option-label">Text</label>
+				<input id="option-label" :value="head.label?.text ?? ''" autocomplete="off" @input="changeLabel">
+				<p class="field__help">Written in the brackets after its name.</p>
 			</div>
-		</OptionsGroup>
-
-		<OptionsGroup v-else-if="block.kind === 'item'" heading="Item">
-			<label class="checkbox">
-				<input type="checkbox" :checked="task.task" @change="send(withTask(markdown, block, ($event.target as HTMLInputElement).checked))">
-				A task, with a checkbox
-			</label>
-			<label v-if="task.task" class="checkbox">
-				<input type="checkbox" :checked="task.done" @change="send(withTask(markdown, block, true, ($event.target as HTMLInputElement).checked))">
-				Done
-			</label>
-		</OptionsGroup>
-
-		<OptionsGroup v-else-if="block.kind === 'list'" heading="List Type">
-			<OptionSelect id="block-list-style" label="List type" :model-value="style" :options="styles" :help="LIST_STYLES[style].description" @update:model-value="send(withListStyle(source, markdown, blocks, block, $event as ListStyle))" />
+			<FieldControl
+				v-for="prop in options"
+				:key="`${block.start}-${prop.name}`"
+				:field="prop"
+				id-prefix="option-"
+				:model-value="valueOf(prop)"
+				pickable
+				@update:model-value="change(prop, $event)"
+				@pick="emit('pick', prop)"
+			/>
 		</OptionsGroup>
 
 		<OptionsGroup heading="Attributes">
-			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="block-" @change="changeParts" />
-			<p v-if="block.kind === 'list' || block.kind === 'definitions'" class="field__help">Written on a line of their own above the list, <code>{.wide}</code>, which is where a list carries them.</p>
+			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="option-" @change="changeParts" />
+			<template v-if="others.length">
+				<RawValues :entries="others" />
+				<p class="field__help">Not options of this block; edit them in the text.</p>
+			</template>
 		</OptionsGroup>
 
 		<slot />
 
-		<OptionsGroup v-if="block.kind !== 'list' && block.kind !== 'definitions'" heading="Source">
-			<pre class="options__source">{{ firstLine }}</pre>
+		<OptionsGroup heading="Source">
+			<pre class="options__source">{{ source.slice(head.start, head.end) }}</pre>
+			<div>
+				<button type="button" class="button button--small button--danger" @click="emit('remove')">
+					<AdminIcon name="trash-2" />{{ removal.label }}
+				</button>
+			</div>
+			<p class="field__help">{{ removal.note }} Undo in the text takes it back.</p>
 		</OptionsGroup>
 	</div>
 </template>

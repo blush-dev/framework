@@ -43,15 +43,15 @@ use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\MarkdownParser as CommonMarkDocumentParser;
 use League\CommonMark\Renderer\HtmlRenderer;
 use Blush\Core\AppConfig;
-use Blush\Directive\DirectiveRenderer;
+use Blush\Block\BlockRenderer;
 use Blush\Markdown\CommonMark\BracketedSpan;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;
-use Blush\Markdown\CommonMark\Directive\ContainerDirective;
-use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
-use Blush\Markdown\CommonMark\Directive\DirectiveNodeRenderer;
-use Blush\Markdown\CommonMark\Directive\InlineDirective;
-use Blush\Markdown\CommonMark\Directive\LeafDirective;
+use Blush\Markdown\CommonMark\Block\ContainerBlock;
+use Blush\Markdown\CommonMark\Block\BlockExtension;
+use Blush\Markdown\CommonMark\Block\BlockNodeRenderer;
+use Blush\Markdown\CommonMark\Block\InlineBlock;
+use Blush\Markdown\CommonMark\Block\LeafBlock;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMark\FigureRenderer;
@@ -65,8 +65,8 @@ use Blush\Media\MediaResolver;
 
 /**
  * The temporary `MarkdownParser` adapter over league/commonmark (D-045,
- * D-080), with Blush's generic directives (D-026) rendered through the
- * `DirectiveRenderer` when one is bound, and mentions linked through the
+ * D-080), with Blush's blocks (D-026) rendered through the
+ * `BlockRenderer` when one is bound, and mentions linked through the
  * `MentionResolver` (D-493). league/commonmark is never part of Blush's
  * API (D-492): `MarkdownConfig` says how its dialect renders, and this
  * class turns that into the library's extensions and options. The
@@ -86,7 +86,7 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 		private readonly MarkdownConfig $config,
 		private readonly ?MediaResolver $media = null,
 		private readonly ?AppConfig $app = null,
-		private readonly ?DirectiveRenderer $directives = null,
+		private readonly ?BlockRenderer $blocks = null,
 		private readonly ?MentionResolver $mentions = null
 	) {}
 
@@ -103,11 +103,11 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 				return $converter->convert($markdown)->getContent();
 			}
 
-			// The document carries its language to its directives (D-459).
+			// The document carries its language to its blocks (D-459).
 			$environment = $converter->getEnvironment();
 			$document    = new CommonMarkDocumentParser($environment)->parse($markdown);
 
-			$document->data->set(DirectiveNodeRenderer::LANGUAGE, $language);
+			$document->data->set(BlockNodeRenderer::LANGUAGE, $language);
 
 			return new HtmlRenderer($environment)->renderDocument($document)->getContent();
 		} catch (MarkdownException $e) {
@@ -121,7 +121,7 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 	 * @inheritDoc
 	 *
 	 * The addresses are links' and images' (a mention's is a profile's),
-	 * and directives' option values.
+	 * and blocks' option values.
 	 */
 	#[Override]
 	public function find(string $markdown): RawMarkup
@@ -142,7 +142,7 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 				$html[] = $node->getLiteral();
 			} elseif ($node instanceof AbstractWebResource) {
 				$urls[] = $node->getUrl();
-			} elseif ($node instanceof ContainerDirective || $node instanceof LeafDirective || $node instanceof InlineDirective) {
+			} elseif ($node instanceof ContainerBlock || $node instanceof LeafBlock || $node instanceof InlineBlock) {
 				array_push($urls, ...array_values(array_filter($node->attributes, is_string(...))));
 			}
 		}
@@ -206,8 +206,8 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 				-100
 			);
 
-			if ($config->directives) {
-				$environment->addExtension(new DirectiveExtension($this->directives));
+			if ($config->blocks) {
+				$environment->addExtension(new BlockExtension($this->blocks));
 			}
 
 			// `[text]{.class}` is a span, as in Pandoc (D-305), ahead of

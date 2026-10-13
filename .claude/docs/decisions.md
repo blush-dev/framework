@@ -25748,3 +25748,103 @@ decision, add a new entry that supersedes it and mark the old one
   `widont()` also get shared helpers for code outside templates (feeds,
   mail); the error pages' `Views::$messages` as a `Messages`.
 - **Status:** Rule (2026-10-13).
+
+### D-820: Directives are blocks, everywhere
+
+- **Decision:** the author's call: "directive" is gone as a word in
+  Blush. What content says beyond plain Markdown (D-026, D-532) is a
+  **block** in code, docs, the admin, the CLI, and themes, as the
+  admin already called it. Renamed, with no aliases (no 2.x sites):
+  the `Blush\Block` namespace (`Block`, `BlockRegistry`, `BlockType`,
+  `BlockKind`, `BlockName`, `BlockVariants`, the
+  `BlockVariantsCollecting` event, and the rest); `MarkdownDirectives`
+  as `RegisteredBlocks`, which renders the blocks found in Markdown as
+  the registered ones; the CommonMark layer
+  (`Markdown\CommonMark\Block`: `ContainerBlock`, `LeafBlock`,
+  `InlineBlock` and their parsers); `$template->block()`, a block
+  template's `$block`, and `Views::block()`; `resources/blocks`, and a
+  theme's or plugin's `blocks/` view folder; the `block-*` classes in
+  rendered HTML (a block's BEM block, `Renderable::BLOCK`); the
+  `block:list` command; the admin's `GET {path}/api/blocks`,
+  `BlockPanel`, `BlockOptions`, and `blocks.ts`; the `blocks` Markdown
+  setting (`MarkdownConfig`); and `docs/blocks.md`. Second Proof,
+  jtcom, and jtcom-content on the trial site are updated to match;
+  the Blade example plugin keeps "directives", which are Blade's own.
+- **The editor's Markdown blocks:** what the editor called blocks
+  (a heading, a paragraph, a list, as `markdown.ts` finds them) are
+  **Markdown blocks**, so plain "block" means a registered one:
+  `MarkdownBlockKind`, `MARKDOWN_BLOCK_KINDS` in `markdown-blocks.ts`,
+  `MarkdownBlockOptions`, `markdownBlocks()`, `markdownBlockAt()`, and
+  `withMarkdownBlockParts()`; an outline element of one is of kind
+  `markdown` (a block's is `block`). The author's direction is a block
+  editor that reads and writes Markdown, with Markdown blocks a special
+  kind of block (in `open-questions.md`).
+- **Inline blocks:** `:name[text]` stays a block (kind `inline`) in
+  the one registry for now. The author expects to name them something
+  else, and perhaps register them apart (in `open-questions.md`).
+- **"Element" was considered** for everything and passed over: the
+  editor already calls every node of the body an element (D-280),
+  blocks included, and it's HTML's word too.
+- **History:** earlier entries keep "directive" as written; read it
+  as "block". The admin design direction's numbered documents are
+  kept as uploaded.
+- **Status:** Built (2026-10-13). Supersedes the word in D-026, D-112,
+  D-532, D-533, and the rest; nothing else about them changes.
+
+### D-821: BEM class names from `Blush\Support\Bem`
+
+- **Decision:** the author's call: Blush leans into BEM, so its class
+  names are built in one place with BEM's own words, never by writing
+  `__` and `--` by hand. `Blush\Support\Bem` is an immutable value
+  object for one BEM block: `new Bem('pagination')`, with `block()`,
+  `element($element, $modifier = null)`, `modifier($modifier)`, and
+  `classes($modifiers, $utilities)` (the block, its modifiers once each,
+  then utility classes, a string or a list). Names are letters, digits,
+  hyphens, and underscores, starting with a letter or digit; anything
+  else throws `InvalidClassName`. Anyone uses it: a theme's partials
+  (the default theme's pagination does), a plugin's output, core.
+- **Blocks and components** (`Renderable`): `bem()` (memoized per
+  object, and reset when it's attached), with thin calls
+  `blockClass()` (was `block()`), `elementClass()`, and
+  `modifierClass()`; `classModifiers()` (was `blockModifiers()`) is the
+  list `classes()` adds. `BLOCK` keeps its name: the BEM block's
+  prefix. Every hand-built element class in core's blocks and their
+  templates, Second Proof's callout, and jtcom-content's post archives
+  uses `elementClass()`.
+- **Names considered:** `baseClass()`, `partClass()`, and
+  `modifierClass()` (not tied to BEM), and "scope" (CSS's `@scope`
+  means something else); the BEM words won, since themes write BEM.
+  `className()` was taken (the PHP class).
+- **Left as they are:** the shared `playlist` and `audio-card` blocks
+  that `audio` and `playlist` draw (D-575), and the default theme's
+  other partials, which still write their classes out.
+- **Status:** Built (2026-10-13). Amended by D-822: `Bem` returns
+  `BemClass`, which chains.
+
+### D-822: BEM classes chain
+
+- **Decision:** the author's call, amending D-821: `Bem`'s methods
+  return a `BemClass` (`Blush\Support\BemClass`), an immutable,
+  `Stringable` class list that chains, in place of plain strings.
+  `block()` and `element($element)` start one; `modifier(...$names)`,
+  `when($condition, $name)`, and `with($utilities)` each return a new
+  one; it prints as the base, a class for each modifier, then the
+  utilities. So `element('item')->modifier('current')` is
+  `x__item x__item--current`, the base included, which is what BEM
+  markup wants; D-821's `element('item', 'current')` gave only the
+  modifier class. `Bem::modifier($name)` is `block()->modifier($name)`.
+  `Bem::classes()` and `element()`'s second argument are gone. An empty
+  modifier is skipped, so a computed one needs no check.
+- **Blocks and components:** `blockClass()`, `elementClass()`, and
+  `modifierClass()` return a `BemClass`; `Renderable::html()` and
+  `attributes()` take `Stringable` values. Menu's items chain their
+  `current`, `ancestor`, and `parent` modifiers with `when()`; the
+  default theme's pagination chains its kind.
+- **Everywhere:** every class core writes BEM-style comes from `Bem`:
+  the default theme's views and partials, core's welcome views, the
+  `audio` and `playlist` templates (their shared `playlist` and
+  `audio-card` blocks, D-575, D-708), `Playlist`'s list classes and the
+  selectors it reads its first row with, and mentions (`mention`,
+  `mention__at`). `with()` also takes another `BemClass`, for a mix
+  (`audio-card playlist__card`). jtcom's views on the trial site too.
+- **Status:** Built (2026-10-13).

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Fixture: a directive that queries content.
+ * Fixture: a block that queries content.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,14 +14,14 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 use Override;
-use Blush\Directive\Directive;
-use Blush\Directive\DirectiveKind;
+use Blush\Block\Block;
+use Blush\Block\BlockKind;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 
-final class PostTitles extends Directive
+final class PostTitles extends Block
 {
-	public const ?DirectiveKind KIND = DirectiveKind::Leaf;
+	public const ?BlockKind KIND = BlockKind::Leaf;
 
 	public function __construct(private readonly Entries $content)
 	{}

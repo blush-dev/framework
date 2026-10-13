@@ -12,6 +12,10 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('block-callout');
+
 $welcome = $page->welcome;
 
 $code = static fn(string $text): Blush\View\SafeHtml => raw('<code>' . e($text) . '</code>');
@@ -40,8 +44,8 @@ $link = $welcome?->admin === null ? '' : raw('<a href="' . url($welcome->admin) 
 	</ol>
 
 	<?php if ($welcome->problems !== []) : ?>
-		<aside class="directive-callout directive-callout--warning welcome-problems">
-			<p class="directive-callout__title"><?= e($messages->t('welcome.problems.title')) ?></p>
+		<aside class="<?= attr($bem->modifier('warning')->with('welcome-problems')) ?>">
+			<p class="<?= attr($bem->element('title')) ?>"><?= e($messages->t('welcome.problems.title')) ?></p>
 			<ul>
 				<?php foreach ($welcome->problems as $problem) : ?>
 					<li><?= $code($problem->label) ?>: <?= e(trim("{$problem->message} {$problem->hint}")) ?></li>

@@ -221,7 +221,7 @@ functions and `use` aren't allowed in constant expressions:
   (`Blush\View\Template $template`, `Blush\Translation\Messages
   $messages`, `Blush\Theme\ActiveTheme $theme`, `Blush\View\Site $site`,
   `Blush\Media\MediaItems $media`), the page's (`$entry`, `$page`, ...),
-  a directive's or component's class (`$directive`, `$component`), and
+  a block's or component's class (`$block`, `$component`), and
   a partial's parameters (`?string $label` when it falls back with
   `??=`).
 - **Escape everything at the point of output** with the most specific helper:

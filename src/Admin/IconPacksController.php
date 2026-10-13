@@ -53,7 +53,7 @@ use Blush\Settings\SettingsStore;
  *   (`icons`, each `{"name", "svg"}`, the name in full, `weather/sun`),
  *   and whether it's `deletable` (a folder in `extensions/`); the `core`
  *   set the same way (`label`, `version`, `count`, `icons`, with short
- *   names, as the icon directive takes them); the `invalid` ones, by
+ *   names, as the icon block takes them); the `invalid` ones, by
  *   `where` they were found, with the `reason` and whether they're
  *   `deletable`; `saved` (the admin's list of packs turned on is in
  *   the saved settings); and `config` (whether `config/icons.php`

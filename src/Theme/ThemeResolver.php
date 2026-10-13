@@ -32,7 +32,7 @@ use Blush\Extension\LocalAutoloader;
  * register stays.
  *
  * Chains are built once per theme and kept. The chain a request picked is
- * remembered as `current()`, which Markdown directives render with.
+ * remembered as `current()`, which Markdown blocks render with.
  */
 final class ThemeResolver
 {
@@ -94,7 +94,7 @@ final class ThemeResolver
 
 	/**
 	 * Returns the chain the current request renders with, for rendering
-	 * that doesn't see the request (Markdown directives inside entry
+	 * that doesn't see the request (Markdown blocks inside entry
 	 * bodies), or the active chain before any request.
 	 *
 	 * @throws ThemeException

@@ -15,8 +15,8 @@ namespace Blush\JsonSchema;
 
 use JsonException;
 use Blush\Asset\Asset;
-use Blush\Directive\DirectiveName;
-use Blush\Directive\Variant;
+use Blush\Block\BlockName;
+use Blush\Block\Variant;
 use Blush\Content\EntryFields;
 use Blush\Content\Relation\Refs;
 use Blush\Content\Relation\RelationControl;
@@ -251,20 +251,20 @@ final readonly class JsonSchemas
 				],
 				'variants'    => [
 					'type'                 => 'object',
-					'description'          => 'Variants the theme adds to directives, by directive name (such as "callout" or "acme/tabs"), and under "image", the classes it offers Markdown images (such as "inline-left"). Their labels and descriptions are in the theme\'s lang/ catalog, under directives.{name}.variants.{variant} (images.variants.{variant} for images).',
-					'propertyNames'        => ['pattern' => '^' . DirectiveName::SYNTAX . '$'],
+					'description'          => 'Variants the theme adds to blocks, by block name (such as "callout" or "acme/tabs"), and under "image", the classes it offers Markdown images (such as "inline-left"). Their labels and descriptions are in the theme\'s lang/ catalog, under blocks.{name}.variants.{variant} (images.variants.{variant} for images).',
+					'propertyNames'        => ['pattern' => '^' . BlockName::SYNTAX . '$'],
 					'additionalProperties' => [
 						'type'  => 'array',
 						'items' => [
 							'oneOf' => [
-								['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name: lowercase letters, digits, and hyphens. Its class is directive-{name}--{variant}.'],
+								['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name: lowercase letters, digits, and hyphens. Its class is block-{name}--{variant}.'],
 								[
 									'type'                 => 'object',
 									'required'             => ['name'],
 									'additionalProperties' => false,
 									'properties'           => [
 										'name'     => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name.'],
-										'modifier' => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'description' => 'The class modifier to add instead of the name: directive-{name}--{modifier}.']
+										'modifier' => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'description' => 'The class modifier to add instead of the name: block-{name}--{modifier}.']
 									]
 								]
 							]
@@ -763,7 +763,7 @@ final readonly class JsonSchemas
 				'type'        => 'string',
 				'pattern'     => trim(ExtensionNamespace::PATTERN, '/'),
 				'not'         => ['enum' => ExtensionNamespace::RESERVED],
-				'description' => sprintf('The namespace the %s\'s directives, components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one. Without one, it\'s the name with hyphens for the "/" and any ".", such as "acme-gallery".', $kind)
+				'description' => sprintf('The namespace the %s\'s blocks, components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one. Without one, it\'s the name with hyphens for the "/" and any ".", such as "acme-gallery".', $kind)
 			]
 		];
 	}

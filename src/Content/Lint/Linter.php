@@ -65,7 +65,7 @@ use Blush\Media\MediaMetadataCheck;
  * - warnings: two files claiming one entry (`about.md` next to
  *   `about/index.md`), a term's `parent` that has no file, and a page
  *   whose address another route answers (`movie/2024.md` beside a type
- *   with date archives at `/movie/{year}`), and a directive asking for a
+ *   with date archives at `/movie/{year}`), and a block asking for a
  *   variant it doesn't have under the active theme
  *   (`VariantCheck`, D-266), and a date that isn't on the calendar
  *   (`2019-00-00`, which is read as 2018-11-30; D-449);

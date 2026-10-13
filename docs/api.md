@@ -174,7 +174,7 @@ you ask with `body`:
 - `?body=html`: rendered as on your site, with full addresses.
 - `?body=markdown`: as you wrote it, with full addresses for links and
   media (as the [Markdown copies](configuration.md#markdown-pages-and-llmstxt)
-  are). Directives stay as written.
+  are). Blocks stay as written.
 - `?body=none`: no body.
 
 ### Including what an entry links to

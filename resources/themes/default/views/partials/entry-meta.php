@@ -12,17 +12,21 @@
 
 declare(strict_types=1);
 
+use Blush\Support\Bem;
+
+$bem = new Bem('entry-meta');
+
 $published = $entry->type->name === 'page' ? null : $entry->published;
 
 ?>
 <?php if ($published !== null || ! $entry->creators()->published()->isEmpty() || ! $entry->classifications()->published()->isEmpty()) : ?>
-	<p class="entry-meta">
+	<p class="<?= attr($bem->block()) ?>">
 		<?php if ($published !== null) : ?>
 			<time datetime="<?= attr($published->format(DATE_ATOM)) ?>"><?= e($template->date($published)) ?></time>
 		<?php endif ?>
 
 		<?php if (! $entry->creators()->published()->isEmpty()) : ?>
-			<span class="entry-meta__byline">
+			<span class="<?= attr($bem->element('byline')) ?>">
 				<?= e($messages->t('people.byline')) ?>
 				<?php foreach ($entry->creators()->published() as $profile) : ?>
 					<?= $profile->link(class: 'entry-meta__profile') ?>
@@ -31,7 +35,7 @@ $published = $entry->type->name === 'page' ? null : $entry->published;
 		<?php endif ?>
 
 		<?php if (! $entry->classifications()->published()->isEmpty()) : ?>
-			<span class="entry-meta__terms">
+			<span class="<?= attr($bem->element('terms')) ?>">
 				<span class="screen-reader-text"><?= e($messages->t('terms.label')) ?></span>
 				<?php foreach ($entry->classifications()->published() as $term) : ?>
 					<?= $term->link(class: 'entry-meta__term') ?>

@@ -74,7 +74,7 @@ use Blush\Session\StartSession;
  *     fields/sets/{name}` one; `POST fields/sets`, and `PATCH` and
  *     `DELETE fields/sets/{name}` edit the ones in `user/data/fields`
  *     (`FieldSetEditController`, D-337).
- *   - `GET  directives`: the directives the editor's inserter offers.
+ *   - `GET  blocks`: the blocks the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
  *     and `GET media/{path}` one library file (`GET media-artwork/{path}`
@@ -222,7 +222,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/relations/{name:[a-z0-9_]+}/uses', [TypeEditController::class, 'relationUses'])->named('relation.uses')->middleware(Authenticate::class),
 			Route::patch('/relations/{name:[a-z0-9_]+}', [TypeEditController::class, 'updateRelation'])->named('relation.update')->middleware(Authenticate::class),
 			Route::delete('/relations/{name:[a-z0-9_]+}', [TypeEditController::class, 'deleteRelation'])->named('relation.delete')->middleware(Authenticate::class),
-			Route::get('/directives', DirectivesController::class)->named('directives')->middleware(Authenticate::class),
+			Route::get('/blocks', BlocksController::class)->named('blocks')->middleware(Authenticate::class),
 			Route::get('/fields/controls', FieldControlsController::class)->named('fields.controls')->middleware(Authenticate::class),
 			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),
 			Route::post('/fields/sets', [FieldSetEditController::class, 'create'])->named('fields.set.create')->middleware(Authenticate::class),

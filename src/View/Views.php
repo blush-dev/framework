@@ -29,10 +29,10 @@ use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
 use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
-use Blush\Directive\DirectiveDefinition;
-use Blush\Directive\DirectiveListing;
-use Blush\Directive\DirectiveName;
-use Blush\Directive\Variant;
+use Blush\Block\BlockDefinition;
+use Blush\Block\BlockListing;
+use Blush\Block\BlockName;
+use Blush\Block\Variant;
 use Blush\Data\InvalidData;
 
 /**
@@ -49,9 +49,9 @@ use Blush\Data\InvalidData;
  * they're given, not their caller's variables. Context providers attached
  * to a view add their data under what the view is given.
  *
- * Directives (what content says) and components (a template's reusable
- * pieces) are two things (D-532): a directive renders its template
- * (`directives/{namespace}-{name}`) with `$directive`, and a component its
+ * Blocks (what content says) and components (a template's reusable
+ * pieces) are two things (D-532): a block renders its template
+ * (`blocks/{namespace}-{name}`) with `$block`, and a component its
  * own (`components/{namespace}-{name}`, D-171) with `$component` and its
  * slots; a registered class builds the props first.
  *
@@ -222,45 +222,45 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns whether a directive exists: it's registered (D-532).
-	 * `$name` is a full name or a core directive's short name (D-171).
+	 * Returns whether a block exists: it's registered (D-532).
+	 * `$name` is a full name or a core block's short name (D-171).
 	 */
-	public function hasDirective(string $name): bool
+	public function hasBlock(string $name): bool
 	{
-		return $this->services->directives->isRegistered($name);
+		return $this->services->blocks->isRegistered($name);
 	}
 
 	/**
-	 * Returns every directive, by name, each with its template files in
-	 * the chain and its variants under it. Templates in a `directives/`
-	 * folder that aren't for a directive or variant are
-	 * `strayDirectiveFiles()`.
+	 * Returns every block, by name, each with its template files in
+	 * the chain and its variants under it. Templates in a `blocks/`
+	 * folder that aren't for a block or variant are
+	 * `strayBlockFiles()`.
 	 *
-	 * @return list<DirectiveListing>
+	 * @return list<BlockListing>
 	 */
-	public function directives(): array
+	public function blocks(): array
 	{
-		$definitions = $this->services->directives->all();
+		$definitions = $this->services->blocks->all();
 
 		ksort($definitions, SORT_STRING);
 
-		return array_values(array_map(fn (DirectiveDefinition $definition): DirectiveListing => new DirectiveListing(
+		return array_values(array_map(fn (BlockDefinition $definition): BlockListing => new BlockListing(
 			$definition->name,
 			$definition,
 			array_column($this->finder->allOf($definition->name->views()), 1),
-			$this->directiveText($definition->name, 'label'),
-			$this->directiveText($definition->name, 'description'),
+			$this->blockText($definition->name, 'label'),
+			$this->blockText($definition->name, 'description'),
 			$this->variants($definition->name)
 		), $definitions));
 	}
 
 	/**
-	 * Returns a directive's variants under the chain, Default not
+	 * Returns a block's variants under the chain, Default not
 	 * included (D-266).
 	 *
 	 * @return list<Variant>
 	 */
-	public function variants(DirectiveName $name): array
+	public function variants(BlockName $name): array
 	{
 		return $this->services->variants->for($name, $this->chain);
 	}
@@ -290,31 +290,31 @@ final readonly class Views
 
 	/**
 	 * Returns a variant's translated text (`label` or `description`), or
-	 * `null` when no catalog has it: `directives.{name}.variants.{variant}.{key}`
+	 * `null` when no catalog has it: `blocks.{name}.variants.{variant}.{key}`
 	 * in its registrant's domain.
 	 *
 	 * @param array<string, mixed> $params
 	 */
-	public function variantText(DirectiveName $name, Variant $variant, string $key, array $params = []): ?string
+	public function variantText(BlockName $name, Variant $variant, string $key, array $params = []): ?string
 	{
-		return $this->namespaceText($variant->registrant, "directives.{$name->name}.variants.{$variant->name}.{$key}", $params);
+		return $this->namespaceText($variant->registrant, "blocks.{$name->name}.variants.{$variant->name}.{$key}", $params);
 	}
 
 	/**
 	 * Returns the variant templates the chain could have for the
-	 * directives (`callout-bordered`), as file names, each with its
-	 * directive and variant.
+	 * blocks (`callout-bordered`), as file names, each with its
+	 * block and variant.
 	 *
-	 * @return array<string, array{DirectiveName, Variant}>
+	 * @return array<string, array{BlockName, Variant}>
 	 */
 	public function variantFiles(): array
 	{
 		$files = [];
 
-		foreach ($this->services->directives->all() as $definition) {
+		foreach ($this->services->blocks->all() as $definition) {
 			foreach ($this->variants($definition->name) as $variant) {
 				foreach ($definition->name->views() as $view) {
-					$files[substr($view, strlen('directives/')) . "-{$variant->name}"] = [$definition->name, $variant];
+					$files[substr($view, strlen('blocks/')) . "-{$variant->name}"] = [$definition->name, $variant];
 				}
 			}
 		}
@@ -323,47 +323,47 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the templates in the chain's `directives/` folders that
-	 * aren't for any directive or variant, such as a theme's `tabs.php`
-	 * for a directive no plugin registers. Nothing can render them.
+	 * Returns the templates in the chain's `blocks/` folders that
+	 * aren't for any block or variant, such as a theme's `tabs.php`
+	 * for a block no plugin registers. Nothing can render them.
 	 *
 	 * @return list<string>
 	 */
-	public function strayDirectiveFiles(): array
+	public function strayBlockFiles(): array
 	{
 		$known = $this->variantFiles();
 
-		foreach ($this->services->directives->all() as $definition) {
+		foreach ($this->services->blocks->all() as $definition) {
 			foreach ($definition->name->views() as $view) {
-				$known[substr($view, strlen('directives/'))] = true;
+				$known[substr($view, strlen('blocks/'))] = true;
 			}
 		}
 
 		return array_values(array_map(
 			static fn (array $file): string => $file[1],
-			array_filter($this->folderFiles('directives'), static fn (array $file): bool => ! isset($known[$file[0]]))
+			array_filter($this->folderFiles('blocks'), static fn (array $file): bool => ! isset($known[$file[0]]))
 		));
 	}
 
 	/**
-	 * Returns a directive's translated text, such as its `label` or
+	 * Returns a block's translated text, such as its `label` or
 	 * `description`, or `null` when no catalog has it (D-172). Text is
-	 * keyed `directives.{name}.{key}` in the namespace's domain: `core`
-	 * for core directives, and otherwise the namespace itself (a vendor
+	 * keyed `blocks.{name}.{key}` in the namespace's domain: `core`
+	 * for core blocks, and otherwise the namespace itself (a vendor
 	 * for an extension). Prop text is
 	 * `props.{prop}.label` and `props.{prop}.choices.{value}`.
 	 *
 	 * @param array<string, mixed> $params
 	 */
-	public function directiveText(DirectiveName $name, string $key, array $params = []): ?string
+	public function blockText(BlockName $name, string $key, array $params = []): ?string
 	{
-		return $this->namespaceText($name->namespace, "directives.{$name->name}.{$key}", $params);
+		return $this->namespaceText($name->namespace, "blocks.{$name->name}.{$key}", $params);
 	}
 
 	/**
 	 * Returns an icon's translated text, such as its `label`, or `null`
 	 * when no catalog has it (D-187): `icons.{name}.{key}` in the
-	 * namespace's domain, as for directives.
+	 * namespace's domain, as for blocks.
 	 *
 	 * @param array<string, mixed> $params
 	 */
@@ -373,50 +373,50 @@ final readonly class Views
 	}
 
 	/**
-	 * Renders a directive with its props and content (D-532). `$name` is a
-	 * full name or a core directive's short name. The assets it asks for
+	 * Renders a block with its props and content (D-532). `$name` is a
+	 * full name or a core block's short name. The assets it asks for
 	 * (`assets()`, D-572) go to the page. Its template gets
-	 * `$directive` (its registered class, D-534), which holds its
+	 * `$block` (its registered class, D-534), which holds its
 	 * content (D-195, D-196), and its variant (D-266): the `variant` prop,
-	 * if the directive has it under the chain. A variant's own template
-	 * (`directives/callout-bordered`) is used when the chain has one.
-	 * Without a template in the chain, the directive renders itself
+	 * if the block has it under the chain. A variant's own template
+	 * (`blocks/callout-bordered`) is used when the chain has one.
+	 * Without a template in the chain, the block renders itself
 	 * (`render()`, D-382): its HTML, or the template file it ships with.
-	 * `$container` is the container directive it's directly in, from
+	 * `$container` is the container block it's directly in, from
 	 * Markdown (D-708), such as a playlist for its tracks.
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
 	 */
-	public function directive(string $name, array $props, string $content, ViewContext $context, ?DirectiveName $container = null): string
+	public function block(string $name, array $props, string $content, ViewContext $context, ?BlockName $container = null): string
 	{
-		$definition = $this->services->directives->get($name) ?? throw $this->unknownDirective($name);
+		$definition = $this->services->blocks->get($name) ?? throw $this->unknownBlock($name);
 		$parsed     = $definition->name;
-		$directive  = $this->services->factory->make($definition->class, $props, $context->language);
+		$block      = $this->services->factory->make($definition->class, $props, $context->language);
 		$variant    = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 
-		$directive->attach($parsed, $props, $content, $this->messagesFor($this->ownDomains($parsed->namespace)), $context, $variant, $container);
+		$block->attach($parsed, $props, $content, $this->messagesFor($this->ownDomains($parsed->namespace)), $context, $variant, $container);
 
-		if (! $directive->shouldRender()) {
+		if (! $block->shouldRender()) {
 			return '';
 		}
 
-		$this->services->collector->add(...$directive->assets());
+		$this->services->collector->add(...$block->assets());
 
-		// A variant's own template (`directives/callout-bordered`) wins
-		// over the directive's (D-266).
-		$view  = $directive->template();
+		// A variant's own template (`blocks/callout-bordered`) wins
+		// over the block's (D-266).
+		$view  = $block->template();
 		$views = $view === null ? $parsed->views() : [$view];
 		$views = $variant === null ? $views : [...array_map(static fn (string $name): string => "{$name}-{$variant->name}", $views), ...$views];
 		$found = $this->finder->nearest($views);
 
 		if ($found !== null) {
-			return $this->renderFile($found[0], $found[1], ['directive' => $directive], $context);
+			return $this->renderFile($found[0], $found[1], ['block' => $block], $context);
 		}
 
-		$own = $this->services->locale->in($context->locale, $directive->render(...));
+		$own = $this->services->locale->in($context->locale, $block->render(...));
 
-		return $this->renderOwn('directive', (string) $parsed, $directive, $parsed->views()[0], $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
+		return $this->renderOwn('block', (string) $parsed, $block, $parsed->views()[0], $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
 	}
 
 	/**
@@ -524,7 +524,7 @@ final readonly class Views
 	}
 
 	/**
-	 * Renders a directive's or component's own markup (D-382), when the
+	 * Renders a block's or component's own markup (D-382), when the
 	 * chain has no template for it: `render()`'s HTML, or the file it
 	 * ships with and its data, rendered under its view name. `null` (it
 	 * has none) is the missing template's error.
@@ -563,7 +563,7 @@ final readonly class Views
 	private function namespaceText(string $namespace, string $message, array $params): ?string
 	{
 		$domain = match (true) {
-			$namespace === DirectiveName::CORE                     => Translator::CORE,
+			$namespace === BlockName::CORE                         => Translator::CORE,
 			in_array($namespace, $this->chain->namespaces(), true) => $this->chain->names(),
 			default                                                => $this->translator->domainOf($namespace)
 		};
@@ -572,17 +572,17 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the domain of a directive's or component's namespace's own
+	 * Returns the domain of a block's or component's namespace's own
 	 * text: `core` for core, or its extension's `vendor/name` (a theme's
 	 * is in the chain).
 	 */
 	private function ownDomain(string $namespace): string
 	{
-		return $namespace === DirectiveName::CORE ? Translator::CORE : $this->translator->domainOf($namespace);
+		return $namespace === BlockName::CORE ? Translator::CORE : $this->translator->domainOf($namespace);
 	}
 
 	/**
-	 * Returns the domains a directive's or component's class's text is
+	 * Returns the domains a block's or component's class's text is
 	 * looked up in (D-784): its own, then core's, with a theme's through
 	 * the chain, child first.
 	 *
@@ -616,15 +616,15 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the error for a directive that isn't registered.
+	 * Returns the error for a block that isn't registered.
 	 */
-	private function unknownDirective(string $name): ViewException
+	private function unknownBlock(string $name): ViewException
 	{
-		if (preg_match('#^' . DirectiveName::SYNTAX . '$#', $name) === 1 && ! str_contains($name, '/')) {
-			return new ViewException(sprintf('"%s" isn\'t a core directive, so it needs its namespace, such as "acme/%s" (D-171).', $name, $name));
+		if (preg_match('#^' . BlockName::SYNTAX . '$#', $name) === 1 && ! str_contains($name, '/')) {
+			return new ViewException(sprintf('"%s" isn\'t a core block, so it needs its namespace, such as "acme/%s" (D-171).', $name, $name));
 		}
 
-		return new ViewException(sprintf('No directive "%s" is registered (D-532).', $name));
+		return new ViewException(sprintf('No block "%s" is registered (D-532).', $name));
 	}
 
 	/**
@@ -643,9 +643,9 @@ final readonly class Views
 
 	/**
 	 * Returns the templates directly in each view directory's `$folder`
-	 * (`directives` or `components`), in any engine's extension (D-502),
+	 * (`blocks` or `components`), in any engine's extension (D-502),
 	 * as file names (without the extension) and paths. Subfolders aren't
-	 * directives or components.
+	 * blocks or components.
 	 *
 	 * @return list<array{string, string}>
 	 */

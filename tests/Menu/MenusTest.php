@@ -15,7 +15,7 @@ namespace Blush\Tests\Menu;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Directive\Menu as MenuDirective;
+use Blush\Block\Menu as MenuBlock;
 use Blush\Core\Application;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -51,7 +51,7 @@ use Blush\Theme\ThemeResolver;
 #[CoversClass(CollectionLink::class)]
 #[CoversClass(RouteLink::class)]
 #[CoversClass(UrlLink::class)]
-#[CoversClass(MenuDirective::class)]
+#[CoversClass(MenuBlock::class)]
 final class MenusTest extends TestCase
 {
 	use BootsScratchSite;
@@ -151,16 +151,16 @@ final class MenusTest extends TestCase
 
 		$html = $this->page($this->app(), '/team');
 
-		$this->assertStringContainsString('<nav class="directive-menu directive-menu--primary" aria-label="Primary">', $html);
-		$this->assertStringContainsString('<li class="directive-menu__item directive-menu__item--current">', $html);
-		$this->assertStringContainsString('<a class="directive-menu__link" href="/team" aria-current="page">', $html);
-		$this->assertStringContainsString('<li class="directive-menu__item directive-menu__item--ancestor directive-menu__item--parent">', $html);
-		$this->assertStringContainsString('<span class="directive-menu__heading">', $html);
-		$this->assertStringContainsString('<button class="directive-menu__toggle" type="button" aria-expanded="true" aria-controls="menu-primary-2" aria-label="More submenu" hidden></button>', $html);
-		$this->assertStringContainsString('<ul class="directive-menu__list directive-menu__submenu" id="menu-primary-2">', $html);
-		$this->assertStringContainsString('<a class="directive-menu__link" href="https://example.org/" rel="me">', $html);
-		$this->assertStringContainsString('<span class="directive-menu__badge">New</span>', $html);
-		$this->assertStringContainsString('directive-icon', $html);
+		$this->assertStringContainsString('<nav class="block-menu block-menu--primary" aria-label="Primary">', $html);
+		$this->assertStringContainsString('<li class="block-menu__item block-menu__item--current">', $html);
+		$this->assertStringContainsString('<a class="block-menu__link" href="/team" aria-current="page">', $html);
+		$this->assertStringContainsString('<li class="block-menu__item block-menu__item--ancestor block-menu__item--parent">', $html);
+		$this->assertStringContainsString('<span class="block-menu__heading">', $html);
+		$this->assertStringContainsString('<button class="block-menu__toggle" type="button" aria-expanded="true" aria-controls="menu-primary-2" aria-label="More submenu" hidden></button>', $html);
+		$this->assertStringContainsString('<ul class="block-menu__list block-menu__submenu" id="menu-primary-2">', $html);
+		$this->assertStringContainsString('<a class="block-menu__link" href="https://example.org/" rel="me">', $html);
+		$this->assertStringContainsString('<span class="block-menu__badge">New</span>', $html);
+		$this->assertStringContainsString('block-icon', $html);
 		$this->assertStringNotContainsString('Contact', $html);
 	}
 
@@ -184,7 +184,7 @@ final class MenusTest extends TestCase
 	{
 		$html = $this->page($this->app(), '/about');
 
-		$this->assertStringNotContainsString('directive-menu', $html);
+		$this->assertStringNotContainsString('block-menu', $html);
 	}
 
 	public function testPicksTextInThePageLocale(): void
@@ -246,7 +246,7 @@ final class MenusTest extends TestCase
 		$app = $this->app();
 
 		$this->assertNull($app->container()->make(Menus::class)->forLocation($app->container()->make(ThemeResolver::class)->active(), 'primary'));
-		$this->assertStringNotContainsString('directive-menu', $this->page($app, '/about'));
+		$this->assertStringNotContainsString('block-menu', $this->page($app, '/about'));
 	}
 
 	public function testThemeDefaultsShowUntilTheSiteAssignsAMenu(): void
@@ -382,14 +382,14 @@ final class MenusTest extends TestCase
 		$this->assertSame([], array_filter($problems, static fn (Violation $problem): bool => $problem->severity === Severity::Error));
 	}
 
-	public function testRendersFromAMarkdownDirective(): void
+	public function testRendersFromAMarkdownBlock(): void
 	{
 		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
 		$this->writeTemporaryFile('user/content/links.md', "---\nid: 42406911-3a08-a425-6349-764ee38dbbbf\ntitle: Links\n---\n::menu{name=primary label=\"Site links\"}\n");
 
 		$html = $this->page($this->app(), '/links');
 
-		$this->assertStringContainsString('<nav class="directive-menu directive-menu--primary" aria-label="Site links">', $html);
+		$this->assertStringContainsString('<nav class="block-menu block-menu--primary" aria-label="Site links">', $html);
 	}
 
 	public function testChecksLocationDeclarations(): void

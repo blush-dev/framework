@@ -271,7 +271,7 @@ accounts move onto it in later steps; roles are on it now.
   the active theme's own settings group under `menus` (location → menu
   name; `Menus::assignments()`/`assign()`/`assignAll()`, `menu:assign`), else the
   theme's default `items` from `theme.json`, else nothing. No matching by
-  name. Content shows a menu by name (`Menus::named()`, the directive's
+  name. Content shows a menu by name (`Menus::named()`, the block's
   `name`); templates by location (`location`, `$template->menu()`).
 - **Links by id:** kinds implementing `Link\LinksEntry` (`entry`, `term`)
   read the target's id from the item's `ref` first, then the readable
@@ -293,7 +293,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 - **Catalogs:** per domain (`core` and each extension's
   `vendor/name`), per locale, stored as data files (`lang/{locale}.json`),
   starting with `@@locale` and `@@domain` (D-452). `Translator::domainOf()`
-  maps an extension namespace to its domain, for directive and icon
+  maps an extension namespace to its domain, for block and icon
   labels.
 - **Overrides:** `user/lang/{locale}/core.json`, `app.json`, and
   `extensions/{vendor}/{name}.json`: each domain's first layer, winning
@@ -311,7 +311,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   note. A template's domains come from its file (`Views::domainsFor()`:
   a chain theme's file → the chain, child first; a plugin's →
   `Translator::domainAt()`, by the folder its `lang/` is in; the
-  framework's → `core`), each then `core`; a directive's or component's
+  framework's → `core`), each then `core`; a block's or component's
   class from its namespace (`Views::ownDomains()`). So a plugin's own
   template reads its catalog, its keys aren't shadowed by core's, and a
   theme's key never rewords a plugin's or core's text (the site's
@@ -319,7 +319,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   `Messages::t()`, for classes (given per class by the container's
   `whenAnyNeedsType()` from `ClassDomains`, which maps PHP namespaces
   to extensions by `autoload` and provider), providers, components,
-  and directives (`$this->messages`), and templates (`$messages`, per
+  and blocks (`$this->messages`), and templates (`$messages`, per
   file). It returns a `Text`, translated when it's printed in the
   current language (`CurrentLocale`: the site's, each request; a page
   render's while it renders), or where it's shown in that screen's
@@ -333,7 +333,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
-- **Available in:** views (`$messages->t()`), directives, components, controllers, the CLI,
+- **Available in:** views (`$messages->t()`), blocks, components, controllers, the CLI,
   and later the admin.
 - **Multilingual content** (the same entry in several languages) is separate
   from UI translation (D-036, D-455, D-456). `config/app.php`'s
@@ -350,9 +350,9 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   `{code}:{name}`, `language` parameter). A page's locale follows its
   language, so `$messages->t()`, dates, `$site->lang`, and `$site->dir`
   (`Locale::isRightToLeft()`, D-471) do too, and
-  its directives and components get a `LocalizedRepository` in its language (D-458,
+  its blocks and components get a `LocalizedRepository` in its language (D-458,
   `ViewContext::$language`), in a translation's Markdown too: the
-  parsed document carries the language to its directives (D-459).
+  parsed document carries the language to its blocks (D-459).
   `untranslated` (`Core\Untranslated`, D-467 to D-469) says what a
   language does without an entry's translation: a 404, a 302 to the
   original (`ContentController::untranslated()`), or that plus lists
@@ -722,7 +722,7 @@ Implemented in M4b (D-088).
   when the `BodyCache` has the rendering (D-130).
 - An **excerpt** without a summary is the body's prose: the words of its
   paragraphs and list items, leaving out headings and anything set apart,
-  hidden, or drawn by a directive that isn't text (D-727).
+  hidden, or drawn by a block that isn't text (D-727).
 - **Scheduling:** a future `published` date means `Scheduled`, decided
   against the clock at read time. The index records the next go-live time,
   and the content version moves on by itself when it passes (D-128).
@@ -749,11 +749,11 @@ Implemented in M4a (D-080, D-085, D-086).
   in-house parser as the long-term goal. league/commonmark is never part
   of the public API (D-492): the dialect is fixed (CommonMark, autolinks,
   struck and highlighted text, tables, task lists, footnotes, definition
-  lists, attributes, directives), and `MarkdownConfig` says only how it
+  lists, attributes, blocks), and `MarkdownConfig` says only how it
   renders, by Blush names (`mentions`, `smartPunctuation`,
   `headingAnchors`, `lineBreaks`, `html` as `RawHtml`, `figures`, and
   `HeadingAnchorOptions` and `FootnoteOptions`). New syntax is a
-  directive; replacing the parser is binding `MarkdownParser` (and
+  block; replacing the parser is binding `MarkdownParser` (and
   `MarkupFinder`). Mentions (`@slug`) link through `MentionResolver`,
   bound to `Content\ProfileMentions` (D-493).
   1.x's rendering is built in (D-100): local media links point at the
@@ -761,13 +761,13 @@ Implemented in M4a (D-080, D-085, D-086).
   absolute, and a lone image becomes a `<figure>` with its title as the
   caption. Media references resolve from the site root, never against
   the entry's folder (D-294), so `toHtml($markdown)` takes no base.
-- **Directives:** generic directives (`:::name`, `::name`,
+- **Blocks:** blocks (`:::name`, `::name`,
   `:name[text]`, D-026) parsed by an in-house CommonMark extension and
-  rendered through `Directive\DirectiveRenderer` as registered directives
-  (D-112, D-532). The seam the parser uses (`DirectiveKind`,
-  `ParsedDirective`, `DirectiveRenderer`, `DirectiveRules`) is the
-  Directive subsystem's (D-535), so Markdown depends on it one way; with
-  no renderer bound, directives are plain text. See `theming.md`.
+  rendered through `Block\BlockRenderer` as registered blocks
+  (D-112, D-532). The seam the parser uses (`BlockKind`,
+  `ParsedBlock`, `BlockRenderer`, `BlockRules`) is the
+  Block subsystem's (D-535), so Markdown depends on it one way; with
+  no renderer bound, blocks are plain text. See `theming.md`.
 - Raw HTML in Markdown: on a page, `MarkdownConfig::$html` (allowed by
   default, D-494); in the admin, the `html.allowed` and `html.unfiltered`
   capabilities, checked on save by `Content\Editing\HtmlGuard` against
@@ -1122,7 +1122,7 @@ Implemented in M4c (D-099), apart from image derivatives.
 
 Plain PHP templates (D-009). **The full theming design is in `theming.md`**
 (themes are presentation only, with a data-first manifest, parent chains,
-directives and components (D-532), and per-entry presentation fields; no design
+blocks and components (D-532), and per-entry presentation fields; no design
 token system, D-160). The
 view layer was implemented in M5 (D-103 to D-125).
 
@@ -1159,14 +1159,14 @@ view layer was implemented in M5 (D-103 to D-125).
   seeded by `AssetRegistrar` with `core/player`), `AssetUrls` (core,
   plugin, theme, or URL; `?v={crc32}`), `Assets` (prints handles into a
   head, requirements first), `AssetCollector` (render scopes, so a
-  directive's or component's `assets()` reach the page, kept with cached
+  block's or component's `assets()` reach the page, kept with cached
   bodies and fragments), and the `core.asset` and `plugin.asset` routes
   (`AssetController`). Core's site files build from `resources/site`
   into `public/site` (`npm run site:build`).
-- **Directives and components** render through `Views` (`directive()`,
-  `hasDirective()`, `directives()`; `component()`, `hasComponent()`,
+- **Blocks and components** render through `Views` (`block()`,
+  `hasBlock()`, `blocks()`; `component()`, `hasComponent()`,
   `components()`), by namespaced name (D-171). Each is its own subsystem
-  (see Directives and components, D-532).
+  (see Blocks and components, D-532).
 - **`Hierarchy`:** the candidate view names for a content page or error,
   with front matter `template:` first (D-104).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
@@ -1183,7 +1183,7 @@ view layer was implemented in M5 (D-103 to D-125).
   (`SettingsResolver`, `SiteThemeData`), `ThemeChecker`, and the
   `theme.asset` route.
 
-## Directives and components (D-532)
+## Blocks and components (D-532)
 
 Two subsystems that share a base: `View\Renderable` (props, content,
 the root element's `classes()`/`attributes()`/`html()`, `t()`,
@@ -1192,43 +1192,43 @@ through the container, casting string props). `Views` renders both and
 picks the chain's template first, then the class's `render()`
 (`renderOwn()`).
 
-### Directives
+### Blocks
 
-`Blush\Directive` (was `Blush\Component` before D-532), bound by
-`DirectiveServiceProvider`: what content says.
+`Blush\Block` (was `Blush\Component` before D-532), bound by
+`BlockServiceProvider`: what content says.
 
-- **Directives:** `Directive` (abstract; `KIND`, `CONTENT`, `VARIANTS`,
-  `HOLDS`, `attach()`, `variant`, `render(): string|DirectiveView|null`;
-  every directive is a class that declares its `KIND`, D-534); `DirectiveName`
-  (short names only for core, views `directives/…`), `DirectiveDefinition`,
-  `DirectiveContent`, `DirectiveCategory`, `DirectiveType` (the core
-  ones); `DirectiveRegistry` (every directive registered; refuses a
-  theme's namespace, D-532), `DirectiveRegistrar`, `DirectiveListing`,
-  `DirectiveVariants` and `Events\DirectiveVariantsCollecting` (D-266),
-  and `PendingDirective` (`$template->directive()`).
+- **Blocks:** `Block` (abstract; `KIND`, `CONTENT`, `VARIANTS`,
+  `HOLDS`, `attach()`, `variant`, `render(): string|BlockView|null`;
+  every block is a class that declares its `KIND`, D-534); `BlockName`
+  (short names only for core, views `blocks/…`), `BlockDefinition`,
+  `BlockContent`, `BlockCategory`, `BlockType` (the core
+  ones); `BlockRegistry` (every block registered; refuses a
+  theme's namespace, D-532), `BlockRegistrar`, `BlockListing`,
+  `BlockVariants` and `Events\BlockVariantsCollecting` (D-266),
+  and `PendingBlock` (`$template->block()`).
 - **Built-ins:** `Callout` (D-195), `Embed`; the layouts in
-  `Directive\Layout`
-  (`Group`, `Grid`, `Row`, `Stack`, `CssLength`, D-177, D-318); `Directive\Media`
-  (`Audio`, `Video`, `File`, `Figure`, `Gallery`, `MediaPreload`, D-179); `Directive\Inline`
+  `Block\Layout`
+  (`Group`, `Grid`, `Row`, `Stack`, `CssLength`, D-177, D-318); `Block\Media`
+  (`Audio`, `Video`, `File`, `Figure`, `Gallery`, `MediaPreload`, D-179); `Block\Inline`
   (`Abbr`, `Kbd`, `Time`, D-180; `Badge`, `Cite`, `Dfn`, `Ins`, `Samp`,
   `Small`, `Variable` for `var`, D-305); `Toc` (D-183, fed the outline by the Markdown
   layer's `CollectOutline`); `Menu`; `Icon`; `Progress` and `Meter` (D-188); and `Button`
   (D-189).
 - **Props:** `MediaProp` marks media props, which are resolved like an
   image's; `LinkProp` marks link props (D-190).
-- **Rendering itself (D-382):** every core directive's `render()`
-  returns its file in `resources/directives/`, and
-  `DirectiveListing::rendersItself()` reads `render()`'s return type, so
+- **Rendering itself (D-382):** every core block's `render()`
+  returns its file in `resources/blocks/`, and
+  `BlockListing::rendersItself()` reads `render()`'s return type, so
   a class that can't return `null` is never "missing a template".
-- **The seam (D-535):** `DirectiveKind`, `ParsedDirective`,
-  `DirectiveRenderer`, and `DirectiveRules` live here; the Markdown
-  parser imports them, and `Directive` takes only `MarkdownConfig` from
+- **The seam (D-535):** `BlockKind`, `ParsedBlock`,
+  `BlockRenderer`, and `BlockRules` live here; the Markdown
+  parser imports them, and `Block` takes only `MarkdownConfig` from
   Markdown.
-- **Markdown:** `MarkdownDirectives` (the default `DirectiveRenderer` and
-  `DirectiveRules`) renders a parsed directive (`ParsedDirective`)
-  as the registered directive of its name, or `null` (plain content)
+- **Markdown:** `RegisteredBlocks` (the default `BlockRenderer` and
+  `BlockRules`) renders a parsed block (`ParsedBlock`)
+  as the registered block of its name, or `null` (plain content)
   for one no one registered.
-- **Admin:** `GET directives` (`Admin\DirectivesController`); the admin
+- **Admin:** `GET blocks` (`Admin\BlocksController`); the admin
   calls them blocks.
 
 ### Components
@@ -1267,8 +1267,8 @@ reusable pieces, from themes, the site, and plugins.
   homepage at `/index.md`), served as `text/markdown` with a canonical
   `Link` header. `MarkdownLinks` gives a Markdown body's (and
   summary's) links full URLs as the HTML has them (D-396): inline and
-  reference destinations, and directives' media and link props by the
-  directive's definition, skipping code and HTML found line by line.
+  reference destinations, and blocks' media and link props by the
+  block's definition, skipping code and HTML found line by line.
   `MarkdownPages` finds the entry by building each
   entry's Markdown path, so a lookup scans the site's entries (the page
   cache keeps the answer). `/llms.txt` lists public entries of the
@@ -1477,14 +1477,14 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   (`EmbedData`) in the persistent `embeds` store: 30 days, failures an
   hour. `EmbedConfig` sets the providers, `fetch`, timeout, and TTLs.
   `cache:clear --embeds` empties the store, with the cache store (D-448).
-- **Rendering:** the `embed` directive frames `provider->frame()` with
+- **Rendering:** the `embed` block frames `provider->frame()` with
   the answer's size (as `--embed-ratio`) and title, or, for a player at
   a set height (`fixedHeight()`: Spotify's and SoundCloud's, or any
   answer with a percentage width), `--embed-height` and the `fixed`
   modifier; a photo answer (`photo()`) is an `<img>` linked to the
   page, with `alt` and a credit (`photo` modifier); the theme owns the
   markup. A rich embed (X's posts, D-691) is the answer's blockquote,
-  cleaned by `RichQuote`, with the `rich` modifier; the directive asks
+  cleaned by `RichQuote`, with the `rich` modifier; the block asks
   for the provider's registered asset (`asset()`, core's
   `core/embed-x` and `core/embed-reddit`), whose script draws the post. Other rich answers
   render as links.
@@ -1495,7 +1495,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   a name's SVG for a theme chain: site, themes, `IconRegistry` folders
   (installed icon packs', D-378, and plugins'), then the framework's
   Lucide subset in `resources/icons/core`), and
-  the `icon` directive (inline SVG, `1em`, `currentColor`, decorative
+  the `icon` block (inline SVG, `1em`, `currentColor`, decorative
   or labeled). Labels are catalog text (`icons.{name}.label`).
 
 ## Setup (D-218)
@@ -1552,10 +1552,10 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     `Entries`' writes by id (D-654), with permissions judged on the change.
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.
-  - A block inserter for dropping directives into content: only
-    registered directives with a class, always written by full name
-    (D-171, D-172, D-214; built, D-243: `GET directives` since D-532,
-    `DirectivePanel`, and `/` at the start of a line).
+  - A block inserter for dropping blocks into content: only
+    registered blocks with a class, always written by full name
+    (D-171, D-172, D-214; built, D-243: `GET blocks` since D-532,
+    `BlockPanel`, and `/` at the start of a line).
   - A media library, and git-backed revisions.
 - **Admin constraints:** it lives in an `/admin` route group (path
   configurable) behind its own provider and is off by default.
@@ -1653,22 +1653,22 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   tabs on each list (D-236), as is the trash (D-237, a status since
   D-484: restore as a draft, delete permanently, empty), and a taxonomy's list counts each term's uses. The body is
   edited in `MarkdownEditor` (D-241: a text area over a highlighted copy
-  from `markdown.ts`, which finds directives by the server's rules, and
+  from `markdown.ts`, which finds blocks by the server's rules, and
   styles emphasis, strong text, headings, quotes, and list markers with
   muted marks, D-253, in Fira Code, the admin's only mono, D-254,
   D-255), with
-the block inserter (D-243, D-532: `directives.ts` loads `GET directives`
-once, groups core directives by `DirectiveType::category()` and the rest
-by source, keeps recents, and writes the directive text). The
+the block inserter (D-243, D-532: `blocks.ts` loads `GET blocks`
+once, groups core blocks by `BlockType::category()` and the rest
+by source, keeps recents, and writes the block text). The
   navigation is a section rail (Home, Content, Config) with a panel for
   the active section (D-244: `meta.area` on each route), with taxonomies
   nested under the one type they group, and screens not built yet are
   `PlannedView` stubs (D-241). The editor fills the work area
   (`meta.bleed`) as a writing surface (D-245): a centered column, a
-  settings drawer with Document and element tabs (`DirectiveOptions`,
-  whose changes `markdown.ts` writes into the directive's head as minimal
+  settings drawer with Document and element tabs (`BlockOptions`,
+  whose changes `markdown.ts` writes into the block's head as minimal
   edits), and focus mode (`focusMode` in `screen.ts`). Its inserters
-  (D-247): `DirectivePanel` (a pushing panel, also opened by `/`),
+  (D-247): `BlockPanel` (a pushing panel, also opened by `/`),
   `IconPicker` (a popover over `GET icons`, `site-icons.ts`), and
   `MediaPicker` (a `<dialog>` over `GET media`, also behind **Choose** on
   media fields); `grid.ts` moves through their grids. What screens do
@@ -1695,9 +1695,9 @@ by source, keeps recents, and writes the directive text). The
   as `index` in `GET entries` (D-255), as Pages' root page is, with
   the homepage marked by a house and a **Homepage** tag (D-420). The element tab follows the
   caret (D-268, D-280): `elements.ts` resolves the most specific of the
-  directives, images, and blocks (`blocks()`, with lists and definition
+  blocks, images, and Markdown blocks (`markdownBlocks()`, with lists and definition
   lists) and builds the outline and breadcrumb from their spans; a
-  directive gets `DirectiveOptions`, a Markdown image `ImageOptions`
+  block gets `BlockOptions`, a Markdown image `ImageOptions`
   (with `ImagePreview`), and a block `BlockOptions`, each writing
   minimal edits through `markdown.ts`, which also carries list, quote,
   and table markers on Enter (`continuation()`). Reference fields use
@@ -1709,8 +1709,8 @@ by source, keeps recents, and writes the directive text). The
   ranked search, suggestions; D-607), with `ReferenceResults`,
   `ReferenceMissing`, and `ReferenceInherited` shared; selects are `AdminSelect` and dates
   `DatePicker`; images' variants are
-  the theme's `variants.image` classes (`DirectiveVariants::forImages()`,
-  `GET directives`' `image`). `MediaPicker` has Library and Upload tabs;
+  the theme's `variants.image` classes (`BlockVariants::forImages()`,
+  `GET blocks`' `image`). `MediaPicker` has Library and Upload tabs;
   uploads go through `POST media` (`MediaUploadController`: hidden first,
   checked by contents with `MediaResolver::mimeOf()`, then named), by
   the upload rules (`MediaConfig::$uploads`, a `MediaUploads` of
@@ -1760,7 +1760,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   only); `ManifestFile::load()` reads a folder that way. `autoload` (`Extension\Autoload`) is `psr-4` plus `files`, every
   path inside the extension.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
-  what its directives, components, and icons go by (its translation domain is its
+  what its blocks, components, and icons go by (its translation domain is its
   `vendor/name`, mapped from the namespace, D-451). Reserved:
   `core`, `theme`, and `default` (the default theme's). No two
   installed extensions share one: two plugins doing so fail discovery;
@@ -1771,7 +1771,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   provider; `provider` is optional (D-425), so a plugin may only load
   `autoload.files`, `require` others, or carry `lang/`, and one with
   nothing is allowed (`Plugins::providers()` skips those). A
-  plugin can register content types, routes, CLI commands, directives, components,
+  plugin can register content types, routes, CLI commands, blocks, components,
   listeners, parsers, field types, cache drivers, and translations (its
   `lang/` is its domain, its `vendor/name`, D-451).
   - Composer plugins keep the rest of their manifest in `composer.json`

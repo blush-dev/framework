@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Llms;
 
-use Blush\Directive\DirectiveRegistry;
+use Blush\Block\BlockRegistry;
 use Blush\Core\AppConfig;
 use Blush\Field\Fields\MediaField;
-use Blush\Markdown\CommonMark\Directive\DirectiveAttributes;
+use Blush\Markdown\CommonMark\Block\BlockAttributes;
 use Blush\Media\MediaResolver;
 
 /**
@@ -27,9 +27,9 @@ use Blush\Media\MediaResolver;
  *
  * Rewritten, as written otherwise: inline link and image destinations
  * (`[text](/about)`, `![alt](/user/media/a.jpg "Title")`, `(<…>)`),
- * reference definitions (`[1]: /about`), and a registered directive's
- * media and link props in a directive's attributes
- * (`::audio{src=/media/a.mp3}`), as `MarkdownDirectives` resolves them.
+ * reference definitions (`[1]: /about`), and a registered block's
+ * media and link props in a block's attributes
+ * (`::audio{src=/media/a.mp3}`), as `RegisteredBlocks` resolves them.
  *
  * Left alone: code (fenced blocks, indented blocks, and inline code
  * spans) and HTML (blocks, and attributes in inline HTML), plus full
@@ -41,15 +41,15 @@ use Blush\Media\MediaResolver;
 final readonly class MarkdownLinks
 {
 	/**
-	 * A code span, a link destination, or a directive with attributes,
+	 * A code span, a link destination, or a block with attributes,
 	 * leftmost first, so links inside code spans are passed over.
 	 */
 	private const string INLINE = '/(`+).+?(?<!`)\1(?!`)'
 		. '|(\]\([ \t]*)(<[^>\n]*>|[^\s)]+)'
-		. '|((?<![:\w\\\\]):+' . DirectiveAttributes::NAME . '(?:\[[^\]\n]*\])?)\{([^}\n]*)\}/';
+		. '|((?<![:\w\\\\]):+' . BlockAttributes::NAME . '(?:\[[^\]\n]*\])?)\{([^}\n]*)\}/';
 
 	/**
-	 * A directive attribute, as `DirectiveAttributes::parse()` reads
+	 * A block attribute, as `BlockAttributes::parse()` reads
 	 * them, with its parts kept to rewrite its value.
 	 */
 	private const string ATTRIBUTE = '/([.#][A-Za-z0-9_:-]+)|([A-Za-z_:][A-Za-z0-9_:.-]*)(?:(\s*=\s*)(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=]+)))?/';
@@ -72,7 +72,7 @@ final readonly class MarkdownLinks
 
 	public function __construct(
 		private MediaResolver $media,
-		private DirectiveRegistry $directives,
+		private BlockRegistry $blocks,
 		private AppConfig $app
 	) {}
 
@@ -178,12 +178,12 @@ final readonly class MarkdownLinks
 	}
 
 	/**
-	 * Returns a directive's attributes with its registered media and
+	 * Returns a block's attributes with its registered media and
 	 * link props given full URLs.
 	 */
 	private function attributes(string $name, string $attributes): string
 	{
-		$definition = $this->directives->get($name);
+		$definition = $this->blocks->get($name);
 
 		if ($definition === null) {
 			return $attributes;

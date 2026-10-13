@@ -318,16 +318,16 @@ final class EmbedsTest extends TestCase
 		$this->assertNull(new YouTube()->fixedHeight('https://youtu.be/dQw4w9WgXcQ', new EmbedData(EmbedType::Video, width: 200, height: 113)));
 	}
 
-	public function testTheDirectiveFramesAFixedPlayer(): void
+	public function testTheBlockFramesAFixedPlayer(): void
 	{
 		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\n---\n::embed{url=\"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\"}\n");
 
 		$app  = $this->app(['https://open.spotify.com/oembed' => '{"type": "rich", "title": "A song", "width": 456, "height": 152, "html": "<iframe width=\\"100%\\" height=\\"152\\" src=\\"https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=oembed\\"></iframe>"}']);
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('directive-embed--spotify directive-embed--fixed', $html);
-		$this->assertStringContainsString('<div class="directive-embed__wrapper" style="--embed-height: 152px">', $html);
-		$this->assertStringContainsString('<iframe class="directive-embed__frame" src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT" height="152" title="A song"', $html);
+		$this->assertStringContainsString('block-embed--spotify block-embed--fixed', $html);
+		$this->assertStringContainsString('<div class="block-embed__wrapper" style="--embed-height: 152px">', $html);
+		$this->assertStringContainsString('<iframe class="block-embed__frame" src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT" height="152" title="A song"', $html);
 	}
 
 	public function testTwitchAndTikTokFrameFromTheLink(): void
@@ -385,14 +385,14 @@ final class EmbedsTest extends TestCase
 		$app  = $this->app(['https://www.flickr.com/services/oembed/' => '{"type": "photo", "title": "ZB8T0193", "author_name": "‮bees", "width": 1024, "height": 683, "url": "https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg"}']);
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('directive-embed--flickr directive-embed--photo', $html);
-		$this->assertStringContainsString('<a href="https://www.flickr.com/photos/bees/2341623661/"><img class="directive-embed__photo" src="https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg" width="1024" height="683" loading="lazy" decoding="async" referrerpolicy="strict-origin-when-cross-origin" alt="Bees on a honeycomb"></a>', $html);
-		$this->assertStringContainsString('<figcaption>Bees at work <span class="directive-embed__credit">Photo by bees on Flickr</span></figcaption>', $html);
+		$this->assertStringContainsString('block-embed--flickr block-embed--photo', $html);
+		$this->assertStringContainsString('<a href="https://www.flickr.com/photos/bees/2341623661/"><img class="block-embed__photo" src="https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg" width="1024" height="683" loading="lazy" decoding="async" referrerpolicy="strict-origin-when-cross-origin" alt="Bees on a honeycomb"></a>', $html);
+		$this->assertStringContainsString('<figcaption>Bees at work <span class="block-embed__credit">Photo by bees on Flickr</span></figcaption>', $html);
 		$this->assertStringContainsString('alt="ZB8T0193"></a>', $html, 'Without alt, the title.');
-		$this->assertStringContainsString('<figcaption><span class="directive-embed__credit">', $html);
+		$this->assertStringContainsString('<figcaption><span class="block-embed__credit">', $html);
 	}
 
-	public function testTheDirectiveUsesTheAnswer(): void
+	public function testTheBlockUsesTheAnswer(): void
 	{
 		$config = <<<'PHP'
 			new EmbedConfig(enabled: ['example', 'social', 'youtube'], providers: [
@@ -421,12 +421,12 @@ final class EmbedsTest extends TestCase
 
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('<div class="directive-embed__wrapper" style="--embed-ratio: 200 / 113">', $html);
-		$this->assertStringContainsString('<iframe class="directive-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" width="200" height="113" title="Never Gonna Give You Up"', $html);
-		$this->assertStringContainsString('<iframe class="directive-embed__frame" src="https://player.example.com/v/1" width="640" height="480" title="Given title"', $html);
+		$this->assertStringContainsString('<div class="block-embed__wrapper" style="--embed-ratio: 200 / 113">', $html);
+		$this->assertStringContainsString('<iframe class="block-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" width="200" height="113" title="Never Gonna Give You Up"', $html);
+		$this->assertStringContainsString('<iframe class="block-embed__frame" src="https://player.example.com/v/1" width="640" height="480" title="Given title"', $html);
 
 		// A script-based rich embed isn't run; it's a link, named by its title.
-		$this->assertStringContainsString('<p class="directive-embed directive-embed--link"><a href="https://social.example.com/post/1">A post</a></p>', $html);
+		$this->assertStringContainsString('<p class="block-embed block-embed--link"><a href="https://social.example.com/post/1">A post</a></p>', $html);
 		$this->assertStringNotContainsString('w.js', $html);
 	}
 
@@ -475,7 +475,7 @@ final class EmbedsTest extends TestCase
 		$app  = $this->app(['https://publish.x.com/oembed?url=https%3A%2F%2Fx.com%2Fjack%2Fstatus%2F20&' => '{"type": "rich", "author_name": "jack", "provider_name": "X", "width": 550, "html": "<blockquote class=\"twitter-tweet\" data-dnt=\"true\"><p lang=\"en\" dir=\"ltr\">just setting up my twttr</p>&mdash; jack (@jack) <a href=\"https://x.com/jack/status/20?ref_src=twsrc%5Etfw\">March 21, 2006</a></blockquote><script async src=\"https://evil.test/w.js\"></script>"}']);
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('<figure class="directive-embed directive-embed--x directive-embed--rich">', $html);
+		$this->assertStringContainsString('<figure class="block-embed block-embed--x block-embed--rich">', $html);
 		$this->assertStringContainsString('<blockquote class="twitter-tweet" data-dnt="true"><p lang="en" dir="ltr">just setting up my twttr</p>— jack (@jack) <a href="https://x.com/jack/status/20?ref_src=twsrc%5Etfw">March 21, 2006</a></blockquote>', $html);
 		$this->assertStringContainsString('<figcaption>The first post</figcaption>', $html);
 		$this->assertSame(1, substr_count($html, 'https://platform.twitter.com/widgets.js'), 'X\'s script, once.');
@@ -483,7 +483,7 @@ final class EmbedsTest extends TestCase
 		$this->assertStringNotContainsString('evil.test', $html);
 
 		// Without an answer, a post is a link.
-		$this->assertStringContainsString('<p class="directive-embed directive-embed--link"><a href="https://x.com/jack/status/21">https://x.com/jack/status/21</a></p>', $html);
+		$this->assertStringContainsString('<p class="block-embed block-embed--link"><a href="https://x.com/jack/status/21">https://x.com/jack/status/21</a></p>', $html);
 	}
 
 	public function testRedditPostsShowAsQuotes(): void
@@ -510,7 +510,7 @@ final class EmbedsTest extends TestCase
 		$app  = $this->app(['https://www.reddit.com/oembed' => '{"type": "rich", "author_name": "brendt_gd", "provider_name": "reddit", "title": "Weekly help thread", "height": 316, "html": "<blockquote class=\"reddit-embed-bq\" style=\"height:316px\" >\n<a href=\"https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/\">Weekly help thread</a><br> by\n<a href=\"https://www.reddit.com/user/brendt_gd/\">u/brendt_gd</a> in\n<a href=\"https://www.reddit.com/r/PHP/\">PHP</a>\n</blockquote>\n<script async src=\"https://embed.reddit.com/widgets.js\" charset=\"UTF-8\"></script>"}']);
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertSame(2, substr_count($html, '<figure class="directive-embed directive-embed--reddit directive-embed--rich">'));
+		$this->assertSame(2, substr_count($html, '<figure class="block-embed block-embed--reddit block-embed--rich">'));
 		$this->assertStringContainsString("<blockquote class=\"reddit-embed-bq\">\n<a href=\"https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/\">Weekly help thread</a><br> by\n<a href=\"https://www.reddit.com/user/brendt_gd/\">u/brendt_gd</a> in\n<a href=\"https://www.reddit.com/r/PHP/\">PHP</a>\n</blockquote>", $html);
 		$this->assertSame(1, substr_count($html, '<script src="https://embed.reddit.com/widgets.js" async charset="utf-8"></script>'));
 	}

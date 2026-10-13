@@ -1,16 +1,16 @@
 /**
  * The elements a body is made of (admin.md §8, Every element is an
- * object): its container and leaf directives, its images, and its blocks
+ * object): its container and leaf blocks, its images, and its Markdown blocks
  * of Markdown (`markdown.ts`), as one outline in source order, each with
  * the element it's inside. The outline drives the drawer's Outline, a
  * panel's Content group, and the footer's breadcrumb; `elementAt()` says
  * which element the caret is in.
  */
 
-import { BLOCK_KINDS, LIST_STYLES } from './blocks';
+import { MARKDOWN_BLOCK_KINDS, LIST_STYLES } from './markdown-blocks';
 import {
 	attributesOf,
-	directiveHead,
+	blockHead,
 	headingLevel,
 	listItems,
 	listStyle,
@@ -23,8 +23,8 @@ import {
 import { plural } from './format';
 
 export interface ElementRef {
-	kind: 'directive' | 'image' | 'block';
-	// Its index among the outline's directives or images, or the blocks.
+	kind: 'block' | 'image' | 'markdown';
+	// Its index among the outline's blocks or images, or the Markdown blocks.
 	index: number;
 }
 
@@ -49,24 +49,24 @@ export function sameElement(a: ElementRef | null | undefined, b: ElementRef | nu
 
 /**
  * Whether an element holds others, so it opens a level in the outline and
- * has a Content group: a container directive, a list, a list item, or a
+ * has a Content group: a container block, a list, a list item, or a
  * definition list.
  */
 export function holdsContent(markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef): boolean {
-	if (ref.kind === 'directive') {
-		return markdown.directives[ref.index]?.kind === 'container';
+	if (ref.kind === 'block') {
+		return markdown.blocks[ref.index]?.kind === 'container';
 	}
 
-	const kind = ref.kind === 'block' ? found[ref.index]?.kind : undefined;
+	const kind = ref.kind === 'markdown' ? found[ref.index]?.kind : undefined;
 
 	return kind === 'list' || kind === 'item' || kind === 'definitions';
 }
 
 function candidates(markdown: MarkdownOutline, found: MarkdownBlock[]): Candidate[] {
 	return [
-		...markdown.directives.map((item, index) => ({ kind: 'directive' as const, index, start: item.start, end: item.end, rank: 0 })),
+		...markdown.blocks.map((item, index) => ({ kind: 'block' as const, index, start: item.start, end: item.end, rank: 0 })),
 		...markdown.images.map((item, index) => ({ kind: 'image' as const, index, start: item.start, end: item.end, rank: 0 })),
-		...found.map((item, index) => ({ kind: 'block' as const, index, start: item.start, end: item.end, rank: holdsContent(markdown, found, { kind: 'block', index }) ? 2 : 1 }))
+		...found.map((item, index) => ({ kind: 'markdown' as const, index, start: item.start, end: item.end, rank: holdsContent(markdown, found, { kind: 'markdown', index }) ? 2 : 1 }))
 	];
 }
 
@@ -96,11 +96,11 @@ export function elementAt(markdown: MarkdownOutline, found: MarkdownBlock[], off
 		return { kind: best.kind, index: best.index };
 	}
 
-	const closed = markdown.directives.filter((item) => item.kind === 'container' && item.end < offset);
+	const closed = markdown.blocks.filter((item) => item.kind === 'container' && item.end < offset);
 
 	for (const item of all) {
-		const inline = item.kind === 'image' || (item.kind === 'directive' && markdown.directives[item.index]?.kind === 'inline');
-		const buried = closed.some((container) => !(item.kind === 'directive' && markdown.directives[item.index] === container) && container.start <= item.start && item.end <= container.end);
+		const inline = item.kind === 'image' || (item.kind === 'block' && markdown.blocks[item.index]?.kind === 'inline');
+		const buried = closed.some((container) => !(item.kind === 'block' && markdown.blocks[item.index] === container) && container.start <= item.start && item.end <= container.end);
 
 		if (item.end >= offset || inline || buried) {
 			continue;
@@ -116,7 +116,7 @@ export function elementAt(markdown: MarkdownOutline, found: MarkdownBlock[], off
 
 /**
  * Everything the body is made of, in source order: container and leaf
- * directives, images, and blocks (inline directives are inside a
+ * blocks, images, and Markdown blocks (inline blocks are inside a
  * sentence, so they aren't listed). A line that's nothing but an image is
  * listed as the image, not a paragraph, and so is a paragraph of such
  * lines (a gallery's images, one to a line). Depth is containment: anything
@@ -125,18 +125,18 @@ export function elementAt(markdown: MarkdownOutline, found: MarkdownBlock[], off
  */
 export function outlineItems(source: string, markdown: MarkdownOutline, found: MarkdownBlock[]): OutlineItem[] {
 	const items = candidates(markdown, found).filter((item) => {
-		if (item.kind === 'directive') {
-			return markdown.directives[item.index]?.kind !== 'inline';
+		if (item.kind === 'block') {
+			return markdown.blocks[item.index]?.kind !== 'inline';
 		}
 
-		const block = item.kind === 'block' ? found[item.index] : undefined;
+		const markdownBlock = item.kind === 'markdown' ? found[item.index] : undefined;
 
-		if (block?.kind === 'paragraph') {
-			return !markdown.lines.slice(block.first, block.last + 1).every((line) => imageLine(markdown, line.start, line.start + line.text.length));
+		if (markdownBlock?.kind === 'paragraph') {
+			return !markdown.lines.slice(markdownBlock.first, markdownBlock.last + 1).every((line) => imageLine(markdown, line.start, line.start + line.text.length));
 		}
 
 		return true;
-	}).sort((a, b) => a.start - b.start || b.end - a.end || (b.rank - a.rank) || (a.kind === 'directive' ? -1 : (b.kind === 'directive' ? 1 : 0)));
+	}).sort((a, b) => a.start - b.start || b.end - a.end || (b.rank - a.rank) || (a.kind === 'block' ? -1 : (b.kind === 'block' ? 1 : 0)));
 
 	const open: { end: number; index: number }[] = [];
 
@@ -169,7 +169,7 @@ export function imageLine(markdown: MarkdownOutline, start: number, end: number)
 /**
  * Where an element is: its outline item and every one it's inside,
  * outermost first. An element the outline leaves out (an inline
- * directive) is inside the smallest listed element holding it.
+ * block) is inside the smallest listed element holding it.
  */
 export function pathTo(items: OutlineItem[], ref: ElementRef | null, span?: { start: number; end: number }): OutlineItem[] {
 	if (ref === null) {
@@ -210,37 +210,37 @@ export function childrenOf(items: OutlineItem[], ref: ElementRef): OutlineItem[]
 }
 
 /**
- * An element's name: a directive's label, "Image", or a block's kind (a
+ * An element's name: a block's label, "Image", or a Markdown block's kind (a
  * heading with its level).
  */
-export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef, directiveLabel: (name: string) => string): string {
-	if (ref.kind === 'directive') {
-		return directiveLabel(markdown.directives[ref.index]?.name ?? '');
+export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef, blockLabel: (name: string) => string): string {
+	if (ref.kind === 'block') {
+		return blockLabel(markdown.blocks[ref.index]?.name ?? '');
 	}
 
 	if (ref.kind === 'image') {
 		return 'Image';
 	}
 
-	const block = found[ref.index];
+	const markdownBlock = found[ref.index];
 
-	if (block === undefined) {
+	if (markdownBlock === undefined) {
 		return '';
 	}
 
-	return block.kind === 'heading' ? `Heading ${headingLevel(markdown, block)}` : BLOCK_KINDS[block.kind].label;
+	return markdownBlock.kind === 'heading' ? `Heading ${headingLevel(markdown, markdownBlock)}` : MARKDOWN_BLOCK_KINDS[markdownBlock.kind].label;
 }
 
 /**
  * One line of what's in an element, for the outline: the words of a
  * heading, paragraph, quote, or item; a code block's language and
- * length; a table's columns; a list's type and items; a directive's
+ * length; a table's columns; a list's type and items; a block's
  * label or title; an image's caption, alt text, or file. A divider says
  * nothing.
  */
 export function excerpt(source: string, markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef): string {
-	if (ref.kind === 'directive') {
-		const item = markdown.directives[ref.index];
+	if (ref.kind === 'block') {
+		const item = markdown.blocks[ref.index];
 
 		if (item === undefined) {
 			return '';
@@ -248,7 +248,7 @@ export function excerpt(source: string, markdown: MarkdownOutline, found: Markdo
 
 		const values = attributesOf(source, item);
 
-		return directiveHead(source, item).label?.text || values.title || values.caption || values.src || values.url || values.name || values.type || '';
+		return blockHead(source, item).label?.text || values.title || values.caption || values.src || values.url || values.name || values.type || '';
 	}
 
 	if (ref.kind === 'image') {
@@ -257,15 +257,15 @@ export function excerpt(source: string, markdown: MarkdownOutline, found: Markdo
 		return item === undefined ? '' : (unescaped(item.title ?? '') || unescaped(item.alt) || item.src.split('/').pop() || '');
 	}
 
-	const block = found[ref.index];
+	const markdownBlock = found[ref.index];
 
-	if (block === undefined) {
+	if (markdownBlock === undefined) {
 		return '';
 	}
 
-	const lines = markdown.lines.slice(block.first, block.last + 1).map((line) => line.text);
+	const lines = markdown.lines.slice(markdownBlock.first, markdownBlock.last + 1).map((line) => line.text);
 
-	switch (block.kind) {
+	switch (markdownBlock.kind) {
 		case 'rule':
 			return '';
 		case 'code': {
@@ -277,9 +277,9 @@ export function excerpt(source: string, markdown: MarkdownOutline, found: Markdo
 		case 'table':
 			return plural((lines[0] ?? '').split('|').filter((cell) => cell.trim() !== '').length, 'column');
 		case 'list':
-			return `${LIST_STYLES[listStyle(markdown, found, block)].label} · ${plural(listItems(found, block).length, 'item')}`;
+			return `${LIST_STYLES[listStyle(markdown, found, markdownBlock)].label} · ${plural(listItems(found, markdownBlock).length, 'item')}`;
 		case 'definitions': {
-			const inside = found.filter((item) => item.first >= block.first && item.last <= block.last);
+			const inside = found.filter((item) => item.first >= markdownBlock.first && item.last <= markdownBlock.last);
 
 			return `${plural(inside.filter((item) => item.kind === 'term').length, 'term')} · ${plural(inside.filter((item) => item.kind === 'definition').length, 'definition')}`;
 		}

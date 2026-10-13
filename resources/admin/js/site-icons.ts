@@ -10,7 +10,7 @@ import { request } from './api';
 import type { IconName } from './icons';
 
 export interface SiteIcon {
-	// As the icon directive's `name` takes it: `house`, `jtcom/github`.
+	// As the icon block's `name` takes it: `house`, `jtcom/github`.
 	name: string;
 	label: string;
 	keywords: string[];

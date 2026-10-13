@@ -50,7 +50,7 @@ editor's toolbar in three parts, bold and italic toggles, the link
 form, moving elements, bleed with theme-named classes, the code block
 as one box, and the Markdown elements as inserter tiles (D-313); then
 moving the element the caret is in, Backspace taking markers off,
-guarded directive syntax, media kinds, and `only` (D-314); and Tab in
+guarded block syntax, media kinds, and `only` (D-314); and Tab in
 quotes and over lines of code (D-315); the per-line highlight cache
 (D-316); and the shell's rail toggle and section trail, and the
 Editorial admin theme (D-317); and account names, used across the
@@ -184,9 +184,9 @@ files to the pattern (`content:filenames`, Content health; D-512);
 and flat collections, file name patterns for every type, and a
 `published` date on every new entry (D-513, D-514), the slug alone
 as the default file name (D-515), and never sorting by file name,
-collections newest published first (D-516); and directives (what
-content says, from core, plugins, and the site, never a theme; called
-blocks in the admin) and components (a template's reusable pieces) as
+collections newest published first (D-516); and blocks (what
+content says, from core, plugins, and the site, never a theme;
+once named directives, D-820) and components (a template's reusable pieces) as
 two things (D-532, D-533); and, from the Home sketch
 (`.claude/docs/admin-design/meridian-home.html`), built in stages
 (D-537): the dashboard of what needs you first, and Tools with actions
@@ -199,7 +199,7 @@ updated extensions sketch, filters and a compact list on the extension
 lists, `keywords` in manifests, and one details layout with a single
 Dependencies panel (D-565); and scripts and styles registered by handle
 from core, plugins, and themes, served from `/blush` and
-`/extensions`, asked for by pages, templates, directives, and
+`/extensions`, asked for by pages, templates, blocks, and
 components and kept with cached bodies, a head filled after the page
 renders with footer scripts, the `PageRendering` event, and the audio
 and video players on the site (D-569 to D-573), with a theme's
@@ -369,7 +369,7 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   the only way to reach it.
 - **`$template` is the render, not the data** (D-819). It holds what
   only a render has: the layout, sections, includes, components,
-  directives, icons, the head and foot, assets, fragment caching, and
+  blocks, icons, the head and foot, assets, fragment caching, and
   what depends on the page (dates in its language, routes, menus, body
   classes). Everything else is an object the template is given, each
   a thin call to a service: `$entry` (its relations, URL, media,

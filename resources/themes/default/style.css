@@ -293,7 +293,7 @@ hr {
 
 /* Menus: submenus stay open; a theme's script can make them disclosures. */
 
-.directive-menu__list {
+.block-menu__list {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--space-xs) var(--space-m);
@@ -302,30 +302,30 @@ hr {
 	list-style: none;
 }
 
-.directive-menu__submenu {
+.block-menu__submenu {
 	flex-direction: column;
 	margin-block-start: var(--space-xs);
 	padding-inline-start: var(--space-m);
 	font-size: 0.9375em;
 }
 
-.directive-menu__link {
+.block-menu__link {
 	color: inherit;
 	text-decoration: none;
 }
 
-.directive-menu__link:hover,
-.directive-menu__link[aria-current="page"] {
+.block-menu__link:hover,
+.block-menu__link[aria-current="page"] {
 	color: var(--color-accent);
 	text-decoration: underline;
 	text-underline-offset: 0.2em;
 }
 
-.directive-menu__heading {
+.block-menu__heading {
 	font-weight: 700;
 }
 
-.directive-menu__image {
+.block-menu__image {
 	width: 1.5em;
 	height: 1.5em;
 	vertical-align: middle;
@@ -333,7 +333,7 @@ hr {
 	border-radius: var(--radius);
 }
 
-.directive-menu__badge {
+.block-menu__badge {
 	margin-inline-start: var(--space-xs);
 	padding: 0 var(--space-xs);
 	border-radius: var(--radius);
@@ -341,7 +341,7 @@ hr {
 	font-size: 0.75em;
 }
 
-.directive-menu__description {
+.block-menu__description {
 	display: block;
 	color: var(--color-muted);
 	font-size: 0.875em;
@@ -484,18 +484,18 @@ hr {
 	background: var(--color-surface);
 }
 
-/* Directives */
+/* Blocks */
 
-.directive-group,
-.directive-grid,
-.directive-row,
-.directive-stack {
+.block-group,
+.block-grid,
+.block-row,
+.block-stack {
 	margin-block: var(--space-l);
 }
 
-.directive-grid > *,
-.directive-row > *,
-.directive-stack > * {
+.block-grid > *,
+.block-row > *,
+.block-stack > * {
 	margin-block: 0;
 }
 
@@ -505,41 +505,41 @@ hr {
  * `--masonry` packs images of any height into its columns with grid
  * lanes, or is an even grid where a browser has no grid lanes.
  */
-.directive-gallery {
+.block-gallery {
 	--gallery-gap: var(--space-s);
 	--gallery-per-row: var(--gallery-columns, 3);
 	gap: var(--gallery-gap);
 	margin-block: var(--space-l);
 }
 
-.directive-gallery--flex {
+.block-gallery--flex {
 	display: flex;
 	flex-wrap: wrap;
 }
 
-.directive-gallery--flex :is(img, figure) {
+.block-gallery--flex :is(img, figure) {
 	flex: 1 1 calc((100% - (var(--gallery-per-row) - 1) * var(--gallery-gap)) / var(--gallery-per-row));
 	min-width: 0;
 }
 
-.directive-gallery--grid {
+.block-gallery--grid {
 	display: grid;
 	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
 }
 
-.directive-gallery--masonry {
+.block-gallery--masonry {
 	display: grid;
 	display: grid-lanes;
 	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
 	align-items: start;
 }
 
-.directive-gallery > p {
+.block-gallery > p {
 	display: contents;
 }
 
-.directive-gallery img,
-.directive-gallery figure {
+.block-gallery img,
+.block-gallery figure {
 	width: 100%;
 	margin: 0;
 	border-radius: var(--radius);
@@ -547,62 +547,62 @@ hr {
 }
 
 @media (max-width: 40rem) {
-	.directive-gallery {
+	.block-gallery {
 		--gallery-per-row: min(var(--gallery-columns, 3), 2);
 	}
 }
 
-.directive-figure img {
+.block-figure img {
 	border-radius: var(--radius);
 }
 
-.directive-audio,
-.directive-video {
+.block-audio,
+.block-video {
 	margin-block: var(--space-l);
 }
 
-.directive-audio audio {
+.block-audio audio {
 	width: 100%;
 }
 
-.directive-video video {
+.block-video video {
 	width: 100%;
 	height: auto;
 	border-radius: var(--radius);
 }
 
-.directive-file__details {
+.block-file__details {
 	color: var(--color-muted);
 }
 
-.directive-toc {
+.block-toc {
 	margin-block: var(--space-l);
 	padding: var(--space-m);
 	border-radius: var(--radius);
 	background: var(--color-surface);
 }
 
-.directive-toc__title {
+.block-toc__title {
 	margin-block: 0 var(--space-s);
 	font-weight: 700;
 }
 
-.directive-toc__list {
+.block-toc__list {
 	margin: 0;
 	padding-inline-start: var(--space-m);
 }
 
-.directive-toc__list .directive-toc__list {
+.block-toc__list .block-toc__list {
 	margin-block-start: var(--space-xs);
 }
 
-.directive-icon {
+.block-icon {
 	display: inline-block;
 	vertical-align: -0.125em;
 }
 
-.directive-progress,
-.directive-meter {
+.block-progress,
+.block-meter {
 	display: inline-flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -610,20 +610,20 @@ hr {
 	max-inline-size: 100%;
 }
 
-.directive-progress__bar,
-.directive-meter__gauge {
+.block-progress__bar,
+.block-meter__gauge {
 	inline-size: 12rem;
 	max-inline-size: 100%;
 	accent-color: var(--color-accent);
 }
 
-.directive-progress__value,
-.directive-meter__value {
+.block-progress__value,
+.block-meter__value {
 	color: var(--color-muted);
 	font-variant-numeric: tabular-nums;
 }
 
-.directive-button {
+.block-button {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5em;
@@ -637,37 +637,37 @@ hr {
 	color: var(--color-background);
 }
 
-.directive-button--secondary {
+.block-button--secondary {
 	background: transparent;
 	color: var(--color-accent);
 }
 
-.directive-button:hover,
-.directive-button:focus-visible {
+.block-button:hover,
+.block-button:focus-visible {
 	border-color: var(--color-accent-hover);
 }
 
-.directive-button:not(.directive-button--secondary):hover,
-.directive-button:not(.directive-button--secondary):focus-visible {
+.block-button:not(.block-button--secondary):hover,
+.block-button:not(.block-button--secondary):focus-visible {
 	background: var(--color-accent-hover);
 }
 
-.directive-button--icon-only {
+.block-button--icon-only {
 	padding: 0.5em;
 }
 
-.directive-kbd {
+.block-kbd {
 	padding: 0.1em 0.4em;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
 	font-size: 0.875em;
 }
 
-.directive-kbd kbd {
+.block-kbd kbd {
 	font: inherit;
 }
 
-.directive-badge {
+.block-badge {
 	display: inline-block;
 	padding: 0.1em 0.5em;
 	border: 1px solid color-mix(in srgb, var(--badge-color, var(--color-muted)) 40%, transparent);
@@ -680,12 +680,12 @@ hr {
 	vertical-align: 0.1em;
 }
 
-.directive-badge--info { --badge-color: var(--color-info); }
-.directive-badge--tip { --badge-color: var(--color-success); }
-.directive-badge--warning { --badge-color: var(--color-warning); }
-.directive-badge--danger { --badge-color: var(--color-danger); }
+.block-badge--info { --badge-color: var(--color-info); }
+.block-badge--tip { --badge-color: var(--color-success); }
+.block-badge--warning { --badge-color: var(--color-warning); }
+.block-badge--danger { --badge-color: var(--color-danger); }
 
-.directive-callout {
+.block-callout {
 	margin-block: var(--space-l);
 	padding: var(--space-m);
 	border-inline-start: 4px solid var(--callout-color, var(--color-muted));
@@ -693,27 +693,27 @@ hr {
 	background: var(--color-surface);
 }
 
-.directive-callout > :last-child {
+.block-callout > :last-child {
 	margin-block-end: 0;
 }
 
-.directive-callout__title {
+.block-callout__title {
 	margin-block: 0 var(--space-s);
 	font-weight: 700;
 }
 
-.directive-callout--info { --callout-color: var(--color-info); }
-.directive-callout--tip { --callout-color: var(--color-success); }
-.directive-callout--warning { --callout-color: var(--color-warning); }
-.directive-callout--danger { --callout-color: var(--color-danger); }
+.block-callout--info { --callout-color: var(--color-info); }
+.block-callout--tip { --callout-color: var(--color-success); }
+.block-callout--warning { --callout-color: var(--color-warning); }
+.block-callout--danger { --callout-color: var(--color-danger); }
 
-.directive-embed {
+.block-embed {
 	margin-inline: 0;
 	margin-block: var(--space-l);
 }
 
 /* The frame keeps the embed's shape (its provider's ratio, or 16:9). */
-.directive-embed__frame {
+.block-embed__frame {
 	display: block;
 	width: 100%;
 	height: auto;
@@ -723,13 +723,13 @@ hr {
 }
 
 /* A tall embed (a 9:16 short) is never taller than 80% of the screen. */
-.directive-embed--portrait iframe {
+.block-embed--portrait iframe {
 	max-width: calc(80svh * (var(--embed-ratio)));
 	margin-inline: auto;
 }
 
 /* A player at a set height (Spotify's, SoundCloud's) fills the column at it. */
-.directive-embed--fixed iframe {
+.block-embed--fixed iframe {
 	height: var(--embed-height);
 	aspect-ratio: auto;
 }
@@ -738,13 +738,13 @@ hr {
  * A post (from X) is a quote until its provider's script draws it, and
  * keeps to a post's width, centered, either way.
  */
-.directive-embed--rich > :not(figcaption) {
+.block-embed--rich > :not(figcaption) {
 	max-width: 550px;
 	margin-inline: auto;
 }
 
 /* A photo (from Flickr) fills the column at most, keeping its shape. */
-.directive-embed__photo {
+.block-embed__photo {
 	display: block;
 	max-width: 100%;
 	height: auto;

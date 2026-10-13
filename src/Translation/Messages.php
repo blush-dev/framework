@@ -20,7 +20,7 @@ namespace Blush\Translation;
  * the extension the class belongs to, by its namespace (`ClassDomains`),
  * or core's; a template has it as `$messages`, for the domains of the
  * code that wrote the file; service providers, components, and
- * directives have it as `$this->messages`.
+ * blocks have it as `$this->messages`.
  *
  * ```php
  * public function __construct(private Messages $messages) {}

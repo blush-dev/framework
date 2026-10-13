@@ -23,7 +23,7 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 | [Writing content](content.md) | Files and folders, front matter, drafts, scheduling, and Markdown extras |
 | [Media](media.md) | Images, audio, and video |
 | [Content types](content-types.md) | Blogs, categories and tags, relationships, custom fields, feeds, and archives |
-| [Directives](directives.md) | Callouts, galleries, buttons, and your own directives, in your content |
+| [Blocks](blocks.md) | Callouts, galleries, buttons, and your own blocks, in your content |
 | [Components](components.md) | Reusable pieces of a theme's templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Menus](menus.md) | Navigation menus, and assigning them to your theme's locations |

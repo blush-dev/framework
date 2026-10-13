@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * Parsed block.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Block;
+
+/**
+ * A block found in Markdown (D-026), handed to the
+ * `BlockRenderer`: its name, kind, attributes, label (plain text),
+ * content (HTML: a container's rendered blocks, or the escaped label of a
+ * leaf or inline block). A table of contents block also gets the document's outline (D-183): each
+ * heading's level, plain text, and link target, in order. A leaf or a
+ * container directly inside a container block is given that
+ * container's name, as written (D-708), so a playlist's tracks can
+ * render as its rows.
+ */
+final readonly class ParsedBlock
+{
+	/**
+	 * @param array<string, string>                              $attributes
+	 * @param list<array{level: int, text: string, id: string}> $outline
+	 * @param string $language  The code of the language the Markdown is in, when it isn't the default (D-459), or `''`.
+	 * @param string $container The name of the container block it's directly in, as written, or `''`.
+	 */
+	public function __construct(
+		public string $name,
+		public BlockKind $kind,
+		public array $attributes = [],
+		public string $label = '',
+		public string $content = '',
+		public array $outline = [],
+		public string $language = '',
+		public string $container = ''
+	) {}
+}

@@ -28,7 +28,7 @@ use Blush\Tests\WritesThemeViews;
 use Blush\Tests\Fixtures\Component\Card;
 use Blush\Tests\Fixtures\Component\Chip;
 use Blush\Tests\Fixtures\Component\Orphan;
-use Blush\Tests\Fixtures\Directive\Stamp;
+use Blush\Tests\Fixtures\Block\Stamp;
 use Blush\Tests\Fixtures\View\Greeting;
 use Blush\Theme\ThemeResolver;
 use Blush\View\ContextProviders;
@@ -77,7 +77,7 @@ final class ComponentsTest extends TestCase
 		$this->assertSame('<div class="component-box" data-tone="info" data-n=""><p>Body</p>|<small>Foot</small>|no header</div>', $views->render('page'));
 		$this->assertSame('<div class="component-box extra" id="b" data-tone="plain" data-n="3">|' . '|no header</div>', $views->component('site/box', ['data-n' => '3', 'class' => 'extra', 'id' => 'b'], '', new Slots(), new ViewContext()));
 		$this->assertTrue($views->hasComponent('site/box'));
-		$this->assertFalse($views->hasComponent('callout'), 'A directive isn\'t a component (D-532).');
+		$this->assertFalse($views->hasComponent('callout'), 'A block isn\'t a component (D-532).');
 		$this->assertFalse($views->hasComponent('box'));
 		$this->assertFalse($views->hasComponent('acme/nope'));
 		$this->assertFalse($views->hasComponent('../x'));
@@ -207,7 +207,7 @@ final class ComponentsTest extends TestCase
 
 		$html = (string) $this->app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('<p>Just text</p>', $html, 'What content says is a directive (D-532).');
+		$this->assertStringContainsString('<p>Just text</p>', $html, 'What content says is a block (D-532).');
 		$this->assertStringNotContainsString('a box', $html);
 	}
 

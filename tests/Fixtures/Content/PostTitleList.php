@@ -19,7 +19,7 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 
 /**
- * The `PostTitles` directive's list as a component, for templates.
+ * The `PostTitles` block's list as a component, for templates.
  */
 final class PostTitleList extends Component
 {

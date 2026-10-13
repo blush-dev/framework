@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A menu's settings, in a dialog over its screen (from the menus
- * sketch): its label, its name, the directive that shows it in an
+ * sketch): its label, its name, the block that shows it in an
  * entry, and the theme's locations that show it. Nothing is saved here:
  * Done hands the choices to the screen, which saves them with the items
  * (Publish or Update); Cancel keeps what was there.
@@ -111,7 +111,7 @@ function done(): void {
 				<label for="menu-settings-name">Name</label>
 				<input id="menu-settings-name" :value="name" class="mono" autocomplete="off" spellcheck="false" :aria-invalid="problem !== ''" aria-describedby="menu-settings-name-help" @input="typeName">
 				<p v-if="problem" id="menu-settings-name-help" class="field__error"><AdminIcon name="triangle-alert" />{{ problem }}</p>
-				<p v-else id="menu-settings-name-help" class="field__help">Themes and the directive find the menu by its name.</p>
+				<p v-else id="menu-settings-name-help" class="field__help">Themes and the block find the menu by its name.</p>
 				<p v-if="renamed && !problem" class="notice notice--warn notice--small" role="status">
 					<AdminIcon name="triangle-alert" />
 					<span><strong>Renaming changes how entries find this menu.</strong> Its locations follow the new name on their own, but an entry that shows it with <code>::menu{name={{ saved }}}</code> shows nothing there until it's changed.</span>
@@ -122,7 +122,7 @@ function done(): void {
 				<span class="field__label">In an Entry</span>
 				<div class="menu-settings__snippet">
 					<code class="mono">{{ snippet }}</code>
-					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, 'the directive')"><AdminIcon name="copy" />Copy</button>
+					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, 'the block')"><AdminIcon name="copy" />Copy</button>
 				</div>
 			</div>
 

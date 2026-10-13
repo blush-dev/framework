@@ -65,7 +65,7 @@ Findings, and what was done:
   uses all of them.
 - **Also fixed:** the archive lists are cached per content version and
   theme (first with the new `$this->cache()` fragment helper, D-152;
-  now as `::post-archives{by=…}` directives in the three pages' content,
+  now as `::post-archives{by=…}` blocks in the three pages' content,
   cached with the rendered body, so the theme needs no `single-page-*`
   views for them), and
   titles use `$this->widont()`, 1.x's `runt()` (D-153).
@@ -562,7 +562,7 @@ narrow stores (D-645).
 - How the media index and `content:lint` see a changed record (today
   file times; versions, likely) is settled when 6d is reviewed.
 
-**6e. Menus as a table, regions removed** (D-676; built, D-677: the directive takes `location` in templates and `name` in content, `menu:assign` writes assignments, `menu:refs` files ids, Site Health doesn't check menus):
+**6e. Menus as a table, regions removed** (D-676; built, D-677: the block takes `location` in templates and `name` in content, `menu:assign` writes assignments, `menu:refs` files ids, Site Health doesn't check menus):
 - **Regions go:** `Blush\Region`, `user/data/regions/`,
   `$template->region()`/`hasRegion()`, `theme.json` `regions`,
   `regions.edit`, `theme:check`'s region checks, and the docs. The
@@ -709,13 +709,13 @@ first-run patterns (D-240); then, from the author's clickable prototype
 (`admin-design/blush-admin.html`), the full navigation with stubs for
 the screens not built yet (Media, Content types, Appearance,
 Extensions, Accounts, Roles, Settings) and a Markdown source editor
-that highlights directives and knows the one under the caret (D-241);
+that highlights blocks and knows the one under the caret (D-241);
 then the component inserter, with `/` to open it at the caret and
 `GET components` behind it (D-243); then, from the updated design, the
 section rail (Home, Content, Config) with a panel per section (D-244),
 and the editor as a writing surface: one centered column, a settings
 drawer with Document and Component tabs, component options written back
-into their directives, and focus mode (D-245); then the header's two
+into their blocks, and focus mode (D-245); then the header's two
 halves and three inserters: components in a panel from the left, icons
 in a popover, and media in a modal picker that's also **Choose** beside
 media fields (D-247), over `GET icons` and `GET media` (D-246).
@@ -812,7 +812,7 @@ and italic as toggles, a link form on ⌘K, moving the top-level element
 block, the drawer opening on the element, leaving the text dropping the
 selection, and the Markdown elements as inserter tiles. Then the rest
 of it (D-314): moving the element the caret is in among its siblings,
-Backspace taking markers off, text kept out of directive tags and
+Backspace taking markers off, text kept out of block tags and
 attribute blocks, media fields and props with a kind (a locked
 picker), and a component's `only` (the gallery holds images); then Tab
 in quotes and over several lines of code (D-315), and the highlight
@@ -966,7 +966,7 @@ choice labels moved to stages 2 and 3.
   goes. `ReferenceField` stays internal for the field a relation adds
   to a schema and a collection's `parent`.
 - **Callers move to `ControlType`:** settings (D-343), media field
-  sets (D-341), menus' and theme settings' fields, directive options.
+  sets (D-341), menus' and theme settings' fields, block options.
   `RelationControl` is separate and unchanged.
 - **The catalog:** `GET fields/controls` (the picker's sections and
   tiles) replaces `GET fields/types`. The editor JSON Schemas are
@@ -1098,7 +1098,7 @@ admin changed, and `docs/`.
    "control": {"name": "radios"}}`), nested fields their own, split
    apart when read. A data type's own fields the same, and theme
    settings and menu fields from `theme.json` too. Core's own
-   forms (Settings, the editor's rows, directive options) choose
+   forms (Settings, the editor's rows, block options) choose
    theirs in code. Every admin endpoint sends form fields.
 3. **Fields forget controls** (built, D-798): `Field`'s control, `control()`,
    `editedWith()`, `defaultControl()`, and `toForm()` go, with the field
@@ -1265,8 +1265,8 @@ admin changed, and `docs/`.
 Other starting points the author may pick up (none decided):
 
 
-- **Required directive registration (D-266's direction):** every
-  directive is registered (D-533, from PHP); registering one from JSON
+- **Required block registration (D-266's direction):** every
+  block is registered (D-533, from PHP); registering one from JSON
   with translations is still open, as are patterns (D-532).
 - **Later for components:** captioned quotes and tables, a `<button>`
   component, rich script embeds and an embed refresh command, extension
@@ -1296,17 +1296,17 @@ Other starting points the author may pick up (none decided):
 
 Agreed, not scheduled; built when the author says so.
 
-- **Media directives from templates, with shortcuts** (D-814, author
-  2026-10-13): a media directive's `#[MediaProp]` values (`src`,
+- **Media blocks from templates, with shortcuts** (D-814, author
+  2026-10-13): a media block's `#[MediaProp]` values (`src`,
   `poster`, `track`, `art`) are resolved only in Markdown today, so a
   template passes `$item->url`. Resolve them on the template path too
-  (`PendingDirective`), taking a file's id, an older path, or a
-  `MediaItem`, and add shortcuts over the directives as `icon()` is:
+  (`PendingBlock`), taking a file's id, an older path, or a
+  `MediaItem`, and add shortcuts over the blocks as `icon()` is:
   `$template->video($item)`, `$template->audio($item, variant: 'card')`,
-  `$template->file($item)`, each taking the directive's props by name.
-  One markup per kind (the directive's template, which themes
+  `$template->file($item)`, each taking the block's props by name.
+  One markup per kind (the block's template, which themes
   override), and the player's scripts and styles asked for as
-  directives ask. Images keep `MediaItem::img()`.
+  blocks ask. Images keep `MediaItem::img()`.
 
 ## M7 (Static export): done
 
@@ -1521,7 +1521,7 @@ tests):
 
 - Components (`Component`): template-only and class-backed, slots,
   `$this->component()`, the registry/factory/registrar, and `Embed`.
-- Markdown directives (an in-house CommonMark extension) rendered as
+- Markdown blocks (an in-house CommonMark extension) rendered as
   components with the request's theme, and the core content components
   in the default theme: `callout`, `gallery`, `figure`, `embed`.
 - Context providers.

@@ -340,9 +340,9 @@ final class EntriesTest extends TestCase
 		$this->entry('_post/prose.md', 'title: Prose', implode("\n\n", [
 			'# A heading',
 			'<figure><audio src="a.mp3"><a href="a.mp3">Download it</a></audio><figcaption>Song title</figcaption></figure>',
-			'<aside class="directive-callout"><p>A callout.</p></aside>',
-			'<p class="directive-file"><a href="a.pdf">A file</a></p>',
-			'One <a class="directive-button" href="/go">Go</a> two[^1] three.',
+			'<aside class="block-callout"><p>A callout.</p></aside>',
+			'<p class="block-file"><a href="a.pdf">A file</a></p>',
+			'One <a class="block-button" href="/go">Go</a> two[^1] three.',
 			"```\ncode words\n```",
 			"| A | B |\n|---|---|\n| cell | cell |",
 			"- Four\n- Five\n  - six",

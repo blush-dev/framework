@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
  * The element tab for a Markdown image (admin.md §8, An image is
- * Markdown; D-268). There's no image directive: `![alt](src "caption")`
- * is edited in place, with the same panel a directive gets.
+ * Markdown; D-268). There's no image block: `![alt](src "caption")`
+ * is edited in place, with the same panel a block gets.
  *
  * - **Variant**: Default, then the classes the theme offers images
- *   (`GET directives`' `image.variants`). A variant is a class in the
+ *   (`GET blocks`' `image.variants`). A variant is a class in the
  *   image's attributes (`{.stretch-wide}`), so choosing one swaps that
  *   class and leaves the rest.
  * - **The image itself**, not its file name (`ImagePreview`), with
@@ -27,14 +27,14 @@ import ImagePreview from './ImagePreview.vue';
 import AttributeFields from './AttributeFields.vue';
 import OptionSelect from './OptionSelect.vue';
 import OptionsGroup from './OptionsGroup.vue';
-import type { DirectiveVariant } from '../directives';
+import type { BlockVariant } from '../blocks';
 import type { MediaItem } from '../api';
 import { attributeParts, unescaped, withImage, withParts, type Edit, type MarkdownImage } from '../markdown';
 
 const props = defineProps<{
 	source: string;
 	image: MarkdownImage;
-	variants: DirectiveVariant[];
+	variants: BlockVariant[];
 }>();
 
 const emit = defineEmits<{

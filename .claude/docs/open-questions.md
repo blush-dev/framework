@@ -4,6 +4,23 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Inline blocks and Markdown blocks** (D-820). Two naming
+  questions left by renaming directives to blocks:
+  - **Inline blocks** (`:abbr[…]`, `:kbd[…]`, `:icon[…]`) are blocks of
+    kind `inline` in the one registry for now. The author expects
+    another name, and perhaps registering them apart (their own
+    registry, controller, and inserter list; the editor already
+    offers them in their own menu). Candidates: "marks", "inlines",
+    "tags". To decide with it: whether `BlockKind` keeps `Inline`, and
+    what a theme's `blocks/` folder holds.
+  - **Markdown blocks** (heading, paragraph, list, and so on, in
+    `markdown.ts`) are the editor's own today. The author's direction
+    is a block editor that reads and writes Markdown, where they're a
+    special kind of block: whether they then join the registry (core
+    `markdown/*` names?), share the inserter's description shape
+    (they do in part, `MARKDOWN_ELEMENTS`), and keep the `markdown`
+    outline kind.
+
 - **Choosing a type's byline: overhaul the flow** (author, 2026-10-12:
   "very hard", to fix). Today a byline is implicit: a type's only
   credit relationship is its byline, and with two or more, none is until
@@ -87,7 +104,7 @@ Move each item to `decisions.md` once it's answered.
   2026-10-08; kept open by the author). The folder is `views/` and the
   runtime `Blush\View`, but writers and theme authors meet "template":
   front matter `template` (`view` an alias), the template hierarchy,
-  `$template`, and `template()` on components and directives.
+  `$template`, and `template()` on components and blocks.
   CMS theming systems mostly say `templates/`; MVC frameworks say
   views; Symfony and CakePHP moved to `templates/`. The question is
   what "template" means:
@@ -95,12 +112,12 @@ Move each item to `decisions.md` once it's answered.
     `Blush\View` as the runtime.
   - **Only the hierarchy's page-level files** (the recommendation):
     keep `views/` as the umbrella, a file at its root a template and
-    subfolders (`layouts/`, `partials/`, `components/`, `directives/`)
+    subfolders (`layouts/`, `partials/`, `components/`, `blocks/`)
     the pieces templates draw with. A split into five top-level
     folders was weighed and judged too crowded.
-  - Either way: plugins put their markup in `views/directives/` and
+  - Either way: plugins put their markup in `views/blocks/` and
     `views/components/` as themes do (the docs now show `views/`,
-    `resources/directives/`, and `resources/components/`, and
+    `resources/blocks/`, and `resources/components/`, and
     `resources/` is build sources in a theme); the stale "site's
     views" comment in `Component.php` and the "`template()` returns
     another view" wording get fixed.
@@ -298,7 +315,7 @@ Move each item to `decisions.md` once it's answered.
 - **A front-end interactivity API** (discussed 2026-10-07; nothing to
   build yet). Developers will need a way to build interactive sites.
   The direction discussed: no client framework (Preact or otherwise)
-  as the public API; directives over server-rendered HTML, with
+  as the public API; blocks over server-rendered HTML, with
   signals inside.
   - **Why not components in JS:** a Preact (or Vue, Svelte, Solid)
     component is a second copy of a PHP template. Either it renders
@@ -314,17 +331,17 @@ Move each item to `decisions.md` once it's answered.
     Stores are ES modules registered by plugins and themes. PHP seeds
     the starting state, which is written to the page as JSON with the
     head and footer (D-577, D-578).
-  - **PHP runs the same directives at render time,** so the first
-    paint is right with no flash. That means a directive's value is a
+  - **PHP runs the same blocks at render time,** so the first
+    paint is right with no flash. That means a block's value is a
     small expression language (paths, `!`, perhaps named getters),
     never arbitrary JS. Both PHP and JS can evaluate it, and it's
     CSP-safe (no `eval`).
   - **Loading:** stores and the runtime are scripts by handle (D-569
-    to D-573), asked for by directives, components, and templates, so
+    to D-573), asked for by blocks, components, and templates, so
     a page loads them only when it uses them. Plain ES modules with an
     import map, no bundler for themes.
   - **Runtime internals:** `@preact/signals-core` (about 1.5 KB) with
-    Blush's own directive walker (leaning), full Preact for its list
+    Blush's own block walker (leaning), full Preact for its list
     diffing, or a hand-written signal. Kept out of the public API so it
     can be swapped.
   - **Alongside it:** custom elements for self-contained widgets (the
@@ -334,7 +351,7 @@ Move each item to `decisions.md` once it's answered.
   - **Not chosen:** Alpine (`eval`-style expressions, no server-side
     pass, another project's API); compiled frameworks (a build step
     for site developers). Vue stays in the admin.
-  - **Open:** the attribute prefix and directive set; the expression
+  - **Open:** the attribute prefix and block set; the expression
     language; the runtime; how stores are registered in PHP and JS;
     whether client navigation by region comes later (a player that
     keeps playing across pages is the likely first case).
@@ -394,7 +411,7 @@ Move each item to `decisions.md` once it's answered.
   - **Providers:** registering is lookups
     (`$this->container->get(ComponentRegistry::class)->register(…)`).
     Declarative constants like `SINGLETONS` and `TAGS`
-    (`COMPONENTS`, `DIRECTIVES`, `ICONS`), with providers knowing their
+    (`COMPONENTS`, `BLOCKS`, `ICONS`), with providers knowing their
     extension (below), would leave most providers without `boot()`.
   - **Components:** props and services share the constructor with
     nothing marking which is which (the docs say props are public
@@ -496,7 +513,7 @@ Move each item to `decisions.md` once it's answered.
   5. **Part arguments and defaults** (`$meta ??= 'default'`): parts that
      take arguments become template components (`$component->prop()`),
      documented as the way.
-  6. **Directive templates with logic** (the core callout naming its
+  6. **Block templates with logic** (the core callout naming its
      kind without a title: no, the author, 2026-10-06): callout maps its variant to a
      kind and falls back to a translated title; the class should give
      `kind()` and a `heading()` that falls back to the kind's name.
@@ -515,7 +532,7 @@ Move each item to `decisions.md` once it's answered.
   `$view->…` calls, `if`, `foreach`, and printing values, because the
   APIs make that the easy path, not because anything else is refused.
   Docs show that style, and say where logic belongs instead: a
-  component (with a class when it needs data), a directive, or the
+  component (with a class when it needs data), a block, or the
   site's or theme's provider. Whether `theme:check --strict` should
   ever *note* (never fail) closures, `try`, or HTML built in strings in
   a view is open.
@@ -553,7 +570,7 @@ Move each item to `decisions.md` once it's answered.
   here", and `theme:check` can compare a view's marked type against
   the hierarchy. Costs: longer lines (`$view->entry->title`; an author
   may still write `$entry = $view->entry;`); it decides `$template`
-  versus `$view` (D-158, above); components and directives would reach
+  versus `$view` (D-158, above); components and blocks would reach
   theirs the same way (`$view->component`) or keep their own variable.
 
   **How others do it** (background, from memory, not checked against
@@ -593,11 +610,11 @@ Move each item to `decisions.md` once it's answered.
   the site's views, then the theme chain's, then its class's `render()`,
   which is now optional: themes' components need none, plugins' and
   restylable site components keep their default there. Still open: the
-  same for directives from plugins and the site, and whether `view()`
+  same for blocks from plugins and the site, and whether `view()`
   takes a path relative to something (plugins still write
   `__DIR__ . '/../views/…'`).
 
-  **Provider constants** (`COMPONENTS`, `DIRECTIVES`, `ICONS`, in the
+  **Provider constants** (`COMPONENTS`, `BLOCKS`, `ICONS`, in the
   style of `SINGLETONS` and `TAGS`): on hold (the author, 2026-10-06);
   providers are framework-level, and this work is CMS-level. Take up
   with providers that know their extension.
@@ -625,10 +642,10 @@ Move each item to `decisions.md` once it's answered.
   - **Another extension's namespace:** jtcom-blade registers `jtcom/*`
     components. Allowed, or refused?
   - **Shape:** helpers on `ServiceProvider` (`components()`,
-    `directives()`, `icons()`), or an `ExtensionProvider` base for
+    `blocks()`, `icons()`), or an `ExtensionProvider` base for
     themes and plugins.
 
-- **A pull quote directive** (discussed 2026-10-06, from D-556). A
+- **A pull quote block** (discussed 2026-10-06, from D-556). A
   pull quote and a quote are two different things (the author):
   - **Pull quote:** a line repeated from the page it sits on, set large
     as a visual hook. It never takes a `cite`, since its source is the
@@ -639,12 +656,12 @@ Move each item to `decisions.md` once it's answered.
   - **Quote:** words from somewhere else: `<blockquote>`, an optional
     `cite` URL, attribution in a `<figcaption>`; always exposed.
 
-  Proposed: a core `pullquote` directive (content says what it is, so
+  Proposed: a core `pullquote` block (content says what it is, so
   every theme draws it, D-532), e.g. `:::pullquote[Ines Okafor]`, its
   width from bleed. Open:
   - Whether Second Proof's `pull` figure variant stays as a large quote
     style (it's really a quote: `<figure>`, `<blockquote>`,
-    `<figcaption>`) or goes once the directive exists. The design's
+    `<figcaption>`) or goes once the block exists. The design's
     "Every Element" page mixes the two.
   - Whether the editor warns when a pull quote's text isn't in the
     entry.
@@ -670,11 +687,11 @@ Move each item to `decisions.md` once it's answered.
     or keep it as its own package. (`theme:check` on an inactive theme
     now runs its provider, D-557.)
 
-- **Directives and components** (D-532, built in D-533). Settled: themes
-  can't register directives, writers see "Blocks", and every directive is
+- **Blocks and components** (D-532, built in D-533). Settled: themes
+  can't register blocks, writers see "Blocks", and every block is
   a registered class that declares its kind (D-534). What's left:
   - **Patterns:** a theme's (or plugin's) named arrangement of
-    directives, inserted into content as plain Markdown. Proposed:
+    blocks, inserted into content as plain Markdown. Proposed:
     copied in and forgotten, never a live reference, which would bring
     the theme dependency back.
 
@@ -865,9 +882,9 @@ Move each item to `decisions.md` once it's answered.
   D-676, and this is the starting point when they return): a region becomes an editable
   area a theme registers, filled with Markdown the user writes, instead
   of a typed item list in `user/data/regions/` (D-201, D-204).
-  - **Why:** since D-532, directives are what content says and
+  - **Why:** since D-532, blocks are what content says and
     components are a template's pieces, so of today's item kinds only
-    `directive` and `markdown` are content; `component` and `view` are
+    `block` and `markdown` are content; `component` and `view` are
     template work kept as site data, and `entry` (with its `_regions/`
     folder) exists only because inline text was too small. Markdown
     covers what's left (`::menu{name=social}`), and the admin's editor
@@ -885,13 +902,13 @@ Move each item to `decisions.md` once it's answered.
     - **Theme defaults** are Markdown. The user overrules them by
       attaching their own region entry to that location; no merging.
     - **Structured areas** (search, then recent posts) wait for a
-      larger library of directives, or the theme draws them with
+      larger library of blocks, or the theme draws them with
       components in its templates and offers no user input there.
   - **Still open:**
     - **The name.** Is "region" a word users understand? The user docs
       already explain regions as "the sidebar and footer areas themes
       offer" (`docs/README.md`). Taken or confusing: blocks
-      (directives), sections (the admin's section rail and panel),
+      (registered blocks in content), sections (the admin's section rail and panel),
       slots (components, D-025, and the Fields API), zones (time
       zones), partials (template parts), and "widgets" reads as
       another CMS. "Areas" is plain English ("Footer area"), but
@@ -1036,7 +1053,7 @@ Move each item to `decisions.md` once it's answered.
     types with each type's `llms` option), and `llms-full.txt` (D-402).
     Still open: answering `Accept: text/markdown` on the page's own URL
     (a cache would then vary by `Accept`, and a static copy can't);
-    and directives rendered to plain Markdown rather than left as
+    and blocks rendered to plain Markdown rather than left as
     written (their URL props get full URLs, D-396), which needs each
     component's plain form, with today's as the fallback.
   - **An MCP server:** settled 2026-10-11 in D-751 to D-758, built in
@@ -1056,7 +1073,7 @@ Move each item to `decisions.md` once it's answered.
     rebuild on an outgoing webhook), or as the API exported to
     a folder of JSON by a static export plugin (D-476), so a front end
     builds with no PHP running. Open within it:
-    - Bodies: directives and components render through theme templates
+    - Bodies: blocks and components render through theme templates
       (D-382), so a front end can't render them alone. Rendered HTML
       first (core component templates), a structured tree (JSON nodes
       a front end maps to its own components, like Portable Text or
@@ -1250,7 +1267,7 @@ Move each item to `decisions.md` once it's answered.
   everywhere, the domain of the code that wrote it, `Text` and
   `Messages`, `lang:extract`). Still open from it: removing keys no
   longer used (`--prune`), since keys looked up by convention
-  (`directives.{name}.label`) and keyed-only `t()` calls can't be told
+  (`blocks.{name}.label`) and keyed-only `t()` calls can't be told
   from unused ones; and marking changed text in other locales'
   catalogs so translators recheck it (today `lang:extract` reports it).
 - **Leaving a fragment out of the page cache** (raised 2026-10-04): a
@@ -1423,7 +1440,7 @@ Move each item to `decisions.md` once it's answered.
       Extensions need to add to the fingerprint, or it holds the active
       extensions and their versions. True of any plugin that changes
       rendered output.
-    - **Assets only where they're used.** Pages, templates, directives,
+    - **Assets only where they're used.** Pages, templates, blocks,
       and components ask for assets, kept with cached bodies (D-570);
       a fenced block is none of those, so a plugin's stylesheet loads on
       every page unless a render can ask for an asset.
@@ -1447,7 +1464,7 @@ Move each item to `decisions.md` once it's answered.
       links, collected data). Core already does this inside
       (`ResolveLinks`, `DescriptionAttributes` on league's
       `DocumentParsedEvent`). Needs the same node classes as B.
-    - **D. New syntax stays directives** (D-171, D-532): one dialect on
+    - **D. New syntax stays blocks** (D-171, D-532): one dialect on
       every site (D-492), which the editor reads and writes, so no
       plugin grammar for blocks or inline text.
     - **E. Before parsing,** changing the Markdown text: fragile, and
@@ -1742,7 +1759,7 @@ Move each item to `decisions.md` once it's answered.
     user changes them (CLI options, later a screen).
   - **Bodies through their own extension point:** a registry of block
     converters (`core/image` to Markdown images, `core/gallery` to a
-    gallery, embeds to the embed directive), which plugins add to for
+    gallery, embeds to the embed block), which plugins add to for
     their blocks. Anything unmapped is kept as raw HTML within D-495's
     allowed list, and listed in the report. Exporting to WXR goes the
     other way: rendered HTML with block comments for common elements.
@@ -2051,7 +2068,7 @@ Move each item to `decisions.md` once it's answered.
     the library; a `missing` name may be a library or an extension);
     and whether one install may
     bring others, and how the admin asks first.
-- **Array and map props in directives** (D-112, D-205): the
+- **Array and map props in blocks** (D-112, D-205): the
   `key=value` attribute syntax stays, not JSON. Today every attribute is
   a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (the
   breadcrumbs example that raised this is settled without one, D-707),
@@ -2059,7 +2076,7 @@ Move each item to `decisions.md` once it's answered.
   - **Dotted keys** nest: `icons.home=house icons.date=calendar` becomes
     `icons: {home, date}`, and perhaps `items[]=a items[]=b` for lists.
     Keys already allow `.`, so this is a parser change only. Leaf and
-    inline directives have no body, so they need nesting on the
+    inline blocks have no body, so they need nesting on the
     attribute line itself.
   - **Multi-line attributes**: `{…}` may span lines (today `SYNTAX`
     stops at a newline), so a long option list reads like config:
@@ -2074,7 +2091,7 @@ Move each item to `decisions.md` once it's answered.
   quoted value doesn't end the braces. Heavier options, if ever needed:
   comma lists cast by an `array` prop type, a JSON value for an `array`
   prop, a YAML options block at the top of a container (MyST-style),
-  child directives as list items, or a prop naming a data file.
+  child blocks as list items, or a prop naming a data file.
 - **A `<button>` component** (D-189): a real `<button>` for actions that
   need a script (toggles, dialogs), alongside the link-based `button`;
   what it runs, and how, is open.
@@ -2186,12 +2203,12 @@ Move each item to `decisions.md` once it's answered.
     Rerun the timing in D-690 (the harness drove Chrome with Playwright
     over the dev site, cold and warm, fast and throttled) on each, with
     the totals from D-689.
-- **Core directive templates under `resources/views`** (D-632, noted
-  2026-10-08). The core directives' templates are in
-  `resources/directives`, and each directive's `render()` names its own
-  file. They could move to `resources/views/directives`, the floor of
-  view lookup, so `theme:why directives/callout` and the theme's
-  `directives/` folder resolve the same way as every other view. Left
+- **Core block templates under `resources/views`** (D-632, noted
+  2026-10-08). The core blocks' templates are in
+  `resources/blocks`, and each block's `render()` names its own
+  file. They could move to `resources/views/blocks`, the floor of
+  view lookup, so `theme:why blocks/callout` and the theme's
+  `blocks/` folder resolve the same way as every other view. Left
   as it is for now.
 - **Example plugins, and the gaps they show** (discussed 2026-10-08;
   ideas only, nothing decided). Plugins to build as samples and tests
@@ -2201,7 +2218,7 @@ Move each item to `decisions.md` once it's answered.
     `ContentPublished` and `CacheCleared`); a CDN purge (`CacheCleared`'s
     `namespaces`, `ContentPublished`, and a Purge CDN action; the
     smallest sample); a front-end search index (JSON written on
-    `ContentIndexed`, a script by handle, a directive or component;
+    `ContentIndexed`, a script by handle, a block or component;
     see **Front-end search**); reading time and a table of contents;
     more iframe or oEmbed embed providers; related posts from the
     relations index (D-590 to D-592); Twig or Blade views (D-502);
@@ -2230,7 +2247,7 @@ Move each item to `decisions.md` once it's answered.
   - **Suggested order:** CDN purge, then static export, then the
     Calendar, which would force the admin screens API.
 - **A components screen with options** (raised 2026-10-06, after
-  D-532): components (not directives) declare options a site owner
+  D-532): components (not blocks) declare options a site owner
   sets on their own admin screen, such as a card's featured image and
   excerpt length or pagination's style, saved in `user/data/` and
   given to the component as defaults for its props. Needs field types

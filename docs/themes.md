@@ -202,10 +202,10 @@ extensions/acme/notebook/
   views/
     layouts/      base.php, and any others
     partials/     header.php, footer.php, and other pieces
-    directives/   Your look for directives, such as callout.php
+    blocks/   Your look for blocks, such as callout.php
     components/   Your theme's own components, for its templates
     single.php  collection.php  ...
-  icons/          SVG icons, such as badge.svg (see Directives)
+  icons/          SVG icons, such as badge.svg (see Blocks)
   lang/           Translations, such as en.json
   src/            Optional PHP classes
 ```
@@ -319,7 +319,7 @@ Only `name` is required.
   [`provide`](extending.md#providing-a-package) works: a requirement of
   one is met by the theme while it's active.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
-  service provider of its own (see [Directives and components](#directives-and-components)).
+  service provider of its own (see [Blocks and components](#blocks-and-components)).
   `autoload` is Composer's shape: `psr-4` folders, and `files` loaded
   once when the theme is in use. It still can't add content types,
   routes, or commands; those belong to the site or a
@@ -344,9 +344,9 @@ Only `name` is required.
   default menu for each if you like. See [Menus](menus.md#for-theme-authors).
 - **`bleed`:** the classes that widen an element past the text column;
   see [Bleed](#bleed).
-- **`variants`:** styles your theme adds to directives, by directive,
+- **`variants`:** styles your theme adds to blocks, by block,
   such as `{"callout": ["bordered"]}`. See
-  [Variants](directives.md#variants). Under `image`, the classes it
+  [Variants](blocks.md#variants). Under `image`, the classes it
   offers images; see [Image variants](#image-variants).
 - **`preview`:** what the admin's Themes screen draws your theme's
   preview from; see [The admin's preview](#the-admins-preview).
@@ -452,8 +452,8 @@ What a template can use:
 | `$template->includeUnless($condition, 'partials/x')` | Include it unless the condition is true |
 | `$template->each('partials/card', $entries, as: 'entry', empty: 'partials/none')` | Include a template once per item (see below) |
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
-| `$template->directive('callout', variant: 'tip')` | Render a directive, as content would (see [Directives](directives.md#using-directives-in-templates)) |
-| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
+| `$template->block('callout', variant: 'tip')` | Render a block, as content would (see [Blocks](blocks.md#using-blocks-in-templates)) |
+| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](blocks.md#icons)) |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
@@ -496,7 +496,7 @@ Every template gets four objects besides `$template`:
 Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
 one), `$type`, and `$title`, and so do their layouts, partials,
-directives, and components, so you don't have to pass them along. Anything you pass to
+blocks, and components, so you don't have to pass them along. Anything you pass to
 `include()` wins, so `$template->include('partials/summary', entry: $item)` shows
 that entry instead.
 
@@ -680,7 +680,7 @@ themes register scripts and styles by name, a handle such as
 `core/player`, and pages load them only when they need them. Ask for
 one in a template with `$template->enqueue('acme/gallery')`; it prints
 in the `<head>` once, after anything it needs, however many times it's
-asked for. Directives and components ask for their own, so the audio
+asked for. Blocks and components ask for their own, so the audio
 and video player (`core/player`) loads only on pages that play
 something.
 
@@ -795,7 +795,7 @@ $messages->t('actions.post', 'Post', context: 'A button that publishes, not a bl
 ```
 
 Classes write text the same way, with the same `t()`. A
-[component or directive class](#directives-and-components) and your
+[component or block class](#blocks-and-components) and your
 theme's provider have `$this->messages->t()`; any other class asks for
 `Messages` in its constructor and calls `$this->messages->t()`. Core and
 plugins write theirs the same way.
@@ -963,7 +963,7 @@ The key names the piece, so give each variation its own key. Only the
 HTML is kept, so don't add to the head inside it. In development,
 nothing is cached, so your changes always show.
 
-A directive used in an entry's Markdown (`::acme/post-list{limit=5}`)
+A block used in an entry's Markdown (`::acme/post-list{limit=5}`)
 needs no `cache()`: it's kept with the entry's rendered content, on the
 same terms.
 
@@ -1082,11 +1082,11 @@ page, an archive's page, or an error page. Choosing one writes its name
 to `template`; **Default** takes `template` out. `bin/blush theme:check`
 warns about a declared template with no view.
 
-### Directives and components
+### Blocks and components
 
 Your theme draws two kinds of pieces:
 
-- **[Directives](directives.md)** are what content says: callouts,
+- **[Blocks](blocks.md)** are what content says: callouts,
   galleries, buttons. They come from Blush and plugins, never a
   theme, so content never depends on one theme. Your theme gives them
   their look.
@@ -1094,25 +1094,25 @@ Your theme draws two kinds of pieces:
   for its templates: a card, a post header, a list of archives. Content
   never names them.
 
-**Giving directives a look.** The built-in directives work in every
+**Giving blocks a look.** The built-in blocks work in every
 theme, drawing themselves with Blush's templates: `callout`, `embed`,
 `figure`, and `gallery`; the layouts `group`, `grid`, `row`, and
-`stack`; the media directives `audio`, `video`, `file`, and
+`stack`; the media blocks `audio`, `video`, `file`, and
 `playlist`; the inline
 ones `abbr`, `badge`, `button`, `cite`, `dfn`, `icon`, `ins`, `kbd`,
 `samp`, `small`, `time`, and `var`; `toc`, a table of contents; `menu`;
 and `progress` and `meter`. To change how one looks, style its classes
-(`.directive-callout`, `.directive-callout__title`), or add your own
-`views/directives/callout.php` (or `core-callout.php`, and so on);
-yours wins. A plugin's directive is drawn the same way:
-`views/directives/{namespace}-{name}.php`.
+(`.block-callout`, `.block-callout__title`), or add your own
+`views/blocks/callout.php` (or `core-callout.php`, and so on);
+yours wins. A plugin's block is drawn the same way:
+`views/blocks/{namespace}-{name}.php`.
 
-To give a directive a style of your own, add a
-[variant](directives.md#variants) in `theme.json` and style its class
-(`.directive-callout--bordered`), or give it a template of its own
-(`views/directives/callout-bordered.php`). A template in `directives/`
-for a directive no one registered is never drawn: a theme can't add
-directives, so make it a component instead.
+To give a block a style of your own, add a
+[variant](blocks.md#variants) in `theme.json` and style its class
+(`.block-callout--bordered`), or give it a template of its own
+(`views/blocks/callout-bordered.php`). A template in `blocks/`
+for a block no one registered is never drawn: a theme can't add
+blocks, so make it a component instead.
 
 **Your own components.** A theme's components are in its namespace,
 which its `theme.json` declares: the `notebook` namespace's card is
@@ -1162,16 +1162,54 @@ final class ThemeProvider extends ServiceProvider
 See [A component with a class](components.md#a-component-with-a-class)
 for writing it.
 
-`bin/blush directive:list` lists every directive and the file that draws
+`bin/blush block:list` lists every block and the file that draws
 each, and `bin/blush component:list` your theme's components.
-`bin/blush theme:why directives/callout` shows what a file overrides.
-`theme:check` warns about a directive or component with a PHP class but
-no template, about a file in `directives/` for no registered directive
+`bin/blush theme:why blocks/callout` shows what a file overrides.
+`theme:check` warns about a block or component with a PHP class but
+no template, about a file in `blocks/` for no registered block
 or in `components/` not named for a component, about variants in
-`theme.json` for directives that don't exist or with names that aren't
-valid, and about a variant's template that's also another directive's.
+`theme.json` for blocks that don't exist or with names that aren't
+valid, and about a variant's template that's also another block's.
 With `--strict`, it also notes variants without a translated label (see
-[Labels and translations](directives.md#labels-and-translations)).
+[Labels and translations](blocks.md#labels-and-translations)).
+
+### BEM classes anywhere
+
+Blush names classes the BEM way: a block, its elements (`__`), and
+modifiers (`--`). Blocks and components build theirs for you
+(`$block->elementClass('title')`). For your own partials, or anything
+else that prints HTML, make a `Bem` for the block's name:
+
+```php
+<?php
+
+use Blush\Support\Bem;
+
+$bem = new Bem('pagination');
+
+?>
+<nav class="<?= attr($bem->block()) ?>">
+	<a class="<?= attr($bem->element('link')) ?>" href="/page/2/">2</a>
+</nav>
+```
+
+| Method | Classes |
+|---|---|
+| `$bem->block()` | `pagination` |
+| `$bem->modifier('next')` | `pagination pagination--next` |
+| `$bem->element('item')` | `pagination__item` |
+| `$bem->element('item')->modifier('current')` | `pagination__item pagination__item--current` |
+| `$bem->element('item')->modifier('current', 'last')` | `pagination__item pagination__item--current pagination__item--last` |
+| `$bem->element('item')->when($isCurrent, 'current')` | adds `pagination__item--current` only when `$isCurrent` |
+| `$bem->block()->with('alignwide')` | `pagination alignwide` |
+| `$card->block()->with($list->element('card'))` | `card list__card`, two blocks on one element |
+
+Every method returns a class you can keep chaining, without changing
+the one you started from, and it prints as the full list wherever a
+string goes, such as `attr()`. `with()` adds utility classes (a string
+or a list) that aren't the block's own, and an empty modifier is
+skipped. Names are letters, digits, hyphens, and underscores, starting
+with a letter or digit; anything else throws an `InvalidClassName`.
 
 ### Bleed
 

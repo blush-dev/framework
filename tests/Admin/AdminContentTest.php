@@ -17,17 +17,17 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\ContentHealth;
-use Blush\Admin\DirectivesController;
+use Blush\Admin\BlocksController;
 use Blush\Admin\EntriesController;
 use Blush\Admin\HealthController;
 use Blush\Admin\PreviewLinkController;
 use Blush\Admin\TypesController;
-use Blush\Directive\Callout;
-use Blush\Directive\DirectiveRegistry;
+use Blush\Block\Callout;
+use Blush\Block\BlockRegistry;
 use Blush\Content\Entries;
 use Blush\Content\Type\TypeLabels;
 
-#[CoversClass(DirectivesController::class)]
+#[CoversClass(BlocksController::class)]
 #[CoversClass(EntriesController::class)]
 #[CoversClass(HealthController::class)]
 #[CoversClass(PreviewLinkController::class)]
@@ -568,31 +568,31 @@ final class AdminContentTest extends TestCase
 		$this->assertSame('profile', self::json($this->send('GET', '/types'))['authors'] ?? null);
 	}
 
-	public function testDescribesTheDirectivesTheInserterOffers(): void
+	public function testDescribesTheBlocksTheInserterOffers(): void
 	{
 		$this->site(['author']);
 
-		$registry = $this->app->container()->make(DirectiveRegistry::class);
+		$registry = $this->app->container()->make(BlockRegistry::class);
 		$registry->register('acme/note', Callout::class);
 		$registry->register('acme/panel', Callout::class);
 
-		$directives = self::json($this->send('GET', '/directives'))['directives'] ?? null;
+		$blocks = self::json($this->send('GET', '/blocks'))['blocks'] ?? null;
 
-		$this->assertIsArray($directives);
+		$this->assertIsArray($blocks);
 
-		$callout = $this->directive($directives, 'core/callout');
+		$callout = $this->block($blocks, 'core/callout');
 
 		$this->assertSame(
 			['label' => 'Callout', 'content' => 'blocks', 'kind' => 'container', 'category' => 'text', 'source' => null],
 			array_intersect_key($callout, array_flip(['label', 'content', 'kind', 'category', 'source'])),
 			'The inserter writes full names.'
 		);
-		$this->assertSame('inline', $this->directive($directives, 'core/kbd')['kind'] ?? null);
-		$this->assertSame('container', $this->directive($directives, 'core/figure')['kind'] ?? null);
-		$this->assertSame('layout', $this->directive($directives, 'core/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
-		$this->assertSame('leaf', $this->directive($directives, 'core/embed')['kind'] ?? null);
-		$this->assertSame(['image'], $this->directive($directives, 'core/gallery')['only'] ?? null, 'A gallery holds images.');
-		$this->assertNull($this->directive($directives, 'core/callout')['only'] ?? null);
+		$this->assertSame('inline', $this->block($blocks, 'core/kbd')['kind'] ?? null);
+		$this->assertSame('container', $this->block($blocks, 'core/figure')['kind'] ?? null);
+		$this->assertSame('layout', $this->block($blocks, 'core/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
+		$this->assertSame('leaf', $this->block($blocks, 'core/embed')['kind'] ?? null);
+		$this->assertSame(['image'], $this->block($blocks, 'core/gallery')['only'] ?? null, 'A gallery holds images.');
+		$this->assertNull($this->block($blocks, 'core/callout')['only'] ?? null);
 
 		$this->assertSame(
 			[
@@ -605,7 +605,7 @@ final class AdminContentTest extends TestCase
 			'Variants come with their text; Default isn\'t one.'
 		);
 
-		$props = $this->directive($directives, 'core/button')['props'] ?? null;
+		$props = $this->block($blocks, 'core/button')['props'] ?? null;
 		$this->assertIsArray($props);
 
 		$position = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'iconPosition');
@@ -616,14 +616,14 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($choices);
 		$this->assertSame('After the text', $choices['end'] ?? null);
 
-		$note = $this->directive($directives, 'acme/note');
+		$note = $this->block($blocks, 'acme/note');
 
 		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $note['source'] ?? null);
 		$this->assertArrayHasKey('category', $note);
 		$this->assertNull($note['category']);
-		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->directive($directives, 'acme/panel')['source'] ?? null);
+		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->block($blocks, 'acme/panel')['source'] ?? null);
 
-		$image = self::json($this->send('GET', '/directives'))['image'] ?? null;
+		$image = self::json($this->send('GET', '/blocks'))['image'] ?? null;
 
 		$this->assertIsArray($image);
 		$this->assertIsArray($image['variants'] ?? null);
@@ -635,23 +635,23 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(
 			['wide' => 'bleed-wide', 'full' => 'bleed-full'],
-			self::json($this->send('GET', '/directives'))['bleed'] ?? null,
+			self::json($this->send('GET', '/blocks'))['bleed'] ?? null,
 			'Bleed classes default when no theme names them.'
 		);
 	}
 
 	/**
-	 * Returns a directive from `GET directives`, by name.
+	 * Returns a block from `GET blocks`, by name.
 	 *
-	 * @param  array<mixed> $directives
+	 * @param  array<mixed> $blocks
 	 * @return array<mixed>
 	 */
-	private function directive(array $directives, string $name): array
+	private function block(array $blocks, string $name): array
 	{
-		$directive = array_find($directives, static fn (mixed $item): bool => is_array($item) && ($item['name'] ?? null) === $name);
-		$this->assertIsArray($directive, $name);
+		$block = array_find($blocks, static fn (mixed $item): bool => is_array($item) && ($item['name'] ?? null) === $name);
+		$this->assertIsArray($block, $name);
 
-		return $directive;
+		return $block;
 	}
 
 	public function testDescribesOneContentType(): void

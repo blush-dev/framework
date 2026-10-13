@@ -107,7 +107,7 @@ read. The library shows how long an audio file or video lasts.
 ## Artwork
 
 A song, an episode, or a video can have artwork: an image shown with
-it, on an audio card (see [Media](directives.md#media)) and
+it, on an audio card (see [Media](blocks.md#media)) and
 as a video's poster where a page doesn't name one. It's an image in
 your media library, named by its id in the file's details:
 
