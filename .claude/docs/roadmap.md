@@ -1197,18 +1197,18 @@ admin changed, and `docs/`.
   what's left in `open-questions.md`, **Translation, what's left**); a language
   switcher is on hold.
 - **The site's email address (D-723):** `app.email`, on General,
-  required there. Later: changing it asks the new address to confirm
-  before it takes effect, and tells the old one it changed, now that
-  the site can send mail (D-846).
+  required there. Changing it asks the new address to confirm before
+  it takes effect, and tells the old one (D-849, built).
 - **Outgoing mail and notifications (D-832, D-846):** built:
   `Blush\Mail` over a hidden `symfony/mailer` (`MAIL_DSN`, else PHP's
   own mail with no setup, D-848), and
   `Blush\Notification` above it, a job per recipient; Settings →
   Email; password links emailed from the admin and asked for with
-  "Forgot your password?". Next, as features need them: more
-  notifications (job and backup failures, email changes, D-723's
-  confirmation, sign-ups, comments), per-account choices on Your
-  Account, and admin notices (`open-questions.md`).
+  "Forgot your password?"; changes of the site's and accounts' email
+  addresses confirmed by the new address, and the old one told (D-849).
+  Next, as features need them: more notifications (job and backup
+  failures, sign-ups, comments), per-account choices on Your Account,
+  and admin notices (`open-questions.md`).
 - **Front-end search:** a JSON index; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);

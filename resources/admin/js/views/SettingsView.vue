@@ -69,9 +69,10 @@ import SaveBar from '../components/SaveBar.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
 import { useAction } from '../action';
-import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
+import { cancelEmailChange, errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
 import { choiceLabel, control, fromForm, isChoiceGroup, toForm, type FormValue } from '../fields';
 import { locale, t } from '../messages';
+import { when } from '../people';
 import { screenTitle, screenTrail } from '../screen';
 import { copyText, toast } from '../toast';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
@@ -112,6 +113,20 @@ async function sendTest(): Promise<void> {
 		const answer = await request<{ sent: string }>('POST', '/settings/email/test');
 
 		toast(t('settings_view.test_sent', 'Sent a test to {email}', { email: answer.sent }), { kind: 'good' });
+	});
+}
+
+// A new site address waits on its confirmation link (D-849) until it's
+// used, or cancelled here.
+const { busy: cancelBusy, run: runCancel } = useAction();
+
+async function cancelChange(): Promise<void> {
+	await runCancel(t('settings_view.email_change_cancel_failed', 'The change couldn\'t be cancelled.'), async () => {
+		await cancelEmailChange('site');
+		await load();
+		toast(t('settings_view.email_change_cancelled', 'Cancelled the change of email address'));
+	}, (caught) => {
+		toast(errorMessage(caught, t('settings_view.email_change_cancel_failed', 'The change couldn\'t be cancelled.')), { kind: 'warn' });
 	});
 }
 
@@ -195,9 +210,12 @@ async function save(): Promise<void> {
 	await run(t('settings_view.save_failed', 'The settings couldn\'t be saved.'), async () => {
 		const set = Object.fromEntries(changed.value.map((key) => [key, outgoing(key, form.value[key] ?? '')]));
 
-		await saveSettings({ set, unset: unset.value });
+		const change = await saveSettings({ set, unset: unset.value });
+
 		await load();
-		toast(t('settings_view.saved', 'Settings saved'));
+		toast(change === null
+			? t('settings_view.saved', 'Settings saved')
+			: t('settings_view.email_change_sent', 'Check {email} for a link to confirm it as the site\'s email address', { email: change.email }));
 	});
 }
 
@@ -620,6 +638,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 
 							<div :id="`setting-${item.key}-help`" class="setting__help">
 								<p v-if="liveHelp(item)">{{ liveHelp(item) }}</p>
+								<p v-if="item.emailChange" class="setting__source"><MessageText :text="t('settings_view.email_change_waiting', 'Changes to {email} once the link sent there is used, by {date}. {action}', { email: item.emailChange.email, date: when(item.emailChange.expires) })"><template #action><button type="button" class="link-button" :disabled="cancelBusy" @click="cancelChange">{{ t('settings_view.cancel_change', 'Cancel the change') }}</button></template></MessageText></p>
 								<template v-if="compact(group)">
 									<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
 									<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>

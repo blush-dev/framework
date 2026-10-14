@@ -53,6 +53,7 @@ const RelationsView = () => import('./views/RelationsView.vue');
 const RoleView = () => import('./views/RoleView.vue');
 const RolesView = () => import('./views/RolesView.vue');
 const SetPasswordView = () => import('./views/SetPasswordView.vue');
+const ConfirmEmailView = () => import('./views/ConfirmEmailView.vue');
 const SettingsView = () => import('./views/SettingsView.vue');
 const SiteHealthView = () => import('./views/SiteHealthView.vue');
 const ThemeView = () => import('./views/ThemeView.vue');
@@ -146,6 +147,7 @@ export const router = createRouter({
 		{ path: '/authorize', name: 'authorize', component: AuthorizeView, meta: { title: t('router.titles.connect_an_app', 'Connect an App'), bare: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: t('router.titles.choose_a_password', 'Choose a Password'), public: true } },
+		{ path: '/confirm-email', name: 'confirm-email', component: ConfirmEmailView, meta: { title: t('router.titles.confirm_email', 'Confirm Email Address'), public: true } },
 		// Asking for one by email (D-846), from Sign In.
 		{ path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView, meta: { title: t('router.titles.reset_your_password', 'Reset Your Password'), public: true } },
 		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: t('router.titles.not_found', 'Not Found') } }

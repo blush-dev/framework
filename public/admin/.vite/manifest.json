@@ -552,6 +552,7 @@
       "js/views/RoleView.vue",
       "js/views/RolesView.vue",
       "js/views/SetPasswordView.vue",
+      "js/views/ConfirmEmailView.vue",
       "js/views/SettingsView.vue",
       "js/views/SiteHealthView.vue",
       "js/views/ThemeView.vue",
@@ -653,6 +654,18 @@
     ],
     "css": [
       "css/AuthorizeView.css"
+    ]
+  },
+  "js/views/ConfirmEmailView.vue": {
+    "file": "js/ConfirmEmailView.js",
+    "name": "ConfirmEmailView",
+    "src": "js/views/ConfirmEmailView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/ConfirmEmailView.css"
     ]
   },
   "js/views/EditorView.vue": {

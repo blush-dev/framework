@@ -20,6 +20,8 @@ use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
+use Blush\Auth\EmailChanges;
+use Blush\Cache\CacheException;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Translation\Messages;
@@ -28,18 +30,26 @@ use Blush\Translation\Messages;
  * Answers `PATCH {path}/api/profile` (D-322, D-370): changes the
  * signed-in account's own `name` (`null` or empty takes it away) and
  * `email`, either or both, which any account may do, and answers with
- * its `name`, `email`, and `displayName`. A name that's too long, or an
- * email address that's missing, invalid, or another account's, is a
- * `422` naming the `field`.
+ * its `name`, `email`, `displayName`, and `emailChange`. A name that's
+ * too long, or an email address that's missing, invalid, or another
+ * account's, is a `422` naming the `field`.
+ *
+ * Where the site can send mail, a new address isn't saved until it's
+ * confirmed (D-849): it's emailed a link, the old one is told, and
+ * `emailChange` is what waits (`email` and `expires`); else it's `null`.
  */
 final readonly class ProfileController
 {
 	public function __construct(
 		private Accounts $accounts,
 		private AccountProfiles $profiles,
+		private EmailChanges $changes,
 		private Messages $messages
 	) {}
 
+	/**
+	 * @throws CacheException
+	 */
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		$account = $request->getAttribute(Account::class);
@@ -68,14 +78,24 @@ final readonly class ProfileController
 			return self::json(['error' => $e->getMessage(), 'field' => 'name'], Status::UnprocessableContent);
 		}
 
+		$email  = $input['email'] ?? null;
+		$change = $this->changes->pending($account->id);
+
 		try {
-			$email   = $input['email'] ?? null;
-			$account = is_string($email) && trim($email) !== $account->email ? $this->accounts->setEmail($account, $email) : $account;
+			if (is_string($email) && trim($email) !== $account->email) {
+				$change  = $this->changes->askForAccount($account, $email);
+				$account = $change === null ? ($this->accounts->findById($account->id) ?? $account) : $account;
+			}
 		} catch (AuthException $e) {
 			return self::json(['error' => $e->getMessage(), 'field' => 'email'], Status::UnprocessableContent);
 		}
 
-		return self::json(['name' => $account->name, 'email' => $account->email, 'displayName' => $this->profiles->displayName($account)]);
+		return self::json([
+			'name'        => $account->name,
+			'email'       => $account->email,
+			'displayName' => $this->profiles->displayName($account),
+			'emailChange' => $change === null ? null : ['email' => $change->email, 'expires' => $change->expires]
+		]);
 	}
 
 	/**

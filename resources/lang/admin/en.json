@@ -113,7 +113,8 @@
 			"connect_an_app": "Connect an App",
 			"choose_a_password": "Choose a Password",
 			"not_found": "Not Found",
-			"reset_your_password": "Reset Your Password"
+			"reset_your_password": "Reset Your Password",
+			"confirm_email": "Confirm Email Address"
 		},
 		"admin": "Admin",
 		"document_title": "{title} · {site}"
@@ -2982,7 +2983,12 @@
 		"test_failed": "The test wasn't sent.",
 		"test_sent": "Sent a test to {email}",
 		"sending": "Sending…",
-		"send_test": "Send a Test"
+		"send_test": "Send a Test",
+		"email_change_cancel_failed": "The change couldn't be cancelled.",
+		"email_change_cancelled": "Cancelled the change of email address",
+		"email_change_sent": "Check {email} for a link to confirm it as the site's email address",
+		"email_change_waiting": "Changes to {email} once the link sent there is used, by {date}. {action}",
+		"cancel_change": "Cancel the change"
 	},
 	"profile_detail_view": {
 		"errors": {
@@ -4477,7 +4483,16 @@
 		"email_new_link": "Email a New Link",
 		"link_email_failed": "The link couldn't be emailed.",
 		"link_emailed": "Emailing a password link to {email}",
-		"email_password_link": "Email a password link"
+		"email_password_link": "Email a password link",
+		"email_change_sent": "Check {email} for a link to confirm it",
+		"email_change_cancel_failed": "The change couldn't be cancelled.",
+		"email_change_cancelled": "Cancelled the change of email address",
+		"email_change_waiting": "Your new email address is waiting to be confirmed.",
+		"email_change_text": "Use the link sent to {email} by {date}; until then, your account keeps {old}.",
+		"cancel_change": "Cancel Change",
+		"email_help_no_mail": "The site can't send email, so it's for the people who manage accounts.",
+		"email_help_mine": "A new one is used once you confirm it, from a link sent there.",
+		"email_help_other": "A new one is used at once, and the old one is told."
 	},
 	"media": {
 		"dimensions": "{width} × {height}",
@@ -4566,5 +4581,20 @@
 		"sending": "Sending…",
 		"submit": "Email Me a Link",
 		"back": "Back to Sign In"
+	},
+	"confirm_email_view": {
+		"errors": {
+			"not_confirmed": "The address couldn't be confirmed.",
+			"incomplete_link": "This link is missing what it confirms. Copy the whole link and try again."
+		},
+		"title": "Confirm Email Address",
+		"site_done": "The email address of {site} is {email} now.",
+		"account_done": "Your email address is {email} now.",
+		"to_dashboard": "Go to the Dashboard",
+		"sign_in": "Sign In",
+		"site_intro": "Make this address the email address of {site}, where it sends notices for its owner.",
+		"account_intro": "Make this address your account's email address on {site}.",
+		"confirming": "Confirming…",
+		"submit": "Confirm Email Address"
 	}
 }

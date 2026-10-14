@@ -146,7 +146,7 @@ Implemented in M2 (D-065, D-069).
 | `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
 | `account:roles <username> --role...` | Replace an account's roles (D-219) |
 | `account:name <username> [name]` | Name an account, or remove its name (D-322) |
-| `account:email <username> <email>` | Change an account's email address, which every account needs (D-370) |
+| `account:email <username> <email>` | Change an account's email address, which every account needs (D-370); at once, telling the old address (D-849) |
 | `account:author <username> [slug]` | Link to an author, or unlink; offers to write the author's entry when there's none (D-219, D-259) |
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |

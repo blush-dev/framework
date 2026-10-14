@@ -20,9 +20,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
+use Blush\Auth\EmailChanges;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
+use Blush\Cache\CacheException;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypeCache;
@@ -69,9 +71,12 @@ use Blush\Translation\Text;
  *   field set adds (D-343), checked by its field and saved as sent (an
  *   empty one removed). `set` saves values in
  *   the saved settings (`user/data/settings/`); `unset` removes saved ones, so their
- *   config values are used again. Answers `{"saved", "refresh"}`: the
- *   saved settings as the file holds them, and whether the admin should
- *   ask for `settings/refresh`.
+ *   config values are used again. Answers `{"saved", "refresh",
+ *   "emailChange"}`: the saved settings as the file holds them, whether
+ *   the admin should ask for `settings/refresh`, and the change of the
+ *   site's email address that waits, if this one asked for it: where the
+ *   site can send mail, a new `app.email` isn't saved but emailed a link
+ *   to confirm, and the old address is told (D-849); `null` otherwise.
  * - `POST settings/refresh`: compiles the content types and routes again
  *   (when the site is compiled) and reindexes, so the next requests see
  *   the change. Any account that may change one of the settings may ask.
@@ -115,9 +120,13 @@ final readonly class SettingsEditController
 		private MailTransport $mail,
 		private AppConfig $app,
 		private MailLayout $layout,
+		private EmailChanges $changes,
 		private Messages $messages
 	) {}
 
+	/**
+	 * @throws CacheException
+	 */
 	public function update(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
@@ -150,7 +159,21 @@ final readonly class SettingsEditController
 			}
 		}
 
+		// A new site address waits on a confirmation link (D-849) where the
+		// site can send mail and has an address to change from.
+		$account = $request->getAttribute(Account::class);
+		$address = $builtIns[Setting::Email->value] ?? null;
+		$confirm = is_string($address) && $account instanceof Account && $this->changes->needsConfirming($this->app->email, $address);
+
+		if ($confirm) {
+			unset($builtIns[Setting::Email->value]);
+		}
+
 		try {
+			if ($confirm) {
+				Settings::none()->with([Setting::Email->value => $address], $this->messages);
+			}
+
 			$removed = array_map(
 				static fn (mixed $key): Setting => Setting::tryFrom(is_string($key) ? $key : '') ?? throw new InvalidSetting(sprintf('"%s" isn\'t a setting the admin can change.', is_string($key) ? $key : get_debug_type($key))),
 				array_values(array_filter($unset, static fn (mixed $key): bool => ! $isSite($key)))
@@ -184,7 +207,13 @@ final readonly class SettingsEditController
 
 		$this->version->bump();
 
-		return Response::json(['saved' => $settings->toArray() ?: (object) [], 'refresh' => $refresh], headers: ['Cache-Control' => 'no-store']);
+		$change = $confirm ? $this->changes->askForSite($address, $account) : null;
+
+		return Response::json([
+			'saved'       => $settings->toArray() ?: (object) [],
+			'refresh'     => $refresh,
+			'emailChange' => $change === null ? null : ['email' => $change->email, 'expires' => $change->expires]
+		], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function testEmail(ServerRequestInterface $request): ResponseInterface

@@ -23,10 +23,12 @@ use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
+use Blush\Auth\EmailChanges;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
 use Blush\Cache\CacheConfig;
+use Blush\Cache\CacheException;
 use Blush\Cache\PageCache;
 use Blush\Clock\DateFormat;
 use Blush\Clock\TimeZones;
@@ -110,6 +112,8 @@ use Blush\Translation\Text;
  * `media()`). AI's crawler groups are one list drawn as a switch for
  * each option (`kind` `switches`, with the `words` a switch says), and
  * its tools one item of `kind` `tools` (D-765; see `toolGroups()`).
+ * The site's email address (`app.email`) adds `emailChange`, a new one
+ * waiting to be confirmed (`email`, `expires`; D-849), or `null`.
  * The language (`app.locale`) adds `locales`, the menu it's
  * picked from (`Locales::options()`, D-441), and may be any code typed
  * instead. The time zone adds `menu`, the options its searchable menu
@@ -156,6 +160,7 @@ final readonly class SettingsController
 		private ControlDefaults $defaults,
 		private MailConfig $mail,
 		private MailTransport $transport,
+		private EmailChanges $changes,
 		private Messages $messages
 	) {}
 
@@ -261,6 +266,20 @@ final readonly class SettingsController
 	}
 
 	/**
+	 * The change of the site's email address waiting on its new address
+	 * (D-849), as `{email, expires}`, or `null` for none.
+	 *
+	 * @return ?array{email: string, expires: int}
+	 * @throws CacheException
+	 */
+	private function emailChange(): ?array
+	{
+		$change = $this->changes->pending(EmailChanges::SITE);
+
+		return $change === null ? null : ['email' => $change->email, 'expires' => $change->expires];
+	}
+
+	/**
 	 * General: the site's name, email address, language, and time, who can make an
 	 * account, and where it runs.
 	 *
@@ -276,7 +295,7 @@ final readonly class SettingsController
 			self::group('site', $this->messages->t('admin.settings_controller.groups.site.title', 'Site'), $this->messages->t('admin.settings_controller.groups.site.hint', 'Its name, email, and language'), [
 				$this->edit(self::item('name', $this->messages->t('admin.settings_controller.general.name', 'Site name'), $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
 				$this->edit(self::item('description', $this->messages->t('admin.settings_controller.general.description', 'Description'), $this->app->description, $this->app->description === '', help: Setting::Description->field($this->types, $this->messages)->description), $saved, Setting::Description, $this->app->description),
-				$this->edit(self::item('email', $this->messages->t('admin.settings_controller.general.email', 'Email address'), $this->app->email, $this->app->email === '', help: Setting::Email->field($this->types, $this->messages)->description), $saved, Setting::Email, $this->app->email),
+				[...$this->edit(self::item('email', $this->messages->t('admin.settings_controller.general.email', 'Email address'), $this->app->email, $this->app->email === '', help: Setting::Email->field($this->types, $this->messages)->description), $saved, Setting::Email, $this->app->email), 'emailChange' => $this->emailChange()],
 				[...$this->edit(self::item('locale', $this->messages->t('admin.settings_controller.general.locale', 'Language and region'), $this->app->locale, $this->app->locale === $app->locale, 'mono', $this->messages->t('admin.settings_controller.general.locale_help', 'Choose Other to type a code the menu doesn\'t have.')), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
 				...$this->untranslated($saved, $app),
 				self::item('url', $this->messages->t('admin.settings_controller.general.url', 'Site address'), $this->app->url, $this->app->url === $app->url, 'mono', $this->messages->t('admin.settings_controller.general.url_help', 'From APP_URL in .env by default.'), 'config/app.php')

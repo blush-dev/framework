@@ -100,6 +100,10 @@ in, your roles, and your **Public Profile**: the
 your public name and bio on the site. **Change Name or Email** changes
 your display name (left empty, the admin uses your profile's title,
 then your username) and your email address, which every account needs.
+Where the site can send email, a new address is used once you confirm
+it, with the link emailed there; until then, a notice says what's
+waiting, with **Cancel Change** (see
+[Changing an address](accounts.md#changing-an-address)).
 **Open Profile**
 shows the profile's screen, where **Edit Profile** opens it in the
 editor like any entry; its slug can't change, since your account is
@@ -1447,7 +1451,9 @@ screens (and [Redirects](#redirects), with its own capability):
 - **General:** the site's name, a one-line description (for
   `llms.txt`, and the homepage and feeds when nothing more specific
   describes them), its email address (required; where notices for
-  its owner are sent, never shown on the site), its language and region (picked from a menu of every
+  its owner are sent, never shown on the site; where the site can send
+  email, a new one is saved once it's confirmed with the link emailed
+  there, the old one is told, and **Cancel the change** ends it), its language and region (picked from a menu of every
   language and region PHP knows, each named in its own language with
   its English name beside it, and each region under its language;
   search by either name or the code, or choose **Other…** to type any
@@ -1919,7 +1925,8 @@ and how many site capabilities it has, and how many accounts hold it.
   Token-only accounts are marked **Token-only** in the list.
 - An account's screen has **All accounts** above its name, then its
   username, standing, roles, and last sign-in. **Edit Details** changes
-  its display name and email address. Tick or untick its **roles**,
+  its display name and email address (a new address changes at once,
+  and the old one is told). Tick or untick its **roles**,
   then **Save Roles** (or **Discard**); unticking the last one leaves
   the account a **Member**. An account with no email address says so,
   with **Add an Email Address**.
@@ -2290,7 +2297,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 
 | Request | What it does |
 |---|---|
-| `GET session` | The signed-in account (its username, `email`, `name`, `displayName`, `avatar` (as `GET accounts` has it), `author`, `profile` (as `GET accounts` has it), `created`, `roles` (each `{"name", "label"}`), capabilities, and preferences) and a CSRF token, or `{"account": null}` |
+| `GET session` | The signed-in account (its username, `email`, `emailChange` (a new address waiting on its link, `{"email", "expires"}`, or `null`), `name`, `displayName`, `avatar` (as `GET accounts` has it), `author`, `profile` (as `GET accounts` has it), `created`, `roles` (each `{"name", "label"}`), capabilities, and preferences) and a CSRF token, or `{"account": null}` |
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
@@ -2312,7 +2319,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
-| `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
+| `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName", "emailChange"}`. Where the site can send email, a new address isn't saved but emailed a link to confirm it, and `emailChange` is what waits (`{"email", "expires"}`; else `null`). A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
 | `GET accounts` | Every account: `{"username", "email", "name", "displayName", "avatar", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null` (an account is linked by the profile's id, so a renamed profile stays linked); `profile` is that profile: `{"path", "id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `avatar` is its picture's URL (its profile's portrait), or `null` for initials; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
 | `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account", "linkable"}]}`, by name, with `account` the one linked to it (`{"username", "displayName"}`) or `null`, and `linkable` `false` for a locked profile. Needs `accounts.view` |
 | `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses", "linkable"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each credit relation of each type that credits people: `{"type", "typeLabel", "relation", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "type", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
@@ -2323,6 +2330,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a slug with no profile makes one, a draft, as `POST accounts` does; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), `email`, and `suspended`; answers `{"account"}`. Your own account takes only `author` (with `accounts.edit`) |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
+| `POST confirm-email` | Confirm a new email address with its link: `{"for", "token"}` (`for` is `site` or an account's id); answers `{"for", "email"}` (`for` is `site` or `account`). No account needed. A link that's expired, used, or replaced is a `410`; an address another account has taken since, a `422` |
+| `DELETE email-change/{for}` | End a change of email address that waits, so its link stops working: `account` (your own) or `site` (needs `site.settings`); answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET themes` | The installed themes: `{"active", "chain", "problem", "fallback", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active", "authors", "license", "licenses", "links", "funding", "keywords", "running", "requirements", "conflicts", "replaces", "provides", "blocked", "requiredBy", "abandoned", "replacement", "suggests", "conflictedBy", "replacedBy", "providedBy", "stops"}], "invalid": [{"where", "reason"}]}`. `fallback` says why the active theme doesn't run (its requirements, or those of a theme it falls back to, aren't met, so the default theme shows), or is `null`; `running` is whether a theme is in the chain that runs; `requirements`, `conflicts`, and `replaces` are checked as if it were active; `blocked` says why it can't be activated, or is `null`; `requirements` and `requiredBy` are as `GET plugins` has them. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, then the themes it builds on; `invalid` names where each broken theme was found (`extensions/{vendor}/{name}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`; `licenses`, `links`, `funding`, `keywords`, `abandoned`, `replacement`, `provides`, `suggests`, `conflictedBy`, `replacedBy`, `providedBy`, and `stops` (what activating it would stop) are as `GET plugins` has them. Needs `extensions.themes.view` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. A shown one may add a `link` (`{"label", "href"}`, a page on the site) or `links` (`{"label", "to"}`, admin paths). The screens are `general`, `reading`, `search`, `ai`, and `system`. Secrets are never sent. Needs `site.settings` |

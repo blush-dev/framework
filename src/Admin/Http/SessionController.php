@@ -126,6 +126,7 @@ final readonly class SessionController
 			'account'   => [
 				'username'     => $account->username,
 				'email'        => $account->email,
+				'emailChange'  => $this->json->emailChange($account),
 				'name'         => $account->name,
 				'displayName'  => $this->accounts->displayName($account),
 				'avatar'       => $this->json->avatar($account),

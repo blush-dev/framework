@@ -1014,8 +1014,9 @@ Move each item to `decisions.md` once it's answered.
   - **Site Health:** D-848 added the **Email** check (how mail is
     sent). Open: whether a test has gone through, and surfacing failed
     `core/notify` jobs.
-  - **Waiting on mail:** D-723's confirmation of a new site address,
-    registration and comments (above), and job and backup failures.
+  - **Waiting on mail:** registration and comments (above), and job
+    and backup failures. (D-723's confirmation of a new site address,
+    and accounts' own, were built as D-849.)
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The API** (`Blush\Api`; decided in D-479 and broadened by

@@ -1999,6 +1999,9 @@
 			"no_login": "Enter your username or email address.",
 			"too_many": "Too many tries. Try again later.",
 			"sent": "If that's an account here, a link to choose a new password is on its way to its email address. It works for an hour."
+		},
+		"email_change_controller": {
+			"not_allowed": "You aren't allowed to cancel that change."
 		}
 	},
 	"settings": {
@@ -2552,6 +2555,11 @@
 			"publish_others": "Publish anyone's",
 			"delete": "Delete their own",
 			"delete_others": "Delete anyone's"
+		},
+		"email_changes": {
+			"site_invalid": "\"{email}\" isn't an email address.",
+			"dead_link": "This link expired, was used, or was replaced by a newer one.",
+			"no_account": "The account this link is for is gone or suspended."
 		}
 	},
 	"activity": {
@@ -3909,6 +3917,47 @@
 				"subject": "Choose a new password on {site}",
 				"body": "An administrator of {site} sent you a link to choose a new password for {username}. Your current password works until you do.",
 				"action": "Choose a New Password"
+			}
+		},
+		"email_change": {
+			"label": "Email address changes",
+			"someone": "Someone",
+			"site": {
+				"confirm": {
+					"subject": "Confirm the new email address of {site}",
+					"body": "{name} asked to make this the email address of {site}, where it sends notices for its owner. Confirm it with this link; until you do, notices go to {old}."
+				},
+				"asked": {
+					"subject": "The email address of {site} is changing",
+					"body": "{name} asked to change the email address of {site} from this one to {email}. It changes once that address confirms it.",
+					"note": "If you didn't expect this, sign in and change the address back on Settings → General before it's confirmed."
+				},
+				"changed": {
+					"subject": "The email address of {site} changed",
+					"body": "The email address of {site} is {email} now, so notices for its owner go there instead of here.",
+					"note": "If you didn't expect this, sign in and check Settings → General."
+				}
+			},
+			"hello_anyone": "Hello,",
+			"confirm_action": "Confirm Email Address",
+			"confirm_note": "The link works once, until {date}. If you didn't expect this, ignore this email: nothing changes.",
+			"hello": "Hi {name},",
+			"account": {
+				"confirm": {
+					"subject": "Confirm your new email address on {site}",
+					"body": "You asked to make this the email address of {username} on {site}. Confirm it with this link; until you do, your account keeps the one it has."
+				},
+				"asked": {
+					"subject": "Your email address on {site} is changing",
+					"body": "Someone signed in as {username} on {site} asked to change its email address from this one to {email}. It changes once that address confirms it.",
+					"note": "If it wasn't you, sign in and change your password, then tell the site's administrators."
+				},
+				"changed": {
+					"subject": "Your email address on {site} changed",
+					"body": "The email address of {username} on {site} is {email} now, so its email goes there instead of here.",
+					"body_by": "{name}, an administrator of {site}, changed the email address of {username} to {email}, so its email goes there instead of here.",
+					"note": "If you didn't expect this, tell the site's administrators."
+				}
 			}
 		}
 	}

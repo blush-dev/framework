@@ -2149,6 +2149,22 @@ what's sent to whom, and is the only way core and plugins send mail.
   username or address, answering `202` alike either way, limited by
   `PasswordResets` (per address, `maxAttempts` per `lockout`; per
   account, one every five minutes).
+- **Email changes** (`Blush\Auth\EmailChanges`, D-849): the site's
+  address and an account's own are changed by confirmation where the
+  site can send mail and there's an address to change from
+  (`needsConfirming()`). `askForAccount()` (`PATCH profile`) and
+  `askForSite()` (`PATCH settings` with `app.email`) keep an
+  `EmailChange` (`for` `site` or an account id, the new address,
+  `expires` a day on, `by`, and the hash of the token last emailed) in
+  the persistent `logins` store, and send `core/email-change`
+  (`EmailChangeNotification`, urgent): `confirm` to the new address,
+  whose link is issued when it's sent (`issue()`), and `asked` to the
+  old. `confirm()` (`POST confirm-email`, public; the
+  `{admin}/confirm-email#for=…&token=…` screen asks for a press, so
+  link checkers confirm nothing) saves it and sends `changed` to the
+  old; `cancel()` (`DELETE email-change/{site|account}`) ends it. An
+  administrator's change of another account, and `account:email`, go
+  through `changeAccount()`: at once, with `changed` to the old.
 - **Send a Test** (`POST settings/email/test`) is the one caller of a
   `Mailer` outside a notification: it sends at once, to report the
   transport's error.

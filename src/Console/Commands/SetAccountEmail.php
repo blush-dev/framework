@@ -15,6 +15,7 @@ namespace Blush\Console\Commands;
 
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
+use Blush\Auth\EmailChanges;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
@@ -23,13 +24,15 @@ use Blush\Console\Output;
 /**
  * Sets an account's email address (D-370), which every account needs:
  * an account saved before emails has none until it's given one here or
- * in the admin.
+ * in the admin. It changes at once, and the old address is told
+ * (D-849).
  */
 #[Command('account:email', 'Set an admin account\'s email address.')]
 final readonly class SetAccountEmail
 {
 	public function __construct(
-		private Accounts $accounts
+		private Accounts $accounts,
+		private EmailChanges $changes
 	) {}
 
 	public function __invoke(
@@ -39,7 +42,7 @@ final readonly class SetAccountEmail
 	): ExitCode {
 		try {
 			$account = $this->accounts->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
-			$account = $this->accounts->setEmail($account, $email);
+			$account = $this->changes->changeAccount($account, $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 

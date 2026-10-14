@@ -25,6 +25,7 @@ use Blush\Admin\Http\AuthorizeController;
 use Blush\Admin\Http\BlocksController;
 use Blush\Admin\Http\CountsController;
 use Blush\Admin\Http\DashboardController;
+use Blush\Admin\Http\EmailChangeController;
 use Blush\Admin\Http\EntriesController;
 use Blush\Admin\Http\EntryController;
 use Blush\Admin\Http\ExtensionBackupController;
@@ -95,6 +96,11 @@ use Blush\Session\StartSession;
  *     signs in (D-312; no account needed).
  *   - `POST forgot-password`: emails a password link to the account a
  *     username or email address names (D-846; no account needed).
+ *   - `POST confirm-email`: confirms a new email address with its link
+ *     (D-849; no account needed), and `DELETE email-change/{for}` ends
+ *     a change that waits, the site's (`site`) or your own account's
+ *     (`account`)
+ *     (`EmailChangeController`).
  *   - `GET  dashboard`: the site, and the entries waiting on the account
  *     (D-538).
  *   - `GET  tools`: the tools the account may run as buttons, by
@@ -249,6 +255,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::post('/forgot-password', ForgotPasswordController::class)->named('forgot-password'),
+			Route::post('/confirm-email', [EmailChangeController::class, 'confirm'])->named('confirm-email'),
+			Route::delete('/email-change/{for:[a-z]+}', [EmailChangeController::class, 'cancel'])->named('email-change.cancel')->middleware(Authenticate::class),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
 			Route::get('/tools', [ToolController::class, 'index'])->named('tools')->middleware(Authenticate::class),

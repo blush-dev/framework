@@ -47,7 +47,7 @@ import RoleChecks from '../components/RoleChecks.vue';
 import ShownOnce from '../components/ShownOnce.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useAction } from '../action';
-import { ApiError, errorMessage, patchEntry, request, type EntryDetail } from '../api';
+import { ApiError, cancelEmailChange, errorMessage, patchEntry, request, type EmailChange, type EntryDetail } from '../api';
 import { config } from '../config';
 import { confirmAction } from '../confirm';
 import { t } from '../messages';
@@ -75,6 +75,7 @@ const own = computed<AccountInfo | undefined>(() => {
 	return account === null ? undefined : {
 		username: account.username,
 		email: account.email,
+		emailChange: account.emailChange,
 		name: account.name,
 		displayName: account.displayName,
 		avatar: account.avatar,
@@ -493,17 +494,39 @@ async function saveDetails(): Promise<void> {
 	const changes = { name: detailName.value.trim() === '' ? null : detailName.value, email: detailEmail.value.trim() };
 
 	await runDetails(t('account_view.details_save_failed', 'The details couldn\'t be saved.'), async () => {
+		const waiting = current.emailChange?.email;
+		let change: EmailChange | null = null;
+
 		if (mine.value) {
-			await saveOwnDetails(changes);
+			change = await saveOwnDetails(changes);
 		} else {
 			replace(await updateAccount(current.username, changes));
 		}
 
 		editingDetails.value = false;
-		toast(mine.value ? t('account_view.details_saved_mine', 'Saved your details') : t('account_view.details_saved', 'Saved {name}\'s details', { name: account.value?.displayName ?? current.username }));
+
+		if (change !== null && change.email !== waiting) {
+			toast(t('account_view.email_change_sent', 'Check {email} for a link to confirm it', { email: change.email }));
+		} else {
+			toast(mine.value ? t('account_view.details_saved_mine', 'Saved your details') : t('account_view.details_saved', 'Saved {name}\'s details', { name: account.value?.displayName ?? current.username }));
+		}
 	}, (caught) => {
 		detailsField.value = caught instanceof ApiError && (caught.field === 'name' || caught.field === 'email') ? caught.field : null;
 		(detailsField.value === 'email' ? emailInput : nameInput).value?.focus();
+	});
+}
+
+// A new address of your own waits on its confirmation link (D-849)
+// until it's used, or cancelled here.
+const { busy: cancelBusy, run: runCancel } = useAction();
+
+async function cancelChange(): Promise<void> {
+	await runCancel(t('account_view.email_change_cancel_failed', 'The change couldn\'t be cancelled.'), async () => {
+		await cancelEmailChange('account');
+		await loadSession(true);
+		toast(t('account_view.email_change_cancelled', 'Cancelled the change of email address'));
+	}, (caught) => {
+		toast(errorMessage(caught, t('account_view.email_change_cancel_failed', 'The change couldn\'t be cancelled.')), { kind: 'warn' });
 	});
 }
 
@@ -609,6 +632,12 @@ async function changePassword(): Promise<void> {
 			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">{{ t('account_view.add_email', 'Add an Email Address') }}</button></span>
 		</div>
 
+		<div v-if="account && mine && account.emailChange" class="notice">
+			<AdminIcon name="mail" />
+			<span class="notice__text"><strong>{{ t('account_view.email_change_waiting', 'Your new email address is waiting to be confirmed.') }}</strong> {{ t('account_view.email_change_text', 'Use the link sent to {email} by {date}; until then, your account keeps {old}.', { email: account.emailChange.email, date: when(account.emailChange.expires), old: account.email ?? '' }) }}</span>
+			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="cancelBusy" @click="cancelChange">{{ t('account_view.cancel_change', 'Cancel Change') }}</button></span>
+		</div>
+
 		<ShownOnce v-if="account && link" :value="link.url" :label="t('account_view.password_link', 'Password link')" :noun="t('account_view.the_link', 'the link')" :copy="t('account_view.copy_link', 'Copy Link')">
 			<MessageText :text="t('account_view.send_link', '{send} however you like, so they can choose a password. It\'s shown once, works once, and lasts until {date}.', { date: when(link.expires) })"><template #send><strong>{{ t('account_view.send_link_lead', 'Send this link to {name}', { name: account.displayName }) }}</strong></template></MessageText>
 		</ShownOnce>
@@ -641,7 +670,7 @@ async function changePassword(): Promise<void> {
 						<p class="field">
 							<label for="account-email">{{ t('account_view.email', 'Email') }}</label>
 							<input id="account-email" ref="emailInput" v-model="detailEmail" type="email" autocomplete="email" :required="!account.tokenOnly" :aria-invalid="detailsField === 'email' || undefined" :aria-describedby="detailsField === 'email' ? 'details-error' : 'account-email-help'">
-							<span id="account-email-help" class="field__help">{{ account.tokenOnly ? t('account_view.email_optional', 'Optional for a token-only account.') : t('account_view.email_needed', 'Every account needs one.') }} {{ t('account_view.email_help', 'Blush sends no email; it\'s for the people who manage accounts.') }}</span>
+							<span id="account-email-help" class="field__help">{{ account.tokenOnly ? t('account_view.email_optional', 'Optional for a token-only account.') : t('account_view.email_needed', 'Every account needs one.') }} {{ !config.mail ? t('account_view.email_help_no_mail', 'The site can\'t send email, so it\'s for the people who manage accounts.') : (mine ? t('account_view.email_help_mine', 'A new one is used once you confirm it, from a link sent there.') : t('account_view.email_help_other', 'A new one is used at once, and the old one is told.')) }}</span>
 						</p>
 						<p v-if="detailsError" id="details-error" class="field__error" role="alert">{{ detailsError }}</p>
 						<p class="submit-row submit-row--tight">

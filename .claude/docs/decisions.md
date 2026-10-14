@@ -26934,3 +26934,63 @@ decision, add a new entry that supersedes it and mark the old one
   docs"), from Claude's recommendation to make it visible.
 - **Status:** Built (2026-10-14).
 
+
+### D-849: A new email address is confirmed by the new one, and the old one is told
+
+- **Date:** 2026-10-14
+- **Builds:** D-723's "later" (confirming a change of the site's
+  address), and the same for accounts' own addresses (D-370), on
+  D-846's notifications. **Refines:** D-846 (a second core
+  notification).
+- **The author's go:** "Go ahead with #1 and #2" (the site's address,
+  and accounts'), from Claude's list of the next mail work. The
+  shape below is Claude's call, made without questions since Claude
+  had said nothing in them needed the author's input.
+- **Decision:**
+  - **Confirmed when you change your own:** a change made on Your
+    Account (`PATCH profile`), or of the site's address on Settings →
+    General (`PATCH settings` with `app.email`), isn't saved. The new
+    address is emailed a link to confirm it, the old one is told a
+    change was asked for, and nothing changes until the link is used,
+    within a day (`EmailChanges::LIFETIME`). Once it is, the address
+    changes and the old one is told it changed. The rest of a settings
+    save goes through as usual.
+  - **At once when an administrator changes someone else's:** `PATCH
+    accounts/{username}` and `account:email` change it now (an
+    administrator may be fixing an address its owner lost), and the
+    old address is told, naming the administrator.
+  - **At once without mail,** or with no address to change from, or
+    the same address in another case (`needsConfirming()`): there's
+    nothing to confirm with. Token-only accounts too.
+  - **`Blush\Auth\EmailChanges`** does all of it. A waiting change is
+    an `EmailChange` (`for`: `site` or the account's id; the new
+    address; `expires`; `by`; the SHA-256 of the token last emailed),
+    one per site or account, kept in the persistent `logins` store
+    beside password resets, expiring with its link: it's a short-lived
+    token, as sign-in counters and reset cooldowns are, not data the
+    site keeps, so no table or field was added (Claude's call). Asking
+    again replaces it.
+  - **`core/email-change`** (`EmailChangeNotification`, urgent per
+    D-847), by `stage`: `confirm` to the new address, its link issued
+    when the email is sent so no token sits in a job (as password
+    links, D-846), and nothing sent once the change no longer waits on
+    that address; `asked` and `changed` to the old. Mail about an
+    account is written in the account's language; the layout's
+    footer, sent to an address rather than the account, is in the
+    site's.
+  - **The link** is `{admin}/confirm-email#for=…&token=…`, the token in
+    the fragment as a password link's is. The new **Confirm Email
+    Address** screen (public) asks for a press before it posts `POST
+    confirm-email`, so a mail app that opens links to check them
+    confirms nothing. A used, replaced, cancelled, or expired link is a
+    `410`; an address another account took meanwhile, a `422`.
+  - **What waits is shown:** Your Account has a notice (the new
+    address, until when, and that the account keeps the old) with
+    **Cancel Change**; General's email row says it under its help,
+    with **Cancel the change**. Both `DELETE email-change/{account|site}`.
+    `GET session`, `GET accounts` (your own row only), and the email
+    item of `GET settings/general` carry `emailChange`.
+  - The account screen's email help no longer says Blush sends no
+    email.
+- **Status:** Built (2026-10-14). `composer check`; the admin rebuilt;
+  `lang:extract core` wrote the new messages.

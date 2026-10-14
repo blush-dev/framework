@@ -177,7 +177,8 @@ final class AdminApiTest extends TestCase
 	public function testAccountsNameThemselves(): void
 	{
 		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\ntitle: Jane Author\n---\n");
-		$this->boot(roles: ['contributor']);
+		// Without mail, a new address changes at once (D-849).
+		$this->boot(roles: ['contributor'], environment: ['MAIL_DSN' => '']);
 		$token = self::json($this->login())['csrfToken'] ?? null;
 		$this->assertIsString($token);
 
@@ -191,7 +192,7 @@ final class AdminApiTest extends TestCase
 		$answer = $this->send('PATCH', '/profile', '{"name": "  Jane\n Doe "}', ['X-CSRF-Token' => $token]);
 
 		$this->assertSame(200, $answer->getStatusCode());
-		$this->assertSame(['name' => 'Jane Doe', 'email' => 'jane@example.test', 'displayName' => 'Jane Doe'], self::json($answer), 'Its own name comes first (D-370).');
+		$this->assertSame(['name' => 'Jane Doe', 'email' => 'jane@example.test', 'displayName' => 'Jane Doe', 'emailChange' => null], self::json($answer), 'Its own name comes first (D-370).');
 		$this->assertSame('Jane Doe', $this->app->container()->make(Accounts::class)->find('jane')?->name);
 		$this->assertSame('Jane Doe', self::account($this->send('GET', '/session'))['displayName'] ?? null);
 
@@ -200,7 +201,7 @@ final class AdminApiTest extends TestCase
 		$this->assertSame(400, $this->send('PATCH', '/profile', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('PATCH', '/profile', '{"name": "Mallory"}')->getStatusCode(), 'CSRF is checked.');
 
-		$this->assertSame(['name' => null, 'email' => 'jane@example.test', 'displayName' => 'Jane Author'], self::json($this->send('PATCH', '/profile', '{"name": " "}', ['X-CSRF-Token' => $token])), 'Without one, its profile\'s title.');
+		$this->assertSame(['name' => null, 'email' => 'jane@example.test', 'displayName' => 'Jane Author', 'emailChange' => null], self::json($this->send('PATCH', '/profile', '{"name": " "}', ['X-CSRF-Token' => $token])), 'Without one, its profile\'s title.');
 		$this->assertStringNotContainsString('"name"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'), 'No name isn\'t stored.');
 
 		$this->assertSame('jane@new.example', self::json($this->send('PATCH', '/profile', '{"email": "jane@new.example"}', ['X-CSRF-Token' => $token]))['email'] ?? null, 'Its own email address (D-370).');

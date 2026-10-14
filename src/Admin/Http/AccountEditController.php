@@ -27,6 +27,7 @@ use Blush\Auth\AuthException;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
+use Blush\Auth\EmailChanges;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
 use Blush\Content\Type\ContentTypes;
@@ -65,7 +66,8 @@ use Blush\Translation\Text;
  *   any of `roles` (`accounts.roles`),
  *   `author` (a profile's slug; `null` unlinks), `name` (`null` or empty takes it
  *   away, D-322), and `email` (D-370; all three `accounts.edit`), and `suspended`
- *   (`accounts.suspend`); answers with the `account`.
+ *   (`accounts.suspend`); answers with the `account`. An address changed
+ *   here changes at once, and the old one is told (D-849).
  * - `POST accounts/{username}/link` (`accounts.edit`): a new password
  *   link, replacing any other; the account's password keeps working
  *   until it's used. With `{"send": true}`, it's emailed to the account
@@ -95,6 +97,7 @@ final readonly class AccountEditController
 		private AdminLinks $links,
 		private TokensController $tokens,
 		private Notifier $notifier,
+		private EmailChanges $changes,
 		private Messages $messages
 	) {}
 
@@ -249,7 +252,7 @@ final readonly class AccountEditController
 			$account = $suspended === $account->suspended ? $account : $this->accounts->setSuspended($account, $suspended);
 			$account = $relinks ? $this->profiles->link($account, $author) : $account;
 			$account = $name === $account->name ? $account : $this->accounts->setName($account, $name);
-			$account = $email === null || trim($email) === ($account->email ?? '') ? $account : $this->accounts->setEmail($account, $email);
+			$account = $email === null || trim($email) === ($account->email ?? '') ? $account : $this->changes->changeAccount($account, $email, $actor);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}

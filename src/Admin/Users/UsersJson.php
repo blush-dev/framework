@@ -21,11 +21,13 @@ use Blush\Auth\Avatars;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
+use Blush\Auth\EmailChanges;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
+use Blush\Cache\CacheException;
 use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
@@ -48,7 +50,8 @@ final readonly class UsersJson
 		private ContentUrls $urls,
 		private Capabilities $capabilities,
 		private ContentTypes $types,
-		private Avatars $avatars
+		private Avatars $avatars,
+		private EmailChanges $changes
 	) {}
 
 	/**
@@ -107,7 +110,8 @@ final readonly class UsersJson
 	 * "url", "uses"}`, or `null`), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
 	 * it has `expired`; `null` for none), whether it's `tokenOnly`
-	 * (D-744), and whether the viewer `manages` it.
+	 * (D-744), whether the viewer `manages` it, and, for your own, the
+	 * new address waiting on its link (`emailChange`, D-849).
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -129,8 +133,27 @@ final readonly class UsersJson
 			'status'      => $account->status()->value,
 			'link'        => $link === null ? null : ['expires' => $link->expires, 'expired' => $link->expires <= $this->clock->now()->getTimestamp()],
 			'tokenOnly'   => $account->tokenOnly,
-			'manages'     => $this->rules->manages($viewer, $account)
+			'manages'     => $this->rules->manages($viewer, $account),
+			'emailChange' => $account->id === $viewer->id ? $this->emailChange($account) : null
 		];
+	}
+
+	/**
+	 * Returns an account's new email address waiting on its confirmation
+	 * link (D-849), `{email, expires}`, or `null`. It's shown to the
+	 * account alone, which is the only one that can ask for one.
+	 *
+	 * @return ?array{email: string, expires: int}
+	 */
+	public function emailChange(Account $account): ?array
+	{
+		try {
+			$change = $this->changes->pending($account->id);
+		} catch (CacheException) {
+			return null;
+		}
+
+		return $change === null ? null : ['email' => $change->email, 'expires' => $change->expires];
 	}
 
 	/**

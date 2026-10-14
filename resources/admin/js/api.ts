@@ -12,6 +12,8 @@ export interface Account {
 	username: string;
 	// Its email address (D-370); `null` only for one saved before emails.
 	email: string | null;
+	// A new address waiting on its confirmation link (D-849).
+	emailChange: EmailChange | null;
 	// Its own name, if it has one (D-322).
 	name: string | null;
 	// What the admin calls it: its own name, else its profile's title,
@@ -1015,6 +1017,8 @@ export interface SettingItem {
 	// A short fact a compact row shows at its end, such as llms.txt's
 	// page count (D-765).
 	aside?: string | null;
+	// The site's email address: a new one waiting on its link (D-849).
+	emailChange?: EmailChange | null;
 	// What each of a `switches` setting's switches says, on and off.
 	words?: { on: string; off: string };
 	// A `tools` setting's tools, grouped by who registered them.
@@ -1761,8 +1765,35 @@ export async function refreshIfAsked(answer: { refresh: boolean }): Promise<void
  * Saves settings in `user/data/settings.json` (`set` some, `unset` others,
  * back to `config/`), then refreshes if the server asks.
  */
-export async function saveSettings(changes: { set?: Record<string, unknown>; unset?: string[] }): Promise<void> {
-	await refreshIfAsked(await request<{ refresh: boolean }>('PATCH', '/settings', changes));
+export async function saveSettings(changes: { set?: Record<string, unknown>; unset?: string[] }): Promise<EmailChange | null> {
+	const answer = await request<{ refresh: boolean; emailChange: EmailChange | null }>('PATCH', '/settings', changes);
+
+	await refreshIfAsked(answer);
+
+	return answer.emailChange;
+}
+
+// A new email address waiting on its confirmation link (D-849), the
+// site's or your account's.
+export interface EmailChange {
+	email: string;
+	expires: number;
+}
+
+/**
+ * Confirms a new email address with its link (D-849): `for` is `site` or
+ * an account's id. Answers which it was, and the address.
+ */
+export function confirmEmail(changeFor: string, token: string): Promise<{ for: 'site' | 'account'; email: string }> {
+	return request('POST', '/confirm-email', { for: changeFor, token });
+}
+
+/**
+ * Ends a change of email address that waits, the site's (`site`) or your
+ * own account's (`account`), so its link stops working.
+ */
+export function cancelEmailChange(changeFor: 'site' | 'account'): Promise<void> {
+	return request('DELETE', `/email-change/${encodeURIComponent(changeFor)}`);
 }
 
 /**

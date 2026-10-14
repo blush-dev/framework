@@ -5,7 +5,7 @@
  */
 
 import { ref } from 'vue';
-import { request, type ContentTypeSummary, type EntryStatus } from './api';
+import { request, type ContentTypeSummary, type EmailChange, type EntryStatus } from './api';
 import type { ContentAction } from './session';
 import { siteDateTime } from './dates';
 import { formatDate } from './format';
@@ -94,6 +94,8 @@ export interface AccountInfo {
 	tokenOnly: boolean;
 	// Whether you may change it (not your own, and it can't do more).
 	manages: boolean;
+	// Your own account's new email address, waiting on its link (D-849).
+	emailChange: EmailChange | null;
 }
 
 // An API token (D-749), never its secret or hash.

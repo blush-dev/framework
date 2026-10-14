@@ -56,7 +56,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `account:password <username>` | Set an account's password, signing it out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
 | `account:name <username> ["name"]` | Set the name the admin calls an account by, or remove it |
-| `account:email <username> <email>` | Change an account's email address, which every account needs |
+| `account:email <username> <email>` | Change an account's email address, which every account needs; it changes at once, and the old address is told |
 | `account:author <username> [slug]` | Link an account to a profile (making it, a draft, when there's none; refused when another account has it), or unlink it |
 | `account:remove <username>` | Delete an account. `--yes` skips the question. |
 | `token:add <username>` | Make an [API token](api.md#tokens) for an account and print it once (with `--quiet`, alone on its line). `--name=` says what it's for (asked for when left out), `--expires=` is `30`, `90` (the default), `365`, or `never` days, and `--capabilities=` narrows it, separated by commas (`--capabilities=content.*.edit,content.*.create`). |

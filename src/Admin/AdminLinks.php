@@ -20,8 +20,8 @@ use Blush\Core\AppConfig;
 /**
  * Builds addresses of the admin's screens for the command line and the
  * admin: choosing a password with a one-time link (D-312), for
- * `account:add --link` (D-720), and editing an entry, for `content:new`
- * (D-721).
+ * `account:add --link` (D-720), confirming a new email address (D-849),
+ * and editing an entry, for `content:new` (D-721).
  */
 final readonly class AdminLinks
 {
@@ -40,6 +40,18 @@ final readonly class AdminLinks
 		$fragment = http_build_query(['account' => $account->username, 'token' => $token]);
 
 		return $this->app->absoluteUrl("{$this->admin->path}/set-password#{$fragment}");
+	}
+
+	/**
+	 * Returns the address that confirms a change of email address with a
+	 * token (D-849), for the site (`site`) or an account (its id). The
+	 * token is in the fragment, as a password link's is.
+	 */
+	public function confirmEmail(string $for, string $token): string
+	{
+		$fragment = http_build_query(['for' => $for, 'token' => $token]);
+
+		return $this->app->absoluteUrl("{$this->admin->path}/confirm-email#{$fragment}");
 	}
 
 	/**

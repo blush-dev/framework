@@ -3,7 +3,7 @@
  */
 
 import { reactive, readonly } from 'vue';
-import { request, setCsrfToken, type Account, type Preferences, type SessionState } from './api';
+import { request, setCsrfToken, type Account, type EmailChange, type Preferences, type SessionState } from './api';
 import { followTheme } from './admin-theme';
 import { followAccount } from './color-scheme';
 
@@ -53,16 +53,20 @@ export async function signOut(): Promise<void> {
 /**
  * Changes the signed-in account's own name (an empty one takes it away,
  * D-322) or email address (D-370); throws an `ApiError` when the server
- * refuses, naming the `field`.
+ * refuses, naming the `field`. Where the site can send mail, a new
+ * address waits on its confirmation link (D-849), which is returned.
  */
-export async function saveOwnDetails(changes: { name?: string | null; email?: string }): Promise<void> {
-	const answer = await request<{ name: string | null; email: string | null; displayName: string }>('PATCH', '/profile', changes);
+export async function saveOwnDetails(changes: { name?: string | null; email?: string }): Promise<EmailChange | null> {
+	const answer = await request<{ name: string | null; email: string | null; displayName: string; emailChange: EmailChange | null }>('PATCH', '/profile', changes);
 
 	if (state.account !== null) {
 		state.account.name        = answer.name;
 		state.account.email       = answer.email;
+		state.account.emailChange = answer.emailChange;
 		state.account.displayName = answer.displayName;
 	}
+
+	return answer.emailChange;
 }
 
 /**
