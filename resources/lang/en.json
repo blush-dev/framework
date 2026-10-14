@@ -267,6 +267,21 @@
 				}
 			}
 		},
+		"menu": {
+			"label": "Menu",
+			"description": "One of the site's menus, as links.",
+			"props": {
+				"location": {
+					"label": "Theme location"
+				},
+				"name": {
+					"label": "Menu"
+				},
+				"label": {
+					"label": "Name for screen readers"
+				}
+			}
+		},
 		"meter": {
 			"label": "Meter",
 			"description": "A measurement within a range, such as a score or how full something is.",
@@ -3196,6 +3211,28 @@
 		},
 		"undeclared_keys": {
 			"no_entry": "No entry has this id."
+		},
+		"built_in_type": {
+			"page": {
+				"singular": "Page",
+				"plural": "Pages",
+				"menu": "Pages",
+				"item": "page",
+				"items": "pages",
+				"new_item": "New Page",
+				"edit_item": "Edit page",
+				"search_items": "Search pages"
+			},
+			"profile": {
+				"singular": "Profile",
+				"plural": "Profiles",
+				"menu": "Profiles",
+				"item": "profile",
+				"items": "profiles",
+				"new_item": "New Profile",
+				"edit_item": "Edit profile",
+				"search_items": "Search profiles"
+			}
 		}
 	},
 	"mcp": {

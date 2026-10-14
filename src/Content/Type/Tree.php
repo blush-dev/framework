@@ -50,7 +50,7 @@ final readonly class Tree extends ContentType
 	 * @param  bool            $sitemap     Whether its entries are in the sitemap.
 	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
 	 * @param  bool            $closed      Whether undeclared front matter is an error.
-	 * @param  ?TypeLabels     $labels      What people call it; defaults to labels made from the name ("Pages" and "Page").
+	 * @param  ?TypeLabels     $labels      What people call it; defaults to core's labels for `page` (D-842), else labels made from the name.
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  ?string        $byline      The credit relation that's its byline (D-602), or `null` for its only one.
@@ -80,6 +80,8 @@ final readonly class Tree extends ContentType
 		FieldControls $controls = new FieldControls(),
 		Messages $messages = new Messages()
 	) {
+		$labels ??= BuiltInType::labelsFor(TypeKind::Tree, $name, $messages);
+
 		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $messages);
 
 		$prefix = trim($prefix ?? '', '/ ');

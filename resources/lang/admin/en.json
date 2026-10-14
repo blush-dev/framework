@@ -2966,7 +2966,9 @@
 		"set_in": "Set in {file}.",
 		"default": "Default",
 		"uses_file": "Uses {file}'s once saved. {action}",
-		"use_file": "Use {file}'s"
+		"use_file": "Use {file}'s",
+		"ai": "AI",
+		"api": "API"
 	},
 	"profile_detail_view": {
 		"errors": {

@@ -419,7 +419,7 @@ abstract readonly class ContentType
 				'sitemap'     => $definition->bool('sitemap', true),
 				'fields'      => array_values($schema->fields),
 				'closed'      => $schema->closed,
-				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name, $messages),
+				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name, $messages, BuiltInType::labelsFor($kind, $name, $messages)),
 				'description' => $definition->nullableString('description') ?? '',
 				'icon'        => $definition->nullableString('icon'),
 				'filename'    => self::filename($definition, $name, $messages),
@@ -535,6 +535,15 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns the type with its labels' messages read through the site's
+	 * `Messages` (D-842), for a type a plugin made in code.
+	 */
+	public function readBy(Messages $messages): static
+	{
+		return clone($this, ['labels' => $this->labels->in($messages)]);
+	}
+
+	/**
 	 * Returns the type placed in the admin's menu by a data file that sets
 	 * only `position` and `under` (D-726), which may lay over any type but
 	 * the profiles type, even one it can't otherwise change.
@@ -584,7 +593,7 @@ abstract readonly class ContentType
 			'public'      => $this->public ? null : false,
 			'sitemap'     => $this->sitemap ? null : false,
 			'llms'        => $this->llms === $this->kind()->inLlmsByDefault() ? null : $this->llms,
-			'labels'      => $this->labels->toArray($this->name),
+			'labels'      => $this->labels->toArray($this->name, BuiltInType::labelsFor($this->kind(), $this->name, new Messages())),
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,
 			'filename'    => $this->filename?->pattern,

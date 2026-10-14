@@ -40,7 +40,10 @@ use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
 use Blush\Field\Fields\TextField;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
+use Blush\Data\DataLoader;
+use Blush\Translation\CurrentLocale;
 use Blush\Translation\Messages;
+use Blush\Translation\Translator;
 
 #[CoversClass(ContentType::class)]
 #[CoversClass(Collection::class)]
@@ -598,6 +601,23 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('/team/{name}', new Profiles(urls: new TypeUrls('team'))->routePattern('single'));
 		$this->assertFalse($profile->servedAsPages());
 		$this->assertFalse($profile->hasFeed());
+
+		$this->assertSame(['Pages', 'New Page', 'Search profiles'], [$page->labels->plural, $page->labels->newItem, $profile->labels->searchItems]);
+
+		$locale = new CurrentLocale('en_US');
+		$page   = BuiltInType::Page->type(new Messages(translator: new Translator(new DataLoader(), 'en_US', ['core' => [dirname(__DIR__, 3) . '/resources/lang']]), locale: $locale));
+
+		$this->assertSame('Pages', $page->labels->plural);
+		$this->assertSame(['ページ', '新規ページ'], $locale->in('ja', fn (): array => [$page->labels->plural, $page->labels->newItem]), 'Its labels are core\'s text, read in the current language, not the one it was loaded in (D-841).');
+
+		$stored = TypeLabels::fromArray($page->labels->toArray('page'), 'page', new Messages(translator: new Translator(new DataLoader(), 'en_US', ['core' => [dirname(__DIR__, 3) . '/resources/lang']]), locale: $locale));
+
+		$this->assertSame('ページ', $locale->in('ja', fn (): string => $stored->plural), 'Stored, as the compiled types cache keeps them, they stay messages.');
+
+		$site = new Messages(translator: new Translator(new DataLoader(), 'en_US', ['core' => [dirname(__DIR__, 3) . '/resources/lang']]), locale: $locale);
+
+		$this->assertSame(['プロフィール', 'ページ'], $locale->in('ja', fn (): array => [new Profiles()->readBy($site)->labels->plural, new Tree()->readBy($site)->labels->plural]), 'A plugin\'s Profiles or Tree by the default name has core\'s labels, read by the site (D-842).');
+		$this->assertSame(['Person', 'Doc'], $locale->in('ja', fn (): array => [new Profiles('person')->readBy($site)->labels->singular, new Tree('doc')->readBy($site)->labels->singular]), 'Another name keeps labels made from it.');
 		$this->assertTrue(BuiltInType::Profile->canDisable());
 	}
 }

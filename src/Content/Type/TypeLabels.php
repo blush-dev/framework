@@ -15,7 +15,9 @@ namespace Blush\Content\Type;
 
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;
+use Stringable;
 use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * What people call a content type and its entries (D-278): the names,
@@ -27,8 +29,12 @@ use Blush\Translation\Messages;
  * The mid-sentence names lowercase the first letter unless the first
  * word is an acronym or has another capital ("FAQ", "McGuffin"); a
  * proper noun ("Jane's notes") sets them.
+ *
+ * A label may be a message (`$messages->t()`, D-841): it's kept as
+ * given and read as text each time, so it's in the current language
+ * wherever the type is shown, as a type loaded once a request needs.
  */
-final readonly class TypeLabels
+final class TypeLabels
 {
 	/**
 	 * The keys, in the order each one's default builds on the ones
@@ -36,71 +42,96 @@ final readonly class TypeLabels
 	 */
 	public const array KEYS = ['singular', 'plural', 'menu', 'item', 'items', 'newItem', 'editItem', 'searchItems'];
 
+	// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.
+	/**
+	 * One entry ("Recipe").
+	 */
+	public string $singular {
+		get => trim((string) $this->texts['singular']);
+	}
+
 	/**
 	 * A group of entries ("Recipes"), such as the admin's navigation and
 	 * list heading.
 	 */
-	public string $plural;
+	public string $plural {
+		get => self::given($this->texts['plural']) ?? self::pluralOf($this->singular);
+	}
 
 	/**
 	 * The admin's navigation ("Forms" under Literature), where the plural
 	 * is too long or repeats what the menu around it says.
 	 */
-	public string $menu;
+	public string $menu {
+		get => self::given($this->texts['menu']) ?? $this->plural;
+	}
 
 	/**
 	 * One entry mid-sentence ("the first recipe").
 	 */
-	public string $item;
+	public string $item {
+		get => self::given($this->texts['item']) ?? self::inSentence($this->singular);
+	}
 
 	/**
 	 * Entries mid-sentence ("3 recipes", "no drafts among the recipes").
 	 */
-	public string $items;
+	public string $items {
+		get => self::given($this->texts['items']) ?? self::inSentence($this->plural);
+	}
 
 	/**
 	 * The button and screen that create an entry ("New Recipe"), in
 	 * Title Case as the admin's buttons are (D-522).
 	 */
-	public string $newItem;
+	public string $newItem {
+		get => self::given($this->texts['newItem']) ?? 'New ' . self::titleCase($this->singular);
+	}
 
 	/**
 	 * The editor's title ("Edit recipe").
 	 */
-	public string $editItem;
+	public string $editItem {
+		get => self::given($this->texts['editItem']) ?? "Edit {$this->item}";
+	}
 
 	/**
 	 * The list's search field ("Search recipes").
 	 */
-	public string $searchItems;
+	public string $searchItems {
+		get => self::given($this->texts['searchItems']) ?? "Search {$this->items}";
+	}
+	// phpcs:enable
 
 	/**
-	 * @param string  $singular    One entry ("Recipe").
-	 * @param ?string $plural      Defaults to the singular made plural.
-	 * @param ?string $menu        Defaults to the plural.
-	 * @param ?string $item        Defaults to the singular mid-sentence.
-	 * @param ?string $items       Defaults to the plural mid-sentence.
-	 * @param ?string $newItem     Defaults to "New {Singular}", in Title Case.
-	 * @param ?string $editItem    Defaults to "Edit {item}".
-	 * @param ?string $searchItems Defaults to "Search {items}".
+	 * The labels as given, by key; a missing one is made from those
+	 * before it.
+	 *
+	 * @var array{singular: string|Stringable, plural: string|Stringable|null, menu: string|Stringable|null, item: string|Stringable|null, items: string|Stringable|null, newItem: string|Stringable|null, editItem: string|Stringable|null, searchItems: string|Stringable|null}
+	 */
+	private readonly array $texts;
+
+	/**
+	 * @param string|Stringable      $singular    One entry ("Recipe").
+	 * @param string|Stringable|null $plural      Defaults to the singular made plural.
+	 * @param string|Stringable|null $menu        Defaults to the plural.
+	 * @param string|Stringable|null $item        Defaults to the singular mid-sentence.
+	 * @param string|Stringable|null $items       Defaults to the plural mid-sentence.
+	 * @param string|Stringable|null $newItem     Defaults to "New {Singular}", in Title Case.
+	 * @param string|Stringable|null $editItem    Defaults to "Edit {item}".
+	 * @param string|Stringable|null $searchItems Defaults to "Search {items}".
 	 */
 	public function __construct(
-		public string $singular,
-		?string $plural = null,
-		?string $menu = null,
-		?string $item = null,
-		?string $items = null,
-		?string $newItem = null,
-		?string $editItem = null,
-		?string $searchItems = null
+		string|Stringable $singular,
+		string|Stringable|null $plural = null,
+		string|Stringable|null $menu = null,
+		string|Stringable|null $item = null,
+		string|Stringable|null $items = null,
+		string|Stringable|null $newItem = null,
+		string|Stringable|null $editItem = null,
+		string|Stringable|null $searchItems = null
 	) {
-		$this->plural      = self::given($plural) ?? self::pluralOf($singular);
-		$this->menu        = self::given($menu) ?? $this->plural;
-		$this->item        = self::given($item) ?? self::inSentence($singular);
-		$this->items       = self::given($items) ?? self::inSentence($this->plural);
-		$this->newItem     = self::given($newItem) ?? 'New ' . self::titleCase($singular);
-		$this->editItem    = self::given($editItem) ?? "Edit {$this->item}";
-		$this->searchItems = self::given($searchItems) ?? "Search {$this->items}";
+		$this->texts = ['singular' => $singular, 'plural' => $plural, 'menu' => $menu, 'item' => $item, 'items' => $items, 'newItem' => $newItem, 'editItem' => $editItem, 'searchItems' => $searchItems];
 	}
 
 	/**
@@ -114,12 +145,14 @@ final readonly class TypeLabels
 
 	/**
 	 * Builds labels from a map of the keys, making `singular` from the
-	 * type's name when it's missing.
+	 * type's name when it's missing. A label stored as a message
+	 * (`toArray()`) is restored as one. Given `$defaults` (core's, for
+	 * a built-in type's name, D-842), a missing label is its.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, string $name, Messages $messages): self
+	public static function fromArray(array $data, string $name, Messages $messages, ?self $defaults = null): self
 	{
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), self::KEYS);
 
@@ -127,35 +160,89 @@ final readonly class TypeLabels
 			throw new InvalidContentType((string) $messages->t('content.type_labels.unknown_options', 'Content type "{name}" labels has unknown options: {options}.', name: $name, options: implode(', ', $unknown)));
 		}
 
+		$restored = array_filter(array_map($messages->restore(...), $data));
+
 		try {
-			$labels = new Definition($data, (string) $messages->t('content.type_labels.subject', 'Content type "{name}" labels', name: $name));
+			$labels = new Definition(array_diff_key($data, $restored), (string) $messages->t('content.type_labels.subject', 'Content type "{name}" labels', name: $name));
 			$given  = array_map($labels->nullableString(...), array_combine(self::KEYS, self::KEYS));
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		return new self(...[...$given, 'singular' => self::given($given['singular']) ?? self::named($name)->singular]);
+		$labels   = [...$given, ...$restored];
+		foreach ($defaults === null ? [] : $defaults->texts as $key => $default) {
+			if (self::given($labels[$key] ?? null) === null) {
+				$labels[$key] = $default;
+			}
+		}
+
+		$singular = $labels['singular'] ?? null;
+
+		unset($labels['singular']);
+
+		return new self($singular === null || self::given($singular) === null ? self::named($name)->singular : $singular, ...$labels);
 	}
 
 	/**
 	 * Returns the labels as a map that `fromArray()` accepts for a type
-	 * with this name, leaving out the ones at their defaults.
+	 * with this name, leaving out the ones at their defaults: those made
+	 * from the name, or `$defaults` (D-842). A label given as a message
+	 * is kept as one (`Text::toArray()`, D-836), so the compiled types
+	 * cache translates it as it's read, not in the language it was
+	 * written in.
 	 *
-	 * @return array<string, string>
+	 * @return array<string, string|array<string, mixed>>
 	 */
-	public function toArray(string $name): array
+	public function toArray(string $name, ?self $defaults = null): array
 	{
 		$data = [];
+		$kept = [];
 
 		foreach (self::KEYS as $key) {
-			$default = new self(...[...$data, 'singular' => $data['singular'] ?? self::named($name)->singular]);
+			$given = $this->texts[$key];
+
+			if ($defaults !== null) {
+				$default = $defaults->texts[$key];
+
+				if ($given instanceof Text ? ! ($default instanceof Text && $default->key === $given->key) : self::given($given) !== null && self::given($given) !== $defaults->{$key}) {
+					$data[$key] = $given instanceof Text ? $given->toArray() : (string) self::given($given);
+				}
+
+				continue;
+			}
+
+			if ($given instanceof Text) {
+				$data[$key] = $given->toArray();
+				$kept[$key] = $given;
+
+				continue;
+			}
+
+			$default = new self(...[...$kept, 'singular' => $kept['singular'] ?? self::named($name)->singular]);
 
 			if ($this->{$key} !== $default->{$key}) {
 				$data[$key] = $this->{$key};
+				$kept[$key] = $this->{$key};
 			}
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Returns the labels with each message read through `$messages`
+	 * (D-842): a type made in code without the site's translator, such
+	 * as a plugin's `new Profiles()`, has messages that print in the
+	 * language they're written in until the site reads them.
+	 */
+	public function in(Messages $messages): self
+	{
+		$read  = static fn (string|Stringable|null $label): string|Stringable|null => $label instanceof Text ? $messages->restore($label->toArray()) : $label;
+		$texts = array_map($read, $this->texts);
+
+		unset($texts['singular']);
+
+		return new self($read($this->texts['singular']) ?? $this->texts['singular'], ...$texts);
 	}
 
 	/**
@@ -172,9 +259,9 @@ final readonly class TypeLabels
 	 * Returns a label someone set, trimmed, or `null` for one that's
 	 * missing or blank.
 	 */
-	private static function given(?string $label): ?string
+	private static function given(string|Stringable|null $label): ?string
 	{
-		$label = trim($label ?? '');
+		$label = trim((string) $label);
 
 		return $label === '' ? null : $label;
 	}

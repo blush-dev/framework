@@ -26596,3 +26596,91 @@ decision, add a new entry that supersedes it and mark the old one
   as dates keep the site's formats and language (`dates.ts`, D-693).
   Three counts that read "1 recipes" became ICU plurals.
 - **Status:** Built (2026-10-14).
+
+### D-840: Core ships a Japanese translation, as the testing ground for translation work
+
+- **Date:** 2026-10-14
+- **Refines:** D-831, D-834 to D-839.
+- **Decision:** the author's ask: core ships `ja` beside `en` for each
+  of its catalogs (`resources/lang/ja.json`, `resources/lang/admin/ja.json`,
+  `resources/lang/site/ja.json`), so Japanese is offered on Your
+  Account and the front end's player labels and core's PHP text
+  follow a Japanese site. It's the language translation work is tried
+  in from here on: one with no plural forms, a different word order
+  (placeholders move), no spaces between words, and its own
+  punctuation, so it shows English grammar built in code, text that
+  isn't in a catalog yet, and layouts that assume English widths.
+  Translated by agents from a shared style guide and glossary (です/ます
+  for sentences, plain nouns and verbs for buttons and labels), each
+  catalog checked for the same keys, placeholders, and tags as
+  `en.json`, and every message parsed by ICU as `ja`. `@` notes are left
+  out. Keys added to `en.json` later are English in Japanese until
+  `ja.json` catches up (the fallback D-453 already gives).
+- **Found in translating** (the first results of the testing ground):
+  `relation_view.singular_help` and `pick_modal.title` take an English
+  article (`{article}`, "a" or "an"), which Japanese leaves out (the
+  translation drops `{article}`, which ICU allows); the same 38 short
+  labels were translated two ways in different chunks and were made
+  one (On and Off 有効 and 無効, Move to Trash ゴミ箱へ移動, Remove
+  削除); a check of arguments has to walk ICU, since a plural's branch
+  text such as `one {is} other {are}` looks like a placeholder.
+- **Open:** keeping `ja.json` current as `en.json` changes (a check
+  for keys in `en` and not in other locales, and for arguments that
+  differ, part of D-784's catalog tooling); a native speaker's review;
+  English articles built into messages (above).
+- **Status:** Built (2026-10-14).
+
+### D-841: The built-in types' labels and the Menu block's text are core's messages
+
+- **Date:** 2026-10-14
+- **Refines:** D-278, D-831, D-840.
+- **Decision:** from the author's check of the Japanese admin (D-840),
+  which found text that wasn't translated:
+  - **Pages and Profiles** were labeled from their names ("Page",
+    "Pages", "New Page"), English made in code. `BuiltInType::type()`
+    takes `Messages` and writes all eight labels as core's messages
+    (`content.built_in_type.{page,profile}.*`), so the admin's
+    navigation, lists, and buttons follow the current language. A
+    type in a plugin's code labels itself with its own `t()`.
+  - **`TypeLabels` takes `string|Stringable`** (the author's call):
+    a label is kept as given and read as text each time (properties
+    with `get` hooks, so the class isn't `readonly`), so a message
+    is in the language current when it's shown, not when the types
+    were loaded, which is once a request and can be before the
+    admin's language is set. Nothing casts a message to give it.
+    `toArray()` keeps a message as one (`Text::toArray()`, D-836) and
+    `fromArray()` restores it, so the compiled types cache
+    (`cache:compile`) doesn't save labels in the language it ran in.
+  - **The Menu block** had no text in core's catalog, so the inserter
+    showed its name; `blocks.menu` (label, description, props) is
+    added like every other block's.
+  - **The AI and API screens' titles** were plain strings in
+    `SettingsView.vue`; they're `t()` now. In Japanese they read "AI
+    設定" and "API 設定", beside 表示設定 and 投稿設定.
+  - **Feed formats** in Japanese read "RSS フィード", "Atom フィード",
+    and "JSON フィード", in place of the names alone.
+- **Open:** labels a type gets by default from its singular ("New
+  {Singular}", "Edit {item}", "Search {items}", the English plural)
+  are still built in English for types without them set; it goes with
+  translating labels stored as data (`open-questions.md`).
+- **Status:** Built (2026-10-14).
+
+### D-842: A tree named `page` and profiles named `profile` have core's labels, whoever makes them
+
+- **Date:** 2026-10-14
+- **Refines:** D-841.
+- **Decision:** the author's call, after a plugin's `new Profiles()`
+  (jtcom's) showed "Profiles" in a Japanese admin: a type that
+  replaces a built-in one by its default name and kind, without
+  labels of its own, has core's labels (`BuiltInType::labelsFor()`),
+  so `new Profiles()` and `new Tree()` in a plugin are translated
+  like the built-in types. Another name keeps labels made from it.
+  - A type a plugin makes in code is built without the site's
+    translator, so its labels' messages would print in English; the
+    loader reads every plugin type's labels through the site's
+    `Messages` (`ContentType::readBy()`, `TypeLabels::in()`).
+  - Core's labels are these types' defaults: `toArray()` leaves them
+    out and `fromArray()` fills in any a definition leaves out, so a
+    data file over `page` that sets only `menu` keeps the rest
+    translated.
+- **Status:** Built (2026-10-14).

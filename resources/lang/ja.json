@@ -1,0 +1,3782 @@
+{
+	"@@locale": "ja",
+	"@@domain": "core",
+	"document_title": {
+		"paged": "{title}: {page}ページ目",
+		"page": "{page}ページ目"
+	},
+	"blocks": {
+		"abbr": {
+			"label": "略語",
+			"description": "略語と、その正式名称。",
+			"props": {
+				"title": {
+					"label": "正式名称"
+				}
+			}
+		},
+		"audio": {
+			"label": "音声",
+			"description": "再生コントロール付きの音声ファイル。",
+			"props": {
+				"src": {
+					"label": "音声ファイル"
+				},
+				"preload": {
+					"label": "事前読み込み",
+					"choices": {
+						"none": "なし",
+						"metadata": "詳細のみ",
+						"auto": "ファイル全体"
+					}
+				},
+				"loop": {
+					"label": "ループ再生"
+				},
+				"title": {
+					"label": "タイトル"
+				},
+				"artist": {
+					"label": "アーティスト"
+				},
+				"album": {
+					"label": "アルバム"
+				},
+				"art": {
+					"label": "アートワーク"
+				}
+			},
+			"variants": {
+				"card": {
+					"label": "カード",
+					"description": "プレーヤーの上に、タイトルとアーティストと並べてアートワークを表示します。"
+				}
+			}
+		},
+		"badge": {
+			"label": "バッジ",
+			"description": "「New」や「Beta」など、本文から区別して表示する短いラベル。",
+			"variants": {
+				"info": {
+					"label": "情報",
+					"description": "知っておくと役立つこと。"
+				},
+				"tip": {
+					"label": "ヒント",
+					"description": "成功など、良いこと。"
+				},
+				"warning": {
+					"label": "警告",
+					"description": "注意が必要なこと。"
+				},
+				"danger": {
+					"label": "危険",
+					"description": "問題を引き起こす可能性があること。"
+				}
+			}
+		},
+		"button": {
+			"label": "ボタン",
+			"description": "ボタンのように見えるリンク。アイコンも付けられます。",
+			"props": {
+				"url": {
+					"label": "リンク"
+				},
+				"label": {
+					"label": "テキスト"
+				},
+				"icon": {
+					"label": "アイコン"
+				},
+				"iconPosition": {
+					"label": "アイコンの位置",
+					"choices": {
+						"start": "テキストの前",
+						"end": "テキストの後"
+					}
+				},
+				"iconOnly": {
+					"label": "アイコンのみ表示"
+				}
+			},
+			"variants": {
+				"secondary": {
+					"label": "セカンダリ",
+					"description": "枠線のみのスタイル。メインの操作の横に置く操作向けです。"
+				}
+			}
+		},
+		"callout": {
+			"label": "コールアウト",
+			"description": "本文から区別して表示する注記。タイトルも付けられます。",
+			"variants": {
+				"info": {
+					"label": "情報",
+					"description": "知っておくと役立つこと。"
+				},
+				"tip": {
+					"label": "ヒント",
+					"description": "役立つ提案。"
+				},
+				"warning": {
+					"label": "警告",
+					"description": "注意が必要なこと。"
+				},
+				"danger": {
+					"label": "危険",
+					"description": "問題を引き起こしたり、データが失われたりする可能性があること。"
+				}
+			}
+		},
+		"cite": {
+			"label": "引用元",
+			"description": "書籍、映画、記事などの作品のタイトル。"
+		},
+		"dfn": {
+			"label": "定義",
+			"description": "文の中で定義される用語。",
+			"props": {
+				"title": {
+					"label": "用語"
+				}
+			}
+		},
+		"embed": {
+			"label": "埋め込み",
+			"description": "既知のサイトの動画、音声、写真、またはその他のページへのリンク。",
+			"props": {
+				"url": {
+					"label": "URL"
+				},
+				"title": {
+					"label": "タイトル"
+				},
+				"alt": {
+					"label": "代替テキスト"
+				}
+			}
+		},
+		"figure": {
+			"label": "図",
+			"description": "画像、表、コードブロックなど、キャプションを付けて区別して表示するもの。",
+			"props": {
+				"label": {
+					"label": "キャプション"
+				}
+			}
+		},
+		"file": {
+			"label": "ファイル",
+			"description": "ファイルの種類とサイズを添えたダウンロードリンク。",
+			"props": {
+				"src": {
+					"label": "ファイル"
+				}
+			}
+		},
+		"gallery": {
+			"label": "ギャラリー",
+			"description": "画像を行、グリッド、またはメイソンリーで並べます。",
+			"props": {
+				"columns": {
+					"label": "列数"
+				},
+				"layout": {
+					"label": "レイアウト",
+					"choices": {
+						"flex": "幅いっぱいに並ぶ行",
+						"grid": "均等なグリッド",
+						"masonry": "メイソンリー"
+					}
+				}
+			}
+		},
+		"grid": {
+			"label": "グリッド",
+			"description": "狭い画面では折り返す、列に並べたブロック。",
+			"props": {
+				"columns": {
+					"label": "列数"
+				},
+				"min": {
+					"label": "最小の列幅"
+				},
+				"gap": {
+					"label": "間隔"
+				},
+				"tag": {
+					"label": "要素",
+					"choices": {
+						"div": "汎用ブロック（div）",
+						"section": "セクション（section）",
+						"aside": "補足（aside）"
+					}
+				},
+				"label": {
+					"label": "スクリーンリーダー用の名前"
+				}
+			}
+		},
+		"group": {
+			"label": "グループ",
+			"description": "まとめてスタイルを付けるために、ひとまとめにしたブロック。",
+			"props": {
+				"tag": {
+					"label": "要素",
+					"choices": {
+						"div": "汎用ブロック（div）",
+						"section": "セクション（section）",
+						"aside": "補足（aside）"
+					}
+				},
+				"label": {
+					"label": "スクリーンリーダー用の名前"
+				}
+			}
+		},
+		"icon": {
+			"label": "アイコン",
+			"description": "矢印やハートなど、テキストの中に置く小さな絵。",
+			"props": {
+				"name": {
+					"label": "アイコン"
+				},
+				"label": {
+					"label": "スクリーンリーダー用のテキスト"
+				}
+			}
+		},
+		"ins": {
+			"label": "挿入",
+			"description": "後から追加されたテキスト。削除されたテキストと対になります。",
+			"props": {
+				"datetime": {
+					"label": "追加日時"
+				},
+				"cite": {
+					"label": "理由（リンク）"
+				}
+			}
+		},
+		"kbd": {
+			"label": "キーボードのキー",
+			"description": "Ctrl+S など、押すキーやキーの組み合わせ。",
+			"props": {
+				"label": {
+					"label": "キー"
+				}
+			}
+		},
+		"menu": {
+			"label": "メニュー",
+			"description": "サイトのメニューの一つをリンクとして表示します。",
+			"props": {
+				"location": {
+					"label": "テーマの位置"
+				},
+				"name": {
+					"label": "メニュー"
+				},
+				"label": {
+					"label": "スクリーンリーダー向けの名前"
+				}
+			}
+		},
+		"meter": {
+			"label": "メーター",
+			"description": "スコアや使用率など、範囲内の測定値。",
+			"props": {
+				"value": {
+					"label": "値"
+				},
+				"min": {
+					"label": "最小値"
+				},
+				"max": {
+					"label": "最大値"
+				},
+				"low": {
+					"label": "低い値の境界"
+				},
+				"high": {
+					"label": "高い値の境界"
+				},
+				"optimum": {
+					"label": "最適値"
+				},
+				"label": {
+					"label": "ラベル"
+				}
+			}
+		},
+		"playlist": {
+			"label": "プレイリスト",
+			"description": "一覧の上のプレーヤーで、音声ファイルを順に再生します。",
+			"props": {
+				"loop": {
+					"label": "最後まで再生したら最初から"
+				},
+				"numbers": {
+					"label": "トラック番号"
+				}
+			},
+			"variants": {
+				"card": {
+					"label": "カード",
+					"description": "プレーヤーの上に、再生中のトラックのタイトルとアーティストと並べてアートワークを表示します。"
+				}
+			}
+		},
+		"progress": {
+			"label": "プログレスバー",
+			"description": "目標やタスクなど、どこまで進んだか。",
+			"props": {
+				"value": {
+					"label": "値"
+				},
+				"max": {
+					"label": "最大値"
+				},
+				"label": {
+					"label": "ラベル"
+				}
+			}
+		},
+		"row": {
+			"label": "行",
+			"description": "横に並べたブロック。収まらないときは折り返します。",
+			"props": {
+				"justify": {
+					"label": "横方向の配置",
+					"choices": {
+						"start": "先頭",
+						"center": "中央",
+						"end": "末尾",
+						"between": "均等に配置"
+					}
+				},
+				"align": {
+					"label": "縦方向の配置",
+					"choices": {
+						"start": "先頭",
+						"center": "中央",
+						"end": "末尾",
+						"stretch": "引き伸ばし",
+						"baseline": "ベースライン"
+					}
+				},
+				"wrap": {
+					"label": "折り返し"
+				},
+				"gap": {
+					"label": "間隔"
+				},
+				"tag": {
+					"label": "要素",
+					"choices": {
+						"div": "汎用ブロック（div）",
+						"section": "セクション（section）",
+						"aside": "補足（aside）"
+					}
+				},
+				"label": {
+					"label": "スクリーンリーダー用の名前"
+				}
+			}
+		},
+		"samp": {
+			"label": "出力例",
+			"description": "エラーメッセージなど、プログラムが出力する内容。"
+		},
+		"small": {
+			"label": "注記",
+			"description": "補足のコメントや細則。"
+		},
+		"stack": {
+			"label": "スタック",
+			"description": "均等な間隔で縦に並べたブロック。",
+			"props": {
+				"align": {
+					"label": "配置",
+					"choices": {
+						"stretch": "引き伸ばし",
+						"start": "先頭",
+						"center": "中央",
+						"end": "末尾"
+					}
+				},
+				"gap": {
+					"label": "間隔"
+				},
+				"tag": {
+					"label": "要素",
+					"choices": {
+						"div": "汎用ブロック（div）",
+						"section": "セクション（section）",
+						"aside": "補足（aside）"
+					}
+				},
+				"label": {
+					"label": "スクリーンリーダー用の名前"
+				}
+			}
+		},
+		"time": {
+			"label": "日時",
+			"description": "ソフトウェアが読み取れる日付、時刻、または期間。",
+			"props": {
+				"datetime": {
+					"label": "日付または時刻"
+				}
+			}
+		},
+		"toc": {
+			"label": "目次",
+			"description": "ページ内の見出しへのリンク。",
+			"props": {
+				"min": {
+					"label": "最上位の見出しレベル"
+				},
+				"max": {
+					"label": "最下位の見出しレベル"
+				}
+			}
+		},
+		"var": {
+			"label": "変数",
+			"description": "数式やコードの変数。"
+		},
+		"video": {
+			"label": "動画",
+			"description": "再生コントロール付きの動画ファイル。",
+			"props": {
+				"src": {
+					"label": "動画ファイル"
+				},
+				"poster": {
+					"label": "ポスター画像"
+				},
+				"track": {
+					"label": "字幕ファイル"
+				},
+				"width": {
+					"label": "幅"
+				},
+				"height": {
+					"label": "高さ"
+				},
+				"preload": {
+					"label": "事前読み込み",
+					"choices": {
+						"none": "なし",
+						"metadata": "詳細のみ",
+						"auto": "ファイル全体"
+					}
+				},
+				"loop": {
+					"label": "ループ再生"
+				},
+				"muted": {
+					"label": "ミュート"
+				}
+			}
+		}
+	},
+	"icons": {
+		"arrow-down": {
+			"label": "下矢印"
+		},
+		"arrow-left": {
+			"label": "左矢印"
+		},
+		"arrow-right": {
+			"label": "右矢印"
+		},
+		"arrow-up": {
+			"label": "上矢印"
+		},
+		"arrow-up-right": {
+			"label": "右上矢印"
+		},
+		"at-sign": {
+			"label": "アットマーク"
+		},
+		"award": {
+			"label": "賞"
+		},
+		"bell": {
+			"label": "ベル"
+		},
+		"book": {
+			"label": "本"
+		},
+		"book-open": {
+			"label": "開いた本"
+		},
+		"bookmark": {
+			"label": "ブックマーク"
+		},
+		"briefcase": {
+			"label": "ブリーフケース"
+		},
+		"brush": {
+			"label": "ブラシ"
+		},
+		"calendar": {
+			"label": "カレンダー"
+		},
+		"calendar-days": {
+			"label": "日付入りカレンダー"
+		},
+		"camera": {
+			"label": "カメラ"
+		},
+		"check": {
+			"label": "チェックマーク"
+		},
+		"chevron-down": {
+			"label": "下向きシェブロン"
+		},
+		"chevron-left": {
+			"label": "左向きシェブロン"
+		},
+		"chevron-right": {
+			"label": "右向きシェブロン"
+		},
+		"chevron-up": {
+			"label": "上向きシェブロン"
+		},
+		"chevrons-left": {
+			"label": "左向き二重シェブロン"
+		},
+		"chevrons-right": {
+			"label": "右向き二重シェブロン"
+		},
+		"circle-alert": {
+			"label": "注意"
+		},
+		"circle-check": {
+			"label": "成功"
+		},
+		"circle-help": {
+			"label": "ヘルプ"
+		},
+		"circle-play": {
+			"label": "再生ボタン"
+		},
+		"circle-user": {
+			"label": "アカウント"
+		},
+		"circle-x": {
+			"label": "エラー"
+		},
+		"clipboard": {
+			"label": "クリップボード"
+		},
+		"clock": {
+			"label": "時計"
+		},
+		"cloud": {
+			"label": "クラウド"
+		},
+		"code": {
+			"label": "コード"
+		},
+		"coffee": {
+			"label": "コーヒー"
+		},
+		"compass": {
+			"label": "コンパス"
+		},
+		"copy": {
+			"label": "コピー"
+		},
+		"corner-down-right": {
+			"label": "返信矢印"
+		},
+		"credit-card": {
+			"label": "クレジットカード"
+		},
+		"download": {
+			"label": "ダウンロード"
+		},
+		"ellipsis": {
+			"label": "その他"
+		},
+		"external-link": {
+			"label": "外部リンク"
+		},
+		"eye": {
+			"label": "目"
+		},
+		"file": {
+			"label": "ファイル"
+		},
+		"file-text": {
+			"label": "ドキュメント"
+		},
+		"files": {
+			"label": "ファイル（複数）"
+		},
+		"film": {
+			"label": "フィルム"
+		},
+		"filter": {
+			"label": "絞り込み"
+		},
+		"flag": {
+			"label": "旗"
+		},
+		"flame": {
+			"label": "炎"
+		},
+		"folder": {
+			"label": "フォルダー"
+		},
+		"folder-open": {
+			"label": "開いたフォルダー"
+		},
+		"gift": {
+			"label": "ギフト"
+		},
+		"globe": {
+			"label": "地球儀"
+		},
+		"graduation-cap": {
+			"label": "卒業帽"
+		},
+		"hash": {
+			"label": "ハッシュタグ"
+		},
+		"headphones": {
+			"label": "ヘッドホン"
+		},
+		"heart": {
+			"label": "ハート"
+		},
+		"history": {
+			"label": "履歴"
+		},
+		"house": {
+			"label": "ホーム"
+		},
+		"image": {
+			"label": "画像"
+		},
+		"images": {
+			"label": "画像（複数）"
+		},
+		"info": {
+			"label": "情報"
+		},
+		"key-round": {
+			"label": "鍵"
+		},
+		"laptop": {
+			"label": "ノートパソコン"
+		},
+		"layout-grid": {
+			"label": "グリッド"
+		},
+		"leaf": {
+			"label": "葉"
+		},
+		"library": {
+			"label": "ライブラリ"
+		},
+		"lightbulb": {
+			"label": "電球"
+		},
+		"link": {
+			"label": "リンク"
+		},
+		"list": {
+			"label": "リスト"
+		},
+		"list-ordered": {
+			"label": "番号付きリスト"
+		},
+		"lock": {
+			"label": "錠"
+		},
+		"lock-open": {
+			"label": "解錠"
+		},
+		"log-in": {
+			"label": "ログイン"
+		},
+		"log-out": {
+			"label": "ログアウト"
+		},
+		"mail": {
+			"label": "メール"
+		},
+		"map": {
+			"label": "地図"
+		},
+		"map-pin": {
+			"label": "位置"
+		},
+		"menu": {
+			"label": "メニュー"
+		},
+		"message-circle": {
+			"label": "コメント"
+		},
+		"message-square": {
+			"label": "メッセージ"
+		},
+		"mic": {
+			"label": "マイク"
+		},
+		"minus": {
+			"label": "削除"
+		},
+		"monitor": {
+			"label": "モニター"
+		},
+		"moon": {
+			"label": "月"
+		},
+		"music": {
+			"label": "音楽"
+		},
+		"newspaper": {
+			"label": "新聞"
+		},
+		"notebook-pen": {
+			"label": "日記"
+		},
+		"paintbrush": {
+			"label": "絵筆"
+		},
+		"palette": {
+			"label": "パレット"
+		},
+		"pause": {
+			"label": "一時停止"
+		},
+		"pen-line": {
+			"label": "書く"
+		},
+		"pen-tool": {
+			"label": "ペンツール"
+		},
+		"pencil": {
+			"label": "鉛筆"
+		},
+		"phone": {
+			"label": "電話"
+		},
+		"play": {
+			"label": "再生"
+		},
+		"plus": {
+			"label": "追加"
+		},
+		"podcast": {
+			"label": "ポッドキャスト"
+		},
+		"printer": {
+			"label": "プリンター"
+		},
+		"quote": {
+			"label": "引用"
+		},
+		"rocket": {
+			"label": "ロケット"
+		},
+		"rows-3": {
+			"label": "行"
+		},
+		"rss": {
+			"label": "RSS フィード"
+		},
+		"search": {
+			"label": "検索"
+		},
+		"send": {
+			"label": "送信"
+		},
+		"settings": {
+			"label": "設定"
+		},
+		"share": {
+			"label": "共有"
+		},
+		"share-2": {
+			"label": "共有ネットワーク"
+		},
+		"shield": {
+			"label": "盾"
+		},
+		"shopping-cart": {
+			"label": "ショッピングカート"
+		},
+		"sliders-horizontal": {
+			"label": "設定スライダー"
+		},
+		"smartphone": {
+			"label": "スマートフォン"
+		},
+		"sparkles": {
+			"label": "きらめき"
+		},
+		"star": {
+			"label": "星"
+		},
+		"sun": {
+			"label": "太陽"
+		},
+		"tag": {
+			"label": "タグ"
+		},
+		"tags": {
+			"label": "タグ（複数）"
+		},
+		"terminal": {
+			"label": "ターミナル"
+		},
+		"thumbs-up": {
+			"label": "いいね"
+		},
+		"tree-pine": {
+			"label": "松の木"
+		},
+		"triangle-alert": {
+			"label": "警告"
+		},
+		"trophy": {
+			"label": "トロフィー"
+		},
+		"umbrella": {
+			"label": "傘"
+		},
+		"upload": {
+			"label": "アップロード"
+		},
+		"user": {
+			"label": "ユーザー"
+		},
+		"user-round": {
+			"label": "人物"
+		},
+		"users": {
+			"label": "ユーザー（複数）"
+		},
+		"video": {
+			"label": "動画"
+		},
+		"volume-2": {
+			"label": "音量"
+		},
+		"x": {
+			"label": "閉じる"
+		},
+		"zap": {
+			"label": "稲妻"
+		}
+	},
+	"no_entries": "まだ何も公開されていません。",
+	"pagination": {
+		"label": "ページ送り",
+		"previous": "前のページ",
+		"next": "次のページ",
+		"page": "{pages}ページ中{page}ページ目"
+	},
+	"terms": {
+		"label": "分類"
+	},
+	"welcome": {
+		"title": "{site}へようこそ",
+		"running": "{generator}が動作しています。",
+		"next": "次のステップ",
+		"start": "このページを置き換えるには、{path}にホームページを追加してください。",
+		"start_admin": "このページを置き換えるには、管理画面でホームページを追加してください。",
+		"admin": {
+			"off": "ブラウザーで執筆するには、{path}で管理画面を有効にしてください。",
+			"account": "{command}でアカウントを作成してから、{admin}で管理画面にログインしてください。",
+			"sign_in": "{admin}で管理画面にログインしてください。"
+		},
+		"problems": {
+			"title": "セットアップに関する注意",
+			"doctor": "完全なレポートを見るには{command}を実行してください。これらの注意は本番環境では表示されません。"
+		}
+	},
+	"error": {
+		"home": "ホームページへ移動",
+		"message": "サーバーがリクエストを完了できませんでした。",
+		"404": {
+			"title": "ページが見つかりません",
+			"message": "申し訳ありません。ここには何も見つかりませんでした。"
+		},
+		"500": {
+			"title": "問題が発生しました",
+			"message": "サーバーでエラーが発生し、リクエストを完了できませんでした。しばらくしてからもう一度お試しください。"
+		},
+		"html_renderer": {
+			"title": "エラー",
+			"heading": "問題が発生しました",
+			"message": "サーバーでエラーが発生し、リクエストを完了できませんでした。"
+		}
+	},
+	"media": {
+		"audio_fallback": "音声をダウンロード",
+		"video_fallback": "動画をダウンロード",
+		"captions": "字幕",
+		"file_details": "{format}、{size}",
+		"media_ids": {
+			"not_shared": "{file}の id は、ほかのメディアファイルと共有されていません。"
+		},
+		"common": {
+			"not_in_library": "はメディアライブラリにありません。",
+			"metadata_unreadable": "のメタデータファイルを読み取れません。先に修正してください（理由は content:lint で確認できます）。"
+		},
+		"media_artwork": {
+			"no_artwork": "アートワークがあるのは音声と動画だけです。{file}はどちらでもありません。",
+			"not_an_image": "アートワークはメディアライブラリ内の画像である必要があります。",
+			"none_carried": "{file}には、ライブラリが画像として扱えるアートワークが含まれていません。",
+			"not_saved": "アートワークをメディアフォルダーに保存できませんでした。",
+			"not_added": "アートワークをライブラリに追加できませんでした。",
+			"title": "{title}のアートワーク"
+		},
+		"media_editor": {
+			"no_uploads": "メディアをアップロードする権限がありません。",
+			"uploads_off": "メディア設定画面でアップロードが無効になっています。",
+			"svg": "{name}はアップロードできません。SVG ファイルにはスクリプトを含められるためです。アイコンにはアイコンパックを追加してください。",
+			"script": "{name}はアップロードできません。この種類のファイルにはスクリプトを含められるためです。",
+			"type_refused": "{name}はライブラリで扱える種類ではありません：{extensions}",
+			"kind_forbidden": "{name}はアップロードできません。{kind, select, image {画像} video {動画} audio {音声} document {ドキュメント} other {その他のファイル}}をアップロードする権限がありません。",
+			"kind_off": "{name}はアップロードできません。メディア設定画面で{kind, select, image {画像} video {動画} audio {音声} document {ドキュメント} other {その他のファイル}}のアップロードが無効になっています。",
+			"too_large": "{name}は{kind, select, image {画像} video {動画} audio {音声} document {ドキュメント} other {その他のファイル}}の上限サイズ（{size}まで）を超えています。",
+			"folder_unwritable": "メディアフォルダーに書き込めません。",
+			"not_saved": "ファイルをメディアフォルダーに保存できませんでした。",
+			"mismatch": "{name}は名前が示す種類のファイルではないか、ライブラリで扱える種類ではありません。",
+			"not_added": "{name}をライブラリに追加できませんでした。",
+			"summary": {
+				"uploaded": "{name}をアップロードしました",
+				"changed": "{name}の{fields}を変更しました"
+			},
+			"not_found": "メディアライブラリに「{file}」はありません。",
+			"no_change": "このファイルの詳細を変更する権限がありません。",
+			"size_of": "{file}は{original}のサイズの一つで、詳細は{original}のものが使われます。そちらで変更してください。",
+			"not_a_field": "「{field}」は{kind, select, image {画像} video {動画} audio {音声} document {ドキュメント} other {その他の}}ファイルのフィールドではありません。",
+			"invalid_field": "{field}{problem}",
+			"already_undone": "その変更はすでに元に戻されています。",
+			"cannot_undo": "その変更は元に戻せません。",
+			"megabytes": "{size, number} MB",
+			"kilobytes": "{size, number} KB"
+		},
+		"media_kind": {
+			"image": "画像",
+			"video": "動画",
+			"audio": "音声",
+			"document": "ドキュメント",
+			"file": "その他のファイル"
+		},
+		"media_schemas": {
+			"alt": "代替テキスト",
+			"alt_description": "画像が見えない人のための、画像に写っている内容の説明。",
+			"title_description": "ファイル名の代わりにライブラリで表示する名前。",
+			"reserved": "{kind}メディアのフィールドセットに「{field}」という名前のフィールド（または別名）がありますが、この名前はファイルの{field, select, owner {アップロードした人} uploaded {アップロード日} other {{field}}}用に予約されています。名前を変更してください。",
+			"caption_description": "画像の下など、ファイルが使われる場所で一緒に表示されます。",
+			"credit_description": "作成者、または出典。",
+			"description": "説明",
+			"description_description": "ライブラリ用の、より詳しい説明。"
+		},
+		"media_index": {
+			"unwritable": "メディアインデックスに書き込めません：{problem}"
+		},
+		"media_kind_targets": {
+			"label": "メディアファイル",
+			"details": "詳細",
+			"details_description": "組み込みの情報に加えて記録する、各ファイルについての情報。"
+		},
+		"media_metadata_check": {
+			"id_invalid": "は UUID ではありません。{command}、または管理画面のサイトヘルスで、ファイルに新しい id を付けてください。",
+			"id_missing": "に id がありません。{command}、または管理画面のサイトヘルスで追加してください。",
+			"id_shared": "は{files}の id でもあります。1つのファイルにだけ残し、ほかのファイルには{command}、または管理画面のサイトヘルスで新しい id を付けてください。",
+			"size_stale": "に{file}が記載されていますが、これはこの画像のサイズではありません（削除されたか、別の画像のものです）。{command}、または管理画面のサイトヘルスで記録し直してください。",
+			"artwork_kind": "は音声と動画専用です。このファイルでは表示されません。",
+			"artwork_missing": "はメディアライブラリにない画像を指定しています。管理画面のファイルの画面で別の画像を選ぶか、削除してください。",
+			"size_details": "は{original}のサイズの一つである{file}を説明していますが、詳細は{original}のものが読み込まれます。そちらに移すか、このファイルに独自の id を付けて区別してください。",
+			"unreadable": "を読み取れないため、ファイルに詳細がありません：{error}",
+			"not_a_map": "はフィールドのマップではないため、ファイルに詳細がありません。",
+			"artwork_invalid": "はライブラリの画像の id ではありません。管理画面のファイルの画面でアートワークを選び直してください。",
+			"uploaded_invalid": "は{example}のような、オフセット付きの日時ではありません。修正されるまで、ライブラリは推定した日時でファイルを並べます。",
+			"sizes_invalid": "は各サイズのファイルとその幅・高さのマップではありません。{command}で記録し直してください。",
+			"orphan_refused": "は{file}を説明していますが、これはサイトで許可されているメディアの種類ではありません。",
+			"orphan_missing": "は{file}を説明していますが、そのファイルはありません。このファイルをメディアファイルと一緒に移動するか、削除してください。"
+		},
+		"media_metadata_store": {
+			"unreadable": "メタデータを読み取れません。先に手作業で修正してください。{problem}",
+			"not_a_map": "メタデータがフィールドのマップではありません。先に手作業で修正してください。"
+		},
+		"media_files": {
+			"invalid_json": "{file}は有効な JSON ではありません：{problem}",
+			"not_an_object": "{file}には JSON オブジェクトが必要です。",
+			"unwritable": "{file}に書き込めません。",
+			"undeletable": "{file}を削除できません。"
+		}
+	},
+	"embed": {
+		"title": "{provider}から埋め込まれたコンテンツ",
+		"credit": "写真：{author}（{provider}）"
+	},
+	"toc": {
+		"label": "目次"
+	},
+	"menu": {
+		"label": "メニュー",
+		"toggle": "{label}のサブメニュー",
+		"menu_location": {
+			"shape": "テーマ「{theme}」のメニュー位置「{location}」は、ラベルまたはオブジェクトである必要があります。",
+			"label": "テーマ「{theme}」のメニュー位置「{location}」の「label」が文字列ではありません。",
+			"depth": "テーマ「{theme}」のメニュー位置「{location}」の「depth」が1以上の整数ではありません。",
+			"fields": "テーマ「{theme}」のメニュー位置「{location}」は、「fields」の名前をフィールド定義に対応付ける必要があります。",
+			"items": "テーマ「{theme}」のメニュー位置「{location}」の「items」がリストではありません。"
+		},
+		"menus": {
+			"assignments": "{file}：「{name}」は、位置の名前をメニューの名前に対応付ける必要があります。",
+			"no_location": "メニュー「{menu}」が割り当てられていますが、テーマ「{theme}」にはその位置がありません。",
+			"no_menu": "メニュー「{menu}」が割り当てられていますが、サイトにそのメニューはありません。",
+			"unshown": "テーマ「{theme}」のどの位置にも表示されていません。",
+			"label": "「label」はテキスト、またはロケールとテキストのマップである必要があります。",
+			"item": "項目{position}：{problem}",
+			"not_map": "はキーと値のマップである必要があります。",
+			"links": "にリンクが複数あります（{keys}）。1つにしてください。",
+			"no_label": "には「label」が必要です。",
+			"children": "「children」はリストである必要があります。",
+			"empty": "にリンクも子項目もありません。",
+			"not_text": "「{name}」はテキストである必要があります。",
+			"unknown_key": "「{name}」は、メニュー項目のキーでも、位置が宣言するフィールドでもありません。",
+			"field": "「{name}」{problem}",
+			"subject_menu": "メニュー{menu}",
+			"subject_default": "位置{location}（テーマのデフォルト）",
+			"subject_location": "位置{location}",
+			"invalid_field": "メニュー位置「{location}」に無効なフィールドがあります：{problem}"
+		},
+		"term_link": {
+			"invalid": "「{link}」は「category/art」のように、'{type}/{slug}'形式の項目である必要があります。",
+			"ref": "「{link}」の「ref」が項目の id ではありません。",
+			"no_pages": "「{type}」はページを持つ項目のタイプではありません。",
+			"missing": "公開済みの項目「{term}」はありません。",
+			"no_url": "項目「{term}」に URL がありません。"
+		},
+		"menu_link": {
+			"empty": "「{link}」は空でない文字列である必要があります。"
+		},
+		"collection_link": {
+			"invalid": "「{link}」は「post」のような、コンテンツタイプの名前である必要があります。",
+			"missing": "公開されているコンテンツタイプ「{type}」はありません。",
+			"no_url": "タイプ「{type}」にコレクションの URL がありません。"
+		},
+		"url_link": {
+			"unsafe": "「{link}」は安全な URL ではありません。"
+		},
+		"entry_link": {
+			"invalid": "「{link}」は「page/about」のように、'{type}/{key}'形式のエントリーである必要があります。",
+			"ref": "「{link}」の「ref」がエントリーの id ではありません。",
+			"missing": "エントリー「{entry}」はありません。",
+			"unpublished": "エントリー「{entry}」は公開されていません。",
+			"no_url": "エントリー「{entry}」に URL がありません。"
+		},
+		"route_link": {
+			"params": "「{link}」の「params」が、名前と値のマップではありません。",
+			"missing": "ルート「{route}」はありません。",
+			"unbuilt": "ルート「{route}」：{problem}"
+		},
+		"menu_loader": {
+			"unreadable": "メニューを読み取れません：{problem}",
+			"missing": "サイトにメニュー「{menu}」はありません。",
+			"invalid_name": "「{menu}」は有効なメニュー名ではありません。小文字の英字、数字、ハイフン、アンダースコアを使ってください。",
+			"taken": "サイトには「{menu}」という名前のメニューがすでにあります。",
+			"not_removed": "メニュー「{menu}」を{location}から削除できませんでした：{problem}",
+			"not_saved": "メニュー「{menu}」を{location}に保存できませんでした：{problem}",
+			"bad_name": "名前が無効です。小文字の英字、数字、ハイフン、アンダースコアを使ってください。",
+			"unknown_key": "「{name}」はメニューのキーではありません。メニューには「label」と「items」があります。",
+			"items": "「items」はリストである必要があります。"
+		}
+	},
+	"progress": {
+		"label": "進捗"
+	},
+	"meter": {
+		"label": "測定値"
+	},
+	"measure": {
+		"value": "{max}中{value}"
+	},
+	"people": {
+		"byline": "著者：",
+		"credit": "{label}："
+	},
+	"skip_to_content": "コンテンツへスキップ",
+	"untitled": "無題",
+	"admin": {
+		"health_fix_job": {
+			"label": "サイトヘルスからファイルを修正",
+			"no_such_fix": "そのようなサイトヘルスの修正はありません。",
+			"account_gone": "この修正を依頼したアカウントは、もう修正を行えません。",
+			"progress": "{total}件中{done}件の{noun, select, media_file {メディアファイル} image {画像} entry {エントリー} term {項目とプロフィール} parent {親ページ} other {ファイル}}を修正しました。",
+			"changed": "{count, plural, one {#件の{noun, select, media_file {メディアファイル} image {画像} entry {エントリー} term {項目またはプロフィール} parent {親ページ} other {ファイル}}} other {#件の{noun, select, media_file {メディアファイル} image {画像} entry {エントリー} term {項目とプロフィール} parent {親ページ} other {ファイル}}}}を変更しました。",
+			"changed_failed": "{count, plural, one {#件の{noun, select, media_file {メディアファイル} image {画像} entry {エントリー} term {項目またはプロフィール} parent {親ページ} other {ファイル}}} other {#件の{noun, select, media_file {メディアファイル} image {画像} entry {エントリー} term {項目とプロフィール} parent {親ページ} other {ファイル}}}}を変更しました。{failed}件は変更できませんでした。"
+		},
+		"site_health": {
+			"areas": {
+				"content": {
+					"label": "コンテンツ",
+					"description": "エントリーのファイル：フィールド、id、項目、親、フォルダー、名前"
+				},
+				"media": {
+					"label": "メディア",
+					"description": "ライブラリのファイルの id、詳細、画像サイズ"
+				},
+				"extensions": {
+					"label": "拡張機能",
+					"description": "有効なテーマ、プラグイン、アイコンパック"
+				},
+				"system": {
+					"label": "システム",
+					"description": "PHP、設定、公開フォルダー、ストレージ"
+				},
+				"accounts": {
+					"label": "アカウント",
+					"description": "いつでも再びログインできるアカウント"
+				}
+			},
+			"requirements": {
+				"groups": {
+					"extensions": "PHP 拡張モジュール",
+					"extensions_asked": "プラグインとテーマ",
+					"uploads": "アップロード",
+					"writable": "書き込み可能"
+				},
+				"required": "必須",
+				"missing": "なし",
+				"or_newer": "{version}以上",
+				"why": {
+					"apcu_driver": "キャッシュをメモリに保持します。このサイトのキャッシュドライバーは apcu に設定されています",
+					"upload_php": "メディア設定には PHP の上限が適用されます",
+					"upload_media": "メディア設定でこのサイズのファイルを許可しています",
+					"opcache": "コンパイル済みの PHP をメモリに保持し、ページを高速にします",
+					"fileinfo": "アップロードされたファイルや配信するファイルの種類を判別します",
+					"zip": ".zip からプラグインとテーマをインストールします",
+					"exif": "写真に埋め込まれた詳細を読み取ります",
+					"zlib": "圧縮された PDF の詳細を読み取ります",
+					"apcu": "キャッシュドライバーが apcu に設定されている場合に、キャッシュをファイルではなくメモリに保持します"
+				},
+				"why_and_required_by": "{why}。{extensions}で必須",
+				"recommended": "推奨",
+				"optional": "任意",
+				"on": "有効",
+				"off": "無効",
+				"required_by": "{extensions}で必須",
+				"suggested_by": "{extension}で推奨",
+				"any": "任意",
+				"megabytes_or_more": "{size}M以上",
+				"writable": "書き込み可能",
+				"loaded": "読み込み済み"
+			},
+			"facts": {
+				"version": "バージョン",
+				"environment": "環境",
+				"debug": "デバッグ",
+				"on": "有効",
+				"off": "無効",
+				"url": "サイトの URL",
+				"admin": "管理画面の URL",
+				"content_folder": "コンテンツフォルダー",
+				"content": "コンテンツ",
+				"in_database": "データベース内（{file}）",
+				"storage": "ストレージ",
+				"media": "メディアフォルダー",
+				"timezone": "タイムゾーン",
+				"languages": "言語",
+				"theme": "テーマ",
+				"cache": "キャッシュ",
+				"entries": "エントリー",
+				"media_files": "メディアファイル",
+				"software": "Web サーバー",
+				"os": "オペレーティングシステム",
+				"memory_limit": "メモリ上限",
+				"no_limit": "上限なし",
+				"time_limit": "実行時間の上限",
+				"seconds": "{count, plural, one {#秒} other {#秒}}",
+				"php_timezone": "PHP のタイムゾーン",
+				"not_site_timezone": "{zone}（サイトの{site}とは異なります）",
+				"disk": "ディスク容量",
+				"disk_free": "{total}中{free}空き",
+				"sapi": {
+					"apache": "Apache モジュール",
+					"built_in": "PHP の組み込みサーバー",
+					"cli": "コマンドライン"
+				},
+				"files_driver": "ファイル"
+			},
+			"checks": {
+				"content_files": "コンテンツファイル",
+				"media_details": "メディアの詳細",
+				"files_errors_warnings": "{errors, plural, one {#件のファイルにエラーがあり} other {#件のファイルにエラーがあり}}、{warnings, plural, one {#件に警告があります} other {#件に警告があります}}。",
+				"files_errors": "{count, plural, one {#件のファイルにエラーがあります} other {#件のファイルにエラーがあります}}。",
+				"files_warnings": "{count, plural, one {#件のファイルに警告があります} other {#件のファイルに警告があります}}。",
+				"files_pass": "{count, plural, one {#件のファイル} other {#件のファイル}}をチェックし、問題はありませんでした。",
+				"entry_ids": "エントリーの id",
+				"media_ids": "メディアの id",
+				"ids_missing_shared": "{missing, plural, one {#件のファイルに id がなく} other {#件のファイルに id がなく}}、{shared, plural, one {#件の id が共有されています} other {#件の id が共有されています}}。",
+				"ids_missing": "{count, plural, one {#件のファイルに id がありません} other {#件のファイルに id がありません}}。",
+				"ids_shared": "{count, plural, one {#件の id が共有されています} other {#件の id が共有されています}}。",
+				"ids_hint": "id のないファイルは管理画面で開けません。",
+				"ids_pass_content": "すべてのエントリーに固有の id があります。",
+				"ids_pass_media": "すべてのメディアファイルに固有の id があります。",
+				"folders": "コレクションのフォルダー",
+				"folders_warning": "{count, plural, one {#件のエントリーが、タイプで決められたフォルダーにありません} other {#件のエントリーが、タイプで決められたフォルダーにありません}}。",
+				"folders_pass": "すべてのコレクションのエントリーが、決められたフォルダー内のファイルになっています。",
+				"terms": "項目とプロフィール",
+				"terms_warning": "{count, plural, one {エントリーが指定している#件の項目またはプロフィールにファイルがないため、サイトでは除外されます} other {エントリーが指定している#件の項目とプロフィールにファイルがないため、サイトでは除外されます}}。",
+				"terms_pass": "エントリーが指定しているすべての項目とプロフィールにファイルがあります。",
+				"parents": "親ページ",
+				"parents_warning": "{count, plural, one {ページを保存している#件のフォルダーにページがないため、その下のページはツリーの最上位になっています} other {ページを保存している#件のフォルダーにページがないため、その下のページはツリーの最上位になっています}}。",
+				"parents_pass": "すべてのページが、存在する親ページの下にあります。",
+				"refs": "エントリー間のリンク",
+				"refs_warning": "{count, plural, one {#件のファイルに id で記録されていないリンクがあるため、リンク先の名前変更や移動でリンクが切れる可能性があります} other {#件のファイルに id で記録されていないリンクがあるため、リンク先の名前変更や移動でリンクが切れる可能性があります}}。",
+				"refs_pass": "エントリー間のすべてのリンクが id で記録されています。",
+				"taxonomies": "タクソノミー",
+				"taxonomies_warning": "{count, plural, one {#件のコンテンツタイプがまだタクソノミーとして書かれています。移行されるまで、Blush はコレクションとそのリレーションとして読み込みます} other {#件のコンテンツタイプがまだタクソノミーとして書かれています。移行されるまで、Blush はコレクションとそのリレーションとして読み込みます}}。",
+				"taxonomies_pass": "すべてのコンテンツタイプがコレクションまたはツリーとして書かれています。",
+				"types": "タイプのフォルダー",
+				"types_warning": "{count, plural, one {#件のコンテンツタイプが独自のフォルダーを指定しているため、_ とその名前のフォルダーに移動するまでエントリーが見つかりません} other {#件のコンテンツタイプが独自のフォルダーを指定しているため、_ とその名前のフォルダーに移動するまでエントリーが見つかりません}}。",
+				"types_pass": "すべてのコンテンツタイプが _ とその名前のフォルダーに保存されています。",
+				"names": "ファイル名",
+				"names_warning": "{count, plural, one {#件のエントリー} other {#件のエントリー}}が、タイプのパターンより古いパターンで名前が付けられています。",
+				"names_hint": "古い名前も引き続き使えます。名前を変更してもアドレスは変わりません。",
+				"names_pass": "すべてのエントリーがタイプのパターンで名前が付けられています。",
+				"sizes": "画像サイズ",
+				"sizes_unlisted_stale": "{images, plural, one {#件の画像がサイズを記載しておらず} other {#件の画像がサイズを記載しておらず}}、{stale, plural, one {#件がサイズではないファイルを記載しています} other {#件がサイズではないファイルを記載しています}}。",
+				"sizes_unlisted": "{count, plural, one {#件の画像がサイズを記載していません} other {#件の画像がサイズを記載していません}}。",
+				"sizes_stale": "{count, plural, one {#件の画像がサイズではないファイルを記載しています} other {#件の画像がサイズではないファイルを記載しています}}。",
+				"sizes_pass": "すべての画像がサイズを記載しています。"
+			}
+		},
+		"health_check_job": {
+			"label": "コンテンツとメディアのファイルをチェック",
+			"content_progress": "{total}件中{done}件のコンテンツファイルをチェックしました。",
+			"media_progress": "{total}件中{done}件のメディア詳細ファイルをチェックしました。",
+			"done": "{checked, plural, one {#件のコンテンツファイル} other {#件のコンテンツファイル}}と{described, plural, one {#件のメディア詳細ファイル} other {#件のメディア詳細ファイル}}をチェックしました。"
+		},
+		"tool_buttons": {
+			"destructive": "{tool}は、元に戻せないものを削除する可能性があります。"
+		},
+		"redirect_review": {
+			"problems": {
+				"code": "サイトのコード内のリダイレクトが優先されます。",
+				"live": "効果なし：このアドレスには{answer}が応答します。",
+				"gone": "リダイレクト先がありません：{why}。",
+				"missing": "存在しないページへ転送されます：{path}に応答するものがありません。",
+				"chain": "別のリダイレクトへ転送されます：{path}はさらに{there}へ転送されます。",
+				"chain_nowhere": "別のリダイレクト{path}へ転送されますが、その転送先はありません。"
+			},
+			"fixes": {
+				"show_it": "表示する",
+				"delete_redirect": "リダイレクトを削除",
+				"choose_another_page": "別のページを選択",
+				"change_where_it_goes": "転送先を変更",
+				"point_straight_there": "直接そこを指定",
+				"add_the_slash": "スラッシュを追加",
+				"edit_that_one": "そのリダイレクトを編集",
+				"go_straight_there": "直接そこへ転送"
+			},
+			"read": {
+				"spaces": "アドレスにスペースは使えません。",
+				"not_whole": "完全なアドレスではありません。{example}のような形式にしてください。",
+				"other_site": "古いアドレスはこのサイト上のものである必要があります。このアドレスは{host}上のものです。",
+				"slash": "{example}のように、{slash}で始めてください。",
+				"query": "{mark}以降を取り除いてください。リダイレクトはパスのみと照合します。",
+				"placeholder": "プレースホルダーは、{example}のように波括弧で囲んだ名前です。"
+			},
+			"check": {
+				"status": "リダイレクトの種類を選択してください。",
+				"from_empty": "{slash}で始まる古いアドレスを入力してください。",
+				"saved_as": "サイトのアドレスを除いた{path}として保存されました。",
+				"same": "ここから始まる別のリダイレクトがすでにあり、{to}へ転送されます。",
+				"code": "サイトのコードがすでにこのアドレスを{to}へリダイレクトしているため、このリダイレクトは無効になります。",
+				"answered": "{answer}がこのアドレスに応答している間は、効果がありません。",
+				"entry_gone": "そのページはもうありません。別のページを選択してください。",
+				"not_live": "{title}は公開されていないため、公開されるまで訪問者には Not Found が表示されます。",
+				"follows": "{title}のアドレスが変わった場合は、それに追従します。",
+				"to_empty": "ページを選択するか、パスまたは完全なアドレスを入力してください。",
+				"to_slash": "一覧からページを選ぶか、{slash}で始まるパスを入力してください。",
+				"leaves": "サイトを離れて{host}へ移動します。",
+				"entry_address": "これは{title}のアドレスなので、このリダイレクトはページ自体を指し、ページが移動しても追従します。",
+				"unfilled": "{placeholder}は古いアドレスに含まれていないため、何も入りません。",
+				"itself": "このアドレスは自分自身に転送されます。",
+				"loop": "ループになります：{paths}。いずれかの転送先を変更してください。",
+				"again_nowhere": "{path}はさらにリダイレクトされますが、その転送先はありません。",
+				"again": "{path}はさらに{there}へリダイレクトされます。",
+				"nothing_answers": "{path}にはまだ何も応答しないため、訪問者には Not Found が表示されます。",
+				"filled": "古いアドレスから補完：{example}は{filled}へ転送されます。"
+			},
+			"untitled": "無題",
+			"deleted_page": "削除されたページ",
+			"labels": {
+				"code": "無効化",
+				"live": "効果なし",
+				"gone": "転送先なし",
+				"chain": "連鎖",
+				"missing": "ページなし"
+			},
+			"answer": {
+				"entry": "{type}「{title}」",
+				"site": "サイト独自のページ"
+			},
+			"gone": {
+				"deleted": "転送先のページが削除されました",
+				"trash": "{title}はゴミ箱にあります",
+				"draft": "{title}は下書きです",
+				"scheduled": "{title}はまだ公開されていません",
+				"hidden": "{title}はサイトに表示されていません"
+			}
+		},
+		"admin_theme_contrast": {
+			"low": "{scheme}スキームで、{background}上の{foreground}のコントラスト比は{ratio}:1で、必要な{needed}:1を下回っています。"
+		},
+		"media_upload_controller": {
+			"forbidden": "メディアをアップロードする権限がありません。",
+			"no_file": "ファイルが届きませんでした。サイトで許可されているサイズを超えている可能性があります。",
+			"no_file_limit": "ファイルが届きませんでした。サイトで許可されているサイズ（{size}まで）を超えている可能性があります。",
+			"too_large": "ファイルがサイトで許可されているサイズを超えています。",
+			"too_large_limit": "ファイルがサイトで許可されているサイズ（{size}まで）を超えています。",
+			"partial": "ファイルの一部しか届きませんでした。もう一度お試しください。",
+			"no_file_sent": "ファイルが届きませんでした。",
+			"server": "サーバーがファイルを受け取れませんでした。一時フォルダーがないか、いっぱいになっている可能性があります。"
+		},
+		"account_edit_controller": {
+			"username_invalid": "ユーザー名には小文字の英字、数字、「.」「_」「-」を使い（64文字まで）、英字または数字で始めてください。",
+			"username_new": "「new」はここではユーザー名に使えません。別の名前を選んでください。",
+			"username_taken": "「{username}」という名前のアカウントはすでにあります。",
+			"name_too_long": "名前は1行で{length}文字までです。",
+			"new_is_member": "ロールを付与する権限がないため、新しいアカウントはメンバーになります。",
+			"keeps_manager": "アカウントとロールを管理できるアカウントがなくなるため、{username}は現在の状態のままです。",
+			"link_suspended": "{username}は停止中です。先に再開してください。",
+			"link_token_only": "{username}はトークン専用です。ログインしないため、パスワードはありません。",
+			"last_manager": "{username}は、アカウントとロールを管理できる唯一のアカウントです。",
+			"no_first_token": "ほかのアカウントのトークンを作成する権限がないため、このアカウントにはまだトークンがありません。",
+			"no_profile": "「{slug}」というプロフィールはなく、プロフィールを作成する権限もありません。",
+			"no_account": "「{username}」というアカウントはありません。",
+			"own_account": "ここでは自分のアカウントを変更できません。パスワードはプロフィールで変更できます。それ以外は、アカウントを管理するほかのユーザーが変更できます。",
+			"owner_account": "{username}はオーナーです。オーナーのアカウントを変更できるのはオーナーだけです。",
+			"does_more": "{username}にはあなたにできない操作ができるため、変更できません。",
+			"owner_role": "{role}ロールを付与できるのはオーナーだけです。",
+			"role_does_more": "{role}ロールは付与できません。あなたにできない操作ができるロールです。",
+			"not_allowed": {
+				"roles": "ロールを付与または解除する権限がありません。",
+				"suspend": "アカウントを停止または再開する権限がありません。",
+				"edit": "アカウントの名前やプロフィールを変更する権限がありません。"
+			},
+			"forbidden": "アカウントに対してその操作を行う権限がありません。"
+		},
+		"authorize_controller": {
+			"choose_capabilities": "付与する権限を選択してください。",
+			"choose_scope": "許可する操作を選択してください。",
+			"off": "このサイトにはアプリを接続できません。MCP サーバーが無効になっています。"
+		},
+		"media_list_controller": {
+			"forbidden": "メディアを使用する権限がありません。",
+			"not_found": "メディアライブラリに「{path}」はありません。",
+			"no_artwork": "「{path}」にはアートワークがありません。",
+			"artwork_forbidden": "ライブラリに画像を追加する権限がないか、このファイルにアートワークが含まれていません。",
+			"change_forbidden": "メディアを変更する権限がありません。",
+			"artwork_kinds": "アートワークがあるのは音声と動画だけです。",
+			"edit_forbidden": "このファイルの詳細を変更する権限がありません。",
+			"size_of": "{name}は{original}のサイズの一つで、詳細は{original}のものが使われます。そちらで変更してください。",
+			"delete_forbidden": "メディアを削除する権限がありません。",
+			"delete_file_forbidden": "このファイルを削除する権限がありません。",
+			"not_deleted": "メディアフォルダーからファイルを削除できませんでした。",
+			"size_not_deleted": "メディアフォルダーから{name}を削除できませんでした。",
+			"removed_account": "削除されたアカウント"
+		},
+		"icon_packs_controller": {
+			"not_installed": "{name}という名前のアイコンパックはインストールされていません。",
+			"core": "コア",
+			"forbidden": "サイトのアイコンパックを表示する権限がありません。"
+		},
+		"extension_install_controller": {
+			"update_forbidden": "{kind, select, Plugin {プラグインを更新する権限がありません。} Theme {テーマを更新する権限がありません。} IconPack {アイコンパックを更新する権限がありません。} other {管理画面テーマを更新する権限がありません。}}",
+			"install_forbidden": "{kind, select, Plugin {プラグインをインストールする権限がありません。} Theme {テーマをインストールする権限がありません。} IconPack {アイコンパックをインストールする権限がありません。} other {管理画面テーマをインストールする権限がありません。}}",
+			"no_file": "ファイルが届きませんでした。サイトで許可されているサイズ（{size} MB まで）を超えている可能性があります。",
+			"the_file": "ファイル",
+			"too_large": "{name}はサイトで許可されているサイズ（{size} MB まで）を超えています。",
+			"not_zip": "{name}は .zip ファイルではありません。",
+			"not_saved": "{name}をサーバーに保存できませんでした。"
+		},
+		"log_controller": {
+			"no_file": "ダウンロードできるログファイルはありません。",
+			"not_allowed": "ログを読む権限がありません。"
+		},
+		"common": {
+			"sign_in_first": "先にログインしてください。"
+		},
+		"entries_controller": {
+			"unknown_type": "そのようなコンテンツタイプはありません。"
+		},
+		"users_controller": {
+			"forbidden": "アカウントを表示する権限がありません。"
+		},
+		"menus_controller": {
+			"bad_name": "メニューの名前には小文字の英字、数字、ハイフン、アンダースコアを使い、英字または数字で始めてください。",
+			"name_taken": "「{name}」という名前のメニューはすでにあります。別の名前を選んでください。",
+			"not_saved": "メニュー「{name}」は保存されませんでした。",
+			"no_location": "有効なテーマに「{location}」という位置はありません。",
+			"problems": {
+				"label": "「label」はテキスト、またはロケールとテキストのマップである必要があります。",
+				"not_map": "項目{position}はキーと値のマップではありません。",
+				"children": "項目{position}の「children」がリストではありません。",
+				"links": "項目{position}にリンクが複数あります（{keys}）。",
+				"link": "項目{position}のリンク{problem}",
+				"no_label": "項目{position}にはラベルまたはリンクが必要です。",
+				"item_link": "項目{position}：{problem}"
+			},
+			"link_gone": "サイト上に「{value}」はもうありません。",
+			"forbidden": "メニューを編集する権限がありません。",
+			"not_found": "「{name}」というメニューはありません。"
+		},
+		"type_edit_controller": {
+			"no_relation": "「{name}」というリレーションはありません。",
+			"no_index": "{types}にはインデックスページがありません。",
+			"no_archives": "{types}には「{name}」のアーカイブがありません。",
+			"index_not_written": "タイプは保存されましたが、インデックスページを書き込めませんでした：{reason}",
+			"page_not_written": "タイプは保存されましたが、{page}ページを書き込めませんでした：{reason}",
+			"no_profiles": "サイトにプロフィールタイプがないため、著者を表示できません。",
+			"forbidden": "コンテンツタイプを変更する権限がありません。"
+		},
+		"preview_link_controller": {
+			"off": "プレビューリンクは無効です。サイトに APP_SECRET がありません。「bin/blush init」を実行して追加してください。",
+			"not_found": "id が「{id}」のエントリーはありません。",
+			"trashed": "そのエントリーはゴミ箱にあるため、プレビューできません。先に復元してください。",
+			"not_allowed": "そのエントリーをプレビューする権限がありません。"
+		},
+		"extension_backup_controller": {
+			"rollback_forbidden": "{kind, select, Plugin {プラグインをロールバックする権限がありません。} Theme {テーマをロールバックする権限がありません。} IconPack {アイコンパックをロールバックする権限がありません。} other {管理画面テーマをロールバックする権限がありません。}}",
+			"no_backup": "{name}には、ロールバックできる以前のバージョンがありません。",
+			"misfit": "{label} {version}にはロールバックできません。{reason}",
+			"discard_forbidden": "{kind, select, Plugin {プラグインを削除する権限がありません。} Theme {テーマを削除する権限がありません。} IconPack {アイコンパックを削除する権限がありません。} other {管理画面テーマを削除する権限がありません。}}",
+			"none_kept": "{name}には保存された以前のバージョンがありません。",
+			"parent_missing": "このバージョンは{parent}をもとにしていますが、{parent}はインストールされていません。"
+		},
+		"admin_theme_edit_controller": {
+			"toggle_forbidden": "管理画面テーマを有効化・無効化する権限がありません。",
+			"not_installed": "{name}という名前の管理画面テーマはインストールされていません。",
+			"base_always_on": "{label}は管理画面本来の外観のため、常に有効です。",
+			"default_stays_on": "{label}はサイトのデフォルトのため、無効にできません。先に別のデフォルトを選択してください。",
+			"unmet": "{label}は有効にできません。{reason}",
+			"default_forbidden": "サイトの管理画面テーマを選択する権限がありません。",
+			"default_off": "{label}は有効になっていないため、デフォルトにできません。先に有効にしてください。",
+			"delete_forbidden": "管理画面テーマを削除する権限がありません。",
+			"none_in": "{where}に管理画面テーマはありません。",
+			"default_kept": "{label}はサイトのデフォルトのため、削除できません。先に別のデフォルトを選択してください。",
+			"not_deleted": "{where}を削除できませんでした。Web サーバーに変更する権限があるか確認してください。"
+		},
+		"site_health_controller": {
+			"not_allowed": "サイトヘルスを表示する権限がありません。"
+		},
+		"field_sets_controller": {
+			"not_found": "「{name}」というフィールドセットはありません。",
+			"every": "すべての{places}"
+		},
+		"job_controller": {
+			"no_job": "そのようなジョブはありません。",
+			"retry_failed_only": "再試行できるのは失敗したジョブだけです。",
+			"running": "実行中のジョブは削除できません。完了するまでお待ちください。",
+			"not_scheduled": "「{job}」はスケジュールにありません。",
+			"not_allowed": "その操作を行う権限がありません。"
+		},
+		"activity_controller": {
+			"not_allowed": "アクティビティログを表示する権限がありません。",
+			"not_found": "その変更はログにありません。",
+			"command_line": "コマンドラインのユーザー",
+			"removed_account": "削除されたアカウント",
+			"undo": {
+				"undone": "元に戻しました。",
+				"new_entry": "新しいエントリーです。元に戻すにはゴミ箱に移動してください。",
+				"new_file": "新しいファイルです。元に戻すには削除してください。",
+				"expired": "置き換えられた内容は30日間保存されますが、その期間を過ぎています。",
+				"not_allowed": "変更する権限がありません。",
+				"changed": "その後変更されています。開いて編集してください。"
+			}
+		},
+		"shell_controller": {
+			"title": "管理画面 · {site}"
+		},
+		"icon_pack_edit_controller": {
+			"toggle_forbidden": "アイコンパックを有効化・無効化する権限がありません。",
+			"not_installed": "{name}という名前のアイコンパックはインストールされていません。",
+			"unmet": "{label}は有効にできません。{reason}",
+			"delete_forbidden": "アイコンパックを削除する権限がありません。",
+			"none_in": "{where}にアイコンパックはありません。",
+			"not_deleted": "{where}を削除できませんでした。Web サーバーに変更する権限があるか確認してください。"
+		},
+		"password_controller": {
+			"wrong_current": "現在のパスワードが正しくありません。"
+		},
+		"admin_themes_controller": {
+			"not_installed": "{name}という名前の管理画面テーマはインストールされていません。",
+			"forbidden": "サイトの管理画面テーマを表示する権限がありません。"
+		},
+		"session_controller": {
+			"wrong": "ユーザー名またはパスワードが正しくありません。"
+		},
+		"references_controller": {
+			"cannot_edit": "あなたのアカウントではコンテンツを編集できません。",
+			"unknown_type": "そのようなコンテンツタイプはありません。"
+		},
+		"theme_edit_controller": {
+			"delete_forbidden": "テーマを削除する権限がありません。",
+			"none_in": "{where}にテーマはありません。",
+			"not_deleted": "{where}を削除できませんでした。Web サーバーに変更する権限があるか確認してください。",
+			"active": "{label}は有効なテーマです。削除する前に別のテーマを有効にしてください。",
+			"parent_of_active": "有効なテーマ{active}は{label}をもとにしています。削除する前に別のテーマを有効にしてください。"
+		},
+		"settings_controller": {
+			"not_allowed": "サイトの設定を表示する権限がありません。",
+			"no_screen": "その設定画面はありません。",
+			"field_set_hint": "フィールドセット「{set}」から",
+			"groups": {
+				"site": {
+					"title": "サイト",
+					"hint": "名前、メールアドレス、言語"
+				},
+				"dates": {
+					"title": "日付と時刻",
+					"hint": "時刻の読み取りと表示の方法"
+				},
+				"accounts": {
+					"title": "アカウント",
+					"hint": "アカウントを作成できる人"
+				},
+				"environment": {
+					"title": "環境",
+					"hint": "サイトが動作する場所によって決まります",
+					"note": "`config/app.php` が `.env`（`APP_ENV`、`APP_DEBUG`）を読み込む場合はそこから取得します（デフォルトでは読み込みます）。"
+				},
+				"home": {
+					"title": "ホームページ",
+					"hint": "サイトを開いたときに表示されるもの"
+				},
+				"feeds": {
+					"title": "フィード",
+					"hint": "フィードを持つタイプ向け"
+				},
+				"api": {
+					"title": "API",
+					"hint": "他のサイト、アプリ、AI ツール向け"
+				},
+				"changes": {
+					"title": "変更",
+					"hint": "トークンで変更できるもの"
+				},
+				"api_mcp": {
+					"title": "MCP サーバー",
+					"hint": "API と並ぶ、AI アプリ向けの接続"
+				},
+				"uploads": {
+					"title": "アップロード",
+					"hint": "アップロードできるものと保存先"
+				},
+				"artwork": {
+					"title": "アートワーク",
+					"hint": "音声や動画に含まれる画像"
+				},
+				"markdown": {
+					"title": "Markdown",
+					"hint": "書いた内容の表示方法"
+				},
+				"html": {
+					"title": "HTML",
+					"hint": "コンテンツ内の生の HTML"
+				},
+				"embeds": {
+					"title": "埋め込み",
+					"hint": "リンクをページ上で再生するサイト"
+				},
+				"addresses": {
+					"title": "アドレス",
+					"hint": "URL の書き方"
+				},
+				"search": {
+					"title": "検索エンジン",
+					"hint": "サイトマップと robots.txt"
+				},
+				"ai_markdown": {
+					"title": "Markdown コピー",
+					"hint": "AI ツールが読むもの"
+				},
+				"crawlers": {
+					"title": "AI クローラー",
+					"hint": "robots.txt で AI クローラーに求めること"
+				},
+				"mcp": {
+					"title": "MCP サーバー",
+					"hint": "AI アプリとサイトの連携方法"
+				},
+				"tools": {
+					"title": "ツール",
+					"hint": "接続したアプリに依頼できること",
+					"note": "コアのツールはサイトに標準で含まれています。プラグインのツールは、そのプラグインを有効にすると追加され、無効にすると削除されます。ツールによる変更はすべて「ツール → アクティビティ」に記録されます。"
+				},
+				"types": {
+					"title": "コンテンツタイプ",
+					"hint": "タイプの定義元"
+				},
+				"caching": {
+					"title": "キャッシュ",
+					"hint": "ページの保持方法"
+				},
+				"publishing": {
+					"title": "公開とプレビュー",
+					"hint": "シークレットは表示されません",
+					"note": "これらのファイルがない場合は `.env`（`PUBLISH_*`、`APP_SECRET`）から取得します。"
+				}
+			},
+			"general": {
+				"name": "サイト名",
+				"description": "説明",
+				"email": "メールアドレス",
+				"locale": "言語と地域",
+				"locale_help": "メニューにないコードを入力するには「その他」を選択してください。",
+				"url": "サイトアドレス",
+				"url_help": "デフォルトでは .env の APP_URL から取得します。",
+				"timezone": "タイムゾーン",
+				"timezone_help": "現地の現在時刻は {time} です。",
+				"date_format": "日付形式",
+				"pattern_letters": "パターン文字",
+				"time_format": "時刻形式",
+				"environment": "環境",
+				"environment_help": {
+					"development": "コンテンツの変更は次のリクエストで反映され、キャッシュは無効になり、検索エンジンにはサイトをインデックスしないよう求めます。",
+					"staging": "検索エンジンにはサイトをインデックスしないよう求めます。"
+				},
+				"debug": "詳細なエラーページ",
+				"debug_warning": "公開中のサイトでは絶対に有効にしないでください。エラーページにサイトのコードと設定が表示されます。",
+				"untranslated": "未翻訳のページ"
+			},
+			"accounts": {
+				"signups": "新規登録",
+				"signup_role_requires": "新規登録を有効にする必要があります。"
+			},
+			"reading": {
+				"home": "ホームページ",
+				"home_help": "代わりに表示できる、アドレスを持つコレクションがサイトにありません。",
+				"formats": "形式",
+				"formats_help": "「なし」にするとすべてのフィードが無効になります。",
+				"content": "全文",
+				"content_help": "無効の場合、フィードには各エントリーの概要のみが含まれます。",
+				"limit": "フィードあたりのエントリー数",
+				"limit_help": "1〜{max}。",
+				"home_page": "user/content/index.md のページ",
+				"home_latest": "最新の{types}"
+			},
+			"api": {
+				"api": "API",
+				"access": "閲覧できる人",
+				"path": "アドレス",
+				"path_help": "API が提供される場所（バージョンを含む）。",
+				"view": "API を表示",
+				"max_writes": "トークンあたりの変更数",
+				"max_writes_value": "{count, plural, one {1時間あたり#件の変更} other {1時間あたり#件の変更}}",
+				"max_writes_help": "1つのトークンが API を通じて1時間に作成または変更できるエントリーとメディアファイルの数です。上限を超えると、その1時間が過ぎるまで変更は拒否されます。それぞれの変更は「ツール → アクティビティ」に記録されます。",
+				"tokens": "トークンを作成できる人",
+				"tokens_help": "「API トークンの作成」権限を持つロールです。トークンはアカウントの画面の「API トークン」で作成し、そのアカウントができること、またはそれ以下のことができます。",
+				"your_account": "あなたのアカウント",
+				"roles": "ロール",
+				"mcp": "MCP サーバー",
+				"mcp_on": "有効",
+				"mcp_off": "無効",
+				"mcp_help": "AI アプリは API のトークンを使うか、ログインして接続します。設定は AI 画面で行います。",
+				"ai_settings": "AI 設定"
+			},
+			"media": {
+				"uploads": "アップロード"
+			},
+			"writing": {
+				"html": "生の HTML"
+			},
+			"search": {
+				"trailing_slash": "末尾のスラッシュ",
+				"trailing_slash_help": "もう一方の形式はリダイレクトされるため、どちらへのリンクも機能します。",
+				"media": "メディアのアドレス",
+				"media_help": "user/media が提供される場所です。その下のフォルダーは「メディア」で指定します。",
+				"media_settings": "メディア設定",
+				"sitemap": "サイトマップと robots.txt",
+				"sitemap_help": "無効の場合、サイトにはどちらもなく、検索エンジンはリンクをたどってページを見つけます。",
+				"disallow": "robots.txt で除外を求めるパス",
+				"disallow_help": "1行に1つのパスを、/ で始めて入力します（例: /drafts/）。",
+				"indexing": "インデックスしないよう求める",
+				"indexing_help": "本番環境以外では、robots.txt で検索エンジンにサイト全体を除外するよう求めます。これは環境に従います。"
+			},
+			"ai": {
+				"llms": "Markdown コピー",
+				"llms_txt_off": "無効（Markdown コピーと連動）",
+				"llms_txt_help": "サイトの Markdown マップです。サイト名と説明に続いて、掲載する各タイプのページが並びます。",
+				"llms_txt_pages": "{count, plural, one {#ページ} other {#ページ}}",
+				"types": "llms.txt に含めるタイプ",
+				"types_help": "各コンテンツタイプは「llms.txt に掲載」オプションで選択します。コレクションとツリーは指定がない限り有効、タクソノミーとプロフィールは指定がない限り無効です。",
+				"manage_types": "コンテンツタイプを管理",
+				"description": "説明",
+				"description_none": "なし",
+				"description_help": "llms.txt でサイト名の下に表示される1行です。",
+				"change_in_general": "一般設定で変更",
+				"block_ai": "アクセスしないよう求める",
+				"block_ai_on": "アクセスしないよう要求中",
+				"block_ai_off": "許可",
+				"block_ai_robots": "config/sitemap.php 独自の robots.txt が生成されたものに代わるため、これらの選択は使用されません。",
+				"block_ai_environment": "本番環境以外では、robots.txt ですべてのクローラーにアクセスしないよう求めるため、これらの選択はサイトの公開後に適用されます。",
+				"mcp": "MCP サーバー",
+				"mcp_address": "サーバーアドレス",
+				"mcp_address_off": "無効（MCP サーバーと連動）",
+				"mcp_address_help": "Claude などのアプリのコネクター設定に貼り付けてください。各ユーザーがログインしてアプリを承認すると、アプリはそのユーザーとして動作します。アプリによる変更はすべて「ツール → アクティビティ」に記録されます。",
+				"mcp_connect": "アプリを接続できる人",
+				"mcp_connect_help": "「アプリの接続」権限を持つロールです。長期間有効な API トークンは「API トークンの作成」権限があれば「あなたのアカウント」で作成できます。",
+				"manage_roles": "ロールを管理",
+				"api_settings": "API 設定",
+				"tools": "ツール",
+				"full_requires": "Markdown コピーを有効にする必要があります。",
+				"full_too_big": "{size} はページキャッシュの上限 {max} を超えているため、リクエストのたびに再生成されます。"
+			},
+			"view": "表示",
+			"bytes": {
+				"mb": "{size} MB",
+				"kb": "{size} KB",
+				"bytes": "{count, plural, one {#バイト} other {#バイト}}"
+			},
+			"system": {
+				"data_types": "user/data/types のコンテンツタイプ",
+				"disabled": "無効にした組み込みタイプ",
+				"caching": "キャッシュ",
+				"caching_help": "開発環境では無効、それ以外では有効です。",
+				"driver": "保存先",
+				"pages": "ページ全体",
+				"max_age": "ブラウザーがページを保持する期間",
+				"max_age_none": "保持しない（毎回確認する）",
+				"max_age_seconds": "{count, plural, one {#秒} other {#秒}}",
+				"webhook": "公開 Webhook",
+				"webhook_help": ".env に PUBLISH_SECRET があると有効になります。",
+				"git": "公開時に git で pull する",
+				"preview": "プレビューリンク",
+				"preview_help": ".env に APP_SECRET があると有効になります。"
+			},
+			"environments": {
+				"development": "開発",
+				"staging": "ステージング",
+				"production": "本番"
+			}
+		},
+		"tokens_controller": {
+			"make_forbidden": "API トークンを作成する権限がありません。",
+			"signs_in": "{name}はログインするため、自分でトークンを作成します。他のユーザーのためにトークンを作成できるのは、あなたが変更できるトークン専用アカウントのみです。",
+			"no_token": "そのトークンはありません。",
+			"no_app": "その接続済みアプリはありません。",
+			"an_app": "アプリ",
+			"name_invalid": "トークンには用途がわかる名前を{length}文字以内で付けてください。",
+			"lifetime_invalid": "トークンの有効期間は{days}日、または無期限です。",
+			"capability_not_had": "トークンに「{capability}」を付与することはできません。あなたが持っていない権限です。",
+			"others_forbidden": "他のアカウントのトークンを表示する権限がありません。",
+			"no_account": "「{username}」というアカウントはありません。",
+			"owner_tokens": "{username}はオーナーです。オーナーのトークンを表示または変更できるのはオーナーのみです。"
+		},
+		"profiles_controller": {
+			"cannot_view": "アカウントを表示する権限がありません。",
+			"cannot_lock": "アカウントのプロフィールを変更する権限がありません。",
+			"cannot_create": "{items}を作成する権限がありません。",
+			"no_page": "そのアーカイブ用に書かれたページはありません。",
+			"cannot_delete": "そのページを削除する権限がありません。",
+			"not_found": "「{slug}」というプロフィールはありません。",
+			"cannot_edit": "そのプロフィールを編集する権限がありません。"
+		},
+		"set_password_controller": {
+			"too_many_tries": "試行回数が多すぎます。しばらくしてからもう一度お試しください。"
+		},
+		"plugins_controller": {
+			"forbidden": "サイトのプラグインを表示する権限がありません。",
+			"clash": "その{kind, select, type {コンテンツタイプ} relation {リレーション} other {{kind}}}「{name}」は除外されています。{owner}も同じ名前のものを定義しています。"
+		},
+		"plugin_edit_controller": {
+			"toggle_forbidden": "プラグインを有効化・無効化する権限がありません。",
+			"not_installed": "{name}という名前のプラグインはインストールされていません。",
+			"unmet": "{label}を有効にできません。{reason}",
+			"delete_forbidden": "プラグインを削除する権限がありません。",
+			"none_in": "{where}にプラグインはありません。",
+			"still_on": "{label}は有効です。削除する前に無効にしてください。",
+			"named_by_config": "config/plugins.php が名前を指定して{label}を有効にしています。削除する前に、そのファイルの \"enabled\" リストから外してください。",
+			"not_deleted": "{where}を削除できませんでした。Web サーバーに変更が許可されているか確認してください。"
+		},
+		"field_set_edit_controller": {
+			"shadowed": "フィールドセット「{name}」は保存されましたが、別の場所にある同じ名前のセットが使用されます。",
+			"forbidden": "フィールドセットを変更する権限がありません。"
+		},
+		"themes_controller": {
+			"forbidden": "サイトのテーマを表示する権限がありません。"
+		},
+		"tool_controller": {
+			"no_tool": "「{tool}」というツールはありません。",
+			"not_allowed": "その操作を行う権限がありません。",
+			"failed": "問題が発生しました。詳細はサイトのログを確認してください。",
+			"done": "完了しました。"
+		},
+		"settings_edit_controller": {
+			"not_allowed": "サイトの設定を変更する権限がありません。",
+			"not_allowed_those": "それらの設定を変更する権限がありません。",
+			"required": "{field}は必須です。",
+			"not_home": "「{type}」はホームページにできません。アドレスを持つコレクションタイプである必要があります。",
+			"not_role": "「{role}」はこのサイトのロールではありません。",
+			"upload_too_big": "サーバーが受け付けるファイルは最大 {server} MB のため、最大ファイルサイズ {size} MB は設定できません。",
+			"theme_unmet": "{theme}を有効化できません。{reason}"
+		},
+		"types_controller": {
+			"not_found": "「{name}」というコンテンツタイプはありません。"
+		},
+		"redirects_controller": {
+			"gone": "そのリダイレクトはもうありません。一覧を再読み込みしてください。",
+			"needs_fixing": "先に修正が必要な箇所があります。",
+			"not_saved": "リダイレクトを保存できませんでした: {reason}",
+			"not_deleted": "リダイレクトを削除できませんでした: {reason}",
+			"not_changed": "リダイレクトを変更できませんでした: {reason}",
+			"not_restored": "リダイレクトを元に戻せませんでした: {reason}",
+			"forbidden": "リダイレクトを管理する権限がありません。",
+			"unreadable": "リダイレクトを読み込めません。user/data/redirects.json を確認してください。"
+		},
+		"entry_controller": {
+			"not_found": "ID が「{id}」のエントリーはありません。",
+			"cannot_create": "エントリーを作成する権限がありません。",
+			"cannot_create_type": "{items}を作成する権限がありません。",
+			"cannot_edit": "そのエントリーを編集する権限がありません。",
+			"not_movable": "別のページの下に移動できるのはツリーのページのみです。「{title}」は移動できません。",
+			"template": {
+				"unknown": "テーマにはこのタイプ用の「{name}」テンプレートがありません。",
+				"choose": "テンプレートを名前で1つ選択してください。"
+			},
+			"cannot_delete": "そのエントリーを削除する権限がありません。",
+			"not_trashed": "「{title}」はゴミ箱にありません。先にゴミ箱へ移動してください。",
+			"cannot_change": "そのエントリーを変更する権限がありません。",
+			"restore_missing": "それはゴミ箱にありません。",
+			"unknown_type": "そのようなコンテンツタイプはありません。",
+			"bulk": {
+				"gone": "もう存在しません。",
+				"trashed": "すでにゴミ箱にあります。変更するには復元してください。",
+				"cannot_delete": "削除する権限がありません。",
+				"index_page": "インデックスページのため、ゴミ箱に移動できません。",
+				"cannot_edit": "編集する権限がありません。"
+			},
+			"removed_account": "削除されたアカウント",
+			"item": "エントリー",
+			"items": "エントリー"
+		},
+		"role_edit_controller": {
+			"key_invalid": "キーには小文字の英字、数字、「_」、「-」を使用し、英字で始めてください。",
+			"key_new": "ここでは「new」をロールのキーにできません。別のキーを選んでください。",
+			"create_does_more": "あなたができないことをできるロールは作成できません。",
+			"capability_not_had": "あなたが持っていない権限をロールに付与することはできません。",
+			"reset_does_more": "{role}ロールは初期状態であなたができないことをできるため、リセットできません。",
+			"no_role": "「{name}」というロールはありません。",
+			"does_more": "{role}ロールはあなたができないことをできるため、変更できません。",
+			"keeps_manager": "そうすると、アカウントとロールを管理できるアカウントがなくなります。",
+			"forbidden": "ロールを管理する権限がありません。"
+		},
+		"health_controller": {
+			"not_allowed_see": "サイトヘルスを表示する権限がありません。",
+			"not_allowed_change": "サイトヘルスを変更する権限がありません。",
+			"removed_account": "削除されたアカウント",
+			"not_allowed_fix_content": "コンテンツを修正する権限がありません。",
+			"not_allowed_fix_media": "メディアを修正する権限がありません。",
+			"not_allowed_fix_files": "ファイルを修正する権限がありません。",
+			"not_allowed_types": "コンテンツタイプを変更する権限がありません。"
+		},
+		"provenance": {
+			"site": "このサイト",
+			"elsewhere": "その他"
+		},
+		"admin_tokens": {
+			"no_file": "{file}がありません。",
+			"unreadable": "{file}が無効です: {problem}",
+			"faces_not_list": "\"typography.fontFace\" はリストである必要があります。",
+			"unknown_token": "{file}が「{token}」を設定していますが、これは管理画面テーマで設定できるトークンではありません。",
+			"expected_color": "「{token}」は色（hex、rgb()、hsl()、oklch()）、または2つの色の light-dark() である必要があります。",
+			"expected_font_family": "「{token}」はフォントファミリー名のリストである必要があります（例: [\"Karla\", \"sans-serif\"]）。",
+			"expected_font_weight": "「{token}」は{low}〜{high}のウェイトである必要があります。",
+			"expected_length": "「{token}」は{low}px〜{high}pxである必要があります（例: \"{low}px\"）。",
+			"expected_letter_spacing": "「{token}」は{low}em〜{high}emである必要があります（例: \"-.01em\"）。"
+		},
+		"admin_theme": {
+			"not_string": "{path}の管理画面テーマの \"{field}\" が文字列ではありません。",
+			"namespace": "{path}の管理画面テーマに \"namespace\" がありますが、管理画面テーマには不要です。名前空間で指定するものがありません。",
+			"invalid": "{path}の管理画面テーマ: {problem}",
+			"no_name": "{path}の管理画面テーマには \"name\" が必要です。vendor/name の形式です（例: \"acme/harbor\"）。",
+			"no_label": "管理画面テーマ「{name}」には \"label\" が必要です。"
+		},
+		"admin_theme_discovery": {
+			"framework_name": "「{name}」はフレームワークの管理画面テーマの名前です。",
+			"composer_name": "Composer パッケージ「{package}」の管理画面テーマの名前は「{name}」ですが、Composer の管理画面テーマの名前はパッケージ名である必要があります。"
+		},
+		"font_face": {
+			"not_object": "\"typography.fontFace\" の各項目はオブジェクトである必要があります。",
+			"unknown_keys": "\"typography.fontFace\" に「{keys}」がありますが、これは fontFamily、src、fontWeight、fontStyle、unicodeRange のいずれでもありません。",
+			"no_family": "\"typography.fontFace\" には \"fontFamily\" が必要です。英字、数字、スペース、ハイフン、アンダースコアからなるファミリー名です。",
+			"no_src": "フォントフェイス「{family}」には \"src\" が必要です。テーマ内の .woff2 ファイルです（例: \"fonts/{file}.woff2\"）。",
+			"missing_file": "フォントフェイス「{family}」のファイル {src} がテーマ内にありません。",
+			"too_big": "フォントフェイス「{family}」のファイル {src} が {size} KB を超えています。",
+			"bad_weight": "フォントフェイス「{family}」の \"fontWeight\" は1〜1000のウェイト、または2つの値（例: \"200 800\"）である必要があります。",
+			"bad_style": "フォントフェイス「{family}」の \"fontStyle\" は normal、italic、oblique のいずれかである必要があります。",
+			"bad_range": "フォントフェイス「{family}」の \"unicodeRange\" はコードポイントまたは範囲である必要があります（例: \"U+0000-00FF, U+0131\"）。"
+		}
+	},
+	"settings": {
+		"settings_store": {
+			"unreadable": "{location}: {reason}"
+		},
+		"settings": {
+			"not_fit": "保存された設定が適合しません: {reason}"
+		},
+		"setting_groups": {
+			"unreadable": "設定を読み込めません: {reason}",
+			"group_not_saved": "「{group}」の設定を{location}に保存できませんでした: {reason}",
+			"not_saved": "設定を保存できませんでした: {reason}",
+			"group_unreadable": "「{group}」の設定を読み込めません: {reason}"
+		},
+		"settings_targets": {
+			"label": "設定画面",
+			"details": {
+				"label": "詳細",
+				"description": "画面の設定に加える、サイト独自の設定。"
+			},
+			"conflict": "フィールドセット「{first}」と「{second}」の両方が「{setting}」設定を追加しています。設定は1つの保存先を共有するため、どちらかの名前を変更してください。"
+		},
+		"settings_screen": {
+			"general": "一般",
+			"reading": "表示設定",
+			"writing": "投稿設定",
+			"media": "メディア",
+			"search": "アドレスと検索",
+			"ai": "AI 設定",
+			"api": "API 設定"
+		},
+		"setting": {
+			"name": {
+				"label": "サイト名"
+			},
+			"description": {
+				"label": "説明",
+				"description": "サイトについての1行の説明です。llms.txt で使われるほか、より具体的な説明がない場合はホームページとフィードにも使われます。検索結果には約160文字が表示されます。"
+			},
+			"email": {
+				"label": "メールアドレス",
+				"description": "サイトがオーナー宛ての通知を送信する宛先です。サイト上には表示されません。"
+			},
+			"locale": {
+				"label": "言語と地域",
+				"description": "言語コードです。必要に応じて地域を付けます（例: en_US、fr）。"
+			},
+			"untranslated": {
+				"label": "未翻訳のページ",
+				"description": "ある言語に翻訳されていないエントリーについて、その言語のアドレスがどう動作するかです。"
+			},
+			"timezone": {
+				"label": "タイムゾーン"
+			},
+			"date_format": {
+				"label": "日付形式"
+			},
+			"time_format": {
+				"label": "時刻形式"
+			},
+			"signups": {
+				"label": "新規登録",
+				"description": "誰でもサイトでアカウントを作成できます。無効の場合、アカウントを追加できる人だけがアカウントを作成します。",
+				"caption": "誰でも新規登録できる"
+			},
+			"signup_role": {
+				"label": "新規アカウントのロール",
+				"description": "新規登録で作成されたアカウントに割り当てるロールです。オーナーや管理者にはできません。"
+			},
+			"home": {
+				"label": "ホームページ",
+				"caption": "user/content/index.md のページ"
+			},
+			"feed_formats": {
+				"label": "形式",
+				"description": "「なし」にするとすべてのフィードが無効になります。"
+			},
+			"feed_content": {
+				"label": "全文",
+				"description": "無効の場合、フィードには各エントリーの概要のみが含まれます。",
+				"caption": "フィードに各エントリーの全文を含める"
+			},
+			"media_uploads": {
+				"label": "アップロード",
+				"description": "アップロードできるもの、その最大サイズ、保存先となる user/media 内のフォルダー。"
+			},
+			"add_artwork": {
+				"label": "アップロードからのアートワーク",
+				"description": "画像をアップロードできる人が音声や動画をアップロードすると、そのアートワークが独立した画像としてライブラリに追加されます。同じアートワークを持つトラックは1つの画像を共有します。無効の場合も、ファイルの画面から追加できます。",
+				"caption": "アップロード時にアートワークをライブラリに追加する"
+			},
+			"mentions": {
+				"label": "メンション",
+				"description": "@name は、そのスラッグを持つプロフィールが公開されると、そのプロフィールにリンクします。誰のものでもない名前はテキストのままです。",
+				"caption": "@name をプロフィールにリンクする"
+			},
+			"smart_punctuation": {
+				"label": "スマート句読点",
+				"description": "ストレートクォートはカーリークォートに、-- と --- はダッシュに、... は三点リーダーになります。コードは書いたとおりに残ります。",
+				"caption": "引用符、ダッシュ、三点リーダーを組版用の文字にする"
+			},
+			"heading_anchors": {
+				"label": "見出しアンカー",
+				"description": "各見出しにその見出し自体へのリンクが付き、セクションを共有できます。",
+				"caption": "見出しを自身にリンクする"
+			},
+			"figures": {
+				"label": "画像を図として扱う",
+				"description": "単独の行にある画像は図になり、そのタイトルがキャプションになります。",
+				"caption": "単独の画像を図にする"
+			},
+			"html": {
+				"label": "生の HTML",
+				"description": "コンテンツ内に書かれた HTML が、誰が書いたかにかかわらずページ上でどう扱われるかです。管理画面で HTML を追加できるかどうかはロールによって決まります。"
+			},
+			"embeds": {
+				"label": "有効にした埋め込み",
+				"description": "有効にしたサイトのリンクはページ上で再生され、それ以外のリンクはリンクのままです。"
+			},
+			"api": {
+				"label": "API",
+				"description": "サイトが表示する内容を JSON で提供する API です。他のサイト、アプリ、AI ツール向けに、ページ、タイプ、メディア、メニューを提供します。下書きや非表示のページはトークンなしでは含まれず、コンテンツを変更できるのはトークンのみです。",
+				"caption": "サイトに API を持たせる"
+			},
+			"api_access": {
+				"label": "閲覧できる人",
+				"description": "トークンは「あなたのアカウント」で作成し、所属するアカウントとして動作します。"
+			},
+			"feed_limit": {
+				"label": "フィードあたりのエントリー数",
+				"description": "1〜{max}。"
+			},
+			"trailing_slash": {
+				"label": "末尾のスラッシュ",
+				"description": "もう一方の形式はリダイレクトされるため、どちらへのリンクも機能します。",
+				"caption": "アドレスをスラッシュで終える"
+			},
+			"sitemap": {
+				"label": "サイトマップと robots.txt",
+				"description": "無効の場合、サイトにはどちらもなく、検索エンジンはリンクをたどってページを見つけます。",
+				"caption": "サイトマップと robots.txt を持たせる"
+			},
+			"sitemap_disallow": {
+				"label": "robots.txt で除外を求めるパス",
+				"description": "1行に1つのパスを、/ で始めて入力します（例: /drafts/）。"
+			},
+			"llms": {
+				"label": "Markdown コピー",
+				"description": "ページのコピーは、そのアドレスに .md を付けた場所（例: /about.md）にあり、llms.txt がそれらを一覧にして AI ツールが読めるようにします。",
+				"caption": "すべてのページに Markdown コピーを用意し、llms.txt を持たせる"
+			},
+			"mcp": {
+				"label": "MCP サーバー",
+				"description": "Claude や ChatGPT などの AI アプリが、接続した人として、その人ができる範囲でエントリーとメディアを読み書きできるようにします。各ユーザーは接続時にアプリを承認します。",
+				"caption": "アプリの接続を許可する"
+			},
+			"llms_full": {
+				"description": "llms.txt が一覧にするすべてのページを全文で1つのファイルにまとめ、ツールがサイト全体を一度に読めるようにします。大きなサイトでは数メガバイトになることがあります。",
+				"caption": "llms-full.txt を持たせる"
+			},
+			"block_ai": {
+				"label": "アクセスしないよう求める",
+				"description": "robots.txt は要請です。行儀のよいクローラーは従いますが、従わないものもあります。"
+			},
+			"theme": {
+				"label": "テーマ"
+			},
+			"plugins": {
+				"label": "有効にしたプラグイン"
+			},
+			"icon_packs": {
+				"label": "有効にしたアイコンパック"
+			},
+			"admin_themes": {
+				"label": "有効にした管理画面テーマ"
+			},
+			"admin_theme_default": {
+				"label": "サイトの管理画面テーマ"
+			},
+			"home_choice": "最新の{type}",
+			"invalid": {
+				"bool": "「{setting}」は true または false である必要があります。",
+				"name_text": "サイト名はテキストである必要があります。",
+				"name_empty": "サイトには名前が必要です。",
+				"name_long": "サイト名は{max}文字以内にしてください。",
+				"name_line": "サイト名に改行や制御文字は使用できません。",
+				"description_text": "サイトの説明はテキストである必要があります。",
+				"description_long": "サイトの説明は{max}文字以内にしてください。",
+				"description_line": "サイトの説明は制御文字を含まない1行にしてください。",
+				"email_text": "サイトのメールアドレスはテキストである必要があります。",
+				"email_empty": "サイトにはメールアドレスが必要です。",
+				"email": "「{email}」はメールアドレスではありません。",
+				"locale": "言語コードを使用してください。必要に応じて地域を付けます（例: en_US、fr）。",
+				"untranslated": "未翻訳のページは次のいずれかです: {values}。",
+				"api_access": "API を閲覧できる人は次のいずれかです: {values}。",
+				"html": "生の HTML は次のいずれかです: {values}。",
+				"signup_role": "新規アカウントのロールはロール名である必要があります。",
+				"timezone": "「{zone}」はタイムゾーンではありません。America/Chicago や UTC などを使用してください。",
+				"date_format": "日付や時刻の形式はテキストである必要があります。",
+				"home": "ホームページにはコンテンツタイプを指定するか、user/content/index.md のページを使う場合は null にしてください。",
+				"feed_formats": "フィード形式は rss、atom、json のリストである必要があります。",
+				"feed_format": "「{format}」はフィード形式ではありません。rss、atom、json のいずれかを使用してください。",
+				"feed_limit": "フィードのエントリー数は1〜{max}件です。",
+				"theme": "テーマはテーマ名（vendor/name）である必要があります（例: \"acme/nova\"）。",
+				"admin_theme": "サイトの管理画面テーマは管理画面テーマの名前（vendor/name）である必要があります（例: \"blush/editorial\"）。",
+				"names": "無効にした{kind, select, plugins {プラグイン} icon_packs {アイコンパック} other {管理画面テーマ}}は名前のリストである必要があります。",
+				"name": "「{name}」は名前ではありません。無効にした{kind, select, plugins {プラグイン} icon_packs {アイコンパック} other {管理画面テーマ}}は vendor/name の形式で指定します（例: \"acme/gallery\"）。",
+				"embeds": "有効にした埋め込みはプロバイダー名のリストである必要があります。",
+				"embed": "「{name}」は埋め込みプロバイダーの名前ではありません（例: \"codepen\"）。",
+				"uploads": "アップロードのルールは enabled、maxSize、path、kinds を持つオブジェクトである必要があります。",
+				"block_ai": "ブロックする AI クローラーは training、search、fetchers のリストである必要があります。",
+				"crawler": "「{group}」は AI クローラーの種類ではありません。training、search、fetchers のいずれかを使用してください。",
+				"disallow": "robots.txt で除外を求めるパスはリストである必要があります。",
+				"path": "「{path}」はパスではありません。パスは / で始まり、スペースを含みません（例: /drafts/）。",
+				"disallow_many": "robots.txt で除外を求められるパスは最大{max}個です。"
+			},
+			"format_help": "テーマが日付と時刻を表示する方法です。言語に基づく形式はサイトの言語に従い、固定の形式は言語にかかわらず同じ順序を保ちます。"
+		}
+	},
+	"core": {
+		"untranslated": {
+			"hide": {
+				"label": "「ページが見つかりません」を表示",
+				"description": "翻訳のないページはその言語では見つからず、一覧には翻訳済みのエントリーのみが表示されます。"
+			},
+			"redirect": {
+				"label": "原文にリダイレクト",
+				"description": "翻訳のないページは読者を原文に誘導します。一覧には翻訳済みのエントリーのみが表示されます。"
+			},
+			"include": {
+				"label": "リダイレクトし、原文も一覧に表示",
+				"description": "翻訳のないページは読者を原文に誘導し、一覧には未翻訳のエントリーの原文も表示されます。"
+			}
+		}
+	},
+	"extension": {
+		"autoload": {
+			"not_object": "\"autoload\" はオブジェクトである必要があります（例: '{\"psr-4\": {\"Acme\\\\Hello\\\\\": \"src/\"}, \"files\": [\"src/helpers.php\"]}'）。",
+			"psr4_not_map": "\"autoload.psr-4\" は名前空間プレフィックスをフォルダーに対応付ける必要があります。",
+			"files_not_list": "\"autoload.files\" はファイルのリストである必要があります。",
+			"psr4_prefix": "\"autoload.psr-4\" のプレフィックス「{prefix}」は、Composer と同様にバックスラッシュで終わる名前空間である必要があります。",
+			"psr4_outside": "\"autoload.psr-4\" は名前空間プレフィックスを拡張機能内のフォルダーに対応付ける必要があります。",
+			"files_outside": "\"autoload.files\" には拡張機能内のファイルを指定する必要があります。"
+		},
+		"extension_abandoned": {
+			"invalid": "\"abandoned\" は true、false、または代わりに使うパッケージ名（vendor/name）である必要があります。",
+			"abandoned": "開発が終了しており、メンテナンスされていません。",
+			"use_instead": "開発が終了しています。代わりに「{name}」を使用してください。"
+		},
+		"install_clash": {
+			"installed": "{label}はすでにインストールされています。"
+		},
+		"extension_installer": {
+			"no_zip": "このサーバーの PHP は .zip ファイルを読み込めません（zip 拡張機能がありません）。",
+			"not_writable": "Web サーバーが{folder}に書き込めません。",
+			"folder_not_made": "{folder}を作成できませんでした。",
+			"not_unpacked": "{name}を{folder}に展開できませんでした。",
+			"not_installed": "{folder}には{name}という名前の{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}はインストールされていません。",
+			"no_backup": "{label}にはロールバックできる以前のバージョンがありません。",
+			"git_rollback": "{folder}は git のチェックアウトのため、ロールバックではなく git でバージョンを変更します。",
+			"rollback_aside": "ロールバックのために{folder}を退避できませんでした。",
+			"not_rolled_back": "{label}をロールバックできませんでした。",
+			"backup_not_removed": "{folder}のバックアップを削除できませんでした。",
+			"several_kinds": "{name}には{claims}が含まれていますが、拡張機能は1つの種類である必要があります。",
+			"wrong_kind": "{name}は{other, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}であり、{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}ではありません。",
+			"no_manifest": "{name}には {manifest}.json も、タイプ \"{type}\" の composer.json もないため、{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}ではありません。",
+			"invalid": "{name}をインストールできません: {reason}",
+			"default_theme_name": "「{name}」はフレームワークのデフォルトテーマの名前です。",
+			"admin_theme_name": "「{name}」はフレームワークの管理画面テーマの名前です。",
+			"reserved_namespace": "{name}をインストールできません。名前空間「{namespace}」は予約されています。",
+			"installed_as": "{name}をインストールできません。{installed}が{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}としてインストールされています。",
+			"composer": "{name}は Composer でインストールされているため、Composer で更新します。",
+			"namespace_taken": "{name}をインストールできません。名前空間「{namespace}」は{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}} {installed}のものです。",
+			"php_error": "{name}をインストールできません。{file}の{line}行目に PHP エラーがあります（{error}）。",
+			"target_exists": "{folder}がすでに存在するため、{label}はそこにインストールされませんでした。先にそのフォルダーを削除するか名前を変更してください。",
+			"not_moved": "{label}を{folder}に移動できませんでした。",
+			"git_replace": "{folder}は git のチェックアウトのため、アップロードではなく git で更新します。",
+			"replace_aside": "置き換えのために{folder}を退避できませんでした。",
+			"not_replaced": "{folder}を置き換えられませんでした。"
+		},
+		"extension_archive": {
+			"no_zip": "このサーバーの PHP は .zip ファイルを読み込めない（zip 拡張機能がない）ため、ここでは何もインストールできません。",
+			"not_zip": "{name}は Blush が読み込める .zip ファイルではありません。",
+			"folder_not_made": "{name}を展開できませんでした。フォルダーを作成できませんでした。",
+			"file_not_written": "{name}を展開できませんでした。{file}を書き込めませんでした。",
+			"too_many_files": "{name}には{count, number}個を超えるファイルが含まれています。",
+			"damaged": "{name}は破損しています。",
+			"outside": "{name}にはフォルダーの外に展開されるファイル（{file}）があるため、展開しませんでした。",
+			"symlink": "{name}にはシンボリックリンク（{file}）があるため、展開しませんでした。",
+			"too_large": "{name}は展開すると{size, number} MB を超えます。"
+		},
+		"local_extension": {
+			"wrong_folder": "{where}にある{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}の名前は「{name}」です。拡張機能のフォルダー名はその名前と同じである必要があるため、{folder}/{name} に移動してください。"
+		},
+		"extension_license": {
+			"invalid": "\"license\" は文字列、またはいずれかが適用される文字列のリストである必要があります。"
+		},
+		"extension_author": {
+			"not_object": "\"authors\" の各項目は \"name\" を持つオブジェクトである必要があります。",
+			"unknown_key": "著者が持てるのは \"name\"、\"email\"、\"homepage\"、\"role\" です。\"{field}\" はそのいずれでもありません。",
+			"no_name": "\"authors\" の各項目には \"name\" が必要です。",
+			"not_string": "著者の \"{field}\" は文字列である必要があります。",
+			"bad_email": "「{email}」はメールアドレスではありません。",
+			"bad_homepage": "著者の \"homepage\" は http または https の URL である必要がありますが、「{homepage}」はそうではありません。",
+			"not_list": "\"authors\" は著者のリストで、各項目は \"name\" を持つオブジェクトである必要があります。"
+		},
+		"extension_keywords": {
+			"invalid": "\"keywords\" は文字列のリストである必要があります。"
+		},
+		"requirements": {
+			"not_installed": "インストールされていません",
+			"active": "有効です",
+			"on": "有効です",
+			"not_active": "有効ではありません",
+			"turned_off": "無効になっています",
+			"needs": "{requirements}が必要です。",
+			"conflicts": "{requirements}と競合します。",
+			"replaces": "{requirements}を置き換えます。",
+			"stand_in": "{label} {version}が{verb, select, replaces {置き換えています} other {提供しています}}",
+			"bad_constraint": "Blush が解釈できるバージョン制約ではありません",
+			"site_runs": "このサイトは {version} で動作しています",
+			"not_loaded": "読み込まれていません",
+			"loaded": "バージョン {version} が読み込まれています",
+			"composer_checks": "Composer がチェックします",
+			"unknown": "Blush がチェックできるものではありません",
+			"installed": "バージョン {version} がインストールされています",
+			"only_provided": "{ranges}のみが提供されています",
+			"stand_in_on": "{label} {version}が{verb, select, replaces {置き換えており} other {提供しており}}、{theme, select, yes {有効化されています} other {有効です}}",
+			"version_on": "バージョン {version} が{theme, select, yes {有効化されています} other {有効です}}",
+			"provided": "{ranges}が提供されています",
+			"cannot_run": "実行できません"
+		},
+		"local_extensions": {
+			"composer_type": "タイプ \"{type}\" の composer.json",
+			"several_kinds": "{claims}が含まれていますが、拡張機能は1つの種類である必要があります。"
+		},
+		"extension_require": {
+			"not_object": "\"{field}\" はオブジェクトである必要があります。",
+			"not_map": "\"{field}\" は名前をバージョン制約に対応付ける必要があります。"
+		},
+		"extension_catalogs": {
+			"invalid": "\"catalogs\" はカタログ名（小文字の英字、数字、ハイフン、アンダースコア）を拡張機能内のフォルダーのリストに対応付ける必要があります（例: '{\"site\": [\"resources/site\"]}'）。"
+		},
+		"extension_links": {
+			"homepage": "\"homepage\" は http または https の URL である必要があります。",
+			"support_not_object": "\"support\" は {keys} のいずれかを持つオブジェクトである必要があります。",
+			"funding_not_list": "\"funding\" はリストで、各項目は \"url\" と任意の \"type\" を持つオブジェクトである必要があります。",
+			"support_unknown": "\"support\" が持てるのは {keys} です。\"{field}\" はそのいずれでもありません。",
+			"support_email": "\"support.email\" はメールアドレスである必要があります。",
+			"support_irc": "\"support.irc\" は irc または ircs の URL である必要があります。",
+			"support_url": "\"support.{field}\" は http または https の URL である必要があります。",
+			"funding_not_object": "\"funding\" の各項目は \"url\" と任意の \"type\" を持つオブジェクトである必要があります。",
+			"funding_url": "\"funding\" の各項目には http または https の URL である \"url\" が必要で、その \"type\" は文字列である必要があります。"
+		},
+		"installed_extensions": {
+			"name_taken": "「{name}」という名前の{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}はすでにインストールされています。",
+			"namespace_taken": "{kind, select, Plugin {プラグイン} Theme {テーマ} IconPack {アイコンパック} other {管理画面テーマ}}「{name}」がすでに名前空間「{namespace}」を使用しています。--namespace で別の名前空間を指定してください。"
+		},
+		"requirement": {
+			"php_extension": "PHP 拡張機能 {extension}",
+			"with_note": "{requirement}（{note}）"
+		},
+		"manifest_file": {
+			"invalid": "マニフェスト {file} が無効です: {error}",
+			"not_map": "マニフェスト {file} はキーと値のマップである必要があります。"
+		},
+		"extension_suggest": {
+			"not_object": "\"suggest\" はオブジェクトである必要があります。",
+			"not_map": "\"suggest\" は名前を、それぞれを推奨する理由に対応付ける必要があります。"
+		}
+	},
+	"cache": {
+		"cache_driver": {
+			"file": "ファイル",
+			"php_file": "PHP ファイル",
+			"apcu": "APCu",
+			"array": "メモリー（1リクエストのみ）",
+			"null": "無効"
+		}
+	},
+	"asset": {
+		"asset": {
+			"unknown_keys": "アセット「{handle}」に「{keys}」がありますが、これは \"styles\"、\"scripts\"、\"requires\" のいずれでもありません。",
+			"requires": "アセット「{handle}」の \"requires\" はハンドル（vendor/name）のリストである必要があります。",
+			"scripts": "アセット「{handle}」の \"scripts\" は、パス、完全な URL、または \"path\" とその \"attributes\"（および \"footer\" と \"catalog\"）を持つオブジェクトのリストである必要があります。",
+			"styles": "アセット「{handle}」の \"styles\" は、パス、完全な URL、または \"path\" とその \"attributes\" を持つオブジェクトのリストである必要があります。"
+		}
+	},
+	"auth": {
+		"verify_csrf": {
+			"token_wrong": "リクエストの CSRF トークンがないか、正しくありません。",
+			"cross_site": "クロスサイトリクエストは許可されていません。"
+		},
+		"roles": {
+			"unreadable": "ロールを読み込めません: {error}",
+			"not_saved": "ロールを保存できませんでした: {error}"
+		},
+		"tokens": {
+			"lifetime": "トークンの有効期間は{days}日、または無期限です。",
+			"name_required": "トークンには用途がわかる名前が必要です。",
+			"name_too_long": "トークンの名前は1行で{length}文字以内です。",
+			"unreadable": "API トークンを読み込めません: {error}",
+			"not_saved": "トークン「{name}」を保存または削除できませんでした: {error}"
+		},
+		"role_editor": {
+			"name_taken": "「{name}」という名前のロールはすでにあります。",
+			"built_in_fixed": "{role}ロールの名前と説明は組み込みのため、変更できるのは権限のみです。",
+			"nothing_to_reset": "{role}ロールは組み込みで変更されていないため、リセットするものはありません。",
+			"still_held": "まだ{role}ロールを持つアカウントがあります（{accounts}）。先にそれらのアカウントからロールを外してください。",
+			"no_role": "「{name}」というロールはありません。",
+			"in_config": "{role}ロールは{file}で定義されているため、そこで変更します。",
+			"member_fixed": "{role}ロールは権限を持ちません。",
+			"owner_fixed": "{role}ロールは常にすべての権限を持つため、変更されることはありません。",
+			"no_capability": "「{capability}」という権限はありません。",
+			"label_required": "ロールには名前が必要です。"
+		},
+		"authenticator": {
+			"locked_out": "ログインの失敗が多すぎます。しばらくしてからもう一度お試しください。",
+			"suspended": "このアカウントは停止されています。管理者に復帰を依頼してください。",
+			"wrong_passwords": "パスワードの誤りが多すぎます。しばらくしてからもう一度お試しください。"
+		},
+		"account_profiles": {
+			"no_type": "サイトにプロフィールのタイプがありません。",
+			"taken": "プロフィール「{slug}」はすでに{name}のものです。プロフィールは1つのアカウントに属します。",
+			"locked": "プロフィール「{slug}」はロックされているため、どのアカウントもリンクできません。先にその画面でロックを解除してください。",
+			"no_id": "プロフィール「{slug}」にはまだ ID がありません。先に {command} を実行してください。"
+		},
+		"token_scope": {
+			"read": "読み取り",
+			"drafts": "下書きの作成",
+			"account": "あなたのアカウントと同じ"
+		},
+		"capability_group": {
+			"media": "メディア",
+			"html": "HTML",
+			"structure": "構造",
+			"site": "サイト",
+			"users": "ユーザー"
+		},
+		"capabilities": {
+			"upload_every": "すべての種類をアップロード",
+			"upload": "{kind, select, image {画像} video {動画} audio {音声} document {ドキュメント} other {その他のファイル}}をアップロード",
+			"every_type": "すべてのタイプ",
+			"content": "{type}: {action}"
+		},
+		"capability": {
+			"media_edit": "自分のファイルを編集",
+			"media_edit_others": "すべてのユーザーのファイルを編集",
+			"media_delete": "自分のファイルを削除",
+			"media_delete_others": "すべてのユーザーのファイルを削除",
+			"html_allowed": "許可リストにある HTML を追加",
+			"html_unfiltered": "常に拒否されるもの以外のあらゆる HTML を追加",
+			"menus_edit": "メニューを編集",
+			"site_publish": "サイトを公開",
+			"cache_clear": "キャッシュを削除",
+			"site_settings": "サイトの設定を変更",
+			"site_logs": "サイトのログを閲覧",
+			"site_health": "サイトヘルスを表示し、見つかった問題を修正",
+			"site_jobs": "バックグラウンドジョブを表示・管理",
+			"site_redirects": "リダイレクトを管理",
+			"site_secrets": "シークレットを管理",
+			"site_activity": "アクティビティを表示し、変更を元に戻す",
+			"accounts_view": "アカウントとロールを表示",
+			"accounts_create": "アカウントを作成",
+			"accounts_edit": "アカウントを編集",
+			"accounts_roles": "ロールの付与と解除",
+			"accounts_suspend": "アカウントの停止と復帰",
+			"accounts_delete": "アカウントを削除",
+			"roles_manage": "ロールを管理",
+			"api_tokens": "自分のアカウントの API トークンを作成",
+			"api_connect": "Claude などのアプリを接続して、自分として操作させる"
+		},
+		"accounts": {
+			"not_saved": "アカウント「{username}」を保存できませんでした: {error}",
+			"not_deleted": "アカウント「{username}」を削除できませんでした: {error}",
+			"username_invalid": "「{username}」はユーザー名にできません。小文字の英字、数字、「.」、「_」、「-」を使用してください（最大64文字）。",
+			"username_taken": "「{username}」という名前のアカウントはすでにあります。",
+			"link_expired": "このリンクは期限切れ、使用済み、または置き換えられています。管理者に新しいリンクを依頼してください。",
+			"suspended": "このアカウントは停止されています。管理者に復帰を依頼してください。",
+			"name_too_long": "名前は1行で{length}文字以内です。",
+			"email_required": "すべてのアカウントにメールアドレスが必要です。",
+			"email_invalid": "「{email}」はメールアドレスではありません。",
+			"email_taken": "{name}がすでにそのメールアドレスを使用しています。",
+			"password_too_short": "パスワードは{count, plural, one {#文字} other {#文字}}以上にしてください。",
+			"no_role": "「{role}」というロールはありません。ロールは次のとおりです: {roles}。",
+			"token_only": "{username}はトークン専用です。ログインしないため、パスワードはありません。",
+			"profile_taken": "そのプロフィールはすでに{name}のものです。プロフィールは1つのアカウントに属します。",
+			"unreadable": "アカウントを読み込めません: {error}",
+			"account_unreadable": "アカウント「{username}」を読み込めません: {error}"
+		},
+		"built_in_role": {
+			"owner": {
+				"description": "常にすべての操作ができます。オーナーのアカウントを変更したり、別のオーナーを作成したりできるのはオーナーのみです。",
+				"label": "オーナー"
+			},
+			"administrator": {
+				"description": "サイトを運営します。アカウント、ロール、コンテンツタイプ、設定、すべてのエントリーを管理します。アイコンパックはインストールできますが、プラグインやテーマはインストールできず、サイトヘルスも表示しません。",
+				"label": "管理者"
+			},
+			"editor": {
+				"description": "すべてのユーザーのエントリーを公開・編集し、サイトを公開します。サイトの構造は変更できません。",
+				"label": "編集者"
+			},
+			"author": {
+				"description": "自分のエントリーを書いて公開し、メディアをアップロードします。",
+				"label": "著者"
+			},
+			"contributor": {
+				"description": "自分のエントリーの下書きを書き、画像をアップロードします。公開はできません。",
+				"label": "寄稿者"
+			},
+			"member": {
+				"description": "ログインして自分のアカウントを管理します。それ以外はできません。",
+				"label": "メンバー"
+			}
+		},
+		"extension_action": {
+			"view": "{kind, select, plugin {プラグイン} theme {テーマ} icon_pack {アイコンパック} other {管理画面テーマ}}を表示",
+			"install": "{kind, select, plugin {プラグイン} theme {テーマ} icon_pack {アイコンパック} other {管理画面テーマ}}をインストール",
+			"update": "{kind, select, plugin {プラグイン} theme {テーマ} icon_pack {アイコンパック} other {管理画面テーマ}}を更新",
+			"activate_themes": "テーマを有効化",
+			"activate_admin_themes": "管理画面テーマの有効化・無効化と、サイトのデフォルトの選択",
+			"activate": "{kind, select, plugin {プラグイン} theme {テーマ} icon_pack {アイコンパック} other {管理画面テーマ}}の有効化・無効化",
+			"delete": "{kind, select, plugin {プラグイン} theme {テーマ} icon_pack {アイコンパック} other {管理画面テーマ}}を削除",
+			"group": {
+				"plugin": "プラグイン",
+				"theme": "テーマ",
+				"icon_pack": "アイコンパック",
+				"admin_theme": "管理画面テーマ"
+			}
+		},
+		"content_action": {
+			"create": "エントリーを作成",
+			"edit": "自分のものを編集",
+			"edit_others": "すべてのユーザーのものを編集",
+			"publish": "自分のものを公開",
+			"publish_others": "すべてのユーザーのものを公開",
+			"delete": "自分のものを削除",
+			"delete_others": "すべてのユーザーのものを削除"
+		}
+	},
+	"activity": {
+		"activity_log": {
+			"unreadable": "アクティビティログを読み込めません: {problem}",
+			"unwritable": "アクティビティログに書き込めませんでした: {problem}"
+		},
+		"activity": {
+			"damaged": "アクティビティ「{id}」は破損しています。"
+		},
+		"via": {
+			"admin": "管理画面",
+			"mcp": "MCP",
+			"cli": "コマンドライン",
+			"api": "API"
+		},
+		"activity_action": {
+			"entry_create": "作成",
+			"entry_update": "編集",
+			"entry_status": "ステータスを変更",
+			"entry_trash": "ゴミ箱へ移動",
+			"entry_restore": "復元",
+			"media_upload": "アップロード",
+			"media_update": "メディアを編集"
+		}
+	},
+	"markdown": {
+		"raw_html": {
+			"allow": {
+				"description": "HTML は書いたとおりにページの一部になります。",
+				"label": "許可"
+			},
+			"filter": {
+				"description": "HTML はページの一部になりますが、スクリプト、フレーム、フォーム、スタイルはテキストとして表示され、javascript: リンクはアドレスが削除されます。",
+				"label": "フィルター"
+			},
+			"escape": {
+				"description": "HTML は入力したとおりのテキストとして表示されます。",
+				"label": "テキストとして表示"
+			}
+		}
+	},
+	"setup": {
+		"exposure_check": {
+			"label": "非公開ファイル",
+			"built_in_server": "PHP の組み込みサーバーでは、自身へのリクエストに応答できないためチェックしていません。",
+			"built_in_server_hint": "チェックするには、コマンドラインで「{command}」を実行してください。",
+			"served": "誰でも{url}から{files}をダウンロードできます。",
+			"served_hint": "Web サーバーをサイトのフォルダーではなく public/ フォルダーに向けてください（または public/ のファイルをホストの Web フォルダーに移動してください）。そうすれば他のものは提供されません。",
+			"unreached": "{url}にアクセスできなかったため、{files}が提供されて{count, plural, one {いない} other {いない}}ことを確認できませんでした。",
+			"unreached_hint": "{setting}がサイトのアドレスであり、このサーバーからアクセスできることを確認してください。",
+			"nothing": "チェックするものはありません。",
+			"checked": "{url}で提供されていません: {files}。"
+		},
+		"site_checks": {
+			"jobs_sync": "ジョブはキューに追加されたときに実行されます（\"sync\" ランナー）。",
+			"jobs_run": "cron またはワーカーが実行します。",
+			"jobs_hint": "cron に「{cron}」を追加するか、「{worker}」を実行し続けてください。",
+			"jobs_stale": "cron が過去{minutes}分間実行されていないため、予定されたタスクやバックグラウンドジョブが待機している可能性があります。",
+			"jobs_visits": "cron が設定されていないため、予定されたタスクやバックグラウンドジョブはページの訪問後にのみ実行されます。",
+			"jobs_waiting": "cron が設定されていないため、予定されたタスクやバックグラウンドジョブは、誰かが管理画面で待っている間にのみ実行されます。",
+			"key_invalid_hint": "base64 形式の32バイトのランダムな値を設定するか、削除してから「{command}」を実行して追加してください。",
+			"key_set": "設定済みのため、シークレットを保存できます。",
+			"key_missing": "未設定のため、シークレットは環境変数でのみ設定でき、保存はできません。",
+			"key_missing_hint": "「{command}」を実行して追加してください。",
+			"secret_unreadable": "保存されていますが、復号できません。このサイトにない鍵で保存されたか、変更されています。",
+			"secret_unreadable_hint": "「{command}」で保存し直すか、保存時の鍵を{previous}に設定してください。",
+			"secret_missing_core": "コアで必要ですが、設定されていません。",
+			"secret_missing": "{owner}で必要ですが、設定されていません。",
+			"secret_missing_hint": "環境変数に{env}を設定するか、「{command}」を実行してください。",
+			"secret_undeclared": "保存されていますが、どこからも宣言されていません（拡張機能が削除された可能性があります）。",
+			"secret_undeclared_hint": "不要になった場合は「{command}」を実行してください。",
+			"secrets": "シークレット",
+			"owner": "オーナー",
+			"owner_found": "サイトにはオーナーがいます。",
+			"owner_missing": "サイトのオーナーであるアカウントがないため、管理者同士が互いを締め出せてしまいます。",
+			"owner_missing_hint": "「{command}」を実行するか、管理画面の「あなたのアカウント」で自分をオーナーにしてください。",
+			"accounts": "アカウント",
+			"theme": "テーマ",
+			"theme_unmet": "テーマ「{theme}」を実行できないため、代わりにデフォルトテーマが使われています。",
+			"theme_unmet_hint": "詳細は「{command}」を実行してください。",
+			"plugins": "プラグイン",
+			"icon_packs": "アイコンパック",
+			"admin_themes": "管理画面テーマ",
+			"unmet": "{count, plural, one {#個の{kind, select, plugin {プラグイン} icon_pack {アイコンパック} other {管理画面テーマ}}} other {#個の{kind, select, plugin {プラグイン} icon_pack {アイコンパック} other {管理画面テーマ}}}}が有効になっていますが、実行できません: {names}。",
+			"unmet_hint": "理由を確認するには「{command}」を実行してください。",
+			"clashes": "重複して定義された名前",
+			"clash": "2つのプラグインが{kind, select, type {コンテンツタイプ} other {リレーション}}「{name}」を定義しています。{kept}のものが使われ、{dropped}のものは除外されています。",
+			"clashes_hint": "どちらかを無効にするか、その作者に定義したものの名前を変更するよう依頼してください。",
+			"field_sets": "除外されたフィールドセット",
+			"field_sets_hint": "いずれかのセットのフィールド名を変更するか、それを追加しているプラグインを無効にしてください。それぞれを確認するには「{command}」を実行してください。",
+			"extensions": "拡張機能",
+			"extensions_run": "有効なものはすべて実行できます。",
+			"sentences": "{sentence}{next}",
+			"jobs": "バックグラウンドジョブ",
+			"secret": "シークレット {name}"
+		},
+		"setup_checks": {
+			"why": {
+				"dom": "HTML（ページ、埋め込み、アイコン、テーマのチェック）と写真の XMP 情報の読み込みと書き換え",
+				"intl": "サイトの言語での日付、数値、並べ替え、および翻訳",
+				"mbstring": "あらゆる言語のテキスト処理（長さ、抜粋、スラッグ）。Markdown にも必要です"
+			},
+			"storage_files": "ファイル。",
+			"sqlite_unavailable": "SQLite が指定されていますが、PHP は JSON 関数付きで SQLite データベースを開けません。",
+			"sqlite_unavailable_hint": "PHP の pdo_sqlite 拡張機能を有効にするか、ストレージドライバーを \"filesystem\" に戻してください。",
+			"storage_sqlite": "SQLite（{file}）。",
+			"php_too_old": "{version} は古すぎます。",
+			"php_too_old_hint": "{name}には PHP {version} 以降が必要です。",
+			"loaded": "読み込み済み。",
+			"not_loaded": "読み込まれていません。",
+			"not_loaded_hint": "PHP の「{extension}」拡張機能をインストールまたは有効にしてください。",
+			"env_missing": "見つからないため、設定はサーバーの環境変数からのみ取得されます。",
+			"env_missing_hint": "「{command}」を実行して作成してください。",
+			"environment": "環境",
+			"environment_debug": "{environment}（デバッグ有効）",
+			"debug_in_production": "本番環境でデバッグが有効になっているため、エラーページにコードとパスが表示されます。",
+			"debug_in_production_hint": "{setting}を設定してください。",
+			"local_url": "「{url}」はローカルアドレスのため、フィード、サイトマップ、完全な URL がそこを指します。",
+			"local_url_hint": "{setting}をサイトの実際のアドレスに設定してください。",
+			"index_missing": "見つからないため、Web サーバーが実行するものがありません。",
+			"index_missing_hint": "{name}スケルトンから index.php をコピーしてください。",
+			"htaccess_missing": "見つかりません。Apache ではリクエストを index.php に送るために必要です（nginx では使用しません）。",
+			"unwritable_hint": "「{command}」を実行するか、Web サーバーのユーザーに書き込みを許可してください。",
+			"writable": "書き込み可能。",
+			"unwritable": "書き込みできません。",
+			"not_a_folder": "これはフォルダーではなくファイルです。",
+			"not_a_folder_hint": "ファイルを削除してください。",
+			"created_when_needed": "必要なときに作成されます。",
+			"missing_parent_unwritable": "存在せず、{folder}にも書き込めません。",
+			"found": "見つかりました。",
+			"storage": "ストレージ"
+		}
+	},
+	"plugin": {
+		"plugin_manifest": {
+			"bad_name": "プラグイン名「{name}」は無効です。vendor/name の形式を使用してください（例: \"acme/gallery\"）。",
+			"no_label": "プラグイン「{name}」には \"label\" が必要です。",
+			"bad_namespace": "プラグイン「{name}」の名前空間「{namespace}」は無効です。小文字の英字、数字、ハイフン、アンダースコアを使用し、{reserved}以外にしてください。",
+			"bad_provider": "プラグイン「{name}」はサービスプロバイダーのクラスを指定する必要があります。「{provider}」はクラス名ではありません。",
+			"bad_prefix": "プラグイン「{name}」のオートロードのプレフィックス「{prefix}」は、バックスラッシュで終わる名前空間である必要があります。",
+			"invalid_named": "「{name}」のプラグインマニフェスト: {error}",
+			"invalid": "プラグインマニフェスト: {error}",
+			"not_string_named": "「{name}」のプラグインマニフェストの \"{field}\" は文字列である必要があります。",
+			"not_string": "プラグインマニフェストの \"{field}\" は文字列である必要があります。"
+		},
+		"local_plugin_finder": {
+			"in_file": "{error}（{file}）"
+		},
+		"plugin_discovery": {
+			"same_name": "2つのプラグインが「{name}」という名前です: {first}、{second}。",
+			"same_namespace": "2つのプラグインが名前空間「{namespace}」を持っています: {first}、{second}。"
+		}
+	},
+	"sitemap": {
+		"ai_crawler_group": {
+			"training": {
+				"label": "学習用クローラー",
+				"description": "モデルの学習のためにページを収集します。"
+			},
+			"search": {
+				"label": "AI 検索クローラー",
+				"description": "回答で引用やリンクができるようにページをインデックスします。"
+			},
+			"fetchers": {
+				"label": "ユーザーの代わりに取得するフェッチャー",
+				"description": "読者がアシスタントにページについて尋ねたときに、そのページを1つ取得します。これを拒否すると、読者自身のツールを拒否することになります。"
+			}
+		}
+	},
+	"content": {
+		"entry_refs": {
+			"checking_index": "コンテンツインデックスを確認しています"
+		},
+		"file_names": {
+			"checking_index": "コンテンツインデックスを確認しています",
+			"checking": "ファイル名を確認しています",
+			"folder": "フォルダーとして保存されており、パターンではフォルダー名を指定できません",
+			"bad_date": "日付「{date}」が実在しない日付です。先に修正してください",
+			"translation_folder": "この翻訳がフォルダーとして保存されているため、名前を変更すると両者のリンクが切れます"
+		},
+		"variant_check": {
+			"no_variants": "{line}行目：{block}には有効なテーマで「{variant}」バリエーションがないため、デフォルトで表示されます（バリエーションはありません）。",
+			"unknown": "{line}行目：{block}には有効なテーマで「{variant}」バリエーションがないため、デフォルトで表示されます（あるのは{variants}です）。"
+		},
+		"linter": {
+			"default_suffix": "{winner}と並んでデフォルト言語のサフィックスが付いており、{winner}が優先されます。デフォルト言語にサフィックスは不要なので、どちらかを削除してください。",
+			"duplicate": "{winner}と同じエントリーで、{winner}が優先されます。",
+			"shared_id": "{paths}のIDとしても使われています。IDは1つのファイルに残し、ほかのファイルには content:ids --keep または管理画面のサイトヘルスで新しいIDを付けてください。",
+			"missing": "存在しません。",
+			"file_order": "「orderby: {order}」は「published」として読み込まれます。エントリーはファイル順には並べ替えられません。「orderby: published」と書いてください。",
+			"unreal_date": "「{date}」は実在しない日付のため、{read}として読み込まれます。",
+			"prefix": "順序プレフィックスが付いていますが、これを使うのはコレクションだけで、{items}は使いません。名前を{path}に変更してください。",
+			"prefix_beyond_pattern": "順序プレフィックスが付いていますが、これを使うのはコレクションだけで、{items}はファイルのファイル名パターン（{pattern}）以外には使いません。名前を{path}に変更してください。",
+			"media_unknown": "パス（{path}）がIDを持つメディアファイルを指していません。ファイルを選び直してください。",
+			"media_path": "パスで書かれていますが、メディアフィールドはファイルをIDで指定します。content:media-ids または管理画面のサイトヘルスで書き直してください。",
+			"own_parent": "エントリー自身を指定しています。エントリーを自身の親にすることはできません。",
+			"no_parent": "「{page}」という{type}エントリーがないため、エントリーは最上位に表示されます。",
+			"parent_loop": "ループになっています：{chain}。",
+			"route_answers": "{address}にありますが、そこでは{route}ルートが応答するため、ページにアクセスできません。ページを移動するか、タイプのプレフィックスを変更してください。",
+			"missing_target": "「{slug}」という{item}エントリーがないため、サイトでは除外されます。エントリーを追加するか、content:terms を実行してください。"
+		},
+		"field_set_check": {
+			"unknown_kind": "「{set}」は{target}を指定していますが、フィールドはまだ「{kind}」に追加できません。",
+			"unknown_target": "「{set}」はサイトにない{target}を指定しているため、そこでは使われません。",
+			"slot": "「{set}」には{kind}にないスロット「{slot}」があるため、「{in}」に配置されます。",
+			"registered": "{extension}が登録するフィールド"
+		},
+		"format_check": {
+			"markdown": "読み込まれません：エントリーは .md ファイルです。.md に名前を変更してください。",
+			"html": "読み込まれません：エントリーは .md ファイルです。.md に名前を変更してください。Markdown の本文内の HTML はそのまま表示されます。",
+			"data": "読み込まれません：エントリーは .md ファイルです。キーを .md ファイルのフロントマターに移し、その後に本文を置いてください。"
+		},
+		"relation": {
+			"reserved_key": "リレーション「{name}」は予約済みの「{field}」には書き込めません。",
+			"no_target": "リレーション「{name}」に指す先のタイプが指定されていません。",
+			"negative_min": "リレーション「{name}」の min が0未満です。",
+			"max_below_min": "リレーション「{name}」の max が min 未満（または1未満）です。",
+			"bad_defaults": "リレーション「{name}」のデフォルト値が受け付ける数より多いか、空の値があります。",
+			"within_type": "リレーション「{name}」は{kind}で、あるタイプから同じタイプへ、それぞれ1件を指します。",
+			"classify_to": "リレーション「{name}」は分類リレーションのため、1つのタイプを指し、そのタイプの名前が付きます：「to」は [\"{name}\"] である必要があります。",
+			"symmetric": "リレーション「{name}」は対称のため、指す先のタイプはすべて指す元のタイプでもある必要があります。",
+			"authors": "著者",
+			"unknown_kind": "リレーション「{name}」の種類が不明です。",
+			"unknown_translations": "リレーション「{name}」の翻訳ルールが不明です。",
+			"unknown_control": "リレーション「{name}」のコントロールが不明です。使えるのは{controls}です。",
+			"bad_name": "リレーションの{what, select, name {名前} other {フロントマターのキー}}は英小文字で始まり、英小文字・数字・アンダースコアだけを使う必要があります。「{value}」はこれに当てはまりません。"
+		},
+		"relations": {
+			"unknown_type": "リレーション「{name}」は存在しないコンテンツタイプ「{type}」を指定しています。",
+			"same_name": "コンテンツタイプ「{type}」に「{name}」という名前のリレーションが2つあります。",
+			"same_key": "リレーション「{first}」と「{second}」が、どちらもコンテンツタイプ「{type}」の「{field}」を読み込んでいます。"
+		},
+		"relation_loader": {
+			"in_file": "{location}：{problem}"
+		},
+		"relation_changes": {
+			"refused_type": "{count, plural, one {#件のエントリー} other {#件のエントリー}}に「{name}」の値があるため、別のタイプを指すようには変更できません。代わりに新しいリレーションを作成してください。",
+			"refused_one": "{count, plural, one {#件のエントリー} other {#件のエントリー}}に「{name}」の値が複数あるため、1件だけにはできません：{titles}。",
+			"fewer": "{count, plural, one {#件の公開済みエントリー} other {#件の公開済みエントリー}}は{min}件未満のため、件数が増えるまで再公開できません。",
+			"more": "{count, plural, one {#件のエントリー} other {#件のエントリー}}が{max}件を超えています。lint で報告され、件数が減るまで再公開できません。",
+			"inverse_over": "{count, plural, one {#件のエントリー} other {#件のエントリー}}が{max, plural, one {#件} other {#件}}を超えるエントリーから指定されています。lint で報告されます。"
+		},
+		"inverse": {
+			"bad_archive": "リレーションのアーカイブ名は「authors」のようなスラッグか、なしの場合は false である必要があります。「{archive}」はこれに当てはまりません。",
+			"max_below_one": "リレーションの逆方向の max は1以上である必要があります（現在は{max, number, integer}）。",
+			"listing_subject": "リレーションの逆方向の一覧",
+			"bad_page": "リレーションの逆方向の page は true または false である必要があります。",
+			"bad_archive_type": "リレーションの逆方向のアーカイブは語か false である必要があります。対象自身のページを使うには「\"page\": true」としてください。",
+			"max_not_number": "リレーションの逆方向の max は数値である必要があります。"
+		},
+		"data_relation_writer": {
+			"bad_name": "「{name}」はリレーション名として使えません：英小文字で始まり、英小文字・数字・アンダースコアを使ってください。",
+			"already_data": "user/data/relations ですでに「{name}」が定義されています。",
+			"already_code": "「{name}」リレーションはすでにコードで定義されています。コード側で変更してください。",
+			"not_data_change": "「{name}」は user/data/relations で定義されていないため、ここでは変更できません。",
+			"not_data_delete": "「{name}」は user/data/relations で定義されていないため、ここでは削除できません。",
+			"data_types_off": "ContentConfig の「dataTypes」が無効のため、user/data/relations のリレーションは読み込まれません。"
+		},
+		"link_resolver": {
+			"self_link": "エントリーを自身にリンクすることはできません。",
+			"no_id": "「{value}」はどのエントリーのIDでもありません。",
+			"wrong_type": "「{value}」は{type}を指していますが、「{relation}」はそのタイプを指しません。",
+			"missing": "「{value}」に該当する{types}はありません。",
+			"ambiguous": "「{value}」に該当する{types}が複数あります。どれかを示すにはIDを書いてください。"
+		},
+		"relation_limits": {
+			"too_few": "{relation}は公開するのに{min}件以上必要ですが、{count}件です。",
+			"too_many": "{relation}は最大{max}件までですが、{count}件あります。",
+			"inverse_full": "「{title}」は、{relation}で指定できるエントリーの上限（{max}件）にすでに達しています。"
+		},
+		"relation_compiler": {
+			"parent": "親",
+			"original": "翻訳元"
+		},
+		"relation_checker": {
+			"too_few": "公開するには{relation}が{min}件以上必要ですが、{count}件です。",
+			"too_many": "{relation}は最大{max}件までですが、{count}件あります。",
+			"cycle": "{relation}をたどると自身に戻ります。",
+			"inverse_over": "{relation}でこれを指定できるのは最大{max}件ですが、{count}件が指定しています。"
+		},
+		"missing_terms": {
+			"checking_index": "コンテンツインデックスを確認しています",
+			"writing": "項目を書き込んでいます"
+		},
+		"content_files": {
+			"in_database": "このサイトはコンテンツをデータベースに保存しているため、読み込むコンテンツファイルはありません。"
+		},
+		"filesystem_source": {
+			"unreadable_folder": "コンテンツフォルダー「{path}」を読み込めません。",
+			"unreadable_file": "コンテンツファイル「{path}」を読み込めません。"
+		},
+		"missing_parents": {
+			"checking_index": "コンテンツインデックスを確認しています",
+			"writing": "親ページを書き込んでいます"
+		},
+		"typed_targets": {
+			"no_type": "「{type}」タイプはありません。"
+		},
+		"entry_ids": {
+			"checking_index": "コンテンツインデックスを確認しています",
+			"not_shared": "{path}のIDはほかのファイルと重複していません。"
+		},
+		"front_matter": {
+			"invalid": "無効なフロントマター：{problem}",
+			"not_a_map": "フロントマターはキーと値のマップである必要があります。"
+		},
+		"symfony_yaml_parser": {
+			"invalid": "無効な YAML：{problem}",
+			"object": "YAML にオブジェクトは使えません。{class}が見つかりました。"
+		},
+		"filesystem_writer": {
+			"unreadable": "{path}を読み込めません：{problem}",
+			"not_a_slug": "「{slug}」はスラッグとして使えません。「{suggestion}」をお試しください。",
+			"exists": "{path}はすでに存在します。",
+			"not_a_key": "「{page}」はページキーとして使えません：ページキーは「/」で区切ったスラッグで、それぞれ「_」で始めることができます。",
+			"not_a_parent": "{path}は、下にほかのページを置けるページではありません。",
+			"index_parent": "{path}はインデックスページです。その下のページは最上位に置かれます。",
+			"page_taken": "{page}にはすでにページがあります。",
+			"folder_has_page": "{path}を{folder}/に移動できません：そのフォルダーにはすでにページがあります。どちらかを削除してから、もう一度お試しください。",
+			"no_folder": "フォルダー{path}を作成できませんでした。",
+			"not_moved": "{path}を{to}に移動できませんでした。",
+			"landing_copy": "{path}はランディングページです。名前はフォルダーの名前なので、コピーできません。",
+			"landing_name": "{path}はランディングページです。名前はフォルダーの名前です。",
+			"landing_language": "{path}はランディングページです。言語は一覧に表示するページの言語になります。",
+			"not_renamed": "{path}の名前を変更できませんでした。",
+			"cannot_move": "{path}は移動できるページではありません。",
+			"index_stays": "{path}はインデックスページです。フォルダーの最上位に置かれたままになります。",
+			"wrong_parent": "{path}は、ページを下に置ける{items}ではありません。",
+			"under_itself": "{name}を自身や自身の下のページの下に置くことはできません。",
+			"not_deleted": "{path}を削除できませんでした。",
+			"not_copied": "{path}をコピーできませんでした。",
+			"changed": "{path}は開いた後に変更されました。再読み込みしてから、もう一度変更してください。",
+			"not_content": "「{path}」はコンテンツファイルではありません。",
+			"outside": "「{path}」はコンテンツフォルダーの外にあります。",
+			"no_file": "コンテンツファイル{path}はありません。",
+			"not_written": "{path}を書き込めませんでした：{problem}",
+			"writing_ids": "IDを書き込んでいます",
+			"renaming_files": "ファイル名を変更しています",
+			"missing": "{path}はありません。",
+			"no_folder_for": "{path}のフォルダーを作成できませんでした。",
+			"checking_index": "コンテンツインデックスを確認しています",
+			"updating_index": "コンテンツインデックスを更新しています",
+			"filing_relations": "リレーションを登録しています",
+			"locked": "書き込みロックを取得できなかったため、現在コンテンツを書き込めません。"
+		},
+		"record_content_writer": {
+			"wrong_parent": "下に置くページが{items}ではありません。",
+			"index_parent": "それはインデックスページです。その下のページは最上位に置かれます。",
+			"no_parent": "{page}を置くための{parent}のページがありません。",
+			"landing_copy": "それはランディングページです。名前はフォルダーの名前なので、コピーできません。",
+			"landing_name": "それはランディングページです。名前はフォルダーの名前です。",
+			"no_language": "サイトに言語「{code}」はありません。",
+			"landing_language": "それはランディングページです。言語は一覧に表示するページの言語になります。",
+			"translated": "{language}の翻訳は「{title}」です。",
+			"cannot_move": "{name}は移動できるページではありません。",
+			"index_stays": "{name}はインデックスページです。フォルダーの最上位に置かれたままになります。",
+			"not_a_parent": "それは、ページを下に置ける{items}ではありません。",
+			"under_itself": "{name}を自身や自身の下のページの下に置くことはできません。",
+			"top_taken": "タイプの最上位にはすでに{item}があります。",
+			"taken": "{page}にはすでに{item}があります。",
+			"changed": "エントリーは開いた後に変更されました。再読み込みしてから、もう一度変更してください。",
+			"no_id": "ID「{id}」のエントリーはありません。",
+			"not_a_slug": "「{slug}」はスラッグとして使えません。「{suggestion}」をお試しください。",
+			"not_a_key": "「{page}」はページキーとして使えません：ページキーは「/」で区切ったスラッグで、それぞれ「_」で始めることができます。"
+		},
+		"filesystem_content_writer": {
+			"wrong_parent": "下に置くページが{items}ではありません。",
+			"not_a_slug": "「{slug}」はスラッグとして使えません。「{suggestion}」をお試しください。",
+			"landing_name": "{path}はランディングページです。名前はフォルダーの名前です。",
+			"slug_taken": "スラッグ「{slug}」はすでに別のエントリーで使われています。",
+			"no_language": "サイトに言語「{code}」はありません。",
+			"landing_language": "{path}はランディングページです。言語は一覧に表示するページの言語になります。",
+			"translated": "{language}の翻訳は「{title}」です。",
+			"taken_in_language": "{language}では{page}にすでに{item}があります。",
+			"no_id": "ID「{id}」のエントリーはありません。",
+			"not_indexed": "{path}は書き込まれましたが、インデックスにありません。サイトヘルスを確認してください。"
+		},
+		"document_editor": {
+			"value_changes": "「{name}」が指定どおりに読み戻せません",
+			"not_removed": "「{name}」が削除されません",
+			"others_change": "ほかのフロントマターが変わってしまいます",
+			"body_changes": "本文が指定どおりに読み戻せません",
+			"unreadable": "{path}を読み込めないため、安全に編集できません：{problem}",
+			"unsafe": "Blush は{path}を安全に編集できなかったため（{reason}）、何も保存されませんでした。"
+		},
+		"entry_editor": {
+			"cannot_create_entries": "エントリーを作成する権限がありません。",
+			"cannot_create": "{items}を作成する権限がありません。",
+			"new_must_be_draft": "公開する権限がないため、新しいエントリーは下書きにする必要があります。",
+			"not_a_tree": "ほかのページの下に置けるのはツリーのページだけで、{items}は置けません。",
+			"no_parent": "下に置くための「{parent}」が{items}にありません。",
+			"address_in_trash": "ゴミ箱にある「{title}」がこのアドレスを使っています。先に復元するか、完全に削除してください。",
+			"summary": {
+				"created": "「{title}」を作成しました",
+				"trashed": "「{title}」をゴミ箱に移動しました",
+				"restored": "「{title}」をゴミ箱から復元しました",
+				"copied": "「{title}」を「{copy}」としてコピーしました",
+				"undid": "「{title}」への変更を元に戻しました",
+				"published": "「{title}」を公開しました",
+				"scheduled": "「{title}」を後で公開するよう予約しました",
+				"scheduled_for": "「{title}」を{when}に予約しました",
+				"drafted": "「{title}」を下書きに戻しました",
+				"status": "「{title}」のステータスを変更しました",
+				"body": "本文",
+				"address": "アドレス",
+				"edited": "「{title}」を編集しました",
+				"list": "{list}、{item}",
+				"edited_parts": "「{title}」の{changed}を編集しました"
+			},
+			"cannot_edit": "そのエントリーを編集する権限がありません。",
+			"cannot_move": "ほかのページの下に移動できるのはツリーのページだけで、「{title}」は移動できません。",
+			"no_move_parent": "下に移動するための「{parent}」が{items}にありません。",
+			"page_taken": "{page}にはすでにページがあります。",
+			"keeps_language": "「{title}」の言語は、一緒に表示されるページの言語のままです。",
+			"passage_missing": "「{title}」の本文にその箇所がありません。もう一度読み込み、箇所を正確にコピーしてください。",
+			"passage_repeated": "「{title}」の本文にその箇所が{count, plural, one {#回} other {#回}}出てきます。1か所に特定できるよう、前後のテキストを含めて送ってください。",
+			"cannot_publish": "そのエントリーを公開する権限がありません。下書きのままにしてください。",
+			"cannot_delete": "そのエントリーを削除する権限がありません。",
+			"already_trashed": "「{title}」はすでにゴミ箱にあります。完全に削除するか、復元してください。",
+			"index_not_trashed": "「{title}」は{items}のインデックスページのため、ゴミ箱に移動できません。",
+			"not_trashed": "それはゴミ箱にありません。",
+			"cannot_restore": "そのエントリーを復元する権限がありません。",
+			"restore_as_draft": "そのエントリーを公開する権限がないため、元の状態には戻せません。下書きとして復元してください。",
+			"changed_in_trash": "「{title}」はゴミ箱に移動された後に変更されたため、元の状態には戻せません。ゴミ箱から復元してください。",
+			"cannot_duplicate": "そのエントリーを複製する権限がありません。",
+			"only_one_index": "「{title}」は{items}のインデックスページで、1つしか置けません。",
+			"only_one_root": "「{title}」はサイトのルートページで、1つしか置けません。",
+			"copy_title": "{title}（コピー）",
+			"gone": "「{title}」はもうありません。",
+			"already_undone": "その変更はすでに元に戻されています。",
+			"cannot_undo": "その変更は元に戻せません。",
+			"changed_since": "「{title}」はその後に変更されています。編集するには開いてください。",
+			"nothing_kept": "その変更では置き換え前の内容が保持されていないため、元に戻せません。",
+			"undo_needs_publish": "そのエントリーを公開する権限がないため、この変更は元に戻せません。",
+			"required": "{count, plural, one {公開するには{names}が必要です。} other {公開するには{names}が必要です。}}",
+			"cannot_add_targets": "新しい{items}を追加する権限がありません：{titles}。",
+			"targets_failed": "{keys}を書き込めませんでした：{problems}",
+			"landing_slug": "「{title}」はフォルダーのランディングページのため、スラッグはフォルダー名になります。",
+			"error_slug": "「{title}」はエラー{status}のページのため、スラッグはステータスコードになります。",
+			"bad_slug": "スラッグに使えるのは英小文字・数字・ハイフンです。「{slug}」をお試しください。",
+			"slug_in_trash": "ゴミ箱にある{item}がスラッグ「{slug}」を使っています。このスラッグを使うには、復元するか完全に削除してください。",
+			"slug_taken": "スラッグ「{slug}」はすでに別の{item}で使われています。",
+			"no_language": "サイトに言語「{code}」はありません。",
+			"translated": "{language}の翻訳は「{title}」です。",
+			"taken_in_language": "{language}では{page}にすでに{item}があります。",
+			"keep_yourself": "著者を追加することはできますが、自分をエントリーから外すことはできません。",
+			"index_not_scheduled": "インデックスページは予約できません。公開するか、下書きのままにしてください。",
+			"future_date": "予約するには未来の「published」日付が必要です。",
+			"in_trash": "「{title}」はゴミ箱にあります。変更するには復元してください。",
+			"untitled": "無題"
+		},
+		"html_guard": {
+			"unreadable": "HTML を確認するために本文を読み込めませんでした：{problem}",
+			"no_html": "あなたのロールでは HTML を追加できないため、{list}は保存できません。削除するか、追加できる人に依頼してください。",
+			"not_with_role": "あなたのロールでは{list}を追加できません。保存するには削除してください。",
+			"never": "{list}は追加できません。保存するには削除してください。"
+		},
+		"data_field_set_writer": {
+			"bad_name": "「{name}」はフィールドセット名として使えません：英小文字・数字・「_」・「-」を使ってください。",
+			"already_data": "user/data/fields ですでに「{name}」が定義されています。",
+			"not_data_change": "「{name}」は user/data/fields で定義されていないため、ここでは変更できません。",
+			"fix_by_hand": "{reason}先に手動で修正してください。",
+			"not_data_delete": "「{name}」は user/data/fields で定義されていないため、ここでは削除できません。",
+			"unknown_option": "「{option}」は管理画面でフィールドセットに対して変更できる項目ではありません。",
+			"data_sets_off": "FieldConfig の「dataSets」が無効のため、user/data/fields のフィールドセットは読み込まれません。"
+		},
+		"file_name": {
+			"no_slug": "ファイル名パターン「{pattern}」は'{slug}'で終わる必要があります。",
+			"no_dot": "ファイル名パターン「{pattern}」では、スラッグの始まりを示す'{slug}'の前に「.」が必要です。",
+			"unknown_tokens": "ファイル名パターン「{pattern}」で{unknown}が使われています。使えるトークンは'{slug}'と{tokens}です。",
+			"characters": "ファイル名パターン「{pattern}」に使えるのはトークン、英字、数字、「-」、「_」、「.」だけで、「_」や「.」で始めることはできません。"
+		},
+		"type_feed": {
+			"unknown_options": "{subject}に不明なオプションがあります：{options}。",
+			"listing_subject": "{feed}の一覧"
+		},
+		"content_type_targets": {
+			"label": "コンテンツタイプ",
+			"details": "詳細",
+			"details_description": "メモや検索エンジンの設定など、各エントリーに関する情報。"
+		},
+		"taxonomy_migration": {
+			"step": "タクソノミーを移行しています",
+			"no_type": "user/data/types に「{name}」はありません。",
+			"relation_exists": "{location}はすでに存在します。先に別の場所へ移してください。"
+		},
+		"type_route_keys": {
+			"characters": "{label}のアドレスに使えるのは英字、数字、「-」、「_」、「.」、「/」、'{placeholders}'ですが、「{path}」にはそれ以外の文字が含まれています。",
+			"invalid": "{label}のアドレス「{path}」は無効です：{reason}",
+			"missing": "{label}のアドレスには{placeholders}が必要です。",
+			"unknown_none": "{label}のアドレスでは{placeholders}を埋められません。プレースホルダーは使えません。",
+			"unknown": "{label}のアドレスでは{placeholders}を埋められません。使えるのは{held}です。"
+		},
+		"listing": {
+			"typed_query": "一覧の「query」では{arguments}を設定できません。代わりに一覧のオプションを使ってください。",
+			"invalid": "一覧が無効です：{reason}",
+			"bad_order": "{subject}の「order」は「asc」または「desc」である必要があります。",
+			"per_page_not_whole": "{subject}の「perPage」は整数である必要があります。",
+			"bad_query": "{subject}の「query」はクエリ引数名と値のマップである必要があります。"
+		},
+		"data_type_writer": {
+			"fix_by_hand": "{reason}先に手動で修正してください。",
+			"one_profiles": "サイトのプロフィールタイプは1つだけです。コレクションかツリーを作成してください。",
+			"already_data": "user/data/types ですでに「{name}」が定義されています。",
+			"already_code": "「{name}」はすでにコードで定義されています。",
+			"not_data_change": "「{name}」は user/data/types で定義されていないため、ここでは変更できません。",
+			"still_taxonomy": "「{name}」はまだタクソノミーとして書かれています。先にサイトヘルスか content:taxonomies --write で移行してください。",
+			"still_folder": "「{name}」はまだフォルダーを指定しています。先にサイトヘルスか content:type-folders --write で移動してください。",
+			"not_code": "「{name}」はコードで定義されていないため、リセット先がありません。",
+			"nothing_changes": "user/data/types には「{name}」を変更する内容がありません。",
+			"bad_under": "「under」はタイプ名か、最上位の場合は null である必要があります。",
+			"profiles_not_placed": "{types}はユーザーと一緒に表示されるため、コンテンツメニューには配置されません。",
+			"bad_parent": "{types}を「{under}」の下に置くことはできません：コンテンツメニューにあるタイプではありません。",
+			"parent_nested": "{types}を{parent}の下に置くことはできません。{parent}はほかのタイプの下にあり、メニューの入れ子は1階層までです。",
+			"has_children": "{children}が下にある間は、{types}をほかのタイプの下に置くことはできません。メニューの入れ子は1階層までです。",
+			"bad_position": "「position」は0以上の整数か null である必要があります。",
+			"delete_code": "「{name}」はコードで定義されているため、ここでは削除できません。ここでの変更を取り消すにはリセットしてください。",
+			"not_data_delete": "「{name}」は user/data/types で定義されていないため、ここでは削除できません。",
+			"named_by_relations": "{relations}{count, plural, one {リレーション} other {リレーション}}が{name}を指定しています。先にそのリレーションを削除してください。",
+			"code_fields": "フィールドにコードのフィールドクラスが含まれているため、コードで変更します。",
+			"bad_folders": "「folders」は'{year}'のようなフォルダーパターンか null である必要があります。",
+			"unknown_option": "「{option}」は管理画面で変更できるオプションではありません。",
+			"no_urls_prefix": "このタイプには独自の URL がないため、変更するプレフィックスがありません。",
+			"no_urls_paths": "このタイプには独自の URL がないため、変更するパスがありません。",
+			"bad_paths": "「paths」はルートキーとパスのマップである必要があります。",
+			"unknown_route_key": "「{route}」はルートキーではありません。",
+			"path_not_text": "「{route}」のパスはテキストである必要があります。",
+			"bad_labels": "「labels」はラベル名とテキストのマップである必要があります。",
+			"data_types_off": "ContentConfig の「dataTypes」が無効のため、user/data/types のタイプは読み込まれません。",
+			"bad_name": "「{name}」はタイプ名として使えません：英小文字で始め、英小文字・数字・アンダースコアを使ってください。",
+			"code_fixed": "{types}はコードで定義された{role, select, pages {サイトのページ} profiles {サイトのプロフィールタイプ} collection {コレクションタイプ} other {ツリータイプ}}のため、ここでは変更できません。"
+		},
+		"type_labels": {
+			"unknown_options": "コンテンツタイプ「{name}」のラベルに不明なオプションがあります：{options}。",
+			"subject": "コンテンツタイプ「{name}」のラベル"
+		},
+		"folder_pattern": {
+			"one_token": "フォルダーパターン「{pattern}」は、1つのフォルダーにつき1つのトークンで構成する必要があります。",
+			"unknown_tokens": "フォルダーパターン「{pattern}」で{unknown}が使われています。使えるトークンは{tokens}です。",
+			"twice": "フォルダーパターン「{pattern}」で同じトークンが2回使われています。",
+			"year_first": "フォルダーパターン「{pattern}」では、'{month}'の前に'{year}'が必要です。"
+		},
+		"content_type": {
+			"bad_name": "コンテンツタイプ名「{name}」は英小文字で始まり、英小文字・数字・アンダースコアだけを使う必要があります。",
+			"reserved_name": "「{name}」はコンテンツタイプ名に使えません：_{name}はサイトのページが使うフォルダーです（予約名は{reserved}です）。",
+			"invalid_fields": "コンテンツタイプ「{name}」に無効なフィールドがあります：{reason}",
+			"negative_position": "コンテンツタイプ「{name}」の「position」は0以上である必要があります。",
+			"under_itself": "コンテンツタイプ「{name}」を自身の下に置くことはできません。",
+			"no_name": "コンテンツタイプの定義には「name」が必要です。",
+			"tree_folders": "コンテンツタイプ「{name}」にフォルダーパターンがありますが、ツリーのフォルダーはページのフォルダーなので、指定できません。",
+			"unknown_options": "コンテンツタイプ「{name}」（{kind}）に不明なオプションがあります：{options}。",
+			"subject": "コンテンツタイプ「{name}」",
+			"listing_subject": "コンテンツタイプ「{name}」の一覧",
+			"bad_order": "コンテンツタイプ「{name}」の「order」は{orders}のいずれかである必要があります。",
+			"kind_changed": "user/data/types/{name} ではタイプの種類を変更できません。エントリーは種類に基づいて保存されています。",
+			"only_placed": "ここでは「{name}」は「position」と「under」でメニューに配置することしかできません。",
+			"profiles_not_placed": "「{name}」タイプはユーザーと一緒に表示されるため、コンテンツメニューには配置されません。",
+			"named_folder": "コンテンツタイプ「{name}」はフォルダー（「{folder}」）を指定していますが、現在すべてのタイプは _{name} に保存されます。ファイルをそこへ移動し、アドレスがフォルダーに基づいていた場合は URL プレフィックスを指定してください。user/data/types のタイプなら、content:type-folders --write（またはサイトヘルス）で両方を行えます。",
+			"named_folder_option": "コンテンツタイプ「{name}」は（「folder」で）フォルダーを指定していますが、現在すべてのタイプは _{name} に保存されます。ファイルをそこへ移動し、アドレスがフォルダーに基づいていた場合は URL プレフィックスを指定してください。user/data/types のタイプなら、content:type-folders --write（またはサイトヘルス）で両方を行えます。",
+			"credits_moved": "コンテンツタイプ「{name}」で「{option}」が設定されていますが、現在タイプは、ほかのリレーションと同じく（user/data/relations またはプラグインで）定義したクレジットリレーションで人物をクレジットします：{example}。",
+			"bad_collect": "コンテンツタイプ「{name}」の「collect」はタイプ名か false である必要があります。",
+			"taxonomy": "コンテンツタイプ「{name}」はタクソノミーですが、Blush にはもうタクソノミーはありません。コレクションにし（「order: position」と、項目が入れ子になる場合は「hierarchical: true」を指定）、コンテンツ設定の「relations」か user/data/relations で「{name}」という分類リレーションを定義してください。user/data/types のタイプなら、content:taxonomies --write でこれを行えます。",
+			"bad_taxonomy": "コンテンツタイプ「{name}」の「taxonomy」は true または false である必要があります。",
+			"bad_kind": "コンテンツタイプ「{name}」の「kind」は{kinds}のいずれかである必要があります。",
+			"bad_urls": "コンテンツタイプ「{name}」の「urls」は false かマップである必要があります。",
+			"urls_subject": "コンテンツタイプ「{name}」の urls",
+			"feed_subject": "コンテンツタイプ「{name}」のフィード",
+			"bad_feed": "コンテンツタイプ「{name}」の「feed」は true、false、またはマップである必要があります。",
+			"bad_date_archives": "コンテンツタイプ「{name}」の「dateArchives」は{values}のいずれかである必要があります。",
+			"position_not_whole": "コンテンツタイプ「{name}」の「position」は整数である必要があります。",
+			"problem": "コンテンツタイプ「{name}」：{problem}",
+			"tree_pattern": "コンテンツタイプ「{name}」にフォルダーパターン「{pattern}」がありますが、ツリーのフォルダーはページのフォルダーなので、指定できません。",
+			"not_overridable": "「{name}」コンテンツタイプは{role, select, pages {サイトのページ} profiles {サイトのプロフィールタイプ} collection {コレクションタイプ} other {ツリータイプ}}で、user/data/types では変更できません。1か所で定義してください。"
+		},
+		"type_urls": {
+			"unknown_options": "{subject}に不明なオプションがあります：{options}。",
+			"bad_paths": "{subject}の「paths」はルートキーとパスのマップである必要があります。"
+		},
+		"tree": {
+			"root_prefix": "コンテンツタイプ「{name}」はサイトのページで、ルートから配信されるため、プレフィックスは指定できません。",
+			"bad_prefix": "コンテンツタイプ「{name}」のプレフィックス「{prefix}」は無効です。"
+		},
+		"content_types": {
+			"id_field": "コンテンツタイプ「{name}」に「{field}」という名前のフィールド（またはエイリアス）がありますが、この名前はエントリーのID用に予約されています。名前を変更してください。",
+			"refs_field": "コンテンツタイプ「{name}」に「{field}」という名前のフィールド（またはエイリアス）がありますが、この名前はエントリーのリンク先のID用に予約されています。名前を変更してください。",
+			"avatar_help": "名前の横に表示される肖像画像。ない場合はイニシャルが表示されます。",
+			"linkable_help": "false にすると、プロフィールをアカウントにリンクできないようにします（D-605）。",
+			"position_help": "同じ階層の{items}の中での位置で、小さい順に並びます。指定のないものはその後にタイトル順で続きます。",
+			"clashing_fields": "コンテンツタイプ「{name}」のフィールドが競合しています：{reason}"
+		},
+		"collection": {
+			"parent_help": "親の{item}（スラッグで指定）。"
+		},
+		"type_folder_migration": {
+			"step": "タイプのフォルダーを移動しています",
+			"no_type": "user/data/types に「{name}」はありません。"
+		},
+		"content_type_loader": {
+			"data_type_urls": "データタイプ「{name}」で「{option}」が設定されていますが、ContentConfig の「dataTypeUrls」で許可されていません。",
+			"profiles_types": "サイトのプロフィールタイプは1つだけですが、{types}がすべてプロフィールタイプになっています。",
+			"credit_no_profiles": "リレーション「{name}」は人物をクレジットしますが、サイトにプロフィールタイプがありません。",
+			"credit_to": "リレーション「{name}」は人物をクレジットするため、プロフィールタイプを指します：「to」は [\"{profiles}\"] である必要があります。",
+			"bad_byline": "コンテンツタイプ「{name}」は署名に「{byline}」を指定していますが、これはこのタイプからのクレジットリレーションではありません。",
+			"shared_folder": "コンテンツタイプ「{first}」と「{second}」がフォルダー「{folder}」を共有しています。",
+			"missing_reference": "コンテンツタイプ「{name}」の{option, select, listing {一覧のタイプ} categories {フィードのカテゴリー} other {フィードの一覧のタイプ}}に指定された「{reference}」は存在しません。",
+			"bad_categories": "コンテンツタイプ「{name}」のフィードのカテゴリー「{categories}」は、分類リレーションでエントリーを分類するタイプではありません。",
+			"missing_inverse_type": "リレーション「{name}」の逆方向の一覧のタイプに指定された「{type}」は存在しません。"
+		},
+		"entry_fields": {
+			"title": {
+				"label": "タイトル",
+				"description": "エントリーのタイトル。"
+			},
+			"subtitle": {
+				"label": "サブタイトル",
+				"description": "タイトルの下に表示される1行。"
+			},
+			"slug": {
+				"label": "スラッグ",
+				"description": "ファイル名の代わりに使う URL 上の名前。"
+			},
+			"published": {
+				"label": "公開日",
+				"description": "2026-09-26 09:00:00 -05:00 のような公開日時。未来の日時を指定するとエントリーが予約されます。"
+			},
+			"updated": {
+				"label": "更新日",
+				"description": "最後に変更された日時。未指定の場合は公開日、次にファイルの更新日時が使われます。"
+			},
+			"status": {
+				"label": "ステータス",
+				"description": "published（デフォルト）、draft、または trash。"
+			},
+			"trashed": {
+				"label": "ゴミ箱への移動日",
+				"description": "エントリーがゴミ箱に移動された日時。status: trash で設定されます。"
+			},
+			"visibility": {
+				"label": "公開範囲",
+				"description": "public（デフォルト）、unlisted、または hidden。"
+			},
+			"summary": {
+				"label": "概要",
+				"description": "一覧やフィードに使う Markdown の短い概要。ない場合は最初の50語が使われます。"
+			},
+			"image": {
+				"label": "アイキャッチ画像",
+				"description": "アイキャッチ画像。"
+			},
+			"template": {
+				"label": "テンプレート",
+				"description": "使用するテーマのテンプレート（single-wide など）。"
+			},
+			"stylesheet": {
+				"label": "スタイルシート",
+				"description": "このページ用の追加のスタイルシート。"
+			},
+			"class": {
+				"label": "クラス",
+				"description": "ページの <body> に付ける追加の CSS クラス（スペース区切り）。"
+			},
+			"translation_of": {
+				"label": "翻訳元",
+				"description": "翻訳の場合、翻訳元エントリーのID。ファイル名に関係なく両者をリンクします。"
+			},
+			"collection": {
+				"label": "コレクション",
+				"description": "このページにほかのエントリーを一覧表示します。"
+			}
+		},
+		"entry_folders": {
+			"folder_entry": "フォルダー形式のエントリーですが、このタイプのエントリーはファイルです。content:folders または管理画面のサイトヘルスで移動してください。",
+			"below": "タイプのフォルダーより下の階層にありますが、このタイプはファイルをフォルダー直下に保存します。content:folders または管理画面のサイトヘルスで移動してください。",
+			"outside_pattern": "タイプのフォルダーパターン（{pattern}）に当てはまらないフォルダーにあります。content:folders または管理画面のサイトヘルスで移動してください。",
+			"checking_index": "コンテンツインデックスを確認しています"
+		},
+		"stored_entries": {
+			"no_id": "「{title}」にはIDがないため、IDが付くまでここでは変更できません（サイトヘルスまたは `content:ids`、D-481）。",
+			"not_read_back": "エントリーは書き込まれましたが、読み戻せませんでした。サイトヘルスを確認してください。"
+		},
+		"media_field_ids": {
+			"no_entry": "このIDのエントリーはありません。"
+		},
+		"php_index": {
+			"unwritable": "コンテンツインデックスを書き込めません：{reason}"
+		},
+		"index_store": {
+			"not_indexed": "エントリー{id}は書き込まれましたが、インデックスにありません。",
+			"no_type": "エントリー{id}には、サイトにある「type」が必要です。",
+			"no_slug": "エントリー{id}には「slug」が必要です。",
+			"translation": "ファイルでは、翻訳は言語名を付けたファイルです。ここではまだ書き込めません。",
+			"parent_by_place": "ファイルでは、配置によって親が決まるのはツリーのページだけです。{types}はフロントマターで親を指定します。",
+			"fixed": "ファイルでは、エントリーの{field, select, type {タイプ} other {翻訳元}}は変更できません。ファイルの場所で決まります。",
+			"slug_fixed": "ファイルでは、ランディングページのスラッグは変わらず、エントリーはスラッグを保持します。",
+			"parent_fixed": "ファイルでは、ここで別の親に移動できるのはツリーのページだけです。ほかはフロントマターで親を指定します。"
+		},
+		"index_snapshot": {
+			"no_id": "どのエントリーのIDでもありません。",
+			"own_id": "ファイル自身のIDを指定しています。",
+			"other_type": "別のタイプの{path}を指定しています。",
+			"translation": "翻訳である{path}を指定しています。代わりに翻訳元を指定してください。",
+			"same_language": "同じ言語の{path}を指定しています。"
+		},
+		"record_builder": {
+			"no_id": "ありません。すべてのエントリーに必要です。content:ids --write または管理画面のサイトヘルスで追加してください。",
+			"bad_id": "「{id}」は UUID ではありません。content:ids --write または管理画面のサイトヘルスでエントリーに新しいIDを付けてください。",
+			"bad_translation_of": "「{id}」は UUID ではありません。これは、このエントリーの翻訳元エントリーのIDを指定するものです。",
+			"not_translation": "翻訳元を指定していますが、このファイルは翻訳ではありません：翻訳は拡張子の前に言語コードが付きます（hello.fr.md）。"
+		},
+		"undeclared_keys": {
+			"no_entry": "このIDのエントリーはありません。"
+		},
+		"built_in_type": {
+			"page": {
+				"singular": "ページ",
+				"plural": "ページ",
+				"menu": "ページ",
+				"item": "ページ",
+				"items": "ページ",
+				"new_item": "新規ページ",
+				"edit_item": "ページを編集",
+				"search_items": "ページを検索"
+			},
+			"profile": {
+				"singular": "プロフィール",
+				"plural": "プロフィール",
+				"menu": "プロフィール",
+				"item": "プロフィール",
+				"items": "プロフィール",
+				"new_item": "新規プロフィール",
+				"edit_item": "プロフィールを編集",
+				"search_items": "プロフィールを検索"
+			}
+		}
+	},
+	"mcp": {
+		"oauth_server": {
+			"unknown_app": "接続しようとしているアプリはこのサイトに登録されていません。アプリからもう一度接続し直してください。",
+			"unregistered_redirect": "{app}が登録されていないアドレスへの戻りを要求したため、そのアドレスには移動しません。",
+			"may_not_connect": "このアカウントはアプリを接続できません。",
+			"too_wide": "選択された範囲がアプリの要求より広くなっています。",
+			"more_than_asked": "「{capability}」はアプリの要求を超えています。",
+			"not_held": "「{capability}」はこのアカウントが持つ権限ではありません。"
+		}
+	},
+	"field": {
+		"field_factory": {
+			"reference": "フィールド「{name}」は reference ですが、これはフィールドタイプではありません。エントリーはリレーションでリンクします（構造 → リレーション、または user/data/relations）。",
+			"unknown_type": "フィールド「{name}」のタイプ「{type}」は不明です。",
+			"control": "フィールド「{name}」（{type}）は「{control}」コントロールでは編集できません。"
+		},
+		"text_format": {
+			"url": "https://example.com や /about のような Web アドレス",
+			"email": "メールアドレス",
+			"icon": "スペースを含まないアイコン名"
+		},
+		"field_sets": {
+			"registered_field": "{owner}のフィールド「{field}」",
+			"field_set": "フィールドセット「{set}」",
+			"not_taken": "{target}は{what}を受け付けられません：「{field}」という名前のフィールドを受け付けていません。",
+			"own_field": "{target}は{what}を受け付けられません：「{name}」はすでに独自のフィールドの1つです。",
+			"core_key": "{target}は{what}を受け付けられません：「{name}」は Blush 自体のキーのため、ほかでは宣言できません。",
+			"declared": "{target}は{what}を受け付けられません：{owner}がすでにそこで「{name}」を宣言しており、キーの宣言は1回だけです。",
+			"invalid": "{target}は{what}を受け付けられません：{problem}"
+		},
+		"control_section": {
+			"structure": "構造",
+			"text": "テキスト",
+			"choices": "選択肢",
+			"numbers": "数値、日付、色",
+			"media": "メディア"
+		},
+		"field": {
+			"a_list": "リスト",
+			"a_map": "マップ"
+		},
+		"email": {
+			"label": "メールアドレス",
+			"description": "メールアドレス。"
+		},
+		"code": {
+			"label": "コード",
+			"description": "コード用フォントで表示するテキスト。"
+		},
+		"icon": {
+			"label": "アイコン",
+			"description": "アイコンセットから1つのグリフ。"
+		},
+		"view_only": {
+			"label": "読み取り専用",
+			"description": "表示のみで、編集はできません。"
+		},
+		"markdown": {
+			"label": "書式付きテキスト",
+			"description": "リンクや強調を使える Markdown。"
+		},
+		"number": {
+			"label": "数値",
+			"description": "ボックスに入力する数値。"
+		},
+		"group": {
+			"label": "グループ",
+			"description": "まとめて扱う複数のフィールド。値はグループのキーの下に保存されます。"
+		},
+		"checkboxes": {
+			"label": "チェックボックス",
+			"description": "すべての選択肢を表示し、その中からいくつでも選択。"
+		},
+		"link": {
+			"label": "リンク",
+			"description": "Web アドレス。"
+		},
+		"file": {
+			"label": "ファイル",
+			"description": "ダウンロード用のその他のファイル。"
+		},
+		"reference": {
+			"label": "エントリー選択",
+			"description": "一覧から選んだエントリー。"
+		},
+		"repeater": {
+			"label": "繰り返しグループ",
+			"description": "それぞれ同じフィールドを持つ項目のリスト。"
+		},
+		"date": {
+			"label": "日付と時刻",
+			"description": "日付。必要に応じて時刻も指定できます。"
+		},
+		"radios": {
+			"label": "ラジオボタン",
+			"description": "すべての選択肢を表示し、その中から1つを選択。"
+		},
+		"video": {
+			"label": "動画",
+			"description": "ライブラリの動画1つ。"
+		},
+		"audio": {
+			"label": "音声",
+			"description": "ライブラリの音声ファイル1つ。"
+		},
+		"textarea": {
+			"label": "テキストエリア",
+			"description": "複数行のプレーンテキスト。"
+		},
+		"select": {
+			"label": "セレクトボックス",
+			"description": "メニューから1つを選択。"
+		},
+		"multi_select": {
+			"label": "複数選択",
+			"description": "メニューからいくつでも選択。"
+		},
+		"text": {
+			"label": "テキスト",
+			"description": "1行のプレーンテキスト。"
+		},
+		"image": {
+			"label": "画像",
+			"description": "ライブラリの画像1つ。"
+		},
+		"toggle": {
+			"label": "トグル",
+			"description": "オンまたはオフ。"
+		},
+		"markdown_field": {
+			"type_label": "書式付きテキスト",
+			"type_description": "書式付きテキスト。",
+			"invalid": "{value}ではなく、テキストである必要があります。"
+		},
+		"bool_field": {
+			"type_label": "はい/いいえ",
+			"type_description": "true または false。",
+			"invalid": "{value}ではなく、true または false である必要があります。"
+		},
+		"number_field": {
+			"type_label": "数値",
+			"type_description": "数値。",
+			"invalid": "{value}ではなく、数値である必要があります。",
+			"not_whole": "{value}ではなく、整数である必要があります。",
+			"too_small": "{min}以上である必要があります。",
+			"too_large": "{max}以下である必要があります。",
+			"step": "{from}から{step}刻みである必要があります。"
+		},
+		"slug_field": {
+			"type_label": "スラッグ",
+			"type_description": "URL に使える名前。",
+			"invalid": "{value}ではなく、スラッグである必要があります。",
+			"not_a_slug": "「{value}」はスラッグではありません。「{slug}」をお試しください。"
+		},
+		"text_field": {
+			"type_label": "テキスト",
+			"type_description": "1行のテキスト。",
+			"invalid": "{value}ではなく、テキストである必要があります。",
+			"format": "「{value}」ではなく、{format}である必要があります。"
+		},
+		"list_field": {
+			"type_label": "リスト",
+			"type_description": "複数の値。",
+			"map": "マップではなく、リストである必要があります。",
+			"item": "項目{number}：{problem}",
+			"too_few": "{min, plural, one {#個} other {#個}}以上の項目が必要です。",
+			"too_many": "項目は{max, plural, one {#個} other {#個}}までにする必要があります。"
+		},
+		"reference_field": {
+			"type_label": "参照",
+			"type_description": "スラッグで指定するほかのエントリー。",
+			"map": "マップではなく、スラッグまたはスラッグのリストである必要があります。",
+			"invalid": "スラッグまたはスラッグのリストである必要がありますが、{value}が見つかりました。",
+			"one": "リストではなく、スラッグを1つだけ指定します。"
+		},
+		"media_field": {
+			"type_label": "メディアファイル",
+			"type_description": "メディアファイル。",
+			"invalid": "{value}ではなく、メディアファイルのIDである必要があります。"
+		},
+		"enum_field": {
+			"type_label": "選択肢",
+			"type_description": "決められた値の中の1つ。",
+			"invalid": "{value}ではなく、{options}のいずれかである必要があります。"
+		},
+		"date_field": {
+			"type_label": "日付と時刻",
+			"type_description": "日付と時刻。",
+			"invalid": "{value}ではなく、2026-05-01 15:40:00 のような日付である必要があります。",
+			"not_a_date": "「{value}」は有効な日付ではありません。"
+		},
+		"object_field": {
+			"type_label": "フィールドのグループ",
+			"type_description": "フィールドのグループ。",
+			"invalid": "{value}ではなく、マップである必要があります。"
+		},
+		"schema": {
+			"unknown": "このタイプのフィールドではありません。",
+			"undeclared": "スキーマで宣言されていません。",
+			"alias_ignored": "「{name}」が設定されているため、無視されます。",
+			"alias": "「{name}」として読み込まれます。",
+			"invalid_default": "デフォルト値が無効です：{problem}",
+			"required": "必須です。"
+		}
+	},
+	"storage": {
+		"file_record_store": {
+			"not_list": "{file}にはレコードのリストが必要です。",
+			"not_list_under": "{file}には「{name}」の下にレコードのリストが必要です。",
+			"same_id": "{file}にID{id}のレコードが2つあります。",
+			"taken_id": "{file}のIDが{folder}内の別のレコードのIDと同じです。",
+			"invalid_json": "{file}は有効な JSON ではありません：{problem}",
+			"not_json_data": "{file}には JSON オブジェクトかリストが必要です。",
+			"not_object": "{file}に JSON オブジェクトでないレコードがあります。",
+			"misnamed": "{file}はレコードに「{name}」という名前を付けていますが、ここではレコードの名前はファイル名になります。",
+			"no_id": "{file}にIDのないレコードがあります。",
+			"no_id_or_key": "{file}にIDも「{name}」もないレコードがあります。",
+			"unencodable": "レコードを JSON として書き込めません：{problem}",
+			"unwritable": "{file}を書き込めません。",
+			"undeletable": "{file}を削除できません。"
+		},
+		"file_transactions": {
+			"no_lock": "データのロックを取得できません。"
+		},
+		"storage_copy": {
+			"unsupported": "「{from}」から「{to}」へのコピーはまだサポートされていません。サポートされているのは「{supported_from}」から「{supported_to}」へのコピーだけです。",
+			"filled": "データベースにはすでにレコードがあります（{tables}）。置き換えるには{option}を付けてコピーしてください。"
+		},
+		"sqlite_record_store": {
+			"unreadable": "「{table}」のレコードを読み込めません：{problem}",
+			"location": "データベース内の{table}/{name}"
+		}
+	},
+	"publish": {
+		"publisher": {
+			"pulling": "コンテンツを取得しています",
+			"compiling_types": "コンテンツタイプをコンパイルしています",
+			"indexing_content": "コンテンツインデックスを更新しています",
+			"indexing_media": "メディアインデックスを更新しています",
+			"compiling_routes": "ルートをコンパイルしています",
+			"clearing_cache": "キャッシュを削除しています",
+			"no_lock": "「{folder}」の公開ロックを開けません。",
+			"running": "別の公開処理が実行中です。"
+		},
+		"git_puller": {
+			"no_proc_open": "このホストでは proc_open() が無効のため、git を実行できません。",
+			"missing": "「{folder}」は存在しません。",
+			"no_temp_file": "git の出力用の一時ファイルを作成できません。",
+			"not_started": "「{git}」を開始できませんでした。"
+		}
+	},
+	"theme": {
+		"theme_activator": {
+			"no_active": "{file}に単純な「active」の値が1つだけ見つかりませんでした。"
+		},
+		"theme_manifest": {
+			"no_name": "{path}のテーマには「name」が必要です：「acme/nova」のような vendor/name の形式です。",
+			"label": "「{theme}」テーマの「label」は文字列である必要があります。",
+			"namespace": "「{theme}」テーマのマニフェストには「namespace」が必要です：英小文字・数字・ハイフン・アンダースコアを使い、{reserved}以外にしてください。",
+			"parent": "「{theme}」テーマの「parent」はテーマ名（vendor/name）である必要があります。",
+			"provider": "「{theme}」テーマの「provider」はクラス名である必要があります。",
+			"settings": "「{theme}」テーマの「settings」は名前とフィールド定義のマップである必要があります。",
+			"menus_setting": "「{theme}」テーマに「{name}」という名前の設定は置けません：この名前は、テーマの位置にサイトがどのメニューを表示するかを保存します。",
+			"menus": "「{theme}」テーマの「menus」は、位置の名前（英小文字・数字・ハイフン・アンダースコア）とラベルまたはオブジェクトのマップである必要があります。",
+			"variants": "「{theme}」テーマの「variants」は、ブロック名とバリエーションのリストのマップである必要があります。",
+			"bleed": "「{theme}」テーマの「bleed」は、「wide」と「full」をクラス名に対応付けるマップである必要があります。",
+			"preview": "「{theme}」テーマの「preview」は、「layout」「type」「palette」を持つオブジェクトである必要があります。",
+			"invalid": "「{theme}」テーマのマニフェスト：{error}",
+			"assets": "「{theme}」テーマの「assets」は、ハンドル（vendor/name）と、それぞれが読み込むスタイルとスクリプトのマップである必要があります。",
+			"asset_not_object": "アセット「{handle}」は、「styles」「scripts」または「requires」を持つオブジェクトである必要があります。",
+			"not_string": "「{theme}」テーマの「{field}」は文字列である必要があります。",
+			"not_paths": "「{theme}」テーマの「{field}」はパスのリストである必要があります。",
+			"paths_outside": "「{theme}」テーマの「{field}」は、テーマ内のパスのリストである必要があります。"
+		},
+		"themes": {
+			"loop": "「{theme}」テーマの親をたどると「{parent}」に戻ってループしています。",
+			"not_installed": "「{theme}」テーマはインストールされていません。",
+			"not_installed_broken": "「{theme}」テーマはインストールされていません（{where}が壊れています：{reason}）。",
+			"ancestor_not_installed": "「{theme}」テーマの祖先「{ancestor}」がインストールされていません。",
+			"ancestor_not_installed_broken": "「{theme}」テーマの祖先「{ancestor}」がインストールされていません（{where}が壊れています：{reason}）。"
+		},
+		"theme_preview": {
+			"unknown_key": "「{theme}」テーマの「preview」に使えるのは「layout」「type」「palette」で、「{field}」は使えません。",
+			"layout": "「{theme}」テーマの「preview.layout」は{layouts}である必要があります。",
+			"type": "「{theme}」テーマの「preview.type」は文字列である必要があります。",
+			"palette": "「{theme}」テーマの「preview.palette」では{roles}を指定する必要があります。それぞれ16進数の色（「#1f4ed8」など）か [light, dark] のペアです。"
+		},
+		"theme_checker": {
+			"provider_failed": "「{theme}」テーマのプロバイダーを開始できませんでした：{error}",
+			"provider_class": "「{theme}」テーマのプロバイダー{provider}はサービスプロバイダークラスではありません（「autoload」を確認してください）。",
+			"abandoned": "「{theme}」テーマ：{warning}",
+			"version": "「{theme}」テーマのバージョン「{version}」は Composer が読み取れない形式のため、このテーマへの要件は「*」でしか満たされません。",
+			"unmet_active": "{reason}修正されるまでは、代わりにデフォルトテーマが使われます。",
+			"unmet": "{reason}修正されるまで有効化できません。",
+			"block_template": "「{block}」ブロック（{class}）には、チェーン内に{view}テンプレートがありません。",
+			"component_template_no_class": "「{component}」コンポーネント（クラスなし）には、チェーン内に{view}テンプレートがありません。",
+			"component_template": "「{component}」コンポーネント（{class}）には、チェーン内に{view}テンプレートがありません。",
+			"entry_template": "「{template}」テンプレート（{label}）はエントリー用に宣言されていますが、チェーン内に{template}ビューがないため、エディターでは選択できません。",
+			"stray_block": "blocks/{file}は登録済みのブロック用ではないため、表示されることはありません。テーマはブロックを追加できません（D-532）。テーマのテンプレート用にコンポーネント（components/{namespace}-{file}）にしてください。",
+			"stray_component": "components/{file}はコンポーネントの名前になっていないため、表示されることはありません。components/{namespace}-{file}という名前にしてください。",
+			"variants_not_block": "theme.json に「{block}」のバリエーションがありますが、これはブロックではありません。",
+			"variant_invalid": "theme.json に無効な「{block}」のバリエーションがあります：名前は英字で始まり、英小文字・数字・ハイフンを使い、「default」以外にしてください。",
+			"variant_label": "「{block}」の「{variant}」バリエーションにラベルがありません。テーマの lang/ カタログに「blocks.{name}.variants.{variant}.label」を追加してください。",
+			"variant_clash": "blocks/{file}が「{other}」ブロックのテンプレートと、「{block}」の「{variant}」バリエーションのテンプレートの両方になっています。どちらかの名前を変更してください。",
+			"image_variant_invalid": "theme.json に無効な画像バリエーションがあります：名前は英字で始まり、英小文字・数字・ハイフンを使い、「default」以外にしてください。",
+			"image_variant_label": "「{variant}」画像バリエーションにラベルがありません。テーマの lang/ カタログに「images.variants.{variant}.label」を追加してください。",
+			"welcome_failed": "ウェルカムページを表示できません：{error}",
+			"no_lang": "ベースレイアウトの <html> に lang 属性がありません。",
+			"no_dir": "ベースレイアウトの <html> に dir 属性がありません。右から左に書く言語が正しく表示されるよう、dir=\"<?= attr($site->dir) ?>\" を追加してください。",
+			"head_repeated": "ベースレイアウトが{tag}を複数回出力しています。$template->head() が出力するため、レイアウトから削除してください。",
+			"no_foot": "ベースレイアウトがフッターを出力していません。</body> の直前に <?= $template->foot() ?> を追加してください。追加しないとフッタースクリプトが読み込まれません。",
+			"foot_outside": "ベースレイアウトが $template->foot() を <body> の外で出力しています。</body> の直前で出力してください。",
+			"main_count": "ベースレイアウトには <main> ランドマークが1つ必要ですが、{count, number}個あります。",
+			"no_skip_link": "ベースレイアウトには、<main> コンテンツへのスキップリンク（ページ内の最初のリンク）が必要です。",
+			"no_base": "テーマに layouts/base ビューがないため、ページはフレームワークの骨組みで表示され、サイトのヘッダーやフッターはありません。",
+			"no_landmark": "ベースレイアウトに <{landmark}> ランドマークがありません。",
+			"h1_count": "ウェルカムページに{count, plural, one {#個の<h1>見出し} other {#個の<h1>見出し}}があります。ページには1つだけにしてください。"
+		},
+		"settings_resolver": {
+			"invalid": "「{theme}」テーマの設定「{name}」が無効です：{error}"
+		},
+		"theme_discovery": {
+			"composer_name": "Composer パッケージ「{package}」のテーマの名前は「{name}」ですが、Composer のテーマの名前はパッケージ名になります。",
+			"default_name": "「{name}」はフレームワークのデフォルトテーマの名前です。",
+			"namespace_clash": "テーマ{themes}がすべて名前空間「{namespace}」を使っています。"
+		}
+	},
+	"feed": {
+		"feed_format": {
+			"rss": "RSS フィード",
+			"atom": "Atom フィード",
+			"json": "JSON フィード"
+		},
+		"feed_links": {
+			"related": "{title} | {type}",
+			"title": "{title}（{format}）"
+		},
+		"feed_builder": {
+			"related": "{title} | {relation} | {type}"
+		}
+	},
+	"job": {
+		"frequency": {
+			"every_minute": "毎分",
+			"every_minutes": "{minutes, plural, one {毎分} other {#分ごと}}",
+			"hourly": "毎時{minute}分",
+			"daily": "毎日{time}",
+			"weekly": "{day, select, 0 {毎週日曜日} 1 {毎週月曜日} 2 {毎週火曜日} 3 {毎週水曜日} 4 {毎週木曜日} 5 {毎週金曜日} other {毎週土曜日}}{time}",
+			"cron": "Cron：{expression}"
+		},
+		"job_runner": {
+			"timed_out": "{seconds, plural, one {#秒} other {#秒}}以上経過した後、完了せずに停止しました。実行環境の制限時間を超えた可能性があります。"
+		},
+		"prune_activity_job": {
+			"label": "アクティビティログを整理",
+			"removed": "{removed, plural, one {#件の古い変更} other {#件の古い変更}}を削除し、{cleared}件の変更で置き換えられた内容を破棄しました。"
+		},
+		"prune_cache_job": {
+			"label": "期限切れのキャッシュを削除",
+			"removed": "{count, plural, one {#件の期限切れのキャッシュ} other {#件の期限切れのキャッシュ}}を削除しました。"
+		},
+		"prune_jobs_job": {
+			"label": "完了した古いジョブを削除",
+			"removed": "{count, plural, one {#件の完了したジョブ} other {#件の完了したジョブ}}を削除しました。"
+		},
+		"prune_sessions_job": {
+			"label": "使われていない管理画面のセッションを削除",
+			"removed": "{count, plural, one {#件の使われていないセッション} other {#件の使われていないセッション}}を削除しました。"
+		},
+		"prune_tokens_job": {
+			"label": "期限切れから時間が経った API トークンを削除",
+			"removed": "期限切れの{tokens, plural, one {#件のトークン} other {#件のトークン}}、期限切れの{codes, plural, one {#件のコード} other {#件のコード}}とリフレッシュトークン、誰も接続しなかった{apps, plural, one {#件のアプリ} other {#件のアプリ}}を削除しました。"
+		},
+		"go_live_job": {
+			"label": "予約済みのエントリーを公開",
+			"version": "コンテンツのバージョンは{version}です。",
+			"went_live": "コンテンツのバージョンは{version}です。{count, plural, one {#件のエントリー} other {#件のエントリー}}が公開されました。"
+		},
+		"media_index_job": {
+			"label": "メディアファイルをインデックス",
+			"left": "読み込み待ちの{count, plural, one {メディアファイルが#件} other {メディアファイルが#件}}あります。",
+			"indexed": "{count, plural, one {#件のメディアファイル} other {#件のメディアファイル}}をインデックスしました。"
+		}
+	},
+	"api": {
+		"api_access": {
+			"anyone": {
+				"label": "誰でも",
+				"description": "サイトに表示される内容は誰でも読み取れます。トークンを付けてリクエストすると、そのアカウントが編集できる内容も含まれます。"
+			},
+			"token": {
+				"label": "トークンがある場合のみ",
+				"description": "すべてのリクエストに API トークンが必要です。トークンのないリクエストは拒否されます。"
+			}
+		}
+	},
+	"preview": {
+		"preview_controller": {
+			"invalid": "このプレビューリンクは期限切れか無効です。新しいリンクを依頼してください。"
+		}
+	},
+	"secret": {
+		"secret_scope": {
+			"missing": "「{name}」が設定されていません。環境変数{variable}を設定するか、保存してください。"
+		},
+		"secret_keys": {
+			"not_a_key": "{variable}はキーではありません：base64 形式の{length}バイトのランダムなデータが必要です。",
+			"no_key": "キーがないとシークレットを保存できません：{variable}を設定してください（「init」を実行すると追加されます）。"
+		},
+		"secret_store": {
+			"empty": "「{name}」を空のまま保存することはできません。代わりに削除してください。",
+			"locked": "「{name}」は環境変数（{variable}）で設定されており、常にそちらが優先されます。そちらで変更してください。",
+			"failure": "シークレットを読み書きできませんでした：{error}"
+		},
+		"secret_cipher": {
+			"not_encrypted": "「{name}」を暗号化できませんでした：{error}",
+			"unknown_form": "「{name}」はこのサイトが読み取れる形式で保存されていません。",
+			"key_missing": "「{name}」はこのサイトにないキー（{id}）で保存されています。もう一度設定するか、そのキーを{variable}に戻してください。",
+			"wont_decrypt": "「{name}」を復号できません：変更されたか、別の名前で保存されています。"
+		}
+	},
+	"icon": {
+		"icon_pack": {
+			"no_name": "{path}のアイコンパックには「name」が必要です：「acme/brands」のような vendor/name の形式です。",
+			"no_label": "「{pack}」アイコンパックには「label」が必要です。",
+			"namespace": "「{pack}」アイコンパックには「namespace」が必要です：英小文字・数字・ハイフン・アンダースコアを使い、{reserved}以外にしてください。",
+			"folder": "「{pack}」アイコンパックの「folder」は、パック内のフォルダーである必要があります。",
+			"not_string": "{path}のアイコンパックの「{field}」が文字列ではありません。",
+			"invalid": "{path}のアイコンパック：{error}"
+		},
+		"icon_pack_discovery": {
+			"composer_name": "Composer パッケージ「{package}」のアイコンパックの名前は「{name}」ですが、Composer のアイコンパックの名前はパッケージ名になります。",
+			"namespace_clash": "アイコンパック{packs}がすべて名前空間「{namespace}」を使っています。"
+		}
+	},
+	"clock": {
+		"date_format": {
+			"empty": "書式は空にできません。full、long、medium、short のいずれか、または MMMM d, y のようなパターンを使ってください。",
+			"too_long": "書式は最大{max}文字です。",
+			"one_line": "書式は1行で、制御文字を含めることはできません。",
+			"not_field": "「{letter}」は日付や時刻のフィールドではありません。単語は 'at' のように一重引用符で囲んでください。",
+			"unclosed": "引用符が閉じられていません。引用符そのものを書くには2つ（''）続けてください。",
+			"no_field": "書式には d、MMMM、y のようなフィールドが少なくとも1つ必要です。",
+			"style": "{style, select, full {フル} long {長い} medium {中} other {短い}}",
+			"from_language": "言語に合わせる",
+			"fixed": "固定"
+		}
+	},
+	"tool": {
+		"fields": {
+			"on_field": "{problem}（フィールド「{field}」）",
+			"conflict": "{problem}get_entry でもう一度読み込み、現在の内容に対して変更してください。",
+			"revision_required": "ほかの人の変更が失われないよう、get_entry が返した「revision」を送ってください。"
+		},
+		"get_type": {
+			"title": "コンテンツタイプを取得",
+			"description": "1つのコンテンツタイプの全体を取得します：フィールド（名前、種類、必須かどうか、各フィールドの用途）、エントリーのフィールドの JSON Schema、エントリーが取れるステータス、ほかのタイプとのリレーション（タグや著者など。関連エントリーのスラッグで設定）、およびこの接続でそのタイプに対してできること。create_entry や update_entry の前に呼び出してください。"
+		},
+		"set_status": {
+			"title": "公開、非公開化、予約",
+			"description": "エントリーを公開するかどうかを変更します：「published」は今すぐサイトに公開し、「draft」は公開を取り下げ、「scheduled」は未来の「published」日付に公開します。公開や非公開化を依頼された場合にだけ使ってください。get_entry が返したリビジョンが必要です。",
+			"needs_date": "予約するには未来の「published」日付が必要です。",
+			"published": "「{title}」を公開しました。",
+			"scheduled": "「{title}」を予約しました。",
+			"draft": "「{title}」を下書きに戻しました。"
+		},
+		"list_types": {
+			"title": "コンテンツタイプを一覧表示",
+			"description": "サイトのコンテンツタイプ（投稿、ページ、サイト独自のタイプ）を一覧表示します：それぞれの名前、ラベル、種類（日付付きのコレクション、またはページのツリー）、説明文、この接続で見られるエントリー数。最初に呼び出してサイトにあるものを確認し、あるタイプのエントリーを書く前には get_type を呼び出してください。"
+		},
+		"edit_body": {
+			"title": "本文の一部を編集",
+			"description": "エントリーの Markdown 本文の1か所を新しいテキストに置き換えます。誤字や1文などの小さな変更に使い、本文全体を送り返す必要はありません。「find」は get_entry が返した本文から正確にコピーし、本文中にちょうど1回だけ現れる必要があります。複数回見つかる場合は、前後のテキストを含めて送ってください。get_entry が返したリビジョンが必要です。",
+			"edited": "「{title}」の本文を編集しました。"
+		},
+		"create_entry": {
+			"title": "下書きを作成",
+			"description": "新しいエントリーを下書きとして作成します：タイプ、タイトル、フィールド（get_type が返す名前で指定。タグなどのリレーションには関連エントリーのスラッグを指定）、Markdown の本文を指定します。公開はされません。公開は依頼された場合に set_status で行います。リビジョンと、サイトのエディターで確認するためのリンクとプレビュー用のリンクを含むエントリーを返します。",
+			"no_status": "新しいエントリーは下書きです。「status」は省略し、公開を依頼された場合は後で set_status を使ってください。",
+			"created": "下書き「{title}」を作成しました。"
+		},
+		"get_media": {
+			"title": "メディアファイルを取得",
+			"description": "メディアライブラリのファイルを ID で1つ取得します：アドレス、寸法、代替テキスト、キャプション、サイズなどの詳細と、そのファイルを使っているエントリー。",
+			"not_found": "ID「{id}」のメディアファイルはありません。",
+			"unreadable": "メディアライブラリを読み込めません：{problem}"
+		},
+		"update_media": {
+			"title": "メディアファイルを更新",
+			"description": "ID を指定して、メディアファイルの代替テキスト、キャプション、タイトルを変更します。代替テキストは画像を見られない人のための説明で、1文程度にしてください。空の値を指定するとその項目を消去します。",
+			"unreadable": "メディアライブラリを読み込めません：{problem}",
+			"not_found": "ID「{id}」のメディアファイルはありません。",
+			"nothing": "変更する「alt」「caption」または「title」を送ってください。",
+			"updated": "{name}を更新しました。"
+		},
+		"trash_entry": {
+			"title": "エントリーをゴミ箱に移動",
+			"description": "エントリーをゴミ箱に移動し、サイトから取り下げます。restore_entry で元に戻せます。公開中のエントリーからリンクされている場合は、それらを示し、confirm: true を付けて再送されるまで何もしません。get_entry が返したリビジョンが必要です。",
+			"linked": "{count, plural, one {#件の公開中のエントリー} other {#件の公開中のエントリー}}が「{title}」にリンクしています：{entries}{more, select, yes {、ほか} other {}}。ゴミ箱に移動するとサイトから取り下げられ、それらのリンクは機能しなくなります。それでもゴミ箱に移動するには confirm: true を送ってください。",
+			"trashed": "「{title}」をゴミ箱に移動しました。restore_entry で元に戻せます。"
+		},
+		"reindex": {
+			"title": "コンテンツを再インデックス",
+			"description": "取得やほかのキャッシュの削除は行わずに、ファイルからコンテンツとメディアのインデックスを更新します。",
+			"indexed_more": "{entries, plural, one {#件のエントリー} other {#件のエントリー}}をインデックスしました：追加{added}件、変更{changed}件、削除{removed}件。{files, plural, one {#件のメディアファイル} other {#件のメディアファイル}}をインデックスしました。さらに{pending}件をバックグラウンドで読み込んでいます。",
+			"indexed": "{entries, plural, one {#件のエントリー} other {#件のエントリー}}をインデックスしました：追加{added}件、変更{changed}件、削除{removed}件。{files, plural, one {#件のメディアファイル} other {#件のメディアファイル}}をインデックスしました。",
+			"unindexed": "{summary}{count, plural, one {#件のファイル} other {#件のファイル}}をインデックスできませんでした。"
+		},
+		"search_entries": {
+			"title": "エントリーを検索",
+			"description": "語句、タイプ、ステータス、リレーション（タグや著者など）、親ページ、日付でエントリー（投稿、ページ、サイトのほかのタイプ）を検索します。本文を含まない短い概要（ID、タイプ、タイトル、ステータス、アドレス、日付、抜粋）を返します。全体を読むには get_entry を使ってください。公開済みのものに加えて、この接続で見られる下書きや予約済みのエントリーも検索しますが、status で指定しない限りゴミ箱は対象外です。",
+			"found": "{count, plural, one {#件のエントリー} other {#件のエントリー}}が見つかりました。",
+			"no_relationship": "絞り込みに使える「{name}」リレーションはありません。get_type でタイプのリレーションを確認できます。",
+			"not_a_date": "「{field}」は 2026-01-31 のような日付である必要がありますが、「{value}」は日付ではありません。",
+			"cursor": "「cursor」は検索が返した next_cursor である必要があります。"
+		},
+		"search_media": {
+			"title": "メディアを検索",
+			"description": "メディアライブラリのファイル（画像、動画、音声、ドキュメント）を、種類、名前・タイトル・代替テキスト・キャプション内の語句、代替テキストがないかどうかで検索します。各ファイルの ID、アドレス、サイズ、タイトル、代替テキスト、キャプションを返します。使用箇所は get_media で確認できます。",
+			"cursor": "「cursor」は検索が返した next_cursor である必要があります。",
+			"unreadable": "メディアライブラリを読み込めません：{problem}",
+			"found": "{count, plural, one {#件のファイル} other {#件のファイル}}が見つかりました。"
+		},
+		"clear_caches": {
+			"title": "キャッシュを削除",
+			"description": "ページ、本文、フラグメントのキャッシュを空にし、すべてのページを新しく表示させます。",
+			"cleared": "キャッシュを削除しました（{caches}）。"
+		},
+		"get_entry": {
+			"title": "エントリーを取得",
+			"description": "ID またはサイト上のアドレスで、1つのエントリーの全体を取得します：フィールド、書かれたままの Markdown 本文、リレーション、そしてこの接続で編集できる場合は、リビジョン（update_entry、edit_body、set_status、trash_entry で必要）と編集・プレビュー用のリンク。ゴミ箱への移動や非公開化の前に、このエントリーにリンクしているエントリーを一覧表示するには include: [\"linked_from\"] を追加してください。",
+			"id_or_url": "エントリーの「id」または「url」を送ってください。",
+			"redirects": "「{url}」は{to}にリダイレクトされます。代わりにそのアドレスを指定してください。"
+		},
+		"restore_entry": {
+			"title": "エントリーを復元",
+			"description": "エントリーをゴミ箱から下書きとして復元します。status に [\"trash\"] を指定して search_entries を使うと、ゴミ箱の中身を確認できます。",
+			"restored": "「{title}」を下書きとして復元しました。"
+		},
+		"publish": {
+			"title": "公開",
+			"description": "コンテンツの変更を公開します：取得（設定されている場合）、再インデックス、キャッシュの削除を行います。",
+			"pull_failed": "公開を中止しました：取得に失敗しました。",
+			"unindexed": "公開しましたが、{count, plural, one {#件のファイル} other {#件のファイル}}をインデックスできませんでした。",
+			"published_more": "{ms} ms で公開しました。さらに{pending, plural, one {#件のメディアファイル} other {#件のメディアファイル}}をバックグラウンドで読み込んでいます。",
+			"published": "{ms} ms で公開しました。"
+		},
+		"upload_media": {
+			"title": "メディアファイルをアップロード",
+			"description": "ファイルの内容（base64）、ファイル名（拡張子で種類を判別）、代替テキスト、キャプションを指定して、メディアライブラリにファイルを追加します。サイトが受け付ける種類だけを、許可されたサイズまでアップロードできます。SVG は使えません。image などのメディアフィールド用の ID と、本文の Markdown 画像用のアドレスを含むファイルを返します。",
+			"not_base64": "「data」はファイルの内容を base64 にしたものである必要があります。",
+			"uploaded": "{name}をアップロードしました。",
+			"uploaded_unsaved": "{name}をアップロードしました。代替テキストとキャプションは保存されませんでした：{problem}"
+		},
+		"update_entry": {
+			"title": "エントリーを更新",
+			"description": "エントリーを変更します：指定したフィールドのみ（null で削除）、新しい Markdown 本文全体、新しいスラッグ、ページの場合は新しい親ページ。get_entry が返したリビジョンが必要です。その後にほかの人が変更していた場合は拒否されるので、もう一度読み込んでください。本文の小さな変更には、代わりに edit_body を使ってください。公開や非公開化には set_status を使ってください。",
+			"no_status": "ステータスは update_entry ではなく set_status で変更してください。",
+			"updated": "「{title}」を更新しました。"
+		},
+		"tool_job": {
+			"label": "ツールを実行",
+			"no_tool": "ジョブに、実行するツールやその引数が指定されていません。",
+			"no_account": "依頼したアカウントは削除されたか、停止されています。",
+			"done": "完了しました。"
+		},
+		"tools": {
+			"not_found": "使用できる「{tool}」ツールはありません。",
+			"queued": "キューに追加しました。バックグラウンドで実行されます。"
+		},
+		"tool_entries": {
+			"no_type": "「{name}」タイプはありません。list_types でどのタイプがあるか確認できます。",
+			"no_entry": "この接続で見られる ID「{id}」のエントリーはありません。",
+			"no_published": "「{url}」に公開済みのエントリーはありません。下書きは search_entries で検索できます。",
+			"unreadable": "「{title}」を読み込めません：{problem}"
+		}
+	}
+}

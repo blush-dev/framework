@@ -192,6 +192,23 @@ use Blush\Content\Type\TypeLabels;
 new Collection('person', labels: new TypeLabels('Person', plural: 'People'))
 ```
 
+A label can also be a message, so it's translated (see
+[Extending](extending.md)). Give it as it comes from `t()`, without
+casting it, and it's shown in the language of whoever reads it:
+
+```php
+new TypeLabels(
+	$this->messages->t('types.recipe.singular', 'Recipe'),
+	plural: $this->messages->t('types.recipe.plural', 'Recipes')
+)
+```
+
+Labels left out are made from the singular in English ("New Recipe",
+"Search recipes"), so a translated type sets each one. A `Tree` named
+`page` and `Profiles` named `profile` are the exception: without
+labels of their own, they have Blush's, translated, as the built-in
+types do.
+
 `description` says what the type is for, in a sentence. The admin shows it
 on the type's screen and on its list while it's empty. `icon` names an
 icon to show the type with in the admin's menu, from the icons the `icon`

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
+use Blush\Translation\Messages;
+
 /**
  * The content types the framework registers:
  *
@@ -31,14 +33,71 @@ enum BuiltInType: string
 	case Profile = 'profile';
 
 	/**
-	 * Returns the type's default definition.
+	 * Returns the type's default definition, its labels core's messages
+	 * (D-841), so the admin and the site show them in the current
+	 * language.
 	 */
-	public function type(): ContentType
+	public function type(Messages $messages = new Messages()): ContentType
 	{
 		return match ($this) {
-			self::Page    => new Tree(),
-			self::Profile => new Profiles()
+			self::Page    => new Tree(messages: $messages),
+			self::Profile => new Profiles(messages: $messages)
 		};
+	}
+
+	/**
+	 * Returns the type's labels as core's messages, every one written
+	 * out, since the defaults made from a name are English: what a
+	 * `Tree` or `Profiles` by this name gets without labels of its own,
+	 * from the framework or a plugin (D-842).
+	 */
+	public function labels(Messages $messages): TypeLabels
+	{
+		return match ($this) {
+			self::Page    => new TypeLabels(
+				$messages->t('content.built_in_type.page.singular', 'Page'),
+				$messages->t('content.built_in_type.page.plural', 'Pages'),
+				$messages->t('content.built_in_type.page.menu', 'Pages'),
+				$messages->t('content.built_in_type.page.item', 'page'),
+				$messages->t('content.built_in_type.page.items', 'pages'),
+				$messages->t('content.built_in_type.page.new_item', 'New Page'),
+				$messages->t('content.built_in_type.page.edit_item', 'Edit page'),
+				$messages->t('content.built_in_type.page.search_items', 'Search pages')
+			),
+			self::Profile => new TypeLabels(
+				$messages->t('content.built_in_type.profile.singular', 'Profile'),
+				$messages->t('content.built_in_type.profile.plural', 'Profiles'),
+				$messages->t('content.built_in_type.profile.menu', 'Profiles'),
+				$messages->t('content.built_in_type.profile.item', 'profile'),
+				$messages->t('content.built_in_type.profile.items', 'profiles'),
+				$messages->t('content.built_in_type.profile.new_item', 'New Profile'),
+				$messages->t('content.built_in_type.profile.edit_item', 'Edit profile'),
+				$messages->t('content.built_in_type.profile.search_items', 'Search profiles')
+			)
+		};
+	}
+
+	/**
+	 * Returns the type's kind.
+	 */
+	public function kind(): TypeKind
+	{
+		return match ($this) {
+			self::Page    => TypeKind::Tree,
+			self::Profile => TypeKind::Profiles
+		};
+	}
+
+	/**
+	 * Returns core's labels for a type of a kind and name when it's one
+	 * of these by its default name (a tree named `page`, profiles named
+	 * `profile`), whoever defines it, else `null` (D-842).
+	 */
+	public static function labelsFor(TypeKind $kind, string $name, Messages $messages): ?TypeLabels
+	{
+		$builtIn = self::tryFrom($name);
+
+		return $builtIn?->kind() === $kind ? $builtIn->labels($messages) : null;
 	}
 
 	/**

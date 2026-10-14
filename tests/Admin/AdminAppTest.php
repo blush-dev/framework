@@ -169,7 +169,7 @@ final class AdminAppTest extends TestCase
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
 		$this->assertStringContainsString('<script type="application/json" data-blush-messages="core" data-blush-catalog="admin">{}</script>', $body, 'English is the code\'s own text.');
-		$this->assertStringContainsString('"language":null,"adminLanguages":[{"code":"en","label":"English"},{"code":"fr","label":"Français"}]', $body);
+		$this->assertStringContainsString('"language":null,"adminLanguages":[{"code":"en","label":"English"},{"code":"fr","label":"Français"},{"code":"ja","label":"日本語"}]', $body, 'Core\'s shipped languages and the site\'s own.');
 
 		$token = $this->token();
 

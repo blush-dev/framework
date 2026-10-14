@@ -1,0 +1,16 @@
+{
+	"@@locale": "ja",
+	"@@domain": "core",
+	"@@catalog": "site",
+	"player": {
+		"play": "再生",
+		"captions": "字幕",
+		"exit_fullscreen": "全画面表示を終了",
+		"fullscreen": "全画面表示",
+		"seek": "シーク",
+		"pause": "一時停止",
+		"volume": "音量",
+		"unmute": "ミュート解除",
+		"mute": "ミュート"
+	}
+}

@@ -1302,7 +1302,10 @@ Move each item to `decisions.md` once it's answered.
   4. **The API's and MCP's own errors:** whether they're translated at
      all, and if so in the token's account's language or the request's
      `Accept-Language` (D-831's open item).
-  5. **Multilingual sites and catalog tooling:** below (**Multilingual,
+  5. **Messages that take an English article** (found by Japanese,
+     D-840): `relation_view.singular_help` and `pick_modal.title` take
+     `{article}` ("a"/"an"); rewrite them so no grammar is passed in.
+  6. **Multilingual sites and catalog tooling:** below (**Multilingual,
      what's left**, paused by the author 2026-10-04) and in
      **Translations written inline** (`--prune`, rechecking changed
      text).
@@ -1310,7 +1313,9 @@ Move each item to `decisions.md` once it's answered.
   every label is to be translatable. Labels set in code go through
   `Messages`; labels the site stores (types in `user/data/types`,
   menus and their items, field sets, settings groups) are the site's
-  own text, with no domain or catalog. Options: a value per language
+  own text, with no domain or catalog. `TypeLabels`' defaults ("New {Singular}",
+  "Edit {item}", "Search {items}", an English plural) are English made
+  in code for any type that doesn't set them (D-841). Options: a value per language
   in the record (`labels: {en: …, de: …}`), or a site domain in
   `user/lang` keyed by record id.
 - **Turning languages on and off** (raised 2026-10-04, D-470): the

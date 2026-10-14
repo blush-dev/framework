@@ -84,8 +84,8 @@ const screens: Record<string, { title: string; hint: string }> = {
 	writing: { title: t('settings_view.writing', 'Writing'), hint: t('settings_view.writing_hint', 'How what\'s written renders, and what raw HTML in it does.') },
 	media: { title: t('settings_view.media', 'Media'), hint: t('settings_view.media_hint', 'What may be uploaded, how large, and where it\'s kept.') },
 	search: { title: t('settings_view.search', 'Addresses and Search'), hint: t('settings_view.search_hint', 'How addresses are written, and what search engines are told.') },
-	ai: { title: 'AI', hint: t('settings_view.ai_hint', 'What AI tools can read, and what AI crawlers are asked.') },
-	api: { title: 'API', hint: t('settings_view.api_hint', 'What other sites, apps, and scripts can read, and what a token may change.') },
+	ai: { title: t('settings_view.ai', 'AI'), hint: t('settings_view.ai_hint', 'What AI tools can read, and what AI crawlers are asked.') },
+	api: { title: t('settings_view.api', 'API'), hint: t('settings_view.api_hint', 'What other sites, apps, and scripts can read, and what a token may change.') },
 	system: { title: t('settings_view.system', 'System'), hint: t('settings_view.system_hint', 'How the site is put together and run, all set in code.') }
 };
 

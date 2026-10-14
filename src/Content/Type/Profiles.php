@@ -56,7 +56,7 @@ final readonly class Profiles extends ContentType
 	 * @param  bool            $sitemap     Whether profiles' pages are in the sitemap.
 	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
 	 * @param  bool            $closed      Whether undeclared front matter is an error.
-	 * @param  ?TypeLabels     $labels      What people call it; defaults to labels made from the name.
+	 * @param  ?TypeLabels     $labels      What people call it; defaults to core's labels for `profile` (D-842), else labels made from the name.
 	 * @param  string          $description What the type is for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $llms        Whether profiles are listed in `llms.txt` (D-401).
@@ -82,6 +82,8 @@ final readonly class Profiles extends ContentType
 		FieldControls $controls = new FieldControls(),
 		Messages $messages = new Messages()
 	) {
+		$labels ??= BuiltInType::labelsFor(TypeKind::Profiles, $name, $messages);
+
 		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $messages);
 	}
 

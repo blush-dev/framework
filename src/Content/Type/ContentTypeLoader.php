@@ -183,7 +183,7 @@ final readonly class ContentTypeLoader
 
 		foreach (BuiltInType::cases() as $builtIn) {
 			if (! in_array($builtIn->value, $this->config->disabled, true)) {
-				$types[$builtIn->value]   = $builtIn->type();
+				$types[$builtIn->value]   = $builtIn->type($this->messages);
 				$origins[$builtIn->value] = TypeOrigin::BuiltIn;
 			}
 		}
@@ -195,7 +195,9 @@ final readonly class ContentTypeLoader
 				continue;
 			}
 
-			$types[$type->name]   = $type;
+			// A plugin's type is made without the site's translator, so
+			// its labels' messages are read through the site's (D-842).
+			$types[$type->name]   = $type->readBy($this->messages);
 			$origins[$type->name] = TypeOrigin::Extension;
 			$sources[$type->name] = $source;
 		}
