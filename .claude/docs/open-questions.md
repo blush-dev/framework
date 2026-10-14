@@ -982,6 +982,37 @@ Move each item to `decisions.md` once it's answered.
     `HttpClientConfig` (timeouts, user agent, proxy from
     `HTTPS_PROXY`, the allowed list); `Blush\Http\Client` as its
     namespace.
+- **Outgoing mail, notifications, and notices** (D-832; discussed
+  2026-10-14; what's decided is in D-832, the rest is open):
+  - **The admin channel:** whether notifications get one from the
+    start, or email only first. The leaning: the admin channel writes
+    a notice addressed to the account, so the admin's "inbox" is
+    notices, not a feature of its own, and adding it later changes
+    nothing else.
+  - **Notices, when built:** two sources drawn the same way, with the
+    existing notice component's look (D-506, D-542). **Stored**
+    notices are messages someone added (a plugin after an update), to
+    an audience by capability or by account, dismissed per account,
+    optionally expiring. **Live** notices are checks of the site's
+    state ("cron hasn't run in a day"), worked out each time as Site
+    Health's are (D-612), and gone once the problem is fixed; they
+    need no storage. Open: where notices show (the dashboard, a bell
+    in the shell, the screen they're about), dismissal per account or
+    per site, and a notices area under storage (D-485) or the record
+    layer (D-606).
+  - **Settings:** a Settings → Email screen: the from name and address
+    (defaulting to `app.email`, D-723), the transport where config
+    doesn't fix it, and **Send a Test**. Per-account choices on Your
+    Account, for the kinds that can be turned off; security mail
+    (password links, email changes) can't be.
+  - **Logging:** sent mail in the Tools log; the `log` transport makes
+    mail readable in development without a mail server.
+  - **Recipients by capability:** "every account that can
+    `extensions.plugins.update`" as a recipient, beside accounts by id
+    and addresses, so a notification needn't list accounts.
+  - **Waiting on mail:** D-723's confirmation of a new site address,
+    D-312's password links (copied today), registration and comments
+    (above), and job and backup failures.
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The API** (`Blush\Api`; decided in D-479 and broadened by
@@ -1230,7 +1261,15 @@ Move each item to `decisions.md` once it's answered.
   - Multilingual sites in 2.0.0 (D-451, D-036): the site's languages,
     translated content, and translated strings likely belong on one
     screen, with what's missing per language.
-  - The admin's own strings, which aren't translatable yet (D-278).
+  - The admin's own strings: settled in D-831 (named catalogs,
+    `catalog:` on a script, `blush/messages`); planned, not built.
+- **Translating labels stored as data** (raised 2026-10-14, D-831):
+  every label is to be translatable. Labels set in code go through
+  `Messages`; labels the site stores (types in `user/data/types`,
+  menus and their items, field sets, settings groups) are the site's
+  own text, with no domain or catalog. Options: a value per language
+  in the record (`labels: {en: …, de: …}`), or a site domain in
+  `user/lang` keyed by record id.
 - **Turning languages on and off** (raised 2026-10-04, D-470): the
   author asked for a switch for multilingual as a whole. Proposed
   instead: `languages` is already the switch (a site is multilingual

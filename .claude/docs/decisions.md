@@ -26189,3 +26189,136 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked why the admin was one flat folder; nothing
   had decided it, it grew a file at a time. Controllers go in `Http/`,
   as the other subsystems already do.
+
+### D-831: Text in the browser: named catalogs, `catalog:` on a script, and `blush/messages`
+
+- **Date:** 2026-10-14
+- **Status:** Planned. Nothing built; the admin's strings are converted
+  after the system is in place, not as part of it.
+- **Settles:** "The admin's own strings, which aren't translatable yet
+  (D-278)" in `open-questions.md`, and D-278's open item (translating
+  labels), for labels set in code.
+- **Decision:**
+  - **Domains stay by owner (D-784); files split by where the text is
+    read.** A domain has a **default catalog**, its PHP text on every
+    surface (`lang/{locale}.json`, as now), and any number of **named
+    catalogs** for its scripts (`lang/{name}/{locale}.json`), each
+    with `@@catalog` beside `@@locale` and `@@domain` (D-452). Core's
+    are `resources/lang/admin/` (the admin app) and
+    `resources/lang/site/` (its site scripts, the players); a plugin
+    or theme names its own the same way, including admin screens
+    later. A key used by PHP and a script is in both files.
+  - **Not admin and front end, and not PHP and JS:** PHP's text in the
+    admin (labels, API errors, toasts) is translated on the server and
+    arrives translated, so the browser never needs it, while the front
+    end has script text of its own; and one JS file per domain would
+    send the admin's text with every front-end script.
+  - **Which catalog a source file writes to:** PHP always the default
+    catalog. A `.ts`, `.js`, or `.vue` file by its folder: by default
+    the folder's name under `resources/` (`resources/admin/**` to
+    `admin`), or as the manifest's `catalogs` names them
+    (`"catalogs": {"site": ["resources/site", "resources/player"]}`;
+    core declares its own the same way). A folder under two catalogs
+    writes to both. `lang:extract <name>` writes every catalog;
+    `plugin:check` and `theme:check` check each as they check
+    `lang/en.json`, and warn about a mapped folder that doesn't exist.
+  - **A script asks for its catalog:** `Script` gets `catalog:`
+    (`new Script('js/player.js', AssetUrls::CORE, ['type' =>
+    'module'], catalog: 'site')`). Its domain comes from its `from`
+    (`blush` is `core`; a plugin or theme its `vendor/name`). A script
+    without `catalog` gets none.
+  - **Served in the page:** when the head prints a script with a
+    catalog, it prints the catalog first as inline JSON
+    (`<script type="application/json" data-blush-messages="core">`),
+    in the page's language (`CurrentLocale`), resolved as PHP resolves
+    catalogs (`fr_CA`, `fr`, the package's own) with `user/lang`
+    overrides merged (`user/lang/{locale}/{catalog}/core.json`,
+    `user/lang/{locale}/{catalog}/extensions/{vendor}/{name}.json`).
+    `@` keys (context notes) are left out; each catalog prints once
+    per page; the page cache keeps it with the page.
+  - **`blush/messages`, the JS API:** a module core serves, with
+    lookups and an ICU formatter for what PHP's catalogs allow
+    (`plural` with `#` and `=0`, `select`, `selectordinal`, `number`,
+    `date`), on `Intl` (no `intl-messageformat`, for the admin's size
+    budget, D-510). The head prints an import map for it when a script
+    with a catalog is on the page, so a plugin writes
+    `import { messages } from 'blush/messages'` and leaves it out of
+    its build. `messages(domain)` returns `t(key, text?, params?)`,
+    `t()`'s meaning in PHP (D-784, D-816): the text when no catalog
+    has the key, else the key; parameters named. The domain is
+    written in the call (JS has no namespace to read it from);
+    `plugin:check` warns about a domain other than the extension's.
+    It reads every printed catalog of that domain. Module scripts
+    only.
+  - **The admin** works the same way: the shell prints `core`'s
+    `admin` catalog; the app bundles the module itself and gives Vue
+    templates `t` as a global. A plugin's admin screens, when there
+    are any, register scripts with `catalog: 'admin'`.
+  - **The admin's language is the account's:** a language on Your
+    Account, defaulting and falling back to the site's. Its choices
+    are the languages core has an `admin` catalog for, shipped or in
+    `user/lang`.
+  - **Admin API requests** set `CurrentLocale` to the account's
+    language, so text PHP sends the admin (labels, errors, toasts)
+    comes back translated.
+  - **Every label is translatable.** Labels set in code (types,
+    settings, fields, manifests) go through `Messages` and the
+    previous point. Labels stored as data (types in `user/data/types`,
+    menus, field sets) are the site's own text and need a design of
+    their own (`open-questions.md`).
+- **Open:** whether API tokens and MCP use the account's language or
+  `Accept-Language`; classic (non-module) scripts; text moved to
+  another catalog's folder without its mapping falls back to the
+  call's text silently; pruning unused keys (D-784's open item).
+- **Why:** the author asked for the admin's JS to translate like the
+  front end, with a split that works for plugins' and themes' admin
+  screens later. Named `catalog` (the author's) since a translation
+  file is already a catalog; `lang` reads as a language code, and
+  `bundle` already means an entry kept as a folder.
+
+### D-832: Outgoing mail and notifications, in two layers
+
+- **Date:** 2026-10-14
+- **Status:** Planned; nothing built. The rest of its design is in
+  `open-questions.md` (**Outgoing mail, notifications, and notices**).
+- **Decision:**
+  - **`Blush\Mail`, the transport layer:** a `Message` (to, from,
+    reply-to, subject, a text part and an HTML part, attachments) and
+    a `Mailer` that sends it, over `symfony/mailer`, a dependency that
+    is never public (as league/commonmark is, D-492): nothing outside
+    `Blush\Mail` names a Symfony class. The transport is chosen in
+    config or by `MAIL_DSN` (`smtp://…`, `sendmail`, `log`, `null`), as
+    `STORAGE_DRIVER` chooses storage (D-485). Services with their own
+    APIs (Postmark, SES, Mailgun) are plugins, over the HTTP client
+    once D-620 is built.
+  - **`Blush\Notification`, the layer core and plugins call:** a
+    notification is "something happened, tell these people", registered
+    by key (`blush/job-failed`, `acme/…`) through the usual enum,
+    registry, factory, and registrar, with its recipients (accounts by
+    id, or an address) and its channels. Email is the first channel.
+    Callers send notifications, never `Mailer` directly.
+  - **Sent through jobs (D-621),** never in the request: retries and
+    backoff are the jobs', and a failure shows on Tools → Jobs.
+  - **Email templates belong to core and plugins, never themes**
+    (D-617's line: the site's front end is the theme's; what Blush
+    sends is the code's). Each notification renders a text part and
+    an HTML part through the view engine, in the recipient's language
+    through `Messages::t()` (D-816, D-831).
+  - **The API first; uses later.** Which notifications exist (password
+    links, email changes, D-723, job and backup failures, sign-ups,
+    comments) is filled in as each feature needs one, not up front.
+  - **Notifications, notices, and toasts are three things:** a toast
+    answers what you just did (D-387); a notice is a message the
+    admin shows to an audience (a capability or an account) until it's
+    dismissed or no longer true (a plugin's "this changed in 2.0");
+    a notification is sent to named recipients over channels. A
+    plugin adds a notice directly, with no mail.
+- **Open:** whether notifications have an admin channel from the
+  start, and if so, whether it writes a notice addressed to the
+  account (the leaning: the admin "inbox" is notices, not a feature of
+  its own).
+- **Why:** the author asked for an API for email notifications (sign-
+  ups, changes, jobs, backups) ahead of features that need it; agreed
+  to `symfony/mailer` behind Blush's own interface, to templates in
+  core and plugins, and to keeping notices and notifications apart,
+  with "Notifications" as the name.

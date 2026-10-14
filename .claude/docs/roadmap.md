@@ -1189,12 +1189,19 @@ admin changed, and `docs/`.
   (D-467 to D-469), and `dir` on a page's `<html>` (D-470, D-471).
   Paused there by the author (2026-10-04). When it's picked up again, in the author's order (D-465): sitemaps and
   then feeds and `llms.txt` per language; translations in the admin
-  (uploads, a strings editor) once there's a design; a language
+  (uploads, a strings editor) once there's a design; text in the
+  browser, the admin's included, planned (D-831), before its strings
+  are converted; a language
   switcher is on hold.
 - **The site's email address (D-723):** `app.email`, on General,
   required there. Later: changing it asks the new address to confirm
   before it takes effect, and tells the old one it changed. Both need
   Blush to send mail, which it doesn't yet.
+- **Outgoing mail and notifications (D-832):** `Blush\Mail` over a
+  hidden `symfony/mailer`, and `Blush\Notification` above it, sent
+  through jobs; the API first, notifications added as features need
+  them. Admin notices and an admin channel are open
+  (`open-questions.md`).
 - **Front-end search:** a JSON index; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
