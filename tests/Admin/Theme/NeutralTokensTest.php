@@ -11,13 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\AdminTheme;
+namespace Blush\Tests\Admin\Theme;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\AdminTheme\AdminToken;
-use Blush\AdminTheme\AdminTokens;
-use Blush\AdminTheme\TokenType;
+use Blush\Admin\Theme\AdminToken;
+use Blush\Admin\Theme\AdminTokens;
+use Blush\Admin\Theme\TokenType;
 use Blush\Core\Framework;
 
 /**

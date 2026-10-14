@@ -2,10 +2,11 @@
 /**
  * An admin theme's details (D-827), at `/admin-themes/{vendor}/{name}`:
  * its label, with Site default or Can't turn on beside it, **Make
- * Default** and its switch; the admin in its colors in both color
- * schemes (`AdminThemeSketch`, each pinned to one); what it changes, by
- * group of tokens, and the fonts it ships; whether its text is easy to
- * read, from its contrast warnings; then its Details (`ExtensionFacts`)
+ * Default** and its switch; its Appearance, as a site theme's is: the
+ * admin in its colors in both color schemes (`AdminThemeSketch`, each
+ * pinned to one), each with its six colors listed under it
+ * (`PaletteLegend`), and whether its text is easy to read, from its
+ * contrast warnings; then its Details (`ExtensionFacts`)
  * beside its Dependencies (`ExtensionDependencies`, D-431, D-434 to
  * D-440), its earlier version (D-393), and **Delete Admin Theme** for a
  * folder theme that isn't the default. A Composer theme says how it's
@@ -20,6 +21,7 @@ import AdminThemeSketch from '../components/AdminThemeSketch.vue';
 import DangerZone from '../components/DangerZone.vue';
 import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
+import PaletteLegend from '../components/PaletteLegend.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, errorMessage, request, type AdminThemeSummary } from '../api';
@@ -41,13 +43,6 @@ const missing = ref(false);
 const error   = ref('');
 
 const name = computed(() => `${String(route.params.vendor)}/${String(route.params.name)}`);
-
-// What it changes, by the group each token is in.
-const GROUPS: [string, string][] = [['color.', 'Colors'], ['border.', 'Borders and corners'], ['boxShadow.', 'Shadows'], ['typography.', 'Type'], ['padding.', 'Spacing']];
-
-const changes = computed(() => GROUPS
-	.map(([prefix, label]) => ({ label, tokens: (theme.value?.changes ?? []).filter((path) => path.startsWith(prefix)).map((path) => path.slice(prefix.length).replace(/\.default$/, '')) }))
-	.filter((group) => group.tokens.length > 0));
 
 async function load(): Promise<void> {
 	theme.value   = null;
@@ -147,44 +142,19 @@ async function remove(): Promise<void> {
 			<span>This admin theme is off, so no one can choose it.</span>
 		</p>
 
-		<section class="panel" aria-labelledby="look-heading">
+		<section class="panel" aria-labelledby="appearance-heading">
 			<header class="panel__header">
-				<h2 id="look-heading">How It Looks</h2>
-				<p class="panel__hint">Drawn from its colors</p>
+				<h2 id="appearance-heading">Appearance</h2>
+				<p class="panel__hint">The six colors it shows, drawn and listed</p>
 			</header>
 			<div class="panel__body">
-				<div class="looks">
-					<figure v-for="scheme in (['light', 'dark'] as const)" :key="scheme" class="looks__scheme">
-						<AdminThemeSketch class="looks__sketch" :style="{ colorScheme: scheme }" :preview="theme.preview" />
-						<figcaption>{{ scheme === 'light' ? 'Light' : 'Dark' }}</figcaption>
+				<div class="extension-appearance">
+					<figure v-for="half in ([0, 1] as const)" :key="half">
+						<AdminThemeSketch class="theme-sketch" :style="{ colorScheme: half === 0 ? 'light' : 'dark' }" :preview="theme.preview" />
+						<figcaption class="eyebrow">{{ half === 0 ? 'Light' : 'Dark' }}</figcaption>
+						<PaletteLegend :palette="theme.palette" :half="half" />
 					</figure>
 				</div>
-			</div>
-		</section>
-
-		<section class="panel" aria-labelledby="changes-heading">
-			<header class="panel__header">
-				<h2 id="changes-heading">What It Changes</h2>
-				<p class="panel__hint">The rest is Neutral's</p>
-			</header>
-			<div v-if="changes.length || theme.fonts.length" class="panel__section">
-				<dl class="facts facts--grid">
-					<template v-for="group in changes" :key="group.label">
-						<dt>{{ group.label }}</dt>
-						<dd>
-							<ul class="chips">
-								<li v-for="token in group.tokens" :key="token"><span class="chips__item mono">{{ token }}</span></li>
-							</ul>
-						</dd>
-					</template>
-					<template v-if="theme.fonts.length">
-						<dt>Fonts it brings</dt>
-						<dd>{{ theme.fonts.join(', ') }}</dd>
-					</template>
-				</dl>
-			</div>
-			<div v-else class="panel__body">
-				<p class="field__help">{{ theme.base ? 'Neutral is the admin\'s own look: every other theme changes it.' : 'Nothing: it looks just like Neutral.' }}</p>
 			</div>
 			<div class="panel__section">
 				<p v-if="theme.contrast.length === 0" class="notice notice--small notice--success"><AdminIcon name="check" /><span>Its text is easy to read, in both color schemes.</span></p>
@@ -225,29 +195,9 @@ async function remove(): Promise<void> {
 </template>
 
 <style scoped>
-/* The theme in each color scheme, side by side. */
-.looks {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: var(--s-4);
-	max-width: 760px;
-}
-
-.looks__scheme {
-	display: grid;
-	gap: var(--s-2);
-	margin: 0;
-}
-
-.looks__sketch {
+/* The admin in miniature, as wide as its half. */
+.theme-sketch {
 	aspect-ratio: 16 / 9;
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-medium);
-}
-
-.looks__scheme figcaption {
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-small);
 }
 
 .contrast {

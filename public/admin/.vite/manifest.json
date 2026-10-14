@@ -240,6 +240,20 @@
       "css/MenuDialog.css"
     ]
   },
+  "_PaletteLegend.css": {
+    "file": "css/PaletteLegend.css",
+    "src": "_PaletteLegend.css"
+  },
+  "_PaletteLegend.js": {
+    "file": "js/PaletteLegend.js",
+    "name": "PaletteLegend",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/PaletteLegend.css"
+    ]
+  },
   "_PickModal.js": {
     "file": "js/PickModal.js",
     "name": "PickModal",
@@ -595,6 +609,7 @@
       "_AdminThemeSketch.js",
       "_PreviousVersion.js",
       "_DangerZone.js",
+      "_PaletteLegend.js",
       "_ToggleSwitch.js",
       "_admin-themes.js"
     ],
@@ -1036,6 +1051,7 @@
       "_extensions.js",
       "_PreviousVersion.js",
       "_DangerZone.js",
+      "_PaletteLegend.js",
       "_themes.js"
     ],
     "css": [

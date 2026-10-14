@@ -15,7 +15,7 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
 use Blush\Auth\ColorScheme;

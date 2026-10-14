@@ -15,8 +15,8 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\AdminTheme\AdminTheme;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminTheme;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
 use Blush\Http\StreamException;

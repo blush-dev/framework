@@ -11,17 +11,17 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\AdminTheme;
+namespace Blush\Tests\Admin\Theme;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\AdminTheme\AdminTheme;
-use Blush\AdminTheme\AdminThemeCache;
-use Blush\AdminTheme\AdminThemeConfig;
-use Blush\AdminTheme\AdminThemeContrast;
-use Blush\AdminTheme\AdminThemeDiscovery;
-use Blush\AdminTheme\AdminThemes;
-use Blush\AdminTheme\AdminThemeSource;
+use Blush\Admin\Theme\AdminTheme;
+use Blush\Admin\Theme\AdminThemeCache;
+use Blush\Admin\Theme\AdminThemeConfig;
+use Blush\Admin\Theme\AdminThemeContrast;
+use Blush\Admin\Theme\AdminThemeDiscovery;
+use Blush\Admin\Theme\AdminThemes;
+use Blush\Admin\Theme\AdminThemeSource;
 use Blush\Config\InvalidConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
@@ -117,6 +117,8 @@ final class AdminThemesTest extends TestCase
 			'accent'     => 'light-dark(#1d4e89, #8fb8e8)',
 			'text'       => 'light-dark(#11141b, #e9ebf0)'
 		], $themes->preview($harbor));
+		$this->assertSame(['#1d4e89', '#8fb8e8'], $themes->palette($harbor)['accent'], 'Its palette splits each color into its light and dark halves.');
+		$this->assertSame(['background', 'surface', 'text', 'muted', 'accent', 'border'], array_keys($themes->palette($harbor)), 'The six roles a site theme\'s preview declares.');
 		$this->assertStringContainsString(":root[data-admin-theme=\"acme/harbor\"] {\n\t--color-accent: light-dark(#1d4e89, #8fb8e8);\n}", $harbor->stylesheet(), 'Its stylesheet holds only what it sets.');
 	}
 
@@ -171,7 +173,7 @@ final class AdminThemesTest extends TestCase
 	{
 		$this->writeTemporaryFile('extensions/acme/future/admin-theme.json', '{"name": "acme/future", "require": {"blush-dev/framework": "^9.0"}}');
 		$this->writeTemporaryFile('extensions/acme/future/tokens.json', '{}');
-		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\nreturn new Blush\\AdminTheme\\AdminThemeConfig(enabled: ['acme/future']);\n");
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(enabled: ['acme/future']);\n");
 
 		$app    = $this->scratchApplication(['APP_ENV' => 'development']);
 		$themes = $app->container()->make(AdminThemes::class);

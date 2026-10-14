@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Blush\JsonSchema;
 
 use JsonException;
-use Blush\AdminTheme\AdminToken;
-use Blush\AdminTheme\FontFace;
-use Blush\AdminTheme\TokenType;
+use Blush\Admin\Theme\AdminToken;
+use Blush\Admin\Theme\FontFace;
+use Blush\Admin\Theme\TokenType;
 use Blush\Asset\Asset;
 use Blush\Block\BlockName;
 use Blush\Block\Variant;

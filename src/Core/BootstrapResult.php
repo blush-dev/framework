@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Core;
 
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Config\ConfigRepository;
 use Blush\Container\ServiceContainer;
 use Blush\Extension\LocalAutoloader;

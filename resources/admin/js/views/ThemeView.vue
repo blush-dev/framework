@@ -27,9 +27,9 @@ import DangerZone from '../components/DangerZone.vue';
 import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
+import PaletteLegend from '../components/PaletteLegend.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
-import { PALETTE_ROLES, type PaletteRole } from '../api';
 import { config } from '../config';
 import { extensionRoute } from '../extensions';
 import { can } from '../session';
@@ -64,22 +64,6 @@ const installedBy = computed(() => {
 		default:
 			return 'A folder in extensions/';
 	}
-});
-
-const ROLE_LABELS: Record<PaletteRole, string> = {
-	background: 'Background',
-	surface: 'Surface',
-	text: 'Text',
-	muted: 'Muted',
-	accent: 'Accent',
-	border: 'Border'
-};
-
-// Each half's six colors, listed under its preview.
-const halves = computed(() => {
-	const palette = theme.value?.preview?.palette ?? null;
-
-	return [0, 1].map((half) => palette === null ? [] : PALETTE_ROLES.map((role) => ({ role, fill: palette[role][half] ?? '' })));
 });
 
 // The themes that fall back to it, as the Dependencies panel lists them.
@@ -150,17 +134,11 @@ async function remove(): Promise<void> {
 				<p class="panel__hint">{{ theme.preview?.palette ? 'The six colors it declares, drawn and listed' : 'No palette declared' }}</p>
 			</header>
 			<div class="panel__body">
-				<div class="theme-appearance">
-					<figure v-for="(half, index) in halves" :key="index">
-						<ThemeSketch :preview="theme.preview" :scheme="index === 0 ? 'light' : 'dark'" />
-						<figcaption class="eyebrow">{{ index === 0 ? 'Light' : 'Dark' }}</figcaption>
-						<dl v-if="half.length" class="palette-legend">
-							<div v-for="swatch in half" :key="swatch.role">
-								<i :style="{ background: swatch.fill }" aria-hidden="true" />
-								<dt>{{ ROLE_LABELS[swatch.role] }}</dt>
-								<dd class="mono">{{ swatch.fill }}</dd>
-							</div>
-						</dl>
+				<div class="extension-appearance">
+					<figure v-for="half in ([0, 1] as const)" :key="half">
+						<ThemeSketch :preview="theme.preview" :scheme="half === 0 ? 'light' : 'dark'" />
+						<figcaption class="eyebrow">{{ half === 0 ? 'Light' : 'Dark' }}</figcaption>
+						<PaletteLegend v-if="theme.preview?.palette" :palette="theme.preview.palette" :half="half" />
 					</figure>
 				</div>
 				<p v-if="!theme.preview?.palette" class="field__help">
@@ -230,72 +208,6 @@ async function remove(): Promise<void> {
 </template>
 
 <style scoped>
-/* Both halves of its palette side by side, each listed under its picture. */
-.theme-appearance {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--s-5);
-}
-
-.theme-appearance figure {
-	margin: 0;
-}
-
-.theme-appearance .sketch {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-medium);
-}
-
-.theme-appearance figcaption {
-	margin: var(--s-3) 0 0;
-}
-
-/* A theme's palette as a legend under its preview: each role's color as
-   a chip, framed so white still has an edge, with its name and value in
-   the admin's own ink. */
-.palette-legend {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1px var(--s-4);
-	margin: var(--s-3) 0 0;
-}
-
-.palette-legend > div {
-	display: grid;
-	grid-template-columns: auto 78px auto;
-	justify-content: start;
-	align-items: center;
-	gap: var(--s-2);
-	min-width: 0;
-	padding: 2px 0;
-	font-size: var(--font-size-xsmall);
-}
-
-.palette-legend i {
-	width: 16px;
-	height: 16px;
-	border: 1px solid var(--border-color-strong);
-	border-radius: var(--border-radius-small);
-}
-
-.palette-legend dt {
-	overflow: hidden;
-	color: var(--color-text-secondary);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.palette-legend dd {
-	margin: 0;
-	color: var(--color-text-muted);
-}
-
-@media (width <= 600px) {
-	.palette-legend {
-		grid-template-columns: minmax(0, 1fr);
-	}
-}
-
 .skeleton--title {
 	width: 40%;
 	height: 14px;
@@ -303,11 +215,5 @@ async function remove(): Promise<void> {
 
 .skeleton--half {
 	width: 64%;
-}
-
-@media (width <= 760px) {
-	.theme-appearance {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

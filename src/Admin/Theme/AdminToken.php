@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 /**
  * Every token an admin theme may set (D-827), by its place in

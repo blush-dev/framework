@@ -15,7 +15,7 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\AdminTheme\AdminTheme;
+use Blush\Admin\Theme\AdminTheme;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;

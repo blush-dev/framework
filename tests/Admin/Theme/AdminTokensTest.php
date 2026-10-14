@@ -11,17 +11,17 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\AdminTheme;
+namespace Blush\Tests\Admin\Theme;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Blush\AdminTheme\AdminToken;
-use Blush\AdminTheme\AdminTokens;
-use Blush\AdminTheme\ColorValue;
-use Blush\AdminTheme\CssColor;
-use Blush\AdminTheme\FontFace;
-use Blush\AdminTheme\FontFamily;
+use Blush\Admin\Theme\AdminToken;
+use Blush\Admin\Theme\AdminTokens;
+use Blush\Admin\Theme\ColorValue;
+use Blush\Admin\Theme\CssColor;
+use Blush\Admin\Theme\FontFace;
+use Blush\Admin\Theme\FontFamily;
 use Blush\Auth\ColorScheme;
 use Blush\Extension\ExtensionException;
 use Blush\Tests\TemporaryDirectory;

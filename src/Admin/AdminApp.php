@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use JsonException;
-use Blush\AdminTheme\AdminTheme;
+use Blush\Admin\Theme\AdminTheme;
 
 /**
  * The built admin front end (D-221, D-222): the framework's bundled Vue

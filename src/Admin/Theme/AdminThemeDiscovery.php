@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 use Throwable;
 use Blush\Core\Framework;

@@ -41,7 +41,7 @@ final class AdminAdminThemesTest extends TestCase
 	private function site(array $roles = ['administrator'], bool $enabled = true): void
 	{
 		if ($enabled) {
-			$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\AdminTheme\\AdminThemeConfig(enabled: ['acme/harbor']);\n");
+			$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(enabled: ['acme/harbor']);\n");
 		}
 
 		$this->writeTemporaryFile('extensions/acme/harbor/admin-theme.json', '{"name": "acme/harbor", "label": "Harbor", "version": "1.2.0", "description": "Sea blues"}');
@@ -90,8 +90,7 @@ final class AdminAdminThemesTest extends TestCase
 		$this->assertFalse($harbor['base']);
 		$this->assertFalse($harbor['default']);
 		$this->assertTrue($harbor['deletable']);
-		$this->assertSame(['color.text.default', 'color.accent.default'], $harbor['changes']);
-		$this->assertSame(['Inter'], $harbor['fonts']);
+		$this->assertSame(['#1d4e89', '#8fb8e8'], is_array($harbor['palette']) ? $harbor['palette']['accent'] ?? null : null, 'Its palette, by light and dark half (D-828).');
 		$this->assertSame('light-dark(#1d4e89, #8fb8e8)', is_array($harbor['preview']) ? $harbor['preview']['accent'] ?? null : null);
 		$this->assertCount(2, is_array($harbor['contrast']) ? $harbor['contrast'] : [], 'Faint text, on the background and the surface.');
 

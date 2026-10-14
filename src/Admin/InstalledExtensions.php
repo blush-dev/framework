@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Blush\AdminTheme\AdminThemes;
-use Blush\AdminTheme\AdminThemeSource;
+use Blush\Admin\Theme\AdminThemes;
+use Blush\Admin\Theme\AdminThemeSource;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\LocalExtensions;

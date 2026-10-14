@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
-use Blush\AdminTheme\AdminThemeConfig;
+use Blush\Admin\Theme\AdminThemeConfig;
 use Blush\Api\ApiAccess;
 use Blush\Api\ApiConfig;
 use Blush\Auth\Account;

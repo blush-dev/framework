@@ -66,10 +66,6 @@ blush-framework/
     Icon/               IconName, Icons (lookup through site, themes, packs and plugins, core),
                         IconRegistry (D-187), icon packs: IconPack, IconPacks,
                         IconPackDiscovery, IconPackCache (D-378)
-    AdminTheme/         Admin themes (D-827): AdminTheme, AdminThemes, AdminThemeDiscovery,
-                        AdminThemeCache, AdminThemeConfig, AdminTokens, AdminToken,
-                        TokenType, ColorValue, CssColor, FontFamily, FontFace,
-                        AdminThemeContrast
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Llms/               LlmsConfig, MarkdownPages, MarkdownLinks, LlmsTxt, controllers, routes,
                         site URLs (Markdown pages and llms.txt, D-395, D-396, D-476)
@@ -89,6 +85,10 @@ blush-framework/
                         ToolButtons (the Tools screen's buttons, D-761),
                         EntriesController, HealthController, PreviewLinkController,
                         EntryController (the editing API, D-229), InvalidEdit (D-219, D-223)
+    Admin/Theme/        Admin themes (D-827, D-829): AdminTheme, AdminThemes, AdminThemeDiscovery,
+                        AdminThemeCache, AdminThemeConfig, AdminTokens, AdminToken,
+                        TokenType, ColorValue, CssColor, FontFamily, FontFace,
+                        AdminThemeContrast
     Tool/               Tool, ToolRegistry, ToolRegistrar, ToolType, Tools, ToolContext(s),
                         ToolResult, ToolError, ToolAnnotations, InputCheck, ToolEntries,
                         ToolJob (core/tool); Tools/ the built-ins (D-761)

@@ -1863,7 +1863,7 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
   `IconConfig::$saved`); discovery is lenient (broken packs are listed) and compiled to
   `storage/cache/icon-packs.php`. The folders of the packs that are on
   seed `IconRegistry`, so themes and the site can restyle them.
-- **Admin themes** (`Blush\AdminTheme`, D-827): a skin over the admin,
+- **Admin themes** (`Blush\Admin\Theme`, D-827): a skin over the admin,
   shipped as data. `admin-theme.json` (`AdminTheme`: the shared manifest
   keys, no `namespace`, which is refused) and `tokens.json`
   (`AdminTokens`), CSS-shaped groups (`color`, `border.color`,

@@ -935,10 +935,9 @@ export interface AdminThemeSummary extends Omit<IconPackSummary, 'namespace' | '
 	default: boolean;
 	// Its colors for a sketch, each as CSS writes it (`light-dark()`).
 	preview: AdminThemePreview;
-	// The tokens it sets, by their place in `tokens.json`.
-	changes: string[];
-	// The font families it ships.
-	fonts: string[];
+	// Its palette, in the six roles a site theme's declares (D-381), each
+	// a light and a dark color.
+	palette: Record<PaletteRole, [string, string]>;
 	// Where its colors are hard to read, in either scheme.
 	contrast: string[];
 }

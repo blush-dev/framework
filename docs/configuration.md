@@ -590,7 +590,7 @@ either way.
   name (`new IconConfig(enabled: ['acme/brands'])`). A local pack is off
   until it's named; a Composer pack is on. The admin's own list, naming
   every pack that's on, replaces this one when it's saved.
-- `config/admin-themes.php` · `Blush\AdminTheme\AdminThemeConfig`:
+- `config/admin-themes.php` · `Blush\Admin\Theme\AdminThemeConfig`:
   `enabled`, the [admin themes](admin-themes.md) in `extensions/` to turn
   on, by name, and `default`, the theme anyone who hasn't chosen one sees,
   and the sign-in screen (`'blush/neutral'` by default). Neutral is always

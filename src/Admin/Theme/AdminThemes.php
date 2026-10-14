@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 use Blush\Extension\Requirement;
 
@@ -195,6 +195,32 @@ final readonly class AdminThemes
 			'accent'     => $tokens->get(AdminToken::Accent) ?? '',
 			'text'       => $tokens->get(AdminToken::Text) ?? ''
 		];
+	}
+
+	/**
+	 * Returns a theme's palette, the six roles a site theme's preview
+	 * declares (D-381), each its light and its dark color as CSS writes
+	 * it, what it leaves out being Neutral's.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public function palette(AdminTheme $theme): array
+	{
+		$tokens = $this->resolved($theme);
+		$roles  = [
+			'background' => AdminToken::Background,
+			'surface'    => AdminToken::Surface,
+			'text'       => AdminToken::Text,
+			'muted'      => AdminToken::TextMuted,
+			'accent'     => AdminToken::Accent,
+			'border'     => AdminToken::BorderColor
+		];
+
+		return array_map(static function (AdminToken $token) use ($tokens): array {
+			$color = $tokens->color($token);
+
+			return $color === null ? ['', ''] : [$color->light->css, $color->dark->css];
+		}, $roles);
 	}
 
 	/**

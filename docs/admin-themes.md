@@ -29,7 +29,7 @@ admin guide). Owners and administrators can, and any role with
 
 declare(strict_types=1);
 
-return new Blush\AdminTheme\AdminThemeConfig(
+return new Blush\Admin\Theme\AdminThemeConfig(
 	default: 'blush/editorial'
 );
 ```
@@ -48,7 +48,7 @@ folder is off until its switch on **Extend → Admin Themes** turns it on,
 or `config/admin-themes.php` names it in `enabled`:
 
 ```php
-return new Blush\AdminTheme\AdminThemeConfig(
+return new Blush\Admin\Theme\AdminThemeConfig(
 	enabled: ['acme/harbor']
 );
 ```

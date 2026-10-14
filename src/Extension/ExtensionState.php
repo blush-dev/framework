@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use Blush\AdminTheme\AdminThemeConfig;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminThemeConfig;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Icon\IconConfig;
 use Blush\Icon\IconPacks;
 use Blush\Plugin\BrokenPlugin;

@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 /**
  * What an admin theme's token holds (D-827), which says how its value is

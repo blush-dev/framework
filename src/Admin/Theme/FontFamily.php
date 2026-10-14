@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 /**
  * A family token's list of names (D-827), written as CSS writes a stack:

@@ -20,7 +20,8 @@
  * Filters over the list (D-565): words matching a theme's label, name,
  * description, or keywords, its status (on, off, or needing attention:
  * can't turn on, broken, or abandoned), and its source; and Cards or a
- * Compact list of rows (`extensionView`), each marked with its accent.
+ * Compact list of rows (`extensionView`), whose mark is green for a
+ * theme that's on.
  */
 
 import { computed } from 'vue';
@@ -139,7 +140,7 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 
 		<component :is="list ? 'ul' : 'div'" v-else :class="list ? 'extension-rows' : 'extension-cards'">
 			<component :is="list ? ExtensionRow : ExtensionCard" v-for="theme in shownThemes" :key="theme.name" :class="{ 'is-off': !theme.running, 'is-on': theme.running, 'is-busy': busy === theme.name }" :label="theme.label" :to="extensionRoute('admin-theme', theme.name)" :version="theme.version" :description="list ? undefined : theme.description">
-				<template v-if="list" #mark><span class="theme-mark" :style="{ background: theme.preview.accent }" /></template>
+				<template v-if="list" #mark><AdminIcon name="swatch-book" /></template>
 				<template v-else #media><AdminThemeSketch class="theme-sketch" :preview="theme.preview" /></template>
 				<template #pills>
 					<span v-if="theme.default" class="pill pill--good">Site default</span>
@@ -158,8 +159,10 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 					<li v-if="theme.contrast.length" class="is-warn"><AdminIcon name="triangle-alert" /><span>Some text is hard to read</span></li>
 				</ul>
 				<template #[foot]>
+					<!-- A row's switch comes last, lined up with the other rows' switches. -->
+					<button v-if="list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">Make Default<span class="visually-hidden"> {{ theme.label }}</span></button>
 					<ToggleSwitch :checked="theme.running" :label="theme.label" :locked="locked(theme) !== null" :busy="busy === theme.name" :reason="locked(theme)" @change="toggle(theme, $event)" />
-					<button v-if="canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">Make Default<span class="visually-hidden"> {{ theme.label }}</span></button>
+					<button v-if="!list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">Make Default<span class="visually-hidden"> {{ theme.label }}</span></button>
 					<ExtensionMenu :label="theme.label" :details="extensionRoute('admin-theme', theme.name)" details-label="Admin theme details" :copy="theme.path" :delete-label="canDelete && theme.deletable && theme.folder && !theme.default ? 'Delete admin theme' : undefined" @delete="remove(theme.label, theme.folder ?? '', theme)" />
 				</template>
 			</component>
@@ -220,14 +223,6 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 /* The admin in miniature, as wide as a card. */
 .theme-sketch {
 	aspect-ratio: 16 / 9;
-}
-
-/* A row's mark is the theme's accent. */
-.theme-mark {
-	display: block;
-	width: 14px;
-	height: 14px;
-	border-radius: 50%;
 }
 
 .skeleton--title {

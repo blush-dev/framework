@@ -3297,6 +3297,33 @@ button.lnk {
 	}
 }
 
+/* A theme's look on its details screen: its light and dark halves side
+   by side, each captioned and listed under its picture (`PaletteLegend`). */
+.extension-appearance {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--s-5);
+}
+
+.extension-appearance figure {
+	margin: 0;
+}
+
+.extension-appearance figure > :first-child {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-medium);
+}
+
+.extension-appearance figcaption {
+	margin: var(--s-3) 0 0;
+}
+
+@media (width <= 760px) {
+	.extension-appearance {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 /* Links, each named with the glyph for its kind, as a list of places to
    go rather than a row of chips. */
 .extension-links {

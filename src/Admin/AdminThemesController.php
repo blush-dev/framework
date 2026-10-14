@@ -15,12 +15,10 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\AdminTheme\AdminTheme;
-use Blush\AdminTheme\AdminThemeContrast;
-use Blush\AdminTheme\AdminThemes;
-use Blush\AdminTheme\AdminThemeSource;
-use Blush\AdminTheme\AdminToken;
-use Blush\AdminTheme\FontFace;
+use Blush\Admin\Theme\AdminTheme;
+use Blush\Admin\Theme\AdminThemeContrast;
+use Blush\Admin\Theme\AdminThemes;
+use Blush\Admin\Theme\AdminThemeSource;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -147,8 +145,7 @@ final readonly class AdminThemesController
 			'deletable'   => $folder !== null,
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::AdminTheme, $folder === null ? null : $theme->path, $theme->name),
 			'preview'     => $this->themes->preview($theme),
-			'changes'     => array_values(array_map(static fn (AdminToken $token): string => $token->value, array_filter(AdminToken::cases(), $theme->tokens->has(...)))),
-			'fonts'       => array_values(array_unique(array_map(static fn (FontFace $face): string => $face->family, $theme->tokens->faces))),
+			'palette'     => $this->themes->palette($theme),
 			'contrast'    => AdminThemeContrast::check($this->themes->resolved($theme))
 		];
 	}

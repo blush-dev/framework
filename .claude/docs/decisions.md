@@ -26099,7 +26099,7 @@ decision, add a new entry that supersedes it and mark the old one
   - **Settled while building stage 3** (the screens):
     - **Extend → Admin Themes** (`AdminThemesView`, after Icon Packs) is
       built from the Icon Packs screen's pieces, with no sketch of its
-      own: cards (or compact rows, each marked with the accent), the
+      own: cards (or compact rows, each marked with the accent; D-828), the
       filters, switches, the menu, install, and delete. Each card's
       media is the admin in miniature (`AdminThemeSketch`, which also
       replaced Your Account's swatch markup), from the theme's
@@ -26113,7 +26113,7 @@ decision, add a new entry that supersedes it and mark the old one
       deleted, until another is chosen. The admin page follows a new
       default at once (`followDefault()`); a theme turned on shows up in
       Your Account's choice on the next load.
-    - **A theme's details** (`AdminThemeView`) show it in both schemes
+    - **A theme's details** (`AdminThemeView`; redrawn by D-828) show it in both schemes
       (each sketch pinned with `color-scheme`), what it changes by group
       of tokens and the fonts it brings, its contrast warnings (or that
       its text is easy to read), then Details (no Namespace row:
@@ -26125,3 +26125,39 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants admin themes as a real extension kind that
   only reskins the admin, with standard, CSS-shaped tokens and colors in
   `light-dark()`.
+
+### D-828: Admin themes' screens follow site themes' and plugins'
+
+- **Date:** 2026-10-14
+- **Status:** Built. Supersedes D-827's compact-row mark and its
+  details screen's panels.
+- **Decision:**
+  - **Compact rows** on Admin Themes are marked with the feature's icon
+    (`swatch-book`), green for a theme that's on, as Themes and Plugins
+    mark theirs, not with the theme's accent. A row's **Make Default**
+    comes before its switch, so the switch lines up with the other
+    rows'; cards keep the switch first.
+  - **Admin Theme Details** draws its look as Theme Details does: one
+    **Appearance** panel, light and dark side by side, each with its
+    colors listed under it (`PaletteLegend`, shared with Theme Details),
+    and its contrast note at the panel's foot. The colors are the six
+    roles a site theme's preview declares (background, surface, text,
+    muted, accent, border, from `color.background`,
+    `color.surface.default`, `color.text.default`, `color.text.muted`,
+    `color.accent.default`, and `border.color.default`), sent as
+    `palette` (`AdminThemes::palette()`, light and dark halves, Neutral's
+    where a theme leaves one out). The **What It Changes** panel is
+    gone, and so are the `changes` and `fonts` it read from the API.
+- **Why:** the author wants admin themes' screens to work the way the
+  other extension kinds' do.
+
+### D-829: Admin themes live under `Blush\Admin`
+
+- **Date:** 2026-10-14
+- **Status:** Built. Amends D-827's namespace.
+- **Decision:** the admin theme kind is `Blush\Admin\Theme`
+  (`src/Admin/Theme`, tests in `tests/Admin/Theme`), not a top-level
+  `Blush\AdminTheme`. Its classes keep their names.
+- **Why:** admin themes belong to the admin. A top-level namespace per
+  extension kind was never a rule the author set, only how the earlier
+  kinds happened to be laid out.

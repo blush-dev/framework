@@ -16,7 +16,7 @@ namespace Blush\Admin;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\ColorScheme;

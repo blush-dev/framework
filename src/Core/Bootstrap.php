@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Blush\Core;
 
 use Blush\Admin\AdminConfig;
-use Blush\AdminTheme\AdminThemeCache;
-use Blush\AdminTheme\AdminThemeConfig;
-use Blush\AdminTheme\AdminThemeDiscovery;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminThemeCache;
+use Blush\Admin\Theme\AdminThemeConfig;
+use Blush\Admin\Theme\AdminThemeDiscovery;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Api\ApiConfig;
 use Blush\Auth\AuthConfig;
 use Blush\Cache\CacheConfig;

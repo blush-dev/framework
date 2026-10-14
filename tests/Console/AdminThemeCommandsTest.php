@@ -53,7 +53,7 @@ final class AdminThemeCommandsTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/future/tokens.json', '{}');
 		$this->writeTemporaryFile('extensions/acme/broken/admin-theme.json', '{"name": "acme/broken"}');
 		$this->writeTemporaryFile('extensions/acme/broken/tokens.json', '{"spacing": {"gutter": "40px"}}');
-		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\nreturn new Blush\\AdminTheme\\AdminThemeConfig(enabled: ['acme/faint', 'acme/future']);\n");
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(enabled: ['acme/faint', 'acme/future']);\n");
 
 		$result = $this->command('admin-theme:check');
 		$all    = $result->output . $result->errors;

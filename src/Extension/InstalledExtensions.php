@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use Blush\AdminTheme\AdminThemeDiscovery;
+use Blush\Admin\Theme\AdminThemeDiscovery;
 use Blush\Core\Paths;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Plugin\PluginDiscovery;

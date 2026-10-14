@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\AdminTheme\AdminTheme;
-use Blush\AdminTheme\AdminThemeContrast;
-use Blush\AdminTheme\AdminThemes;
+use Blush\Admin\Theme\AdminTheme;
+use Blush\Admin\Theme\AdminThemeContrast;
+use Blush\Admin\Theme\AdminThemes;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;

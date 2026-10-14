@@ -155,7 +155,7 @@ final class AdminAppTest extends TestCase
 
 	public function testTheSignInScreenShowsTheSitesDefaultAdminTheme(): void
 	{
-		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\AdminTheme\\AdminThemeConfig(default: 'blush/editorial');\n");
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(default: 'blush/editorial');\n");
 		$this->boot();
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 

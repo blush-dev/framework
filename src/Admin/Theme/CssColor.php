@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\AdminTheme;
+namespace Blush\Admin\Theme;
 
 /**
  * One color an admin theme's `tokens.json` gives (D-827), in the forms
