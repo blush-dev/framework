@@ -304,7 +304,7 @@ const replaceLabel = computed(() => {
 .drop__heading {
 	margin: 0;
 	font-family: var(--font-family-display);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 }
 
 .drop__text {

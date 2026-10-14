@@ -30,7 +30,7 @@ user/data/settings/sitemap.json   {"enabled": true, "disallow": ["/drafts/"]}
 user/data/settings/theme.json     {"active": "acme/notebook"}
 user/data/settings/plugins.json   {"enabled": ["acme/gallery"]}
 user/data/settings/icons.json     {"enabled": ["acme/brands"]}
-user/data/settings/admin-themes.json  {"enabled": ["blush/editorial", "blush/neutral"], "default": "blush/editorial"}
+user/data/settings/admin-themes.json  {"enabled": ["blush/library", "blush/neutral"], "default": "blush/library"}
 ```
 
 (Feeds' full content is saved as `fullContent`, though `config/feed.php`

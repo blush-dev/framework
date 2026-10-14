@@ -59,12 +59,12 @@ final class AdminThemeCommandsTest extends TestCase
 		$all    = $result->output . $result->errors;
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode, 'A theme turned on can\'t be offered.');
-		$this->assertMatchesRegularExpression('#ok\s+blush/editorial#', $all);
+		$this->assertMatchesRegularExpression('#ok\s+blush/library#', $all);
 		$this->assertMatchesRegularExpression('#ok\s+blush/neutral#', $all);
 		$this->assertMatchesRegularExpression('#warning\s+acme/faint\s+In the light scheme, color\.text\.default on color\.background is#', $all);
 		$this->assertMatchesRegularExpression('#error\s+acme/future\s+Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but no one can choose it\.#', $all);
 		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken\s+.*"spacing\.gutter", which isn\'t a token#', $all);
-		$this->assertStringContainsString('5 admin themes, 1 error, 3 warnings', $all);
+		$this->assertStringContainsString('9 admin themes, 1 error, 3 warnings', $all);
 
 		$missing = $this->command(['admin-theme:check', 'acme/missing']);
 

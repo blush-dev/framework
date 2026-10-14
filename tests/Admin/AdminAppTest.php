@@ -147,12 +147,12 @@ final class AdminAppTest extends TestCase
 		$this->assertStringContainsString('"adminTheme":null', $body);
 		$this->assertStringNotContainsString('id="blush-admin-theme"', $body, 'Neutral is the admin\'s own; it links nothing.');
 
-		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/editorial"}', ['X-CSRF-Token' => $token]);
+		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/library"}', ['X-CSRF-Token' => $token]);
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/editorial">', $body);
-		$this->assertStringContainsString('"adminTheme":"blush/editorial"', $body);
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" id="blush-admin-theme" href="/admin/assets/admin-themes/blush/editorial/theme\.css\?v=[0-9a-f]{8}">#', $body);
+		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/library">', $body);
+		$this->assertStringContainsString('"adminTheme":"blush/library"', $body);
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" id="blush-admin-theme" href="/admin/assets/admin-themes/blush/library/theme\.css\?v=[0-9a-f]{8}">#', $body);
 		$this->assertStringContainsString('"default":"blush/neutral"', $body);
 		$this->assertStringContainsString('"name":"blush/neutral","label":"Neutral"', $body, 'Neutral is offered first.');
 	}
@@ -185,12 +185,12 @@ final class AdminAppTest extends TestCase
 
 	public function testTheSignInScreenShowsTheSitesDefaultAdminTheme(): void
 	{
-		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(default: 'blush/editorial');\n");
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(default: 'blush/library');\n");
 		$this->boot();
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/editorial">', $body);
-		$this->assertStringContainsString('"default":"blush/editorial"', $body);
+		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/library">', $body);
+		$this->assertStringContainsString('"default":"blush/library"', $body);
 
 		$token = $this->token();
 		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/neutral"}', ['X-CSRF-Token' => $token]);
@@ -200,23 +200,29 @@ final class AdminAppTest extends TestCase
 
 	public function testAnAdminThemesStylesheetAndFontsAreServed(): void
 	{
+		$this->writeTemporaryFile('extensions/acme/harbor/admin-theme.json', '{"name": "acme/harbor", "label": "Harbor"}');
+		$this->writeTemporaryFile('extensions/acme/harbor/tokens.json', '{"color": {"accent": "#1d4e89"}, "typography": {"fontFace": [{"fontFamily": "Karla", "src": "fonts/karla-latin-wght.woff2"}]}}');
+		$this->writeTemporaryFile('extensions/acme/harbor/fonts/karla-latin-wght.woff2', 'wOF2');
+		$this->writeTemporaryFile('extensions/acme/harbor/fonts/LICENSE', 'OFL');
+		$this->writeTemporaryFile('config/admin-themes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\Theme\\AdminThemeConfig(enabled: ['acme/harbor']);\n");
 		$this->boot();
 
-		$css = $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/theme.css?v=1');
+		$css = $this->visit('GET', '/admin/assets/admin-themes/acme/harbor/theme.css?v=1');
 
 		$this->assertSame(200, $css->getStatusCode());
 		$this->assertStringStartsWith('text/css', $css->getHeaderLine('Content-Type'));
 		$this->assertStringContainsString('immutable', $css->getHeaderLine('Cache-Control'));
-		$this->assertStringContainsString(':root[data-admin-theme="blush/editorial"] {', (string) $css->getBody());
-		$this->assertStringContainsString('src: url("fonts/karla-latin-wght-normal.woff2") format("woff2");', (string) $css->getBody());
+		$this->assertStringContainsString(':root[data-admin-theme="acme/harbor"] {', (string) $css->getBody());
+		$this->assertStringContainsString('src: url("fonts/karla-latin-wght.woff2") format("woff2");', (string) $css->getBody());
 
-		$font = $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/fonts/karla-latin-wght-normal.woff2');
+		$font = $this->visit('GET', '/admin/assets/admin-themes/acme/harbor/fonts/karla-latin-wght.woff2');
 
 		$this->assertSame(200, $font->getStatusCode());
 		$this->assertSame('font/woff2', $font->getHeaderLine('Content-Type'));
 
-		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/tokens.json')->getStatusCode(), 'Only its stylesheet and fonts.');
-		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/blush/editorial/fonts/LICENSE')->getStatusCode());
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/acme/harbor/tokens.json')->getStatusCode(), 'Only its stylesheet and fonts.');
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/acme/harbor/fonts/LICENSE')->getStatusCode());
+		$this->assertSame(200, $this->visit('GET', '/admin/assets/admin-themes/blush/library/theme.css?v=1')->getStatusCode(), 'The framework\'s too.');
 		$this->assertSame(404, $this->visit('GET', '/admin/assets/admin-themes/acme/missing/theme.css')->getStatusCode());
 	}
 

@@ -111,8 +111,8 @@ account.
 
 **Theme and Color Scheme** sets how the admin looks to you. The theme is
 one of the [admin themes](admin-themes.md) that are on, such as
-**Neutral** (cool gray with a blue accent) or **Editorial** (warm paper,
-a teal accent, and serif titles), each drawn as a swatch of itself. The
+**Neutral** (cool gray with a blue accent) or **Library** (cool
+parchment, a bottle-green accent, and serif titles), each drawn as a swatch of itself. The
 one marked **Site default** is what you see until you choose another,
 and choosing it follows the default when it changes. The color scheme is
 light, dark, or your device's setting (the default). Each choice is saved with your

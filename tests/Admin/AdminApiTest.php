@@ -154,12 +154,12 @@ final class AdminApiTest extends TestCase
 		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(Accounts::class)->find('jane')?->preferences->colorScheme);
 		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => null, 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null, 'language' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
 
-		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/editorial"}', ['X-CSRF-Token' => $token]);
+		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/library"}', ['X-CSRF-Token' => $token]);
 
 		$saved = $this->app->container()->make(Accounts::class)->find('jane');
 
 		$this->assertNotNull($saved);
-		$this->assertSame('blush/editorial', $saved->preferences->adminTheme);
+		$this->assertSame('blush/library', $saved->preferences->adminTheme);
 		$this->assertSame(ColorScheme::Dark, $saved->preferences->colorScheme, 'One preference leaves the other.');
 		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"adminTheme": "loud"}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"adminTheme": "acme/missing"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a theme that\'s offered.');

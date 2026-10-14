@@ -189,7 +189,7 @@ final readonly class AdminTokens
 	/**
 	 * Returns the stylesheet these tokens make: the font faces, then each
 	 * value set on the root under a selector of its own, in the tokens'
-	 * order.
+	 * order, and the shadows of the style it picks (D-844).
 	 */
 	public function css(string $selector): string
 	{
@@ -199,6 +199,12 @@ final readonly class AdminTokens
 			if (isset($this->values[$token->value])) {
 				$declarations .= "\t--{$token->property()}: {$this->values[$token->value]};\n";
 			}
+		}
+
+		$style = ShadowStyle::tryFrom($this->get(AdminToken::BoxShadowStyle) ?? '') ?? ShadowStyle::Soft;
+
+		foreach ($style->shadows() as $property => $shadow) {
+			$declarations .= "\t--{$property}: {$shadow};\n";
 		}
 
 		$faces = array_map(static fn (FontFace $face): string => $face->css() . "\n\n", $this->faces);
@@ -246,7 +252,8 @@ final readonly class AdminTokens
 			TokenType::FontFamily    => FontFamily::parse($value)?->css(),
 			TokenType::FontWeight    => self::weight($token, $value),
 			TokenType::Length        => self::measure($token, $value, 'px'),
-			TokenType::LetterSpacing => self::measure($token, $value, 'em')
+			TokenType::LetterSpacing => self::measure($token, $value, 'em'),
+			TokenType::Keyword       => is_string($value) && in_array($value, $token->keywords() ?? [], true) ? $value : null
 		};
 	}
 
@@ -296,7 +303,8 @@ final readonly class AdminTokens
 			TokenType::FontFamily    => $messages->t('admin.admin_tokens.expected_font_family', 'its "{token}" must be a list of font family names, such as ["Karla", "sans-serif"].', token: $key),
 			TokenType::FontWeight    => $messages->t('admin.admin_tokens.expected_font_weight', 'its "{token}" must be a weight from {low} to {high}.', token: $key, low: sprintf('%d', $low), high: sprintf('%d', $high)),
 			TokenType::Length        => $messages->t('admin.admin_tokens.expected_length', 'its "{token}" must be from {low}px to {high}px, such as "{low}px".', token: $key, low: (string) $low, high: (string) $high),
-			TokenType::LetterSpacing => $messages->t('admin.admin_tokens.expected_letter_spacing', 'its "{token}" must be from {low}em to {high}em, such as "-.01em".', token: $key, low: (string) $low, high: (string) $high)
+			TokenType::LetterSpacing => $messages->t('admin.admin_tokens.expected_letter_spacing', 'its "{token}" must be from {low}em to {high}em, such as "-.01em".', token: $key, low: (string) $low, high: (string) $high),
+			TokenType::Keyword       => $messages->t('admin.admin_tokens.expected_keyword', 'its "{token}" must be one of {keywords}.', token: $key, keywords: '"' . implode('", "', $token->keywords() ?? []) . '"')
 		};
 	}
 }

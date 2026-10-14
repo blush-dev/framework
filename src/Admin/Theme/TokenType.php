@@ -33,4 +33,7 @@ enum TokenType: string
 
 	/** Ems, within the token's range (`"-.014em"`, `"0"`). */
 	case LetterSpacing = 'letter-spacing';
+
+	/** One of the token's keywords (`"hard"`). */
+	case Keyword = 'keyword';
 }

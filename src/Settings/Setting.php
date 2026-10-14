@@ -640,7 +640,7 @@ enum Setting: string
 	{
 		return is_string($value) && ExtensionName::isValid($value)
 			? $value
-			: throw self::invalid($messages->t('settings.setting.invalid.admin_theme', 'The site\'s admin theme must be an admin theme\'s name (vendor/name), such as "blush/editorial".'));
+			: throw self::invalid($messages->t('settings.setting.invalid.admin_theme', 'The site\'s admin theme must be an admin theme\'s name (vendor/name), such as "blush/library".'));
 	}
 
 	/**

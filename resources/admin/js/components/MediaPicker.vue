@@ -468,7 +468,7 @@ function use(chosen: MediaItem[]): void {
 .picker__drop-heading {
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-panel-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 }
 
 .picker__drop-text {

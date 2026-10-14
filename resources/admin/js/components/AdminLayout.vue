@@ -802,7 +802,7 @@ async function leave(): Promise<void> {
 	background: var(--color-text);
 	color: var(--color-background);
 	font-family: var(--font-family-display);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	text-decoration: none;
 	text-transform: uppercase;
 }
@@ -877,7 +877,7 @@ async function leave(): Promise<void> {
 	overflow: hidden;
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-panel-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }

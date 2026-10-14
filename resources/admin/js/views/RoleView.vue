@@ -389,7 +389,7 @@ guardLeave(() => changed.value);
 .role__everything h3 {
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-panel-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 }
 
 .role__everything p {

@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/library",
+	"label": "Library",
+	"description": "Cool parchment, a bottle-green accent, serif titles",
+	"license": "MIT"
+}

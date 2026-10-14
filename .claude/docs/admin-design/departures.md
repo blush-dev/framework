@@ -266,7 +266,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   Newsreader) are served with it from its own folder. Each swatch is
   drawn from the theme's own colors, and the site's default is marked
   **Site default**; choosing it follows the default. The palette offers
-  each other theme ("Use the Editorial admin theme").
+  each other theme ("Use the Editorial admin theme"). Since D-845,
+  core's are Neutral, Library (in Editorial's place), Cyanotype, Dune,
+  Observatory, and Ridgeline, all on system fonts.
 - **Extend → Admin Themes** (D-827) has no sketch: it's the Icon Packs
   screen's pieces, each card's media the admin in miniature
   (`AdminThemeSketch`, the profiles sketch's swatch scaled up), with
@@ -738,7 +740,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   480px the header's menus lose their carets, so it fits.
 - **System fonts in the neutral theme** (D-568), not IBM Plex Sans:
   `--font-system`, the platform's own UI font, for UI, display, and
-  title text; Editorial keeps Karla and Newsreader.
+  title text; Editorial kept Karla and Newsreader until D-845 removed
+  it: no admin theme core ships brings a font.
 - **Fira Code is the mono** (D-254, D-255), not IBM Plex Mono: 400, 500,
   and a real 600 (so bold keeps its width), and a slanted italic (it has
   none). The writing column is 640px (`--measure`), with nothing between

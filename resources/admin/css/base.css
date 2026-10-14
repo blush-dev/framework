@@ -41,7 +41,7 @@ h3 {
 
 h1 {
 	font-size: var(--font-size-page-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	letter-spacing: var(--letter-spacing-page-title);
 	line-height: 1.2;
 }
@@ -58,7 +58,7 @@ h1:focus {
 
 h2 {
 	font-size: var(--font-size-panel-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 }
 
 p {

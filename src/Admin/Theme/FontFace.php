@@ -25,11 +25,6 @@ use Blush\Translation\Messages;
 final readonly class FontFace
 {
 	/**
-	 * The largest font file a theme may ship.
-	 */
-	public const int MAX_BYTES = 512 * 1024;
-
-	/**
 	 * Matches a path inside the theme: segments of letters, digits, `.`,
 	 * `_`, and `-`, ending in `.woff2`.
 	 */
@@ -89,10 +84,6 @@ final readonly class FontFace
 
 		if (! is_file($file)) {
 			throw new ExtensionException($messages->t('admin.font_face.missing_file', 'the "{family}" font face\'s file, {src}, isn\'t in the theme.', family: $family, src: $src));
-		}
-
-		if ((int) filesize($file) > self::MAX_BYTES) {
-			throw new ExtensionException($messages->t('admin.font_face.too_big', 'the "{family}" font face\'s file, {src}, is over {size} KB.', family: $family, src: $src, size: intdiv(self::MAX_BYTES, 1024)));
 		}
 
 		$weight = is_int($weight) ? (string) $weight : $weight;

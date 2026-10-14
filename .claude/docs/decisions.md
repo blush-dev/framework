@@ -26684,3 +26684,104 @@ decision, add a new entry that supersedes it and mark the old one
     data file over `page` that sets only `menu` keeps the rest
     translated.
 - **Status:** Built (2026-10-14).
+
+### D-843: Admin themes set every token, and bring every language their fonts cover
+
+- **Date:** 2026-10-14
+- **Refines:** D-827. Supersedes its "Fonts are woff2, up to 512 KB
+  each": there is no size limit (`FontFace::MAX_BYTES` is gone).
+- **Decision:** the author's call, while turning the admin theme
+  sketches (`.claude/docs/admin-theme-design/`) into themes.
+  - **A theme sets every token,** fonts included, even where it
+    wants Neutral's value: never leave one to fall back to the
+    default, which can change later. A theme on the platform's own
+    font lists D-568's stack in `ui`, `display`, and `title`.
+    Editorial now sets the sizes and weight it left out (Neutral's
+    values). Blush still fills in a token a theme leaves out; this
+    is how themes are written, not a check.
+  - **A theme's fonts cover every language the font does,** split as
+    Google Fonts serves them: every face its CSS API lists for the
+    family and weights (`fonts.googleapis.com/css2`), each with
+    Google's `unicodeRange`, a language a file and a large script in
+    Google's numbered slices (Shippori Mincho: Latin, Latin Extended,
+    and Japanese's 120 slices, 122 faces a weight). Never a Latin
+    subset alone, and never a split made by hand. The author never set
+    a file size limit; D-827's 512 KB was mine, so it's removed
+    (`FontFace::MAX_BYTES` is gone).
+  - Editorial's fonts are Google's Karla (Latin, Latin Extended) and
+    Newsreader (Latin, Latin Extended, Vietnamese) files.
+  - `docs/admin-themes.md` says both.
+- **Status:** Built (2026-10-14). Sketches made into themes on the
+  jtcom trial: Cyanotype, Dune, Observatory, Ridgeline, and Sumi
+  (`blush/{name}`; Sumi with Shippori Mincho 500, 600, and 700 as
+  Google serves them, 366 faces), then Brutalist after D-844.
+
+### D-844: A theme's shadows are one style, everywhere; and a display weight
+
+- **Date:** 2026-10-14
+- **Refines:** D-827 (core keeps every shadow's geometry).
+- **Decision:** mine, at the author's request ("I'd think a theme
+  would be consistent across the board"), so the Brutalist sketch
+  can be a theme.
+  - **`boxShadow.style`: `soft` or `hard`** (`ShadowStyle`, a
+    `TokenType::Keyword` token, `--box-shadow-style`). Core owns both
+    styles' geometry, so a theme still can't draw a shadow of its own;
+    it picks one, with `boxShadow.color` as now. `soft` is today's, in
+    `tokens.css`: nothing at rest, soft layers under what floats.
+    `hard` is a solid offset in the shadow's color, no blur, on
+    everything that has a shadow, the same way at every level: what
+    reads `--shadow-1` at rest (panels, stat tiles, extension cards,
+    the dashboard's resume card, and buttons but ghost ones) and
+    `--shadow-2` (menus, popovers, toasts, the switch's knob, the
+    players) by 4px, `--shadow-3` (modals, drawers) by 8px, the
+    sketch's values. `AdminTokens::css()` writes those three into the
+    theme's stylesheet; `hard` uses `boxShadow.color` as written,
+    without the soft style's lighter layers.
+  - **`typography.fontWeight.display`** (400 to 900,
+    `--font-weight-display`, Neutral's 600): text in the display
+    family, in place of its fixed 600: `h1` and `h2`, the stat
+    figure, the rail's mark, the section panel's heading, the sign-in
+    mark, the drop zones' headings, Roles' "everything" heading, and
+    the editor's title and empty heading. The conflict bar's small
+    500 heading keeps its own weight.
+  - Control heights stay core's: Brutalist's 36px isn't carried
+    over.
+  - Every theme sets both (D-843): Neutral, Editorial, and the trial
+    themes `soft` and 600 (Ridgeline 650, from its sketch); Brutalist
+    `hard` and 900.
+- **Status:** Built (2026-10-14). Brutalist made on the jtcom trial
+  (`blush/brutalist`, Archivo's variable weight as Google Fonts
+  serves it: Latin, Latin Extended, and Vietnamese).
+
+### D-845: Core's admin themes are on system fonts: Library replaces Editorial, and four trial themes ship
+
+- **Date:** 2026-10-14
+- **Refines:** D-827, D-843. Supersedes D-317's Editorial theme.
+- **Decision:** the author's call, from the Library sketch
+  (`.claude/docs/admin-theme-design/library-admin-theme.html`):
+  - **An admin theme core ships brings no fonts.** It uses the
+    platform's own fonts only; Fira Code, core's mono, is the one font
+    the admin loads. A theme with fonts of its own is an extension.
+  - **Library (`blush/library`) replaces Editorial,** which is removed
+    with its Karla and Newsreader files. It's the sketch's tokens:
+    cool parchment grays, a bottle-green accent, olive for success so
+    Published never reads as the accent, radii 4, 6, and 10px, and
+    `soft` shadows. Display and title text use the system's serif
+    (Iowan Old Style or Charter on Apple, Sitka or Cambria on
+    Windows, Noto or DejaVu Serif on Linux, then Georgia), and UI text
+    D-568's stack (in place of the sketch's shorter one, as D-843
+    has it). Entry titles are 15px at 600, page titles 30px.
+  - **Cyanotype, Dune, Observatory, and Ridgeline ship** from the jtcom
+    trial, as they were (all on system fonts), in
+    `resources/admin-themes`. Like every framework theme they're on by
+    default.
+  - **Sumi and Brutalist don't ship.** Their fonts (Shippori Mincho,
+    Archivo) are what they are, so they stay on the trial as local
+    extensions, the kind of thing a separate package offers.
+  - Tests that used Editorial use Library; serving a theme's fonts is
+    tested with a local theme, since no framework theme has any.
+- **Why:** the author's standing rule for bundled admin themes: no
+  custom fonts, system fonts only.
+- **Status:** Built (2026-10-14). On the jtcom trial, the four themes'
+  folders are removed from `extensions/blush` (core has them now) and
+  the saved list names `blush/library` in Editorial's place.

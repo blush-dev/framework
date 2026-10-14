@@ -92,11 +92,11 @@ async function choose(scheme: ColorScheme): Promise<void> {
 </template>
 
 <style scoped>
+/* The panel's full width, three cards a row at most. */
 .schemes {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(max(190px, calc((100% - 2 * var(--s-2)) / 3)), 1fr));
 	gap: var(--s-2);
-	max-width: 760px;
 	margin: 0;
 	padding: 0;
 	border: 0;

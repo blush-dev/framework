@@ -15,7 +15,6 @@ namespace Blush\JsonSchema;
 
 use JsonException;
 use Blush\Admin\Theme\AdminToken;
-use Blush\Admin\Theme\FontFace;
 use Blush\Admin\Theme\TokenType;
 use Blush\Asset\Asset;
 use Blush\Block\BlockName;
@@ -489,7 +488,8 @@ final readonly class JsonSchemas
 			TokenType::FontFamily    => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string'], 'description' => "{$name}: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."],
 			TokenType::FontWeight    => ['type' => 'integer', 'minimum' => $range[0], 'maximum' => $range[1], 'description' => "{$name}: a weight from {$range[0]} to {$range[1]}."],
 			TokenType::Length        => ['type' => 'string', 'pattern' => '^(0|\\d+(\\.\\d+)?px)$', 'description' => "{$name}: pixels, from {$range[0]}px to {$range[1]}px."],
-			TokenType::LetterSpacing => ['type' => 'string', 'pattern' => '^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$', 'description' => sprintf('%s: ems, from %sem to %sem.', $name, $range[0], $range[1])]
+			TokenType::LetterSpacing => ['type' => 'string', 'pattern' => '^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$', 'description' => sprintf('%s: ems, from %sem to %sem.', $name, $range[0], $range[1])],
+			TokenType::Keyword       => ['type' => 'string', 'enum' => $token->keywords() ?? [], 'description' => sprintf('%s: one of %s.', $name, implode(', ', $token->keywords() ?? []))]
 		};
 	}
 
@@ -502,7 +502,7 @@ final readonly class JsonSchemas
 	{
 		return [
 			'type'        => 'array',
-			'description' => sprintf('The fonts the theme ships, as @font-face has them: woff2 files inside the theme, up to %d KB each.', FontFace::MAX_BYTES / 1024),
+			'description' => 'The fonts the theme ships, as @font-face has them: woff2 files inside the theme.',
 			'items'       => [
 				'type'                 => 'object',
 				'required'             => ['fontFamily', 'src'],

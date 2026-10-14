@@ -108,6 +108,9 @@ final class AdminTokensTest extends TestCase
 			'no unit'           => [['typography' => ['fontSize' => ['base' => '14']]], '"typography.fontSize.base" must be from 12px to 16px'],
 			'other unit'        => [['border' => ['radius' => ['small' => '1rem']]], '"border.radius.small" must be from 0px to 24px'],
 			'weight out'        => [['typography' => ['fontWeight' => ['entryTitle' => 900]]], 'must be a weight from 400 to 700'],
+			'display too light' => [['typography' => ['fontWeight' => ['display' => 300]]], 'must be a weight from 400 to 900'],
+			'shadow style'      => [['boxShadow' => ['style' => 'long']], '"boxShadow.style" must be one of "soft", "hard"'],
+			'shadow geometry'   => [['boxShadow' => ['style' => '4px 4px 0 #000']], '"boxShadow.style" must be one of'],
 			'family not a list' => [['typography' => ['fontFamily' => ['ui' => 'Karla']]], 'must be a list of font family names'],
 			'family with CSS'   => [['typography' => ['fontFamily' => ['ui' => ['Karla"; color: red']]]], 'must be a list of font family names']
 		];
@@ -178,14 +181,19 @@ final class AdminTokensTest extends TestCase
 		AdminTokens::fromArray(['typography' => ['fontFace' => [$face]]], $this->temporaryDirectory());
 	}
 
-	public function testRefusesAFontFileTooBigToServe(): void
+	public function testWritesTheShadowsOfTheStyleItPicks(): void
 	{
-		$this->writeTemporaryFile('fonts/huge.woff2', str_repeat('x', FontFace::MAX_BYTES + 1));
+		$hard = AdminTokens::fromArray(['boxShadow' => ['color' => '#000', 'style' => 'hard'], 'typography' => ['fontWeight' => ['display' => 900]]], $this->temporaryDirectory())->css(':root');
 
-		$this->expectException(ExtensionException::class);
-		$this->expectExceptionMessage('is over 512 KB');
+		$this->assertStringContainsString("\t--box-shadow-style: hard;\n", $hard);
+		$this->assertStringContainsString("\t--font-weight-display: 900;\n", $hard);
+		$this->assertStringContainsString("\t--shadow-1: 4px 4px 0 var(--box-shadow-color);\n", $hard, 'Resting surfaces stand off the page too.');
+		$this->assertStringContainsString("\t--shadow-2: 4px 4px 0 var(--box-shadow-color);\n", $hard);
+		$this->assertStringContainsString("\t--shadow-3: 8px 8px 0 var(--box-shadow-color);\n", $hard);
 
-		AdminTokens::fromArray(['typography' => ['fontFace' => [['fontFamily' => 'Huge', 'src' => 'fonts/huge.woff2']]]], $this->temporaryDirectory());
+		$soft = AdminTokens::fromArray(['boxShadow' => ['style' => 'soft']], $this->temporaryDirectory())->css(':root');
+
+		$this->assertStringNotContainsString('--shadow-1', $soft, 'Soft shadows are the admin\'s own.');
 	}
 
 	public function testLaysOneThemesTokensOverAnothers(): void

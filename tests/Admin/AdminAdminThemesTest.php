@@ -77,7 +77,7 @@ final class AdminAdminThemesTest extends TestCase
 		$answer = self::json($this->send('GET', '/admin-themes'));
 		$themes = is_array($answer['themes'] ?? null) ? $answer['themes'] : [];
 
-		$this->assertSame(['blush/neutral', 'acme/dusk', 'blush/editorial', 'acme/harbor'], array_column($themes, 'name'));
+		$this->assertSame(['blush/neutral', 'blush/cyanotype', 'blush/dune', 'acme/dusk', 'acme/harbor', 'blush/library', 'blush/observatory', 'blush/ridgeline'], array_column($themes, 'name'));
 		$this->assertSame('blush/neutral', $answer['default'] ?? null);
 		$this->assertFalse($answer['saved'] ?? null);
 		$this->assertTrue($answer['config'] ?? null);
@@ -121,16 +121,16 @@ final class AdminAdminThemesTest extends TestCase
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame(['enabled' => true, 'started' => [], 'stopped' => [], 'refresh' => false], self::json($response));
-		$this->assertSame(['admin-themes' => ['enabled' => ['acme/dusk', 'acme/harbor', 'blush/editorial', 'blush/neutral']]], $this->savedSettings());
+		$this->assertSame(['admin-themes' => ['enabled' => ['acme/dusk', 'acme/harbor', 'blush/cyanotype', 'blush/dune', 'blush/library', 'blush/neutral', 'blush/observatory', 'blush/ridgeline']]], $this->savedSettings());
 
 		$this->reboot();
 
 		$this->assertTrue($this->theme('acme/dusk')['offered']);
-		$this->assertSame(200, $this->write('PUT', '/admin-themes/blush/editorial', ['enabled' => false])->getStatusCode());
+		$this->assertSame(200, $this->write('PUT', '/admin-themes/blush/library', ['enabled' => false])->getStatusCode());
 
 		$this->reboot();
 
-		$this->assertFalse($this->theme('blush/editorial')['enabled'], 'Once a list is saved, it\'s all of what\'s on.');
+		$this->assertFalse($this->theme('blush/library')['enabled'], 'Once a list is saved, it\'s all of what\'s on.');
 
 		$neutral = $this->write('PUT', '/admin-themes/blush/neutral', ['enabled' => false]);
 
@@ -193,7 +193,7 @@ final class AdminAdminThemesTest extends TestCase
 		$this->assertSame(['deleted' => 'extensions/acme/harbor'], self::json($response));
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/harbor');
 		$this->assertSame(200, $this->write('DELETE', '/admin-themes/acme/broken')->getStatusCode(), 'A broken theme can be deleted.');
-		$this->assertSame(404, $this->write('DELETE', '/admin-themes/blush/editorial')->getStatusCode(), 'The framework\'s aren\'t in extensions/.');
+		$this->assertSame(404, $this->write('DELETE', '/admin-themes/blush/library')->getStatusCode(), 'The framework\'s aren\'t in extensions/.');
 	}
 
 	public function testNeedsItsCapabilities(): void
@@ -202,7 +202,7 @@ final class AdminAdminThemesTest extends TestCase
 
 		$this->assertSame(403, $this->send('GET', '/admin-themes')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/admin-themes/acme/harbor', ['enabled' => false])->getStatusCode());
-		$this->assertSame(403, $this->write('PUT', '/admin-themes/default', ['name' => 'blush/editorial'])->getStatusCode());
+		$this->assertSame(403, $this->write('PUT', '/admin-themes/default', ['name' => 'blush/library'])->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/admin-themes/acme/harbor')->getStatusCode());
 	}
 
@@ -212,7 +212,7 @@ final class AdminAdminThemesTest extends TestCase
 		$this->site(['looker']);
 
 		$this->assertSame(200, $this->send('GET', '/admin-themes')->getStatusCode());
-		$this->assertSame(403, $this->write('PUT', '/admin-themes/default', ['name' => 'blush/editorial'])->getStatusCode(), 'Choosing the default is activating (D-389).');
+		$this->assertSame(403, $this->write('PUT', '/admin-themes/default', ['name' => 'blush/library'])->getStatusCode(), 'Choosing the default is activating (D-389).');
 	}
 
 	/**

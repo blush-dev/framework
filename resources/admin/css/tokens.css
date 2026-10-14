@@ -19,7 +19,7 @@
  * stylesheet, setting values under `:root[data-admin-theme="vendor/name"]`,
  * never names. The tokens it can't set (space, layout, control heights,
  * the mono font, the media overlay, and the shadows' geometry) are
- * Neutral's alone. `resources/admin-themes/neutral/tokens.json` holds
+ * Neutral's alone; a theme picks one of core's shadow styles (D-844). `resources/admin-themes/neutral/tokens.json` holds
  * these same values, every token a theme may set but the families, and a
  * test keeps the two alike.
  */
@@ -65,8 +65,12 @@
 	/* Elevation. Flat by default: borders and surface steps separate
 	   things, and a shadow is spent only where something sits above the
 	   page. A theme sets the shadows' color, at its strongest (a modal's
-	   wide layer); the geometry and each layer's share of it are core's. */
+	   wide layer), and picks a style: `soft`, these, or `hard`, a solid
+	   offset on everything with a shadow, resting surfaces too, which
+	   Blush writes into the theme's stylesheet (`ShadowStyle`, D-844).
+	   The geometry and each layer's share of the color are core's. */
 	--box-shadow-color: light-dark(rgb(17 20 27 / 9%), rgb(0 0 0 / 45%));
+	--box-shadow-style: soft;
 
 	--shadow-1: none; /* resting surfaces */
 	--shadow-2: /* menus, popovers, toasts */
@@ -112,6 +116,7 @@
 	--font-size-page-title: 26px;          /* page titles */
 	--letter-spacing-page-title: -.024em;
 	--font-size-panel-title: 15px;         /* panel headings */
+	--font-weight-display: 600;            /* text in the display family: page and panel titles, the editor's title, stat figures */
 	--font-size-entry-title: 13.5px;       /* entry titles in lists */
 	--font-weight-entry-title: 500;
 	--letter-spacing-entry-title: -.005em;

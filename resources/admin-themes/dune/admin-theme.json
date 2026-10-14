@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/dune",
+	"label": "Dune",
+	"description": "Sand in late sun, with the twilight indigo of the dunes' shadow side",
+	"license": "MIT"
+}

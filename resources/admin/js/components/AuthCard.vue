@@ -53,7 +53,7 @@ defineProps<{
 	background: var(--color-accent);
 	color: var(--color-accent-text);
 	font-family: var(--font-family-display);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	text-transform: uppercase;
 }
 

@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/ridgeline",
+	"label": "Ridgeline",
+	"description": "Sunset over the mountains: golden hour, and the ridge in silhouette",
+	"license": "MIT"
+}

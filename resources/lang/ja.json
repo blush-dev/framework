@@ -1903,7 +1903,8 @@
 			"expected_font_family": "「{token}」はフォントファミリー名のリストである必要があります（例: [\"Karla\", \"sans-serif\"]）。",
 			"expected_font_weight": "「{token}」は{low}〜{high}のウェイトである必要があります。",
 			"expected_length": "「{token}」は{low}px〜{high}pxである必要があります（例: \"{low}px\"）。",
-			"expected_letter_spacing": "「{token}」は{low}em〜{high}emである必要があります（例: \"-.01em\"）。"
+			"expected_letter_spacing": "「{token}」は{low}em〜{high}emである必要があります（例: \"-.01em\"）。",
+			"expected_keyword": "「{token}」は {keywords} のいずれかである必要があります。"
 		},
 		"admin_theme": {
 			"not_string": "{path}の管理画面テーマの \"{field}\" が文字列ではありません。",
@@ -1922,7 +1923,6 @@
 			"no_family": "\"typography.fontFace\" には \"fontFamily\" が必要です。英字、数字、スペース、ハイフン、アンダースコアからなるファミリー名です。",
 			"no_src": "フォントフェイス「{family}」には \"src\" が必要です。テーマ内の .woff2 ファイルです（例: \"fonts/{file}.woff2\"）。",
 			"missing_file": "フォントフェイス「{family}」のファイル {src} がテーマ内にありません。",
-			"too_big": "フォントフェイス「{family}」のファイル {src} が {size} KB を超えています。",
 			"bad_weight": "フォントフェイス「{family}」の \"fontWeight\" は1〜1000のウェイト、または2つの値（例: \"200 800\"）である必要があります。",
 			"bad_style": "フォントフェイス「{family}」の \"fontStyle\" は normal、italic、oblique のいずれかである必要があります。",
 			"bad_range": "フォントフェイス「{family}」の \"unicodeRange\" はコードポイントまたは範囲である必要があります（例: \"U+0000-00FF, U+0131\"）。"
@@ -2131,7 +2131,7 @@
 				"feed_format": "「{format}」はフィード形式ではありません。rss、atom、json のいずれかを使用してください。",
 				"feed_limit": "フィードのエントリー数は1〜{max}件です。",
 				"theme": "テーマはテーマ名（vendor/name）である必要があります（例: \"acme/nova\"）。",
-				"admin_theme": "サイトの管理画面テーマは管理画面テーマの名前（vendor/name）である必要があります（例: \"blush/editorial\"）。",
+				"admin_theme": "サイトの管理画面テーマは管理画面テーマの名前（vendor/name）である必要があります（例: \"blush/library\"）。",
 				"names": "無効にした{kind, select, plugins {プラグイン} icon_packs {アイコンパック} other {管理画面テーマ}}は名前のリストである必要があります。",
 				"name": "「{name}」は名前ではありません。無効にした{kind, select, plugins {プラグイン} icon_packs {アイコンパック} other {管理画面テーマ}}は vendor/name の形式で指定します（例: \"acme/gallery\"）。",
 				"embeds": "有効にした埋め込みはプロバイダー名のリストである必要があります。",

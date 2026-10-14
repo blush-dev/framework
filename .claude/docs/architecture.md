@@ -1885,22 +1885,24 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
   shipped as data. `admin-theme.json` (`AdminTheme`: the shared manifest
   keys, no `namespace`, which is refused) and `tokens.json`
   (`AdminTokens`), CSS-shaped groups (`color`, `border.color`,
-  `border.radius`, `boxShadow.color`, `typography.fontFamily`,
+  `border.radius`, `boxShadow` (`color`, and `style`: a `ShadowStyle`
+  whose `hard` geometry `AdminTokens::css()` writes, D-844), `typography.fontFamily`,
   `fontSize`, `fontWeight`, `letterSpacing`, `fontFace`, `padding`),
   each token an `AdminToken` case with a `TokenType` and, for lengths,
-  weights, and letter spacing, a range; a group's `default` may be given
+  weights, and letter spacing, a range (keywords, `keywords()`); a group's `default` may be given
   as the group. Colors are `ColorValue`s (`light-dark()` of two
   `CssColor`s, or one: hex, `rgb()`, `hsl()`, `oklch()`,
   `transparent`), families `FontFamily` stacks (quoted names, bare
   generics, `var(--font-system)` after a stack without one), fonts
-  `FontFace`s (a `.woff2` inside the theme, up to 512 KB). Anything else
+  `FontFace`s (a `.woff2` inside the theme, of any size; split by language as Google Fonts serves it, D-843). Anything else
   is refused, so Blush writes every theme's stylesheet
   (`AdminTheme::stylesheet()`: its faces, and its tokens under
   `:root[data-admin-theme="{name}"]`, which outweighs the admin's
   `:root`). Discovery (`AdminThemeDiscovery`) finds the framework's
   (`resources/admin-themes`: `blush/neutral`, whose `tokens.json` is
   every token but the families and matches `tokens.css`, kept so by
-  `NeutralTokensTest`, and `blush/editorial`), Composer's, and local
+  `NeutralTokensTest`, and Library, Cyanotype, Dune, Observatory, and
+  Ridgeline, on system fonts only, D-845), Composer's, and local
   ones, refusing a framework name; compiled to
   `storage/cache/admin-themes.php` with their tokens. Which are on is
   `AdminThemeConfig` (`config/admin-themes.php`: `enabled`, `saved`,

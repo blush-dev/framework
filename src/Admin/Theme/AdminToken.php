@@ -21,7 +21,8 @@ namespace Blush\Admin\Theme;
  * `--color-surface-subtle`, `typography.fontSize.base` is
  * `--font-size-base`). The rest of the admin's tokens (space, layout,
  * control heights, the mono font, the media overlay, and the shadows'
- * geometry) are core's alone.
+ * geometry) are core's alone; a theme picks one of core's shadow styles
+ * (`ShadowStyle`, D-844).
  *
  * Lengths, weights, and letter spacing are kept within a range each, so a
  * theme reskins the admin but can't break its layout.
@@ -55,6 +56,7 @@ enum AdminToken: string
 	case BorderRadiusMedium      = 'border.radius.medium';
 	case BorderRadiusLarge       = 'border.radius.large';
 	case BoxShadowColor          = 'boxShadow.color';
+	case BoxShadowStyle          = 'boxShadow.style';
 	case FontFamilyUi            = 'typography.fontFamily.ui';
 	case FontFamilyDisplay       = 'typography.fontFamily.display';
 	case FontFamilyTitle         = 'typography.fontFamily.title';
@@ -68,6 +70,7 @@ enum AdminToken: string
 	case FontSizeEditor          = 'typography.fontSize.editor';
 	case FontSizeEditorTitle     = 'typography.fontSize.editorTitle';
 	case FontSizeStat            = 'typography.fontSize.stat';
+	case FontWeightDisplay       = 'typography.fontWeight.display';
 	case FontWeightEntryTitle    = 'typography.fontWeight.entryTitle';
 	case LetterSpacingPageTitle  = 'typography.letterSpacing.pageTitle';
 	case LetterSpacingEntryTitle = 'typography.letterSpacing.entryTitle';
@@ -81,6 +84,7 @@ enum AdminToken: string
 	public function type(): TokenType
 	{
 		return match (true) {
+			$this === self::BoxShadowStyle                             => TokenType::Keyword,
 			str_starts_with($this->value, 'color.'), $this === self::BorderColor, $this === self::BorderColorStrong, $this === self::BoxShadowColor => TokenType::Color,
 			str_starts_with($this->value, 'typography.fontFamily.')    => TokenType::FontFamily,
 			str_starts_with($this->value, 'typography.fontWeight.')    => TokenType::FontWeight,
@@ -120,12 +124,27 @@ enum AdminToken: string
 			self::FontSizeEditor                                  => [13, 18],
 			self::FontSizeEditorTitle                             => [26, 44],
 			self::FontSizeStat                                    => [24, 40],
+			self::FontWeightDisplay                               => [400, 900],
 			self::FontWeightEntryTitle                            => [400, 700],
 			self::LetterSpacingPageTitle, self::LetterSpacingEntryTitle => [-0.05, 0.05],
 			self::PaddingRow                                      => [10, 20],
 			self::PaddingPanel                                    => [12, 24],
 			self::PaddingInline                                   => [16, 32],
 			default                                               => null
+		};
+	}
+
+	/**
+	 * Returns the values a keyword token may have, or `null` for any
+	 * other token.
+	 *
+	 * @return ?list<string>
+	 */
+	public function keywords(): ?array
+	{
+		return match ($this) {
+			self::BoxShadowStyle => array_map(static fn (ShadowStyle $style): string => $style->value, ShadowStyle::cases()),
+			default              => null
 		};
 	}
 

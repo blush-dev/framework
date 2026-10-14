@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/cyanotype",
+	"label": "Cyanotype",
+	"description": "Prussian blue on sun-faded paper, and the print itself in the dark",
+	"license": "MIT"
+}

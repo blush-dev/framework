@@ -26,7 +26,7 @@ use Blush\Translation\Messages;
 
 /**
  * Finds every installed admin theme (D-827): the framework's own, in
- * `resources/admin-themes` (Neutral and Editorial), Composer packages of
+ * `resources/admin-themes` (Neutral and five more, D-845), Composer packages of
  * type `blush-admin-theme`, and folders in `extensions/{vendor}/{name}`
  * holding an `admin-theme.json` or a `composer.json` of that type, whose
  * name must be the folder's (D-418, D-432). What a manifest leaves out it

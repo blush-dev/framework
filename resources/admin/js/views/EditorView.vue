@@ -3754,7 +3754,7 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--color-text);
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-editor-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	letter-spacing: -.028em;
 	line-height: 1.18;
 	overflow-wrap: break-word;
@@ -4072,7 +4072,7 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--color-text);
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-panel-title);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 }
 
 .editor__none-text {

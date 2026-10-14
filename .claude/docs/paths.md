@@ -115,8 +115,8 @@ blush-framework/
                         `composer schemas`, D-206, D-207, D-211, D-827)
     admin-themes/       The framework's admin themes (D-827): neutral/ (admin-theme.json and
                         a tokens.json of every token but the families, the same as
-                        admin/css/tokens.css) and editorial/ (with its Karla and
-                        Newsreader fonts and their OFL license)
+                        admin/css/tokens.css), and library/, cyanotype/, dune/,
+                        observatory/, and ridgeline/, all on system fonts (D-845)
     themes/default/     The framework default theme (D-110): theme.json, style.css,
                         lang/, views/; in a chain only when active or a parent (D-632)
     views/              The framework's own views, searched after the theme chain (D-632):

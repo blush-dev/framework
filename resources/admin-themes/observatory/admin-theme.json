@@ -1,0 +1,7 @@
+{
+	"$schema": "../../schemas/admin-theme.schema.json",
+	"name": "blush/observatory",
+	"label": "Observatory",
+	"description": "A star chart on paper, the night sky in the dark, a nebula magenta accent",
+	"license": "MIT"
+}

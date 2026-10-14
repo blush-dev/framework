@@ -57,8 +57,8 @@ final class AdminThemesTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/broken/admin-theme.json', '{"name": "acme/broken", "label": "Broken"}');
 		$this->writeTemporaryFile('extensions/acme/broken/tokens.json', '{"color": {"accent": "red; }"}}');
 		$this->writeTemporaryFile('extensions/acme/empty/admin-theme.json', '{"name": "acme/empty"}');
-		$this->writeTemporaryFile('extensions/blush/editorial/admin-theme.json', '{"name": "blush/editorial", "label": "Fake"}');
-		$this->writeTemporaryFile('extensions/blush/editorial/tokens.json', '{}');
+		$this->writeTemporaryFile('extensions/blush/library/admin-theme.json', '{"name": "blush/library", "label": "Fake"}');
+		$this->writeTemporaryFile('extensions/blush/library/tokens.json', '{}');
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
 			['name' => 'acme/dusk', 'type' => 'blush-admin-theme', 'install-path' => '../acme/dusk']
 		]]));
@@ -72,11 +72,11 @@ final class AdminThemesTest extends TestCase
 	{
 		$themes = $this->themes();
 
-		$this->assertSame(['acme/dusk', 'acme/harbor', 'blush/editorial', 'blush/neutral'], array_keys($themes->all()));
+		$this->assertSame(['acme/dusk', 'acme/harbor', 'blush/cyanotype', 'blush/dune', 'blush/library', 'blush/neutral', 'blush/observatory', 'blush/ridgeline'], array_keys($themes->all()));
 		$this->assertSame(AdminThemeSource::Framework, $themes->find('blush/neutral')?->source);
 		$this->assertSame(AdminThemeSource::Composer, $themes->find('acme/dusk')?->source, 'A Composer theme takes its package\'s name.');
-		$this->assertSame('Editorial', $themes->find('blush/editorial')?->label, 'A local theme can\'t take a framework theme\'s name.');
-		$this->assertStringContainsString('"blush/editorial" is a framework admin theme\'s name.', (string) ($themes->invalid()['extensions/blush/editorial'] ?? ''));
+		$this->assertSame('Library', $themes->find('blush/library')?->label, 'A local theme can\'t take a framework theme\'s name.');
+		$this->assertStringContainsString('"blush/library" is a framework admin theme\'s name.', (string) ($themes->invalid()['extensions/blush/library'] ?? ''));
 		$this->assertStringContainsString('"color.accent" must be a color', (string) ($themes->invalid()['extensions/acme/broken'] ?? ''));
 		$this->assertStringContainsString('it has no tokens.json', (string) ($themes->invalid()['extensions/acme/empty'] ?? ''));
 	}
@@ -85,8 +85,8 @@ final class AdminThemesTest extends TestCase
 	{
 		$themes = $this->themes();
 
-		$this->assertSame(['acme/dusk', 'blush/editorial', 'blush/neutral'], array_keys($themes->enabled()), 'The framework\'s and Composer\'s; a local one only when named (D-390).');
-		$this->assertSame(['blush/neutral', 'acme/dusk', 'blush/editorial'], array_map(static fn (AdminTheme $theme): string => $theme->name, $themes->offered()), 'Neutral first, then by label.');
+		$this->assertSame(['acme/dusk', 'blush/cyanotype', 'blush/dune', 'blush/library', 'blush/neutral', 'blush/observatory', 'blush/ridgeline'], array_keys($themes->enabled()), 'The framework\'s and Composer\'s; a local one only when named (D-390).');
+		$this->assertSame(['blush/neutral', 'blush/cyanotype', 'blush/dune', 'acme/dusk', 'blush/library', 'blush/observatory', 'blush/ridgeline'], array_map(static fn (AdminTheme $theme): string => $theme->name, $themes->offered()), 'Neutral first, then by label.');
 
 		$named = $themes->withConfig(new AdminThemeConfig(enabled: ['acme/harbor']));
 
@@ -99,11 +99,11 @@ final class AdminThemesTest extends TestCase
 
 	public function testTheThemeAnAccountSees(): void
 	{
-		$themes = $this->themes()->withConfig(new AdminThemeConfig(default: 'blush/editorial'));
+		$themes = $this->themes()->withConfig(new AdminThemeConfig(default: 'blush/library'));
 
-		$this->assertSame('blush/editorial', $themes->inUse()?->name, 'The site\'s default, when it has no choice.');
+		$this->assertSame('blush/library', $themes->inUse()?->name, 'The site\'s default, when it has no choice.');
 		$this->assertSame('acme/dusk', $themes->inUse('acme/dusk')?->name, 'Its own choice.');
-		$this->assertSame('blush/editorial', $themes->inUse('acme/harbor')?->name, 'A choice that isn\'t offered falls back to the default.');
+		$this->assertSame('blush/library', $themes->inUse('acme/harbor')?->name, 'A choice that isn\'t offered falls back to the default.');
 		$this->assertSame('blush/neutral', $themes->withConfig(new AdminThemeConfig(default: 'acme/gone'))->inUse()?->name, 'Then to Neutral.');
 	}
 
@@ -135,7 +135,7 @@ final class AdminThemesTest extends TestCase
 
 		$this->assertNotNull($read);
 		$this->assertSame(array_keys($themes->all()), array_keys($read->all()));
-		$this->assertSame($themes->find('blush/editorial')?->stylesheet(), $read->find('blush/editorial')?->stylesheet());
+		$this->assertSame($themes->find('blush/library')?->stylesheet(), $read->find('blush/library')?->stylesheet());
 		$this->assertSame(array_map(strval(...), $themes->invalid()), array_map(strval(...), $read->invalid()));
 		$this->assertInstanceOf(Text::class, $read->invalid()['extensions/acme/empty'] ?? null, 'A reason is kept as its message (D-836).');
 	}
@@ -185,7 +185,7 @@ final class AdminThemesTest extends TestCase
 		$this->assertFalse($themes->isOffered('acme/future'), 'But no one may choose it.');
 		$this->assertArrayHasKey('acme/future', $themes->unmet());
 		$this->assertFalse($app->container()->make(ExtensionState::class)->runs('acme/future'));
-		$this->assertTrue($app->container()->make(ExtensionState::class)->runs('blush/editorial'));
+		$this->assertTrue($app->container()->make(ExtensionState::class)->runs('blush/library'));
 	}
 
 	public function testTheBundledThemesAreReadable(): void

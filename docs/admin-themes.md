@@ -5,12 +5,20 @@ sizes, corner radii, and how roomy its rows are. It can't change the
 admin's layout or what it does. It's a skin over the admin, not a new
 admin.
 
-Blush comes with two admin themes:
+Blush comes with six admin themes, all on the platform's own fonts:
 
 - **Neutral** (`blush/neutral`): cool gray with a cobalt accent. This is
   the admin's own look, and what everyone sees until they choose another.
-- **Editorial** (`blush/editorial`): warm paper, a teal accent, and serif
-  titles.
+- **Library** (`blush/library`): cool parchment, a bottle-green accent,
+  and titles in the system's serif.
+- **Cyanotype** (`blush/cyanotype`): Prussian blue on sun-faded paper,
+  and the print itself in the dark.
+- **Dune** (`blush/dune`): sand in late sun, with the twilight indigo of
+  the dunes' shadow side.
+- **Observatory** (`blush/observatory`): a star chart on paper, the
+  night sky in the dark, and a nebula magenta accent.
+- **Ridgeline** (`blush/ridgeline`): sunset over the mountains, golden
+  hour and the ridge in silhouette.
 
 Each account chooses its own theme under **Theme and Color Scheme** on
 [Your Account](admin.md#your-account). The site's default is what
@@ -30,7 +38,7 @@ admin guide). Owners and administrators can, and any role with
 declare(strict_types=1);
 
 return new Blush\Admin\Theme\AdminThemeConfig(
-	default: 'blush/editorial'
+	default: 'blush/library'
 );
 ```
 
@@ -42,7 +50,7 @@ can't be shown, Neutral.
 
 ## Turning admin themes on
 
-Neutral is always on. Editorial, and admin themes installed with
+Neutral is always on. The others Blush comes with, and admin themes installed with
 Composer, are on by default. An admin theme in your site's `extensions/`
 folder is off until its switch on **Extend → Admin Themes** turns it on,
 or `config/admin-themes.php` names it in `enabled`:
@@ -123,10 +131,19 @@ the UI font:
 }
 ```
 
-Anything a theme leaves out stays as Neutral has it. So a theme can be as
-small as one accent color. Neutral's own
+Set every token, fonts included, even where you want Neutral's value.
+Anything a theme leaves out stays as Neutral has it, and Neutral's values
+can change in a later version, so a theme that leaves tokens out changes
+with them. Neutral's own
 [`tokens.json`](../resources/admin-themes/neutral/tokens.json) sets every
-token, so it's a good place to start from.
+token but the font families, so it's a good place to start from. For the
+platform's own UI font, list its stack:
+
+```json
+"fontFamily": {
+	"ui": ["-apple-system", "BlinkMacSystemFont", "Segoe UI Variable Text", "Segoe UI", "system-ui", "Roboto", "Noto Sans", "Ubuntu", "Cantarell", "Helvetica Neue", "Arial", "sans-serif"]
+}
+```
 
 Blush reads `tokens.json`, checks every value, and writes the theme's
 stylesheet itself. A theme never ships CSS. That's what keeps a theme
@@ -176,13 +193,20 @@ them under `typography.fontFace`, as CSS's `@font-face` does:
 ```
 
 - **`fontFamily`** and **`src`** are required. `src` is a `.woff2` file
-  inside the theme, up to 512 KB.
+  inside the theme.
 - **`fontWeight`** is a weight, or a variable font's range (`"200 800"`).
   It defaults to `400`.
 - **`fontStyle`** is `normal` (the default), `italic`, or `oblique`.
 - **`unicodeRange`** limits a file to some characters
   (`"U+0000-00FF, U+0131"`), so browsers download it only when a page
   needs them.
+
+Bring every language the font covers, not only the ones you read, split
+the way [Google Fonts](https://fonts.google.com) serves it: a file for
+each language, each with its own `unicodeRange`, and a large script,
+such as Japanese, in Google's numbered slices. List every file Google's
+CSS for the font lists (`https://fonts.googleapis.com/css2?family=...`).
+Browsers download only the files a page's text needs.
 
 Blush serves only the font files a theme lists, and nothing else in its
 folder.
@@ -222,6 +246,7 @@ or tighten the admin without breaking it.
 | `border.radius.medium` | `--border-radius-medium` | 0–24px: menus, small cards |
 | `border.radius.large` | `--border-radius-large` | 0–24px: panels, the table's shell |
 | `boxShadow.color` | `--box-shadow-color` | color: shadows, at their strongest |
+| `boxShadow.style` | `--box-shadow-style` | `soft` or `hard`: see below |
 | `typography.fontFamily.ui` | `--font-family-ui` | font families: everything but titles |
 | `typography.fontFamily.display` | `--font-family-display` | font families: page and panel headings |
 | `typography.fontFamily.title` | `--font-family-title` | font families: entry titles |
@@ -235,6 +260,7 @@ or tighten the admin without breaking it.
 | `typography.fontSize.editor` | `--font-size-editor` | 13–18px: the editor's text |
 | `typography.fontSize.editorTitle` | `--font-size-editor-title` | 26–44px: the editor's title |
 | `typography.fontSize.stat` | `--font-size-stat` | 24–40px: figures on stat tiles |
+| `typography.fontWeight.display` | `--font-weight-display` | 400–900: page and panel headings, the editor's title, stat figures |
 | `typography.fontWeight.entryTitle` | `--font-weight-entry-title` | 400–700 |
 | `typography.letterSpacing.pageTitle` | `--letter-spacing-page-title` | -.05em to .05em |
 | `typography.letterSpacing.entryTitle` | `--letter-spacing-entry-title` | -.05em to .05em |
@@ -242,8 +268,18 @@ or tighten the admin without breaking it.
 | `padding.panel` | `--padding-panel` | 12–24px: panel headers, top and bottom |
 | `padding.inline` | `--padding-inline` | 16–32px: panels, cells, and rows, left and right |
 
+`boxShadow.style` picks how things stand off the page, everywhere in
+the admin at once:
+
+- **`soft`** keeps resting surfaces flat, with soft, blurred shadows
+  under menus, popovers, toasts, and modals.
+- **`hard`** gives everything that has a shadow a solid offset in
+  `boxShadow.color`, with no blur: panels, cards, and buttons at rest
+  and menus by 4px, modals and drawers by 8px. Use an opaque color for
+  it, such as `"light-dark(#000, #f2ee3c)"`.
+
 The admin's spacing scale, layout widths, control heights, code font, and
-the shape of its shadows aren't tokens a theme can set.
+the shape of each style's shadows aren't tokens a theme can set.
 
 ## Checking a theme
 

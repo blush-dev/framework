@@ -239,6 +239,14 @@
 				"color": {
 					"type": "string",
 					"description": "--box-shadow-color: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+				},
+				"style": {
+					"type": "string",
+					"enum": [
+						"soft",
+						"hard"
+					],
+					"description": "--box-shadow-style: one of soft, hard."
 				}
 			}
 		},
@@ -336,6 +344,12 @@
 					"type": "object",
 					"additionalProperties": false,
 					"properties": {
+						"display": {
+							"type": "integer",
+							"minimum": 400,
+							"maximum": 900,
+							"description": "--font-weight-display: a weight from 400 to 900."
+						},
 						"entryTitle": {
 							"type": "integer",
 							"minimum": 400,
@@ -362,7 +376,7 @@
 				},
 				"fontFace": {
 					"type": "array",
-					"description": "The fonts the theme ships, as @font-face has them: woff2 files inside the theme, up to 512 KB each.",
+					"description": "The fonts the theme ships, as @font-face has them: woff2 files inside the theme.",
 					"items": {
 						"type": "object",
 						"required": [

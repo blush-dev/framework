@@ -541,7 +541,7 @@
 	margin: 0;
 	font-family: var(--font-family-display);
 	font-size: var(--font-size-stat);
-	font-weight: 600;
+	font-weight: var(--font-weight-display);
 	font-variant-numeric: tabular-nums;
 	letter-spacing: var(--letter-spacing-page-title);
 	line-height: 1.1;

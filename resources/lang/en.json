@@ -1936,7 +1936,8 @@
 			"expected_font_family": "its \"{token}\" must be a list of font family names, such as [\"Karla\", \"sans-serif\"].",
 			"expected_font_weight": "its \"{token}\" must be a weight from {low} to {high}.",
 			"expected_length": "its \"{token}\" must be from {low}px to {high}px, such as \"{low}px\".",
-			"expected_letter_spacing": "its \"{token}\" must be from {low}em to {high}em, such as \"-.01em\"."
+			"expected_letter_spacing": "its \"{token}\" must be from {low}em to {high}em, such as \"-.01em\".",
+			"expected_keyword": "its \"{token}\" must be one of {keywords}."
 		},
 		"admin_theme": {
 			"not_string": "The admin theme in {path} has a \"{field}\" that isn't a string.",
@@ -1955,7 +1956,6 @@
 			"no_family": "a \"typography.fontFace\" needs a \"fontFamily\": a family name of letters, digits, spaces, hyphens, and underscores.",
 			"no_src": "the \"{family}\" font face needs a \"src\": a .woff2 file inside the theme, such as \"fonts/{file}.woff2\".",
 			"missing_file": "the \"{family}\" font face's file, {src}, isn't in the theme.",
-			"too_big": "the \"{family}\" font face's file, {src}, is over {size} KB.",
 			"bad_weight": "the \"{family}\" font face's \"fontWeight\" must be a weight from 1 to 1000, or two (such as \"200 800\").",
 			"bad_style": "the \"{family}\" font face's \"fontStyle\" must be normal, italic, or oblique.",
 			"bad_range": "the \"{family}\" font face's \"unicodeRange\" must be code points or ranges, such as \"U+0000-00FF, U+0131\"."
@@ -2164,7 +2164,7 @@
 				"feed_format": "\"{format}\" isn't a feed format; use rss, atom, or json.",
 				"feed_limit": "A feed holds from 1 to {max} entries.",
 				"theme": "The theme must be a theme's name (vendor/name), such as \"acme/nova\".",
-				"admin_theme": "The site's admin theme must be an admin theme's name (vendor/name), such as \"blush/editorial\".",
+				"admin_theme": "The site's admin theme must be an admin theme's name (vendor/name), such as \"blush/library\".",
 				"names": "The {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off must be a list of names.",
 				"name": "\"{name}\" isn't a name; the {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off are named vendor/name, such as \"acme/gallery\".",
 				"embeds": "The embeds turned on must be a list of providers' names.",
