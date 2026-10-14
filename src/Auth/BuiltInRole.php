@@ -22,7 +22,7 @@ use Blush\Media\MediaKind;
  * change the capabilities of all but those two (D-312, D-500).
  *
  * The owner (D-500) always has every capability, and only an owner
- * changes an owner's account or gives the role (`PeopleRules`), so
+ * changes an owner's account or gives the role (`UserRules`), so
  * whoever runs the site can hand out administrator and never be locked
  * out by it. The administrator has a list: every built-in capability but
  * installing, updating, and deleting plugins and themes, which put code

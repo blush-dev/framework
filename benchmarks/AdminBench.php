@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Benchmarks;
 
 use PhpBench\Attributes as Bench;
-use Blush\Admin\EntriesController;
+use Blush\Admin\Http\EntriesController;
 use Blush\Auth\Account;
 use Blush\Benchmarks\Fixture\JtcomSizedSite;
 use Blush\Content\Entries;

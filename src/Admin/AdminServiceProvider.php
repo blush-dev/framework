@@ -13,6 +13,21 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Blush\Admin\Health\FileHealthReportStore;
+use Blush\Admin\Health\HealthReportStore;
+use Blush\Admin\Health\IgnoredProblems;
+use Blush\Admin\Health\StoredIgnoredProblems;
+use Blush\Admin\Http\ActivityController;
+use Blush\Admin\Http\AssetController;
+use Blush\Admin\Http\AuthorizeController;
+use Blush\Admin\Http\DashboardController;
+use Blush\Admin\Http\EntriesController;
+use Blush\Admin\Http\EntryController;
+use Blush\Admin\Http\HealthController;
+use Blush\Admin\Http\PreviewLinkController;
+use Blush\Admin\Http\SessionController;
+use Blush\Admin\Http\ShellController;
+use Blush\Admin\Http\ToolController;
 use Blush\Core\ServiceProvider;
 use Blush\Routing\RouteSource;
 

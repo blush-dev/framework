@@ -14,7 +14,56 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Override;
-use Blush\Admin\Redirects\RedirectsController;
+use Blush\Admin\Http\AccountEditController;
+use Blush\Admin\Http\ActivityController;
+use Blush\Admin\Http\AdminThemeAssetController;
+use Blush\Admin\Http\AdminThemeEditController;
+use Blush\Admin\Http\AdminThemesController;
+use Blush\Admin\Http\AssetController;
+use Blush\Admin\Http\AuthorizeController;
+use Blush\Admin\Http\BlocksController;
+use Blush\Admin\Http\CountsController;
+use Blush\Admin\Http\DashboardController;
+use Blush\Admin\Http\EntriesController;
+use Blush\Admin\Http\EntryController;
+use Blush\Admin\Http\ExtensionBackupController;
+use Blush\Admin\Http\ExtensionInstallController;
+use Blush\Admin\Http\FieldControlsController;
+use Blush\Admin\Http\FieldSetEditController;
+use Blush\Admin\Http\FieldSetsController;
+use Blush\Admin\Http\HealthController;
+use Blush\Admin\Http\IconPackEditController;
+use Blush\Admin\Http\IconPacksController;
+use Blush\Admin\Http\IconsController;
+use Blush\Admin\Http\JobController;
+use Blush\Admin\Http\LogController;
+use Blush\Admin\Http\MediaListController;
+use Blush\Admin\Http\MediaUploadController;
+use Blush\Admin\Http\MenusController;
+use Blush\Admin\Http\PasswordController;
+use Blush\Admin\Http\PluginEditController;
+use Blush\Admin\Http\PluginsController;
+use Blush\Admin\Http\PreferencesController;
+use Blush\Admin\Http\PreviewLinkController;
+use Blush\Admin\Http\ProfileController;
+use Blush\Admin\Http\ProfilesController;
+use Blush\Admin\Http\ReferencesController;
+use Blush\Admin\Http\RelationsController;
+use Blush\Admin\Http\RoleEditController;
+use Blush\Admin\Http\SessionController;
+use Blush\Admin\Http\SetPasswordController;
+use Blush\Admin\Http\SettingsController;
+use Blush\Admin\Http\SettingsEditController;
+use Blush\Admin\Http\ShellController;
+use Blush\Admin\Http\SiteHealthController;
+use Blush\Admin\Http\ThemeEditController;
+use Blush\Admin\Http\ThemesController;
+use Blush\Admin\Http\TokensController;
+use Blush\Admin\Http\ToolController;
+use Blush\Admin\Http\TypeEditController;
+use Blush\Admin\Http\TypesController;
+use Blush\Admin\Http\UsersController;
+use Blush\Admin\Http\RedirectsController;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
 use Blush\Routing\Route;
@@ -116,7 +165,7 @@ use Blush\Session\StartSession;
  *     taxonomies (D-591), and `POST health/type-folders` to move data
  *     types that name their folder (D-683).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
- *     (`PeopleController`); `GET profiles`, `GET` and `PATCH profiles/{slug}`
+ *     (`UsersController`); `GET profiles`, `GET` and `PATCH profiles/{slug}`
  *     (the latter locks it against linking, D-605), and `POST` and
  *     `DELETE` the pages written for its archives (`ProfilesController`,
  *     D-353); `POST accounts`, `PATCH` and `DELETE
@@ -279,11 +328,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/type-folders', [HealthController::class, 'moveTypeFolders'])->named('health.type-folders')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),
 			Route::post('/health/unignore', [HealthController::class, 'unignore'])->named('health.unignore')->middleware(Authenticate::class),
-			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
+			Route::get('/roles', [UsersController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),
 			Route::delete('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'delete'])->named('role.delete')->middleware(Authenticate::class),
-			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
+			Route::get('/accounts', [UsersController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
 			Route::get('/profiles', [ProfilesController::class, 'index'])->named('profiles')->middleware(Authenticate::class),
 			Route::get('/profiles/{slug:[^/]+}', [ProfilesController::class, 'show'])->named('profile.show')->middleware(Authenticate::class),
 			Route::patch('/profiles/{slug:[^/]+}', [ProfilesController::class, 'lock'])->named('profile.lock')->middleware(Authenticate::class),

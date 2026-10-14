@@ -1610,13 +1610,13 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     (`{path}/api/accounts/{username}/tokens`) lists, makes, and revokes
     them, another's only with `accounts.edit` and made only for a
     token-only account (`Account::$tokenOnly`, which never signs in and
-    needn't have an email) within `PeopleRules`.
+    needn't have an email) within `UserRules`.
   - The admin edits accounts and roles (D-312): `AccountEditController`
     (new accounts with a one-time `PasswordLink`, roles, author,
     suspension, removal), `RoleEditController`, and the public
-    `SetPasswordController`, within `PeopleRules` (never more than you
+    `SetPasswordController`, within `UserRules` (never more than you
     have, never your own account, someone always able to manage
-    accounts); `PeopleJson` describes both for the screens.
+    accounts); `UsersJson` describes both for the screens.
   - Accounts carry `Preferences` (the admin's color scheme, D-235), set
     through `PATCH {path}/api/preferences`; `SessionReader` lets the
     admin's shell read the session without starting one.
@@ -1630,7 +1630,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     person: one line, up to 100 characters (`Account::tidyName()`,
     `isValidName()`). `Accounts::displayName()` is the name, else the
     profile's title, else the username (D-370); `GET session`,
-    `PeopleJson` (accounts and each role's holders) send it as
+    `UsersJson` (accounts and each role's holders) send it as
     `displayName`, and the dashboard greets by it (D-323). Set on New
     Account, an account's screen (`PATCH accounts/{username}`), Your
     Account (`PATCH {path}/api/profile`, `ProfileController`), and

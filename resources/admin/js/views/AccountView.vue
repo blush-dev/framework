@@ -25,7 +25,7 @@
  * shown once; only a hash of it is kept.
  *
  * Your own account, and an account that can do things you can't, are
- * shown without the controls (`PeopleRules`), with a note saying why.
+ * shown without the controls (`UserRules`), with a note saying why.
  * An owner's account is changed only by an owner (D-500); while the site
  * has none, Your Account offers to make you the owner.
  */

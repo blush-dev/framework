@@ -80,11 +80,19 @@ blush-framework/
                         LoginThrottle, AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
     Preview/            PreviewConfig, PreviewLinks, PreviewLink, PreviewController,
                         PreviewRoutes (signed preview links, D-226)
-    Admin/              AdminConfig, AdminRoutes, AdminApp (the built front end), ShellController,
-                        AssetController, SessionController, DashboardController, ToolController,
-                        ToolButtons (the Tools screen's buttons, D-761),
-                        EntriesController, HealthController, PreviewLinkController,
-                        EntryController (the editing API, D-229), InvalidEdit (D-219, D-223)
+    Admin/              AdminConfig, AdminRoutes, AdminApp (the built front end),
+                        AdminServiceProvider, AdminLinks, Homepage, EntryHandles,
+                        EntryTemplates, Provenance, ToolButtons (the Tools screen's
+                        buttons, D-761), InvalidEdit (D-219, D-223) (D-830)
+    Admin/Http/         Every admin API controller: ShellController, SessionController,
+                        EntriesController, EntryController (the editing API, D-229),
+                        UsersController (accounts and roles), RedirectsController, ...
+    Admin/Health/       Site Health: SiteHealth, ContentHealth, HealthFix(Job),
+                        HealthCheckJob, HealthReportStore, IgnoredProblems, ProblemKeys,
+                        FixAccess
+    Admin/Users/        UsersJson, UserRules (what an account may do to accounts and roles)
+    Admin/Extensions/   InstalledExtensions (installing and rolling back)
+    Admin/Redirects/    RedirectReview, SiteAddresses, Message (the Redirects screen, D-686)
     Admin/Theme/        Admin themes (D-827, D-829): AdminTheme, AdminThemes, AdminThemeDiscovery,
                         AdminThemeCache, AdminThemeConfig, AdminTokens, AdminToken,
                         TokenType, ColorValue, CssColor, FontFamily, FontFace,

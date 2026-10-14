@@ -16,8 +16,8 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\IconPackEditController;
-use Blush\Admin\IconPacksController;
+use Blush\Admin\Http\IconPackEditController;
+use Blush\Admin\Http\IconPacksController;
 use Blush\Admin\Provenance;
 use Blush\Tests\SavedSettings;
 

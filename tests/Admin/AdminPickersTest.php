@@ -15,9 +15,9 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Admin\IconsController;
-use Blush\Admin\MediaListController;
-use Blush\Admin\MediaUploadController;
+use Blush\Admin\Http\IconsController;
+use Blush\Admin\Http\MediaListController;
+use Blush\Admin\Http\MediaUploadController;
 use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaUploads;

@@ -1,0 +1,223 @@
+<?php
+
+/**
+ * Admin icon pack edit controller.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Admin\Http;
+
+use Blush\Extension\ExtensionText;
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Blush\Auth\Account;
+use Blush\Auth\ExtensionAction;
+use Blush\Auth\Permissions;
+use Blush\Cache\ContentVersion;
+use Blush\Core\Bootstrap;
+use Blush\Core\CompiledCache;
+use Blush\Core\Paths;
+use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionManifest;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Install\ExtensionInstaller;
+use Blush\Extension\Install\InstallException;
+use Blush\Extension\LocalExtensions;
+use Blush\Extension\Requirements;
+use Blush\Http\Response;
+use Blush\Http\Status;
+use Blush\Icon\IconConfig;
+use Blush\Icon\IconPack;
+use Blush\Icon\IconPacks;
+use Blush\Icon\IconPackSource;
+use Blush\Settings\InvalidSetting;
+use Blush\Settings\Setting;
+use Blush\Settings\Settings;
+use Blush\Settings\SettingsStore;
+use Blush\Support\Filesystem;
+use Blush\Support\FilesystemException;
+
+/**
+ * Turns icon packs on and off, and deletes them (D-385), for accounts
+ * with `extensions.icon-packs.activate` to turn them on and off and
+ * `extensions.icon-packs.delete` to delete them (D-389):
+ *
+ * - `PUT icon-packs/{vendor}/{name}` with `{"enabled": true|false}`
+ *   saves every pack that's on in the saved settings (`user/data/settings/`)
+ *   (`icons.enabled`), Composer's included, over `config/icons.php`
+ *   (D-391); the first save starts from what's on by default. A pack
+ *   that's off adds no icons, so anywhere one is used shows nothing.
+ *   One whose requirements aren't met can't be turned on (`422`,
+ *   D-431). Answers `{"enabled", "started", "stopped", "refresh"}`: the
+ *   other extensions, of any kind, that start or stop with it (by
+ *   label), and whether the admin should ask for `settings/refresh`
+ *   (when any did).
+ * - `DELETE icon-packs/{folder}` removes a pack's folder from
+ *   `extensions/`, or a broken pack's, clears the icon pack cache, and
+ *   answers `{"deleted"}` with where it was. Composer packs aren't
+ *   folders in `extensions/`, so they're never found here.
+ *
+ * Either moves the content version on, so cached pages go.
+ */
+final readonly class IconPackEditController
+{
+	public function __construct(
+		private Paths $paths,
+		private IconPacks $packs,
+		private ExtensionState $extensions,
+		private SettingsStore $settings,
+		private ContentVersion $version,
+		private Bootstrap $bootstrap,
+		private Permissions $permissions,
+		private Filesystem $filesystem,
+		private ExtensionInstaller $installer,
+		private ExtensionText $text
+	) {}
+
+	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request, ExtensionAction::Activate)) {
+			return self::error('You aren\'t allowed to turn icon packs on and off.', Status::Forbidden);
+		}
+
+		$enable = self::input($request)['enabled'] ?? null;
+
+		if (! is_bool($enable)) {
+			return self::error('Send "enabled": true or false.', Status::BadRequest);
+		}
+
+		$pack = $this->packs->find("{$vendor}/{$name}");
+
+		if ($pack === null) {
+			return self::error(sprintf('No icon pack named %s/%s is installed.', $vendor, $name), Status::NotFound);
+		}
+
+		// One whose requirements aren't met can't be turned on (D-431).
+		$checked = $this->extensions->check($pack);
+
+		if ($enable && ! Requirements::met($checked)) {
+			return self::error(sprintf('%s can\'t be turned on. %s', $this->text->label($pack), Requirements::reason($checked)), Status::UnprocessableContent);
+		}
+
+		try {
+			$saved = $this->settings->update(function (Settings $settings) use ($pack, $enable): Settings {
+				$enabled = array_values(array_diff($settings->has(Setting::IconPacks) ? self::names($settings->get(Setting::IconPacks)) : array_keys($this->packs->on()), [$pack->name]));
+
+				return $settings->with([Setting::IconPacks->value => $enable ? [...$enabled, $pack->name] : $enabled]);
+			});
+		} catch (InvalidSetting $error) {
+			return self::error($error->getMessage(), Status::InternalServerError);
+		}
+
+		// What else starts or stops with it, of every kind: a plugin that
+		// requires it, say (D-431).
+		$after   = $this->extensions->with(icons: new IconConfig(saved: self::names($saved->get(Setting::IconPacks))));
+		$label   = fn (ExtensionManifest $other): string => (string) $this->text->label($other);
+		$started = array_map($label, $after->runningNotIn($this->extensions, $pack->name));
+		$stopped = array_map($label, $this->extensions->runningNotIn($after, $pack->name));
+		$refresh = $started !== [] || $stopped !== [];
+
+		if ($refresh) {
+			$this->bootstrap->clearCompiled(CompiledCache::ContentTypes, CompiledCache::Routes);
+		}
+
+		$this->version->bump();
+
+		return Response::json([
+			'enabled' => $enable,
+			'started' => $started,
+			'stopped' => $stopped,
+			'refresh' => $refresh
+		], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request, ExtensionAction::Delete)) {
+			return self::error('You aren\'t allowed to delete icon packs.', Status::Forbidden);
+		}
+
+		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
+		$where = $this->paths->relative($path);
+		$pack  = array_find($this->packs->all(), static fn (IconPack $pack): bool => $pack->source === IconPackSource::Local && $pack->path === $path);
+
+		if (! is_dir($path) || ($pack === null && ! array_key_exists($where, $this->packs->invalid()))) {
+			return self::error(sprintf('There\'s no icon pack in %s.', $where), Status::NotFound);
+		}
+
+		try {
+			$this->filesystem->removeDirectory($path);
+		} catch (FilesystemException) {
+			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
+		}
+
+		LocalExtensions::prune($this->paths, $path);
+		$this->bootstrap->clearCompiled(CompiledCache::IconPacks);
+
+		// Its backup goes with it (D-393).
+		try {
+			$this->installer->discard($path);
+		} catch (InstallException) {
+			// The extension is gone either way; the backup is inert.
+		}
+		$this->version->bump();
+
+		// The saved list forgets it, so the same name put back starts off.
+		if ($pack !== null) {
+			try {
+				$this->settings->update(static fn (Settings $settings): Settings => $settings->has(Setting::IconPacks)
+					? $settings->with([Setting::IconPacks->value => array_values(array_diff(self::names($settings->get(Setting::IconPacks)), [$pack->name]))])
+					: $settings);
+			} catch (InvalidSetting) {
+				// The folder is gone either way; a name left in the list is harmless.
+			}
+		}
+
+		return Response::json(['deleted' => $where], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * A saved list of names.
+	 *
+	 * @return list<string>
+	 */
+	private static function names(mixed $value): array
+	{
+		return array_values(array_filter(is_array($value) ? $value : [], is_string(...)));
+	}
+
+	private function allowed(ServerRequestInterface $request, ExtensionAction $action): bool
+	{
+		$account = $request->getAttribute(Account::class);
+
+		return $account instanceof Account && $this->permissions->can($account, $action->on(ExtensionKind::IconPack));
+	}
+
+	/**
+	 * The request's JSON object, or an empty array.
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private static function input(ServerRequestInterface $request): array
+	{
+		try {
+			$input = json_decode((string) $request->getBody(), true, 8, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			return [];
+		}
+
+		return is_array($input) ? $input : [];
+	}
+
+	private static function error(string $message, Status $status): ResponseInterface
+	{
+		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
+	}
+}

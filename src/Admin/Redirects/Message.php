@@ -17,7 +17,7 @@ namespace Blush\Admin\Redirects;
  * A line the Redirects screen shows (D-686): under a form field, in the
  * form's notice, or in a row's problem. Its text is parts, plain, in
  * code type (a path), or strong (a title), so the admin can draw them
- * without reading markup from what people typed. A message may carry
+ * without reading markup from what was typed. A message may carry
  * the one fix it offers: a label and an action the admin knows.
  *
  * @phpstan-type Part string|array{code: string}|array{strong: string}

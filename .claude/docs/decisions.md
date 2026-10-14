@@ -26161,3 +26161,31 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** admin themes belong to the admin. A top-level namespace per
   extension kind was never a rule the author set, only how the earlier
   kinds happened to be laid out.
+
+### D-830: The admin's PHP is grouped by folder, and People is Users
+
+- **Date:** 2026-10-14
+- **Status:** Built.
+- **Decision:** `src/Admin` is no longer one flat folder:
+  - **`Admin/Http/`** holds every admin API controller (49, with
+    `RedirectsController` out of `Admin/Redirects/`), as `Api/Http`,
+    `Content/Http`, and `Mcp/Http` hold theirs.
+  - **`Admin/Health/`** holds Site Health's classes, **`Admin/Users/`**
+    the accounts-and-roles helpers, **`Admin/Extensions/`**
+    `InstalledExtensions`, and **`Admin/Redirects/`** and
+    **`Admin/Theme/`** (D-829) what they had.
+  - **`Admin/`** keeps what the whole admin uses: its config, routes,
+    service provider, app, links, and small shared helpers.
+  - **People is Users**, by the rule of saying accounts, profiles, and
+    users: `PeopleController` is `UsersController`, `PeopleJson`
+    `UsersJson`, `PeopleRules` `UserRules`, the tests
+    `AdminUsersTest` and `AdminUsersEditTest`, and "people" and
+    `$person` in the admin's code and comments became users, profiles,
+    or what they meant. Tests that check the retired `people` key and
+    `/people` route still name them.
+  - The admin's feature tests stay in `tests/Admin`: they test endpoints
+    through the kernel, not one class each, so they have no folder to
+    follow.
+- **Why:** the author asked why the admin was one flat folder; nothing
+  had decided it, it grew a file at a time. Controllers go in `Http/`,
+  as the other subsystems already do.

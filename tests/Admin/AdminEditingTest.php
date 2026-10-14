@@ -16,7 +16,7 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\EntryController;
+use Blush\Admin\Http\EntryController;
 use Blush\Admin\EntryHandles;
 use Blush\Content\Editing\IndexPage;
 use Blush\Admin\InvalidEdit;

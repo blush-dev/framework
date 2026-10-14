@@ -15,7 +15,7 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Admin\FieldControlsController;
+use Blush\Admin\Http\FieldControlsController;
 use Blush\Field\ControlType;
 use Blush\Field\FieldRegistry;
 use Blush\Field\FieldType;

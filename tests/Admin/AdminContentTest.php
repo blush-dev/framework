@@ -16,12 +16,12 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\ContentHealth;
-use Blush\Admin\BlocksController;
-use Blush\Admin\EntriesController;
-use Blush\Admin\HealthController;
-use Blush\Admin\PreviewLinkController;
-use Blush\Admin\TypesController;
+use Blush\Admin\Health\ContentHealth;
+use Blush\Admin\Http\BlocksController;
+use Blush\Admin\Http\EntriesController;
+use Blush\Admin\Http\HealthController;
+use Blush\Admin\Http\PreviewLinkController;
+use Blush\Admin\Http\TypesController;
 use Blush\Block\Callout;
 use Blush\Block\BlockRegistry;
 use Blush\Content\Entries;
@@ -232,7 +232,7 @@ final class AdminContentTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\n---\n");
-		$this->writeTemporaryFile('user/content/_post/_authors.md', "---\ntitle: Our Writers\n---\nThe people.\n");
+		$this->writeTemporaryFile('user/content/_post/_authors.md', "---\ntitle: Our Writers\n---\nWho writes here.\n");
 		$this->site(['editor']);
 
 		$list = $this->list('?type=post');

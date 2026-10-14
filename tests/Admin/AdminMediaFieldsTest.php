@@ -16,7 +16,7 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\MediaListController;
+use Blush\Admin\Http\MediaListController;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaKindTarget;
 use Blush\Media\MediaMetadataStore;

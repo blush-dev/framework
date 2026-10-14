@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Job;
 
-use Blush\Admin\HealthCheckJob;
-use Blush\Admin\HealthFixJob;
+use Blush\Admin\Health\HealthCheckJob;
+use Blush\Admin\Health\HealthFixJob;
 use Blush\Job\Jobs\GoLiveJob;
 use Blush\Job\Jobs\MediaIndexJob;
 use Blush\Job\Jobs\PruneCacheJob;

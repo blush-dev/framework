@@ -1,0 +1,112 @@
+<?php
+
+/**
+ * Admin preferences controller.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Admin\Http;
+
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Blush\Admin\Theme\AdminThemes;
+use Blush\Auth\Account;
+use Blush\Auth\Accounts;
+use Blush\Auth\ColorScheme;
+use Blush\Auth\Preferences;
+use Blush\Http\Response;
+use Blush\Http\Status;
+
+/**
+ * Answers `PATCH {path}/api/preferences` (D-235): changes the signed-in
+ * account's own preferences, which any account may do, and answers with
+ * all of them: `colorScheme` (`system`, `light`, or `dark`),
+ * `adminTheme` (an offered admin theme's name, or `null` to follow the
+ * site's default, D-827), `setupSkipped` (D-539), and `shortcuts` (D-547, a list
+ * of screen ids, or `null` for the default); preferences not sent are left
+ * as they are. The entry last saved (`lastEdited`) is written by saving
+ * one, not here.
+ */
+final readonly class PreferencesController
+{
+	public function __construct(
+		private Accounts $accounts,
+		private AdminThemes $themes
+	) {}
+
+	public function __invoke(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account) {
+			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+		}
+
+		try {
+			$input = json_decode((string) $request->getBody(), true, 8, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			$input = null;
+		}
+
+		if (! is_array($input)) {
+			return self::json(['error' => 'Send the preferences to change as a JSON object.'], Status::BadRequest);
+		}
+
+		$preferences = $account->preferences;
+
+		if (array_key_exists('colorScheme', $input)) {
+			$scheme = is_string($input['colorScheme']) ? ColorScheme::tryFrom($input['colorScheme']) : null;
+
+			if ($scheme === null) {
+				return self::json(['error' => '"colorScheme" must be system, light, or dark.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withColorScheme($scheme);
+		}
+
+		if (array_key_exists('adminTheme', $input)) {
+			$theme = $input['adminTheme'];
+
+			if ($theme !== null && (! is_string($theme) || ! $this->themes->isOffered($theme))) {
+				return self::json(['error' => '"adminTheme" must be null, to follow the site\'s default, or the name of an admin theme that\'s turned on.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withAdminTheme($theme);
+		}
+
+		if (array_key_exists('setupSkipped', $input)) {
+			if (! is_bool($input['setupSkipped'])) {
+				return self::json(['error' => '"setupSkipped" must be true or false.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withSetupSkipped($input['setupSkipped']);
+		}
+
+		if (array_key_exists('shortcuts', $input)) {
+			if ($input['shortcuts'] !== null && ! Preferences::isShortcuts($input['shortcuts'])) {
+				return self::json(['error' => sprintf('"shortcuts" must be null, or a list of up to %d distinct screen ids.', Preferences::MAX_SHORTCUTS)], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withShortcuts($input['shortcuts']);
+		}
+
+		$account = $this->accounts->setPreferences($account, $preferences);
+
+		return self::json(['preferences' => $account->preferences->toArray()]);
+	}
+
+	/**
+	 * @param array<string, mixed> $data
+	 */
+	private static function json(array $data, Status $status = Status::Ok): ResponseInterface
+	{
+		return Response::json($data, $status, ['Cache-Control' => 'no-store']);
+	}
+}

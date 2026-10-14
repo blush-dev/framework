@@ -16,10 +16,10 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\CountsController;
+use Blush\Admin\Http\CountsController;
 use Blush\Admin\Redirects\Message;
 use Blush\Admin\Redirects\RedirectReview;
-use Blush\Admin\Redirects\RedirectsController;
+use Blush\Admin\Http\RedirectsController;
 use Blush\Admin\Redirects\SiteAddresses;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\RedirectRow;
@@ -272,14 +272,14 @@ final class AdminRedirectsTest extends TestCase
 		$this->assertSame(['name' => 'jane', 'username' => 'jane', 'you' => true], self::at($added, 'redirect', 'by'), 'The account, to name and link to.');
 		$this->assertNull($added['was'] ?? null);
 
-		$changed = self::json($this->write('POST', '/redirects', ['was' => '/team', 'from' => '/people', 'to' => 'https://example.com/team', 'status' => 301]));
-		$this->assertSame(['/people'], array_values(array_intersect(['/team', '/people'], array_keys($this->stored()))), 'Changing the old path moves the row.');
-		$this->assertSame([$row['added'], $this->janeId()], [$this->stored()['/people']['added'] ?? null, $this->stored()['/people']['by'] ?? null], 'It keeps when and by whom it was added.');
+		$changed = self::json($this->write('POST', '/redirects', ['was' => '/team', 'from' => '/staff', 'to' => 'https://example.com/team', 'status' => 301]));
+		$this->assertSame(['/staff'], array_values(array_intersect(['/team', '/staff'], array_keys($this->stored()))), 'Changing the old path moves the row.');
+		$this->assertSame([$row['added'], $this->janeId()], [$this->stored()['/staff']['added'] ?? null, $this->stored()['/staff']['by'] ?? null], 'It keeps when and by whom it was added.');
 		$this->assertSame('/team', self::at($changed, 'was', 'from'));
 
-		$this->assertSame(200, $this->write('POST', '/redirects/restore', ['rows' => [$changed['was'] ?? []], 'remove' => ['/people']])->getStatusCode());
+		$this->assertSame(200, $this->write('POST', '/redirects/restore', ['rows' => [$changed['was'] ?? []], 'remove' => ['/staff']])->getStatusCode());
 		$this->assertSame(self::ABOUT, $this->stored()['/team']['entry'] ?? null, 'Undo puts it back.');
-		$this->assertArrayNotHasKey('/people', $this->stored());
+		$this->assertArrayNotHasKey('/staff', $this->stored());
 
 		$retyped = self::json($this->write('POST', '/redirects/status', ['from' => ['/team', '/sale', '/old-about'], 'status' => 301]));
 		$this->assertSame(['/team', '/sale'], array_column(is_array($retyped['changed'] ?? null) ? $retyped['changed'] : [], 'from'), 'Only those that changed, as they were.');

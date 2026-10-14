@@ -16,8 +16,8 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\TypeEditController;
-use Blush\Admin\TypesController;
+use Blush\Admin\Http\TypeEditController;
+use Blush\Admin\Http\TypesController;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeFolderMigration;
@@ -135,7 +135,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['recipe', 'note'], $this->data('user/data/relations/authors.json')['from'] ?? null, 'A second type joins it.');
 	}
 
-	public function testATypeNamesItsBylineAndRefusesPeopleFields(): void
+	public function testATypeNamesItsBylineAndRefusesCreditFields(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.json', '{"urls": {"prefix": "recipes"}}');
 		$this->writeTemporaryFile('user/data/relations/cooks.json', '{"kind": "credit", "from": ["recipe"], "to": ["profile"]}');
@@ -347,7 +347,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $feed->getStatusCode(), 'A tree has no feed.');
 		$this->assertStringContainsString('unknown options: feed', self::error($feed));
 
-		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'person', 'kind' => 'profiles', 'set' => []])->getStatusCode(), 'The site has one profiles type.');
+		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'member', 'kind' => 'profiles', 'set' => []])->getStatusCode(), 'The site has one profiles type.');
 	}
 
 	public function testChangesACodeTypeInADataFile(): void
@@ -524,7 +524,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$page = self::json($this->send('GET', '/types/page'));
 		$this->assertSame([false, true], [$page['editable'] ?? null, $page['placeable'] ?? null], 'The built-in pages can be placed, though not edited.');
-		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['placeable'] ?? null, 'Profiles are listed with people.');
+		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['placeable'] ?? null, 'Profiles are listed under Users.');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['position' => 1, 'under' => null]])->getStatusCode());
 		$this->assertSame(['position' => 1, 'under' => ''], $this->data('user/data/types/movie.json'), 'Over code, only what differs, with the top level written out.');

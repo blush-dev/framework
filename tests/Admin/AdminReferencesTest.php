@@ -15,7 +15,7 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Admin\ReferencesController;
+use Blush\Admin\Http\ReferencesController;
 
 #[CoversClass(ReferencesController::class)]
 final class AdminReferencesTest extends TestCase

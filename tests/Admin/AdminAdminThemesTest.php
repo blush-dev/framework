@@ -16,8 +16,8 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\AdminThemeEditController;
-use Blush\Admin\AdminThemesController;
+use Blush\Admin\Http\AdminThemeEditController;
+use Blush\Admin\Http\AdminThemesController;
 use Blush\Tests\SavedSettings;
 
 #[CoversClass(AdminThemesController::class)]

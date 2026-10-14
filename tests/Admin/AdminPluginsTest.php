@@ -16,8 +16,8 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\PluginEditController;
-use Blush\Admin\PluginsController;
+use Blush\Admin\Http\PluginEditController;
+use Blush\Admin\Http\PluginsController;
 use Blush\Plugin\Plugins;
 use Blush\Tests\SavedSettings;
 

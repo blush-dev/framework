@@ -16,13 +16,13 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Admin\AdminApp;
-use Blush\Admin\AdminThemeAssetController;
-use Blush\Admin\AssetController;
-use Blush\Admin\DashboardController;
-use Blush\Admin\LogController;
-use Blush\Admin\ShellController;
+use Blush\Admin\Http\AdminThemeAssetController;
+use Blush\Admin\Http\AssetController;
+use Blush\Admin\Http\DashboardController;
+use Blush\Admin\Http\LogController;
+use Blush\Admin\Http\ShellController;
 use Blush\Admin\ToolButtons;
-use Blush\Admin\ToolController;
+use Blush\Admin\Http\ToolController;
 use Blush\Auth\Accounts;
 use Blush\Auth\Capabilities;
 use Blush\Content\Entries;
@@ -411,7 +411,7 @@ final class AdminAppTest extends TestCase
 		$this->boot(roles: ['owner']);
 
 		$container = $this->app->container();
-		$container->make(Capabilities::class)->register('shop.greet', 'Greet people');
+		$container->make(Capabilities::class)->register('shop.greet', 'Greet visitors');
 		$container->make(ToolRegistry::class)->register('shop/greet', GreetTool::class);
 
 		$token  = $this->token();
