@@ -17,8 +17,9 @@ namespace Blush\Auth;
  * A one-time link for choosing a password (D-312), as an account keeps
  * it: the SHA-256 of its token, never the token, and when it expires.
  * An administrator makes one for a new account, or for someone who
- * forgot their password, and sends it however they like; Blush sends no
- * email. Using it, or making another, ends it.
+ * forgot their password, to copy or to email (D-846); or someone asks
+ * for one by email from the sign-in screen. Using it, or making
+ * another, ends it.
  */
 final readonly class PasswordLink
 {

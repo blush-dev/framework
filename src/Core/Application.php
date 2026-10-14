@@ -37,6 +37,8 @@ use Blush\Event\EventServiceProvider;
 use Blush\Embed\EmbedServiceProvider;
 use Blush\Icon\IconServiceProvider;
 use Blush\Job\JobServiceProvider;
+use Blush\Mail\MailServiceProvider;
+use Blush\Notification\NotificationServiceProvider;
 use Blush\Menu\MenuServiceProvider;
 use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
@@ -106,6 +108,8 @@ class Application implements Bootable
 		MenuServiceProvider::class,
 		SessionServiceProvider::class,
 		JobServiceProvider::class,
+		MailServiceProvider::class,
+		NotificationServiceProvider::class,
 		SecretServiceProvider::class,
 		SetupServiceProvider::class,
 		AuthServiceProvider::class,

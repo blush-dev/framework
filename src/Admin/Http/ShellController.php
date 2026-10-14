@@ -31,6 +31,7 @@ use Blush\Extension\ExtensionText;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Markdown\Html\HtmlRules;
+use Blush\Mail\MailTransport;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Session\SessionReader;
@@ -74,6 +75,7 @@ final readonly class ShellController
 		private Authenticator $authenticator,
 		private MediaConfig $media,
 		private MarkdownConfig $markdown,
+		private MailTransport $mail,
 		private AdminThemes $themes,
 		private ExtensionText $text,
 		private AdminLanguages $languages,
@@ -129,6 +131,9 @@ final readonly class ShellController
 			'language'    => $preferences?->language,
 			'adminLanguages' => $this->languages->offered(),
 			'mentions'    => $this->markdown->mentions,
+			// Whether the site can send email (D-846): sign-in offers
+			// "Forgot your password?", and password links can be emailed.
+			'mail'        => $this->mail->isSetUp(),
 			'dates'       => [
 				'locale' => str_replace('_', '-', $this->site->locale),
 				'date'   => $this->site->dateFormat,

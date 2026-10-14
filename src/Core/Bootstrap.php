@@ -47,6 +47,7 @@ use Blush\Icon\IconPackCache;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Icon\IconPacks;
 use Blush\Job\JobConfig;
+use Blush\Mail\MailConfig;
 use Blush\Llms\LlmsConfig;
 use Blush\Mcp\McpConfig;
 use Blush\Log\LogConfig;
@@ -387,6 +388,7 @@ final readonly class Bootstrap
 			new EmbedConfig(),
 			new SessionConfig(),
 			new JobConfig(),
+			MailConfig::fromEnv($env),
 			new AuthConfig(),
 			new AdminConfig(),
 			PreviewConfig::fromEnv($env)

@@ -94,6 +94,19 @@ final readonly class Accounts
 	}
 
 	/**
+	 * Returns the account with an email address, in any case, or `null`
+	 * when there's none (D-846). Addresses are one account's each (D-370).
+	 *
+	 * @throws AuthException When an account's record is damaged.
+	 */
+	public function findByEmail(string $email): ?Account
+	{
+		$email = mb_strtolower(trim($email));
+
+		return $email === '' ? null : array_find($this->all(), static fn (Account $account): bool => $account->email !== null && mb_strtolower($account->email) === $email);
+	}
+
+	/**
 	 * Returns an account by its id, or `null` when there's none.
 	 *
 	 * @throws AuthException When the account's record is damaged.
@@ -316,17 +329,18 @@ final readonly class Accounts
 	/**
 	 * Gives an account a new link for choosing a password, replacing any
 	 * it had, and returns it with the link's token. Its password keeps
-	 * working until the link is used.
+	 * working until the link is used. It lasts `$lifetime` seconds, else
+	 * `AuthConfig::$passwordLinkLifetime`.
 	 *
 	 * @return array{Account, string}
 	 * @throws AuthException For a token-only account, which never has a
 	 *                       password.
 	 */
-	public function issuePasswordLink(Account $account): array
+	public function issuePasswordLink(Account $account, ?int $lifetime = null): array
 	{
 		$this->refuseTokenOnly($account);
 
-		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $this->config->passwordLinkLifetime);
+		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $lifetime ?? $this->config->passwordLinkLifetime);
 
 		return [$this->save($account->withPasswordLink($link)), $token];
 	}

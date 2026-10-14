@@ -989,8 +989,9 @@ export interface SettingItem {
 	// as its options side by side, with the chosen one's details under
 	// them (D-695); `switches` is a list drawn as a switch for each
 	// option, saying its `words` (AI's crawlers, D-765); `tools` is the
-	// tools a connected app can be asked to do, by `sources` (D-765).
-	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds' | 'segmented' | 'switches' | 'tools';
+	// tools a connected app can be asked to do, by `sources` (D-765);
+	// `test` is Email's Send a Test, to the address in `value` (D-846).
+	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds' | 'segmented' | 'switches' | 'tools' | 'test';
 	// Whether it's still the default; `null` when it follows from others.
 	default: boolean | null;
 	help: string | null;

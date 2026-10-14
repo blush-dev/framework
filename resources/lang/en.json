@@ -1391,7 +1391,9 @@
 				"suspend": "You aren't allowed to suspend or reinstate accounts.",
 				"edit": "You aren't allowed to change accounts' names or profiles."
 			},
-			"forbidden": "You aren't allowed to do that to accounts."
+			"forbidden": "You aren't allowed to do that to accounts.",
+			"link_no_email": "{username} has no email address to send a link to.",
+			"no_mail": "This site can't send email; copy the link instead."
 		},
 		"authorize_controller": {
 			"choose_capabilities": "Choose the capabilities to give it.",
@@ -1668,6 +1670,15 @@
 					"title": "Publishing and Previews",
 					"hint": "Secrets are never shown",
 					"note": "From `.env` (`PUBLISH_*`, `APP_SECRET`) when these files don't exist."
+				},
+				"sender": {
+					"title": "Sender",
+					"hint": "Who the site's email is from"
+				},
+				"delivery": {
+					"title": "Delivery",
+					"hint": "How it's sent",
+					"note": "From `.env` (`MAIL_DSN`) when `config/mail.php` reads it, as it does by default."
 				}
 			},
 			"general": {
@@ -1801,6 +1812,23 @@
 				"development": "Development",
 				"staging": "Staging",
 				"production": "Production"
+			},
+			"email": {
+				"transport": "Transport",
+				"not_set_up": "Not set up",
+				"not_set_up_help": "The site can't send email: no transport is set, and PHP on this server has no mail program. Set MAIL_DSN in .env to your host's SMTP server or a mail service's.",
+				"transport_help": "Where the site hands its email to be sent. Its password, if it has one, is never shown.",
+				"test": "Test email",
+				"test_no_address": "Your account has no email address to send a test to.",
+				"test_help": "Sends a short email to {email}, to check that the site's email arrives.",
+				"from_name": "From name",
+				"from_address": "From address",
+				"off_help": "MAIL_DSN is empty, so the site sends no email: password links are copied, and sign-in has no \"Forgot your password?\".",
+				"fallback_help": "No transport is set, so email goes out through PHP's own mail, which often lands in spam or is refused. For email people get, set MAIL_DSN in .env to your host's SMTP server or a mail service's.",
+				"fallback_warning": "Password links may land in spam: set an SMTP transport for a live site.",
+				"undelivered_warning": "Email isn't delivered with this transport, so nobody gets password links.",
+				"off": "Turned off",
+				"fallback": "PHP's own mail (no setup)"
 			}
 		},
 		"tokens_controller": {
@@ -1862,7 +1890,13 @@
 			"not_home": "\"{type}\" can't be the homepage: it must be a collection type with addresses.",
 			"not_role": "\"{role}\" isn't a role on this site.",
 			"upload_too_big": "The server takes files of at most {server} MB, so a largest file of {size} MB won't hold.",
-			"theme_unmet": "{theme} can't be activated. {reason}"
+			"theme_unmet": "{theme} can't be activated. {reason}",
+			"no_mail": "The site can't send email: set MAIL_DSN in .env to a transport first.",
+			"test_no_address": "Your account has no email address to send a test to.",
+			"test_subject": "A test from {site}",
+			"test_hello": "Hi {name},",
+			"test_body": "This is the test you sent from Settings → Email. It arrived, so the site's email works.",
+			"test_failed": "The test wasn't sent: {error}"
 		},
 		"types_controller": {
 			"not_found": "There's no \"{name}\" content type."
@@ -1959,6 +1993,12 @@
 			"bad_weight": "the \"{family}\" font face's \"fontWeight\" must be a weight from 1 to 1000, or two (such as \"200 800\").",
 			"bad_style": "the \"{family}\" font face's \"fontStyle\" must be normal, italic, or oblique.",
 			"bad_range": "the \"{family}\" font face's \"unicodeRange\" must be code points or ranges, such as \"U+0000-00FF, U+0131\"."
+		},
+		"forgot_password_controller": {
+			"no_mail": "This site can't send email, so ask an administrator for a password link.",
+			"no_login": "Enter your username or email address.",
+			"too_many": "Too many tries. Try again later.",
+			"sent": "If that's an account here, a link to choose a new password is on its way to its email address. It works for an hour."
 		}
 	},
 	"settings": {
@@ -1989,7 +2029,8 @@
 			"media": "Media",
 			"search": "Addresses and Search",
 			"ai": "AI",
-			"api": "API"
+			"api": "API",
+			"email": "Email"
 		},
 		"setting": {
 			"name": {
@@ -2174,9 +2215,21 @@
 				"crawler": "\"{group}\" isn't a kind of AI crawler; use training, search, or fetchers.",
 				"disallow": "The paths robots.txt asks to skip must be a list.",
 				"path": "\"{path}\" isn't a path; a path starts with / and has no spaces, such as /drafts/.",
-				"disallow_many": "robots.txt can be asked to skip at most {max} paths."
+				"disallow_many": "robots.txt can be asked to skip at most {max} paths.",
+				"from_name_text": "The from name must be text.",
+				"from_name_long": "The from name can be at most {max} characters.",
+				"from_name_line": "The from name can't hold line breaks or control characters.",
+				"from_address_text": "The from address must be text."
 			},
-			"format_help": "How themes show dates and times. One from the language follows the site's language; a fixed one keeps its order whatever the language."
+			"format_help": "How themes show dates and times. One from the language follows the site's language; a fixed one keeps its order whatever the language.",
+			"mail_from_name": {
+				"label": "From name",
+				"description": "Who the site's email says it's from. Empty, the site's name."
+			},
+			"mail_from_address": {
+				"label": "From address",
+				"description": "The address the site's email is sent from, which your mail service must allow. Empty, the site's email address."
+			}
 		}
 	},
 	"core": {
@@ -2594,7 +2647,15 @@
 			"extensions_run": "Everything that's on runs.",
 			"sentences": "{sentence} {next}",
 			"jobs": "Background jobs",
-			"secret": "Secret {name}"
+			"secret": "Secret {name}",
+			"mail": "Email",
+			"mail_hint": "Set MAIL_DSN in .env to your host's SMTP server or a mail service's, such as smtp://user:password@smtp.example.com:587.",
+			"mail_off": "Turned off: MAIL_DSN is empty, so the site sends none.",
+			"mail_none": "The site can't send email: no transport is set, and PHP on this server has no mail program.",
+			"mail_fallback": "Email goes out through PHP's own mail, which often lands in spam or is refused.",
+			"mail_fallback_dev": "Email goes out through PHP's own mail; set a transport before the site goes live.",
+			"mail_undelivered": "Email isn't delivered: the transport is {transport}.",
+			"mail_set": "Sent through {transport}."
 		},
 		"setup_checks": {
 			"why": {
@@ -3813,6 +3874,42 @@
 			"no_entry": "There's no entry with the id \"{id}\" that this connection may see.",
 			"no_published": "There's no published entry at \"{url}\"; search_entries finds drafts.",
 			"unreadable": "“{title}” can't be read: {problem}"
+		}
+	},
+	"notification": {
+		"notify_job": {
+			"label": "Send a notification",
+			"describe_account": "Send \"{notification}\" to {name}",
+			"describe_address": "Send \"{notification}\" to {email}",
+			"describe_capability": "Send \"{notification}\" to everyone with {capability}",
+			"damaged": "This job doesn't say what to send, or to whom.",
+			"unknown": "Nothing sends \"{notification}\" any more; its plugin may be off.",
+			"no_transport": "The site can't send mail: it has no transport.",
+			"no_recipient": "Not sent: the account is gone, suspended, or has no email address.",
+			"nothing": "Nothing to send to {email}.",
+			"sent": "Sent to {email}",
+			"fanned_out": "Queued for {count, plural, =0 {no accounts} one {# account} other {# accounts}}"
+		},
+		"password_link": {
+			"label": "Password links",
+			"hello": "Hi {name},",
+			"invite": {
+				"subject": "Your account on {site}",
+				"body": "An account was made for you on {site}, with the username {username}. Choose a password to sign in.",
+				"action": "Choose a Password"
+			},
+			"expires": "The link works once, until {date}.",
+			"forgot": {
+				"subject": "Reset your password on {site}",
+				"body": "Someone asked to reset the password of {username} on {site}. Choose a new one with this link.",
+				"action": "Choose a New Password",
+				"note": "The link works once, until {date}. If you didn't ask, ignore this email: your password hasn't changed."
+			},
+			"reset": {
+				"subject": "Choose a new password on {site}",
+				"body": "An administrator of {site} sent you a link to choose a new password for {username}. Your current password works until you do.",
+				"action": "Choose a New Password"
+			}
 		}
 	}
 }

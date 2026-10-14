@@ -34,6 +34,7 @@ final class JobServiceProvider extends ServiceProvider
 		JobFactory::class,
 		JobRunner::class,
 		Scheduler::class,
+		UrgentJobs::class,
 		WebRunner::class
 	];
 

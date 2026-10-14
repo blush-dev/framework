@@ -32,6 +32,7 @@ use Blush\Admin\Http\ExtensionInstallController;
 use Blush\Admin\Http\FieldControlsController;
 use Blush\Admin\Http\FieldSetEditController;
 use Blush\Admin\Http\FieldSetsController;
+use Blush\Admin\Http\ForgotPasswordController;
 use Blush\Admin\Http\HealthController;
 use Blush\Admin\Http\IconPackEditController;
 use Blush\Admin\Http\IconPacksController;
@@ -92,6 +93,8 @@ use Blush\Session\StartSession;
  *   - `POST password`: changes the account's own password.
  *   - `POST set-password`: sets a password with a password link, and
  *     signs in (D-312; no account needed).
+ *   - `POST forgot-password`: emails a password link to the account a
+ *     username or email address names (D-846; no account needed).
  *   - `GET  dashboard`: the site, and the entries waiting on the account
  *     (D-538).
  *   - `GET  tools`: the tools the account may run as buttons, by
@@ -207,7 +210,9 @@ use Blush\Session\StartSession;
  *     the admin can change in the saved settings (`user/data/settings/`), and `POST
  *     settings/refresh` compiles and reindexes after
  *     (`SettingsEditController`, D-324). `GET settings/date-format`
- *     shows how a date or time format reads now (D-445).
+ *     shows how a date or time format reads now (D-445). `POST
+ *     settings/email/test` sends a test email to the signed-in account
+ *     (D-846).
  *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
@@ -243,6 +248,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/profile', ProfileController::class)->named('profile')->middleware(Authenticate::class),
 			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
+			Route::post('/forgot-password', ForgotPasswordController::class)->named('forgot-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
 			Route::get('/tools', [ToolController::class, 'index'])->named('tools')->middleware(Authenticate::class),
@@ -380,6 +386,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardAdminTheme'])->named('admin-theme.backup.discard')->middleware(Authenticate::class),
 			Route::delete('/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [AdminThemeEditController::class, 'delete'])->named('admin-theme.delete')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
+			Route::post('/settings/email/test', [SettingsEditController::class, 'testEmail'])->named('settings.email.test')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
 			Route::get('/settings/date-format', [SettingsController::class, 'format'])->named('settings.date-format')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),

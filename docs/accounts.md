@@ -67,17 +67,33 @@ in the admin.
 
 ### Password links
 
-Blush doesn't send email. When you create an account in the admin, it
-gets a **password link** instead of a password: copy it from the
-account's screen and send it however you like. The person opens it,
-chooses a password, and is signed in. A link works once and lasts a
-week (`passwordLinkLifetime` in `config/auth.php`); only a hash of it is
-kept, so it can't be shown again. Until it's used, the account is
-**Invited**.
+When you create an account in the admin, it gets a **password link**
+instead of a password. The person opens it, chooses a password, and is
+signed in. A link works once and lasts a week (`passwordLinkLifetime`
+in `config/auth.php`); only a hash of it is kept, so it can't be shown
+again. Until it's used, the account is **Invited**.
+
+If your site [sends email](configuration.md#email) (it does with no
+setup on most servers, though SMTP is more reliable), **New Account**
+emails the link to the account's address (untick **Email them a link to
+choose a password** to copy it instead). Otherwise, copy it from the
+account's screen and send it however you like.
 
 For a forgotten password, **Make a password link** on the account's
-screen. The old password keeps working until the link is used, and a new
-link replaces the old one.
+screen, or **Email a password link** where the site sends email. The old
+password keeps working until the link is used, and a new link replaces
+the old one.
+
+### Forgot your password?
+
+Where the site sends email, the sign-in screen has **Forgot your
+password?**: enter your username or email address, and the account is
+emailed a link to choose a new password. That link lasts an hour
+(`resetLinkLifetime` in `config/auth.php`). The screen says the same
+thing whether or not the account exists, so it never tells anyone
+which accounts there are. A suspended account is sent nothing, an
+account is sent one link every five minutes at most, and one address
+may ask five times in fifteen minutes (`maxAttempts` and `lockout`).
 
 ### Suspending and removing
 
@@ -141,9 +157,10 @@ SQLite driver).
 Every account needs an email address: `account:add`, `init`, and **New
 Account** ask for one, and no two accounts may share one (in any
 case). It's for the people who manage accounts, shown on the account's
-screen and in the Accounts list; Blush sends no email, so password
-links are still yours to send. Change it with `account:email`, on the
-account's screen, or on **Your account**.
+screen and in the Accounts list, and it's where
+[password links](#password-links) are emailed when the site sends
+email. Change it with `account:email`, on the account's screen, or on
+**Your account**.
 
 An account made before email addresses has none until it's given one;
 the admin marks it **No email** and asks for one.
@@ -292,7 +309,7 @@ The rest are for the whole site:
 | `site.health` | Seeing Site Health, and its fixes for content and media files (owners only, by default) |
 | `accounts.view` | Seeing accounts and roles (each account action below also needs it) |
 | `accounts.create` | Creating accounts, with their first roles |
-| `accounts.edit` | Changing an account's name and profile, and making password links |
+| `accounts.edit` | Changing an account's name and profile, and making and emailing password links |
 | `accounts.roles` | Giving and taking roles |
 | `accounts.suspend` | Suspending and reinstating accounts |
 | `accounts.delete` | Removing accounts |

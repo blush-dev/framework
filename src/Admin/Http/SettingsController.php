@@ -51,6 +51,8 @@ use Blush\Http\Status;
 use Blush\Llms\LlmsConfig;
 use Blush\Llms\LlmsRoutes;
 use Blush\Llms\LlmsTxt;
+use Blush\Mail\MailConfig;
+use Blush\Mail\MailTransport;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
@@ -81,7 +83,7 @@ use Blush\Translation\Text;
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
  * accounts with `site.settings`: one Settings screen (`general`,
- * `reading`, `writing` (D-494), `media` (D-406), `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
+ * `reading`, `writing` (D-494), `media` (D-406), `email` (D-846), `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
  * `title`, `hint`, and a `note`, where backticks mark code), each with
  * `items`: a `key`, `label`, the `value` to show, its `kind` (`text`,
  * `mono`, `bool`, or `list`; a `bool`'s value is `true` or `false`, a
@@ -152,6 +154,8 @@ final readonly class SettingsController
 		private Provenance $provenance,
 		private OAuthServer $oauth,
 		private ControlDefaults $defaults,
+		private MailConfig $mail,
+		private MailTransport $transport,
 		private Messages $messages
 	) {}
 
@@ -170,6 +174,7 @@ final readonly class SettingsController
 			'reading' => $this->reading($saved),
 			'writing' => $this->writing($saved),
 			'media'   => $this->media($saved),
+			'email'   => $this->email($saved, $account),
 			'search'  => $this->search($saved),
 			'ai'      => $this->ai($saved),
 			'api'     => $this->apiScreen($saved, $account),
@@ -293,6 +298,60 @@ final readonly class SettingsController
 					'warning' => $this->app->debug && $environment === Environment::Production ? $this->messages->t('admin.settings_controller.general.debug_warning', 'Never on a live site: error pages show the site\'s code and settings.') : null
 				]
 			], $this->messages->t('admin.settings_controller.groups.environment.note', 'From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default.'))
+		];
+	}
+
+	/**
+	 * Email (D-846, D-848): who the site's mail is from, which the admin
+	 * saves, and the transport (`MailTransport`, without its password):
+	 * `MAIL_DSN`'s, else PHP's own mail where the server has it, which
+	 * the help says is less reliable, with a `warning` on a live site, as
+	 * `log` and `null` have there too. When there is one, an item of
+	 * `kind` `test` is **Send a Test**, which sends to the signed-in
+	 * account's address (its `value`; empty when it has none).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function email(Settings $saved, Account $account): array
+	{
+		$transport = $this->transport->describe();
+		$live      = $this->app->environment === Environment::Production;
+		$help      = match (true) {
+			$this->transport->isOff()      => $this->messages->t('admin.settings_controller.email.off_help', 'MAIL_DSN is empty, so the site sends no email: password links are copied, and sign-in has no "Forgot your password?".'),
+			$transport === null            => $this->messages->t('admin.settings_controller.email.not_set_up_help', 'The site can\'t send email: no transport is set, and PHP on this server has no mail program. Set MAIL_DSN in .env to your host\'s SMTP server or a mail service\'s.'),
+			$this->transport->isFallback() => $this->messages->t('admin.settings_controller.email.fallback_help', 'No transport is set, so email goes out through PHP\'s own mail, which often lands in spam or is refused. For email people get, set MAIL_DSN in .env to your host\'s SMTP server or a mail service\'s.'),
+			default                        => $this->messages->t('admin.settings_controller.email.transport_help', 'Where the site hands its email to be sent. Its password, if it has one, is never shown.')
+		};
+		$warning   = match (true) {
+			! $live                                        => null,
+			$this->transport->isFallback()                 => $this->messages->t('admin.settings_controller.email.fallback_warning', 'Password links may land in spam: set an SMTP transport for a live site.'),
+			in_array($this->transport->scheme(), ['log', 'null'], true) => $this->messages->t('admin.settings_controller.email.undelivered_warning', 'Email isn\'t delivered with this transport, so nobody gets password links.'),
+			default                                        => null
+		};
+		$delivery  = [
+			[
+				...self::item('transport', $this->messages->t('admin.settings_controller.email.transport', 'Transport'), match (true) {
+					$this->transport->isOff()      => $this->messages->t('admin.settings_controller.email.off', 'Turned off'),
+					$transport === null            => $this->messages->t('admin.settings_controller.email.not_set_up', 'Not set up'),
+					$this->transport->isFallback() => $this->messages->t('admin.settings_controller.email.fallback', 'PHP\'s own mail (no setup)'),
+					default                        => $transport
+				}, $this->mail->dsn === null, $transport === null || $this->transport->isFallback() ? 'text' : 'mono', $help, 'config/mail.php'),
+				'warning' => $warning
+			]
+		];
+
+		if ($transport !== null) {
+			$delivery[] = self::item('test', $this->messages->t('admin.settings_controller.email.test', 'Test email'), $account->email ?? '', null, 'test', $account->email === null || $account->email === ''
+				? $this->messages->t('admin.settings_controller.email.test_no_address', 'Your account has no email address to send a test to.')
+				: $this->messages->t('admin.settings_controller.email.test_help', 'Sends a short email to {email}, to check that the site\'s email arrives.', email: $account->email));
+		}
+
+		return [
+			self::group('sender', $this->messages->t('admin.settings_controller.groups.sender.title', 'Sender'), $this->messages->t('admin.settings_controller.groups.sender.hint', 'Who the site\'s email is from'), [
+				$this->edit(self::item('fromName', $this->messages->t('admin.settings_controller.email.from_name', 'From name'), $this->mail->fromName !== '' ? $this->mail->fromName : $this->app->name, $this->mail->fromName === '', help: Setting::MailFromName->field($this->types, $this->messages)->description), $saved, Setting::MailFromName, $this->mail->fromName),
+				$this->edit(self::item('fromAddress', $this->messages->t('admin.settings_controller.email.from_address', 'From address'), $this->mail->fromAddress !== '' ? $this->mail->fromAddress : $this->app->email, $this->mail->fromAddress === '', 'mono', Setting::MailFromAddress->field($this->types, $this->messages)->description), $saved, Setting::MailFromAddress, $this->mail->fromAddress)
+			]),
+			self::group('delivery', $this->messages->t('admin.settings_controller.groups.delivery.title', 'Delivery'), $this->messages->t('admin.settings_controller.groups.delivery.hint', 'How it\'s sent'), $delivery, $this->messages->t('admin.settings_controller.groups.delivery.note', 'From `.env` (`MAIL_DSN`) when `config/mail.php` reads it, as it does by default.'))
 		];
 	}
 

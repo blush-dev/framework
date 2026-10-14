@@ -31,6 +31,7 @@ import { ApiError, errorMessage } from '../api';
 import { t } from '../messages';
 import { createAccount, createTokenOnlyAccount, freshLink, freshToken, loadRoles, MEMBER, NEW_PROFILE, presetCapabilities, type LinkableProfile, type RoleInfo, type TokenPreset } from '../people';
 import { slugOf } from '../references';
+import { config } from '../config';
 import { can, canType } from '../session';
 import { toast } from '../toast';
 import { profileType } from '../types';
@@ -55,6 +56,8 @@ const tokenName  = ref('');
 const tokenDays  = ref<number | null>(90);
 const tokenScope = ref<TokenPreset | 'chosen'>('drafts');
 const loadFail = ref('');
+// Email the password link (D-846), where the site can send email.
+const sendLink = ref(config.mail);
 
 const { busy, error, run } = useAction();
 
@@ -153,13 +156,16 @@ async function submit(): Promise<void> {
 			name: name.value.trim() === '' ? null : name.value,
 			roles: chosen.value,
 			author: creating.value ? slug.value : (author.value === '' ? null : author.value),
-			...(creating.value ? { profileTitle: newName.value.trim() } : {})
+			...(creating.value ? { profileTitle: newName.value.trim() } : {}),
+			...(config.mail && sendLink.value ? { send: true } : {})
 		});
 		const called = answer.account.displayName;
 
-		freshLink.value = { username: answer.account.username, link: answer.link };
+		if (answer.link !== null) {
+			freshLink.value = { username: answer.account.username, link: answer.link };
+		}
 
-		toast(t('new_account_view.created', 'Created {name}', { name: called }));
+		toast(answer.sent === undefined ? t('new_account_view.created', 'Created {name}', { name: called }) : t('new_account_view.created_sent', 'Created {name} and emailed their link to {email}', { name: called, email: answer.sent }));
 		await router.push({ name: 'account', params: { username: answer.account.username } });
 	}, (caught) => {
 		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'email' || caught.field === 'roles' || caught.field === 'author') ? caught.field : (caught instanceof ApiError && caught.field === 'name' ? 'accountName' : null);
@@ -222,7 +228,8 @@ async function submit(): Promise<void> {
 							<label for="account-email">{{ t('new_account_view.email', 'Email') }} <span v-if="tokenOnly" class="field__optional">{{ t('new_account_view.optional', 'Optional') }}</span></label>
 							<input id="account-email" ref="emailInput" v-model="email" type="email" autocomplete="off" :required="!tokenOnly" :aria-invalid="field === 'email' ? 'true' : undefined" aria-describedby="account-email-help">
 							<p v-if="field === 'email'" id="account-email-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-email-help" class="field__help">{{ tokenOnly ? t('new_account_view.email_help_token', 'Whose it is, for the people who manage accounts, if you like.') : t('new_account_view.email_help_person', 'Every account needs one. Blush sends no email, so the password link is still yours to send.') }}</p>
+							<p v-else id="account-email-help" class="field__help">{{ tokenOnly ? t('new_account_view.email_help_token', 'Whose it is, for the people who manage accounts, if you like.') : config.mail ? t('new_account_view.email_help_mail', 'Every account needs one.') : t('new_account_view.email_help_no_mail', 'Every account needs one. This site sends no email, so the password link is yours to send.') }}</p>
+							<label v-if="config.mail && !tokenOnly" class="checkbox new-account__send"><input v-model="sendLink" type="checkbox"> {{ t('new_account_view.send_link', 'Email them a link to choose a password') }}</label>
 						</div>
 						<div class="field">
 							<label for="account-name">{{ t('new_account_view.display_name', 'Display name') }} <span class="field__optional">{{ t('new_account_view.optional', 'Optional') }}</span></label>
@@ -304,6 +311,10 @@ async function submit(): Promise<void> {
 
 .new-account__member {
 	margin-bottom: var(--s-3);
+}
+
+.new-account__send {
+	margin-top: var(--s-2);
 }
 
 .field__optional {

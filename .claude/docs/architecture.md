@@ -2093,6 +2093,66 @@ at runtime.
   until the admin screens are built.
 - `storage:copy` copies the table as other records, ciphertext as is.
 
+## Mail and notifications (D-832, D-846)
+
+Two layers: `Blush\Mail` sends a message; `Blush\Notification` decides
+what's sent to whom, and is the only way core and plugins send mail.
+
+- **`MailConfig`** (`config/mail.php`, else `MAIL_DSN`): `dsn` (`native`,
+  `log`, `null`, and `sendmail` short for their full forms; `null`
+  unset, `''` off), `fromAddress` and `fromName` (settings
+  `mail.fromAddress` and `mail.fromName`, Settings → Email; empty, the
+  site's `app.email` and name: `sender()`).
+- **`MailTransport`** (D-848): the transport in effect, the DSN's, else
+  `native://default` when `hasNativeMail()` (`sendmail_path` set):
+  `dsn()`, `isSetUp()`, `isFallback()`, `isOff()`, `scheme()`, and
+  `describe()` (without the password, for the admin). Site Health's
+  **Email** check (`SiteChecks::mail()`) reads it.
+- **`Mailer`** sends a `Message` (to, subject, text, html, from,
+  reply-to, attachments; `from` empty for the site's sender), bound
+  `singletonIf` by the DSN's scheme: `SymfonyMailer` (the one class
+  that names a Symfony one; SMTP, sendmail, `null`), `LogMailer` (the
+  whole message to the log, the only place a body is logged), or
+  `UnconfiguredMailer` (throws `MailNotSetUp`). A plugin for a mail
+  service binds its own; tests bind `Testing\RecordingMailer`.
+- **`Notification`** (abstract, by `vendor/name` key: enum, registry,
+  factory, registrar; core's `core/password-link`): `label()`,
+  `mail(Notifiable, data): ?MailContent` (null sends nothing), and
+  `unique(data)` (one waiting per recipient).
+- **`Notifier::send(key, Recipient|list, data, account)`** checks the
+  key and that the data is plain, and queues a `core/notify` job per
+  recipient (`unique` as `notify:{key}:{unique}:{recipient}`); with no
+  transport it queues nothing and logs the skip.
+- **Urgent notifications** (`isUrgent()`, D-847; password links):
+  `Notifier` marks their jobs in `Blush\Job\UrgentJobs`, which
+  `WebRunner::afterResponse()` runs once the response is finished
+  (PHP-FPM only), in any runner mode, before its own turn. A failure
+  stays queued with backoff.
+- **`Recipient`**: an account by id, an address, or a capability.
+  `NotifyJob` reads an account when it runs (gone, suspended, or
+  without an address is done, unsent), and expands a capability into a
+  job per account that has it then (with an address, not suspended or
+  token-only). It renders in the recipient's language
+  (`CurrentLocale::in()`, the account's `preferences.language`, else
+  the site's), sends, and logs the recipient and subject. A transport
+  that throws is retried (the job's backoff); `MailNotSetUp` fails it.
+- **`MailContent`** is parts (`line`, `action`, `note`) that
+  **`MailLayout`** draws from `resources/mail/html.php` (inline styles,
+  tables) and `text.php`, with the footer in the recipient's language.
+  Notifications don't bring templates of their own.
+- **Password links** (`PasswordLinkNotification`, `reason` `invite`,
+  `reset`, or `forgot`) issue the link when the email is sent, so no
+  token is ever kept in a job; a `forgot` link lasts
+  `AuthConfig::$resetLinkLifetime` (an hour). The admin emails one on
+  `POST accounts` and `POST accounts/{username}/link` with
+  `"send": true`, and `POST forgot-password` (public) emails one for a
+  username or address, answering `202` alike either way, limited by
+  `PasswordResets` (per address, `maxAttempts` per `lockout`; per
+  account, one every five minutes).
+- **Send a Test** (`POST settings/email/test`) is the one caller of a
+  `Mailer` outside a notification: it sends at once, to report the
+  transport's error.
+
 ## Security baseline
 
 - The web root is `public/` only (configurable name, D-040).

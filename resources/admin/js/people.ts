@@ -323,7 +323,12 @@ export const freshLink = ref<{ username: string; link: PasswordLink } | null>(nu
  */
 export const freshToken = ref<{ username: string; token: NewToken } | null>(null);
 
-export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null; profileTitle?: string }): Promise<{ account: AccountInfo; link: PasswordLink }> {
+/**
+ * Creates an account with a password link: shown once to copy, or, with
+ * `send`, emailed to it instead (D-846), when the answer's `link` is
+ * `null` and `sent` is the address.
+ */
+export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null; profileTitle?: string; send?: boolean }): Promise<{ account: AccountInfo; link: PasswordLink | null; sent?: string }> {
 	return request('POST', '/accounts', account);
 }
 
@@ -342,6 +347,22 @@ export async function updateAccount(username: string, changes: { roles?: string[
 
 export function makePasswordLink(username: string): Promise<{ account: AccountInfo; link: PasswordLink }> {
 	return request('POST', `/accounts/${encodeURIComponent(username)}/link`);
+}
+
+/**
+ * Emails an account a new password link instead of showing it (D-846),
+ * replacing any it had once it's sent. Answers with the address.
+ */
+export function emailPasswordLink(username: string): Promise<{ account: AccountInfo; sent: string }> {
+	return request('POST', `/accounts/${encodeURIComponent(username)}/link`, { send: true });
+}
+
+/**
+ * Asks for a password link by email, from the sign-in screen (D-846).
+ * The answer is the same whether or not the account exists.
+ */
+export function forgotPassword(login: string): Promise<{ message: string }> {
+	return request('POST', '/forgot-password', { login });
 }
 
 export function removeAccount(username: string): Promise<void> {

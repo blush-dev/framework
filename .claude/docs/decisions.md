@@ -26280,8 +26280,10 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-832: Outgoing mail and notifications, in two layers
 
 - **Date:** 2026-10-14
-- **Status:** Planned; nothing built. The rest of its design is in
-  `open-questions.md` (**Outgoing mail, notifications, and notices**).
+- **Status:** Built by D-846, which refines it: notifications draw
+  their email from parts in core's layout rather than templates of
+  their own. The rest of its design is in `open-questions.md`
+  (**Outgoing mail, notifications, and notices**).
 - **Decision:**
   - **`Blush\Mail`, the transport layer:** a `Message` (to, from,
     reply-to, subject, a text part and an HTML part, attachments) and
@@ -26785,3 +26787,150 @@ decision, add a new entry that supersedes it and mark the old one
 - **Status:** Built (2026-10-14). On the jtcom trial, the four themes'
   folders are removed from `extensions/blush` (core has them now) and
   the saved list names `blush/library` in Editorial's place.
+
+### D-846: Mail and notifications, as built: email only, and password links first
+
+- **Date:** 2026-10-14
+- **Builds:** D-832. **Refines:** D-312 (password links can be
+  emailed) and D-723 (the site's address is the default sender).
+- **The author's answers** (to Claude's questions on D-832's open
+  items): email only for now, no admin channel; recipients by
+  capability, yes; sends logged with recipient and subject, never the
+  body; a notification renders when it's sent, from ids; the first
+  notification is password links, both emailed by an administrator and
+  asked for with "Forgot your password?" on sign-in; the transport
+  from `MAIL_DSN` only for now, with no SMTP fields in the admin.
+- **Decision:**
+  - **`Blush\Mail`:** `Address`, `Message` (to, subject, text, html,
+    from, reply-to, attachments), `Attachment`, and `Mailer`, bound by
+    `MailConfig`'s DSN scheme: `SymfonyMailer` (SMTP, sendmail,
+    `null`; the only class naming a Symfony one), `LogMailer` (`log`:
+    the whole message to the site's log, for development), or
+    `UnconfiguredMailer` (unset: throws `MailNotSetUp`). `log`,
+    `null`, and `sendmail` alone are short for their full forms. A
+    mail service's plugin binds its own `Mailer`.
+  - **`MailConfig`** (`config/mail.php`, else `MAIL_DSN`): `dsn`,
+    `fromAddress`, `fromName`. The two sender settings are saved on a
+    new **Settings → Email** screen (`mail.fromAddress`,
+    `mail.fromName`); empty, the site's email address and name.
+    `describe()` shows the transport without its password. The DSN is
+    compiled into the config cache with the rest, as
+    `PublishConfig`'s secret is.
+  - **Unset means no mail** (superseded by D-848: unset falls back to
+    PHP's own mail where there is one; empty is none): a site without
+    `MAIL_DSN` sends none.
+    Notifications queue nothing (logged), the admin copies links as
+    before, and sign-in has no "Forgot your password?" (the shell's
+    config says `mail`).
+  - **`Blush\Notification`:** `Notification` (`label()`,
+    `mail(Notifiable, data): ?MailContent`, `unique(data)`), by
+    `vendor/name` key through `NotificationType`, `-Registry`,
+    `-Factory`, and `-Registrar`; `Notifier::send()` queues a
+    `core/notify` job per recipient (`NotifyJob`), so retries and
+    failures are per person. `Recipient` is an account by id, an
+    address, or a capability, expanded when its job runs into a job per
+    account with it then (with an address, not suspended or
+    token-only). Suspended, deleted, or address-less accounts are sent
+    nothing.
+  - **Every email is drawn from parts (Claude's call, refining
+    D-832's "through the view engine"):** a notification returns
+    `MailContent` (a subject, `line()`, `action()`, `note()`), and
+    core's layout (`resources/mail/html.php`, `text.php`, plain PHP with
+    inline styles, never a theme's) draws the HTML and text parts, so
+    every message looks alike and needs no per-notification
+    templates. A notification's own templates are open.
+  - **Language:** the job renders in the recipient's language (their
+    account's, D-831, else the site's), layout included.
+  - **`core/password-link`** (`reason`: `invite`, `reset`, or
+    `forgot`) makes the link when the email is sent, replacing any the
+    account had, so a token never sits in a queued job; one waits per
+    account. A `forgot` link lasts an hour
+    (`AuthConfig::$resetLinkLifetime`, new); the others a week.
+  - **The admin:** New Account has **Email them a link to choose a
+    password** (on where mail is set up; `"send": true` on `POST
+    accounts`), and an account's Actions and its invitation notice
+    have **Email a password link** (`POST accounts/{username}/link`
+    with `"send": true`), beside the copy-once links of D-312.
+  - **Forgot your password?** (`POST forgot-password`, public): a
+    username or address; the answer is the same `202` whether or not
+    it's an account. `PasswordResets` limits an address to
+    `maxAttempts` asks per `lockout` and an account to one link every
+    five minutes, in the `logins` store. A new **Reset Your Password**
+    screen in the admin asks for it.
+  - **Send a Test** on Settings → Email sends to the signed-in
+    account at once, not as a job, so a transport that fails says why.
+    The one caller of a `Mailer` outside a notification.
+  - **Logging:** each email a notification sends is logged with its
+    notification, recipient, and subject, at `info`, which the default
+    log level (`warning`) leaves out. The `log` transport writes its
+    messages as warnings, so they're kept at the default level (fixed
+    after the author's first test went unlogged).
+- **Open** (`open-questions.md`): SMTP fields in the admin with the
+  password as a secret; per-account choices; notices and an admin
+  channel; a notification's own templates; Site Health's mail checks.
+- **Why:** the author asked to build D-832 ("I want to chat about
+  building that now") and answered its questions, choosing both kinds
+  of password link and `MAIL_DSN` only.
+- **Status:** Built (2026-10-14). `composer check`; the admin rebuilt
+  (`admin.js` 232 KB); `lang:extract core` wrote the new messages.
+
+### D-847: Urgent notifications run right after the response
+
+- **Date:** 2026-10-14
+- **Refines:** D-846 (and D-621's runners).
+- **Decision:**
+  - A `Notification` may be urgent (`isUrgent()`, `false` by default):
+    someone is waiting on it. `core/password-link` is.
+  - `Notifier` marks an urgent notification's jobs in
+    `Blush\Job\UrgentJobs` (request-scoped), and
+    `WebRunner::afterResponse()` runs them once the response is finished
+    (`fastcgi_finish_request()`), in any runner mode (`cron` too), before
+    its own turn at due work. Jobs they queue (a capability's) are run
+    too. One that fails stays queued, retried with backoff as before.
+  - After the response, not in the request: the person isn't kept
+    waiting on the mail server, and "Forgot your password?" answers in
+    the same time whether or not the account exists.
+  - Without PHP-FPM, nothing runs them early; they wait for the next
+    runner like any job.
+- **Why:** the author, after trying D-846 on DDEV: "I'd think password
+  links and forgot passwords would send right away."
+- **Status:** Built (2026-10-14).
+
+### D-848: With no setup, mail goes out through PHP's own mail; SMTP is what's recommended
+
+- **Date:** 2026-10-14
+- **Supersedes:** D-846's "unset means no mail".
+- **Decision:**
+  - **Unset `MAIL_DSN` falls back to `native://default`** (PHP's
+    `mail()`, through `sendmail_path`) when the server has a mail
+    program (`sendmail_path` set and `mail()` available), so a site
+    sends password links with no setup on most hosts and on DDEV.
+    Without one, there's no mail, as before. **An empty `MAIL_DSN`**
+    (or `dsn: ''`) turns mail off on purpose.
+  - **`Blush\Mail\MailTransport`** works out the transport in effect
+    (`dsn()`, `isSetUp()`, `isFallback()`, `isOff()`, `scheme()`,
+    `describe()`), bound from `MailConfig` and the server's PHP
+    settings (`hasNativeMail()`), so tests can say either. Everything
+    that asked `MailConfig` whether mail is set up asks it instead.
+  - `native` is short for `native://default`, beside `sendmail`, `log`,
+    and `null`.
+  - **Made visible:** Settings → Email shows **PHP's own mail (no
+    setup)** with help saying it often lands in spam and to set an SMTP
+    transport, and a warning on a live site (as for `log` and `null`
+    there). A new Site Health and `doctor` check, **Email**
+    (`SiteChecks::mail()`, in the system area): warns when the site
+    can't send, and on a live site when it falls back or uses `log` or
+    `null`; passes when it's off on purpose, on the fallback outside
+    production, or on a real transport.
+  - **The docs recommend SMTP** (the host's or a mail service's) for a
+    live site, explain why `sendmail` fails where `/usr/sbin/sendmail`
+    isn't there (DDEV), and give DDEV's Mailpit
+    (`smtp://localhost:1025`) and `log` for development. Going Live
+    adds `MAIL_DSN` to its `.env`.
+- **Why:** the author tried `sendmail` on DDEV, where it fails, and
+  asked what other platforms do with no setup: the common default is
+  PHP's `mail()`, with SMTP plugins to make it reliable. The author
+  chose the fallback ("Go with the native fallback and update the
+  docs"), from Claude's recommendation to make it visible.
+- **Status:** Built (2026-10-14).
+

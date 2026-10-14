@@ -45,6 +45,7 @@ use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\TextField;
 use Blush\Icon\IconConfig;
 use Blush\Llms\LlmsConfig;
+use Blush\Mail\MailConfig;
 use Blush\Mcp\McpConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Markdown\RawHtml;
@@ -95,6 +96,8 @@ enum Setting: string
 	case ApiAccess        = 'api.access';
 	case MediaUploads     = 'media.uploads';
 	case AddArtwork       = 'media.addArtwork';
+	case MailFromName     = 'mail.fromName';
+	case MailFromAddress  = 'mail.fromAddress';
 	case Mentions         = 'markdown.mentions';
 	case SmartPunctuation = 'markdown.smartPunctuation';
 	case HeadingAnchors   = 'markdown.headingAnchors';
@@ -161,6 +164,7 @@ enum Setting: string
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::Api, self::ApiAccess                                    => SettingsScreen::Api,
 			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
+			self::MailFromName, self::MailFromAddress                     => SettingsScreen::Email,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
 			self::Figures, self::Html, self::Embeds                       => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
@@ -209,6 +213,8 @@ enum Setting: string
 			self::FeedContent     => new BoolField('content')->labeled($messages->t('settings.setting.feed_content.label', 'Full content'))->described($messages->t('settings.setting.feed_content.description', 'Off, a feed carries each entry\'s summary only.')),
 			self::MediaUploads    => new ObjectField('uploads')->labeled($messages->t('settings.setting.media_uploads.label', 'Uploads'))->described($messages->t('settings.setting.media_uploads.description', 'What may be uploaded, how large, and the folder under user/media it goes in.')),
 			self::AddArtwork      => new BoolField('addArtwork')->labeled($messages->t('settings.setting.add_artwork.label', 'Artwork from uploads'))->described($messages->t('settings.setting.add_artwork.description', 'A sound or video\'s artwork is added to the library as an image of its own when it\'s uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file\'s screen can still add it.')),
+			self::MailFromName    => new TextField('fromName')->labeled($messages->t('settings.setting.mail_from_name.label', 'From name'))->described($messages->t('settings.setting.mail_from_name.description', 'Who the site\'s email says it\'s from. Empty, the site\'s name.')),
+			self::MailFromAddress => new TextField('fromAddress')->labeled($messages->t('settings.setting.mail_from_address.label', 'From address'))->described($messages->t('settings.setting.mail_from_address.description', 'The address the site\'s email is sent from, which your mail service must allow. Empty, the site\'s email address.')),
 			self::Mentions        => new BoolField('mentions')->labeled($messages->t('settings.setting.mentions.label', 'Mentions'))->described($messages->t('settings.setting.mentions.description', '@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.')),
 			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled($messages->t('settings.setting.smart_punctuation.label', 'Smart punctuation'))->described($messages->t('settings.setting.smart_punctuation.description', 'Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.')),
 			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled($messages->t('settings.setting.heading_anchors.label', 'Heading anchors'))->described($messages->t('settings.setting.heading_anchors.description', 'Each heading gets a link to itself, so a section can be shared.')),
@@ -378,6 +384,7 @@ enum Setting: string
 			'media'   => MediaConfig::class,
 			'markdown' => MarkdownConfig::class,
 			'embed'   => EmbedConfig::class,
+			'mail'    => MailConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -418,6 +425,8 @@ enum Setting: string
 			self::Name            => self::name($value, $messages),
 			self::Description     => self::description($value, $messages),
 			self::Email           => self::email($value, $messages),
+			self::MailFromName    => self::fromName($value, $messages),
+			self::MailFromAddress => self::fromAddress($value, $messages),
 			self::Locale          => self::locale($value, $messages),
 			self::Untranslated    => self::untranslated($value, $messages),
 			self::Html            => self::html($value, $messages),
@@ -502,6 +511,38 @@ enum Setting: string
 			! Account::isValidEmail($email) => throw self::invalid($messages->t('settings.setting.invalid.email', '"{email}" isn\'t an email address.', email: $email)),
 			default                         => $email
 		};
+	}
+
+	/**
+	 * Checks who the site's mail is from (D-846): one line, or empty for
+	 * the site's name.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function fromName(mixed $value, Messages $messages): string
+	{
+		$name = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.from_name_text', 'The from name must be text.'));
+
+		return match (true) {
+			mb_strlen($name) > 100                          => throw self::invalid($messages->t('settings.setting.invalid.from_name_long', 'The from name can be at most {max} characters.', max: 100)),
+			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $name) !== 0 => throw self::invalid($messages->t('settings.setting.invalid.from_name_line', 'The from name can\'t hold line breaks or control characters.')),
+			default                                         => $name
+		};
+	}
+
+	/**
+	 * Checks the address the site's mail is from (D-846), or empty for
+	 * the site's own.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function fromAddress(mixed $value, Messages $messages): string
+	{
+		$email = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.from_address_text', 'The from address must be text.'));
+
+		return $email === '' || Account::isValidEmail($email)
+			? $email
+			: throw self::invalid($messages->t('settings.setting.invalid.email', '"{email}" isn\'t an email address.', email: $email));
 	}
 
 	/**

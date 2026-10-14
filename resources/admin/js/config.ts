@@ -25,6 +25,8 @@ export interface AdminConfig {
 	adminLanguages: { code: string; label: string }[];
 	// Whether `@name` links to a profile (`MarkdownConfig`, D-493).
 	mentions: boolean;
+	// Whether the site can send email (`MailConfig`, D-846).
+	mail: boolean;
 	// The site's language (a BCP 47 tag) and its date and time formats,
 	// each a style or an ICU pattern (`AppConfig`, D-693).
 	dates: { locale: string; date: string; time: string };

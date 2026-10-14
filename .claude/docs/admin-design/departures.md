@@ -454,13 +454,15 @@ Each is recorded in `.claude/docs/decisions.md`.
   kept and shown as such. A type's screen has
   a Field Sets panel linking to its sets, which are attached from the
   set's side.
-- **Roles and accounts** (D-249, D-312, D-369): Blush sends no email,
-  so the prototype's **Invite** is **New Account**, its own screen
+- **Roles and accounts** (D-249, D-312, D-369, D-846): the prototype's
+  **Invite** is **New Account**, its own screen
   (like every New) with a username and an email (required, D-370), and
-  no note; the account gets a one-time password link shown on its
-  screen to copy, and **Send a password reset** and **Resend the
-  invitation** are **Make a password link**, and **Email it** isn't
-  there. **Change email** is the sketch's dialog as an inline form
+  no note; the account gets a one-time password link, emailed where
+  the site sends email (**Email them a link to choose a password**,
+  on by default there) and otherwise shown on its screen to copy.
+  **Send a password reset** and **Resend the invitation** are **Make a
+  password link** and, where the site sends email, **Email a password
+  link** (D-846). **Change email** is the sketch's dialog as an inline form
   with the display name (**Change name or email**), and changes it at
   once, since there's nothing to confirm by email. Accounts keep a
   display name (D-370); the last sign-in stands in for "last active". An account's roles are ticked, then saved (**Save roles**,

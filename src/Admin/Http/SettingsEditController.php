@@ -27,6 +27,7 @@ use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Extension\ExtensionKind;
@@ -36,6 +37,14 @@ use Blush\Field\FieldContext;
 use Blush\Field\InvalidField;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Mail\Address;
+use Blush\Mail\MailTransport;
+use Blush\Mail\Mailer;
+use Blush\Mail\MailException;
+use Blush\Mail\Message;
+use Blush\Notification\MailContent;
+use Blush\Notification\MailLayout;
+use Blush\Notification\Notifiable;
 use Blush\Routing\RouteCache;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
@@ -66,6 +75,10 @@ use Blush\Translation\Text;
  * - `POST settings/refresh`: compiles the content types and routes again
  *   (when the site is compiled) and reindexes, so the next requests see
  *   the change. Any account that may change one of the settings may ask.
+ * - `POST settings/email/test` (`site.settings`, D-846): sends a short
+ *   email to the signed-in account's address, now rather than as a job,
+ *   so a transport that fails says why. Answers `{"sent"}` with the
+ *   address, or a `422` with the transport's error.
  *
  * A value that doesn't fit, a homepage that isn't a collection with
  * addresses, a role for new accounts that isn't one (D-518), or a theme (`theme.active`, saved by the Themes screen,
@@ -98,6 +111,10 @@ final readonly class SettingsEditController
 		private ExtensionState $extensions,
 		private Roles $roles,
 		private ExtensionText $text,
+		private Mailer $mailer,
+		private MailTransport $mail,
+		private AppConfig $app,
+		private MailLayout $layout,
 		private Messages $messages
 	) {}
 
@@ -168,6 +185,36 @@ final readonly class SettingsEditController
 		$this->version->bump();
 
 		return Response::json(['saved' => $settings->toArray() ?: (object) [], 'refresh' => $refresh], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function testEmail(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
+			return self::error($this->messages->t('admin.settings_edit_controller.not_allowed', 'You aren\'t allowed to change the site\'s settings.'), Status::Forbidden);
+		}
+
+		if (! $this->mail->isSetUp()) {
+			return self::error($this->messages->t('admin.settings_edit_controller.no_mail', 'The site can\'t send email: set MAIL_DSN in .env to a transport first.'), Status::UnprocessableContent);
+		}
+
+		if ($account->email === null || $account->email === '') {
+			return self::error($this->messages->t('admin.settings_edit_controller.test_no_address', 'Your account has no email address to send a test to.'), Status::UnprocessableContent);
+		}
+
+		try {
+			$to      = new Notifiable(new Address($account->email, str_replace(["\r", "\n"], ' ', $account->name ?? '')), $account);
+			$content = new MailContent($this->messages->t('admin.settings_edit_controller.test_subject', 'A test from {site}', site: $this->app->name))
+				->line($this->messages->t('admin.settings_edit_controller.test_hello', 'Hi {name},', name: $to->name()))
+				->line($this->messages->t('admin.settings_edit_controller.test_body', 'This is the test you sent from Settings → Email. It arrived, so the site\'s email works.'));
+
+			$this->mailer->send(new Message([$to->address], $content->subject, $this->layout->text($content, $to), $this->layout->html($content, $to)));
+		} catch (MailException $error) {
+			return self::error($this->messages->t('admin.settings_edit_controller.test_failed', 'The test wasn\'t sent: {error}', error: $error->getMessage()), Status::UnprocessableContent);
+		}
+
+		return Response::json(['sent' => $account->email], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function refresh(ServerRequestInterface $request): ResponseInterface

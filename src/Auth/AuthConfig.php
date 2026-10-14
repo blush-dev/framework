@@ -35,6 +35,9 @@ use Blush\Config\InvalidConfig;
  *   address and username for the rest of that time.
  * - `passwordLinkLifetime` is how many seconds a link for choosing a
  *   password lasts (D-312): a week.
+ * - `resetLinkLifetime` is how many seconds a link asked for with
+ *   "Forgot your password?" lasts (D-846): an hour, since anyone may ask
+ *   for one.
  * - `signups` lets anyone make an account on the site (D-518): off by
  *   default. Nothing reads it yet; it's the switch a sign-up form will
  *   check.
@@ -60,10 +63,11 @@ final readonly class AuthConfig implements Config
 		public int $lockout = 900,
 		public int $passwordLinkLifetime = 604800,
 		public bool $signups = false,
-		public string $signupRole = 'member'
+		public string $signupRole = 'member',
+		public int $resetLinkLifetime = 3600
 	) {
-		if ($minPasswordLength < 8 || $maxAttempts < 1 || $lockout < 1 || $passwordLinkLifetime < 60) {
-			throw new InvalidConfig('AuthConfig "minPasswordLength" must be at least 8, "maxAttempts" and "lockout" at least 1, and "passwordLinkLifetime" at least 60.');
+		if ($minPasswordLength < 8 || $maxAttempts < 1 || $lockout < 1 || $passwordLinkLifetime < 60 || $resetLinkLifetime < 60) {
+			throw new InvalidConfig('AuthConfig "minPasswordLength" must be at least 8, "maxAttempts" and "lockout" at least 1, and "passwordLinkLifetime" and "resetLinkLifetime" at least 60.');
 		}
 
 		$problem = self::signupRoleProblem($signupRole);
@@ -94,7 +98,7 @@ final readonly class AuthConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['roles', 'minPasswordLength', 'maxAttempts', 'lockout', 'passwordLinkLifetime', 'signups', 'signupRole']);
+		$values->assertKnownKeys(['roles', 'minPasswordLength', 'maxAttempts', 'lockout', 'passwordLinkLifetime', 'signups', 'signupRole', 'resetLinkLifetime']);
 
 		$roles = [];
 
@@ -113,7 +117,8 @@ final readonly class AuthConfig implements Config
 			lockout: $values->int('lockout', 900),
 			passwordLinkLifetime: $values->int('passwordLinkLifetime', 604800),
 			signups: $values->bool('signups', false),
-			signupRole: $values->string('signupRole', 'member')
+			signupRole: $values->string('signupRole', 'member'),
+			resetLinkLifetime: $values->int('resetLinkLifetime', 3600)
 		);
 	}
 
@@ -130,7 +135,8 @@ final readonly class AuthConfig implements Config
 			'lockout'              => $this->lockout,
 			'passwordLinkLifetime' => $this->passwordLinkLifetime,
 			'signups'              => $this->signups,
-			'signupRole'           => $this->signupRole
+			'signupRole'           => $this->signupRole,
+			'resetLinkLifetime'    => $this->resetLinkLifetime
 		];
 	}
 }

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * Signs in. On success, it goes where the visitor was headed (a path
- * inside the admin only), or to the dashboard.
+ * inside the admin only), or to the dashboard. Where the site can send
+ * email, "Forgot your password?" asks for a link (D-846).
  */
 
 import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AuthCard from '../components/AuthCard.vue';
 import { useAction } from '../action';
 import { config } from '../config';
@@ -46,5 +47,8 @@ async function submit(): Promise<void> {
 			</p>
 			<button type="submit" class="button button--primary" :disabled="busy">{{ busy ? t('sign_in_view.signing_in', 'Signing in…') : t('sign_in_view.sign_in', 'Sign In') }}</button>
 		</form>
+		<template v-if="config.mail" #foot>
+			<RouterLink class="lnk" :to="{ name: 'forgot-password', query: username.trim() === '' ? {} : { login: username.trim() } }">{{ t('sign_in_view.forgot', 'Forgot your password?') }}</RouterLink>
+		</template>
 	</AuthCard>
 </template>

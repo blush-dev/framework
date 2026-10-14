@@ -22,6 +22,9 @@ use Psr\Clock\ClockInterface;
  * while neither cron nor a worker has run in the last two minutes, so a
  * site with cron never does work on visits. It works for
  * `JobConfig::$webBudget` seconds.
+ *
+ * Before that, in any mode, it runs the jobs this request marked urgent
+ * (`UrgentJobs`, D-847), such as a password link's email.
  */
 final readonly class WebRunner
 {
@@ -40,6 +43,7 @@ final readonly class WebRunner
 		private JobRunner $runner,
 		private Scheduler $scheduler,
 		private JobStore $store,
+		private UrgentJobs $urgent,
 		private ClockInterface $clock
 	) {}
 
@@ -57,15 +61,25 @@ final readonly class WebRunner
 	 */
 	public function afterResponse(): void
 	{
-		if ($this->config->runner !== RunnerMode::Auto || ! self::isAvailable() || ! $this->isDue() || ! $this->take()) {
+		if (! self::isAvailable()) {
+			return;
+		}
+
+		$turn = $this->config->runner === RunnerMode::Auto && $this->isDue() && $this->take();
+
+		if (! $turn && $this->urgent->isEmpty()) {
 			return;
 		}
 
 		fastcgi_finish_request();
 		ignore_user_abort(true);
 
-		$this->scheduler->tick();
-		$this->runner->work(RunnerKind::Web, $this->config->webBudget);
+		$this->urgent->run();
+
+		if ($turn) {
+			$this->scheduler->tick();
+			$this->runner->work(RunnerKind::Web, $this->config->webBudget);
+		}
 	}
 
 	/**

@@ -18,6 +18,7 @@ use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
+use Blush\Core\Environment;
 use Blush\Core\Framework;
 use Blush\Extension\DefinitionClash;
 use Blush\Extension\ExtensionState;
@@ -28,6 +29,7 @@ use Blush\Job\JobConfig;
 use Blush\Job\JobRunner;
 use Blush\Job\RunnerMode;
 use Blush\Job\WebRunner;
+use Blush\Mail\MailTransport;
 use Blush\Secret\SecretException;
 use Blush\Secret\SecretKeys;
 use Blush\Secret\Secrets;
@@ -44,7 +46,7 @@ use Blush\Translation\Text;
  *   storage; in production, whether the site's address serves `.env`,
  *   `config/`, or `storage/` (`exposure`, D-716); whether cron or a worker
  *   runs background jobs (`jobs`,
- *   D-621); and the secrets (D-715): the key that encrypts them, required
+ *   D-621); how email is sent (`mail`, D-848); and the secrets (D-715): the key that encrypts them, required
  *   ones that aren't set, stored ones that won't decrypt, and stored ones
  *   nothing declares any more.
  * - `extensions`: extensions that are on but can't run (D-431): an active
@@ -80,6 +82,7 @@ final readonly class SiteChecks
 		private SecretKeys $secretKeys,
 		private ExposureCheck $exposure,
 		private FieldTargets $targets,
+		private MailTransport $mail,
 		private Messages $messages
 	) {}
 
@@ -91,7 +94,7 @@ final readonly class SiteChecks
 	public function byArea(): array
 	{
 		return [
-			'system'     => [...$this->setup->all($this->app), ...$this->exposure(), ...$this->jobs(), ...$this->secrets()],
+			'system'     => [...$this->setup->all($this->app), ...$this->exposure(), ...$this->jobs(), ...$this->mail(), ...$this->secrets()],
 			'extensions' => $this->extensions(),
 			'accounts'   => $this->owner()
 		];
@@ -140,6 +143,30 @@ final readonly class SiteChecks
 		};
 
 		return ['jobs' => CheckResult::warning($this->jobsLabel(), $message, $hint)];
+	}
+
+	/**
+	 * Says how the site sends email (D-848): it warns when it can't, and
+	 * on a live site, when it falls back to PHP's own mail (which often
+	 * lands in spam) or uses a transport that delivers nothing (`log`,
+	 * `null`). Mail turned off on purpose (an empty `MAIL_DSN`) passes.
+	 *
+	 * @return array<string, CheckResult>
+	 */
+	public function mail(): array
+	{
+		$label = $this->messages->t('setup.site_checks.mail', 'Email');
+		$hint  = $this->messages->t('setup.site_checks.mail_hint', 'Set MAIL_DSN in .env to your host\'s SMTP server or a mail service\'s, such as smtp://user:password@smtp.example.com:587.');
+		$live  = $this->app->environment === Environment::Production;
+
+		return ['mail' => match (true) {
+			$this->mail->isOff()                => CheckResult::pass($label, $this->messages->t('setup.site_checks.mail_off', 'Turned off: MAIL_DSN is empty, so the site sends none.')),
+			! $this->mail->isSetUp()            => CheckResult::warning($label, $this->messages->t('setup.site_checks.mail_none', 'The site can\'t send email: no transport is set, and PHP on this server has no mail program.'), $hint),
+			$this->mail->isFallback() && $live  => CheckResult::warning($label, $this->messages->t('setup.site_checks.mail_fallback', 'Email goes out through PHP\'s own mail, which often lands in spam or is refused.'), $hint),
+			$this->mail->isFallback()           => CheckResult::pass($label, $this->messages->t('setup.site_checks.mail_fallback_dev', 'Email goes out through PHP\'s own mail; set a transport before the site goes live.')),
+			$live && in_array($this->mail->scheme(), ['log', 'null'], true) => CheckResult::warning($label, $this->messages->t('setup.site_checks.mail_undelivered', 'Email isn\'t delivered: the transport is {transport}.', transport: (string) $this->mail->describe()), $hint),
+			default                             => CheckResult::pass($label, $this->messages->t('setup.site_checks.mail_set', 'Sent through {transport}.', transport: (string) $this->mail->describe()))
+		}];
 	}
 
 	/**

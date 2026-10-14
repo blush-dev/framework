@@ -3,7 +3,8 @@
  * The card a screen outside the admin's shell is drawn in (D-509): Sign
  * in and Choose a Password, centered on the page, a panel with the
  * site's initial over the title. A form in it is `.auth-card__form`: its fields
- * close together, and its button a little taller.
+ * close together, and its button a little taller. The `foot` slot is a
+ * line under it, such as Sign In's "Forgot your password?" (D-846).
  */
 
 import { config } from '../config';
@@ -23,6 +24,7 @@ defineProps<{
 		</header>
 		<div class="panel__body">
 			<slot />
+			<p v-if="$slots.foot" class="auth-card__foot"><slot name="foot" /></p>
 		</div>
 	</div>
 </template>
@@ -55,6 +57,12 @@ defineProps<{
 	font-family: var(--font-family-display);
 	font-weight: var(--font-weight-display);
 	text-transform: uppercase;
+}
+
+.auth-card__foot {
+	margin: 14px 0 0;
+	font-size: var(--font-size-small);
+	color: var(--color-text-secondary);
 }
 
 :slotted(.auth-card__form) {

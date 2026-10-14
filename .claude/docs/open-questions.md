@@ -983,12 +983,13 @@ Move each item to `decisions.md` once it's answered.
     `HTTPS_PROXY`, the allowed list); `Blush\Http\Client` as its
     namespace.
 - **Outgoing mail, notifications, and notices** (D-832; discussed
-  2026-10-14; what's decided is in D-832, the rest is open):
-  - **The admin channel:** whether notifications get one from the
-    start, or email only first. The leaning: the admin channel writes
-    a notice addressed to the account, so the admin's "inbox" is
-    notices, not a feature of its own, and adding it later changes
-    nothing else.
+  2026-10-14; D-846 built the first part: email only, recipients by
+  capability, sends logged without bodies, rendered when sent, and
+  password links first; the rest is open):
+  - **The admin channel:** settled for now as email only (D-846). The
+    leaning stands for later: the admin channel writes a notice
+    addressed to the account, so the admin's "inbox" is notices, not a
+    feature of its own.
   - **Notices, when built:** two sources drawn the same way, with the
     existing notice component's look (D-506, D-542). **Stored**
     notices are messages someone added (a plugin after an update), to
@@ -1000,19 +1001,21 @@ Move each item to `decisions.md` once it's answered.
     in the shell, the screen they're about), dismissal per account or
     per site, and a notices area under storage (D-485) or the record
     layer (D-606).
-  - **Settings:** a Settings → Email screen: the from name and address
-    (defaulting to `app.email`, D-723), the transport where config
-    doesn't fix it, and **Send a Test**. Per-account choices on Your
-    Account, for the kinds that can be turned off; security mail
-    (password links, email changes) can't be.
-  - **Logging:** sent mail in the Tools log; the `log` transport makes
-    mail readable in development without a mail server.
-  - **Recipients by capability:** "every account that can
-    `extensions.plugins.update`" as a recipient, beside accounts by id
-    and addresses, so a notification needn't list accounts.
+  - **Settings:** Settings → Email is built without the transport
+    (D-846: `MAIL_DSN` only, since an SMTP password is a secret and the
+    secrets screen isn't built). Open: SMTP fields in the admin with
+    the password as a secret (D-715), and per-account choices on Your
+    Account for the kinds that can be turned off (security mail can't
+    be).
+  - **Templates of a notification's own:** D-846 draws every email
+    from parts (`MailContent`) in core's layout. Open: whether a plugin
+    may bring its own HTML and text templates, and how they'd find
+    their files.
+  - **Site Health:** D-848 added the **Email** check (how mail is
+    sent). Open: whether a test has gone through, and surfacing failed
+    `core/notify` jobs.
   - **Waiting on mail:** D-723's confirmation of a new site address,
-    D-312's password links (copied today), registration and comments
-    (above), and job and backup failures.
+    registration and comments (above), and job and backup failures.
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The API** (`Blush\Api`; decided in D-479 and broadened by

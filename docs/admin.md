@@ -230,7 +230,7 @@ shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
 **Users** has Your Account, Accounts, Profiles, and Roles.
-**Settings** has General, Reading, Writing, Media, Addresses and Search,
+**Settings** has General, Reading, Writing, Media, Email, Addresses and Search,
 Redirects, AI, API, and System, and **Extend** has Themes, Plugins, and Icon
 Packs. You only see the
 screens your roles allow: Media needs one of the media capabilities
@@ -1441,7 +1441,7 @@ the file.
 
 ## Settings
 
-With `site.settings`, the **Settings** section has seven
+With `site.settings`, the **Settings** section has eight
 screens (and [Redirects](#redirects), with its own capability):
 
 - **General:** the site's name, a one-line description (for
@@ -1512,6 +1512,14 @@ screens (and [Redirects](#redirects), with its own capability):
   Under it, **Artwork from uploads** adds the cover art an uploaded
   sound or video carries to the library as its artwork (see
   [Artwork](media.md#artwork)), when the uploader may upload images.
+- **Email:** who the site's email is from: **From name** and **From
+  address**, the site's name and email address until you set them
+  (your mail service must allow the address). Shown, not changed
+  here: the **Transport** (`MAIL_DSN` in `.env`, without its password,
+  or **PHP's own mail (no setup)** when none is set, with a warning on
+  a live site, since that mail often lands in spam; see
+  [Email](configuration.md#email)), and **Send a Test**, which emails
+  your own address at once and says why if it can't.
 - **Addresses and Search:** whether addresses end in a slash (`/about/`;
   the other form redirects, so old links keep working), whether the
   site has a sitemap and `robots.txt`, and the paths `robots.txt` asks

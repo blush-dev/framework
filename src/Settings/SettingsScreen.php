@@ -27,6 +27,7 @@ enum SettingsScreen: string
 	case Reading = 'reading';
 	case Writing = 'writing';
 	case Media   = 'media';
+	case Email   = 'email';
 	case Search  = 'search';
 	case Ai      = 'ai';
 	case Api     = 'api';
@@ -41,6 +42,7 @@ enum SettingsScreen: string
 			self::Reading => $messages->t('settings.settings_screen.reading', 'Reading'),
 			self::Writing => $messages->t('settings.settings_screen.writing', 'Writing'),
 			self::Media   => $messages->t('settings.settings_screen.media', 'Media'),
+			self::Email   => $messages->t('settings.settings_screen.email', 'Email'),
 			self::Search  => $messages->t('settings.settings_screen.search', 'Addresses and Search'),
 			self::Ai      => $messages->t('settings.settings_screen.ai', 'AI'),
 			self::Api     => $messages->t('settings.settings_screen.api', 'API')

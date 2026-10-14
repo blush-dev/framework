@@ -22,6 +22,7 @@ use Blush\Job\Jobs\PruneJobsJob;
 use Blush\Job\Jobs\PruneSessionsJob;
 use Blush\Job\Jobs\PruneActivityJob;
 use Blush\Job\Jobs\PruneTokensJob;
+use Blush\Notification\NotifyJob;
 use Blush\Tool\ToolJob;
 
 /**
@@ -40,6 +41,7 @@ enum JobType: string
 	case HealthFix     = 'core/health-fix';
 	case HealthCheck   = 'core/health-check';
 	case MediaIndex    = 'core/media-index';
+	case Notify        = 'core/notify';
 
 	/**
 	 * Returns the job's class.
@@ -58,7 +60,8 @@ enum JobType: string
 			self::PruneActivity => PruneActivityJob::class,
 			self::HealthFix     => HealthFixJob::class,
 			self::HealthCheck   => HealthCheckJob::class,
-			self::MediaIndex    => MediaIndexJob::class
+			self::MediaIndex    => MediaIndexJob::class,
+			self::Notify        => NotifyJob::class
 		};
 	}
 

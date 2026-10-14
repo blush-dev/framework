@@ -13,6 +13,16 @@ APP_DEBUG=false
 APP_URL="https://example.com"
 ```
 
+For email that arrives (password links), add your host's or a mail
+service's SMTP server:
+
+```ini
+MAIL_DSN="smtp://user:password@smtp.example.com:587"
+```
+
+Without it, the site sends through PHP's own mail, which often lands in
+spam (see [Email](configuration.md#email)).
+
 The live site needs its own `SECRETS_KEY` (`bin/blush init` adds one).
 If you upload `storage/secrets.json` from another copy of the site, its
 `SECRETS_KEY` has to come too, or the [secrets](extending.md#secrets)

@@ -147,10 +147,11 @@ final class SetupCommandsTest extends TestCase
 		$this->writeTemporaryFile('public/index.php', '<?php');
 		$this->writeTemporaryFile('public/.htaccess', '');
 
-		$result = $this->command('doctor', environment: ['APP_URL' => 'https://example.com']);
+		$result = $this->command('doctor', environment: ['APP_URL' => 'https://example.com', 'MAIL_DSN' => 'smtp://mail.example.com:587']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output . $result->errors);
 		$this->assertMatchesRegularExpression('/ok\s+PHP\s+8\.5/', $result->output);
+		$this->assertMatchesRegularExpression('/ok\s+Email\s+Sent through smtp:\/\/mail\.example\.com:587\./', $result->output);
 		$this->assertMatchesRegularExpression('/storage\/\s+Created when it\'s needed\./', $result->output);
 		$this->assertMatchesRegularExpression('/ok\s+Extensions\s+Everything that\'s on runs\./', $result->output);
 		$this->assertMatchesRegularExpression('/warning Background jobs\s+Cron isn\'t set up/', $result->output, 'A new site has no cron yet.');

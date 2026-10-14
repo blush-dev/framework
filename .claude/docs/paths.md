@@ -77,7 +77,7 @@ blush-framework/
     Session/            Session, SessionStore + FileSessionStore, SessionConfig, StartSession (D-219)
     Auth/               Account, Accounts (the accounts table), AccountProfiles, Passwords, Roles,
                         Role, BuiltInRole, Capabilities, Capability, Permissions, Authenticator,
-                        LoginThrottle, AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
+                        LoginThrottle, PasswordResets (D-846), AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
     Preview/            PreviewConfig, PreviewLinks, PreviewLink, PreviewController,
                         PreviewRoutes (signed preview links, D-226)
     Admin/              AdminConfig, AdminRoutes, AdminApp (the built front end),
@@ -97,6 +97,14 @@ blush-framework/
                         AdminThemeCache, AdminThemeConfig, AdminTokens, AdminToken,
                         TokenType, ColorValue, CssColor, FontFamily, FontFace,
                         AdminThemeContrast
+    Mail/               Outgoing mail (D-832, D-846): Address, Message, Attachment, Mailer
+                        (SymfonyMailer over a hidden symfony/mailer, LogMailer, UnconfiguredMailer),
+                        MailConfig, MailTransport (the one in effect, D-848),
+                        MailServiceProvider; Testing/RecordingMailer
+    Notification/       Notifications (D-846): Notification, NotificationType, -Registry,
+                        -Factory, -Registrar, Notifier, NotifyJob (core/notify), Recipient,
+                        Notifiable, MailContent, MailPart, MailLayout; Notifications/ the
+                        built-ins (PasswordLinkNotification)
     Tool/               Tool, ToolRegistry, ToolRegistrar, ToolType, Tools, ToolContext(s),
                         ToolResult, ToolError, ToolAnnotations, InputCheck, ToolEntries,
                         ToolJob (core/tool); Tools/ the built-ins (D-761)
@@ -106,6 +114,8 @@ blush-framework/
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); lang/ (the `core` catalog domain); icons/core/ (the core
                         Lucide subset, D-187)
+    mail/               The notification email's layout, html.php and text.php (D-846);
+                        core's, never a theme's
     blocks/         The core blocks' own templates, which their render() returns (D-382, D-532)
     player/             The shared audio and video players, `<blush-audio-player>` and
                         `<blush-video-player>` (D-553, D-554): plain DOM and CSS, used by

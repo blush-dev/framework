@@ -31,6 +31,7 @@ const EditorView = () => import('./views/EditorView.vue');
 const EntriesView = () => import('./views/EntriesView.vue');
 const FieldSetView = () => import('./views/FieldSetView.vue');
 const FieldSetsView = () => import('./views/FieldSetsView.vue');
+const ForgotPasswordView = () => import('./views/ForgotPasswordView.vue');
 const HealthView = () => import('./views/HealthView.vue');
 const AdminThemeView = () => import('./views/AdminThemeView.vue');
 const AdminThemesView = () => import('./views/AdminThemesView.vue');
@@ -108,7 +109,7 @@ export const router = createRouter({
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		// The site's redirects (D-686), listed under Settings.
 		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: t('router.titles.redirects', 'Redirects'), capability: 'site.redirects', area: 'settings' } },
-		{ path: '/settings/:screen(general|reading|writing|media|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: t('router.titles.settings', 'Settings'), capability: 'site.settings', area: 'settings', wide: true } },
+		{ path: '/settings/:screen(general|reading|writing|media|email|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: t('router.titles.settings', 'Settings'), capability: 'site.settings', area: 'settings', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: t('router.titles.plugins', 'Plugins'), capability: 'extensions.plugins.view', area: 'extend' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: t('router.titles.plugin', 'Plugin'), capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },
@@ -145,6 +146,8 @@ export const router = createRouter({
 		{ path: '/authorize', name: 'authorize', component: AuthorizeView, meta: { title: t('router.titles.connect_an_app', 'Connect an App'), bare: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: t('router.titles.choose_a_password', 'Choose a Password'), public: true } },
+		// Asking for one by email (D-846), from Sign In.
+		{ path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView, meta: { title: t('router.titles.reset_your_password', 'Reset Your Password'), public: true } },
 		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: t('router.titles.not_found', 'Not Found') } }
 	]
 });
@@ -156,7 +159,7 @@ router.beforeEach(async (to) => {
 		return { name: 'sign-in', query: to.fullPath === '/' ? {} : { next: to.fullPath } };
 	}
 
-	if (to.name === 'sign-in' && session.account !== null) {
+	if ((to.name === 'sign-in' || to.name === 'forgot-password') && session.account !== null) {
 		return { name: 'dashboard' };
 	}
 

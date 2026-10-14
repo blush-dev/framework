@@ -90,6 +90,7 @@ const everywhere = computed<Command[]>(() => {
 		['reading', t('command_palette.go_reading_settings', 'Go to Reading Settings'), 'homepage front page feeds rss atom json'],
 		['writing', t('command_palette.go_writing_settings', 'Go to Writing Settings'), 'markdown mentions smart quotes punctuation heading anchors figures raw html'],
 		['media', t('command_palette.go_media_settings', 'Go to Media Settings'), 'uploads upload size path folders files documents images'],
+		['email', t('command_palette.go_email_settings', 'Go to Email Settings'), 'mail smtp sendmail from sender address test notifications'],
 		['search', t('command_palette.go_search_settings', 'Go to Addresses and Search Settings'), 'trailing slash urls sitemap robots seo'],
 		['ai', t('command_palette.go_ai_settings', 'Go to AI Settings'), 'llms.txt markdown copies crawlers robots gptbot claudebot agents'],
 		['api', t('command_palette.go_api_settings', 'Go to API Settings'), 'api json tokens headless rest limits changes writes'],

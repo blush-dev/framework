@@ -21,6 +21,7 @@ use Blush\Admin\Users\UserRules;
 use Blush\Admin\Users\UsersJson;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
+use Blush\Auth\AccountStatus;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\BuiltInRole;
@@ -31,6 +32,9 @@ use Blush\Auth\Roles;
 use Blush\Content\Type\ContentTypes;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Notification\NotificationType;
+use Blush\Notification\Notifier;
+use Blush\Notification\Recipient;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
@@ -47,7 +51,10 @@ use Blush\Translation\Text;
  *   `new`, the admin's screen for making one). The answer
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
- *   reaches a server log, and it's shown this once.
+ *   reaches a server log, and it's shown this once. With `"send": true`
+ *   (D-846), the link is emailed to the account instead (the
+ *   `core/password-link` notification makes it when it's sent), and the
+ *   answer's `link` is `null` with the address it was `sent` to.
  *   With `"tokenOnly": true` (D-744), it's a token-only account instead,
  *   which never signs in and needn't have an email (D-750), without a
  *   profile or a link; `token` (`{"name", "expires", "capabilities"}`,
@@ -61,7 +68,8 @@ use Blush\Translation\Text;
  *   (`accounts.suspend`); answers with the `account`.
  * - `POST accounts/{username}/link` (`accounts.edit`): a new password
  *   link, replacing any other; the account's password keeps working
- *   until it's used.
+ *   until it's used. With `{"send": true}`, it's emailed to the account
+ *   instead (D-846), and the answer is the address it was `sent` to.
  * - `DELETE accounts/{username}` (`accounts.delete`): removes the
  *   account (`204`). Its author entry and the entries crediting it
  *   stay.
@@ -86,6 +94,7 @@ final readonly class AccountEditController
 		private UsersJson $json,
 		private AdminLinks $links,
 		private TokensController $tokens,
+		private Notifier $notifier,
 		private Messages $messages
 	) {}
 
@@ -147,7 +156,7 @@ final readonly class AccountEditController
 			return $this->createTokenOnly($actor, $username, $roles, $name, $email, $first);
 		}
 
-		$refusal = $this->checkCreating($actor, $author);
+		$refusal = $this->checkCreating($actor, $author) ?? $this->checkSending($input);
 
 		if ($refusal !== null) {
 			return $refusal;
@@ -157,6 +166,12 @@ final readonly class AccountEditController
 			[$account, $token] = $this->accounts->invite($username, $roles, $this->profiles->prepare($author, $title ?? $name, $username), $name, $email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
+		}
+
+		if (self::sends($input)) {
+			$this->notifier->send(NotificationType::PasswordLink->value, Recipient::account($account), ['reason' => 'invite'], $actor->id);
+
+			return self::json(['account' => $this->json->account($account, $actor), 'link' => null, 'sent' => $account->email], Status::Created);
 		}
 
 		return self::json(['account' => $this->json->account($account, $actor), 'link' => $this->sendable($account, $token)], Status::Created);
@@ -264,9 +279,48 @@ final readonly class AccountEditController
 			return self::error($this->messages->t('admin.account_edit_controller.link_token_only', '{username} is token-only: it never signs in, so it has no password.', username: $account->username));
 		}
 
+		$input   = self::input($request);
+		$refusal = $this->checkSending($input);
+
+		if ($refusal !== null) {
+			return $refusal;
+		}
+
+		if (self::sends($input)) {
+			if ($account->email === null || $account->email === '') {
+				return self::error($this->messages->t('admin.account_edit_controller.link_no_email', '{username} has no email address to send a link to.', username: $account->username));
+			}
+
+			$this->notifier->send(NotificationType::PasswordLink->value, Recipient::account($account), ['reason' => $account->status() === AccountStatus::Invited ? 'invite' : 'reset'], $actor->id);
+
+			return self::json(['account' => $this->json->account($account, $actor), 'sent' => $account->email]);
+		}
+
 		[$account, $token] = $this->accounts->issuePasswordLink($account);
 
 		return self::json(['account' => $this->json->account($account, $actor), 'link' => $this->sendable($account, $token)]);
+	}
+
+	/**
+	 * Whether a request asks for its password link to be emailed.
+	 *
+	 * @param array<mixed> $input
+	 */
+	private static function sends(array $input): bool
+	{
+		return ($input['send'] ?? false) === true;
+	}
+
+	/**
+	 * Refuses emailing a link from a site that can't send mail.
+	 *
+	 * @param array<mixed> $input
+	 */
+	private function checkSending(array $input): ?ResponseInterface
+	{
+		return self::sends($input) && ! $this->notifier->isOn()
+			? self::error($this->messages->t('admin.account_edit_controller.no_mail', 'This site can\'t send email; copy the link instead.'), field: 'send')
+			: null;
 	}
 
 	public function delete(ServerRequestInterface $request, string $username): ResponseInterface

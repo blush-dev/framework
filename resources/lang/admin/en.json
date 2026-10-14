@@ -112,7 +112,8 @@
 			"sign_in": "Sign In",
 			"connect_an_app": "Connect an App",
 			"choose_a_password": "Choose a Password",
-			"not_found": "Not Found"
+			"not_found": "Not Found",
+			"reset_your_password": "Reset Your Password"
 		},
 		"admin": "Admin",
 		"document_title": "{title} · {site}"
@@ -590,7 +591,8 @@
 		"nothing": "Nothing matches.",
 		"hint_move": "{keys} move",
 		"hint_open": "{key} open",
-		"hint_close": "{key} close"
+		"hint_close": "{key} close",
+		"go_email_settings": "Go to Email Settings"
 	},
 	"type_behavior_fields": {
 		"from_config": "from config",
@@ -1360,7 +1362,8 @@
 		"account": "Account: {name}",
 		"signing_out": "Signing out…",
 		"sign_out": "Sign out",
-		"offline": "You're offline. Changes you make stay in this browser, and you can save them once the connection is back."
+		"offline": "You're offline. Changes you make stay in this browser, and you can save them once the connection is back.",
+		"settings_email": "Email"
 	},
 	"icon_picker": {
 		"count": "{count, plural, one {# icon} other {# icons}}",
@@ -2406,7 +2409,11 @@
 		"creating": "Creating…",
 		"create": "Create Account",
 		"next_token": "Next, its screen shows its token once, to copy.",
-		"next_person": "Next, you'll get a one-time link to send them. It works for a week."
+		"next_person": "Next, you'll get a one-time link to send them. It works for a week.",
+		"created_sent": "Created {name} and emailed their link to {email}",
+		"email_help_mail": "Every account needs one.",
+		"email_help_no_mail": "Every account needs one. This site sends no email, so the password link is yours to send.",
+		"send_link": "Email them a link to choose a password"
 	},
 	"field_sets_view": {
 		"load_failed": "The field sets couldn't be loaded.",
@@ -2912,7 +2919,8 @@
 		"username": "Username",
 		"password": "Password",
 		"signing_in": "Signing in…",
-		"sign_in": "Sign In"
+		"sign_in": "Sign In",
+		"forgot": "Forgot your password?"
 	},
 	"settings_view": {
 		"general": "General",
@@ -2968,7 +2976,13 @@
 		"uses_file": "Uses {file}'s once saved. {action}",
 		"use_file": "Use {file}'s",
 		"ai": "AI",
-		"api": "API"
+		"api": "API",
+		"email": "Email",
+		"email_hint": "Who the site's email is from, and how it's sent.",
+		"test_failed": "The test wasn't sent.",
+		"test_sent": "Sent a test to {email}",
+		"sending": "Sending…",
+		"send_test": "Send a Test"
 	},
 	"profile_detail_view": {
 		"errors": {
@@ -4457,7 +4471,13 @@
 		"slug": "Slug",
 		"slug_help": "Every archive address for this person uses it. Left empty, it follows the name.",
 		"creating": "Creating…",
-		"create_the_profile": "Create the Profile"
+		"create_the_profile": "Create the Profile",
+		"email_link_title": "Email {name} a New Link?",
+		"email_link_body": "The one they have stops working once it's sent.",
+		"email_new_link": "Email a New Link",
+		"link_email_failed": "The link couldn't be emailed.",
+		"link_emailed": "Emailing a password link to {email}",
+		"email_password_link": "Email a password link"
 	},
 	"media": {
 		"dimensions": "{width} × {height}",
@@ -4534,5 +4554,17 @@
 		"volume": "Volume",
 		"unmute": "Unmute",
 		"mute": "Mute"
+	},
+	"forgot_password_view": {
+		"errors": {
+			"failed": "The link couldn't be asked for."
+		},
+		"title": "Reset Your Password",
+		"no_mail": "This site can't send email, so ask an administrator for a password link.",
+		"login": "Username or email address",
+		"help": "The account is emailed a link to choose a new password.",
+		"sending": "Sending…",
+		"submit": "Email Me a Link",
+		"back": "Back to Sign In"
 	}
 }

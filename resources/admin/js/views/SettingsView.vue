@@ -83,6 +83,7 @@ const screens: Record<string, { title: string; hint: string }> = {
 	reading: { title: t('settings_view.reading', 'Reading'), hint: t('settings_view.reading_hint', 'What the homepage shows, and the feeds.') },
 	writing: { title: t('settings_view.writing', 'Writing'), hint: t('settings_view.writing_hint', 'How what\'s written renders, and what raw HTML in it does.') },
 	media: { title: t('settings_view.media', 'Media'), hint: t('settings_view.media_hint', 'What may be uploaded, how large, and where it\'s kept.') },
+	email: { title: t('settings_view.email', 'Email'), hint: t('settings_view.email_hint', 'Who the site\'s email is from, and how it\'s sent.') },
 	search: { title: t('settings_view.search', 'Addresses and Search'), hint: t('settings_view.search_hint', 'How addresses are written, and what search engines are told.') },
 	ai: { title: t('settings_view.ai', 'AI'), hint: t('settings_view.ai_hint', 'What AI tools can read, and what AI crawlers are asked.') },
 	api: { title: t('settings_view.api', 'API'), hint: t('settings_view.api_hint', 'What other sites, apps, and scripts can read, and what a token may change.') },
@@ -101,6 +102,18 @@ const unset   = ref<string[]>([]);
 const uploadsInfo = ref<UploadsInfo | null>(null);
 
 const { busy: saving, error: failure, run } = useAction();
+
+// Email's Send a Test (D-846): sent now, so a transport that fails says
+// why.
+const { busy: testing, error: testError, run: runTest } = useAction();
+
+async function sendTest(): Promise<void> {
+	await runTest(t('settings_view.test_failed', 'The test wasn\'t sent.'), async () => {
+		const answer = await request<{ sent: string }>('POST', '/settings/email/test');
+
+		toast(t('settings_view.test_sent', 'Sent a test to {email}', { email: answer.sent }), { kind: 'good' });
+	});
+}
 
 const about = computed(() => screens[props.screen] ?? { title: t('settings_view.settings', 'Settings'), hint: '' });
 
@@ -649,9 +662,11 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
 									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === t('settings_view.none', 'None') }">{{ shown(item) }}</span>
 									<span v-if="item.default === true" class="tag">{{ t('settings_view.default', 'Default') }}</span>
+									<button v-if="item.kind === 'test'" type="button" class="button button--small" :disabled="testing || item.value === ''" @click="sendTest"><AdminIcon name="mail" />{{ testing ? t('settings_view.sending', 'Sending…') : t('settings_view.send_test', 'Send a Test') }}</button>
 									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.the_address', 'the address'), t('settings_view.the_address', 'the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button>
 								</p>
 								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+								<p v-if="item.kind === 'test' && testError" class="setting__warning" role="alert"><AdminIcon name="triangle-alert" />{{ testError }}</p>
 								<p v-if="item.link || item.links?.length" class="setting__links">
 									<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
 									<RouterLink v-for="link in item.links ?? []" :key="link.to" class="setting__link" :to="link.to">{{ link.label }}</RouterLink>

@@ -20,10 +20,11 @@
  * - On your own, **Theme and Color Scheme** (`AccountPreferences`) and
  *   **Language** (`AccountLanguage`, D-831).
  *
- * Blush sends no email, so a password is never set here: **Make a
- * password link** gives a link to copy and send, for a new account or a
- * forgotten password. A link just made (here, or by New Account) is
- * shown once; only a hash of it is kept.
+ * A password is never set here: **Make a password link** gives a link
+ * to copy and send, for a new account or a forgotten password, and
+ * where the site can send email, **Email a password link** sends one
+ * to the account's address instead (D-846). A link just made (here, or
+ * by New Account) is shown once; only a hash of it is kept.
  *
  * Your own account, and an account that can do things you can't, are
  * shown without the controls (`UserRules`), with a note saying why.
@@ -51,7 +52,7 @@ import { config } from '../config';
 import { confirmAction } from '../confirm';
 import { t } from '../messages';
 import { slugOf } from '../references';
-import { claimable, freshLink, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
+import { claimable, emailPasswordLink, freshLink, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can, canType, loadSession, saveOwnDetails, session } from '../session';
 import { loadTypes, profileType } from '../types';
@@ -387,6 +388,26 @@ async function makeLink(): Promise<void> {
 	});
 }
 
+// Emails a new link instead (D-846), where the site can send email and
+// the account has an address. Its link is made when it's sent.
+const mailable = computed(() => config.mail && account.value !== undefined && account.value.email !== null && account.value.email !== '');
+
+async function emailLink(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined || (current.link !== null && !current.link.expired && !await confirmAction({ title: t('account_view.email_link_title', 'Email {name} a New Link?', { name: current.displayName }), body: t('account_view.email_link_body', 'The one they have stops working once it\'s sent.'), confirm: t('account_view.email_new_link', 'Email a New Link') }))) {
+		return;
+	}
+
+	await runLink(t('account_view.link_email_failed', 'The link couldn\'t be emailed.'), async () => {
+		const answer = await emailPasswordLink(current.username);
+
+		replace(answer.account);
+		link.value = null;
+		toast(t('account_view.link_emailed', 'Emailing a password link to {email}', { email: answer.sent }));
+	});
+}
+
 // The Actions menu: what someone who manages accounts does to the account
 // as a whole.
 const { busy: actionsBusy, error: actionsError, run: runActions } = useAction();
@@ -553,6 +574,7 @@ async function changePassword(): Promise<void> {
 					<RouterLink v-if="account.profile && canOpenProfile" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />{{ t('account_view.open_profile', 'Open profile') }}</RouterLink>
 					<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />{{ t('account_view.copy_email', 'Copy email address') }}</button>
 					<button v-if="can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" :disabled="linkBusy" @click="makeLink"><AdminIcon name="key-round" />{{ account.link ? t('account_view.make_new_password_link', 'Make a new password link') : t('account_view.make_password_link', 'Make a password link') }}</button>
+					<button v-if="mailable && can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" :disabled="linkBusy" @click="emailLink"><AdminIcon name="mail" />{{ t('account_view.email_password_link', 'Email a password link') }}</button>
 					<template v-if="can('accounts.suspend') || can('accounts.delete')">
 						<div class="menu-divider" />
 						<template v-if="can('accounts.suspend')">
@@ -593,7 +615,7 @@ async function changePassword(): Promise<void> {
 		<div v-else-if="account && account.status === 'invited' && account.link" class="notice">
 			<AdminIcon name="mail" />
 			<span class="notice__text"><strong>{{ t('account_view.invited', 'This account is waiting on its invitation.') }}</strong> {{ account.link.expired ? t('account_view.link_expired', 'Its password link expired {date}; make a new one to send.', { date: when(account.link.expires) }) : t('account_view.link_works_until', 'Its password link works until {date}.', { date: when(account.link.expires) }) }}</span>
-			<span v-if="linking" class="notice__buttons"><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? t('account_view.making', 'Making…') : t('account_view.make_new_link', 'Make a New Link') }}</button></span>
+			<span v-if="linking" class="notice__buttons"><button v-if="mailable" type="button" class="button button--small" :disabled="linkBusy" @click="emailLink">{{ t('account_view.email_new_link', 'Email a New Link') }}</button><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? t('account_view.making', 'Making…') : t('account_view.make_new_link', 'Make a New Link') }}</button></span>
 		</div>
 
 		<div v-if="account" class="pair">
