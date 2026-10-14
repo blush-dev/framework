@@ -163,6 +163,26 @@ export function moveTo<T extends TreeNode<T>>(nodes: T[], id: string, target: st
  * row's fields, and select one; and say whether any node has children,
  * whether any is closed, and how many there are.
  */
+/**
+ * What an item tree says about its nodes, worded by the screen that
+ * holds it (a menu's items, a form's fields), so each sentence is one
+ * message with its noun in it.
+ */
+export interface ItemTreeWords {
+	// What's under a closed row, counted: "3 fields".
+	under: (count: number) => string;
+	// Read out when a node is added, beside another (`name`) or alone.
+	added: (place: 'above' | 'below' | 'inside' | null, name: string) => string;
+	// The row menu's buttons.
+	addAbove: string;
+	addBelow: string;
+	// The toast when a node goes with what's under it.
+	removedWith: (name: string, count: number) => string;
+	// The open and close button of a row with nodes under it, read out.
+	showUnder: (name: string) => string;
+	hideUnder: (name: string) => string;
+}
+
 export interface ItemTreeApi<T> {
 	add(place?: 'above' | 'below' | 'inside', id?: string | null, node?: T): Promise<void>;
 	remove(id: string): Promise<void>;

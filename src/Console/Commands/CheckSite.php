@@ -55,7 +55,7 @@ final readonly class CheckSite
 	{
 		$areas = array_map(
 			static fn (array $results): array => array_map(
-				static fn (CheckResult $result): StatusLine => new StatusLine(self::outcome($result->status), $result->label, $result->message, $result->hint),
+				static fn (CheckResult $result): StatusLine => new StatusLine(self::outcome($result->status), (string) $result->label, (string) $result->message, (string) $result->hint),
 				array_values($results)
 			),
 			$this->checks->byArea()

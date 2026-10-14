@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionRequire;
 use Blush\Extension\ExtensionSuggest;
+use Blush\Translation\Messages;
 
 /**
  * An admin theme (D-827): a skin over the admin, never its layout or
@@ -60,7 +61,6 @@ final readonly class AdminTheme implements ExtensionManifest
 	 * @param array<string, string> $provide
 	 * @param array<string, string> $suggest
 	 * @param list<string>          $keywords
-	 * @throws ExtensionException
 	 */
 	public function __construct(
 		public string $name,
@@ -80,34 +80,28 @@ final readonly class AdminTheme implements ExtensionManifest
 		public bool|string $abandoned = false,
 		public array $suggest = [],
 		public array $keywords = []
-	) {
-		if (! ExtensionName::isValid($name)) {
-			throw new ExtensionException(sprintf('The admin theme in %s needs a "name": vendor/name, such as "acme/harbor".', $path));
-		}
-
-		if (trim($label) === '') {
-			throw new ExtensionException(sprintf('The "%s" admin theme needs a "label".', $name));
-		}
-	}
+	) {}
 
 	/**
 	 * Builds a theme from its manifest's data, found in a folder, reading
-	 * its `tokens.json` there (or the tokens the cache kept).
+	 * its `tokens.json` there (or the tokens the cache kept). What's wrong
+	 * is written with `$messages`, and kept with the exception
+	 * (`ExtensionException::$text`), so discovery keeps the message.
 	 *
 	 * @param  array<array-key, mixed>  $data
 	 * @param  ?array<array-key, mixed> $tokens What `AdminTokens::toArray()` gave, from the cache.
 	 * @throws ExtensionException
 	 */
-	public static function fromArray(string $path, array $data, AdminThemeSource $source = AdminThemeSource::Local, ?array $tokens = null): self
+	public static function fromArray(string $path, array $data, AdminThemeSource $source = AdminThemeSource::Local, ?array $tokens = null, Messages $messages = new Messages()): self
 	{
 		foreach (['name', 'label', 'version', 'description'] as $key) {
 			if (isset($data[$key]) && ! is_string($data[$key])) {
-				throw new ExtensionException(sprintf('The admin theme in %s has a "%s" that isn\'t a string.', $path, $key));
+				throw new ExtensionException($messages->t('admin.admin_theme.not_string', 'The admin theme in {path} has a "{field}" that isn\'t a string.', path: $path, field: $key));
 			}
 		}
 
 		if (array_key_exists('namespace', $data)) {
-			throw new ExtensionException(sprintf('The admin theme in %s has a "namespace", which admin themes don\'t: it has nothing to name by one.', $path));
+			throw new ExtensionException($messages->t('admin.admin_theme.namespace', 'The admin theme in {path} has a "namespace", which admin themes don\'t: it has nothing to name by one.', path: $path));
 		}
 
 		try {
@@ -121,15 +115,26 @@ final readonly class AdminTheme implements ExtensionManifest
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
-			$read      = $tokens === null ? AdminTokens::load($path) : AdminTokens::fromCache($tokens, $path);
+			$read      = $tokens === null ? AdminTokens::load($path, $messages) : AdminTokens::fromCache($tokens, $path, $messages);
 		} catch (ExtensionException $error) {
-			throw new ExtensionException(sprintf('The admin theme in %s: %s', $path, $error->getMessage()), previous: $error);
+			throw new ExtensionException($messages->t('admin.admin_theme.invalid', 'The admin theme in {path}: {problem}', path: $path, problem: $error->reason()), previous: $error);
 		}
 
 		/** @var array<string, string> $data Checked above. */
+		$name  = $data['name'] ?? '';
+		$label = ExtensionName::label($data['label'] ?? null, $name);
+
+		if (! ExtensionName::isValid($name)) {
+			throw new ExtensionException($messages->t('admin.admin_theme.no_name', 'The admin theme in {path} needs a "name": vendor/name, such as "acme/harbor".', path: $path));
+		}
+
+		if (trim($label) === '') {
+			throw new ExtensionException($messages->t('admin.admin_theme.no_label', 'The "{name}" admin theme needs a "label".', name: $name));
+		}
+
 		return new self(
-			name: $data['name'] ?? '',
-			label: ExtensionName::label($data['label'] ?? null, $data['name'] ?? ''),
+			name: $name,
+			label: $label,
 			path: $path,
 			tokens: $read,
 			source: $source,

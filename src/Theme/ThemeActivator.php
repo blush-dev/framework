@@ -21,6 +21,7 @@ use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
+use Blush\Translation\Messages;
 
 /**
  * Makes a theme the active one in `config/theme.php`, for
@@ -36,7 +37,8 @@ final readonly class ThemeActivator
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private Filesystem $filesystem,
-		private SettingsStore $settings
+		private SettingsStore $settings,
+		private Messages $messages
 	) {}
 
 	/**
@@ -64,7 +66,7 @@ final readonly class ThemeActivator
 			$pattern = '#(\bactive\s*:\s*|[\'"]active[\'"]\s*=>\s*)([\'"])[a-z0-9_./-]*\2#';
 
 			if (preg_match_all($pattern, $source) !== 1) {
-				throw new ThemeException(sprintf('Couldn\'t find one plain "active" value in %s.', $this->paths->relative($file)));
+				throw new ThemeException((string) $this->messages->t('theme.theme_activator.no_active', 'Couldn\'t find one plain "active" value in {file}.', file: $this->paths->relative($file)));
 			}
 
 			$this->filesystem->writeAtomic($file, (string) preg_replace($pattern, "\${1}'{$name}'", $source));

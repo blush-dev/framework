@@ -18,6 +18,8 @@ use Blush\Field\ControlFactory;
 use Blush\Field\Field;
 use Blush\Field\FieldRegistry;
 use Blush\Http\Response;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/fields/controls` (D-766): the catalog the
@@ -42,7 +44,8 @@ final readonly class FieldControlsController
 {
 	public function __construct(
 		private FieldRegistry $registry,
-		private ControlFactory $controls
+		private ControlFactory $controls,
+		private Messages $messages
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -53,9 +56,9 @@ final readonly class FieldControlsController
 			$section    = $class::section();
 			$controls[] = [
 				'value'       => $class::name(),
-				'label'       => $class::label(),
-				'description' => $class::description(),
-				'section'     => $section === null ? null : ['value' => $section->value, 'label' => $section->label()],
+				'label'       => $class::label($this->messages),
+				'description' => $class::description($this->messages),
+				'section'     => $section === null ? null : ['value' => $section->value, 'label' => $section->label($this->messages)],
 				'type'        => $class::type(),
 				'shape'       => $class::shape(),
 				'implies'     => (object) $class::implies(),
@@ -69,8 +72,8 @@ final readonly class FieldControlsController
 			/** @var class-string<Field> $class */
 			$types[] = [
 				'type'        => $key,
-				'label'       => $class::typeLabel() === '' ? $key : $class::typeLabel(),
-				'description' => $class::typeDescription(),
+				'label'       => $class::typeLabel($this->messages) === '' ? $key : $class::typeLabel($this->messages),
+				'description' => $class::typeDescription($this->messages),
 				'controls'    => $this->storing($key),
 				'options'     => (object) array_diff_key($class::definitionSchema(['type' => 'object']), ['default' => true])
 			];
@@ -82,7 +85,7 @@ final readonly class FieldControlsController
 	/**
 	 * Returns the controls that store a type without implying options.
 	 *
-	 * @return list<array{value: string, label: string}>
+	 * @return list<array{value: string, label: string|Text}>
 	 */
 	private function storing(string $type): array
 	{
@@ -91,6 +94,6 @@ final readonly class FieldControlsController
 			static fn (string $class): bool => $class::implies() === [] && in_array($type, $class::stores(), true)
 		);
 
-		return array_values(array_map(static fn (string $class): array => ['value' => $class::name(), 'label' => $class::label()], $found));
+		return array_values(array_map(fn (string $class): array => ['value' => $class::name(), 'label' => $class::label($this->messages)], $found));
 	}
 }

@@ -223,7 +223,7 @@ final class ContentServiceProvider extends ServiceProvider
 
 		$this->container->singleton(
 			FieldContext::class,
-			static fn (ServiceResolver $resolver): FieldContext => new FieldContext($resolver->make(AppConfig::class)->timezone())
+			static fn (ServiceResolver $resolver): FieldContext => new FieldContext($resolver->make(AppConfig::class)->timezone(), $resolver->make(Messages::class))
 		);
 
 		$this->container->singleton(
@@ -235,7 +235,7 @@ final class ContentServiceProvider extends ServiceProvider
 		// relation definitions (D-585, D-593).
 		$this->container->singleton(
 			Relations::class,
-			static fn (Container $container): Relations => new RelationCompiler()->compile($container->make(ContentTypes::class))
+			static fn (Container $container): Relations => new RelationCompiler($container->make(Messages::class))->compile($container->make(ContentTypes::class))
 		);
 
 		// Field sets load, and compile, with the types (D-339).

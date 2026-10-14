@@ -58,7 +58,7 @@ final readonly class LintContent
 		foreach ($report->violations($strict ? Severity::Notice : Severity::Warning) as $path => $violations) {
 			$output->section((string) $path);
 			$output->status(array_map(
-				static fn (Violation $violation): StatusLine => new StatusLine(Outcome::of($violation->severity), $violation->field, $violation->message),
+				static fn (Violation $violation): StatusLine => new StatusLine(Outcome::of($violation->severity), $violation->field, (string) $violation->message),
 				$violations
 			));
 		}

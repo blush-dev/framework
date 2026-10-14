@@ -13,8 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Asset;
 
+use Blush\Data\InvalidData;
 use Blush\Theme\ThemeException;
 use Blush\View\PageMarkup;
+use Blush\View\Placement;
+use Blush\View\ViewException;
 
 /**
  * Adds the assets a page asked for to its markup (D-570, D-578): for
@@ -25,9 +28,23 @@ use Blush\View\PageMarkup;
  * by URL, so a file two assets share prints once. Each asset's first and
  * last script are recorded, for the data and inline code tied to it
  * (D-580).
+ *
+ * A script that names a catalog (D-831) gets it printed before the
+ * asset's first script, in the page's language, and the head maps
+ * `blush/messages`, core's module that reads it, in its import map.
  */
 final readonly class Assets
 {
+	/**
+	 * The module scripts import to read their catalogs (D-831).
+	 */
+	public const string MESSAGES = 'blush/messages';
+
+	/**
+	 * Its file in core's built site files.
+	 */
+	public const string MESSAGES_PATH = 'js/messages.js';
+
 	public function __construct(
 		public AssetRegistry $registry,
 		private AssetUrls $urls
@@ -38,6 +55,8 @@ final readonly class Assets
 	 *
 	 * @param  list<string> $handles
 	 * @throws ThemeException When a theme's build manifest is invalid.
+	 * @throws InvalidData When a catalog can't be parsed.
+	 * @throws ViewException When a catalog can't be JSON.
 	 */
 	public function apply(PageMarkup $markup, array $handles): void
 	{
@@ -61,12 +80,33 @@ final readonly class Assets
 						: $markup->head->script($url, $script->attributes);
 
 					$keys[] = "script:{$url}";
+
+					if ($script->catalog !== null) {
+						$this->messages($markup, $script, $asset->handle);
+					}
 				}
 			}
 
 			if ($keys !== []) {
 				$markup->bind($asset->handle, $keys[0], $keys[array_key_last($keys)]);
 			}
+		}
+	}
+
+	/**
+	 * Adds the catalog a script reads and maps `blush/messages`.
+	 *
+	 * @throws InvalidData
+	 * @throws ViewException
+	 */
+	private function messages(PageMarkup $markup, Script $script, string $handle): void
+	{
+		$markup->addMessages($script->footer ? Placement::Foot : Placement::Head, $script->domain(), (string) $script->catalog, $handle);
+
+		$module = $this->urls->url(self::MESSAGES_PATH, AssetUrls::CORE);
+
+		if ($module !== null) {
+			$markup->import(self::MESSAGES, $module);
 		}
 	}
 }

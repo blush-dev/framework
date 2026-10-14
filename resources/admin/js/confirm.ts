@@ -24,6 +24,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import type { EntryStatus } from './api';
+import { t } from './messages';
 
 export interface ConfirmItem {
 	title: string;
@@ -110,8 +111,8 @@ export function emphasis(text: string): { text: string; strong: boolean }[] {
 /**
  * The usual question before leaving unsaved changes.
  */
-export function confirmLeave(what = 'Your changes will be lost.'): Promise<boolean> {
-	return confirmAction({ title: 'Leave Without Saving?', body: what, confirm: 'Leave', cancel: 'Stay', danger: true });
+export function confirmLeave(what = t('confirm.changes_lost', 'Your changes will be lost.')): Promise<boolean> {
+	return confirmAction({ title: t('confirm.leave_title', 'Leave Without Saving?'), body: what, confirm: t('confirm.leave', 'Leave'), cancel: t('confirm.stay', 'Stay'), danger: true });
 }
 
 /**

@@ -36,7 +36,7 @@ function follow(): void {
 		</p>
 		<ul v-if="current.items?.length" class="confirm-list">
 			<li v-for="(item, index) in current.items" :key="index">
-				<span class="confirm-list__title">{{ item.title || 'Untitled' }}</span>
+				<span class="confirm-list__title">{{ item.title || t('confirm_host.untitled', 'Untitled') }}</span>
 				<span v-if="item.meta || (item.status && item.status !== 'published')" class="confirm-list__meta">{{ item.meta }}<StatusPill v-if="item.status && item.status !== 'published'" :status="item.status" /></span>
 				<span v-if="item.count" class="confirm-list__count mono">{{ item.count }}</span>
 			</li>
@@ -53,7 +53,7 @@ function follow(): void {
 			<p v-if="current.checkHelp" class="field__help">{{ current.checkHelp }}</p>
 		</div>
 		<template #footer>
-			<button v-if="!current.alone" type="button" class="button" :autofocus="current.danger || undefined" @click="answerConfirm(current.id, false)">{{ current.cancel ?? 'Cancel' }}</button>
+			<button v-if="!current.alone" type="button" class="button" :autofocus="current.danger || undefined" @click="answerConfirm(current.id, false)">{{ current.cancel ?? t('common.cancel', 'Cancel') }}</button>
 			<button type="button" class="button" :class="current.danger ? 'button--danger' : 'button--primary'" :autofocus="!current.danger || undefined" @click="answerConfirm(current.id, true)">{{ current.confirm }}</button>
 		</template>
 	</AdminModal>

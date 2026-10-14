@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Cache;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * The built-in cache drivers, keyed by the name config uses (the "Type
  * enum" of the enum + registry pattern, D-019).
@@ -44,14 +47,14 @@ enum CacheDriver: string
 	/**
 	 * Returns the driver's name, for reading.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::File    => 'Files',
-			self::PhpFile => 'PHP files',
-			self::Apcu    => 'APCu',
-			self::Array   => 'Memory, for one request',
-			self::Null    => 'Off'
+			self::File    => $messages->t('cache.cache_driver.file', 'Files'),
+			self::PhpFile => $messages->t('cache.cache_driver.php_file', 'PHP files'),
+			self::Apcu    => $messages->t('cache.cache_driver.apcu', 'APCu'),
+			self::Array   => $messages->t('cache.cache_driver.array', 'Memory, for one request'),
+			self::Null    => $messages->t('cache.cache_driver.null', 'Off')
 		};
 	}
 }

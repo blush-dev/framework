@@ -34,6 +34,7 @@ use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Media\MediaValues;
 use Blush\Support\Slug;
+use Blush\Translation\Messages;
 
 /**
  * Answers `GET {path}/api/references/{type}` (D-242's picker, D-281):
@@ -125,7 +126,8 @@ final readonly class ReferencesController
 		private EntryLinks $links,
 		private Relations $relations,
 		private RelationLimits $limits,
-		private MediaValues $media
+		private MediaValues $media,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $type): ResponseInterface
@@ -133,17 +135,17 @@ final readonly class ReferencesController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], HttpStatus::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], HttpStatus::Unauthorized);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Edit)) {
-			return self::json(['error' => 'Your account can\'t edit content.'], HttpStatus::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.references_controller.cannot_edit', 'Your account can\'t edit content.')], HttpStatus::Forbidden);
 		}
 
 		$contentType = $this->types->find($type);
 
 		if ($contentType === null) {
-			return self::json(['error' => 'There is no such content type.'], HttpStatus::NotFound);
+			return self::json(['error' => $this->messages->t('admin.references_controller.unknown_type', 'There is no such content type.')], HttpStatus::NotFound);
 		}
 
 		$params = $request->getQueryParams();

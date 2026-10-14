@@ -43,12 +43,12 @@ function remove(option: string): void {
 	<div :id="id" class="reference__tokens" :class="{ 'is-invalid': invalid }" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy">
 		<span v-for="option in chosen" :key="option" class="reference__token">
 			<span class="reference__token-name">{{ labelOf(option) }}</span>
-			<button type="button" :disabled="disabled" @click="remove(option)"><AdminIcon name="x" /><span class="visually-hidden">Remove {{ labelOf(option) }}</span></button>
+			<button type="button" :disabled="disabled" @click="remove(option)"><AdminIcon name="x" /><span class="visually-hidden">{{ t('choice_chips.remove', 'Remove {label}', { label: labelOf(option) }) }}</span></button>
 		</span>
-		<MenuButton v-if="left.length" button-class="button button--ghost button--small" :label="`Add to ${name}`" floating>
-			<template #button><AdminIcon name="plus" />Add</template>
+		<MenuButton v-if="left.length" button-class="button button--ghost button--small" :label="t('choice_chips.add_to', 'Add to {name}', { name })" floating>
+			<template #button><AdminIcon name="plus" />{{ t('common.add', 'Add') }}</template>
 			<button v-for="option in left" :key="option" type="button" class="menu-item" :disabled="disabled" @click="add(option)">{{ labelOf(option) }}</button>
 		</MenuButton>
-		<span v-else-if="!chosen.length" class="field__help">No options to pick from.</span>
+		<span v-else-if="!chosen.length" class="field__help">{{ t('choice_chips.no_options', 'No options to pick from.') }}</span>
 	</div>
 </template>

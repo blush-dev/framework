@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Translation;
 
+use DateTimeInterface;
 use JsonSerializable;
 use Override;
 use Stringable;
@@ -63,6 +64,34 @@ final readonly class Text implements Stringable, JsonSerializable
 	public function jsonSerialize(): string
 	{
 		return (string) $this;
+	}
+
+	/**
+	 * Returns it to store and show later (D-836): its key, the text
+	 * written beside it, its domain, and its parameters, a message among
+	 * them stored the same way and a date as its timestamp. Read back with
+	 * `Messages::restore()`, it's translated when it's shown, in the
+	 * reader's language, with the text in place of a key a later version
+	 * no longer has. Its note for translators isn't kept.
+	 *
+	 * @return array{key: string, text: ?string, domain: string, params: array<string, mixed>}
+	 *
+	 * @throws TranslationException When a parameter is HTML or an object that can't be stored.
+	 */
+	public function toArray(): array
+	{
+		$params = [];
+
+		foreach ($this->params as $name => $value) {
+			$params[$name] = match (true) {
+				$value instanceof self                                         => $value->toArray(),
+				$value instanceof DateTimeInterface                            => $value->getTimestamp(),
+				$value === null, is_scalar($value)                             => $value,
+				default => throw new TranslationException(sprintf('The "%s" parameter of "%s" can\'t be stored: only text, numbers, dates, and other messages can.', $name, $this->key))
+			};
+		}
+
+		return ['key' => $this->key, 'text' => $this->text, 'domain' => $this->domain, 'params' => $params];
 	}
 
 	/**

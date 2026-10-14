@@ -22,6 +22,7 @@ use Blush\Content\Type\DefinitionTables;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\RecordException;
+use Blush\Translation\Messages;
 
 /**
  * Writes the relations the site defines in data, the `relations` table
@@ -44,7 +45,8 @@ final readonly class DataRelationWriter
 	public function __construct(
 		private ContentConfig $config,
 		private DefinitionTables $tables,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -57,7 +59,7 @@ final readonly class DataRelationWriter
 	public function location(string $name): ?string
 	{
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t a relation name: lowercase letters, digits, and underscores, starting with a letter.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.bad_name', '"{name}" isn\'t a relation name: lowercase letters, digits, and underscores, starting with a letter.', name: $name));
 		}
 
 		try {
@@ -78,13 +80,13 @@ final readonly class DataRelationWriter
 		$this->assertEnabled();
 
 		if ($this->location($relation->name) !== null) {
-			throw new InvalidContentType(sprintf('user/data/relations already defines "%s".', $relation->name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.already_data', 'user/data/relations already defines "{name}".', name: $relation->name));
 		}
 
 		// One from config or a plugin isn't replaced from here; it's
 		// changed where it's defined.
 		if (isset(($this->loader)()->load()->relations()[$relation->name])) {
-			throw new InvalidContentType(sprintf('The "%s" relation is already defined in code; change it there.', $relation->name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.already_code', 'The "{name}" relation is already defined in code; change it there.', name: $relation->name));
 		}
 
 		return $this->write($relation);
@@ -101,7 +103,7 @@ final readonly class DataRelationWriter
 		$this->assertEnabled();
 
 		if ($this->location($relation->name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be changed here.', $relation->name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.not_data_change', '"{name}" isn\'t defined in user/data/relations, so it can\'t be changed here.', name: $relation->name));
 		}
 
 		return $this->write($relation);
@@ -118,7 +120,7 @@ final readonly class DataRelationWriter
 		$this->assertEnabled();
 
 		if ($this->location($name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be deleted here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.not_data_delete', '"{name}" isn\'t defined in user/data/relations, so it can\'t be deleted here.', name: $name));
 		}
 
 		return $this->checked(function () use ($name): void {
@@ -172,7 +174,7 @@ final readonly class DataRelationWriter
 	private function assertEnabled(): void
 	{
 		if (! $this->config->dataTypes) {
-			throw new InvalidContentType('ContentConfig "dataTypes" is off, so relations in user/data/relations aren\'t read.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_relation_writer.data_types_off', 'ContentConfig "dataTypes" is off, so relations in user/data/relations aren\'t read.'));
 		}
 	}
 }

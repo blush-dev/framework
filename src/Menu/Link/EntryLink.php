@@ -19,6 +19,8 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Core\AppConfig;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Links to an entry by type and key: `entry: page/about`, or a type's
@@ -34,8 +36,11 @@ final class EntryLink extends MenuLink implements LinksEntry
 	public function __construct(
 		private readonly Entries $content,
 		private readonly ContentUrls $urls,
-		private readonly AppConfig $app
-	) {}
+		private readonly AppConfig $app,
+		Messages $messages
+	) {
+		parent::__construct($messages);
+	}
 
 	/**
 	 * @inheritDoc
@@ -66,13 +71,13 @@ final class EntryLink extends MenuLink implements LinksEntry
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function validate(mixed $value, array $item): ?string
+	public function validate(string $key, mixed $value, array $item): ?Text
 	{
 		if (! is_string($value) || preg_match('#^[a-z][a-z0-9_]*(/[^/].*|/)?$#', trim($value)) !== 1) {
-			return 'must be an entry as {type}/{key}, such as "page/about".';
+			return $this->messages->t('menu.entry_link.invalid', '"{link}" must be an entry as \'{type}/{key}\', such as "page/about".', link: $key);
 		}
 
-		return self::validRef($item) ? null : 'has a "ref" that isn\'t an entry\'s id.';
+		return self::validRef($item) ? null : $this->messages->t('menu.entry_link.ref', '"{link}" has a "ref" that isn\'t an entry\'s id.', link: $key);
 	}
 
 	/**
@@ -84,11 +89,11 @@ final class EntryLink extends MenuLink implements LinksEntry
 		$entry = $this->entry($value, $item);
 
 		if ($entry === null) {
-			throw new UnresolvedLink(sprintf('No entry "%s".', $value));
+			throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.missing', 'No entry "{entry}".', entry: $value));
 		}
 
 		if (! $entry->isPublished()) {
-			throw new UnresolvedLink(sprintf('The entry "%s" isn\'t published.', $value));
+			throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.unpublished', 'The entry "{entry}" isn\'t published.', entry: $value));
 		}
 
 		// On a translated page, its translation when it's published (D-463).
@@ -96,7 +101,7 @@ final class EntryLink extends MenuLink implements LinksEntry
 		$translation = $language === null ? null : $this->content->translation($entry, $language);
 		$entry       = $translation !== null && $translation->isPublished() && $translation->isRoutable() ? $translation : $entry;
 
-		$url = $this->urls->entry($entry) ?? throw new UnresolvedLink(sprintf('The entry "%s" has no URL.', $value));
+		$url = $this->urls->entry($entry) ?? throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.no_url', 'The entry "{entry}" has no URL.', entry: $value));
 
 		return new LinkTarget($url, $entry->title);
 	}

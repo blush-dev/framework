@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Reads an extension's `keywords` (D-565), as Composer has it
  * (https://getcomposer.org/doc/04-schema.md#keywords): a list of words
@@ -31,17 +33,17 @@ final readonly class ExtensionKeywords
 	 * @return list<string>
 	 * @throws ExtensionException When it isn't a list of strings.
 	 */
-	public static function fromManifest(mixed $value): array
+	public static function fromManifest(mixed $value, Messages $messages = new Messages()): array
 	{
 		$value ??= [];
 
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new ExtensionException('"keywords" must be a list of strings.');
+			throw new ExtensionException((string) $messages->t('extension.extension_keywords.invalid', '"keywords" must be a list of strings.'));
 		}
 
 		foreach ($value as $keyword) {
 			if (! is_string($keyword)) {
-				throw new ExtensionException('"keywords" must be a list of strings.');
+				throw new ExtensionException((string) $messages->t('extension.extension_keywords.invalid', '"keywords" must be a list of strings.'));
 			}
 		}
 

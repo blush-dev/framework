@@ -60,6 +60,7 @@ import { onBeforeRouteUpdate, RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import FieldInput from '../components/FieldInput.vue';
+import MessageText from '../components/MessageText.vue';
 import DateFormatPicker from '../components/DateFormatPicker.vue';
 import EmbedChips from '../components/EmbedChips.vue';
 import LocalePicker from '../components/LocalePicker.vue';
@@ -70,6 +71,7 @@ import UploadRules from '../components/UploadRules.vue';
 import { useAction } from '../action';
 import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
 import { choiceLabel, control, fromForm, isChoiceGroup, toForm, type FormValue } from '../fields';
+import { locale, t } from '../messages';
 import { screenTitle, screenTrail } from '../screen';
 import { copyText, toast } from '../toast';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
@@ -77,14 +79,14 @@ import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
 const props = defineProps<{ screen: string }>();
 
 const screens: Record<string, { title: string; hint: string }> = {
-	general: { title: 'General', hint: 'The site\'s name, language, and time, and where it runs.' },
-	reading: { title: 'Reading', hint: 'What the homepage shows, and the feeds.' },
-	writing: { title: 'Writing', hint: 'How what\'s written renders, and what raw HTML in it does.' },
-	media: { title: 'Media', hint: 'What may be uploaded, how large, and where it\'s kept.' },
-	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
-	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },
-	api: { title: 'API', hint: 'What other sites, apps, and scripts can read, and what a token may change.' },
-	system: { title: 'System', hint: 'How the site is put together and run, all set in code.' }
+	general: { title: t('settings_view.general', 'General'), hint: t('settings_view.general_hint', 'The site\'s name, language, and time, and where it runs.') },
+	reading: { title: t('settings_view.reading', 'Reading'), hint: t('settings_view.reading_hint', 'What the homepage shows, and the feeds.') },
+	writing: { title: t('settings_view.writing', 'Writing'), hint: t('settings_view.writing_hint', 'How what\'s written renders, and what raw HTML in it does.') },
+	media: { title: t('settings_view.media', 'Media'), hint: t('settings_view.media_hint', 'What may be uploaded, how large, and where it\'s kept.') },
+	search: { title: t('settings_view.search', 'Addresses and Search'), hint: t('settings_view.search_hint', 'How addresses are written, and what search engines are told.') },
+	ai: { title: 'AI', hint: t('settings_view.ai_hint', 'What AI tools can read, and what AI crawlers are asked.') },
+	api: { title: 'API', hint: t('settings_view.api_hint', 'What other sites, apps, and scripts can read, and what a token may change.') },
+	system: { title: t('settings_view.system', 'System'), hint: t('settings_view.system_hint', 'How the site is put together and run, all set in code.') }
 };
 
 const groups  = ref<SettingGroup[] | null>(null);
@@ -100,7 +102,7 @@ const uploadsInfo = ref<UploadsInfo | null>(null);
 
 const { busy: saving, error: failure, run } = useAction();
 
-const about = computed(() => screens[props.screen] ?? { title: 'Settings', hint: '' });
+const about = computed(() => screens[props.screen] ?? { title: t('settings_view.settings', 'Settings'), hint: '' });
 
 // The settings whose values changed, then the ones going back to config.
 const changed = computed(() => Object.keys(form.value).filter((key) => !same(form.value[key], initial.value[key]) && !unset.value.includes(key)));
@@ -139,7 +141,7 @@ async function load(): Promise<void> {
 		unset.value   = [];
 		error.value   = '';
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The settings couldn\'t be loaded.');
+		error.value = errorMessage(caught, t('settings_view.load_failed', 'The settings couldn\'t be loaded.'));
 	}
 }
 
@@ -177,12 +179,12 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	await run('The settings couldn\'t be saved.', async () => {
+	await run(t('settings_view.save_failed', 'The settings couldn\'t be saved.'), async () => {
 		const set = Object.fromEntries(changed.value.map((key) => [key, outgoing(key, form.value[key] ?? '')]));
 
 		await saveSettings({ set, unset: unset.value });
 		await load();
-		toast('Settings saved');
+		toast(t('settings_view.saved', 'Settings saved'));
 	});
 }
 
@@ -256,10 +258,10 @@ function sourceNote(group: SettingGroup): string | null {
 		return null;
 	}
 
-	const lead = rest.length < edited.length ? 'The rest are from' : 'From';
-	const tail = rest.every((item) => item.default === true) ? (rest.length === 1 ? ', the default' : ', the defaults') : '';
+	const lead = rest.length < edited.length ? 'rest' : 'all';
+	const tail = rest.every((item) => item.default === true) ? (rest.length === 1 ? 'one' : 'many') : 'none';
 
-	return `${lead} \`${group.source}\`${tail}.`;
+	return t('settings_view.source_note', '{lead, select, rest {The rest are from} other {From}} `{source}`{tail, select, one {, the default} many {, the defaults} other {}}.', { lead, source: group.source, tail });
 }
 
 // Whether a group is only switches, each drawn with its words first and
@@ -277,7 +279,7 @@ function compact(group: SettingGroup): boolean {
 // What a shown setting's value reads as under its label in a compact
 // row, if anything.
 function line(item: SettingItem): string {
-	return Array.isArray(item.value) && item.value.length === 0 ? 'None' : shown(item);
+	return Array.isArray(item.value) && item.value.length === 0 ? t('settings_view.none', 'None') : shown(item);
 }
 
 // Whether a `switches` setting has an option turned on in the form.
@@ -343,7 +345,7 @@ function stringValue(setting: string): string {
 // The time in a time zone now, for its help.
 function timeIn(zone: string): string {
 	try {
-		return new Intl.DateTimeFormat(undefined, { timeZone: zone, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date());
+		return new Intl.DateTimeFormat(locale(), { timeZone: zone, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date());
 	} catch {
 		return '';
 	}
@@ -363,11 +365,11 @@ function liveHelp(item: SettingItem): string | null {
 	if (item.setting === 'app.timezone') {
 		const time = timeIn(stringValue('app.timezone'));
 
-		return time === '' ? null : `It's ${time} there now.`;
+		return time === '' ? null : t('settings_view.time_there', 'It\'s {time} there now.', { time });
 	}
 
 	if (item.setting === 'routes.trailingSlash') {
-		return `Addresses look like /about${form.value['routes.trailingSlash'] === true ? '/' : ''}. ${item.help ?? ''}`;
+		return `${t('settings_view.addresses_look_like', 'Addresses look like {example}.', { example: `/about${form.value['routes.trailingSlash'] === true ? '/' : ''}` })} ${item.help ?? ''}`;
 	}
 
 	return item.help;
@@ -376,11 +378,11 @@ function liveHelp(item: SettingItem): string | null {
 // A warning for a change that reaches far.
 function changeWarning(item: SettingItem): string | null {
 	if (item.setting === 'routes.trailingSlash' && changed.value.includes('routes.trailingSlash')) {
-		return 'Every address on the site changes. The old ones redirect, but update the links you control.';
+		return t('settings_view.trailing_slash_warning', 'Every address on the site changes. The old ones redirect, but update the links you control.');
 	}
 
 	if (item.setting === 'sitemap.enabled' && form.value['sitemap.enabled'] === false && changed.value.includes('sitemap.enabled')) {
-		return 'Search engines lose the sitemap, and robots.txt goes too.';
+		return t('settings_view.sitemap_warning', 'Search engines lose the sitemap, and robots.txt goes too.');
 	}
 
 	return null;
@@ -411,11 +413,11 @@ function parts(text: string): { text: string; code: boolean }[] {
 
 function shown(item: SettingItem): string {
 	if (typeof item.value === 'boolean') {
-		return item.value ? 'On' : 'Off';
+		return item.value ? t('settings_view.on', 'On') : t('settings_view.off', 'Off');
 	}
 
 	if (Array.isArray(item.value)) {
-		return item.value.length > 0 ? item.value.join(', ') : 'None';
+		return item.value.length > 0 ? item.value.join(', ') : t('settings_view.none', 'None');
 	}
 
 	return item.value;
@@ -432,7 +434,7 @@ watch(() => props.screen, () => {
 
 watch(about, (value) => {
 	screenTitle.value = value.title;
-	screenTrail.value = [{ label: 'Settings', to: { name: 'settings', params: { screen: 'general' } } }];
+	screenTrail.value = [{ label: t('settings_view.settings', 'Settings'), to: { name: 'settings', params: { screen: 'general' } } }];
 }, { immediate: true });
 
 void load();
@@ -449,7 +451,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 		</div>
 	</header>
 
-	<p v-if="screen === 'system'" class="notice"><AdminIcon name="info" /><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
+	<p v-if="screen === 'system'" class="notice"><AdminIcon name="info" /><span><MessageText :text="t('settings_view.system_notice', 'These live in {config} and {env}; each names its file. After changing them on a site you\'ve compiled, run {command} again.')"><template #config><code>config/</code></template><template #env><code>.env</code></template><template #command><code>bin/blush cache:compile</code></template></MessageText></span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<form v-if="groups" class="setting-panels" @submit.prevent="save">
@@ -458,13 +460,13 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 				<h2 :id="`settings-${group.key}`">{{ group.title }}</h2>
 				<p class="panel__hint">{{ groupHint(group) }}</p>
 				<div v-if="embedsOf(group)" class="panel__actions">
-					<span class="panel__hint">{{ providersOn(embedsOf(group)!) }} of {{ embedsOf(group)!.providers?.length }} on</span>
-					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === embedsOf(group)!.providers?.length" @click="setProviders(embedsOf(group)!, true)">Turn All On</button>
-					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === 0" @click="setProviders(embedsOf(group)!, false)">Turn All Off</button>
+					<span class="panel__hint">{{ t('settings_view.providers_on', '{on} of {total} on', { on: providersOn(embedsOf(group)!), total: embedsOf(group)!.providers?.length ?? 0 }) }}</span>
+					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === embedsOf(group)!.providers?.length" @click="setProviders(embedsOf(group)!, true)">{{ t('settings_view.turn_all_on', 'Turn All On') }}</button>
+					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === 0" @click="setProviders(embedsOf(group)!, false)">{{ t('settings_view.turn_all_off', 'Turn All Off') }}</button>
 				</div>
 				<div v-else-if="toolsOf(group)" class="panel__actions">
-					<span class="panel__hint">{{ toolNames(toolsOf(group)!).length }} {{ toolNames(toolsOf(group)!).length === 1 ? 'tool' : 'tools' }} from {{ toolsOf(group)!.sources!.length }} {{ toolsOf(group)!.sources!.length === 1 ? 'source' : 'sources' }}</span>
-					<button type="button" class="button button--ghost button--small" @click="toggleTools(toolsOf(group)!)">{{ openTools.length === toolNames(toolsOf(group)!).length ? 'Hide Descriptions' : 'Show Descriptions' }}</button>
+					<span class="panel__hint">{{ t('settings_view.tools_count', '{tools, plural, one {# tool} other {# tools} } from {sources, plural, one {# source} other {# sources} }', { tools: toolNames(toolsOf(group)!).length, sources: toolsOf(group)!.sources!.length }) }}</span>
+					<button type="button" class="button button--ghost button--small" @click="toggleTools(toolsOf(group)!)">{{ openTools.length === toolNames(toolsOf(group)!).length ? t('settings_view.hide_descriptions', 'Hide Descriptions') : t('settings_view.show_descriptions', 'Show Descriptions') }}</button>
 				</div>
 			</header>
 			<template v-for="item in group.items" :key="item.key">
@@ -477,9 +479,9 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 						@update:model-value="setGrid(item.setting!, $event)"
 					/>
 					<p class="setting-panels__foot">
-						<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s rules once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
-						<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s rules</button></template>
-						<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+						<template v-if="unset.includes(item.setting)"><MessageText :text="t('settings_view.uses_rules', 'Uses {file}\'s rules once saved. {action}')"><template #file><code>{{ item.file }}</code></template><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, false)">{{ t('settings_view.keep_saved_ones', 'Keep the saved ones') }}</button></template></MessageText></template>
+						<template v-else-if="item.saved"><MessageText :text="t('settings_view.saved_here', 'Saved here. {action}')"><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, true)"><MessageText :text="t('settings_view.use_rules', 'Use {file}\'s rules')"><template #file><code>{{ item.file }}</code></template></MessageText></button></template></MessageText></template>
+						<template v-else><MessageText :text="t('settings_view.from_file', 'From {file}{isDefault, select, true {, the default} other {} }.', { isDefault: String(item.default === true) })"><template #file><code>{{ item.file }}</code></template></MessageText></template>
 					</p>
 				</template>
 			</template>
@@ -506,7 +508,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<ToggleSwitch
 										form
 										:checked="switchedOn(item.setting, option)"
-										:label="`${choiceLabel(item.field, option)}: ${item.label.toLowerCase()}`"
+										:label="t('settings_view.switch_label', '{option}: {setting}', { option: choiceLabel(item.field, option), setting: item.label.toLowerCase() })"
 										:words="item.words"
 										:described-by="`setting-${item.key}-${option}-help`"
 										:locked="unset.includes(item.setting)"
@@ -610,14 +612,14 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
 								</template>
 								<p v-if="isSite(item.setting)" class="setting__source">
-									<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
-									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
-									<template v-else>Not saved yet.</template>
+									<template v-if="unset.includes(item.setting)"><MessageText :text="t('settings_view.cleared_once_saved', 'Cleared once saved. {action}')"><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, false)">{{ t('settings_view.keep_it', 'Keep it') }}</button></template></MessageText></template>
+									<template v-else-if="item.saved"><MessageText :text="t('settings_view.saved_here', 'Saved here. {action}')"><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, true)">{{ t('settings_view.clear_it', 'Clear it') }}</button></template></MessageText></template>
+									<template v-else>{{ t('settings_view.not_saved_yet', 'Not saved yet.') }}</template>
 								</p>
 								<p v-else-if="!group.source || item.saved || unset.includes(item.setting)" class="setting__source">
-									<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
-									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
-									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+									<template v-if="unset.includes(item.setting)"><MessageText :text="t('settings_view.uses_value', 'Uses {file}\'s value once saved. {action}')"><template #file><code>{{ item.file }}</code></template><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, false)">{{ t('settings_view.keep_saved_one', 'Keep the saved one') }}</button></template></MessageText></template>
+									<template v-else-if="item.saved"><MessageText :text="t('settings_view.saved_here', 'Saved here. {action}')"><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, true)"><MessageText :text="t('settings_view.use_value', 'Use {file}\'s value')"><template #file><code>{{ item.file }}</code></template></MessageText></button></template></MessageText></template>
+									<template v-else><MessageText :text="t('settings_view.from_file', 'From {file}{isDefault, select, true {, the default} other {} }.', { isDefault: String(item.default === true) })"><template #file><code>{{ item.file }}</code></template></MessageText></template>
 								</p>
 							</div>
 						</template>
@@ -625,8 +627,8 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 						<template v-else-if="compact(group)">
 							<div class="setting__label">
 								<span>{{ item.label }}</span>
-								<p v-if="item.copy" class="setting__address"><code>{{ item.value }}</code><button type="button" class="button button--small" @click="copyText(String(item.value), 'the address', 'the address')"><AdminIcon name="copy" />Copy</button></p>
-								<p v-else-if="line(item) !== ''" class="setting__line" :class="{ 'setting__none': line(item) === 'None', mono: item.kind === 'mono' }">{{ line(item) }}</p>
+								<p v-if="item.copy" class="setting__address"><code>{{ item.value }}</code><button type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.the_address', 'the address'), t('settings_view.the_address', 'the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button></p>
+								<p v-else-if="line(item) !== ''" class="setting__line" :class="{ 'setting__none': line(item) === t('settings_view.none', 'None'), mono: item.kind === 'mono' }">{{ line(item) }}</p>
 							</div>
 							<div v-if="item.aside || item.link || item.links?.length" class="setting__control">
 								<span v-if="item.aside" class="setting__aside">{{ item.aside }}</span>
@@ -636,7 +638,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 							<div class="setting__help">
 								<p v-if="item.help">{{ item.help }}</p>
 								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
-								<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
+								<p v-if="item.file" class="setting__source"><MessageText :text="t('settings_view.set_in', 'Set in {file}.')"><template #file><code>{{ item.file }}</code></template></MessageText></p>
 							</div>
 						</template>
 
@@ -645,9 +647,9 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 							<div class="setting__control">
 								<p class="setting__value">
 									<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
-									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === 'None' }">{{ shown(item) }}</span>
-									<span v-if="item.default === true" class="tag">Default</span>
-									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), 'the address', 'the address')"><AdminIcon name="copy" />Copy</button>
+									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === t('settings_view.none', 'None') }">{{ shown(item) }}</span>
+									<span v-if="item.default === true" class="tag">{{ t('settings_view.default', 'Default') }}</span>
+									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.the_address', 'the address'), t('settings_view.the_address', 'the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button>
 								</p>
 								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
 								<p v-if="item.link || item.links?.length" class="setting__links">
@@ -657,7 +659,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 							</div>
 							<div class="setting__help">
 								<p v-if="item.help">{{ item.help }}</p>
-								<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
+								<p v-if="item.file" class="setting__source"><MessageText :text="t('settings_view.set_in', 'Set in {file}.')"><template #file><code>{{ item.file }}</code></template></MessageText></p>
 							</div>
 						</template>
 					</div>
@@ -666,9 +668,9 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 			<template v-for="item in group.items" :key="`${item.key}-source`">
 				<p v-if="(item.kind === 'embeds' || item.kind === 'switches') && item.setting !== undefined" class="setting-panels__foot">
 					{{ item.help }}
-					<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
-					<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s</button></template>
-					<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+					<template v-if="unset.includes(item.setting)"><MessageText :text="t('settings_view.uses_file', 'Uses {file}\'s once saved. {action}')"><template #file><code>{{ item.file }}</code></template><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, false)">{{ t('settings_view.keep_saved_ones', 'Keep the saved ones') }}</button></template></MessageText></template>
+					<template v-else-if="item.saved"><MessageText :text="t('settings_view.saved_here', 'Saved here. {action}')"><template #action><button type="button" class="link-button" @click="useConfig(item.setting!, true)"><MessageText :text="t('settings_view.use_file', 'Use {file}\'s')"><template #file><code>{{ item.file }}</code></template></MessageText></button></template></MessageText></template>
+					<template v-else><MessageText :text="t('settings_view.from_file', 'From {file}{isDefault, select, true {, the default} other {} }.', { isDefault: String(item.default === true) })"><template #file><code>{{ item.file }}</code></template></MessageText></template>
 				</p>
 			</template>
 			<template v-for="item in group.items" :key="`${item.key}-warning`">

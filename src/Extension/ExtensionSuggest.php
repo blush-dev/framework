@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Reads an extension's `suggest` (D-434), as Composer has it
  * (https://getcomposer.org/doc/04-schema.md#suggest): an object mapping
@@ -32,19 +34,19 @@ final readonly class ExtensionSuggest
 	 * @return array<string, string>
 	 * @throws ExtensionException When it isn't an object of names to reasons.
 	 */
-	public static function fromManifest(mixed $value): array
+	public static function fromManifest(mixed $value, Messages $messages = new Messages()): array
 	{
 		$value ??= [];
 
 		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
-			throw new ExtensionException('"suggest" must be an object.');
+			throw new ExtensionException((string) $messages->t('extension.extension_suggest.not_object', '"suggest" must be an object.'));
 		}
 
 		$suggest = [];
 
 		foreach ($value as $name => $reason) {
 			if (! is_string($name) || trim($name) === '' || ! is_string($reason)) {
-				throw new ExtensionException('"suggest" must map names to why each is suggested.');
+				throw new ExtensionException((string) $messages->t('extension.extension_suggest.not_map', '"suggest" must map names to why each is suggested.'));
 			}
 
 			$suggest[trim($name)] = trim($reason);

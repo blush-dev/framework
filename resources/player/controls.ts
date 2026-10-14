@@ -11,6 +11,14 @@
 
 // @ts-ignore
 import './player.css';
+import { messages } from 'blush/messages';
+
+/**
+ * The players' text (D-831): core's, from the `site` catalog on the
+ * site and the `admin` catalog in the admin, which both read
+ * `resources/player`.
+ */
+export const t = messages('core');
 
 export const GLYPHS = {
 	play: '<path d="M7 4.5 19.5 12 7 19.5Z"/>',
@@ -65,10 +73,11 @@ export function button(className: string): { button: HTMLButtonElement; show: (g
 }
 
 /**
- * A label, from the host's `label-{name}` attribute or the English.
+ * A label: the host's `label-{name}` attribute, when the page words it
+ * itself, else the player's own text (`t()`).
  */
-export function label(host: HTMLElement, name: string, english: string): string {
-	return host.getAttribute(`label-${name}`) ?? english;
+export function label(host: HTMLElement, name: string, text: string): string {
+	return host.getAttribute(`label-${name}`) ?? text;
 }
 
 /**
@@ -97,14 +106,14 @@ export function transport(host: HTMLElement, media: HTMLMediaElement, onDraw: ()
 	seek.min       = '0';
 	seek.step      = 'any';
 	seek.value     = '0';
-	seek.setAttribute('aria-label', label(host, 'seek', 'Seek'));
+	seek.setAttribute('aria-label', label(host, 'seek', t('player.seek', 'Seek')));
 	time.className = 'player__time';
 
 	const draw = (): void => {
 		const length = Number.isFinite(media.duration) ? media.duration : 0;
 		const now    = media.currentTime;
 
-		play.show(media.paused ? 'play' : 'pause', media.paused ? label(host, 'play', 'Play') : label(host, 'pause', 'Pause'));
+		play.show(media.paused ? 'play' : 'pause', media.paused ? label(host, 'play', t('player.play', 'Play')) : label(host, 'pause', t('player.pause', 'Pause')));
 		seek.max      = String(length);
 		seek.value    = String(now);
 		seek.disabled = length === 0;
@@ -223,7 +232,7 @@ export function volume(host: HTMLElement, media: HTMLMediaElement): { control: H
 	slider.min        = '0';
 	slider.max        = '1';
 	slider.step       = '0.05';
-	slider.setAttribute('aria-label', label(host, 'volume', 'Volume'));
+	slider.setAttribute('aria-label', label(host, 'volume', t('player.volume', 'Volume')));
 
 	card.append(slider);
 	pop.append(card);
@@ -237,7 +246,7 @@ export function volume(host: HTMLElement, media: HTMLMediaElement): { control: H
 	const draw = (): void => {
 		const now = level();
 
-		mute.show(now === 0 ? 'muted' : (now < 0.5 ? 'quiet' : 'volume'), now === 0 ? label(host, 'unmute', 'Unmute') : label(host, 'mute', 'Mute'));
+		mute.show(now === 0 ? 'muted' : (now < 0.5 ? 'quiet' : 'volume'), now === 0 ? label(host, 'unmute', t('player.unmute', 'Unmute')) : label(host, 'mute', t('player.mute', 'Mute')));
 		slider.value = String(now);
 		slider.setAttribute('aria-valuetext', `${Math.round(now * 100)}%`);
 		slider.style.setProperty('--player-progress', `${now * 100}%`);

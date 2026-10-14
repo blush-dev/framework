@@ -42,6 +42,8 @@ import { extensionRoute, folderName, useExtensionFilter } from '../extensions';
 import { packIconMask, useIconPacks } from '../icon-packs';
 import { useInstall } from '../install';
 import { can } from '../session';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const { answer, error, busy, load, toggle: togglePack, useConfig, remove: removePack } = useIconPacks();
 
@@ -53,7 +55,7 @@ const canDelete   = can('extensions.icon-packs.delete');
 const { installing, canInstall, afterInstall, hop, installState, next } = useInstall('icon-pack', load, {
 	find: (name) => packs.value.find((item) => item.name === name) ?? null,
 	state: (pack) => ({
-		words: pack?.enabled ? 'turned on' : 'turned off',
+		words: pack?.enabled ? t('icon_packs_view.turned_on', 'turned on') : t('icon_packs_view.turned_off', 'turned off'),
 		next: pack !== null && !pack.enabled && blocked(pack) === null && canActivate,
 		live: pack?.enabled ?? false
 	}),
@@ -120,22 +122,22 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Icon Packs</h1>
-			<p class="page-header__hint">Sets of icons for content, menus, and buttons, each in a namespace of its own.</p>
+			<h1 tabindex="-1">{{ t('icon_packs_view.heading', 'Icon Packs') }}</h1>
+			<p class="page-header__hint">{{ t('icon_packs_view.hint', 'Sets of icons for content, menus, and buttons, each in a namespace of its own.') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Icon Pack</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />{{ t('icon_packs_view.install', 'Install Icon Pack') }}</button>
 		</div>
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="answer">
-		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" noun="icon packs" on="On" off="Off" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="`${showing} icons available`" :filtered="filtered" views @clear="clear" />
+		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" :noun="t('icon_packs_view.noun', 'icon packs')" :on="t('icon_packs_view.on', 'On')" :off="t('icon_packs_view.off', 'Off')" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="t('icon_packs_view.summary', '{count} icons available', { count: showing })" :filtered="filtered" views @clear="clear" />
 
 		<div v-if="shown === 0" class="panel">
-			<EmptyState icon="search" heading="No Icon Pack Matches" text="Nothing here fits the filters in force. Clearing them brings the other icon packs back.">
-				<template #actions><button type="button" class="button" @click="clear">Clear Filters</button></template>
+			<EmptyState icon="search" :heading="t('icon_packs_view.no_matches', 'No Icon Pack Matches')" :text="t('icon_packs_view.no_matches_text', 'Nothing here fits the filters in force. Clearing them brings the other icon packs back.')">
+				<template #actions><button type="button" class="button" @click="clear">{{ t('icon_packs_view.clear_filters', 'Clear Filters') }}</button></template>
 			</EmptyState>
 		</div>
 
@@ -153,25 +155,25 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 					</div>
 				</template>
 				<template #pills>
-					<span v-if="blocked(pack)" class="pill pill--warn">Can't turn on</span>
-					<span v-if="pack.abandoned !== false" class="pill pill--warn">Abandoned</span>
+					<span v-if="blocked(pack)" class="pill pill--warn">{{ t('icon_packs_view.cant_turn_on', "Can't turn on") }}</span>
+					<span v-if="pack.abandoned !== false" class="pill pill--warn">{{ t('icon_packs_view.abandoned', 'Abandoned') }}</span>
 				</template>
 				<p v-if="blocked(pack)" class="notice notice--small notice--warn extension__message">
-					<AdminIcon name="triangle-alert" /><span>{{ blocked(pack) }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+					<AdminIcon name="triangle-alert" /><span>{{ pack.enabled ? t('icon_packs_view.blocked_on', '{reason} It\'s turned on, but its icons aren\'t available until that\'s fixed.', { reason: blocked(pack) }) : t('icon_packs_view.blocked_off', '{reason} It can\'t be turned on until that\'s fixed.', { reason: blocked(pack) }) }}</span>
 				</p>
-				<p v-else-if="pack.source === 'composer' && !pack.enabled" class="extension__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
+				<p v-else-if="pack.source === 'composer' && !pack.enabled" class="extension__description">{{ t('icon_packs_view.composer_off', "Installed by Composer. It's off because the list of packs turned on here doesn't name it.") }}</p>
 				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
 					<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
-					<li><AdminIcon name="shapes" /><span>{{ pack.count }} {{ pack.count === 1 ? 'icon' : 'icons' }} in <span class="mono">{{ pack.namespace }}/</span></span></li>
+					<li><AdminIcon name="shapes" /><span><MessageText :text="t('icon_packs_view.icons_in', '{count, plural, one {# icon} other {# icons} } in {namespace}', { count: pack.count })"><template #namespace><span class="mono">{{ pack.namespace }}/</span></template></MessageText></span></li>
 				</ul>
 				<template #[foot]>
-					<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked(pack) !== null || !canActivate" :busy="busy === pack.name" :reason="blocked(pack) ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle(pack, $event)" />
-					<ExtensionMenu :label="pack.label" :details="extensionRoute('icon-pack', pack.name)" details-label="Icon pack details" :copy="pack.path" :delete-label="canDelete && pack.deletable && pack.folder ? 'Delete icon pack' : undefined" @delete="remove(pack.label, pack.folder ?? '', pack)" />
+					<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked(pack) !== null || !canActivate" :busy="busy === pack.name" :reason="blocked(pack) ?? (canActivate ? null : t('icon_packs_view.locked_role', 'Your role can\'t turn icon packs on and off.'))" @change="toggle(pack, $event)" />
+					<ExtensionMenu :label="pack.label" :details="extensionRoute('icon-pack', pack.name)" :details-label="t('icon_packs_view.details', 'Icon pack details')" :copy="pack.path" :delete-label="canDelete && pack.deletable && pack.folder ? t('icon_packs_view.delete', 'Delete icon pack') : undefined" @delete="remove(pack.label, pack.folder ?? '', pack)" />
 				</template>
 			</component>
 
-			<component :is="list ? ExtensionRow : ExtensionCard" v-if="showCore" class="is-on" :label="answer.core.label" :to="{ name: 'icon-pack-core' }" :version="answer.core.version" :description="list ? undefined : 'Blush\'s own icons: always on, and always available to content.'">
+			<component :is="list ? ExtensionRow : ExtensionCard" v-if="showCore" class="is-on" :label="answer.core.label" :to="{ name: 'icon-pack-core' }" :version="answer.core.version" :description="list ? undefined : t('icon_packs_view.core_description', 'Blush\'s own icons: always on, and always available to content.')">
 				<template v-if="list" #mark>
 					<span v-if="answer.core.icons[0]?.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(answer.core.icons[0]) }" />
 					<AdminIcon v-else name="shapes" />
@@ -183,29 +185,29 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 						<span v-for="blank in cells(answer.core).blanks" :key="`blank-${blank}`" />
 					</div>
 				</template>
-				<template #pills><span class="pill">Built in</span></template>
+				<template #pills><span class="pill">{{ t('icon_packs_view.built_in', 'Built in') }}</span></template>
 				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
-					<li><AdminIcon name="package" />Ships with Blush</li>
-					<li><AdminIcon name="shapes" /><span>{{ answer.core.count }} icons, by name alone</span></li>
+					<li><AdminIcon name="package" />{{ t('icon_packs_view.ships_with', 'Ships with Blush') }}</li>
+					<li><AdminIcon name="shapes" /><span>{{ t('icon_packs_view.core_count', '{count} icons, by name alone', { count: answer.core.count }) }}</span></li>
 				</ul>
 				<template #[foot]>
-					<ToggleSwitch :checked="true" :label="answer.core.label" locked reason="The core set is always on." />
+					<ToggleSwitch :checked="true" :label="answer.core.label" locked :reason="t('icon_packs_view.core_locked', 'The core set is always on.')" />
 					<span v-if="list" class="extension__menu-slot" />
-					<RouterLink v-else class="button button--ghost button--small extension__menu" :to="{ name: 'icon-pack-core' }">Details</RouterLink>
+					<RouterLink v-else class="button button--ghost button--small extension__menu" :to="{ name: 'icon-pack-core' }">{{ t('icon_packs_view.details_link', 'Details') }}</RouterLink>
 				</template>
 			</component>
 
 			<component :is="list ? ExtensionRow : ExtensionCard" v-for="pack in shownBroken" :key="pack.where" class="is-off" :label="pack.where">
 				<template v-if="list" #mark><AdminIcon name="triangle-alert" /></template>
 				<template v-else #media>
-					<div class="glyphs glyphs--broken"><AdminIcon name="triangle-alert" /><span>No icons</span></div>
+					<div class="glyphs glyphs--broken"><AdminIcon name="triangle-alert" /><span>{{ t('icon_packs_view.no_icons', 'No icons') }}</span></div>
 				</template>
-				<template #pills><span class="pill pill--warn">Can't be used</span></template>
+				<template #pills><span class="pill pill--warn">{{ t('icon_packs_view.cant_be_used', "Can't be used") }}</span></template>
 				<p class="notice notice--small notice--warn extension__message">
-					<AdminIcon name="triangle-alert" /><span>{{ pack.reason }} Its icons can't be used until that's fixed.</span>
+					<AdminIcon name="triangle-alert" /><span>{{ t('icon_packs_view.broken', '{reason} Its icons can\'t be used until that\'s fixed.', { reason: pack.reason }) }}</span>
 				</p>
 				<template v-if="canDelete && pack.deletable" #[foot]>
-					<ExtensionMenu :label="pack.where" :copy="pack.where" delete-label="Delete icon pack" @delete="remove(folderName(pack.where), pack.where)" />
+					<ExtensionMenu :label="pack.where" :copy="pack.where" :delete-label="t('icon_packs_view.delete', 'Delete icon pack')" @delete="remove(folderName(pack.where), pack.where)" />
 				</template>
 			</component>
 		</component>
@@ -234,12 +236,12 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 
 	<p v-if="answer" class="notice extension__note">
 		<span>
-			Icon packs live in <code>extensions/</code> or come from Composer. An icon is used as <code>pack/name</code> wherever content, a menu, or a button takes one; the namespace is what lets two packs use the same name.
+			<MessageText :text="t('icon_packs_view.note', 'Icon packs live in {extensions} or come from Composer. An icon is used as {usage} wherever content, a menu, or a button takes one; the namespace is what lets two packs use the same name.')"><template #extensions><code>extensions/</code></template><template #usage><code>pack/name</code></template></MessageText>
 			<template v-if="answer.saved">
-				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/icons.php</code>.
-				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/icons.php</code>'s list</button>
+				<MessageText :text="t('icon_packs_view.note_saved', 'Which are on was set here, and is saved in {settings} over {config}.')"><template #settings><code>user/data/settings.json</code></template><template #config><code>config/icons.php</code></template></MessageText>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig"><MessageText :text="t('icon_packs_view.use_config', 'Use {config}\'s list')"><template #config><code>config/icons.php</code></template></MessageText></button>
 			</template>
-			<template v-else>A pack in <code>extensions/</code> is off until <code>config/icons.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every pack that's on in <code>user/data/settings.json</code>, over that file; from then on, a pack it doesn't name is off, even one Composer installs later.</template>
+			<template v-else><MessageText :text="t('icon_packs_view.note_config', 'A pack in {extensions} is off until {config} names it in {enabled}{missing}; Composer\'s are on. Turning one on or off here saves the list of every pack that\'s on in {settings}, over that file; from then on, a pack it doesn\'t name is off, even one Composer installs later.')"><template #extensions><code>extensions/</code></template><template #config><code>config/icons.php</code></template><template #enabled><code>enabled</code></template><template #missing><template v-if="!answer.config">{{ t('icon_packs_view.no_file', ' (there\'s no such file yet)') }}</template></template><template #settings><code>user/data/settings.json</code></template></MessageText></template>
 		</span>
 	</p>
 

@@ -21,6 +21,8 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\RenamedFiles;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Finds the entries of each type named by another pattern than its
@@ -60,7 +62,8 @@ final readonly class FileNames
 		private ContentTypes $types,
 		private FilesystemWriter $writer,
 		private WrittenDates $dates,
-		private EntryFolders $folders
+		private EntryFolders $folders,
+		private Messages $messages
 	) {}
 
 	/**
@@ -73,7 +76,7 @@ final readonly class FileNames
 	{
 		$steps = new Progress($progress);
 
-		$this->indexer->index(progress: $steps->of('Checking the content index'));
+		$this->indexer->index(progress: $steps->of((string) $this->messages->t('content.file_names.checking_index', 'Checking the content index')));
 
 		$snapshot = $this->index->snapshot();
 		$renames  = [];
@@ -81,7 +84,7 @@ final readonly class FileNames
 		$done     = 0;
 
 		foreach ($snapshot->records as $path => $record) {
-			$steps->step('Checking file names', $done++, count($snapshot->records));
+			$steps->step((string) $this->messages->t('content.file_names.checking', 'Checking file names'), $done++, count($snapshot->records));
 
 			$path = (string) $path;
 			$type = $this->types->find($record['type']);
@@ -91,14 +94,14 @@ final readonly class FileNames
 				continue;
 			}
 
-			if (is_string($plan)) {
+			if ($plan instanceof Text) {
 				$skipped[$type->name][$path] = $plan;
 			} else {
 				$renames[$type->name][] = $plan;
 			}
 		}
 
-		$steps->step('Checking file names', $done, count($snapshot->records));
+		$steps->step((string) $this->messages->t('content.file_names.checking', 'Checking file names'), $done, count($snapshot->records));
 
 		return new FileNameReport($renames, $skipped);
 	}
@@ -149,7 +152,7 @@ final readonly class FileNames
 	 * no pattern, it's a landing page, a translation, or hidden, or its
 	 * name already fits.
 	 */
-	private function plan(IndexSnapshot $snapshot, string $path): FileNameRename|string|null
+	private function plan(IndexSnapshot $snapshot, string $path): FileNameRename|Text|null
 	{
 		$record = $snapshot->records[$path] ?? null;
 		$type   = $record === null ? null : $this->types->find($record['type']);
@@ -160,13 +163,13 @@ final readonly class FileNames
 		}
 
 		if ($name === 'index') {
-			return 'it\'s kept as a folder, which a pattern never names';
+			return $this->messages->t('content.file_names.folder', 'it\'s kept as a folder, which a pattern never names');
 		}
 
 		$date = $this->dates->orUpdated($path, $type->name, $record['updated']);
 
 		if (is_string($date)) {
-			return sprintf('its date, %s, isn\'t a real date; fix it first', $date);
+			return $this->messages->t('content.file_names.bad_date', 'its date, {date}, isn\'t a real date; fix it first', date: $date);
 		}
 
 		$newName = $type->naming()->name(substr($name, (int) strrpos(".{$name}", '.')), $date);
@@ -178,7 +181,7 @@ final readonly class FileNames
 		$moves = self::moves($snapshot, $path, $name, $newName);
 
 		return $moves === null
-			? 'a translation of it is kept as a folder, so renaming it would break their link'
+			? $this->messages->t('content.file_names.translation_folder', 'a translation of it is kept as a folder, so renaming it would break their link')
 			: new FileNameRename($type->name, $path, $moves[$path], $moves);
 	}
 

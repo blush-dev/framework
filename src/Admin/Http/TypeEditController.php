@@ -43,6 +43,8 @@ use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Routing\RouteCache;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Creates, changes, and deletes the content types the site defines in
@@ -110,13 +112,14 @@ final readonly class TypeEditController
 		private Entries $content,
 		private Permissions $permissions,
 		private ContentTypeLoader $loader,
-		private RelationChanges $changes
+		private RelationChanges $changes,
+		private Messages $messages
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input = self::input($request);
@@ -137,7 +140,7 @@ final readonly class TypeEditController
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input = self::input($request);
@@ -154,7 +157,7 @@ final readonly class TypeEditController
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -172,7 +175,7 @@ final readonly class TypeEditController
 	public function reset(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		return $this->changed(fn (): ContentTypes => $this->writer->reset($name), $name, false, []);
@@ -191,7 +194,7 @@ final readonly class TypeEditController
 	public function deleteRelation(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$strip    = in_array($request->getQueryParams()['strip'] ?? null, ['1', 'true'], true);
@@ -223,7 +226,7 @@ final readonly class TypeEditController
 	public function relationUses(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -233,7 +236,7 @@ final readonly class TypeEditController
 		}
 
 		return $existing === null
-			? self::error(sprintf('There\'s no "%s" relation.', $name), Status::NotFound)
+			? self::error($this->messages->t('admin.type_edit_controller.no_relation', 'There\'s no "{name}" relation.', name: $name), Status::NotFound)
 			: Response::json(['entries' => count($this->changes->uses($existing))], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -244,18 +247,18 @@ final readonly class TypeEditController
 	public function checkRelation(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
 			$existing = $this->existing($name);
-			$proposed = Relation::fromArray([...self::input($request), 'name' => $name]);
+			$proposed = Relation::fromArray([...self::input($request), 'name' => $name], $this->messages);
 		} catch (InvalidRelation | InvalidContentType $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
 
 		return $existing === null
-			? self::error(sprintf('There\'s no "%s" relation.', $name), Status::NotFound)
+			? self::error($this->messages->t('admin.type_edit_controller.no_relation', 'There\'s no "{name}" relation.', name: $name), Status::NotFound)
 			: Response::json($this->changes->check($existing, $proposed)->toArray(), headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -272,7 +275,7 @@ final readonly class TypeEditController
 	public function refresh(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -330,13 +333,13 @@ final readonly class TypeEditController
 	private function relationChanged(ServerRequestInterface $request, ?string $name, Status $status): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input = self::input($request);
 
 		try {
-			$relation = Relation::fromArray($name === null ? $input : [...$input, 'name' => $name]);
+			$relation = Relation::fromArray($name === null ? $input : [...$input, 'name' => $name], $this->messages);
 			$existing = $name === null || $this->relations->location($name) === null ? null : $this->existing($name);
 
 			// What entries already use is checked, and the files fitted to
@@ -382,10 +385,10 @@ final readonly class TypeEditController
 	private function addIndex(ContentType $type): void
 	{
 		if ($type->folder === '' || ! ($type->hasUrls() || $type instanceof Tree)) {
-			throw new InvalidContentType(sprintf('%s have no index page.', $type->labels->plural));
+			throw new InvalidContentType((string) $this->messages->t('admin.type_edit_controller.no_index', '{types} have no index page.', types: $type->labels->plural));
 		}
 
-		$this->addPage($type, 'index', $type->labels->plural, 'index');
+		$this->addPage($type, 'index', $type->labels->plural);
 	}
 
 	/**
@@ -399,7 +402,7 @@ final readonly class TypeEditController
 		$relation = $types->relationArchives($type)[$name] ?? null;
 
 		if ($type->folder === '' || $relation === null) {
-			throw new InvalidContentType(sprintf('%s have no "%s" archives.', $type->labels->plural, $name));
+			throw new InvalidContentType((string) $this->messages->t('admin.type_edit_controller.no_archives', '{types} have no "{name}" archives.', types: $type->labels->plural, name: $name));
 		}
 
 		$label = $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
@@ -409,11 +412,11 @@ final readonly class TypeEditController
 
 	/**
 	 * Writes a page a type keeps at a key (`index` for its landing page),
-	 * unless it has one.
+	 * unless it has one. `$what` names any other page in a problem.
 	 *
 	 * @throws InvalidContentType
 	 */
-	private function addPage(ContentType $type, string $key, string $title, string $what): void
+	private function addPage(ContentType $type, string $key, string $title, string $what = ''): void
 	{
 		try {
 			if ($this->content->editableAt($type, $key) !== null) {
@@ -422,7 +425,11 @@ final readonly class TypeEditController
 
 			$this->content->createAt($type, $key, new EntryChanges(set: ['title' => $title]));
 		} catch (WriteException $error) {
-			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written: %s', $what, $error->getMessage()), previous: $error);
+			$problem = $key === 'index'
+				? $this->messages->t('admin.type_edit_controller.index_not_written', 'The type was saved, but its index page couldn\'t be written: {reason}', reason: $error->getMessage())
+				: $this->messages->t('admin.type_edit_controller.page_not_written', 'The type was saved, but its {page} page couldn\'t be written: {reason}', page: $what, reason: $error->getMessage());
+
+			throw new InvalidContentType((string) $problem, previous: $error);
 		}
 	}
 
@@ -440,18 +447,18 @@ final readonly class TypeEditController
 
 		try {
 			if ($profiles === null) {
-				throw new InvalidContentType('The site has no profiles type, so nothing can credit authors.');
+				throw new InvalidContentType((string) $this->messages->t('admin.type_edit_controller.no_profiles', 'The site has no profiles type, so nothing can credit authors.'));
 			}
 
 			if ($authors === null) {
-				return $this->relations->create(Relation::authors([$name], $profiles->name));
+				return $this->relations->create(Relation::authors([$name], $profiles->name, $this->messages));
 			}
 
 			if ($authors->from === [] || in_array($name, $authors->from, true)) {
 				return $types;
 			}
 
-			return $this->relations->update(Relation::fromArray([...$authors->toArray(), 'from' => [...$authors->from, $name]]));
+			return $this->relations->update(Relation::fromArray([...$authors->toArray(), 'from' => [...$authors->from, $name]], $this->messages));
 		} catch (InvalidRelation $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
@@ -492,12 +499,12 @@ final readonly class TypeEditController
 		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return self::error('You aren\'t allowed to change content types.', Status::Forbidden);
+		return self::error($this->messages->t('admin.type_edit_controller.forbidden', 'You aren\'t allowed to change content types.'), Status::Forbidden);
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

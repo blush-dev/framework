@@ -18,6 +18,7 @@ use Blush\Core\Paths;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Theme\ThemeDiscovery;
+use Blush\Translation\Messages;
 
 /**
  * Every installed extension's name and namespace, of every kind, whether
@@ -27,8 +28,10 @@ use Blush\Theme\ThemeDiscovery;
  */
 final readonly class InstalledExtensions
 {
-	public function __construct(private Paths $paths)
-	{}
+	public function __construct(
+		private Paths $paths,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Returns why a new extension can't take a name and a namespace,
@@ -41,11 +44,11 @@ final readonly class InstalledExtensions
 	{
 		foreach ($this->all() as [$installedKind, $installedName, $installedNamespace]) {
 			if ($installedName === $name) {
-				return sprintf('A %s named "%s" is already installed.', $installedKind->label(), $name);
+				return (string) $this->messages->t('extension.installed_extensions.name_taken', '{kind, select, Plugin {A plugin} Theme {A theme} IconPack {An icon pack} other {An admin theme}} named "{name}" is already installed.', kind: $installedKind->name, name: $name);
 			}
 
 			if ($installedNamespace !== '' && $installedNamespace === $namespace) {
-				return sprintf('The "%s" %s already has the namespace "%s"; pass another with --namespace.', $installedName, $installedKind->label(), $namespace);
+				return (string) $this->messages->t('extension.installed_extensions.namespace_taken', 'The "{name}" {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} already has the namespace "{namespace}"; pass another with --namespace.', name: $installedName, kind: $installedKind->name, namespace: $namespace);
 			}
 		}
 
@@ -62,15 +65,15 @@ final readonly class InstalledExtensions
 	{
 		$installed = [];
 
-		foreach (PluginDiscovery::forPaths($this->paths)->discover()->manifests as $plugin) {
+		foreach (PluginDiscovery::forPaths($this->paths, $this->messages)->discover()->manifests as $plugin) {
 			$installed[] = [ExtensionKind::Plugin, $plugin->name, $plugin->namespace];
 		}
 
-		foreach (new ThemeDiscovery($this->paths)->discover()->all() as $theme) {
+		foreach (new ThemeDiscovery($this->paths, $this->messages)->discover()->all() as $theme) {
 			$installed[] = [ExtensionKind::Theme, $theme->name, $theme->namespace];
 		}
 
-		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
+		foreach (new IconPackDiscovery($this->paths, $this->messages)->discover()->all() as $pack) {
 			$installed[] = [ExtensionKind::IconPack, $pack->name, $pack->namespace];
 		}
 

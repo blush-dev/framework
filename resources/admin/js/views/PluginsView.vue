@@ -39,6 +39,8 @@ import { extensionRoute, useExtensionFilter } from '../extensions';
 import { useInstall } from '../install';
 import { usePlugins } from '../plugins';
 import { can } from '../session';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const { answer, error, busy, plugins, broken, load, find, toggle, useConfig, remove: removePlugin, removeBroken: removeBrokenPlugin } = usePlugins();
 
@@ -50,7 +52,7 @@ const canDelete   = can('extensions.plugins.delete');
 const { installing, canInstall, afterInstall, hop, installState, next } = useInstall('plugin', load, {
 	find,
 	state: (plugin) => ({
-		words: plugin?.running ? 'turned on' : 'turned off',
+		words: plugin?.running ? t('plugins_view.turned_on', 'turned on') : t('plugins_view.turned_off', 'turned off'),
 		next: plugin !== null && !plugin.running && blocked(plugin) === null && canActivate,
 		live: plugin?.running ?? false
 	}),
@@ -100,11 +102,11 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Plugins</h1>
-			<p class="page-header__hint">Code that adds content types, blocks, icons, and actions to the site.</p>
+			<h1 tabindex="-1">{{ t('plugins_view.title', 'Plugins') }}</h1>
+			<p class="page-header__hint">{{ t('plugins_view.hint', 'Code that adds content types, blocks, icons, and actions to the site.') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Plugin</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />{{ t('plugins_view.install', 'Install Plugin') }}</button>
 		</div>
 	</header>
 
@@ -112,17 +114,20 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 
 	<template v-if="answer">
 		<div v-if="total === 0" class="panel">
-			<EmptyState icon="plug" heading="No Plugins Yet" tag="h3">
-				Put one in <code>extensions/</code>, or install one with Composer (package type <code>blush-plugin</code>).
+			<EmptyState icon="plug" :heading="t('plugins_view.empty', 'No Plugins Yet')" tag="h3">
+				<MessageText :text="t('plugins_view.empty_text', 'Put one in {folder}, or install one with Composer (package type {type}).')">
+					<template #folder><code>extensions/</code></template>
+					<template #type><code>blush-plugin</code></template>
+				</MessageText>
 			</EmptyState>
 		</div>
 
 		<template v-else>
-			<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" noun="plugins" on="On" off="Off" :sources="['composer', 'local']" :shown="shown" :total="total" :summary="`${on} on`" :filtered="filtered" @clear="clear" />
+			<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" :noun="t('plugins_view.noun', 'plugins')" :on="t('plugins_view.on', 'On')" :off="t('plugins_view.off', 'Off')" :sources="['composer', 'local']" :shown="shown" :total="total" :summary="t('plugins_view.summary', '{count} on', { count: on })" :filtered="filtered" @clear="clear" />
 
 			<div v-if="shown === 0" class="panel">
-				<EmptyState icon="search" heading="No Plugin Matches" text="Nothing here fits the filters in force. Clearing them brings the other plugins back.">
-					<template #actions><button type="button" class="button" @click="clear">Clear Filters</button></template>
+				<EmptyState icon="search" :heading="t('plugins_view.no_matches', 'No Plugin Matches')" :text="t('plugins_view.no_matches_text', 'Nothing here fits the filters in force. Clearing them brings the other plugins back.')">
+					<template #actions><button type="button" class="button" @click="clear">{{ t('plugins_view.clear_filters', 'Clear Filters') }}</button></template>
 				</EmptyState>
 			</div>
 
@@ -130,11 +135,11 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 				<ExtensionRow v-for="plugin in shownPlugins" :key="plugin.name" :class="{ 'is-off': !plugin.running, 'is-on': plugin.running }" :label="plugin.label" :to="extensionRoute('plugin', plugin.name)" :version="`${plugin.name} ${plugin.version}`" :description="plugin.description">
 					<template #mark><AdminIcon name="plug" /></template>
 					<template #pills>
-						<span v-if="blocked(plugin)" class="pill pill--warn">Can't turn on</span>
-						<span v-if="plugin.abandoned !== false" class="pill pill--warn">Abandoned</span>
-						<span v-if="plugin.clashes.length" class="pill pill--warn">Name Clash</span>
+						<span v-if="blocked(plugin)" class="pill pill--warn">{{ t('plugins_view.cant_turn_on', 'Can\'t turn on') }}</span>
+						<span v-if="plugin.abandoned !== false" class="pill pill--warn">{{ t('plugins_view.abandoned', 'Abandoned') }}</span>
+						<span v-if="plugin.clashes.length" class="pill pill--warn">{{ t('plugins_view.name_clash', 'Name Clash') }}</span>
 					</template>
-					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="extension__description">Installed by Composer. It's off because the list of plugins turned on here doesn't name it.</p>
+					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="extension__description">{{ t('plugins_view.composer_off', 'Installed by Composer. It\'s off because the list of plugins turned on here doesn\'t name it.') }}</p>
 					<p v-if="blocked(plugin)" class="notice notice--small notice--warn extension__message">
 						<AdminIcon name="triangle-alert" /><span>{{ blocked(plugin) }}</span>
 					</p>
@@ -147,21 +152,21 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 							:label="plugin.label"
 							:locked="blocked(plugin) !== null || !canActivate"
 							:busy="busy === plugin.name"
-							:reason="blocked(plugin) ?? (canActivate ? null : 'Your role can\'t turn plugins on and off.')"
+							:reason="blocked(plugin) ?? (canActivate ? null : t('plugins_view.role_cant', 'Your role can\'t turn plugins on and off.'))"
 							@change="toggle(plugin, $event)"
 						/>
-						<ExtensionMenu :label="plugin.label" :details="extensionRoute('plugin', plugin.name)" details-label="Plugin details" :copy="plugin.path" :delete-label="canDelete && plugin.deletable ? 'Delete plugin' : undefined" @delete="remove(plugin)" />
+						<ExtensionMenu :label="plugin.label" :details="extensionRoute('plugin', plugin.name)" :details-label="t('plugins_view.details', 'Plugin details')" :copy="plugin.path" :delete-label="canDelete && plugin.deletable ? t('plugins_view.delete', 'Delete plugin') : undefined" @delete="remove(plugin)" />
 					</template>
 				</ExtensionRow>
 				<ExtensionRow v-for="plugin in shownBroken" :key="plugin.where" class="is-off" :label="plugin.where" :version="plugin.name && plugin.name !== plugin.where ? plugin.name : undefined">
 					<template #mark><AdminIcon name="plug" /></template>
-					<template #pills><span class="pill pill--warn">Can't turn on</span></template>
+					<template #pills><span class="pill pill--warn">{{ t('plugins_view.cant_turn_on', 'Can\'t turn on') }}</span></template>
 					<p class="notice notice--small notice--warn extension__message">
-						<AdminIcon name="triangle-alert" /><span>{{ plugin.reason }} {{ plugin.enabled ? 'It\'s turned on, but can\'t run until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+						<AdminIcon name="triangle-alert" /><span>{{ plugin.enabled ? t('plugins_view.broken_on', '{reason} It\'s turned on, but can\'t run until that\'s fixed.', { reason: plugin.reason }) : t('plugins_view.broken_off', '{reason} It can\'t be turned on until that\'s fixed.', { reason: plugin.reason }) }}</span>
 					</p>
 					<template #end>
-						<ToggleSwitch :checked="false" :label="plugin.where" locked reason="Its manifest can't be read." />
-						<ExtensionMenu :label="plugin.where" :copy="plugin.where" v-bind="plugin.where.startsWith('extensions/') ? {} : { copyWhat: 'the package name', copyLabel: 'Copy package name' }" :delete-label="canDelete && plugin.deletable ? 'Delete plugin' : undefined" @delete="removeBroken(plugin)" />
+						<ToggleSwitch :checked="false" :label="plugin.where" locked :reason="t('plugins_view.manifest_unreadable', 'Its manifest can\'t be read.')" />
+						<ExtensionMenu :label="plugin.where" :copy="plugin.where" v-bind="plugin.where.startsWith('extensions/') ? {} : { copyWhat: t('plugins_view.package_name', 'the package name'), copyLabel: t('plugins_view.copy_package_name', 'Copy package name') }" :delete-label="canDelete && plugin.deletable ? t('plugins_view.delete', 'Delete plugin') : undefined" @delete="removeBroken(plugin)" />
 					</template>
 				</ExtensionRow>
 			</ul>
@@ -180,13 +185,22 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 
 	<p v-if="answer" class="notice extension__note">
 		<span>
-			Plugins live in <code>extensions/</code> or come from Composer.
+			<MessageText :text="t('plugins_view.note.where', 'Plugins live in {folder} or come from Composer.')"><template #folder><code>extensions/</code></template></MessageText>
 			<template v-if="answer.saved">
-				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
-				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
+				<MessageText :text="t('plugins_view.note.saved', 'Which are on was set here, and is saved in {settings} over {config}.')">
+					<template #settings><code>user/data/settings.json</code></template>
+					<template #config><code>config/plugins.php</code></template>
+				</MessageText>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig"><MessageText :text="t('plugins_view.note.use_config', 'Use {config}\'s list')"><template #config><code>config/plugins.php</code></template></MessageText></button>
 			</template>
-			<template v-else>A plugin in <code>extensions/</code> is off until <code>config/plugins.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every plugin that's on in <code>user/data/settings.json</code>, over that file; from then on, a plugin it doesn't name is off, even one Composer installs later.</template>
-			What a plugin adds shows on the screens it belongs to, not here.
+			<MessageText v-else :text="t('plugins_view.note.default', 'A plugin in {folder} is off until {config} names it in {enabled}{no_file}; Composer\'s are on. Turning one on or off here saves the list of every plugin that\'s on in {settings}, over that file; from then on, a plugin it doesn\'t name is off, even one Composer installs later.')">
+				<template #folder><code>extensions/</code></template>
+				<template #config><code>config/plugins.php</code></template>
+				<template #enabled><code>enabled</code></template>
+				<template #no_file><template v-if="!answer.config"> {{ t('plugins_view.note.no_file', '(there\'s no such file yet)') }}</template></template>
+				<template #settings><code>user/data/settings.json</code></template>
+			</MessageText>
+			{{ t('plugins_view.note.screens', 'What a plugin adds shows on the screens it belongs to, not here.') }}
 		</span>
 	</p>
 

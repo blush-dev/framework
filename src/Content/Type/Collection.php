@@ -16,6 +16,7 @@ namespace Blush\Content\Type;
 use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
+use Blush\Translation\Messages;
 use Blush\Field\Fields\ReferenceField;
 
 /**
@@ -69,6 +70,7 @@ final readonly class Collection extends ContentType
 	 * @param  TypeOrder       $order        How entries are ordered when nothing says otherwise.
 	 * @param  ?int            $position     Its order in the admin's menu (D-726).
 	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726).
+	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -92,9 +94,10 @@ final readonly class Collection extends ContentType
 		public TypeOrder $order = TypeOrder::Published,
 		?int $position = null,
 		?string $under = null,
-		FieldControls $controls = new FieldControls()
+		FieldControls $controls = new FieldControls(),
+		Messages $messages = new Messages()
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $messages);
 	}
 
 	/**
@@ -147,12 +150,12 @@ final readonly class Collection extends ContentType
 
 	/**
 	 * Returns the field an entry names its parent through, or `null` when
-	 * the collection doesn't nest.
+	 * the collection doesn't nest, with its help written with `$messages`.
 	 */
-	public function parentField(): ?ReferenceField
+	public function parentField(Messages $messages): ?ReferenceField
 	{
 		return $this->hierarchical
-			? new ReferenceField('parent', $this->name, multiple: false)->described(sprintf('The parent %s, by slug.', $this->labels->item))
+			? new ReferenceField('parent', $this->name, multiple: false)->described($messages->t('content.collection.parent_help', 'The parent {item}, by slug.', item: $this->labels->item))
 			: null;
 	}
 

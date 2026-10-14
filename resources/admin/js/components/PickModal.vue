@@ -44,12 +44,12 @@ const lower = computed(() => props.noun.toLowerCase());
 </script>
 
 <template>
-	<AdminModal :open="open" :title="empty ? `No ${noun} to Link` : `Link ${/^[AEIOU]/.test(noun) ? 'an' : 'a'} ${noun}`" wide @close="emit('close')">
-		<p v-if="items === null">Loading the {{ lower }}s…</p>
+	<AdminModal :open="open" :title="empty ? t('pick_modal.title_none', 'No {noun} to Link', { noun }) : t('pick_modal.title', '{article, select, an {Link an {noun} } other {Link a {noun} } }', { article: /^[AEIOU]/.test(noun) ? 'an' : 'a', noun })" wide @close="emit('close')">
+		<p v-if="items === null">{{ t('pick_modal.loading', 'Loading the {noun}s…', { noun: lower }) }}</p>
 		<p v-else-if="empty">{{ none }}</p>
 		<template v-else>
 			<p><slot /></p>
-			<div class="pick-list" role="group" :aria-label="`${noun}s`">
+			<div class="pick-list" role="group" :aria-label="t('pick_modal.list', '{noun}s', { noun })">
 				<button v-for="item in items" :key="item.key" type="button" class="pick" :aria-pressed="pick === item.key" @click="pick = item.key">
 					<AdminAvatar :class="{ 'avatar--guest': item.guest }" :name="item.name" :image="item.image" />
 					<span class="pick__text">
@@ -62,9 +62,9 @@ const lower = computed(() => props.noun.toLowerCase());
 		</template>
 		<p v-if="error" class="field__error" role="alert">{{ error }}</p>
 		<template #footer>
-			<button type="button" class="button" @click="emit('close')">{{ empty && !slots.empty ? 'Close' : 'Cancel' }}</button>
+			<button type="button" class="button" @click="emit('close')">{{ empty && !slots.empty ? t('common.close', 'Close') : t('common.cancel', 'Cancel') }}</button>
 			<slot v-if="empty" name="empty" />
-			<button v-else type="button" class="button button--primary" :disabled="pick === '' || busy" @click="emit('confirm')">{{ busy ? 'Linking…' : `Link the ${lower}` }}</button>
+			<button v-else type="button" class="button button--primary" :disabled="pick === '' || busy" @click="emit('confirm')">{{ busy ? t('pick_modal.linking', 'Linking…') : t('pick_modal.link_the', 'Link the {noun}', { noun: lower }) }}</button>
 		</template>
 	</AdminModal>
 </template>

@@ -24,6 +24,7 @@ use Blush\Core\Paths;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Moves the data types that still name their folder into `_` and their
@@ -52,7 +53,8 @@ final readonly class TypeFolderMigration
 		private StorageConfig $storage,
 		private Paths $paths,
 		private FilesystemWriter $writer,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -89,9 +91,10 @@ final readonly class TypeFolderMigration
 		$failed   = [];
 		$steps    = new Progress($progress);
 		$done     = 0;
+		$step     = (string) $this->messages->t('content.type_folder_migration.step', 'Moving type folders');
 
 		foreach ($report as $name => $folders) {
-			$steps->step('Moving type folders', $done++, count($report));
+			$steps->step($step, $done++, count($report));
 
 			$others = array_column(array_diff_key($report, [$name => true]), 'from');
 
@@ -102,7 +105,7 @@ final readonly class TypeFolderMigration
 			}
 		}
 
-		$steps->step('Moving type folders', $done, count($report));
+		$steps->step($step, $done, count($report));
 
 		return ['migrated' => $migrated, 'failed' => $failed];
 	}
@@ -189,6 +192,6 @@ final readonly class TypeFolderMigration
 	 */
 	private function definition(string $name): array
 	{
-		return $this->tables->types()->find($name) ?? throw new InvalidContentType(sprintf('user/data/types has no "%s".', $name));
+		return $this->tables->types()->find($name) ?? throw new InvalidContentType((string) $this->messages->t('content.type_folder_migration.no_type', 'user/data/types has no "{name}".', name: $name));
 	}
 }

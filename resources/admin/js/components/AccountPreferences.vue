@@ -19,16 +19,17 @@ import { adminTheme, adminThemes, defaultAdminTheme, saveAdminTheme } from '../a
 import type { AdminThemeChoice } from '../config';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import type { IconName } from '../icons';
+import { t } from '../messages';
 
 const schemes: { value: ColorScheme; label: string; hint: string; icon: IconName }[] = [
-	{ value: 'system', label: 'System', hint: 'Match your device\'s setting', icon: 'monitor' },
-	{ value: 'light', label: 'Light', hint: 'Always light', icon: 'sun' },
-	{ value: 'dark', label: 'Dark', hint: 'Always dark', icon: 'moon' }
+	{ value: 'system', label: t('account_preferences.system', 'System'), hint: t('account_preferences.system_hint', 'Match your device\'s setting'), icon: 'monitor' },
+	{ value: 'light', label: t('account_preferences.light', 'Light'), hint: t('account_preferences.light_hint', 'Always light'), icon: 'sun' },
+	{ value: 'dark', label: t('account_preferences.dark', 'Dark'), hint: t('account_preferences.dark_hint', 'Always dark'), icon: 'moon' }
 ];
 
 // What a theme is, and whether it's the site's default.
 function hint(theme: AdminThemeChoice): string {
-	return [theme.description, theme.name === defaultAdminTheme.value ? 'Site default' : ''].filter(Boolean).join(' · ');
+	return [theme.description, theme.name === defaultAdminTheme.value ? t('account_preferences.site_default', 'Site default') : ''].filter(Boolean).join(' · ');
 }
 
 const message = ref('');
@@ -38,18 +39,18 @@ const { busy: saving, error, run } = useAction();
 async function chooseTheme(theme: AdminThemeChoice): Promise<void> {
 	message.value = '';
 
-	await run('Your theme couldn\'t be saved.', async () => {
+	await run(t('account_preferences.theme_failed', 'Your theme couldn\'t be saved.'), async () => {
 		await saveAdminTheme(theme.name === defaultAdminTheme.value ? null : theme.name);
-		message.value = `Saved. The admin is ${theme.label} on every device you sign in on.`;
+		message.value = t('account_preferences.theme_saved', 'Saved. The admin is {theme} on every device you sign in on.', { theme: theme.label });
 	});
 }
 
 async function choose(scheme: ColorScheme): Promise<void> {
 	message.value = '';
 
-	await run('Your color scheme couldn\'t be saved.', async () => {
+	await run(t('account_preferences.scheme_failed', 'Your color scheme couldn\'t be saved.'), async () => {
 		await saveColorScheme(scheme);
-		message.value = `Saved. The admin is ${scheme === 'system' ? 'following your device' : scheme} on every device you sign in on.`;
+		message.value = t('account_preferences.scheme_saved', 'Saved. The admin is {scheme, select, system {following your device} light {light} dark {dark} other {{scheme}}} on every device you sign in on.', { scheme });
 	});
 }
 </script>
@@ -57,12 +58,12 @@ async function choose(scheme: ColorScheme): Promise<void> {
 <template>
 	<section class="panel" aria-labelledby="display-heading">
 		<header class="panel__header">
-			<h2 id="display-heading">Theme and Color Scheme</h2>
-			<p class="panel__hint">Just for you, on any device</p>
+			<h2 id="display-heading">{{ t('account_preferences.heading', 'Theme and Color Scheme') }}</h2>
+			<p class="panel__hint">{{ t('account_preferences.hint', 'Just for you, on any device') }}</p>
 		</header>
 		<div class="panel__body">
 			<fieldset class="schemes" :disabled="saving">
-				<legend class="schemes__legend">Theme</legend>
+				<legend class="schemes__legend">{{ t('account_preferences.theme', 'Theme') }}</legend>
 				<label v-for="theme in adminThemes" :key="theme.name" class="scheme">
 					<input class="visually-hidden" type="radio" name="admin-theme" :value="theme.name" :checked="adminTheme?.name === theme.name" @change="chooseTheme(theme)">
 					<AdminThemeSketch class="swatch" :preview="theme.preview" />
@@ -73,7 +74,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 				</label>
 			</fieldset>
 			<fieldset class="schemes" :disabled="saving">
-				<legend class="schemes__legend">Color scheme</legend>
+				<legend class="schemes__legend">{{ t('account_preferences.color_scheme', 'Color scheme') }}</legend>
 				<label v-for="scheme in schemes" :key="scheme.value" class="scheme">
 					<input class="visually-hidden" type="radio" name="color-scheme" :value="scheme.value" :checked="colorScheme === scheme.value" @change="choose(scheme.value)">
 					<AdminIcon :name="scheme.icon" />
@@ -86,7 +87,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 			<p class="profile__status" aria-live="polite">{{ message }}</p>
 			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 		</div>
-		<p class="panel__note">Yours alone, and nobody else's to set. Both follow you to any device, because they live on the account rather than in this browser. They aren't the site's theme, which is under Config.</p>
+		<p class="panel__note">{{ t('account_preferences.note', 'Yours alone, and nobody else\'s to set. Both follow you to any device, because they live on the account rather than in this browser. They aren\'t the site\'s theme, which is under Config.') }}</p>
 	</section>
 </template>
 

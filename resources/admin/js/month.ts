@@ -3,7 +3,15 @@
  * draws them.
  */
 
-export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+import { locale } from './messages';
+
+// The weekdays' short names, Monday first, in the admin's language
+// (`Intl`; 1 January 2024 was a Monday).
+export const WEEKDAYS = Array.from({ length: 7 }, (_, day) => new Intl.DateTimeFormat(locale(), { weekday: 'short' }).format(new Date(2024, 0, 1 + day)));
+
+// The months' names, long and short, the same way.
+export const MONTHS = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat(locale(), { month: 'long' }).format(new Date(2024, month, 1)));
+export const SHORT_MONTHS = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat(locale(), { month: 'short' }).format(new Date(2024, month, 1)));
 
 /**
  * A date as `YYYY-MM-DD`, in local time.

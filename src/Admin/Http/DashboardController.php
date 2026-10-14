@@ -42,6 +42,7 @@ use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
+use Blush\Translation\Messages;
 
 /**
  * Answers `GET {path}/api/dashboard` (D-538): the site, and the entries
@@ -93,7 +94,8 @@ final readonly class DashboardController
 		private Tokens $tokens,
 		private Accounts $accounts,
 		private MediaLibrary $media,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -101,7 +103,7 @@ final readonly class DashboardController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return Response::json(['error' => 'Sign in first.'], HttpStatus::Unauthorized, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], HttpStatus::Unauthorized, ['Cache-Control' => 'no-store']);
 		}
 
 		$resume   = $this->resume($account);

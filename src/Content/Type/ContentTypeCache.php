@@ -20,6 +20,7 @@ use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Field\FieldFactory;
 use Blush\Support\PhpArrayFile;
+use Blush\Translation\Messages;
 
 /**
  * Loads the content types: from `storage/cache/content-types.php` when it
@@ -37,7 +38,8 @@ final readonly class ContentTypeCache
 		private Paths $paths,
 		private AppConfig $config,
 		private FieldFactory $fields,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -51,7 +53,7 @@ final readonly class ContentTypeCache
 			$cached = $this->file()->read();
 
 			if ($cached !== null) {
-				return ContentTypes::fromArray($cached, $this->fields);
+				return ContentTypes::fromArray($cached, $this->fields, $this->messages);
 			}
 		}
 

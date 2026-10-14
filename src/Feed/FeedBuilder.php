@@ -27,6 +27,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Core\AppConfig;
 use Blush\Markdown\MarkdownException;
+use Blush\Translation\Messages;
 
 /**
  * Builds feeds from content (D-029), with 1.x's defaults (D-078): a
@@ -46,7 +47,8 @@ final readonly class FeedBuilder
 		private ContentUrls $urls,
 		private FeedConfig $config,
 		private AppConfig $app,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -109,7 +111,7 @@ final readonly class FeedBuilder
 
 		return $this->feed(
 			$format,
-			"{$target->title} | " . ($relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label) . " | {$type->labels->plural}",
+			(string) $this->messages->t('feed.feed_builder.related', '{title} | {relation} | {type}', title: $target->title, relation: $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label, type: $type->labels->plural),
 			$this->urls->related($type, $relation, $target->slug) ?? '/',
 			$this->urls->relatedFeed($type, $relation, $target->slug, $format->routeSuffix()) ?? '/',
 			$target,

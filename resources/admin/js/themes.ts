@@ -16,6 +16,7 @@ import { config } from './config';
 import { confirmAction } from './confirm';
 import { stopsParagraph, useExtensionList } from './extensions';
 import { toast } from './toast';
+import { t } from './messages';
 
 export function useThemes() {
 	// The theme being activated is `busy`; this is the one whose
@@ -47,10 +48,10 @@ export function useThemes() {
 	// A missing parent is already said beside it, so it isn't repeated.
 	function blockedMessage(theme: ThemeSummary): string {
 		if (theme.parent !== null && !installed(theme.parent)) {
-			return `Anything this theme doesn't define would have nowhere to come from, so it can't be activated. Install ${theme.parent}, or point this theme at another theme to fall back to.`;
+			return t('themes.blocked_parent', 'Anything this theme doesn\'t define would have nowhere to come from, so it can\'t be activated. Install {parent}, or point this theme at another theme to fall back to.', { parent: theme.parent });
 		}
 
-		return `${theme.blocked ?? ''} It can't be activated until that's fixed.`;
+		return t('themes.blocked', '{reason} It can\'t be activated until that\'s fixed.', { reason: theme.blocked ?? '' });
 	}
 
 	// Why the active theme doesn't run, when its chain's requirements
@@ -58,16 +59,16 @@ export function useThemes() {
 	function fallbackMessage(theme: ThemeSummary): string | null {
 		const fallback = answer.value?.fallback ?? null;
 
-		return theme.active && fallback !== null ? `${fallback} Visitors see ${label('blush/default')} in its place until that's fixed.` : null;
+		return theme.active && fallback !== null ? t('themes.fallback', '{reason} Visitors see {theme} in its place until that\'s fixed.', { reason: fallback, theme: label('blush/default') }) : null;
 	}
 
 	// Asks, then activates a theme; resolves whether it was activated.
 	async function activate(theme: ThemeSummary): Promise<boolean> {
 		const sure = await confirmAction({
-			title: `Activate ${theme.label}?`,
+			title: t('themes.activate_title', 'Activate {theme}?', { theme: theme.label }),
 			// With what activating it stops, if anything (D-440).
-			body: [`Visitors will see the ${theme.label} theme as soon as it's saved. Your content, addresses, and settings don't change, and you can switch back at any time.`, stopsParagraph(theme.stops)].filter((paragraph) => paragraph !== ''),
-			confirm: `Activate ${theme.label}`
+			body: [t('themes.activate_body', 'Visitors will see the {theme} theme as soon as it\'s saved. Your content, addresses, and settings don\'t change, and you can switch back at any time.', { theme: theme.label }), stopsParagraph(theme.stops)].filter((paragraph) => paragraph !== ''),
+			confirm: t('themes.activate', 'Activate {theme}', { theme: theme.label })
 		});
 
 		if (!sure) {
@@ -80,11 +81,11 @@ export function useThemes() {
 		try {
 			await saveSettings({ set: { 'theme.active': theme.name } });
 			await load();
-			toast(`Activated ${theme.label}`);
+			toast(t('themes.activated', 'Activated {theme}', { theme: theme.label }));
 
 			return true;
 		} catch (caught) {
-			failed.value = { name: theme.name, reason: errorMessage(caught, 'The theme couldn\'t be saved.') };
+			failed.value = { name: theme.name, reason: errorMessage(caught, t('themes.errors.save', 'The theme couldn\'t be saved.')) };
 
 			return false;
 		} finally {
@@ -94,7 +95,7 @@ export function useThemes() {
 
 	// Puts `config/theme.php`'s theme back in charge.
 	function useConfig(): Promise<void> {
-		return restoreConfig('theme.active', () => `Activated ${active.value?.label ?? 'the theme'} from config/theme.php`, 'The theme couldn\'t be saved.');
+		return restoreConfig('theme.active', () => t('themes.activated_from_config', 'Activated {theme} from config/theme.php', { theme: active.value?.label ?? t('themes.the_theme', 'the theme') }), t('themes.errors.save', 'The theme couldn\'t be saved.'));
 	}
 
 	// Asks, then deletes a theme's folder; resolves whether it was deleted.
@@ -104,7 +105,7 @@ export function useThemes() {
 		if (falling.length > 0) {
 			const names = falling.map((theme) => theme.label).join(' and ');
 
-			body.push(`${names} fall${falling.length === 1 ? 's' : ''} back to ${name}, and can't be activated until ${falling.length === 1 ? 'it\'s' : 'they\'re'} pointed at a theme that's installed.`);
+			body.push(t('themes.falling_back', '{count, plural, one {{names} falls back to {name}, and can\'t be activated until it\'s pointed at a theme that\'s installed.} other {{names} fall back to {name}, and can\'t be activated until they\'re pointed at a theme that\'s installed.}}', { count: falling.length, names, name }));
 		}
 
 		return deleteFolder(name, folder, body);

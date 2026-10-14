@@ -22,6 +22,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Translation\Messages;
 
 /**
  * The site's roles, by name: the built-ins, then the roles the admin
@@ -61,7 +62,8 @@ final class Roles
 	public function __construct(
 		private readonly AuthConfig $config,
 		private readonly RecordStores|RecordStore $stores,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Messages $messages
 	) {
 		$this->reload();
 	}
@@ -77,7 +79,7 @@ final class Roles
 		$origins = [];
 
 		foreach (BuiltInRole::cases() as $builtIn) {
-			$roles[$builtIn->value]   = $builtIn->role();
+			$roles[$builtIn->value]   = $builtIn->role($this->messages);
 			$origins[$builtIn->value] = RoleOrigin::BuiltIn;
 		}
 
@@ -90,7 +92,7 @@ final class Roles
 
 			// A built-in keeps its name and description; only what it
 			// can do changes.
-			$roles[$role->name]   = $builtIn?->role()->withCapabilities($role->capabilities) ?? $role;
+			$roles[$role->name]   = $builtIn?->role($this->messages)->withCapabilities($role->capabilities) ?? $role;
 			$origins[$role->name] = $builtIn === null ? RoleOrigin::Custom : RoleOrigin::Changed;
 		}
 
@@ -162,10 +164,10 @@ final class Roles
 		try {
 			$records = $this->records()->select(self::table(), new RecordQuery())->records;
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The roles can\'t be read: %s', $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.roles.unreadable', 'The roles can\'t be read: {error}', error: $e->getMessage()), previous: $e);
 		}
 
-		return array_map(static function (Record $record): Role {
+		return array_map(function (Record $record): Role {
 			$role = $record->fields;
 
 			if (is_array($role['capabilities'] ?? null)) {
@@ -175,7 +177,7 @@ final class Roles
 			try {
 				return Role::fromArray($role);
 			} catch (AuthException $e) {
-				throw new AuthException(sprintf('The roles can\'t be read: %s', $e->getMessage()), previous: $e);
+				throw new AuthException((string) $this->messages->t('auth.roles.unreadable', 'The roles can\'t be read: {error}', error: $e->getMessage()), previous: $e);
 			}
 		}, $records);
 	}
@@ -218,7 +220,7 @@ final class Roles
 				}
 			});
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The roles couldn\'t be saved: %s', $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.roles.not_saved', 'The roles couldn\'t be saved: {error}', error: $e->getMessage()), previous: $e);
 		}
 
 		$this->reload();

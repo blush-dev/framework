@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Parser\SymfonyYamlParser;
+use Blush\Translation\Messages;
 
 #[CoversClass(FrontMatter::class)]
 #[CoversClass(InvalidDocument::class)]
@@ -53,7 +54,7 @@ final class FrontMatterTest extends TestCase
 
 	public function testParsesFrontMatter(): void
 	{
-		$frontMatter = new FrontMatter(new SymfonyYamlParser());
+		$frontMatter = new FrontMatter(new SymfonyYamlParser(new Messages()), new Messages());
 
 		$this->assertSame([['title' => 'Hi', 'og:title' => 'Site'], 'Body'], $frontMatter->parse("---\ntitle : Hi\nog:title: Site\n---\nBody"));
 		$this->assertSame([[], 'Body'], $frontMatter->parse("---\n# just a comment\n---\nBody"));
@@ -72,7 +73,7 @@ final class FrontMatterTest extends TestCase
 
 	public function testRejectsBadFrontMatter(): void
 	{
-		$frontMatter = new FrontMatter(new SymfonyYamlParser());
+		$frontMatter = new FrontMatter(new SymfonyYamlParser(new Messages()), new Messages());
 
 		foreach (["---\n- a\n- b\n---\n" => 'must be a map', "---\njust text\n---\n" => 'must be a map', "---\na: [\n---\n" => 'Invalid front matter'] as $contents => $message) {
 			try {

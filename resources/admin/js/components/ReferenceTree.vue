@@ -21,12 +21,13 @@
 import { computed, nextTick, ref } from 'vue';
 import { errorMessage, request } from '../api';
 import { label } from '../fields';
-import { plural } from '../format';
+import { t } from '../messages';
 import { CAP, loadReferences, marked, ranked, slugOf, type ReferenceItem } from '../references';
 import { usePicker, type PickerProps } from '../picker';
 import { canType } from '../session';
 import AdminIcon from './AdminIcon.vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
+import MessageText from './MessageText.vue';
 import ReferenceMissing from './ReferenceMissing.vue';
 
 const props = defineProps<PickerProps>();
@@ -66,6 +67,9 @@ const rows = computed(() => {
 });
 
 // Over 50: what's chosen, then the most used that aren't.
+// Under the first suggestions of a long list: how many there are.
+const searchRest = computed(() => t('reference_tree.search_rest', '{total, plural, one {# {item}} other {# {items}}}. Search to find the rest.', { total: total.value, item: names.value.item, items: names.value.items }));
+
 const chosen  = computed(() => values.value.map(itemOf));
 const popular = computed(() => suggested.value.filter((item) => !has(item.slug)));
 
@@ -84,7 +88,7 @@ const newField  = ref<HTMLInputElement | null>(null);
 const parents   = ref<ReferenceItem[]>([]);
 
 const parentOptions = computed<SelectOption[]>(() => [
-	{ value: '', label: 'None, at the top level' },
+	{ value: '', label: t('reference_tree.top_level', 'None, at the top level') },
 	...(whole.value ?? parents.value).map((item) => ({ value: item.slug, label: item.title, depth: whole.value === null ? 0 : item.depth ?? 0, hint: whole.value === null ? item.path ?? null : null }))
 ]);
 
@@ -140,7 +144,7 @@ async function saveNew(): Promise<void> {
 		picker.remember([{ slug: created.slug, title: created.title, status: created.status, parent: newParent.value || null, uses: 0, depth: null, missing: false }]);
 		picker.add(created.slug);
 	} catch (caught) {
-		error.value = errorMessage(caught, `The ${names.value.item} couldn't be created.`);
+		error.value = errorMessage(caught, t('reference_tree.errors.not_created', 'The {item} couldn\'t be created.', { item: names.value.item }));
 	} finally {
 		writing.value = false;
 	}
@@ -165,7 +169,7 @@ const typed = computed(() => query.value.trim());
 		<div class="reference__box" :class="{ 'is-invalid': invalid }">
 			<div class="reference__search reference__search--inside">
 				<AdminIcon name="search" />
-				<input :id="id" v-model="query" type="search" autocomplete="off" :placeholder="whole === null && total > 0 ? `Search ${total.toLocaleString()} ${names.items}…` : `Search ${names.items}…`" :aria-describedby="describedBy">
+				<input :id="id" v-model="query" type="search" autocomplete="off" :placeholder="whole === null && total > 0 ? t('reference_tree.search_total', 'Search {total, plural, one {# {item}} other {# {items}}}…', { total, item: names.item, items: names.items }) : t('reference_tree.search', 'Search {items}…', { items: names.items })" :aria-describedby="describedBy">
 			</div>
 
 			<!-- Up to 50: the tree. -->
@@ -174,7 +178,7 @@ const typed = computed(() => query.value.trim());
 					<input type="checkbox" class="check-input" :checked="has(item.slug)" :disabled="full && !has(item.slug)" @change="picker.toggle(item.slug)">
 					<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 					<span class="reference__term-name">{{ item.title }}</span>
-					<span v-if="item.status === 'draft'" class="reference__mark"><AdminIcon name="file-pen-line" />Draft</span>
+					<span v-if="item.status === 'draft'" class="reference__mark"><AdminIcon name="file-pen-line" />{{ t('reference_tree.draft', 'Draft') }}</span>
 					<span class="reference__count mono">{{ item.uses ?? 0 }}</span>
 				</label>
 				<label v-for="value in outside" :key="`outside-${value}`" class="reference__term is-on is-missing">
@@ -183,23 +187,23 @@ const typed = computed(() => query.value.trim());
 					<span class="reference__term-name mono">{{ value }}</span>
 				</label>
 				<p v-if="!rows.length && !outside.length" class="reference__empty">
-					{{ typed ? `No ${names.item} matches “${typed}”.` : `No ${names.items} yet.` }}
-					<button v-if="typed && canCreate" type="button" class="lnk" @click="openNew">{{ names.newItem }} “{{ typed }}”</button>
+					{{ typed ? t('reference_tree.no_match', 'No {item} matches “{typed}”.', { item: names.item, typed }) : t('reference_tree.none_yet', 'No {items} yet.', { items: names.items }) }}
+					<button v-if="typed && canCreate" type="button" class="lnk" @click="openNew">{{ t('reference_tree.new_named', '{newItem} “{typed}”', { newItem: names.newItem, typed }) }}</button>
 				</p>
 			</div>
 
 			<!-- Over 50: what's chosen and the most used, or a search. -->
 			<div v-else class="reference__tree" role="group" :aria-label="label(field)">
 				<template v-if="!typed">
-					<p v-if="chosen.length" class="reference__group">Chosen</p>
+					<p v-if="chosen.length" class="reference__group">{{ t('reference_tree.chosen', 'Chosen') }}</p>
 					<label v-for="item in chosen" :key="`chosen-${item.slug}`" class="reference__term is-on" :class="{ 'is-missing': item.missing }">
 						<input type="checkbox" class="check-input" checked @change="picker.toggle(item.slug)">
 						<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 						<span class="reference__term-name" :class="{ mono: item.missing }">{{ item.title }}</span>
-						<span v-if="item.status === 'draft'" class="reference__mark"><AdminIcon name="file-pen-line" />Draft</span>
+						<span v-if="item.status === 'draft'" class="reference__mark"><AdminIcon name="file-pen-line" />{{ t('reference_tree.draft', 'Draft') }}</span>
 						<span v-if="item.path" class="reference__path">{{ item.path }}</span>
 					</label>
-					<p v-if="popular.length" class="reference__group">Most Used</p>
+					<p v-if="popular.length" class="reference__group">{{ t('reference_tree.most_used', 'Most Used') }}</p>
 					<label v-for="item in popular" :key="`popular-${item.slug}`" class="reference__term">
 						<input type="checkbox" class="check-input" :disabled="full" @change="picker.toggle(item.slug)">
 						<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
@@ -207,10 +211,10 @@ const typed = computed(() => query.value.trim());
 						<span v-if="item.path" class="reference__path">{{ item.path }}</span>
 						<span class="reference__count mono">{{ item.uses ?? 0 }}</span>
 					</label>
-					<p class="reference__more">{{ total.toLocaleString() }} {{ names.items }}. Search to find the rest.</p>
+					<p class="reference__more">{{ searchRest }}</p>
 				</template>
 				<template v-else>
-					<div v-if="searching" class="reference__empty">Searching…</div>
+					<div v-if="searching" class="reference__empty">{{ t('reference_tree.searching', 'Searching…') }}</div>
 					<template v-else>
 						<label v-for="item in results" :key="`found-${item.slug}`" class="reference__term" :class="{ 'is-on': has(item.slug) }">
 							<input type="checkbox" class="check-input" :checked="has(item.slug)" :disabled="full && !has(item.slug)" @change="picker.toggle(item.slug)">
@@ -219,9 +223,9 @@ const typed = computed(() => query.value.trim());
 							<span v-if="item.path" class="reference__path">{{ item.path }}</span>
 							<span class="reference__count mono">{{ item.uses ?? 0 }}</span>
 						</label>
-						<p v-if="results.length" class="reference__more">{{ results.length < matched ? `${results.length} of ${matched.toLocaleString()} matches. Keep typing to narrow.` : plural(matched, 'match', 'matches') + '.' }}</p>
+						<p v-if="results.length" class="reference__more">{{ results.length < matched ? t('reference_tree.narrow', '{shown} of {matched} matches. Keep typing to narrow.', { shown: results.length, matched }) : t('reference_tree.matches', '{count, plural, one {# match} other {# matches} }.', { count: matched }) }}</p>
 						<p v-else class="reference__empty">
-							No {{ names.item }} matches “{{ typed }}”.
+							{{ t('reference_tree.no_match', 'No {item} matches “{typed}”.', { item: names.item, typed }) }}
 						</p>
 					</template>
 				</template>
@@ -229,24 +233,24 @@ const typed = computed(() => query.value.trim());
 
 			<template v-if="canCreate">
 				<div v-if="adding" class="reference__new">
-					<label class="visually-hidden" :for="`${id}-new`">Name</label>
-					<input :id="`${id}-new`" ref="newField" v-model="newName" type="text" autocomplete="off" :placeholder="`${names.singular} name`" @keydown="newKey">
-					<label class="visually-hidden" :for="`${id}-parent`">Parent</label>
+					<label class="visually-hidden" :for="`${id}-new`">{{ t('reference_tree.name', 'Name') }}</label>
+					<input :id="`${id}-new`" ref="newField" v-model="newName" type="text" autocomplete="off" :placeholder="t('reference_tree.name_placeholder', '{singular} name', { singular: names.singular })" @keydown="newKey">
+					<label class="visually-hidden" :for="`${id}-parent`">{{ t('reference_tree.parent', 'Parent') }}</label>
 					<AdminSelect :id="`${id}-parent`" v-model="newParent" :options="parentOptions" searchable :remote="whole === null" @search="searchParents" />
 					<div class="reference__new-actions">
-						<button type="button" class="button button--small button--primary" :disabled="writing || !newName.trim()" @click="saveNew">{{ writing ? 'Adding…' : `Add ${names.singular}` }}</button>
-						<button type="button" class="button button--small" @click="adding = false">Cancel</button>
+						<button type="button" class="button button--small button--primary" :disabled="writing || !newName.trim()" @click="saveNew">{{ writing ? t('reference_tree.adding', 'Adding…') : t('reference_tree.add', 'Add {singular}', { singular: names.singular }) }}</button>
+						<button type="button" class="button button--small" @click="adding = false">{{ t('common.cancel', 'Cancel') }}</button>
 					</div>
 				</div>
 				<button v-else type="button" class="reference__add" @click="openNew">
-					<AdminIcon name="plus" />{{ names.newItem }}<template v-if="typed && whole === null"> “{{ typed }}”</template>
+					<AdminIcon name="plus" />{{ typed && whole === null ? t('reference_tree.new_named', '{newItem} “{typed}”', { newItem: names.newItem, typed }) : names.newItem }}
 				</button>
 			</template>
 		</div>
 
-		<p v-for="item in drafts" :key="`draft-${item.slug}`" class="field__help"><b>{{ item.title }}</b> is a draft, so this {{ picker.source.value.item }} isn't listed under it on the site yet.</p>
+		<p v-for="item in drafts" :key="`draft-${item.slug}`" class="field__help"><MessageText :text="t('reference_tree.draft_note', '{title} is a draft, so this {item} isn\'t listed under it on the site yet.', { item: picker.source.value.item })"><template #title><b>{{ item.title }}</b></template></MessageText></p>
 		<p v-if="inheritedShown.length && inherited" class="field__help">
-			{{ inherited.rule === 'add' ? 'Also' : 'Until it has its own,' }} filed under {{ inheritedShown.map((value) => itemOf(value).title).join(', ') }}, from {{ inherited.title }} ({{ inherited.language }}).
+			{{ t('reference_tree.inherited', '{rule, select, add {Also filed under {names}, from {title} ({language}).} other {Until it has its own, filed under {names}, from {title} ({language}).} }', { rule: inherited.rule, names: inheritedShown.map((value) => itemOf(value).title).join(', '), title: inherited.title, language: inherited.language }) }}
 		</p>
 		<ReferenceMissing :missing="missing" :noun="names.item" @replace="picker.replace" />
 		<p v-if="error" class="field__error">{{ error }}</p>

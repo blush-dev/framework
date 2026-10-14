@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * How a person enters one value (D-766): the input and its own options,
  * such as a placeholder. A control never knows where its value is
@@ -22,7 +25,8 @@ namespace Blush\Field;
  * `ControlRegistrar`). Only core registers them for 2.x.
  *
  * A control describes itself as data (`toArray()`, and the static
- * `label()`, `description()`, and `section()` for the picker), so the
+ * `label()`, `description()`, and `section()` for the picker, its
+ * text written with the `Messages` it's given), so the
  * admin draws it in Vue and a site's form can draw it in PHP.
  *
  * Each control stores one value type (`type()`), and may imply options
@@ -44,14 +48,15 @@ abstract class Control
 	abstract public static function name(): string;
 
 	/**
-	 * Returns the control's name for people, such as "Radio Buttons".
+	 * Returns the control's name for people, such as "Radio Buttons",
+	 * written with `$messages` (D-836).
 	 */
-	abstract public static function label(): string;
+	abstract public static function label(Messages $messages): string|Text;
 
 	/**
 	 * Returns what the control is for, in a sentence.
 	 */
-	public static function description(): string
+	public static function description(Messages $messages): string|Text
 	{
 		return '';
 	}

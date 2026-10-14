@@ -24,6 +24,8 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The accounts repository (D-669): the `accounts` table, keyed by
@@ -65,6 +67,7 @@ final readonly class Accounts
 		private Roles $roles,
 		private AuthConfig $config,
 		private ClockInterface $clock,
+		private Messages $messages,
 		private RequestMemo $memo = new RequestMemo()
 	) {}
 
@@ -173,7 +176,7 @@ final readonly class Accounts
 
 			$saved = $store->save($table, $record->withFields($account->toArray()));
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The account "%s" couldn\'t be saved: %s', $account->username, $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.accounts.not_saved', 'The account "{username}" couldn\'t be saved: {error}', username: $account->username, error: $e->getMessage()), previous: $e);
 		} finally {
 			$this->memo->forget();
 		}
@@ -200,7 +203,7 @@ final readonly class Accounts
 		try {
 			$this->store()->delete($table, $record->id);
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The account "%s" couldn\'t be deleted: %s', $username, $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.accounts.not_deleted', 'The account "{username}" couldn\'t be deleted: {error}', username: $username, error: $e->getMessage()), previous: $e);
 		} finally {
 			$this->memo->forget();
 		}
@@ -226,7 +229,7 @@ final readonly class Accounts
 		$problem = $this->usernameProblem($username);
 
 		if ($problem !== null) {
-			throw new AuthException($problem);
+			throw new AuthException((string) $problem);
 		}
 
 		$email = $this->checkEmail($email, $username);
@@ -241,7 +244,7 @@ final readonly class Accounts
 			roles: self::settle($roles),
 			profile: $profile,
 			created: $this->clock->now()->getTimestamp(),
-			name: $name === null ? null : Account::tidyName($name),
+			name: $this->name($name),
 			email: $email
 		);
 
@@ -263,7 +266,7 @@ final readonly class Accounts
 		$problem = $this->usernameProblem($username);
 
 		if ($problem !== null) {
-			throw new AuthException($problem);
+			throw new AuthException((string) $problem);
 		}
 
 		$email = $email === null || trim($email) === '' ? null : $this->checkEmail($email, $username);
@@ -275,7 +278,7 @@ final readonly class Accounts
 			passwordHash: $this->passwords->hash(bin2hex(random_bytes(32))),
 			roles: self::settle($roles),
 			created: $this->clock->now()->getTimestamp(),
-			name: $name === null ? null : Account::tidyName($name),
+			name: $this->name($name),
 			email: $email,
 			tokenOnly: true
 		));
@@ -285,11 +288,11 @@ final readonly class Accounts
 	 * Returns why a new account can't have a username: it isn't one, or
 	 * it's taken; else `null`.
 	 */
-	public function usernameProblem(string $username): ?string
+	public function usernameProblem(string $username): ?Text
 	{
 		return match (true) {
-			! Account::isValidUsername($username) => sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username),
-			$this->find($username) !== null      => sprintf('There\'s already an account named "%s".', $username),
+			! Account::isValidUsername($username) => $this->messages->t('auth.accounts.username_invalid', '"{username}" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', username: $username),
+			$this->find($username) !== null      => $this->messages->t('auth.accounts.username_taken', 'There\'s already an account named "{username}".', username: $username),
 			default                              => null
 		};
 	}
@@ -321,7 +324,7 @@ final readonly class Accounts
 	 */
 	public function issuePasswordLink(Account $account): array
 	{
-		self::refuseTokenOnly($account);
+		$this->refuseTokenOnly($account);
 
 		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $this->config->passwordLinkLifetime);
 
@@ -343,14 +346,14 @@ final readonly class Accounts
 		$account = $this->find(strtolower(trim($username)));
 
 		if ($account === null || $account->passwordLink === null || ! $account->passwordLink->accepts($token, $this->clock->now()->getTimestamp())) {
-			throw new AuthException('This link has expired, was used, or was replaced. Ask an administrator for a new one.');
+			throw new AuthException((string) $this->messages->t('auth.accounts.link_expired', 'This link has expired, was used, or was replaced. Ask an administrator for a new one.'));
 		}
 
 		if ($account->suspended) {
-			throw new AuthException('This account is suspended. Ask an administrator to reinstate it.');
+			throw new AuthException((string) $this->messages->t('auth.accounts.suspended', 'This account is suspended. Ask an administrator to reinstate it.'));
 		}
 
-		self::refuseTokenOnly($account);
+		$this->refuseTokenOnly($account);
 		$this->checkPassword($password);
 
 		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
@@ -374,7 +377,7 @@ final readonly class Accounts
 	 */
 	public function setPassword(Account $account, string $password): Account
 	{
-		self::refuseTokenOnly($account);
+		$this->refuseTokenOnly($account);
 		$this->checkPassword($password);
 
 		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
@@ -416,7 +419,23 @@ final readonly class Accounts
 	 */
 	public function setName(Account $account, ?string $name): Account
 	{
-		return $this->save($account->withName($name === null ? null : Account::tidyName($name)));
+		return $this->save($account->withName($this->name($name)));
+	}
+
+	/**
+	 * Returns a name tidied as typed, or `null` for none.
+	 *
+	 * @throws AuthException When it's too long or has line breaks.
+	 */
+	private function name(?string $name): ?string
+	{
+		$name = $name === null ? null : Account::tidyName($name);
+
+		if ($name !== null && ! Account::isValidName($name)) {
+			throw new AuthException((string) $this->messages->t('auth.accounts.name_too_long', 'A name is up to {length} characters on one line.', length: Account::NAME_LENGTH));
+		}
+
+		return $name;
 	}
 
 	/**
@@ -442,17 +461,17 @@ final readonly class Accounts
 		$email = trim($email);
 
 		if ($email === '') {
-			throw new AuthException('Every account needs an email address.');
+			throw new AuthException((string) $this->messages->t('auth.accounts.email_required', 'Every account needs an email address.'));
 		}
 
 		if (! Account::isValidEmail($email)) {
-			throw new AuthException(sprintf('"%s" isn\'t an email address.', $email));
+			throw new AuthException((string) $this->messages->t('auth.accounts.email_invalid', '"{email}" isn\'t an email address.', email: $email));
 		}
 
 		$other = array_find($this->all(), static fn (Account $account): bool => $account->username !== $username && $account->email !== null && mb_strtolower($account->email) === mb_strtolower($email));
 
 		if ($other !== null) {
-			throw new AuthException(sprintf('%s already has that email address.', $other->name ?? $other->username));
+			throw new AuthException((string) $this->messages->t('auth.accounts.email_taken', '{name} already has that email address.', name: $other->name ?? $other->username));
 		}
 
 		return $email;
@@ -480,10 +499,10 @@ final readonly class Accounts
 	/**
 	 * Returns what's wrong with a password, or `null` when it's fine.
 	 */
-	public function passwordProblem(string $password): ?string
+	public function passwordProblem(string $password): ?Text
 	{
 		return mb_strlen($password) < $this->config->minPasswordLength
-			? sprintf('Passwords must be at least %d characters.', $this->config->minPasswordLength)
+			? $this->messages->t('auth.accounts.password_too_short', 'Passwords must be at least {count, plural, one {# character} other {# characters}}.', count: $this->config->minPasswordLength)
 			: null;
 	}
 
@@ -497,7 +516,7 @@ final readonly class Accounts
 		$problem = $this->passwordProblem($password);
 
 		if ($problem !== null) {
-			throw new AuthException($problem);
+			throw new AuthException((string) $problem);
 		}
 	}
 
@@ -537,7 +556,7 @@ final readonly class Accounts
 	{
 		foreach ($roles as $role) {
 			if (! $this->roles->has($role)) {
-				throw new AuthException(sprintf('There\'s no "%s" role; the roles are: %s.', $role, implode(', ', array_keys($this->roles->all()))));
+				throw new AuthException((string) $this->messages->t('auth.accounts.no_role', 'There\'s no "{role}" role; the roles are: {roles}.', role: $role, roles: implode(', ', array_keys($this->roles->all()))));
 			}
 		}
 	}
@@ -547,10 +566,10 @@ final readonly class Accounts
 	 *
 	 * @throws AuthException
 	 */
-	private static function refuseTokenOnly(Account $account): void
+	private function refuseTokenOnly(Account $account): void
 	{
 		if ($account->tokenOnly) {
-			throw new AuthException(sprintf('%s is token-only: it never signs in, so it has no password.', $account->username));
+			throw new AuthException((string) $this->messages->t('auth.accounts.token_only', '{username} is token-only: it never signs in, so it has no password.', username: $account->username));
 		}
 	}
 
@@ -569,7 +588,7 @@ final readonly class Accounts
 		$other = $this->linkedTo($profile, $username);
 
 		if ($other !== null) {
-			throw new AuthException(sprintf('That profile is %s\'s already; a profile belongs to one account.', $other->name ?? $other->username));
+			throw new AuthException((string) $this->messages->t('auth.accounts.profile_taken', 'That profile is {name}\'s already; a profile belongs to one account.', name: $other->name ?? $other->username));
 		}
 	}
 
@@ -586,7 +605,9 @@ final readonly class Accounts
 		try {
 			return $read($this->store());
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException($what === '' ? sprintf('The accounts can\'t be read: %s', $e->getMessage()) : sprintf('The account "%s" can\'t be read: %s', $what, $e->getMessage()), previous: $e);
+			throw new AuthException((string) ($what === ''
+				? $this->messages->t('auth.accounts.unreadable', 'The accounts can\'t be read: {error}', error: $e->getMessage())
+				: $this->messages->t('auth.accounts.account_unreadable', 'The account "{username}" can\'t be read: {error}', username: $what, error: $e->getMessage())), previous: $e);
 		}
 	}
 

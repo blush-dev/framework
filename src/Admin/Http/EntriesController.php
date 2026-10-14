@@ -49,6 +49,7 @@ use Blush\Content\Editing\ArchivePages;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
+use Blush\Translation\Messages;
 use Blush\View\ThemedErrorPages;
 
 /**
@@ -157,7 +158,8 @@ final readonly class EntriesController
 		private ArchivePages $archivePages,
 		private Referrers $referrers,
 		private Relations $relations,
-		private RelationChanges $changes
+		private RelationChanges $changes,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -165,7 +167,7 @@ final readonly class EntriesController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], HttpStatus::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], HttpStatus::Unauthorized);
 		}
 
 		$params = $request->getQueryParams();
@@ -181,7 +183,7 @@ final readonly class EntriesController
 		$type = $params['type'] ?? null;
 
 		if ($type !== null && (! is_string($type) || ! $this->types->has($type))) {
-			return self::json(['error' => 'There is no such content type.'], HttpStatus::BadRequest);
+			return self::json(['error' => $this->messages->t('admin.entries_controller.unknown_type', 'There is no such content type.')], HttpStatus::BadRequest);
 		}
 
 		$search = $params['search'] ?? '';

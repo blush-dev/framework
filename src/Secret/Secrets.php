@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Secret;
 
+use Blush\Translation\Messages;
+
 /**
  * Where core and extensions reach their secrets (D-715): credentials for
  * other services, set by the operator in the environment or stored,
@@ -42,7 +44,8 @@ final class Secrets
 	private array $definitions = [];
 
 	public function __construct(
-		private readonly SecretStore $store
+		private readonly SecretStore $store,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -64,7 +67,7 @@ final class Secrets
 			throw new InvalidSecret(sprintf('"%s" can\'t own secrets; use "%s" or an extension\'s "vendor/name".', $owner, SecretDefinition::CORE));
 		}
 
-		return new SecretScope($this, $this->store, $owner);
+		return new SecretScope($this, $this->store, $owner, $this->messages);
 	}
 
 	/**

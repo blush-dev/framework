@@ -20,6 +20,7 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
+use Blush\Translation\Messages;
 
 /**
  * Finds front matter keys nothing declares (D-786): no field of the
@@ -36,7 +37,8 @@ final readonly class UndeclaredKeys
 	public function __construct(
 		private RecordStores $stores,
 		private Entries $content,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private Messages $messages
 	) {}
 
 	/**
@@ -105,7 +107,7 @@ final readonly class UndeclaredKeys
 			$found = $this->content->find($id);
 
 			if ($found === null) {
-				$failed[$id] = 'No entry has this id.';
+				$failed[$id] = (string) $this->messages->t('content.undeclared_keys.no_entry', 'No entry has this id.');
 				continue;
 			}
 

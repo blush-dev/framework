@@ -14,6 +14,7 @@ import { changedHow, undoChange, type ActivityChange } from '../activity';
 import { errorMessage } from '../api';
 import { formatWhen, formatWhenInline } from '../format';
 import { toast } from '../toast';
+import { t } from '../messages';
 
 defineProps<{
 	changes: ActivityChange[];
@@ -28,10 +29,10 @@ async function undo(change: ActivityChange): Promise<void> {
 
 	try {
 		await undoChange(change.id);
-		toast(`Undid: ${change.summary}`);
+		toast(t('activity_rows.undid', 'Undid: {summary}', { summary: change.summary }));
 		emit('changed');
 	} catch (caught) {
-		toast(errorMessage(caught, 'The change couldn\'t be undone.'), { kind: 'warn' });
+		toast(errorMessage(caught, t('activity_rows.errors.undo', 'The change couldn\'t be undone.')), { kind: 'warn' });
 		emit('changed');
 	} finally {
 		busy.value = null;
@@ -52,9 +53,9 @@ async function undo(change: ActivityChange): Promise<void> {
 				</span>
 			</div>
 			<div class="rows__side">
-				<span v-if="change.undone" class="pill">Undone</span>
+				<span v-if="change.undone" class="pill">{{ t('activity_rows.undone', 'Undone') }}</span>
 				<button v-else-if="change.undo.available" type="button" class="button button--small" :disabled="busy !== null" @click="undo(change)">
-					<span v-if="busy === change.id" class="spin" aria-hidden="true" />{{ busy === change.id ? 'Undoing…' : 'Undo' }}
+					<span v-if="busy === change.id" class="spin" aria-hidden="true" />{{ busy === change.id ? t('activity_rows.undoing', 'Undoing…') : t('common.undo', 'Undo') }}
 				</button>
 				<span v-else class="rows__sub">{{ change.undo.reason }}</span>
 			</div>

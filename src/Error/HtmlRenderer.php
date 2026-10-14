@@ -16,6 +16,7 @@ namespace Blush\Error;
 use Override;
 use Throwable;
 use Blush\Http\HttpError;
+use Blush\Translation\Messages;
 
 /**
  * Renders an uncaught exception as a standalone HTML page. With `debug` on, the
@@ -28,9 +29,14 @@ use Blush\Http\HttpError;
  */
 final readonly class HtmlRenderer implements ExceptionRenderer
 {
-	public function __construct(private bool $debug = false)
-	{
-	}
+	/**
+	 * @param Messages $messages Its text's, English without one (as before
+	 *                           the app boots).
+	 */
+	public function __construct(
+		private bool $debug = false,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -47,7 +53,7 @@ final readonly class HtmlRenderer implements ExceptionRenderer
 	#[Override]
 	public function render(Throwable $exception): string
 	{
-		$title = 'Error';
+		$title = $this->escape((string) $this->messages->t('error.html_renderer.title', 'Error'));
 
 		if ($exception instanceof HttpError) {
 			$title = $this->escape("{$exception->status->value} {$exception->status->reasonPhrase()}");
@@ -59,7 +65,7 @@ final readonly class HtmlRenderer implements ExceptionRenderer
 		} else {
 			$body = $this->debug
 				? $this->details($exception)
-				: '<h1>Something went wrong</h1><p>The server hit an error and could not finish the request.</p>';
+				: '<h1>' . $this->escape((string) $this->messages->t('error.html_renderer.heading', 'Something went wrong')) . '</h1><p>' . $this->escape((string) $this->messages->t('error.html_renderer.message', 'The server hit an error and could not finish the request.')) . '</p>';
 		}
 
 		return <<<HTML

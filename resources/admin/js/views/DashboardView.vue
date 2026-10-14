@@ -21,7 +21,9 @@ import AdminIcon from '../components/AdminIcon.vue';
 import EmptyState from '../components/EmptyState.vue';
 import EntryRows from '../components/EntryRows.vue';
 import MenuButton from '../components/MenuButton.vue';
+import MessageText from '../components/MessageText.vue';
 import StatusPill from '../components/StatusPill.vue';
+import { locale, t } from '../messages';
 import { when } from '../people';
 import { formatWhen } from '../format';
 import { can, canAnyType, canType, canUpload, savePreferences, session } from '../session';
@@ -39,7 +41,7 @@ async function load(): Promise<void> {
 	try {
 		dashboard.value = await request<Dashboard>('GET', '/dashboard');
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The dashboard couldn\'t be loaded.');
+		error.value = errorMessage(caught, t('dashboard_view.load_failed', 'The dashboard couldn\'t be loaded.'));
 	}
 }
 
@@ -53,7 +55,7 @@ async function skip(): Promise<void> {
 		await savePreferences({ setupSkipped: true });
 		skipped.value = true;
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The setup path couldn\'t be skipped.');
+		error.value = errorMessage(caught, t('dashboard_view.skip_failed', 'The setup path couldn\'t be skipped.'));
 	} finally {
 		skipping.value = false;
 	}
@@ -64,15 +66,15 @@ const greeting = computed(() => {
 	const hour = new Date().getHours();
 	const part = hour < 5 ? 'evening' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
 
-	return session.account ? `Good ${part}, ${session.account.displayName}` : 'Dashboard';
+	return session.account ? t('dashboard_view.greeting', '{part, select, morning {Good morning, {name}} afternoon {Good afternoon, {name}} other {Good evening, {name}}}', { part, name: session.account.displayName }) : t('dashboard_view.title', 'Dashboard');
 });
 
-const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+const today = new Intl.DateTimeFormat(locale(), { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
 
 // Pages and collections: what's written, so what's listed and made new.
 const writable = computed(() => [...types.value]
 	.filter((type) => type.kind === 'tree' || type.kind === 'collection')
-	.sort((a, b) => a.labels.menu.localeCompare(b.labels.menu)));
+	.sort((a, b) => a.labels.menu.localeCompare(b.labels.menu, locale())));
 const creatable = computed(() => writable.value.filter((type) => canType(type.name, 'create')));
 const browsable = computed(() => writable.value.filter((type) => canType(type.name, 'edit')));
 
@@ -112,16 +114,16 @@ const steps = computed<Step[]>(() => {
 	if (pageType && canType(pageType.name, 'create')) {
 		list.push(page === null ? {
 			key: 'page',
-			name: `Write your first ${pageType.labels.item}`,
-			text: 'A page stands on its own, like About or Contact.',
+			name: t('dashboard_view.step_page', 'Write your first {item}', { item: pageType.labels.item }),
+			text: t('dashboard_view.step_page_text', 'A page stands on its own, like About or Contact.'),
 			done: false,
 			action: { label: pageType.labels.newItem, to: { name: 'entry-new', query: { type: pageType.name } } }
 		} : {
 			key: 'page',
-			name: `Write your first ${pageType.labels.item}`,
-			text: `Done: ${page.title || 'Untitled'}, saved ${formatWhen(page.updated).toLowerCase()}.`,
+			name: t('dashboard_view.step_page', 'Write your first {item}', { item: pageType.labels.item }),
+			text: t('dashboard_view.step_page_done', 'Done: {title}, saved {when}.', { title: page.title || t('dashboard_view.untitled', 'Untitled'), when: formatWhen(page.updated).toLowerCase() }),
 			done: true,
-			action: { label: 'Open It', to: listRoute(page) }
+			action: { label: t('dashboard_view.step_page_open', 'Open It'), to: listRoute(page) }
 		});
 	}
 
@@ -130,10 +132,10 @@ const steps = computed<Step[]>(() => {
 
 		list.push({
 			key: 'types',
-			name: 'Decide what you publish',
-			text: own ? 'Done: the site has a content type of its own.' : 'A content type is the shape of one kind of entry: a post, a release, a recipe. Pages already exist; everything else you define.',
+			name: t('dashboard_view.step_types', 'Decide what you publish'),
+			text: own ? t('dashboard_view.step_types_done', 'Done: the site has a content type of its own.') : t('dashboard_view.step_types_text', 'A content type is the shape of one kind of entry: a post, a release, a recipe. Pages already exist; everything else you define.'),
 			done: own,
-			action: own ? { label: 'See Types', to: { name: 'types' } } : { label: 'New Type', to: { name: 'type-new' } }
+			action: own ? { label: t('dashboard_view.step_types_see', 'See Types'), to: { name: 'types' } } : { label: t('dashboard_view.step_types_new', 'New Type'), to: { name: 'type-new' } }
 		});
 	}
 
@@ -142,10 +144,10 @@ const steps = computed<Step[]>(() => {
 
 		list.push({
 			key: 'media',
-			name: 'Add your media',
-			text: has ? 'Done: the library has files in it.' : 'Logos, photographs, anything an entry needs.',
+			name: t('dashboard_view.step_media', 'Add your media'),
+			text: has ? t('dashboard_view.step_media_done', 'Done: the library has files in it.') : t('dashboard_view.step_media_text', 'Logos, photographs, anything an entry needs.'),
 			done: has,
-			action: { label: has ? 'Open the Library' : 'Upload Files', to: { name: 'media' } }
+			action: { label: has ? t('dashboard_view.step_media_open', 'Open the Library') : t('dashboard_view.step_media_upload', 'Upload Files'), to: { name: 'media' } }
 		});
 	}
 
@@ -154,10 +156,10 @@ const steps = computed<Step[]>(() => {
 
 		list.push({
 			key: 'people',
-			name: 'Invite the people you work with',
-			text: has ? 'Done: someone else has an account.' : 'Each person signs in with their own account, and their profile becomes their byline on the site.',
+			name: t('dashboard_view.step_people', 'Invite the people you work with'),
+			text: has ? t('dashboard_view.step_people_done', 'Done: someone else has an account.') : t('dashboard_view.step_people_text', 'Each person signs in with their own account, and their profile becomes their byline on the site.'),
 			done: has,
-			action: has ? { label: 'See Accounts', to: { name: 'accounts' } } : { label: 'Invite Someone', to: { name: 'account-new' } }
+			action: has ? { label: t('dashboard_view.step_people_see', 'See Accounts'), to: { name: 'accounts' } } : { label: t('dashboard_view.step_people_invite', 'Invite Someone'), to: { name: 'account-new' } }
 		});
 	}
 
@@ -182,16 +184,16 @@ onMounted(() => {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ setup ? 'Set Up Your Site' : greeting }}</h1>
-			<p class="page-header__hint">{{ setup ? 'A few steps, and nothing to read first' : today }}<template v-if="dashboard">{{ ' ' }}<span class="dashboard__env">{{ dashboard.site.environment }}</span></template></p>
+			<h1 tabindex="-1">{{ setup ? t('dashboard_view.setup_title', 'Set Up Your Site') : greeting }}</h1>
+			<p class="page-header__hint">{{ setup ? t('dashboard_view.setup_hint', 'A few steps, and nothing to read first') : today }}<template v-if="dashboard">{{ ' ' }}<span class="dashboard__env">{{ dashboard.site.environment }}</span></template></p>
 		</div>
 		<div v-if="!setup && (creatable.length || canUpload())" class="page-header__actions">
 			<MenuButton button-class="button button--primary" align="end">
-				<template #button><AdminIcon name="plus" />New<AdminIcon name="chevron-down" /></template>
+				<template #button><AdminIcon name="plus" />{{ t('dashboard_view.new', 'New') }}<AdminIcon name="chevron-down" /></template>
 				<RouterLink v-for="type in creatable" :key="type.name" class="menu-item" :to="{ name: 'entry-new', query: { type: type.name } }"><AdminIcon :name="typeIcon(type)" />{{ type.labels.newItem }}</RouterLink>
 				<template v-if="canUpload()">
 					<hr v-if="creatable.length" class="menu-rule">
-					<RouterLink class="menu-item" :to="{ name: 'media' }"><AdminIcon name="upload" />Upload to the Library</RouterLink>
+					<RouterLink class="menu-item" :to="{ name: 'media' }"><AdminIcon name="upload" />{{ t('dashboard_view.upload', 'Upload to the Library') }}</RouterLink>
 				</template>
 			</MenuButton>
 		</div>
@@ -200,7 +202,7 @@ onMounted(() => {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="!dashboard">
-		<p v-if="!error" class="visually-hidden" role="status">Loading the dashboard…</p>
+		<p v-if="!error" class="visually-hidden" role="status">{{ t('dashboard_view.loading', 'Loading the dashboard…') }}</p>
 		<section v-if="!error" class="panel" aria-hidden="true">
 			<header class="panel__header">
 				<span class="skeleton skeleton--heading" style="width: 7rem" />
@@ -218,8 +220,8 @@ onMounted(() => {
 
 	<section v-else-if="setup" class="panel" aria-labelledby="setup-heading">
 		<header class="panel__header">
-			<h2 id="setup-heading">Getting Started</h2>
-			<p class="panel__hint">{{ done }} of {{ steps.length }} done</p>
+			<h2 id="setup-heading">{{ t('dashboard_view.setup_heading', 'Getting Started') }}</h2>
+			<p class="panel__hint">{{ t('dashboard_view.setup_done', '{done} of {total} done', { done, total: steps.length }) }}</p>
 		</header>
 		<ol class="setup">
 			<li v-for="(step, index) in steps" :key="step.key" class="setup__step" :class="{ 'is-done': step.done }">
@@ -228,49 +230,49 @@ onMounted(() => {
 					<template v-else>{{ index + 1 }}</template>
 				</span>
 				<span class="setup__text">
-					<span class="setup__title">{{ step.name }}<span v-if="step.done" class="visually-hidden"> (done)</span></span>
+					<span class="setup__title">{{ step.name }}<span v-if="step.done" class="visually-hidden">{{ t('dashboard_view.step_done', ' (done)') }}</span></span>
 					<span class="setup__hint">{{ step.text }}</span>
 				</span>
 				<RouterLink class="button button--small" :class="{ 'button--primary': step.key === next }" :to="step.action.to">{{ step.action.label }}</RouterLink>
 			</li>
 		</ol>
 		<p class="panel__note setup__note">
-			The dashboard takes this screen's place once the site publishes something.
-			<button type="button" class="link-button" :disabled="skipping" @click="skip">Skip to the Dashboard</button>
+			{{ t('dashboard_view.setup_note', 'The dashboard takes this screen\'s place once the site publishes something.') }}
+			<button type="button" class="link-button" :disabled="skipping" @click="skip">{{ t('dashboard_view.skip', 'Skip to the Dashboard') }}</button>
 		</p>
 	</section>
 
 	<template v-else>
 		<div v-if="dashboard.tokens.length && session.account" class="notice notice--warn">
 			<AdminIcon name="key-round" />
-			<span class="notice__text"><strong>{{ dashboard.tokens.length === 1 ? `Your API token ${dashboard.tokens[0]?.name} expires ${when(dashboard.tokens[0]?.expires ?? null)}.` : `${dashboard.tokens.length} of your API tokens expire within a week.` }}</strong> Whatever uses {{ dashboard.tokens.length === 1 ? 'it' : 'them' }} stops working then; make a new one and swap it in.</span>
-			<span class="notice__buttons"><RouterLink class="button button--small" :to="{ name: 'account', params: { username: session.account.username } }">Your Account</RouterLink></span>
+			<span class="notice__text"><MessageText :text="t('dashboard_view.tokens', '{expiring} Whatever uses {count, plural, one {it} other {them} } stops working then; make a new one and swap it in.', { count: dashboard.tokens.length })"><template #expiring><strong>{{ dashboard.tokens.length === 1 ? t('dashboard_view.token_expires', 'Your API token {name} expires {when}.', { name: dashboard.tokens[0]?.name, when: when(dashboard.tokens[0]?.expires ?? null) }) : t('dashboard_view.tokens_expire', '{count} of your API tokens expire within a week.', { count: dashboard.tokens.length }) }}</strong></template></MessageText></span>
+			<span class="notice__buttons"><RouterLink class="button button--small" :to="{ name: 'account', params: { username: session.account.username } }">{{ t('dashboard_view.your_account', 'Your Account') }}</RouterLink></span>
 		</div>
 
 		<section v-if="dashboard.resume" class="resume" aria-labelledby="resume-heading">
 			<span class="resume__mark" aria-hidden="true"><AdminIcon name="square-pen" /></span>
 			<div class="resume__body">
-				<p id="resume-heading" class="resume__kicker">You Were Editing</p>
-				<RouterLink class="resume__title" :class="{ untitled: !dashboard.resume.title }" :to="listRoute(dashboard.resume)">{{ dashboard.resume.title || 'Untitled' }}</RouterLink>
+				<p id="resume-heading" class="resume__kicker">{{ t('dashboard_view.resume', 'You Were Editing') }}</p>
+				<RouterLink class="resume__title" :class="{ untitled: !dashboard.resume.title }" :to="listRoute(dashboard.resume)">{{ dashboard.resume.title || t('dashboard_view.untitled', 'Untitled') }}</RouterLink>
 				<p class="resume__meta">
 					<span>{{ labelsOf(dashboard.resume.type).singular }}</span>
 					<template v-if="dashboard.resume.url"><span class="resume__dot" aria-hidden="true">·</span><span class="mono">{{ dashboard.resume.url }}</span></template>
 					<span class="resume__dot" aria-hidden="true">·</span><StatusPill :status="dashboard.resume.status" />
-					<span class="resume__dot" aria-hidden="true">·</span><span>Saved {{ formatWhen(dashboard.resume.updated).toLowerCase() }}</span>
+					<span class="resume__dot" aria-hidden="true">·</span><span>{{ t('dashboard_view.resume_saved', 'Saved {when}', { when: formatWhen(dashboard.resume.updated).toLowerCase() }) }}</span>
 				</p>
 			</div>
-			<RouterLink class="button button--primary" :to="listRoute(dashboard.resume)">Continue Editing</RouterLink>
+			<RouterLink class="button button--primary" :to="listRoute(dashboard.resume)">{{ t('dashboard_view.continue', 'Continue Editing') }}</RouterLink>
 		</section>
 
 		<template v-if="clear">
 			<div class="panel">
-				<EmptyState icon="circle-check" heading="Nothing Is Waiting on You" tag="h2">
-					No drafts and nothing scheduled.<template v-if="lastPublished"> The last thing you published was <strong>{{ lastPublished.title || 'Untitled' }}</strong>, {{ formatWhen(lastPublished.published ?? lastPublished.updated) }}.</template>
+				<EmptyState icon="circle-check" :heading="t('dashboard_view.clear_heading', 'Nothing Is Waiting on You')" tag="h2">
+					{{ t('dashboard_view.clear_text', 'No drafts and nothing scheduled.') }}<template v-if="lastPublished">{{ ' ' }}<MessageText :text="t('dashboard_view.last_published', 'The last thing you published was {title}, {when}.', { when: formatWhen(lastPublished.published ?? lastPublished.updated) })"><template #title><strong>{{ lastPublished.title || t('dashboard_view.untitled', 'Untitled') }}</strong></template></MessageText></template>
 					<template #actions>
 						<div v-if="firstNew || browsable.length" class="dashboard__clear-actions">
 							<RouterLink v-if="firstNew" class="button button--primary" :to="{ name: 'entry-new', query: { type: firstNew.name } }"><AdminIcon name="plus" />{{ firstNew.labels.newItem }}</RouterLink>
 							<MenuButton v-if="browsable.length" button-class="button" align="start" floating>
-								<template #button>Browse by Type<AdminIcon name="chevron-down" /></template>
+								<template #button>{{ t('dashboard_view.browse', 'Browse by Type') }}<AdminIcon name="chevron-down" /></template>
 								<RouterLink v-for="type in browsable" :key="type.name" class="menu-item" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon :name="typeIcon(type)" />{{ type.labels.menu }}</RouterLink>
 							</MenuButton>
 						</div>
@@ -279,8 +281,8 @@ onMounted(() => {
 			</div>
 			<section v-if="own?.published.length" class="panel" aria-labelledby="published-heading">
 				<header class="panel__header">
-					<h2 id="published-heading">Recently Published</h2>
-					<p class="panel__hint">{{ dashboard.yours ? 'Mine, newest first' : 'Newest first' }}</p>
+					<h2 id="published-heading">{{ t('dashboard_view.published_heading', 'Recently Published') }}</h2>
+					<p class="panel__hint">{{ dashboard.yours ? t('dashboard_view.published_mine', 'Mine, newest first') : t('dashboard_view.published_all', 'Newest first') }}</p>
 				</header>
 				<EntryRows :entries="own.published" />
 			</section>
@@ -288,20 +290,20 @@ onMounted(() => {
 
 		<section v-else class="panel" aria-labelledby="entries-heading">
 			<header class="panel__header">
-				<h2 id="entries-heading">Entries</h2>
-				<p class="panel__hint">What needs you first, then the rest</p>
+				<h2 id="entries-heading">{{ t('dashboard_view.entries_heading', 'Entries') }}</h2>
+				<p class="panel__hint">{{ t('dashboard_view.entries_hint', 'What needs you first, then the rest') }}</p>
 				<div v-if="dashboard.yours" class="panel__actions">
-					<div class="segmented" role="group" aria-label="Whose entries">
-						<button type="button" :aria-pressed="whose === 'yours'" @click="whose = 'yours'">Mine</button>
-						<button type="button" :aria-pressed="whose === 'everyone'" @click="whose = 'everyone'">Everyone</button>
+					<div class="segmented" role="group" :aria-label="t('dashboard_view.whose', 'Whose entries')">
+						<button type="button" :aria-pressed="whose === 'yours'" @click="whose = 'yours'">{{ t('dashboard_view.mine', 'Mine') }}</button>
+						<button type="button" :aria-pressed="whose === 'everyone'" @click="whose = 'everyone'">{{ t('dashboard_view.everyone', 'Everyone') }}</button>
 					</div>
 				</div>
 			</header>
 			<EntryRows v-if="listed.length" :entries="listed" :credits="whose === 'everyone'" />
-			<p v-else class="panel__body muted">{{ whose === 'yours' ? 'You have no entries yet.' : 'There are no entries yet.' }}</p>
+			<p v-else class="panel__body muted">{{ whose === 'yours' ? t('dashboard_view.none_yours', 'You have no entries yet.') : t('dashboard_view.none', 'There are no entries yet.') }}</p>
 			<footer v-if="browsable.length" class="panel__foot">
 				<MenuButton button-class="lnk" align="start" floating>
-					<template #button>Browse by Type<AdminIcon name="chevron-down" /></template>
+					<template #button>{{ t('dashboard_view.browse', 'Browse by Type') }}<AdminIcon name="chevron-down" /></template>
 					<RouterLink v-for="type in browsable" :key="type.name" class="menu-item" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon :name="typeIcon(type)" />{{ type.labels.menu }}</RouterLink>
 				</MenuButton>
 			</footer>

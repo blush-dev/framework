@@ -20,6 +20,8 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Links to a term's archive: `term: category/art` (D-593), with its id
@@ -32,8 +34,11 @@ final class TermLink extends MenuLink implements LinksEntry
 		private readonly Entries $content,
 		private readonly ContentTypes $types,
 		private readonly ContentUrls $urls,
-		private readonly AppConfig $app
-	) {}
+		private readonly AppConfig $app,
+		Messages $messages
+	) {
+		parent::__construct($messages);
+	}
 
 	/**
 	 * @inheritDoc
@@ -64,13 +69,13 @@ final class TermLink extends MenuLink implements LinksEntry
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function validate(mixed $value, array $item): ?string
+	public function validate(string $key, mixed $value, array $item): ?Text
 	{
 		if (! is_string($value) || preg_match('#^[a-z][a-z0-9_]*/[^/]+$#', trim($value)) !== 1) {
-			return 'must be a term as {type}/{slug}, such as "category/art".';
+			return $this->messages->t('menu.term_link.invalid', '"{link}" must be a term as \'{type}/{slug}\', such as "category/art".', link: $key);
 		}
 
-		return self::validRef($item) ? null : 'has a "ref" that isn\'t a term\'s id.';
+		return self::validRef($item) ? null : $this->messages->t('menu.term_link.ref', '"{link}" has a "ref" that isn\'t a term\'s id.', link: $key);
 	}
 
 	/**
@@ -85,11 +90,11 @@ final class TermLink extends MenuLink implements LinksEntry
 		$taxonomy = $this->types->find($name);
 
 		if ($taxonomy === null || ! $this->types->hasTermPages($name)) {
-			throw new UnresolvedLink(sprintf('"%s" isn\'t a type of terms with pages.', $name));
+			throw new UnresolvedLink((string) $this->messages->t('menu.term_link.no_pages', '"{type}" isn\'t a type of terms with pages.', type: $name));
 		}
 
 		if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
-			throw new UnresolvedLink(sprintf('No published term "%s".', $value));
+			throw new UnresolvedLink((string) $this->messages->t('menu.term_link.missing', 'No published term "{term}".', term: $value));
 		}
 
 		// On a translated page, its translation when it has one (D-463).
@@ -98,7 +103,7 @@ final class TermLink extends MenuLink implements LinksEntry
 		$translated  = $translation !== null && $translation->language === $language && $translation->isPublished() && $translation->isRoutable();
 		$term        = $translated ? $translation : $term;
 
-		$url = $this->urls->term($taxonomy, $slug, 1, $translated ? $language : null) ?? throw new UnresolvedLink(sprintf('The term "%s" has no URL.', $value));
+		$url = $this->urls->term($taxonomy, $slug, 1, $translated ? $language : null) ?? throw new UnresolvedLink((string) $this->messages->t('menu.term_link.no_url', 'The term "{term}" has no URL.', term: $value));
 
 		return new LinkTarget($url, $term->title);
 	}

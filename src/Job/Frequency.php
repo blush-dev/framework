@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Job;
 
 use DateTimeImmutable;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * How often a scheduled task runs (D-621): a five-field cron expression
@@ -54,13 +56,6 @@ final readonly class Frequency
 		'@monthly' => '0 0 1 * *',
 		'@yearly'  => '0 0 1 1 *'
 	];
-
-	/**
-	 * The days of the week, from Sunday.
-	 *
-	 * @var list<string>
-	 */
-	private const array DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 	/**
 	 * @param list<array<int, true>> $fields Each field's matching values.
@@ -201,7 +196,7 @@ final readonly class Frequency
 	 * Describes the frequency in words, where it's one of the named
 	 * shapes, else as its expression.
 	 */
-	public function describe(): string
+	public function describe(Messages $messages): Text
 	{
 		$parts = explode(' ', $this->expression);
 
@@ -209,14 +204,16 @@ final readonly class Frequency
 
 		$rest = "{$day} {$month} {$weekday}";
 
+		$time = static fn (): string => sprintf('%02d:%02d', (int) $hour, (int) $minute);
+
 		return match (true) {
-			$this->expression === '* * * * *'                                          => 'Every minute',
-			$hour === '*' && $rest === '* * *' && preg_match('#^\*/(\d+)$#', $minute, $step) === 1 => sprintf('Every %d minutes', (int) $step[1]),
-			$hour === '*' && $rest === '* * *' && ctype_digit($minute)                  => sprintf('Hourly at :%02d', (int) $minute),
-			ctype_digit($hour) && ctype_digit($minute) && $rest === '* * *'             => sprintf('Daily at %02d:%02d', (int) $hour, (int) $minute),
+			$this->expression === '* * * * *'                                          => $messages->t('job.frequency.every_minute', 'Every minute'),
+			$hour === '*' && $rest === '* * *' && preg_match('#^\*/(\d+)$#', $minute, $step) === 1 => $messages->t('job.frequency.every_minutes', '{minutes, plural, one {Every minute} other {Every # minutes}}', minutes: (int) $step[1]),
+			$hour === '*' && $rest === '* * *' && ctype_digit($minute)                  => $messages->t('job.frequency.hourly', 'Hourly at :{minute}', minute: sprintf('%02d', (int) $minute)),
+			ctype_digit($hour) && ctype_digit($minute) && $rest === '* * *'             => $messages->t('job.frequency.daily', 'Daily at {time}', time: $time()),
 			ctype_digit($hour) && ctype_digit($minute) && $day === '*' && $month === '*' && ctype_digit($weekday) && (int) $weekday <= 7
-				=> sprintf('%ss at %02d:%02d', self::DAYS[(int) $weekday % 7], (int) $hour, (int) $minute),
-			default                                                                     => "Cron: {$this->expression}"
+				=> $messages->t('job.frequency.weekly', '{day, select, 0 {Sundays} 1 {Mondays} 2 {Tuesdays} 3 {Wednesdays} 4 {Thursdays} 5 {Fridays} other {Saturdays}} at {time}', day: (string) ((int) $weekday % 7), time: $time()),
+			default                                                                     => $messages->t('job.frequency.cron', 'Cron: {expression}', expression: $this->expression)
 		};
 	}
 

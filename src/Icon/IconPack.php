@@ -25,6 +25,7 @@ use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
 use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
+use Blush\Translation\Messages;
 
 /**
  * An icon pack (D-378): SVG icons in its own namespace, with no code. Its
@@ -87,24 +88,35 @@ final readonly class IconPack implements ExtensionManifest
 		public array $suggest = [],
 		public array $keywords = []
 	) {
+		self::check($name, $label, $namespace, $path, $folder);
+	}
+
+	/**
+	 * Checks a pack's name, label, namespace, and folder.
+	 *
+	 * @throws ExtensionException When one doesn't fit.
+	 */
+	private static function check(string $name, string $label, string $namespace, string $path, string $folder, Messages $messages = new Messages()): void
+	{
 		if (! ExtensionName::isValid($name)) {
-			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
+			throw new ExtensionException((string) $messages->t('icon.icon_pack.no_name', 'The icon pack in {path} needs a "name": vendor/name, such as "acme/brands".', path: $path));
 		}
 
 		if (trim($label) === '') {
-			throw new ExtensionException(sprintf('The "%s" icon pack needs a "label".', $name));
+			throw new ExtensionException((string) $messages->t('icon.icon_pack.no_label', 'The "{pack}" icon pack needs a "label".', pack: $name));
 		}
 
 		if (! ExtensionNamespace::isValid($namespace) || ExtensionNamespace::isReserved($namespace)) {
-			throw new ExtensionException(sprintf(
-				'The "%s" icon pack needs a "namespace": lowercase letters, digits, hyphens, and underscores, and not %s.',
-				$name,
-				implode(', ', ExtensionNamespace::RESERVED)
+			throw new ExtensionException((string) $messages->t(
+				'icon.icon_pack.namespace',
+				'The "{pack}" icon pack needs a "namespace": lowercase letters, digits, hyphens, and underscores, and not {reserved}.',
+				pack: $name,
+				reserved: implode(', ', ExtensionNamespace::RESERVED)
 			));
 		}
 
 		if ($folder !== '' && (str_starts_with($folder, '/') || in_array('..', explode('/', $folder), true))) {
-			throw new ExtensionException(sprintf('The "%s" icon pack\'s "folder" must be a folder inside the pack.', $name));
+			throw new ExtensionException((string) $messages->t('icon.icon_pack.folder', 'The "{pack}" icon pack\'s "folder" must be a folder inside the pack.', pack: $name));
 		}
 	}
 
@@ -114,30 +126,32 @@ final readonly class IconPack implements ExtensionManifest
 	 * @param  array<array-key, mixed> $data
 	 * @throws ExtensionException
 	 */
-	public static function fromArray(string $path, array $data, IconPackSource $source = IconPackSource::Local): self
+	public static function fromArray(string $path, array $data, IconPackSource $source = IconPackSource::Local, Messages $messages = new Messages()): self
 	{
 		foreach (['name', 'label', 'namespace', 'version', 'description', 'folder'] as $key) {
 			if (isset($data[$key]) && ! is_string($data[$key])) {
-				throw new ExtensionException(sprintf('The icon pack in %s has a "%s" that isn\'t a string.', $path, $key));
+				throw new ExtensionException((string) $messages->t('icon.icon_pack.not_string', 'The icon pack in {path} has a "{field}" that isn\'t a string.', path: $path, field: $key));
 			}
 		}
 
 		try {
-			$authors = ExtensionAuthor::list($data['authors'] ?? []);
-			$license = ExtensionLicense::fromManifest($data['license'] ?? '');
-			$links   = ExtensionLinks::fromArray($data);
-			$require = ExtensionRequire::fromArray($data['require'] ?? null);
-			$conflict = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
-			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace');
-			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
-			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
-			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
-			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
+			$authors = ExtensionAuthor::list($data['authors'] ?? [], $messages);
+			$license = ExtensionLicense::fromManifest($data['license'] ?? '', $messages);
+			$links   = ExtensionLinks::fromArray($data, $messages);
+			$require = ExtensionRequire::fromArray($data['require'] ?? null, 'require', $messages);
+			$conflict = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict', $messages);
+			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace', $messages);
+			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide', $messages);
+			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false, $messages);
+			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null, $messages);
+			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null, $messages);
 		} catch (ExtensionException $error) {
-			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
+			throw new ExtensionException((string) $messages->t('icon.icon_pack.invalid', 'The icon pack in {path}: {error}', path: $path, error: $error->getMessage()), previous: $error);
 		}
 
 		/** @var array<string, string> $data Checked above. */
+		self::check($data['name'] ?? '', ExtensionName::label($data['label'] ?? null, $data['name'] ?? ''), $data['namespace'] ?? ExtensionNamespace::fromName($data['name'] ?? ''), $path, trim($data['folder'] ?? '', '/'), $messages);
+
 		return new self(
 			name: $data['name'] ?? '',
 			label: ExtensionName::label($data['label'] ?? null, $data['name'] ?? ''),

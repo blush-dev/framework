@@ -34,6 +34,8 @@ use Blush\Http\Status;
 use Blush\Mcp\OAuth\OAuthClients;
 use Blush\Mcp\OAuth\OAuthGrants;
 use Blush\Mcp\OAuth\OAuthServer;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * An account's API tokens in the admin (D-749), on its screen:
@@ -83,7 +85,8 @@ final readonly class TokensController
 		private ClockInterface $clock,
 		private OAuthGrants $grants,
 		private OAuthClients $clients,
-		private OAuthServer $oauth
+		private OAuthServer $oauth,
+		private Messages $messages
 	) {}
 
 	public function index(ServerRequestInterface $request, string $username): ResponseInterface
@@ -115,8 +118,8 @@ final readonly class TokensController
 
 		if (! $this->mayMake($actor, $account)) {
 			return self::error($actor->username === $account->username
-				? 'You aren\'t allowed to make API tokens.'
-				: sprintf('%s signs in, so they make their own tokens. Tokens are made for others only for token-only accounts you may change.', $this->profiles->displayName($account)), Status::Forbidden);
+				? $this->messages->t('admin.tokens_controller.make_forbidden', 'You aren\'t allowed to make API tokens.')
+				: $this->messages->t('admin.tokens_controller.signs_in', '{name} signs in, so they make their own tokens. Tokens are made for others only for token-only accounts you may change.', name: $this->profiles->displayName($account)), Status::Forbidden);
 		}
 
 		$input   = self::input($request);
@@ -142,7 +145,7 @@ final readonly class TokensController
 		$token = $this->tokens->find($id);
 
 		if ($token === null || $token->account !== $account->id || $token->client !== null) {
-			return self::error('There\'s no such token.', Status::NotFound);
+			return self::error($this->messages->t('admin.tokens_controller.no_token', 'There\'s no such token.'), Status::NotFound);
 		}
 
 		$this->tokens->revoke($token);
@@ -181,7 +184,7 @@ final readonly class TokensController
 		$grant = $this->grants->byId($id);
 
 		if ($grant === null || $grant->account !== $account->id) {
-			return self::error('There\'s no such connected app.', Status::NotFound);
+			return self::error($this->messages->t('admin.tokens_controller.no_app', 'There\'s no such connected app.'), Status::NotFound);
 		}
 
 		$this->oauth->disconnect($grant);
@@ -207,7 +210,7 @@ final readonly class TokensController
 
 			$apps[] = [
 				'id'           => $grant->id,
-				'name'         => $client->name ?? 'An app',
+				'name'         => $client->name ?? $this->messages->t('admin.tokens_controller.an_app', 'An app'),
 				'host'         => $client?->host(),
 				'scope'        => $scope === TokenScope::Account && $grant->capabilities !== null ? 'custom' : $scope->value,
 				'capabilities' => $grant->capabilities,
@@ -227,7 +230,7 @@ final readonly class TokensController
 	 * have when the token isn't its own.
 	 *
 	 * @param  array<mixed> $input
-	 * @return ?array{string, string}
+	 * @return ?array{string|Text, string}
 	 */
 	public function problem(Account $actor, Account $account, array $input): ?array
 	{
@@ -236,11 +239,11 @@ final readonly class TokensController
 		$capabilities = $input['capabilities'] ?? null;
 
 		if ($name === '' || ! Token::isValidName($name)) {
-			return [sprintf('Give the token a name that says what it\'s for, up to %d characters.', Token::NAME_LENGTH), 'name'];
+			return [$this->messages->t('admin.tokens_controller.name_invalid', 'Give the token a name that says what it\'s for, up to {length} characters.', length: Token::NAME_LENGTH), 'name'];
 		}
 
 		if ($days !== null && ! in_array($days, Tokens::LIFETIMES, true)) {
-			return [sprintf('A token lasts %s days, or never.', implode(', ', Tokens::LIFETIMES)), 'expires'];
+			return [$this->messages->t('admin.tokens_controller.lifetime_invalid', 'A token lasts {days} days, or never.', days: implode(', ', Tokens::LIFETIMES)), 'expires'];
 		}
 
 		if ($capabilities !== null && (! is_array($capabilities) || ! array_is_list($capabilities) || ! array_all($capabilities, static fn (mixed $item): bool => is_string($item) && preg_match(Capabilities::NAME, $item) === 1))) {
@@ -256,7 +259,7 @@ final readonly class TokensController
 
 		foreach ($asked as $capability) {
 			if (! $this->permissions->can($actor, $capability)) {
-				return [sprintf('You can\'t give a token "%s": it\'s a capability you don\'t have.', $capability), 'capabilities'];
+				return [$this->messages->t('admin.tokens_controller.capability_not_had', 'You can\'t give a token "{capability}": it\'s a capability you don\'t have.', capability: $capability), 'capabilities'];
 			}
 		}
 
@@ -343,7 +346,7 @@ final readonly class TokensController
 		$actor = $request->getAttribute(Account::class);
 
 		if (! $actor instanceof Account) {
-			return [new Account('nobody', ''), self::error('Sign in first.', Status::Unauthorized)];
+			return [new Account('nobody', ''), self::error($this->messages->t('admin.common.sign_in_first', 'Sign in first.'), Status::Unauthorized)];
 		}
 
 		if ($actor->username === $username) {
@@ -351,14 +354,14 @@ final readonly class TokensController
 		}
 
 		if (! $this->permissions->can($actor, Capability::AccountsView) || ! $this->permissions->can($actor, Capability::AccountsEdit)) {
-			return [$actor, self::error('You aren\'t allowed to see other accounts\' tokens.', Status::Forbidden)];
+			return [$actor, self::error($this->messages->t('admin.tokens_controller.others_forbidden', 'You aren\'t allowed to see other accounts\' tokens.'), Status::Forbidden)];
 		}
 
 		$account = $this->accounts->find($username);
 
 		return match (true) {
-			$account === null                          => [$actor, self::error(sprintf('There\'s no "%s" account.', $username), Status::NotFound)],
-			$account->isOwner() && ! $actor->isOwner() => [$actor, self::error(sprintf('%s is an owner, and only an owner can see or change an owner\'s tokens.', $account->username), Status::Forbidden)],
+			$account === null                          => [$actor, self::error($this->messages->t('admin.tokens_controller.no_account', 'There\'s no "{username}" account.', username: $username), Status::NotFound)],
+			$account->isOwner() && ! $actor->isOwner() => [$actor, self::error($this->messages->t('admin.tokens_controller.owner_tokens', '{username} is an owner, and only an owner can see or change an owner\'s tokens.', username: $account->username), Status::Forbidden)],
 			default                                    => [$actor, $account]
 		};
 	}
@@ -377,7 +380,7 @@ final readonly class TokensController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function error(string $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
+	private static function error(string|Text $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
 	{
 		return self::json(['error' => $message, ...($field === null ? [] : ['field' => $field])], $status);
 	}

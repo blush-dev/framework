@@ -38,6 +38,8 @@ use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/themes` (D-306, D-381, D-422), for accounts with
@@ -82,7 +84,8 @@ final readonly class ThemesController
 		private Paths $paths,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -90,7 +93,7 @@ final readonly class ThemesController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Theme))) {
-			return self::error('You aren\'t allowed to see the site\'s themes.', Status::Forbidden);
+			return self::error($this->messages->t('admin.themes_controller.forbidden', 'You aren\'t allowed to see the site\'s themes.'), Status::Forbidden);
 		}
 
 		$active  = $this->config->active;
@@ -98,7 +101,7 @@ final readonly class ThemesController
 		$problem = null;
 
 		try {
-			$chain = $this->themes->chain($active)->names();
+			$chain = $this->themes->chain($active, $this->messages)->names();
 		} catch (ThemeException $error) {
 			$problem = $error->getMessage();
 		}
@@ -175,7 +178,7 @@ final readonly class ThemesController
 		$report = [...$state->report($theme, $this->text), ...$this->extensions->opposite($theme, $this->text), 'stops' => $this->extensions->stops($theme, $this->text)];
 
 		try {
-			$this->themes->chain($theme->name);
+			$this->themes->chain($theme->name, $this->messages);
 		} catch (ThemeException $error) {
 			return [...$report, 'blocked' => $error->getMessage()];
 		}
@@ -193,7 +196,7 @@ final readonly class ThemesController
 		return $state->themes->unmet() === [] ? null : Requirements::reason($unmet);
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

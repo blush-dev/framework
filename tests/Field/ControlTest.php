@@ -57,6 +57,7 @@ use Blush\Field\Schema;
 use Blush\Field\TextFormat;
 use Blush\Media\MediaKind;
 use Blush\Tests\Fixtures\Content\ColorField;
+use Blush\Translation\Messages;
 
 #[CoversClass(Control::class)]
 #[CoversClass(ControlFactory::class)]
@@ -89,8 +90,8 @@ final class ControlTest extends TestCase
 			$class = $type->className();
 
 			$this->assertSame($type->value, $class::name());
-			$this->assertNotSame('', $class::label(), $type->value);
-			$this->assertNotSame('', $class::description(), $type->value);
+			$this->assertNotSame('', (string) $class::label(new Messages()), $type->value);
+			$this->assertNotSame('', (string) $class::description(new Messages()), $type->value);
 
 			if ($class::section() !== null) {
 				$this->assertNotNull($class::type(), "{$type->value} is offered, so it names the type it stores.");

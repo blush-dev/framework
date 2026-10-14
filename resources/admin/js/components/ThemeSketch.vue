@@ -48,7 +48,7 @@ const colors = computed(() => {
 	<div class="sketch" :class="{ 'sketch--plain': !preview?.palette && !broken }" :style="broken ? undefined : colors" aria-hidden="true">
 		<div v-if="broken" class="sketch__none">
 			<AdminIcon name="image-off" />
-			<span>No preview</span>
+			<span>{{ t('theme_sketch.no_preview', 'No preview') }}</span>
 		</div>
 		<div v-else class="sketch__page">
 			<div class="sketch__bar"><i class="sketch__mark" /><i class="sketch__link" /><i class="sketch__link" /><i class="sketch__link" /></div>

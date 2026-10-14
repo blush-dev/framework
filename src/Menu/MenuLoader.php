@@ -20,6 +20,7 @@ use Blush\Storage\Record\RecordException;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
+use Blush\Translation\Messages;
 
 /**
  * Reads and writes the site's menus: the `menus` table (D-676), a
@@ -61,7 +62,8 @@ final class MenuLoader
 
 	public function __construct(
 		private readonly RecordStores $stores,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -89,13 +91,13 @@ final class MenuLoader
 		try {
 			$all = $records->all();
 		} catch (RecordException $error) {
-			throw new MenuException(sprintf('The menus can\'t be read: %s', $error->getMessage()), 0, $error);
+			throw new MenuException((string) $this->messages->t('menu.menu_loader.unreadable', 'The menus can\'t be read: {problem}', problem: $error->getMessage()), 0, $error);
 		}
 
 		$menus = [];
 
 		foreach ($all as $name => $data) {
-			$menus[$name] = self::menu($name, $records->location($name), $data);
+			$menus[$name] = $this->menu($name, $records->location($name), $data);
 		}
 
 		return $this->menus = $menus;
@@ -121,15 +123,16 @@ final class MenuLoader
 	public function change(string $name, Closure $change): void
 	{
 		$records = $this->records();
+		$missing = $this->messages->t('menu.menu_loader.missing', 'The site has no menu "{menu}".', menu: $name);
 
 		try {
-			$records->transaction(static function () use ($records, $name, $change): void {
-				$data = $records->find($name) ?? throw new MenuException(sprintf('The site has no menu "%s".', $name));
+			$records->transaction(static function () use ($records, $name, $change, $missing): void {
+				$data = $records->find($name) ?? throw new MenuException((string) $missing);
 
 				$records->save($name, $change($data));
 			});
 		} catch (RecordException $error) {
-			throw new MenuException(sprintf('The menu "%s" couldn\'t be saved in %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+			throw new MenuException($this->unsaved($name, $records, $error), 0, $error);
 		} finally {
 			$this->menus = null;
 		}
@@ -146,20 +149,23 @@ final class MenuLoader
 	public function save(string $name, mixed $label, array $items, ?string $was = null): void
 	{
 		if (preg_match(self::NAME, $name) !== 1) {
-			throw new MenuException(sprintf('"%s" isn\'t a valid menu name: use lowercase letters, digits, hyphens, and underscores.', $name));
+			throw new MenuException((string) $this->messages->t('menu.menu_loader.invalid_name', '"{menu}" isn\'t a valid menu name: use lowercase letters, digits, hyphens, and underscores.', menu: $name));
 		}
 
 		$records = $this->records();
 		$data    = $label === null || $label === '' ? ['items' => $items] : ['label' => $label, 'items' => $items];
 
+		$missing = $this->messages->t('menu.menu_loader.missing', 'The site has no menu "{menu}".', menu: $was ?? '');
+		$taken   = $this->messages->t('menu.menu_loader.taken', 'The site already has a menu named "{menu}".', menu: $name);
+
 		try {
-			$records->transaction(static function () use ($records, $name, $was, $data): void {
+			$records->transaction(static function () use ($records, $name, $was, $data, $missing, $taken): void {
 				if ($was !== null && ! $records->has($was)) {
-					throw new MenuException(sprintf('The site has no menu "%s".', $was));
+					throw new MenuException((string) $missing);
 				}
 
 				if ($was !== $name && $records->has($name)) {
-					throw new MenuException(sprintf('The site already has a menu named "%s".', $name));
+					throw new MenuException((string) $taken);
 				}
 
 				if ($was !== null && $was !== $name) {
@@ -169,7 +175,7 @@ final class MenuLoader
 				$records->save($name, $data);
 			});
 		} catch (RecordException $error) {
-			throw new MenuException(sprintf('The menu "%s" couldn\'t be saved in %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+			throw new MenuException($this->unsaved($name, $records, $error), 0, $error);
 		} finally {
 			$this->menus = null;
 		}
@@ -187,7 +193,7 @@ final class MenuLoader
 		try {
 			$records->delete($name);
 		} catch (RecordException $error) {
-			throw new MenuException(sprintf('The menu "%s" couldn\'t be removed from %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+			throw new MenuException((string) $this->messages->t('menu.menu_loader.not_removed', 'The menu "{menu}" couldn\'t be removed from {location}: {problem}', menu: $name, location: $records->location($name), problem: $error->getMessage()), 0, $error);
 		} finally {
 			$this->menus = null;
 		}
@@ -211,26 +217,34 @@ final class MenuLoader
 	}
 
 	/**
+	 * Why a menu couldn't be saved.
+	 */
+	private function unsaved(string $name, KeyedTable $records, RecordException $error): string
+	{
+		return (string) $this->messages->t('menu.menu_loader.not_saved', 'The menu "{menu}" couldn\'t be saved in {location}: {problem}', menu: $name, location: $records->location($name), problem: $error->getMessage());
+	}
+
+	/**
 	 * Builds a menu from its record's data.
 	 *
 	 * @param array<string, mixed> $data
 	 */
-	private static function menu(string $name, string $location, array $data): MenuRecord
+	private function menu(string $name, string $location, array $data): MenuRecord
 	{
 		$problems = [];
 
 		if (preg_match(self::NAME, $name) !== 1) {
-			$problems[] = 'Its name isn\'t valid: use lowercase letters, digits, hyphens, and underscores.';
+			$problems[] = $this->messages->t('menu.menu_loader.bad_name', 'Its name isn\'t valid: use lowercase letters, digits, hyphens, and underscores.');
 		}
 
 		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true])) as $key) {
-			$problems[] = sprintf('"%s" isn\'t a menu key; a menu has "label" and "items".', $key);
+			$problems[] = $this->messages->t('menu.menu_loader.unknown_key', '"{name}" isn\'t a menu key; a menu has "label" and "items".', name: $key);
 		}
 
 		$items = $data['items'] ?? [];
 
 		if (! is_array($items) || ! array_is_list($items)) {
-			$problems[] = '"items" must be a list.';
+			$problems[] = $this->messages->t('menu.menu_loader.items', '"items" must be a list.');
 			$items      = [];
 		}
 

@@ -54,18 +54,18 @@ function key(event: KeyboardEvent): void {
 </script>
 
 <template>
-	<form id="editor-link" ref="form" class="popover-form" role="dialog" aria-label="Link" @submit.prevent="submit" @keydown="key">
+	<form id="editor-link" ref="form" class="popover-form" role="dialog" :aria-label="t('link_form.link', 'Link')" @submit.prevent="submit" @keydown="key">
 		<div class="field">
-			<label for="editor-link-text">Text</label>
+			<label for="editor-link-text">{{ t('link_form.text', 'Text') }}</label>
 			<input id="editor-link-text" v-model="text" type="text" autocomplete="off">
 		</div>
 		<div class="field">
-			<label for="editor-link-url">Address</label>
+			<label for="editor-link-url">{{ t('link_form.address', 'Address') }}</label>
 			<input id="editor-link-url" v-model="url" type="text" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://">
 		</div>
 		<p class="link-form__buttons">
-			<button v-if="editing" type="button" class="button button--small button--ghost" @click="emit('remove')">Remove</button>
-			<button type="submit" class="button button--small button--primary" :disabled="url.trim() === ''">{{ editing ? 'Update' : 'Add Link' }}</button>
+			<button v-if="editing" type="button" class="button button--small button--ghost" @click="emit('remove')">{{ t('common.remove', 'Remove') }}</button>
+			<button type="submit" class="button button--small button--primary" :disabled="url.trim() === ''">{{ editing ? t('link_form.update', 'Update') : t('link_form.add_link', 'Add Link') }}</button>
 		</p>
 	</form>
 </template>

@@ -55,7 +55,7 @@ import { RouterLink } from 'vue-router';
 import { entryRoute, type EntrySort, type EntrySummary } from '../api';
 import { listRoute } from '../types';
 import { config } from '../config';
-import { formatDate } from '../format';
+import { formatDate, formatNumber } from '../format';
 import { initials } from '../people';
 import { can } from '../session';
 import { copyText } from '../toast';
@@ -63,6 +63,7 @@ import { useSelectAll } from '../select';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
+import { t } from '../messages';
 
 const { terms = false, profiles = false, pinned = [], entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
 	entries: EntrySummary[];
@@ -93,15 +94,15 @@ defineEmits<{
 
 // The headers, and what each sorts by (`null` for none).
 const columns = computed<{ label: string; sort: EntrySort | null; class?: string }[]>(() => profiles ? [
-	{ label: 'Name', sort: 'title' },
-	{ label: 'Status', sort: 'status' },
-	{ label: 'Account', sort: null },
-	{ label: 'Bylines', sort: null, class: 'table__count' },
+	{ label: t('entry_table.col_name', 'Name'), sort: 'title' },
+	{ label: t('entry_table.col_status', 'Status'), sort: 'status' },
+	{ label: t('entry_table.col_account', 'Account'), sort: null },
+	{ label: t('entry_table.col_bylines', 'Bylines'), sort: null, class: 'table__count' },
 	{ label: dateLabel, sort: dateKey }
 ] : [
-	{ label: 'Title', sort: 'title' },
-	{ label: 'Status', sort: 'status' },
-	terms ? { label: 'Entries', sort: null, class: 'table__count' } : { label: 'Authors', sort: 'author' },
+	{ label: t('entry_table.col_title', 'Title'), sort: 'title' },
+	{ label: t('entry_table.col_status', 'Status'), sort: 'status' },
+	terms ? { label: t('entry_table.col_entries', 'Entries'), sort: null, class: 'table__count' } : { label: t('entry_table.col_authors', 'Authors'), sort: 'author' },
 	{ label: dateLabel, sort: dateKey }
 ]);
 
@@ -151,18 +152,18 @@ const { state: allState, toggle, toggleAll: chooseAll } = useSelectAll(() => cho
 
 function pinTitle(entry: EntrySummary): string {
 	if (entry.homepage) {
-		return 'Pinned: the site\'s homepage, at /';
+		return t('entry_table.pin_homepage', 'Pinned: the site\'s homepage, at /');
 	}
 
 	if (entry.rootPage) {
-		return 'Pinned: the page at user/content/index.md';
+		return t('entry_table.pin_root', 'Pinned: the page at {path}', { path: 'user/content/index.md' });
 	}
 
 	if (entry.errorPage !== null) {
-		return `Pinned: the page the site shows for error ${entry.errorPage}`;
+		return t('entry_table.pin_error', 'Pinned: the page the site shows for error {code}', { code: String(entry.errorPage) });
 	}
 
-	return entry.index ? 'Pinned: the index page for this type' : `Pinned: the page introducing this type's ${(entry.archiveLabel ?? 'people').toLowerCase()}`;
+	return entry.index ? t('entry_table.pin_index', 'Pinned: the index page for this type') : t('entry_table.pin_archive', 'Pinned: the page introducing this type\'s {label}', { label: entry.archiveLabel?.toLowerCase() ?? t('entry_table.people_lower', 'people') });
 }
 
 function isPinned(entry: EntrySummary): boolean {
@@ -211,7 +212,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		return;
 	}
 
-	await copyText(url, 'the link');
+	await copyText(url, t('entry_table.the_link', 'the link'));
 }
 </script>
 
@@ -221,7 +222,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 			<thead>
 				<tr>
 					<th v-if="selectable" scope="col" class="table__check">
-						<button type="button" class="check" role="checkbox" :aria-checked="allState" aria-label="Select every row on this page" :disabled="!choosable.length" @click="chooseAll"><AdminIcon :name="allState === 'mixed' ? 'minus' : 'check'" /></button>
+						<button type="button" class="check" role="checkbox" :aria-checked="allState" :aria-label="t('entry_table.select_all', 'Select every row on this page')" :disabled="!choosable.length" @click="chooseAll"><AdminIcon :name="allState === 'mixed' ? 'minus' : 'check'" /></button>
 					</th>
 					<th v-for="column in columns" :key="column.label" scope="col" :class="column.class" :aria-sort="sortable ? ariaSort(column.sort) : undefined">
 						<button v-if="sortable && column.sort !== null" type="button" class="table__sort" @click="$emit('sort', column.sort)">
@@ -229,18 +230,18 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						</button>
 						<template v-else>{{ column.label }}</template>
 					</th>
-					<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
+					<th scope="col" class="table__actions"><span class="visually-hidden">{{ t('entry_table.col_actions', 'Actions') }}</span></th>
 				</tr>
 			</thead>
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
 				<tr v-for="entry in group.entries" :key="`${entry.path}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
 					<td v-if="selectable" class="table__check">
-						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /><span class="visually-hidden">Pinned</span></span>
-						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
+						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /><span class="visually-hidden">{{ t('entry_table.pinned', 'Pinned') }}</span></span>
+						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="t('entry_table.select', 'Select {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') })" @click="choose(entry)"><AdminIcon name="check" /></button>
 					</td>
 					<th scope="row">
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
-						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="`${collapsed.has(entry.path) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggleBranch(entry)"><AdminIcon name="chevron-right" /></button>
+						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="collapsed.has(entry.path) ? t('entry_table.expand', 'Expand {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') }) : t('entry_table.collapse', 'Collapse {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') })" @click="toggleBranch(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
 						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">
@@ -249,19 +250,19 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
 								<RouterLink class="entry-title__link" :to="listRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>
-									<span v-else class="untitled">Untitled</span>
+									<span v-else class="untitled">{{ t('entry_table.untitled', 'Untitled') }}</span>
 								</RouterLink>
-								<template v-if="entry.homepage">{{ ' ' }}<span class="index-mark">Homepage</span></template>
-								<template v-else-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
+								<template v-if="entry.homepage">{{ ' ' }}<span class="index-mark">{{ t('entry_table.homepage', 'Homepage') }}</span></template>
+								<template v-else-if="entry.index">{{ ' ' }}<span class="index-mark">{{ t('entry_table.index', 'Index') }}</span></template>
 								<template v-else-if="entry.rootPage">
-									{{ ' ' }}<span class="index-mark" :title="`The homepage shows ${entry.homeInstead?.toLowerCase() ?? 'something else'} instead, so this page isn't on the site`">Not shown</span>
-									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk entry-title__action" @click="$emit('homepage', entry)">Make homepage</button></template>
+									{{ ' ' }}<span class="index-mark" :title="t('entry_table.not_shown_title', 'The homepage shows {what} instead, so this page isn\'t on the site', { what: entry.homeInstead?.toLowerCase() ?? t('entry_table.something_else', 'something else') })">{{ t('entry_table.not_shown', 'Not shown') }}</span>
+									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk entry-title__action" @click="$emit('homepage', entry)">{{ t('entry_table.make_homepage', 'Make homepage') }}</button></template>
 								</template>
-								<template v-if="entry.archivePage">{{ ' ' }}<span class="index-mark">{{ entry.archiveLabel ?? 'People' }}</span></template>
-								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
-								<template v-if="entry.id === null">{{ ' ' }}<RouterLink v-if="can('site.health')" class="index-mark" :to="{ name: 'health-check', params: { area: 'content', check: 'ids' } }" title="This file has no id, so it can't be edited until it has one. Add it on Site Health.">No ID</RouterLink><span v-else class="index-mark" title="This file has no id, so it can't be edited until it has one. Someone who sees Site Health can add it.">No ID</span></template>
-								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span>
-								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
+								<template v-if="entry.archivePage">{{ ' ' }}<span class="index-mark">{{ entry.archiveLabel ?? t('entry_table.people', 'People') }}</span></template>
+								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">{{ t('entry_table.error', 'Error {code}', { code: String(entry.errorPage) }) }}</span></template>
+								<template v-if="entry.id === null">{{ ' ' }}<RouterLink v-if="can('site.health')" class="index-mark" :to="{ name: 'health-check', params: { area: 'content', check: 'ids' } }" :title="t('entry_table.no_id_health', 'This file has no id, so it can\'t be edited until it has one. Add it on Site Health.')">{{ t('entry_table.no_id', 'No ID') }}</RouterLink><span v-else class="index-mark" :title="t('entry_table.no_id_ask', 'This file has no id, so it can\'t be edited until it has one. Someone who sees Site Health can add it.')">{{ t('entry_table.no_id', 'No ID') }}</span></template>
+								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">{{ t('entry_table.you', 'You') }}</span>
+								{{ ' ' }}<span v-if="entry.continued" class="tag" :title="t('entry_table.continued_title', 'Listed on an earlier page; shown again above the entries under it')">{{ t('entry_table.continued', 'Continued') }}</span>
 							</span>
 							<span v-if="entry.url" class="entry-title__path">{{ entry.url }}</span>
 						</span>
@@ -270,34 +271,34 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 					<td><StatusPill :status="entry.status" /></td>
 					<td v-if="profiles">
 						<template v-if="entry.account"><RouterLink class="lnk" :to="{ name: 'account', params: { username: entry.account.username } }">{{ entry.account.displayName }}</RouterLink>{{ ' ' }}<span class="entry-title__path mono">{{ entry.account.username }}</span></template>
-						<template v-else-if="entry.linked">Linked</template>
-						<span v-else-if="entry.linkable === false" class="tag" title="No account is linked to this profile, and it's locked so none can be">Locked</span>
-						<span v-else class="tag" title="No account is linked to this profile">Guest</span>
+						<template v-else-if="entry.linked">{{ t('entry_table.linked', 'Linked') }}</template>
+						<span v-else-if="entry.linkable === false" class="tag" :title="t('entry_table.locked_title', 'No account is linked to this profile, and it\'s locked so none can be')">{{ t('entry_table.locked', 'Locked') }}</span>
+						<span v-else class="tag" :title="t('entry_table.guest_title', 'No account is linked to this profile')">{{ t('entry_table.guest', 'Guest') }}</span>
 					</td>
-					<td v-if="terms || profiles" class="table__meta table__count">{{ entry.uses?.toLocaleString() ?? '—' }}</td>
+					<td v-if="terms || profiles" class="table__meta table__count">{{ typeof entry.uses === 'number' ? formatNumber(entry.uses) : '—' }}</td>
 					<td v-else class="table__meta">{{ entry.authors.join(', ') || '—' }}</td>
 					<td class="table__meta">
 						<time v-if="entry[dateKey]" :datetime="entry[dateKey] ?? undefined">{{ formatDate(entry[dateKey] ?? '') }}</time>
 						<template v-else>—</template>
 					</td>
 					<td class="table__actions">
-						<MenuButton button-class="row-more" :label="`Actions for ${entry.title || 'Untitled'}`" floating>
+						<MenuButton button-class="row-more" :label="t('entry_table.actions_for', 'Actions for {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') })" floating>
 							<template #button>
 								<AdminIcon name="ellipsis" />
 							</template>
-							<RouterLink v-if="profiles" class="menu-item" :to="listRoute(entry)"><AdminIcon name="user-round" />Open</RouterLink>
-							<RouterLink class="menu-item" :to="entryRoute(entry)"><AdminIcon name="pen-line" />{{ profiles ? 'Edit profile' : 'Edit' }}</RouterLink>
+							<RouterLink v-if="profiles" class="menu-item" :to="listRoute(entry)"><AdminIcon name="user-round" />{{ t('entry_table.open', 'Open') }}</RouterLink>
+							<RouterLink class="menu-item" :to="entryRoute(entry)"><AdminIcon name="pen-line" />{{ profiles ? t('entry_table.edit_profile', 'Edit profile') : t('common.edit', 'Edit') }}</RouterLink>
 							<template v-if="liveUrl(entry)">
 								<a class="menu-item" :href="liveUrl(entry) ?? undefined" target="_blank" rel="noopener">
-									<AdminIcon name="external-link" />{{ terms ? 'View archive' : 'View' }}<span class="visually-hidden"> (new tab)</span>
+									<AdminIcon name="external-link" />{{ terms ? t('entry_table.view_archive', 'View archive') : t('entry_table.view', 'View') }}<span class="visually-hidden">{{ t('entry_table.new_tab', ' (new tab)') }}</span>
 								</a>
-								<button type="button" class="menu-item" @click="copyLink(entry)"><AdminIcon name="link" />Copy link</button>
+								<button type="button" class="menu-item" @click="copyLink(entry)"><AdminIcon name="link" />{{ t('entry_table.copy_link', 'Copy link') }}</button>
 							</template>
-							<button v-if="entry.can.duplicate && !terms && !profiles" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />Duplicate</button>
-							<button v-if="entry.can.makeHomepage" type="button" class="menu-item" @click="$emit('homepage', entry)"><AdminIcon name="house" />Make homepage</button>
+							<button v-if="entry.can.duplicate && !terms && !profiles" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />{{ t('entry_table.duplicate', 'Duplicate') }}</button>
+							<button v-if="entry.can.makeHomepage" type="button" class="menu-item" @click="$emit('homepage', entry)"><AdminIcon name="house" />{{ t('entry_table.make_homepage', 'Make homepage') }}</button>
 							<template v-if="entry.can.delete">
 								<div class="menu-divider" />
-								<button type="button" class="menu-item menu-item--danger" @click="$emit('trash', entry)"><AdminIcon name="trash-2" />Move to trash</button>
+								<button type="button" class="menu-item menu-item--danger" @click="$emit('trash', entry)"><AdminIcon name="trash-2" />{{ t('entry_table.move_to_trash', 'Move to trash') }}</button>
 							</template>
 						</MenuButton>
 					</td>

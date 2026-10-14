@@ -49,14 +49,14 @@ $first = $block->firstTrack();
 				<?php if ($first->art !== '') : ?>
 					<img class="<?= attr($card->element('art')) ?>" src="<?= url($first->art) ?>" alt="" loading="lazy" decoding="async">
 				<?php endif ?>
-				<blush-audio-player <?= $block->labelAttributes() ?>>
+				<blush-audio-player>
 					<audio <?= $block->playerAttributes() ?>>
 						<a href="<?= url($first->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 					</audio>
 				</blush-audio-player>
 			</div>
 		<?php else : ?>
-			<blush-audio-player <?= $block->labelAttributes() ?>>
+			<blush-audio-player>
 				<audio <?= $block->playerAttributes() ?>>
 					<a href="<?= url($first->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 				</audio>

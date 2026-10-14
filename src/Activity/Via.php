@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Activity;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * How a change came to be made (D-758): in the admin, through the MCP
  * server by an app, on the command line, or through the API.
@@ -27,13 +30,13 @@ enum Via: string
 	/**
 	 * Returns how the Activity tab names it, when no app's name does.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Admin => 'Admin',
-			self::Mcp   => 'MCP',
-			self::Cli   => 'Command line',
-			self::Api   => 'API'
+			self::Admin => $messages->t('activity.via.admin', 'Admin'),
+			self::Mcp   => $messages->t('activity.via.mcp', 'MCP'),
+			self::Cli   => $messages->t('activity.via.cli', 'Command line'),
+			self::Api   => $messages->t('activity.via.api', 'API')
 		};
 	}
 }

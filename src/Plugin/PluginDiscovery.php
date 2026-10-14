@@ -16,6 +16,7 @@ namespace Blush\Plugin;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\LocalExtensions;
+use Blush\Translation\Messages;
 
 /**
  * Finds every installed plugin across all sources, Composer first, then
@@ -29,19 +30,20 @@ final readonly class PluginDiscovery
 	/**
 	 * @param list<PluginFinder> $finders
 	 */
-	public function __construct(private array $finders)
-	{
-	}
+	public function __construct(
+		private array $finders,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * Builds discovery over the standard sources for a site.
 	 */
-	public static function forPaths(Paths $paths): self
+	public static function forPaths(Paths $paths, Messages $messages = new Messages()): self
 	{
 		return new self([
-			new ComposerPluginFinder($paths->vendor),
-			new LocalPluginFinder(LocalExtensions::forPaths($paths), $paths->root)
-		]);
+			new ComposerPluginFinder($paths->vendor, $messages),
+			new LocalPluginFinder(LocalExtensions::forPaths($paths, $messages), $paths->root, $messages)
+		], $messages);
 	}
 
 	/**
@@ -62,20 +64,22 @@ final readonly class PluginDiscovery
 
 			foreach ($found->manifests as $manifest) {
 				if (isset($manifests[$manifest->name])) {
-					throw new ExtensionException(sprintf(
-						'Two plugins are named "%s": %s and %s.',
-						$manifest->name,
-						$manifests[$manifest->name]->path,
-						$manifest->path
+					throw new ExtensionException((string) $this->messages->t(
+						'plugin.plugin_discovery.same_name',
+						'Two plugins are named "{name}": {first} and {second}.',
+						name: $manifest->name,
+						first: $manifests[$manifest->name]->path,
+						second: $manifest->path
 					));
 				}
 
 				if (isset($namespaces[$manifest->namespace])) {
-					throw new ExtensionException(sprintf(
-						'Two plugins have the namespace "%s": %s and %s.',
-						$manifest->namespace,
-						$namespaces[$manifest->namespace],
-						$manifest->name
+					throw new ExtensionException((string) $this->messages->t(
+						'plugin.plugin_discovery.same_namespace',
+						'Two plugins have the namespace "{namespace}": {first} and {second}.',
+						namespace: $manifest->namespace,
+						first: $namespaces[$manifest->namespace],
+						second: $manifest->name
 					));
 				}
 

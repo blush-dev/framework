@@ -30,6 +30,8 @@ use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaUploads;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `POST {path}/api/media` (D-268): one file, as the multipart
@@ -68,7 +70,8 @@ final readonly class MediaUploadController
 		private Permissions $permissions,
 		private MediaMetadataStore $metadata,
 		private MediaLibrary $library,
-		private MediaArtwork $artwork
+		private MediaArtwork $artwork,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -76,18 +79,25 @@ final readonly class MediaUploadController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! array_any(MediaKind::cases(), fn (MediaKind $kind): bool => $this->permissions->mayUpload($account, $kind))) {
-			return self::error('You aren\'t allowed to upload media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_upload_controller.forbidden', 'You aren\'t allowed to upload media.'), Status::Forbidden);
 		}
 
 		$upload = $request->getUploadedFiles()['file'] ?? null;
 
 		if (! $upload instanceof UploadedFileInterface) {
 			// PHP drops the whole body when it's over `post_max_size`.
-			return self::error('No file arrived. It may be larger than the site allows' . self::limitText() . '.', Status::BadRequest);
+			$limit = self::limit();
+
+			return self::error(
+				$limit === null
+					? $this->messages->t('admin.media_upload_controller.no_file', 'No file arrived. It may be larger than the site allows.')
+					: $this->messages->t('admin.media_upload_controller.no_file_limit', 'No file arrived. It may be larger than the site allows (up to {size}).', size: $this->size($limit)),
+				Status::BadRequest
+			);
 		}
 
 		if ($upload->getError() !== UPLOAD_ERR_OK) {
-			return self::uploadError($upload->getError());
+			return $this->uploadError($upload->getError());
 		}
 
 		try {
@@ -186,19 +196,9 @@ final readonly class MediaUploadController
 		};
 	}
 
-	/**
-	 * The limit as text for a message: ", up to 64 MB", or nothing.
-	 */
-	private static function limitText(): string
+	private function size(int $bytes): Text
 	{
-		$limit = self::limit();
-
-		return $limit === null ? '' : sprintf(' (up to %s)', self::size($limit));
-	}
-
-	private static function size(int $bytes): string
-	{
-		return MediaEditor::size($bytes);
+		return $this->editor->size($bytes);
 	}
 
 	/**
@@ -212,17 +212,24 @@ final readonly class MediaUploadController
 		return MediaEditor::safeName($name);
 	}
 
-	private static function uploadError(int $error): ResponseInterface
+	private function uploadError(int $error): ResponseInterface
 	{
+		$limit = self::limit();
+
 		return match ($error) {
-			UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => self::error('The file is larger than the site allows' . self::limitText() . '.', Status::ContentTooLarge),
-			UPLOAD_ERR_PARTIAL                        => self::error('Only part of the file arrived. Try again.', Status::BadRequest),
-			UPLOAD_ERR_NO_FILE                        => self::error('No file arrived.', Status::BadRequest),
-			default                                   => self::error('The server couldn\'t take the file. Its temporary folder may be missing or full.', Status::InternalServerError)
+			UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => self::error(
+				$limit === null
+					? $this->messages->t('admin.media_upload_controller.too_large', 'The file is larger than the site allows.')
+					: $this->messages->t('admin.media_upload_controller.too_large_limit', 'The file is larger than the site allows (up to {size}).', size: $this->size($limit)),
+				Status::ContentTooLarge
+			),
+			UPLOAD_ERR_PARTIAL                        => self::error($this->messages->t('admin.media_upload_controller.partial', 'Only part of the file arrived. Try again.'), Status::BadRequest),
+			UPLOAD_ERR_NO_FILE                        => self::error($this->messages->t('admin.media_upload_controller.no_file_sent', 'No file arrived.'), Status::BadRequest),
+			default                                   => self::error($this->messages->t('admin.media_upload_controller.server', 'The server couldn\'t take the file. Its temporary folder may be missing or full.'), Status::InternalServerError)
 		};
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

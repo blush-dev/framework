@@ -22,6 +22,7 @@ use Blush\Storage\Record\Operator;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
+use Blush\Translation\Messages;
 
 /**
  * Changing a relation that entries use (D-600), for the admin's form and
@@ -45,7 +46,8 @@ final readonly class RelationChanges
 {
 	public function __construct(
 		private RecordStores $stores,
-		private Entries $content
+		private Entries $content,
+		private Messages $messages
 	) {}
 
 	/**
@@ -138,14 +140,25 @@ final readonly class RelationChanges
 		if ($old->to !== $new->to && $uses !== []) {
 			$refused = 'type';
 			$inWay   = $uses;
-			$refusal = sprintf('%s a value in "%s", so it can\'t point at another type; make a new relation instead.', self::entries(count($uses), 'has', 'have'), $old->name);
+			$refusal = $this->messages->t(
+				'content.relation_changes.refused_type',
+				'{count, plural, one {# entry has} other {# entries have}} a value in "{name}", so it can\'t point at another type; make a new relation instead.',
+				count: count($uses),
+				name: $old->name
+			);
 		} elseif ($old->multiple && ! $new->multiple) {
 			$several = array_filter($uses, static fn (int $count): bool => $count > 1);
 
 			if ($several !== []) {
 				$refused = 'one';
 				$inWay   = $several;
-				$refusal = sprintf('%s more than one value in "%s", so it can\'t take just one: %s.', self::entries(count($several), 'has', 'have'), $old->name, implode(', ', array_slice($this->titles(array_keys($several)), 0, 5)) . (count($several) > 5 ? ', …' : ''));
+				$refusal = $this->messages->t(
+					'content.relation_changes.refused_one',
+					'{count, plural, one {# entry has} other {# entries have}} more than one value in "{name}", so it can\'t take just one: {titles}.',
+					count: count($several),
+					name: $old->name,
+					titles: implode(', ', array_slice($this->titles(array_keys($several)), 0, 5)) . (count($several) > 5 ? ', …' : '')
+				);
 			}
 		}
 
@@ -164,7 +177,12 @@ final readonly class RelationChanges
 			$fewer += $new->min > 0 ? $this->liveWithout($new) : 0;
 
 			if ($fewer > 0) {
-				$warnings[] = sprintf('%s fewer than %d, so %s published again until %s more.', self::entries($fewer, 'has', 'have', 'published'), $new->min, $fewer === 1 ? 'it can\'t be' : 'they can\'t be', $fewer === 1 ? 'it has' : 'they have');
+				$warnings[] = $this->messages->t(
+					'content.relation_changes.fewer',
+					'{count, plural, one {# published entry has} other {# published entries have}} fewer than {min}, so {count, plural, one {it can\'t be} other {they can\'t be}} published again until {count, plural, one {it has} other {they have}} more.',
+					count: $fewer,
+					min: $new->min
+				);
 			}
 		}
 
@@ -173,7 +191,12 @@ final readonly class RelationChanges
 			$many = count($over);
 
 			if ($many > 0) {
-				$warnings[] = sprintf('%s more than %d; lint reports %s, and %s publish again until %s fewer.', self::entries($many, 'has', 'have'), $new->max, $many === 1 ? 'it' : 'them', $many === 1 ? 'it won\'t' : 'they won\'t', $many === 1 ? 'it has' : 'they have');
+				$warnings[] = $this->messages->t(
+					'content.relation_changes.more',
+					'{count, plural, one {# entry has} other {# entries have}} more than {max}; lint reports {count, plural, one {it} other {them}}, and {count, plural, one {it won\'t} other {they won\'t}} publish again until {count, plural, one {it has} other {they have}} fewer.',
+					count: $many,
+					max: $new->max
+				);
 			}
 		}
 
@@ -185,7 +208,12 @@ final readonly class RelationChanges
 			$beyond = $this->overInverse($old->name, $newMax);
 
 			if ($beyond > 0) {
-				$warnings[] = sprintf('%s named by more than %d %s; lint reports them.', $beyond === 1 ? '1 entry is' : "{$beyond} entries are", $newMax, $newMax === 1 ? 'entry' : 'entries');
+				$warnings[] = $this->messages->t(
+					'content.relation_changes.inverse_over',
+					'{count, plural, one {# entry is} other {# entries are}} named by more than {max, plural, one {# entry} other {# entries}}; lint reports them.',
+					count: $beyond,
+					max: $newMax
+				);
 			}
 		}
 
@@ -248,7 +276,7 @@ final readonly class RelationChanges
 		$check = $this->check($old, $new);
 
 		if ($check->refusal !== null) {
-			throw new InvalidRelation($check->refusal);
+			throw new InvalidRelation((string) $check->refusal);
 		}
 
 		if ($strip && $check->unfiled !== []) {
@@ -267,7 +295,7 @@ final readonly class RelationChanges
 
 		$aliases = array_values(array_unique(array_diff([...$new->aliases, ...$old->keys()], [$new->field])));
 
-		return Relation::fromArray([...$new->toArray(), 'aliases' => $aliases]);
+		return Relation::fromArray([...$new->toArray(), 'aliases' => $aliases], $this->messages);
 	}
 
 	/**
@@ -442,15 +470,5 @@ final readonly class RelationChanges
 		$front = $record->fields['fields'] ?? null;
 
 		return is_array($front) ? $front : [];
-	}
-
-	/**
-	 * Returns a count of entries with a verb.
-	 */
-	private static function entries(int $count, string $one, string $many, string $kind = ''): string
-	{
-		$noun = $kind === '' ? ($count === 1 ? 'entry' : 'entries') : ($count === 1 ? "{$kind} entry" : "{$kind} entries");
-
-		return sprintf('%d %s %s', $count, $noun, $count === 1 ? $one : $many);
 	}
 }

@@ -16,10 +16,12 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Admin\AdminApp;
+use Blush\Admin\AdminLanguages;
 use Blush\Admin\Http\AdminThemeAssetController;
 use Blush\Admin\Http\AssetController;
 use Blush\Admin\Http\DashboardController;
 use Blush\Admin\Http\LogController;
+use Blush\Admin\Http\PreferencesController;
 use Blush\Admin\Http\ShellController;
 use Blush\Admin\ToolButtons;
 use Blush\Admin\Http\ToolController;
@@ -36,6 +38,8 @@ use Blush\Tool\Tools\Reindex;
 
 #[CoversClass(AdminApp::class)]
 #[CoversClass(ShellController::class)]
+#[CoversClass(AdminLanguages::class)]
+#[CoversClass(PreferencesController::class)]
 #[CoversClass(AssetController::class)]
 #[CoversClass(AdminThemeAssetController::class)]
 #[CoversClass(DashboardController::class)]
@@ -121,7 +125,7 @@ final class AdminAppTest extends TestCase
 
 		$signedOut = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en">', $signedOut);
+		$this->assertStringContainsString('<html lang="en-US">', $signedOut);
 		$this->assertStringContainsString('"colorScheme":null', $signedOut);
 
 		$token = $this->token();
@@ -130,14 +134,14 @@ final class AdminAppTest extends TestCase
 		$page = $this->visit('GET', '/admin/drafts');
 		$body = (string) $page->getBody();
 
-		$this->assertStringContainsString('<html lang="en" data-color-scheme="dark">', $body);
+		$this->assertStringContainsString('<html lang="en-US" data-color-scheme="dark">', $body);
 		$this->assertStringContainsString('"colorScheme":"dark"', $body);
 		$this->assertFalse($page->hasHeader('Set-Cookie'), 'The shell only reads the session.');
 
 		$this->send('PATCH', '/preferences', '{"colorScheme": "system"}', ['X-CSRF-Token' => $token]);
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en">', $body, 'System sets no attribute.');
+		$this->assertStringContainsString('<html lang="en-US">', $body, 'System sets no attribute.');
 		$this->assertStringContainsString('"colorScheme":"system"', $body);
 
 		$this->assertStringContainsString('"adminTheme":null', $body);
@@ -146,11 +150,37 @@ final class AdminAppTest extends TestCase
 		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/editorial"}', ['X-CSRF-Token' => $token]);
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en" data-admin-theme="blush/editorial">', $body);
+		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/editorial">', $body);
 		$this->assertStringContainsString('"adminTheme":"blush/editorial"', $body);
 		$this->assertMatchesRegularExpression('#<link rel="stylesheet" id="blush-admin-theme" href="/admin/assets/admin-themes/blush/editorial/theme\.css\?v=[0-9a-f]{8}">#', $body);
 		$this->assertStringContainsString('"default":"blush/neutral"', $body);
 		$this->assertStringContainsString('"name":"blush/neutral","label":"Neutral"', $body, 'Neutral is offered first.');
+	}
+
+	/**
+	 * The admin is in the account's language (D-831): one it has an
+	 * `admin` catalog for, which the shell prints for `blush/messages`.
+	 */
+	public function testTheShellIsInTheAccountsLanguage(): void
+	{
+		$this->writeTemporaryFile('user/lang/fr/admin/core.json', '{"@@catalog": "admin", "screens": {"media": "Médias"}, "@screens": {"context": "A note"}}');
+		$this->boot();
+
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<script type="application/json" data-blush-messages="core" data-blush-catalog="admin">{}</script>', $body, 'English is the code\'s own text.');
+		$this->assertStringContainsString('"language":null,"adminLanguages":[{"code":"en","label":"English"},{"code":"fr","label":"Français"}]', $body);
+
+		$token = $this->token();
+
+		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"language": "de"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a language the admin has text in.');
+		$this->assertSame(200, $this->send('PATCH', '/preferences', '{"language": "fr"}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<html lang="fr">', $body);
+		$this->assertStringContainsString('"language":"fr"', $body);
+		$this->assertStringContainsString('data-blush-catalog="admin">{"screens.media":"Médias"}</script>', $body, 'Notes are left out.');
 	}
 
 	public function testTheSignInScreenShowsTheSitesDefaultAdminTheme(): void
@@ -159,13 +189,13 @@ final class AdminAppTest extends TestCase
 		$this->boot();
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<html lang="en" data-admin-theme="blush/editorial">', $body);
+		$this->assertStringContainsString('<html lang="en-US" data-admin-theme="blush/editorial">', $body);
 		$this->assertStringContainsString('"default":"blush/editorial"', $body);
 
 		$token = $this->token();
 		$this->send('PATCH', '/preferences', '{"adminTheme": "blush/neutral"}', ['X-CSRF-Token' => $token]);
 
-		$this->assertStringContainsString('<html lang="en">', (string) $this->visit('GET', '/admin')->getBody(), 'An account\'s own choice wins.');
+		$this->assertStringContainsString('<html lang="en-US">', (string) $this->visit('GET', '/admin')->getBody(), 'An account\'s own choice wins.');
 	}
 
 	public function testAnAdminThemesStylesheetAndFontsAreServed(): void

@@ -22,6 +22,7 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers `GET {path}/api/counts` (D-371): what the section panel needs
@@ -37,7 +38,8 @@ final readonly class CountsController
 	public function __construct(
 		private Permissions $permissions,
 		private ToolButtons $tools,
-		private SiteHealth $health
+		private SiteHealth $health,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -45,7 +47,7 @@ final readonly class CountsController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		$counts = ['tools' => count($this->tools->allowed($account))];

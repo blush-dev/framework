@@ -17,6 +17,8 @@ use Throwable;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Runs queued jobs (D-621). Every runner (cron's `schedule:run`, the
@@ -48,6 +50,7 @@ final readonly class JobRunner
 		private JobConfig $config,
 		private ClockInterface $clock,
 		private LoggerInterface $logger,
+		private Messages $messages,
 		private ?RequestMemo $memo = null
 	) {}
 
@@ -208,7 +211,7 @@ final readonly class JobRunner
 				continue;
 			}
 
-			$this->end($this->thrown($job, $work, sprintf('It stopped without finishing, after more than %d seconds: its runner may have run out of time.', $this->config->timeout)));
+			$this->end($this->thrown($job, $work, $this->messages->t('job.job_runner.timed_out', 'It stopped without finishing, after more than {seconds, plural, one {# second} other {# seconds}}: its runner may have run out of time.', seconds: $this->config->timeout)));
 			$recovered++;
 		}
 
@@ -266,7 +269,7 @@ final readonly class JobRunner
 	 * Returns a job that threw (or stopped) as it's kept: queued to try
 	 * again after its backoff, or failed once it's out of attempts.
 	 */
-	private function thrown(JobRecord $job, Job $work, string $error): JobRecord
+	private function thrown(JobRecord $job, Job $work, string|Text $error): JobRecord
 	{
 		$now      = $this->clock->now()->getTimestamp();
 		$attempts = $job->attempts + 1;
@@ -275,7 +278,7 @@ final readonly class JobRunner
 			'job'      => $job->job,
 			'attempt'  => $attempts,
 			'attempts' => $work->attempts(),
-			'error'    => $error
+			'error'    => (string) $error
 		]);
 
 		return $attempts < $work->attempts()

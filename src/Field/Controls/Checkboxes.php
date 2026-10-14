@@ -15,6 +15,8 @@ namespace Blush\Field\Controls;
 
 use Override;
 use Blush\Field\ControlSection;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Any number from a set, with every option in view.
@@ -34,18 +36,18 @@ final class Checkboxes extends ChoiceList
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Checkboxes';
+		return $messages->t('field.checkboxes.label', 'Checkboxes');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Any number from a set, with every option in view.';
+		return $messages->t('field.checkboxes.description', 'Any number from a set, with every option in view.');
 	}
 
 	/**

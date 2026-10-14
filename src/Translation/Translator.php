@@ -46,6 +46,13 @@ use Blush\View\SafeHtml;
  * rather than its keys on a French site. A key found nowhere comes back as the
  * key itself (formatted with its parameters), so a missing translation
  * shows up without breaking the page.
+ *
+ * A domain may also have named catalogs (D-831), the text its scripts
+ * read in the browser, each in a folder of its own beside the default
+ * catalog (`lang/admin/fr.json`, `lang/site/fr.json`), with the site's
+ * overrides in the same folder under the language
+ * (`user/lang/fr/site/core.json`). `catalog()` resolves one as a whole,
+ * for the page to print.
  */
 final class Translator
 {
@@ -68,7 +75,7 @@ final class Translator
 	public const array OWN = [self::CORE];
 
 	/**
-	 * Loaded layers, keyed by `{domain}|{locale}`: the site's override,
+	 * Loaded layers, keyed by `{domain}|{locale}|{catalog}`: the site's override,
 	 * then the domain's own catalogs merged.
 	 *
 	 * @var array<string, array{array<string, string>, array<string, string>}>
@@ -146,15 +153,83 @@ final class Translator
 	 * Returns the override catalog's path for a domain and locale, without
 	 * its extension, or `null` when the site has no override folder.
 	 */
-	public function overridePath(string $domain, string $locale): ?string
+	public function overridePath(string $domain, string $locale, ?string $catalog = null): ?string
 	{
 		if ($this->overrides === null) {
 			return null;
 		}
 
+		$folder = $catalog === null ? "{$this->overrides}/{$locale}" : "{$this->overrides}/{$locale}/{$catalog}";
+
 		return in_array($domain, self::OWN, true) || ! str_contains($domain, '/')
-			? "{$this->overrides}/{$locale}/{$domain}"
-			: "{$this->overrides}/{$locale}/extensions/{$domain}";
+			? "{$folder}/{$domain}"
+			: "{$folder}/extensions/{$domain}";
+	}
+
+	/**
+	 * Returns a domain's named catalog (D-831) in a locale as one set of
+	 * messages, resolved as `translate()` resolves a key: for each key,
+	 * the most specific locale that has it (`fr_CA`, `fr`, the default
+	 * locale, then `en`), and the site's override over the domain's own.
+	 * Notes and metadata (`@` keys) are left out.
+	 *
+	 * Given the locale the code's text is written in (`$source`), a
+	 * message that reads as the domain's own catalog in it has it is left
+	 * out too, since the script's own text says the same (D-834): an
+	 * English page of core's admin prints only what the site rewords.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	public function catalog(string $domain, string $name, ?string $locale = null, ?string $source = null): array
+	{
+		$messages = [];
+
+		foreach (array_reverse(self::fallbacks($locale ?? $this->locale, $this->locale)) as $candidate) {
+			[$override, $own] = $this->layers($domain, $candidate, $name);
+			$messages         = [...$messages, ...$own, ...$override];
+		}
+
+		if ($source === null) {
+			return $messages;
+		}
+
+		$written = $this->layers($domain, $source, $name)[1];
+
+		return array_filter($messages, static fn (string $message, string $key): bool => ($written[$key] ?? null) !== $message, ARRAY_FILTER_USE_BOTH);
+	}
+
+	/**
+	 * Returns the locales a domain's named catalog has a file for (D-831),
+	 * the domain's own or the site's override, sorted.
+	 *
+	 * @return list<string>
+	 * @throws InvalidData When a domain's name is unsafe.
+	 */
+	public function catalogLocales(string $domain, string $name): array
+	{
+		$locales = [];
+
+		foreach ($this->directories[$domain] ?? [] as $directory) {
+			foreach (glob("{$directory}/{$name}/*.json") ?: [] as $file) {
+				$locales[] = basename($file, '.json');
+			}
+		}
+
+		if ($this->overrides !== null) {
+			foreach (glob("{$this->overrides}/*", GLOB_ONLYDIR) ?: [] as $folder) {
+				$override = $this->overridePath($domain, basename($folder), $name);
+
+				if ($override !== null && $this->loader->find(dirname($override), basename($override)) !== null) {
+					$locales[] = basename($folder);
+				}
+			}
+		}
+
+		$locales = array_values(array_unique($locales));
+		sort($locales);
+
+		return $locales;
 	}
 
 	/**
@@ -306,19 +381,19 @@ final class Translator
 	 * @return array{array<string, string>, array<string, string>}
 	 * @throws InvalidData
 	 */
-	private function layers(string $domain, string $locale): array
+	private function layers(string $domain, string $locale, ?string $catalog = null): array
 	{
-		$id = "{$domain}|{$locale}";
+		$id = "{$domain}|{$locale}|{$catalog}";
 
 		if (isset($this->layers[$id])) {
 			return $this->layers[$id];
 		}
 
-		$override = $this->overridePath($domain, $locale);
+		$override = $this->overridePath($domain, $locale, $catalog);
 		$own      = [];
 
 		foreach ($this->directories[$domain] ?? [] as $directory) {
-			$own += self::flatten($this->loader->load($directory, $locale) ?? []);
+			$own += self::flatten($this->loader->load($catalog === null ? $directory : "{$directory}/{$catalog}", $locale) ?? []);
 		}
 
 		return $this->layers[$id] = [

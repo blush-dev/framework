@@ -22,6 +22,8 @@ use Blush\Field\FieldControls;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A content type: its entries, how they're routed, listed, and fed, and
@@ -127,6 +129,7 @@ abstract readonly class ContentType
 	 * @param  ?FileName       $filename     How new files are named (D-511, D-514); the slug alone by default.
 	 * @param  ?int            $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
 	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
+	 * @param  Messages        $messages     Writes why a type is refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -148,32 +151,34 @@ abstract readonly class ContentType
 		public ?FileName $filename = null,
 		public ?int $position = null,
 		?string $under = null,
-		public FieldControls $controls = new FieldControls()
+		public FieldControls $controls = new FieldControls(),
+		Messages $messages = new Messages()
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
-			throw new InvalidContentType(sprintf(
-				'Content type name "%s" must start with a lowercase letter and use only lowercase letters, digits, and underscores.',
-				$name
+			throw new InvalidContentType((string) $messages->t(
+				'content.content_type.bad_name',
+				'Content type name "{name}" must start with a lowercase letter and use only lowercase letters, digits, and underscores.',
+				name: $name
 			));
 		}
 
 		if (in_array($name, self::RESERVED, true)) {
-			throw new InvalidContentType(sprintf(
-				'"%s" can\'t name a content type: _%s is a folder the site\'s pages keep (the reserved names are %s).',
-				$name,
-				$name,
-				implode(', ', self::RESERVED)
+			throw new InvalidContentType((string) $messages->t(
+				'content.content_type.reserved_name',
+				'"{name}" can\'t name a content type: _{name} is a folder the site\'s pages keep (the reserved names are {reserved}).',
+				name: $name,
+				reserved: implode(', ', self::RESERVED)
 			));
 		}
 
 		try {
 			$this->schema = new Schema($fields, $closed);
 		} catch (InvalidSchema $e) {
-			throw new InvalidContentType(sprintf('Content type "%s" has invalid fields: %s', $name, $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $messages->t('content.content_type.invalid_fields', 'Content type "{name}" has invalid fields: {reason}', name: $name, reason: $e->getMessage()), previous: $e);
 		}
 
 		$this->folder      = static::folderOf($name);
-		$this->folders     = self::pattern($folders, $name, $this->keysByFolder());
+		$this->folders     = self::pattern($folders, $name, $this->keysByFolder(), $messages);
 		$this->labels      = $labels ?? TypeLabels::named($name);
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
@@ -181,11 +186,11 @@ abstract readonly class ContentType
 		$this->under       = $under === null || trim($under) === '' ? null : trim($under);
 
 		if ($position !== null && $position < 0) {
-			throw new InvalidContentType(sprintf('Content type "%s" "position" must be 0 or more.', $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.negative_position', 'Content type "{name}" "position" must be 0 or more.', name: $name));
 		}
 
 		if ($this->under === $name) {
-			throw new InvalidContentType(sprintf('Content type "%s" can\'t sit under itself.', $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.under_itself', 'Content type "{name}" can\'t sit under itself.', name: $name));
 		}
 	}
 
@@ -368,34 +373,41 @@ abstract readonly class ContentType
 	 * folder (D-683): `folder`, or 1.x's `path`, is refused.
 	 *
 	 * @param  array<array-key, mixed> $data
+	 * @param  Messages                $messages Writes why a definition is refused.
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, FieldFactory $fields): self
+	public static function fromArray(array $data, FieldFactory $fields, Messages $messages): self
 	{
 		$name = $data['name'] ?? null;
 
 		if (! is_string($name)) {
-			throw new InvalidContentType('A content type definition needs a "name".');
+			throw new InvalidContentType((string) $messages->t('content.content_type.no_name', 'A content type definition needs a "name".'));
 		}
 
-		$data    = self::renamed($data, $name);
-		$kind    = self::kindOf($data, $name);
+		$data    = self::renamed($data, $name, $messages);
+		$kind    = self::kindOf($data, $name, $messages);
 
 		if (array_key_exists('folder', $data)) {
-			throw new InvalidContentType(self::namedFolder($name, $data['folder']));
+			throw new InvalidContentType((string) self::namedFolder($name, $data['folder'], $messages));
 		}
 
 		if ($kind === TypeKind::Tree && array_key_exists('folders', $data)) {
-			throw new InvalidContentType(sprintf('Content type "%s" has a folder pattern, but a tree\'s folders are its pages\', so it takes none.', $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.tree_folders', 'Content type "{name}" has a folder pattern, but a tree\'s folders are its pages\', so it takes none.', name: $name));
 		}
 
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['name', 'kind', ...$kind->options()]);
 
 		if ($unknown !== []) {
-			throw new InvalidContentType(sprintf('Content type "%s" (%s) has unknown options: %s.', $name, $kind->value, implode(', ', $unknown)));
+			throw new InvalidContentType((string) $messages->t(
+				'content.content_type.unknown_options',
+				'Content type "{name}" ({kind}) has unknown options: {options}.',
+				name: $name,
+				kind: $kind->value,
+				options: implode(', ', $unknown)
+			));
 		}
 
-		$definition = new Definition($data, sprintf('Content type "%s"', $name));
+		$definition = new Definition($data, (string) $messages->t('content.content_type.subject', 'Content type "{name}"', name: $name));
 
 		try {
 			[$own, $controls] = $fields->withControls($definition->listOrMap('fields'));
@@ -407,11 +419,12 @@ abstract readonly class ContentType
 				'sitemap'     => $definition->bool('sitemap', true),
 				'fields'      => array_values($schema->fields),
 				'closed'      => $schema->closed,
-				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name),
+				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name, $messages),
 				'description' => $definition->nullableString('description') ?? '',
 				'icon'        => $definition->nullableString('icon'),
-				'filename'    => self::filename($definition, $name),
-				'controls'    => $controls
+				'filename'    => self::filename($definition, $name, $messages),
+				'controls'    => $controls,
+				'messages'    => $messages
 			];
 
 
@@ -419,9 +432,9 @@ abstract readonly class ContentType
 				return new Profiles(...[
 					...$common,
 					'llms'    => $definition->bool('llms', false),
-					'urls'    => self::urls($data['urls'] ?? [], $name),
-					'listing' => Listing::fromArray($definition->map('listing'), sprintf('Content type "%s" listing', $name)),
-					'feed'    => self::feed($data['feed'] ?? false, $name)
+					'urls'    => self::urls($data['urls'] ?? [], $name, $messages),
+					'listing' => Listing::fromArray($definition->map('listing'), $messages->t('content.content_type.listing_subject', 'Content type "{name}" listing', name: $name), $messages),
+					'feed'    => self::feed($data['feed'] ?? false, $name, $messages)
 				]);
 			}
 
@@ -429,7 +442,7 @@ abstract readonly class ContentType
 
 			// A place in the admin's menu (D-726); profiles, listed with
 			// people, have none.
-			$common['position'] = self::position($definition, $name);
+			$common['position'] = self::position($definition, $name, $messages);
 			$common['under']    = $definition->nullableString('under');
 
 			if ($kind === TypeKind::Tree) {
@@ -440,17 +453,22 @@ abstract readonly class ContentType
 
 			$common = [
 				...$common,
-				'urls'    => self::urls($data['urls'] ?? [], $name),
-				'listing' => Listing::fromArray($definition->map('listing'), sprintf('Content type "%s" listing', $name)),
-				'feed'    => self::feed($data['feed'] ?? false, $name)
+				'urls'    => self::urls($data['urls'] ?? [], $name, $messages),
+				'listing' => Listing::fromArray($definition->map('listing'), $messages->t('content.content_type.listing_subject', 'Content type "{name}" listing', name: $name), $messages),
+				'feed'    => self::feed($data['feed'] ?? false, $name, $messages)
 			];
 
 			$order = TypeOrder::tryFrom($definition->nullableString('order') ?? TypeOrder::Published->value)
-				?? throw new InvalidContentType(sprintf('Content type "%s" "order" must be one of %s.', $name, implode(', ', array_column(TypeOrder::cases(), 'value'))));
+				?? throw new InvalidContentType((string) $messages->t(
+					'content.content_type.bad_order',
+					'Content type "{name}" "order" must be one of {orders}.',
+					name: $name,
+					orders: implode(', ', array_column(TypeOrder::cases(), 'value'))
+				));
 
 			return new Collection(...[
 				...$common,
-				'dateArchives' => self::dateArchives($definition, $name),
+				'dateArchives' => self::dateArchives($definition, $name, $messages),
 				'llms'         => $definition->bool('llms', true),
 				'hierarchical' => $definition->bool('hierarchical'),
 				'order'        => $order
@@ -473,11 +491,13 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns what the type is to the site, for messages about a type
-	 * that can't be overridden: "the site's pages", say.
+	 * that can't be overridden, as the key of a `{role, select, …}` in a message: `pages`
+	 * for the site's pages, `profiles` for its profiles type, else its
+	 * kind.
 	 */
 	public function role(): string
 	{
-		return sprintf('a %s type', $this->kind()->value);
+		return $this->kind()->value;
 	}
 
 	/**
@@ -491,26 +511,27 @@ abstract readonly class ContentType
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public function overriddenBy(array $data, FieldFactory $fields): self
+	public function overriddenBy(array $data, FieldFactory $fields, Messages $messages): self
 	{
 		if (! $this->isOverridable()) {
-			throw new InvalidContentType(sprintf(
-				'The "%s" content type is %s, which user/data/types can\'t change; define it in one place.',
-				$this->name,
-				$this->role()
+			throw new InvalidContentType((string) $messages->t(
+				'content.content_type.not_overridable',
+				'The "{name}" content type is {role, select, pages {the site\'s pages} profiles {the site\'s profiles type} collection {a collection type} other {a tree type}}, which user/data/types can\'t change; define it in one place.',
+				name: $this->name,
+				role: $this->role()
 			));
 		}
 
-		$data = self::renamed($data, $this->name);
-		$kind = array_key_exists('kind', $data) || array_key_exists('taxonomy', $data) ? self::kindOf($data, $this->name) : $this->kind();
+		$data = self::renamed($data, $this->name, $messages);
+		$kind = array_key_exists('kind', $data) || array_key_exists('taxonomy', $data) ? self::kindOf($data, $this->name, $messages) : $this->kind();
 
 		unset($data['name'], $data['kind']);
 
 		if ($kind !== $this->kind()) {
-			throw new InvalidContentType(sprintf('user/data/types/%s can\'t change the type\'s kind; entries are filed by it.', $this->name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.kind_changed', 'user/data/types/{name} can\'t change the type\'s kind; entries are filed by it.', name: $this->name));
 		}
 
-		return self::fromArray([...$this->toArray(), ...$data], $fields);
+		return self::fromArray([...$this->toArray(), ...$data], $fields, $messages);
 	}
 
 	/**
@@ -521,17 +542,17 @@ abstract readonly class ContentType
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public function placedBy(array $data, FieldFactory $fields): self
+	public function placedBy(array $data, FieldFactory $fields, Messages $messages): self
 	{
 		if (! self::onlyPlaces($data)) {
-			throw new InvalidContentType(sprintf('"%s" can only be placed in the menu here, with "position" and "under".', $this->name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.only_placed', '"{name}" can only be placed in the menu here, with "position" and "under".', name: $this->name));
 		}
 
 		if ($this->kind() === TypeKind::Profiles) {
-			throw new InvalidContentType(sprintf('The "%s" type is listed with people, so it isn\'t placed in the content menu.', $this->name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.profiles_not_placed', 'The "{name}" type is listed with people, so it isn\'t placed in the content menu.', name: $this->name));
 		}
 
-		return self::fromArray([...$this->toArray(), ...$data], $fields);
+		return self::fromArray([...$this->toArray(), ...$data], $fields, $messages);
 	}
 
 	/**
@@ -604,14 +625,20 @@ abstract readonly class ContentType
 	 * Returns why a definition naming its folder is refused (D-683),
 	 * saying what to do instead.
 	 */
-	public static function namedFolder(string $name, mixed $folder): string
+	public static function namedFolder(string $name, mixed $folder, Messages $messages): Text
 	{
-		return sprintf(
-			'Content type "%s" names its folder (%s), but every type is kept in _%s now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.',
-			$name,
-			is_string($folder) ? "\"{$folder}\"" : 'with "folder"',
-			$name
-		);
+		return is_string($folder)
+			? $messages->t(
+				'content.content_type.named_folder',
+				'Content type "{name}" names its folder ("{folder}"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.',
+				name: $name,
+				folder: $folder
+			)
+			: $messages->t(
+				'content.content_type.named_folder_option',
+				'Content type "{name}" names its folder (with "folder"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.',
+				name: $name
+			);
 	}
 
 	/**
@@ -621,7 +648,7 @@ abstract readonly class ContentType
 	 * @return array<array-key, mixed>
 	 * @throws InvalidContentType
 	 */
-	private static function renamed(array $data, string $name): array
+	private static function renamed(array $data, string $name, Messages $messages): array
 	{
 		$renames = [
 			'path'            => 'folder',
@@ -639,7 +666,13 @@ abstract readonly class ContentType
 		// Credits are relations (D-602).
 		foreach (['people', 'authors'] as $gone) {
 			if (array_key_exists($gone, $data)) {
-				throw new InvalidContentType(sprintf('Content type "%s" sets "%s", but a type credits people through a credit relation now, defined with the others (in user/data/relations or a plugin): {"kind": "credit", "from": ["%s"], "to": ["profile"]}.', $name, $gone, $name));
+				throw new InvalidContentType((string) $messages->t(
+					'content.content_type.credits_moved',
+					'Content type "{name}" sets "{option}", but a type credits people through a credit relation now, defined with the others (in user/data/relations or a plugin): {example}.',
+					name: $name,
+					option: $gone,
+					example: "{\"kind\": \"credit\", \"from\": [\"{$name}\"], \"to\": [\"profile\"]}"
+				));
 			}
 		}
 
@@ -650,12 +683,12 @@ abstract readonly class ContentType
 			if (is_string($collect)) {
 				$data['listing'] = [...(is_array($data['listing'] ?? null) ? $data['listing'] : []), 'type' => $collect];
 			} elseif ($collect !== false && $collect !== null) {
-				throw new InvalidContentType(sprintf('Content type "%s" "collect" must be a type name or false.', $name));
+				throw new InvalidContentType((string) $messages->t('content.content_type.bad_collect', 'Content type "{name}" "collect" must be a type name or false.', name: $name));
 			}
 		}
 
 		if (array_key_exists('date_archives', $data) || array_key_exists('time_archives', $data)) {
-			$flags = new Definition($data, sprintf('Content type "%s"', $name));
+			$flags = new Definition($data, (string) $messages->t('content.content_type.subject', 'Content type "{name}"', name: $name));
 
 			try {
 				$data['dateArchives'] ??= DateArchives::fromFlags($flags->bool('date_archives'), $flags->bool('time_archives'))->value;
@@ -678,22 +711,22 @@ abstract readonly class ContentType
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	private static function kindOf(array &$data, string $name): TypeKind
+	private static function kindOf(array &$data, string $name, Messages $messages): TypeKind
 	{
 		$taxonomy = $data['taxonomy'] ?? null;
 		$kind     = $data['kind'] ?? null;
 		unset($data['taxonomy']);
 
 		if ($taxonomy === true || $kind === 'taxonomy') {
-			throw new InvalidContentType(sprintf(
-				'Content type "%s" is a taxonomy, which Blush no longer has: make it a collection (with "order: position", and "hierarchical: true" if its terms nest) and define a classify relation named "%s" in the content config\'s "relations" or user/data/relations. For a type in user/data/types, content:taxonomies --write does this.',
-				$name,
-				$name
+			throw new InvalidContentType((string) $messages->t(
+				'content.content_type.taxonomy',
+				'Content type "{name}" is a taxonomy, which Blush no longer has: make it a collection (with "order: position", and "hierarchical: true" if its terms nest) and define a classify relation named "{name}" in the content config\'s "relations" or user/data/relations. For a type in user/data/types, content:taxonomies --write does this.',
+				name: $name
 			));
 		}
 
 		if ($taxonomy !== null && $taxonomy !== false) {
-			throw new InvalidContentType(sprintf('Content type "%s" "taxonomy" must be true or false.', $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.bad_taxonomy', 'Content type "{name}" "taxonomy" must be true or false.', name: $name));
 		}
 
 		if ($kind === null) {
@@ -702,10 +735,11 @@ abstract readonly class ContentType
 
 		$case = is_string($kind) ? TypeKind::tryFrom($kind) : null;
 
-		return $case ?? throw new InvalidContentType(sprintf(
-			'Content type "%s" "kind" must be one of %s.',
-			$name,
-			implode(', ', array_column(TypeKind::cases(), 'value'))
+		return $case ?? throw new InvalidContentType((string) $messages->t(
+			'content.content_type.bad_kind',
+			'Content type "{name}" "kind" must be one of {kinds}.',
+			name: $name,
+			kinds: implode(', ', array_column(TypeKind::cases(), 'value'))
 		));
 	}
 
@@ -714,17 +748,17 @@ abstract readonly class ContentType
 	 *
 	 * @throws InvalidSchema
 	 */
-	private static function urls(mixed $value, string $name): TypeUrls|false
+	private static function urls(mixed $value, string $name, Messages $messages): TypeUrls|false
 	{
 		if ($value === false) {
 			return false;
 		}
 
 		if (! is_array($value)) {
-			throw new InvalidSchema(sprintf('Content type "%s" "urls" must be false or a map.', $name));
+			throw new InvalidSchema((string) $messages->t('content.content_type.bad_urls', 'Content type "{name}" "urls" must be false or a map.', name: $name));
 		}
 
-		return TypeUrls::fromArray($value, sprintf('Content type "%s" urls', $name));
+		return TypeUrls::fromArray($value, $messages->t('content.content_type.urls_subject', 'Content type "{name}" urls', name: $name), $messages);
 	}
 
 	/**
@@ -733,13 +767,13 @@ abstract readonly class ContentType
 	 * @throws InvalidSchema
 	 * @throws InvalidContentType
 	 */
-	private static function feed(mixed $value, string $name): TypeFeed|false
+	private static function feed(mixed $value, string $name, Messages $messages): TypeFeed|false
 	{
 		return match (true) {
 			$value === false => false,
 			$value === true  => new TypeFeed(),
-			is_array($value) => TypeFeed::fromArray($value, sprintf('Content type "%s" feed', $name)),
-			default          => throw new InvalidSchema(sprintf('Content type "%s" "feed" must be true, false, or a map.', $name))
+			is_array($value) => TypeFeed::fromArray($value, $messages->t('content.content_type.feed_subject', 'Content type "{name}" feed', name: $name), $messages),
+			default          => throw new InvalidSchema((string) $messages->t('content.content_type.bad_feed', 'Content type "{name}" "feed" must be true, false, or a map.', name: $name))
 		};
 	}
 
@@ -748,13 +782,14 @@ abstract readonly class ContentType
 	 *
 	 * @throws InvalidSchema
 	 */
-	private static function dateArchives(Definition $definition, string $name): DateArchives
+	private static function dateArchives(Definition $definition, string $name, Messages $messages): DateArchives
 	{
 		return DateArchives::tryFrom($definition->string('dateArchives', DateArchives::None->value))
-			?? throw new InvalidSchema(sprintf(
-				'Content type "%s" "dateArchives" must be one of %s.',
-				$name,
-				implode(', ', array_column(DateArchives::cases(), 'value'))
+			?? throw new InvalidSchema((string) $messages->t(
+				'content.content_type.bad_date_archives',
+				'Content type "{name}" "dateArchives" must be one of {values}.',
+				name: $name,
+				values: implode(', ', array_column(DateArchives::cases(), 'value'))
 			));
 	}
 
@@ -764,12 +799,12 @@ abstract readonly class ContentType
 	 * @throws InvalidSchema
 	 * @throws InvalidContentType
 	 */
-	private static function position(Definition $definition, string $name): ?int
+	private static function position(Definition $definition, string $name, Messages $messages): ?int
 	{
 		$position = $definition->number('position');
 
 		if ($position !== null && ! is_int($position)) {
-			throw new InvalidContentType(sprintf('Content type "%s" "position" must be a whole number.', $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.position_not_whole', 'Content type "{name}" "position" must be a whole number.', name: $name));
 		}
 
 		return $position;
@@ -781,14 +816,14 @@ abstract readonly class ContentType
 	 * @throws InvalidSchema
 	 * @throws InvalidContentType
 	 */
-	private static function filename(Definition $definition, string $name): ?FileName
+	private static function filename(Definition $definition, string $name, Messages $messages): ?FileName
 	{
 		$pattern = $definition->nullableString('filename');
 
 		try {
-			return $pattern === null || trim($pattern) === '' ? null : new FileName(trim($pattern));
+			return $pattern === null || trim($pattern) === '' ? null : new FileName(trim($pattern), $messages);
 		} catch (InvalidContentType $e) {
-			throw new InvalidContentType(sprintf('Content type "%s": %s', $name, $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $messages->t('content.content_type.problem', 'Content type "{name}": {problem}', name: $name, problem: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -798,7 +833,7 @@ abstract readonly class ContentType
 	 *
 	 * @throws InvalidContentType
 	 */
-	private static function pattern(?string $pattern, string $name, bool $keysByFolder): ?FolderPattern
+	private static function pattern(?string $pattern, string $name, bool $keysByFolder, Messages $messages): ?FolderPattern
 	{
 		$pattern = trim(str_replace('\\', '/', $pattern ?? ''), '/ ');
 
@@ -807,13 +842,13 @@ abstract readonly class ContentType
 		}
 
 		if ($keysByFolder) {
-			throw new InvalidContentType(sprintf('Content type "%s" has the folder pattern "%s"; a tree\'s folders are its pages\', so it takes none.', $name, $pattern));
+			throw new InvalidContentType((string) $messages->t('content.content_type.tree_pattern', 'Content type "{name}" has the folder pattern "{pattern}"; a tree\'s folders are its pages\', so it takes none.', name: $name, pattern: $pattern));
 		}
 
 		try {
-			return new FolderPattern($pattern);
+			return new FolderPattern($pattern, $messages);
 		} catch (InvalidContentType $e) {
-			throw new InvalidContentType(sprintf('Content type "%s": %s', $name, $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $messages->t('content.content_type.problem', 'Content type "{name}": {problem}', name: $name, problem: $e->getMessage()), previous: $e);
 		}
 	}
 }

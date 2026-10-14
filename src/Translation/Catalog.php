@@ -16,7 +16,8 @@ namespace Blush\Translation;
 /**
  * What a catalog says about itself (D-452): keys starting with `@@` are
  * metadata, not messages, and `@@locale` and `@@domain` name what it
- * translates, in ARB's style.
+ * translates, in ARB's style. A named catalog (D-831), the text a
+ * domain's scripts read in the browser, says which with `@@catalog`.
  */
 final class Catalog
 {
@@ -36,6 +37,21 @@ final class Catalog
 	public const string DOMAIN = '@@domain';
 
 	/**
+	 * The key naming a named catalog (D-831), such as `admin` or `site`.
+	 */
+	public const string CATALOG = '@@catalog';
+
+	/**
+	 * What a named catalog's name looks like: a folder in `lang/`.
+	 */
+	public const string NAME_PATTERN = '^[a-z][a-z0-9_-]*$';
+
+	/**
+	 * The same, as a PHP pattern.
+	 */
+	public const string NAME = '/' . self::NAME_PATTERN . '/';
+
+	/**
 	 * Returns whether a key is metadata rather than a message.
 	 */
 	public static function isMeta(int|string $key): bool
@@ -51,6 +67,14 @@ final class Catalog
 	public static function isAnnotation(int|string $key): bool
 	{
 		return str_starts_with((string) $key, '@');
+	}
+
+	/**
+	 * Returns whether a string is a named catalog's name.
+	 */
+	public static function isName(string $name): bool
+	{
+		return preg_match(self::NAME, $name) === 1;
 	}
 
 	/**

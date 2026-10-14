@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
+use Blush\Translation\Messages;
+
 /**
  * Checks the rules that hold over the whole graph rather than one
  * entry's values (D-585, D-587):
@@ -27,6 +29,12 @@ namespace Blush\Content\Relation;
  */
 final readonly class RelationChecker
 {
+	/**
+	 * @param Messages $messages Writes what's wrong.
+	 */
+	public function __construct(private Messages $messages)
+	{}
+
 	/**
 	 * Returns what's wrong.
 	 *
@@ -47,15 +55,15 @@ final readonly class RelationChecker
 				$key   = $relation->key($type);
 
 				if (isset($live[$id]) && $count < $relation->min) {
-					$problems[] = new RelationProblem(ProblemKind::TooFew, $key, $id, '', sprintf('Needs at least %d %s to be published; it has %d.', $relation->min, $relation->name, $count));
+					$problems[] = new RelationProblem(ProblemKind::TooFew, $key, $id, '', $this->messages->t('content.relation_checker.too_few', 'Needs at least {min} {relation} to be published; it has {count}.', min: $relation->min, relation: $relation->name, count: $count));
 				}
 
 				if ($relation->max !== null && $count > $relation->max) {
-					$problems[] = new RelationProblem(ProblemKind::TooMany, $key, $id, '', sprintf('Takes at most %d %s; it has %d.', $relation->max, $relation->name, $count));
+					$problems[] = new RelationProblem(ProblemKind::TooMany, $key, $id, '', $this->messages->t('content.relation_checker.too_many', 'Takes at most {max} {relation}; it has {count}.', max: $relation->max, relation: $relation->name, count: $count));
 				}
 
 				if ($relation->isHierarchical() && $this->cycles($graph, $id, $relation->name)) {
-					$problems[] = new RelationProblem(ProblemKind::Cycle, $key, $id, '', sprintf('Its %s leads back to itself.', $relation->name));
+					$problems[] = new RelationProblem(ProblemKind::Cycle, $key, $id, '', $this->messages->t('content.relation_checker.cycle', 'Its {relation} leads back to itself.', relation: $relation->name));
 				}
 			}
 		}
@@ -71,7 +79,7 @@ final readonly class RelationChecker
 				$sources = array_filter($graph->linksTo($id, $relation->name), static fn (Link $link): bool => $relation->isFrom($link->type) && ! isset($trashed[$link->source]));
 
 				if (count($sources) > $max) {
-					$problems[] = new RelationProblem(ProblemKind::InverseLimit, $relation->name, $id, '', sprintf('At most %d may name it in %s; %d do.', $max, $relation->name, count($sources)));
+					$problems[] = new RelationProblem(ProblemKind::InverseLimit, $relation->name, $id, '', $this->messages->t('content.relation_checker.inverse_over', 'At most {max} may name it in {relation}; {count} do.', max: $max, relation: $relation->name, count: count($sources)));
 				}
 			}
 		}

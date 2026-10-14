@@ -22,6 +22,7 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Targets created as they're typed (D-596): a value an entry is given in
@@ -42,7 +43,8 @@ final readonly class TypedTargets
 		private ContentTypes $types,
 		private Entries $content,
 		private ClockInterface $clock,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -101,7 +103,7 @@ final readonly class TypedTargets
 
 				foreach ($slugs as $slug => $title) {
 					if ($type === null) {
-						$failed["{$name}/{$slug}"] = sprintf('There\'s no "%s" type.', $name);
+						$failed["{$name}/{$slug}"] = (string) $this->messages->t('content.typed_targets.no_type', 'There\'s no "{type}" type.', type: $name);
 						continue;
 					}
 

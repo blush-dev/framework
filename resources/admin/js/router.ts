@@ -13,6 +13,7 @@
 import { createRouter, createWebHistory, START_LOCATION, type RouteLocationNormalized } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
+import { t } from './messages';
 import { lastVisits, screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, canAnyType, canType, loadSession, MEDIA_CAPABILITIES, session, type ContentAction } from './session';
 import DashboardView from './views/DashboardView.vue';
@@ -63,88 +64,88 @@ const TypesView = () => import('./views/TypesView.vue');
 export const router = createRouter({
 	history: createWebHistory(config.base),
 	routes: [
-		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard', area: 'home', narrow: true } },
+		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: t('router.titles.dashboard', 'Dashboard'), area: 'home', narrow: true } },
 		// Each type has its own list; there's no list of every type (D-240).
 		{ path: '/entries', redirect: { name: 'dashboard' } },
-		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', contentAction: 'edit', section: 'entries', area: 'content' } },
+		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: t('router.titles.entries', 'Entries'), contentAction: 'edit', section: 'entries', area: 'content' } },
 		// An entry is edited at its handle, its type and key (D-253); a
 		// page's key spans segments.
 		// An entry, by its type and id (D-483).
-		{ path: '/content/:type/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/content/:type/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'entry', component: EditorView, meta: { title: t('router.titles.edit_entry', 'Edit Entry'), contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A new entry opens in the editor, unsaved, until its first save
 		// writes it (D-336).
-		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', contentAction: 'create', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: t('router.titles.new_entry', 'New Entry'), contentAction: 'create', section: 'entries', area: 'content', bleed: true } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
 		// An entry in the trash, to look at before restoring it (D-276), by
 		// its id (D-484).
-		{ path: '/trash/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },
+		{ path: '/trash/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'trashed', component: TrashedView, meta: { title: t('router.titles.in_the_trash', 'In the Trash'), contentAction: 'delete', section: 'entries', area: 'content' } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		// Dated entries by month (D-368); `?month=YYYY-MM`.
-		{ path: '/health', name: 'health', component: SiteHealthView, meta: { title: 'Site Health', capability: 'site.health', area: 'home' } },
-		{ path: '/health/:area(content)/:check(files|ids|terms|parents|refs|taxonomies|types|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
-		{ path: '/health/:area(media)/:check(files|ids|sizes)', name: 'health-media-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
+		{ path: '/health', name: 'health', component: SiteHealthView, meta: { title: t('router.titles.site_health', 'Site Health'), capability: 'site.health', area: 'home' } },
+		{ path: '/health/:area(content)/:check(files|ids|terms|parents|refs|taxonomies|types|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: t('router.titles.site_health', 'Site Health'), capability: 'site.health', area: 'home', parent: 'health' } },
+		{ path: '/health/:area(media)/:check(files|ids|sizes)', name: 'health-media-check', component: HealthView, props: true, meta: { title: t('router.titles.site_health', 'Site Health'), capability: 'site.health', area: 'home', parent: 'health' } },
 		{ path: '/health/:area(content|media)', redirect: (to) => ({ name: to.params.area === 'media' ? 'health-media-check' : 'health-check', params: { area: to.params.area, check: 'files' } }) },
-		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: 'Tools', area: 'home' } },
+		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: t('router.titles.tools', 'Tools'), area: 'home' } },
 		// A library file's screen is at its path under `user/media` (D-251).
-		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
-		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
-		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'structure' } },
-		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'structure', parent: 'types' } },
-		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'structure', parent: 'types' } },
-		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: 'Relationships', capability: 'site.settings', area: 'structure' } },
-		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: 'New Relationship', capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
-		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: 'Relationship', capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
-		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: 'Menus', capability: 'menus.edit', area: 'structure' } },
-		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: 'Menu', capability: 'menus.edit', area: 'structure', parent: 'menus' } },
-		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'structure' } },
-		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'structure', parent: 'fields' } },
+		{ path: '/media', name: 'media', component: MediaView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
+		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
+		{ path: '/types', name: 'types', component: TypesView, meta: { title: t('router.titles.content_types', 'Content Types'), capability: 'site.settings', area: 'structure' } },
+		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: t('router.titles.new_content_type', 'New Content Type'), capability: 'site.settings', area: 'structure', parent: 'types' } },
+		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: t('router.titles.content_type', 'Content Type'), capability: 'site.settings', area: 'structure', parent: 'types' } },
+		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: t('router.titles.relationships', 'Relationships'), capability: 'site.settings', area: 'structure' } },
+		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: t('router.titles.new_relationship', 'New Relationship'), capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
+		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: t('router.titles.relationship', 'Relationship'), capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
+		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: t('router.titles.menus', 'Menus'), capability: 'menus.edit', area: 'structure' } },
+		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: t('router.titles.menu', 'Menu'), capability: 'menus.edit', area: 'structure', parent: 'menus' } },
+		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: t('router.titles.fields', 'Fields'), capability: 'site.settings', area: 'structure' } },
+		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: t('router.titles.field_set', 'Field Set'), capability: 'site.settings', area: 'structure', parent: 'fields' } },
 		// The direction's Appearance, named Themes (D-327).
-		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'extensions.themes.view', area: 'extend' } },
-		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
+		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: t('router.titles.themes', 'Themes'), capability: 'extensions.themes.view', area: 'extend' } },
+		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: t('router.titles.theme', 'Theme'), capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		// The site's redirects (D-686), listed under Settings.
-		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: 'Redirects', capability: 'site.redirects', area: 'settings' } },
-		{ path: '/settings/:screen(general|reading|writing|media|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'settings', wide: true } },
-		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'extend' } },
-		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
+		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: t('router.titles.redirects', 'Redirects'), capability: 'site.redirects', area: 'settings' } },
+		{ path: '/settings/:screen(general|reading|writing|media|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: t('router.titles.settings', 'Settings'), capability: 'site.settings', area: 'settings', wide: true } },
+		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: t('router.titles.plugins', 'Plugins'), capability: 'extensions.plugins.view', area: 'extend' } },
+		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: t('router.titles.plugin', 'Plugin'), capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },
-		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: 'Icon Packs', capability: 'extensions.icon-packs.view', area: 'extend' } },
+		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: t('router.titles.icon_packs', 'Icon Packs'), capability: 'extensions.icon-packs.view', area: 'extend' } },
 		// The core set has a details screen too, though it isn't a pack (D-385).
-		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: 'Core', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
-		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: 'Icon Pack', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
+		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: t('router.titles.core', 'Core'), capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
+		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: t('router.titles.icon_pack', 'Icon Pack'), capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
 		// How the admin looks (D-827).
-		{ path: '/admin-themes', name: 'admin-themes', component: AdminThemesView, meta: { title: 'Admin Themes', capability: 'extensions.admin-themes.view', area: 'extend' } },
-		{ path: '/admin-themes/:vendor/:name', name: 'admin-theme', component: AdminThemeView, meta: { title: 'Admin Theme', capability: 'extensions.admin-themes.view', area: 'extend', parent: 'admin-themes' } },
+		{ path: '/admin-themes', name: 'admin-themes', component: AdminThemesView, meta: { title: t('router.titles.admin_themes', 'Admin Themes'), capability: 'extensions.admin-themes.view', area: 'extend' } },
+		{ path: '/admin-themes/:vendor/:name', name: 'admin-theme', component: AdminThemeView, meta: { title: t('router.titles.admin_theme', 'Admin Theme'), capability: 'extensions.admin-themes.view', area: 'extend', parent: 'admin-themes' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
 		// Accounts and profiles are two lists (D-353): who can sign in,
 		// and who's credited. Profiles are their type's entry list, with a
 		// screen of their own per profile.
-		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.view', area: 'people' } },
+		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: t('router.titles.accounts', 'Accounts'), capability: 'accounts.view', area: 'people' } },
 		{ path: '/people', redirect: () => can('accounts.view') ? { name: 'accounts' } : { name: 'profile' } },
-		{ path: '/profiles/:slug', name: 'profile-detail', component: ProfileDetailView, meta: { title: 'Profile', contentAction: 'edit', area: 'people', parent: 'profiles' } },
+		{ path: '/profiles/:slug', name: 'profile-detail', component: ProfileDetailView, meta: { title: t('router.titles.profile', 'Profile'), contentAction: 'edit', area: 'people', parent: 'profiles' } },
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
-		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.create', area: 'people', parent: 'accounts' } },
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: t('router.titles.new_account', 'New Account'), capability: 'accounts.create', area: 'people', parent: 'accounts' } },
 		// An account's screen; your own is Your Account, which any account
 		// may open (D-371), while others' need `accounts.view`.
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', area: 'people', parent: 'accounts' }, beforeEnter: (to) => to.params.username === session.account?.username || can('accounts.view') ? true : { name: 'dashboard' } },
-		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.view', area: 'people' } },
-		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'roles.manage', area: 'people', parent: 'roles' } },
-		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.view', area: 'people', parent: 'roles' } },
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: t('router.titles.account', 'Account'), area: 'people', parent: 'accounts' }, beforeEnter: (to) => to.params.username === session.account?.username || can('accounts.view') ? true : { name: 'dashboard' } },
+		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: t('router.titles.roles', 'Roles'), capability: 'accounts.view', area: 'people' } },
+		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: t('router.titles.new_role', 'New Role'), capability: 'roles.manage', area: 'people', parent: 'roles' } },
+		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: t('router.titles.role', 'Role'), capability: 'accounts.view', area: 'people', parent: 'roles' } },
 		// Your Account is your own account's address (D-371); `/profile`
 		// and the `profile` name lead there.
-		{ path: '/profile', name: 'profile', component: AccountView, meta: { title: 'Your Account', area: 'people' }, beforeEnter: () => ({ name: 'account', params: { username: session.account?.username ?? '' } }) },
-		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
+		{ path: '/profile', name: 'profile', component: AccountView, meta: { title: t('router.titles.your_account', 'Your Account'), area: 'people' }, beforeEnter: () => ({ name: 'account', params: { username: session.account?.username ?? '' } }) },
+		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: t('router.titles.sign_in', 'Sign In'), public: true } },
 		// Where an AI app sends someone to approve it (D-752): signed in,
 		// but outside the shell, as Sign In is (`bare`).
-		{ path: '/authorize', name: 'authorize', component: AuthorizeView, meta: { title: 'Connect an App', bare: true } },
+		{ path: '/authorize', name: 'authorize', component: AuthorizeView, meta: { title: t('router.titles.connect_an_app', 'Connect an App'), bare: true } },
 		// A password link (D-312): anyone with one may open it.
-		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },
-		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not Found' } }
+		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: t('router.titles.choose_a_password', 'Choose a Password'), public: true } },
+		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: t('router.titles.not_found', 'Not Found') } }
 	]
 });
 
@@ -196,9 +197,9 @@ export function sameScreen(to: RouteLocationNormalized, from: RouteLocationNorma
 
 function setTitle(): void {
 	const meta  = router.currentRoute.value.meta.title;
-	const title = screenTitle.value ?? (typeof meta === 'string' ? meta : 'Admin');
+	const title = screenTitle.value ?? (typeof meta === 'string' ? meta : t('router.admin', 'Admin'));
 
-	document.title = `${title} · ${config.site.name}`;
+	document.title = t('router.document_title', '{title} · {site}', { title, site: config.site.name });
 }
 
 router.afterEach((to, from) => {

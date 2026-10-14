@@ -20,23 +20,23 @@ const form = defineModel<TypeForm>({ required: true });
 	<div class="form-stack">
 		<div class="field-pair">
 			<div class="field">
-				<label :for="`${idPrefix}plural`">Name (plural)</label>
-				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ tree: 'Docs', collection: 'Recipes' }[kind]" autocomplete="off">
+				<label :for="`${idPrefix}plural`">{{ t('type_basics_fields.name_plural', 'Name (plural)') }}</label>
+				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ tree: t('type_basics_fields.placeholder_tree_plural', 'Docs'), collection: t('type_basics_fields.placeholder_collection_plural', 'Recipes') }[kind]" autocomplete="off">
 			</div>
 			<div class="field">
-				<label :for="`${idPrefix}singular`">Name (singular)</label>
-				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="{ tree: 'Doc', collection: 'Recipe' }[kind]" autocomplete="off">
+				<label :for="`${idPrefix}singular`">{{ t('type_basics_fields.name_singular', 'Name (singular)') }}</label>
+				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="{ tree: t('type_basics_fields.placeholder_tree_singular', 'Doc'), collection: t('type_basics_fields.placeholder_collection_singular', 'Recipe') }[kind]" autocomplete="off">
 			</div>
 		</div>
 		<div class="field">
-			<label :for="`${idPrefix}description`">Description</label>
+			<label :for="`${idPrefix}description`">{{ t('type_basics_fields.description', 'Description') }}</label>
 			<input :id="`${idPrefix}description`" v-model="form.description" autocomplete="off" :aria-describedby="`${idPrefix}description-help`">
-			<p :id="`${idPrefix}description-help`" class="field__help">What it's for, in a sentence. Shown on its list while it's empty.</p>
+			<p :id="`${idPrefix}description-help`" class="field__help">{{ t('type_basics_fields.description_help', 'What it\'s for, in a sentence. Shown on its list while it\'s empty.') }}</p>
 		</div>
 		<div class="field">
-			<label :for="`${idPrefix}icon`">Icon</label>
+			<label :for="`${idPrefix}icon`">{{ t('type_basics_fields.icon', 'Icon') }}</label>
 			<IconField :id="`${idPrefix}icon`" v-model="form.icon" :described-by="`${idPrefix}icon-help`" :preview="(icon) => `icon: ${icon.name}`" />
-			<p :id="`${idPrefix}icon-help`" class="field__help">Without one, its kind's icon.</p>
+			<p :id="`${idPrefix}icon-help`" class="field__help">{{ t('type_basics_fields.icon_help', 'Without one, its kind\'s icon.') }}</p>
 		</div>
 	</div>
 </template>

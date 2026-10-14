@@ -16,6 +16,7 @@ namespace Blush\Settings;
 use Blush\Config\Config;
 use Blush\Config\ConfigRepository;
 use Blush\Config\InvalidConfig;
+use Blush\Translation\Messages;
 
 /**
  * The settings saved in the admin (D-324): only the ones the site owner
@@ -54,12 +55,13 @@ final readonly class Settings
 
 	/**
 	 * Builds the settings from the file's data: sections (`app`, `feed`,
-	 * …) of keys to values, each checked.
+	 * …) of keys to values, each checked, its problems told with
+	 * `$messages` (English when none is given, as at boot).
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidSetting When a section or key isn't a setting, or a value doesn't fit.
 	 */
-	public static function fromArray(array $data): self
+	public static function fromArray(array $data, Messages $messages = new Messages()): self
 	{
 		$flat = [];
 		$site = [];
@@ -82,24 +84,25 @@ final readonly class Settings
 			}
 		}
 
-		return self::none()->with($flat)->withSite($site);
+		return self::none()->with($flat, $messages)->withSite($site);
 	}
 
 	/**
 	 * Returns a copy with the given values, keyed by `Setting` value
-	 * (`feed.limit`), each checked.
+	 * (`feed.limit`), each checked, its problems told with `$messages`
+	 * (English when none is given).
 	 *
 	 * @param  array<array-key, mixed> $changes
 	 * @throws InvalidSetting When a key isn't a setting, or a value doesn't fit.
 	 */
-	public function with(array $changes): self
+	public function with(array $changes, Messages $messages = new Messages()): self
 	{
 		$values = $this->values;
 
 		foreach ($changes as $key => $value) {
 			$setting = Setting::tryFrom((string) $key) ?? throw new InvalidSetting(sprintf('"%s" isn\'t a setting the admin can change.', $key));
 
-			$values[$setting->value] = $setting->normalize($value);
+			$values[$setting->value] = $setting->normalize($value, $messages);
 		}
 
 		return new self(self::ordered($values), $this->site);
@@ -213,11 +216,12 @@ final readonly class Settings
 	/**
 	 * Lays the settings over the config objects they belong to. Each
 	 * object is built again from its `toArray()` with the settings' keys
-	 * replaced, so it's checked as a config file's would be.
+	 * replaced, so it's checked as a config file's would be. Its problem
+	 * is told with `$messages` (English when none is given).
 	 *
 	 * @throws InvalidSetting When a config object refuses a value.
 	 */
-	public function apply(ConfigRepository $config): ConfigRepository
+	public function apply(ConfigRepository $config, Messages $messages = new Messages()): ConfigRepository
 	{
 		$changes = [];
 
@@ -235,7 +239,7 @@ final readonly class Settings
 			try {
 				$objects[] = $class::fromArray([...$current?->toArray() ?? [], ...$values]);
 			} catch (InvalidConfig $error) {
-				throw new InvalidSetting(sprintf('A saved setting doesn\'t fit: %s', $error->getMessage()), previous: $error);
+				throw new InvalidSetting((string) $messages->t('settings.settings.not_fit', 'A saved setting doesn\'t fit: {reason}', reason: $error->getMessage()), previous: $error);
 			}
 		}
 

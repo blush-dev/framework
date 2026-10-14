@@ -20,7 +20,8 @@ import { OPEN_LEVEL, type FieldLevel } from '../field-levels';
 import AdminIcon from './AdminIcon.vue';
 import FieldControl from './FieldControl.vue';
 import { childrenOf, choiceLabel, fromItems, help, isEmptyState, itemsOf, label, type FieldStep, type FormGroup, type FormValue } from '../fields';
-import { plural, titleCase } from '../format';
+import { titleCase } from '../format';
+import { t } from '../messages';
 
 const props = defineProps<{
 	field: FieldDescription;
@@ -40,7 +41,7 @@ const openLevel = inject(OPEN_LEVEL, null);
 
 const fields = computed(() => childrenOf(props.field));
 const items  = computed(() => itemsOf(model.value));
-const noun   = computed(() => props.field.itemLabel !== undefined && props.field.itemLabel !== '' ? props.field.itemLabel : 'Item');
+const noun   = computed(() => props.field.itemLabel !== undefined && props.field.itemLabel !== '' ? props.field.itemLabel : t('field_repeater.item', 'Item'));
 const max    = computed(() => typeof props.field.max === 'number' ? props.field.max : null);
 const id     = computed(() => `${props.idPrefix ?? 'field-'}${props.field.name}`);
 const asRow  = computed(() => props.nest > 0 && openLevel !== null);
@@ -65,7 +66,7 @@ function summary(item: FormGroup, index: number): string {
 		return [value.split('\n').map((line) => choiceLabel(child, line.trim())).join(', ')];
 	});
 
-	return parts.length === 0 ? `${noun.value} ${index + 1}` : parts.slice(0, 3).join(' · ');
+	return parts.length === 0 ? t('field_repeater.numbered', '{noun} {number}', { noun: noun.value, number: index + 1 }) : parts.slice(0, 3).join(' · ');
 }
 
 function write(next: FormGroup[]): void {
@@ -103,7 +104,7 @@ function remove(index: number): void {
 }
 
 function where(index: number, child: FieldDescription): FieldLevel {
-	return { root: props.at.root, steps: [...props.at.steps, index, child.name], trail: [...props.at.trail, `${noun.value} ${index + 1}`, label(child)] };
+	return { root: props.at.root, steps: [...props.at.steps, index, child.name], trail: [...props.at.trail, t('field_repeater.numbered', '{noun} {number}', { noun: noun.value, number: index + 1 }), label(child)] };
 }
 
 function blank(item: FormGroup): boolean {
@@ -114,11 +115,11 @@ function blank(item: FormGroup): boolean {
 <template>
 	<button v-if="asRow" :id="id" type="button" class="level-link level-link--boxed" :class="{ 'is-quiet': items.length === 0 }" @click="openLevel?.(at)">
 		<AdminIcon name="list" />
-		<span class="level-link__text"><strong>{{ label(field) }}</strong><span>{{ items.length === 0 ? 'None yet' : plural(items.length, noun.toLowerCase()) }}</span></span>
+		<span class="level-link__text"><strong>{{ label(field) }}</strong><span>{{ items.length === 0 ? t('field_repeater.none_yet', 'None yet') : t('field_repeater.count', '{count, plural, one {# {noun} } other {# {noun}s} }', { count: items.length, noun: noun.toLowerCase() }) }}</span></span>
 		<AdminIcon name="chevron-right" class="level-link__go" />
 	</button>
 	<fieldset v-else :id="id" class="fieldset fieldset--group" :aria-describedby="help(field) !== '' ? `${id}-help` : undefined">
-		<legend>{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></legend>
+		<legend>{{ label(field) }}<span v-if="field.required" class="field__required"> {{ t('field_repeater.required', '(required)') }}</span></legend>
 		<p v-if="help(field) !== ''" :id="`${id}-help`" class="field__help">{{ help(field) }}</p>
 
 		<ol v-if="items.length" class="repeater">
@@ -142,17 +143,17 @@ function blank(item: FormGroup): boolean {
 						@pick="(target, steps) => emit('pick', target, steps)"
 					/>
 					<div class="repeater__actions">
-						<button type="button" class="button button--ghost button--small button--icon" :disabled="index === 0" @click="move(index, -1)"><AdminIcon name="arrow-up" /><span class="visually-hidden">Move {{ summary(item, index) }} up</span></button>
-						<button type="button" class="button button--ghost button--small button--icon" :disabled="index === items.length - 1" @click="move(index, 1)"><AdminIcon name="arrow-down" /><span class="visually-hidden">Move {{ summary(item, index) }} down</span></button>
-						<button type="button" class="button button--ghost button--small button--danger" @click="remove(index)">Remove<span class="visually-hidden"> {{ summary(item, index) }}</span></button>
-						<button type="button" class="button button--small repeater__done" @click="open = -1">Done</button>
+						<button type="button" class="button button--ghost button--small button--icon" :disabled="index === 0" @click="move(index, -1)"><AdminIcon name="arrow-up" /><span class="visually-hidden">{{ t('field_repeater.move_up', 'Move {item} up', { item: summary(item, index) }) }}</span></button>
+						<button type="button" class="button button--ghost button--small button--icon" :disabled="index === items.length - 1" @click="move(index, 1)"><AdminIcon name="arrow-down" /><span class="visually-hidden">{{ t('field_repeater.move_down', 'Move {item} down', { item: summary(item, index) }) }}</span></button>
+						<button type="button" class="button button--ghost button--small button--danger" @click="remove(index)">{{ t('common.remove', 'Remove') }}<span class="visually-hidden"> {{ summary(item, index) }}</span></button>
+						<button type="button" class="button button--small repeater__done" @click="open = -1">{{ t('common.done', 'Done') }}</button>
 					</div>
 				</div>
 			</li>
 		</ol>
 
-		<button v-if="max === null || items.length < max" type="button" class="button button--ghost button--small repeater__add" @click="add"><AdminIcon name="plus" />{{ titleCase(`Add ${noun}`) }}</button>
-		<p v-else class="field__help">{{ titleCase(noun) }}s are at their most ({{ max }}).</p>
+		<button v-if="max === null || items.length < max" type="button" class="button button--ghost button--small repeater__add" @click="add"><AdminIcon name="plus" />{{ titleCase(t('field_repeater.add', 'Add {noun}', { noun })) }}</button>
+		<p v-else class="field__help">{{ t('field_repeater.at_most', '{noun}s are at their most ({max}).', { noun: titleCase(noun), max }) }}</p>
 		<p v-if="error" class="field__error">{{ error }}</p>
 	</fieldset>
 </template>

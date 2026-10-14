@@ -19,6 +19,7 @@ use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Keeps jobs as JSON files in `storage/jobs` (D-621), a folder for each
@@ -32,7 +33,8 @@ final readonly class FileJobStore implements JobStore
 {
 	public function __construct(
 		private Paths $paths,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private Messages $messages
 	) {}
 
 	/**
@@ -229,7 +231,7 @@ final readonly class FileJobStore implements JobStore
 			return null;
 		}
 
-		return is_array($data) ? JobRecord::fromArray($data) : null;
+		return is_array($data) ? JobRecord::fromArray($data, $this->messages) : null;
 	}
 
 	/**

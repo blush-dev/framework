@@ -27,6 +27,7 @@ use Blush\Error\ExceptionRenderer;
 use Blush\Error\HtmlRenderer;
 use Blush\Http\Middleware\ConditionalGet;
 use Blush\Http\Middleware\HandleErrors;
+use Blush\Translation\Messages;
 
 /**
  * Wires the HTTP layer: the PSR-17 factories, the kernel, the emitter,
@@ -91,7 +92,8 @@ final class HttpServiceProvider extends ServiceProvider
 			HandleErrors::class,
 			ExceptionRenderer::class,
 			static fn (Container $container): ExceptionRenderer => new HtmlRenderer(
-				$container->make(AppConfig::class)->debug
+				$container->make(AppConfig::class)->debug,
+				$container->make(Messages::class)
 			)
 		);
 

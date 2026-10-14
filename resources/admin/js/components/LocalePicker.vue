@@ -15,6 +15,7 @@
 
 import { computed, nextTick, ref, watch } from 'vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
+import { t } from '../messages';
 
 const props = defineProps<{
 	id: string;
@@ -64,7 +65,7 @@ const menu = computed({
 // Each name is marked as the language it's written in.
 const choices = computed<SelectOption[]>(() => [
 	...props.options.map((option) => ({ ...option, lang: option.value.replace(/_/g, '-'), search: option.value })),
-	{ value: OTHER, label: 'Other…', pinned: true }
+	{ value: OTHER, label: t('locale_picker.other', 'Other…'), pinned: true }
 ]);
 
 // Other, chosen when the search found nothing, takes the search as the
@@ -85,8 +86,8 @@ function picked(value: string, query: string, matched: boolean): void {
 			ref="input"
 			v-model="model"
 			class="mono"
-			aria-label="Language code"
-			placeholder="such as en_US or fr"
+			:aria-label="t('locale_picker.code', 'Language code')"
+			:placeholder="t('locale_picker.code_placeholder', 'such as en_US or fr')"
 			:aria-describedby="describedBy"
 			:aria-invalid="invalid ? 'true' : undefined"
 			:disabled="disabled"

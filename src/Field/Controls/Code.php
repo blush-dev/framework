@@ -20,6 +20,8 @@ use Blush\Field\Fields\MediaField;
 use Blush\Field\Fields\ReferenceField;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Text in a code font: any text, a slug, a media path, or slugs of entries. Not offered in the picker.
@@ -39,18 +41,18 @@ final class Code extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Code';
+		return $messages->t('field.code.label', 'Code');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Text in a code font.';
+		return $messages->t('field.code.description', 'Text in a code font.');
 	}
 
 	/**

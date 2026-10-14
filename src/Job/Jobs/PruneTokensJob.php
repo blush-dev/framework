@@ -20,6 +20,8 @@ use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
 use Blush\Mcp\OAuth\OAuthClients;
 use Blush\Mcp\OAuth\OAuthGrants;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Removes API tokens that expired over 30 days ago (`Tokens::prune()`,
@@ -33,16 +35,17 @@ final class PruneTokensJob extends Job
 	public function __construct(
 		private readonly Tokens $tokens,
 		private readonly OAuthClients $clients,
-		private readonly OAuthGrants $grants
+		private readonly OAuthGrants $grants,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Remove long-expired API tokens';
+		return $this->messages->t('job.prune_tokens_job.label', 'Remove long-expired API tokens');
 	}
 
 	/**
@@ -55,6 +58,6 @@ final class PruneTokensJob extends Job
 		$secrets = $this->grants->prune();
 		$clients = $this->clients->prune();
 
-		return JobResult::done(sprintf('Removed %d expired token%s, %d expired code%s and refresh tokens, and %d app%s nobody connected.', $pruned, $pruned === 1 ? '' : 's', $secrets, $secrets === 1 ? '' : 's', $clients, $clients === 1 ? '' : 's'));
+		return JobResult::done($this->messages->t('job.prune_tokens_job.removed', 'Removed {tokens, plural, one {# expired token} other {# expired tokens}}, {codes, plural, one {# expired code} other {# expired codes}} and refresh tokens, and {apps, plural, one {# app} other {# apps}} nobody connected.', tokens: $pruned, codes: $secrets, apps: $clients));
 	}
 }

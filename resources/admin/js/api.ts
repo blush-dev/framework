@@ -5,6 +5,7 @@
  */
 
 import { config } from './config';
+import { t } from './messages';
 import type { AccountProfile } from './people';
 
 export interface Account {
@@ -43,6 +44,9 @@ export interface Preferences {
 	// The screens pinned in Home's panel, by id, or `null` for the
 	// default (D-547).
 	shortcuts: string[] | null;
+	// The language the admin is shown in, a locale, or `null` for the
+	// site's (D-831).
+	language: string | null;
 }
 
 export interface SessionState {
@@ -1447,6 +1451,9 @@ export interface Violation {
 	// What kind of problem it is (D-612), for Site Health's groups, or
 	// `null` for one with no kind of its own.
 	kind: string | null;
+	// Site Health's key for it (D-613), made from its English so it's the
+	// same in every language (D-836); a report kept before has none.
+	problem?: string;
 }
 
 export interface Health {
@@ -1808,7 +1815,7 @@ async function answer<T>(url: string, init: RequestInit): Promise<T> {
 	try {
 		response = await fetch(url, init);
 	} catch {
-		throw new ApiError('The site couldn\'t be reached. Check your connection and try again.', 0);
+		throw new ApiError(t('api.offline', 'The site couldn\'t be reached. Check your connection and try again.'), 0);
 	}
 
 	if (response.status === 204) {
@@ -1820,7 +1827,7 @@ async function answer<T>(url: string, init: RequestInit): Promise<T> {
 	if (!response.ok) {
 		const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
 			? data.error
-			: (response.status === 413 ? 'That\'s larger than the server takes.' : `The request failed (${response.status}).`);
+			: (response.status === 413 ? t('api.too_large', 'That\'s larger than the server takes.') : t('api.failed', 'The request failed ({status}).', { status: response.status }));
 
 		const field = typeof data === 'object' && data !== null && 'field' in data && typeof data.field === 'string' ? data.field : null;
 
@@ -1861,7 +1868,7 @@ export function uploadWithProgress<T>(path: string, file: File, fields: Record<s
 			}
 		};
 
-		request.onerror = () => reject(new ApiError('The site couldn\'t be reached. Check your connection and try again.', 0));
+		request.onerror = () => reject(new ApiError(t('api.offline', 'The site couldn\'t be reached. Check your connection and try again.'), 0));
 
 		request.onload = () => {
 			let data: unknown = null;
@@ -1880,7 +1887,7 @@ export function uploadWithProgress<T>(path: string, file: File, fields: Record<s
 
 			const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
 				? data.error
-				: (request.status === 413 ? 'That\'s larger than the server takes.' : `The request failed (${request.status}).`);
+				: (request.status === 413 ? t('api.too_large', 'That\'s larger than the server takes.') : t('api.failed', 'The request failed ({status}).', { status: request.status }));
 
 			reject(new ApiError(message, request.status, null, data));
 		};

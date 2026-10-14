@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Links an extension's `license` to the text of each license it names,
  * for the common open source ones (D-426). A license is as Composer has
@@ -89,14 +91,14 @@ final readonly class ExtensionLicense
 	 *
 	 * @throws ExtensionException When it's neither.
 	 */
-	public static function fromManifest(mixed $license): string
+	public static function fromManifest(mixed $license, Messages $messages = new Messages()): string
 	{
 		if (is_string($license)) {
 			return trim($license);
 		}
 
 		if (! is_array($license) || ! array_is_list($license) || ! array_all($license, static fn (mixed $item): bool => is_string($item) && trim($item) !== '')) {
-			throw new ExtensionException('"license" must be a string, or a list of strings any of which applies.');
+			throw new ExtensionException((string) $messages->t('extension.extension_license.invalid', '"license" must be a string, or a list of strings any of which applies.'));
 		}
 
 		/** @var list<string> $license Checked above. */

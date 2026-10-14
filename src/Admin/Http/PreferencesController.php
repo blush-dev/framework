@@ -16,6 +16,7 @@ namespace Blush\Admin\Http;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Admin\AdminLanguages;
 use Blush\Admin\Theme\AdminThemes;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
@@ -23,14 +24,16 @@ use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers `PATCH {path}/api/preferences` (D-235): changes the signed-in
  * account's own preferences, which any account may do, and answers with
  * all of them: `colorScheme` (`system`, `light`, or `dark`),
  * `adminTheme` (an offered admin theme's name, or `null` to follow the
- * site's default, D-827), `setupSkipped` (D-539), and `shortcuts` (D-547, a list
- * of screen ids, or `null` for the default); preferences not sent are left
+ * site's default, D-827), `setupSkipped` (D-539), `shortcuts` (D-547, a list
+ * of screen ids, or `null` for the default), and `language` (an offered
+ * admin language, or `null` for the site's, D-831); preferences not sent are left
  * as they are. The entry last saved (`lastEdited`) is written by saving
  * one, not here.
  */
@@ -38,7 +41,9 @@ final readonly class PreferencesController
 {
 	public function __construct(
 		private Accounts $accounts,
-		private AdminThemes $themes
+		private AdminThemes $themes,
+		private AdminLanguages $languages,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -46,7 +51,7 @@ final readonly class PreferencesController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		try {
@@ -95,6 +100,16 @@ final readonly class PreferencesController
 			}
 
 			$preferences = $preferences->withShortcuts($input['shortcuts']);
+		}
+
+		if (array_key_exists('language', $input)) {
+			$language = $input['language'];
+
+			if ($language !== null && (! is_string($language) || ! $this->languages->isOffered($language))) {
+				return self::json(['error' => '"language" must be null, for the site\'s, or a language the admin has text in.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withLanguage($language);
 		}
 
 		$account = $this->accounts->setPreferences($account, $preferences);

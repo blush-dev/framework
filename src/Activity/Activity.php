@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Activity;
 
 use NoDiscard;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One change in the activity log (D-758): when, by which account and
@@ -24,6 +26,10 @@ use NoDiscard;
  * it wrote (`revision`), so Undo puts it back only while nothing has
  * changed since. A change that undid another names it (`undoes`), and
  * the other names it back (`undone`).
+ *
+ * Its summary is best written with `t()` (D-836): it's kept as its
+ * message and read back as a `Text`, shown in the reader's language. One
+ * kept as text is shown as it is.
  */
 final readonly class Activity
 {
@@ -38,7 +44,7 @@ final readonly class Activity
 		public ActivityAction $action,
 		public string $subject,
 		public string $title = '',
-		public string $summary = '',
+		public string|Text $summary = '',
 		public ?string $client = null,
 		public ?string $token = null,
 		public ?array $before = null,
@@ -75,19 +81,20 @@ final readonly class Activity
 	}
 
 	/**
-	 * Builds a change from its stored array and its record's id.
+	 * Builds a change from its stored array and its record's id, its
+	 * summary read back with `$messages`.
 	 *
 	 * @param  array<mixed> $data
 	 * @throws ActivityException When the data isn't a change.
 	 */
-	public static function fromArray(array $data, string $id): self
+	public static function fromArray(array $data, string $id, Messages $messages): self
 	{
 		$via    = is_string($data['via'] ?? null) ? Via::tryFrom($data['via']) : null;
 		$action = is_string($data['action'] ?? null) ? ActivityAction::tryFrom($data['action']) : null;
 		$before = $data['before'] ?? null;
 
 		if ($via === null || $action === null || ! is_int($data['time'] ?? null) || ! is_string($data['account'] ?? null) || ! is_string($data['subject'] ?? null)) {
-			throw new ActivityException(sprintf('The activity "%s" is damaged.', $id));
+			throw new ActivityException((string) $messages->t('activity.activity.damaged', 'The activity "{id}" is damaged.', id: $id));
 		}
 
 		$text = static fn (string $key): ?string => is_string($data[$key] ?? null) ? $data[$key] : null;
@@ -103,7 +110,7 @@ final readonly class Activity
 			action: $action,
 			subject: $data['subject'],
 			title: $text('title') ?? '',
-			summary: $text('summary') ?? '',
+			summary: $text('summary') ?? $messages->restore($data['summary'] ?? null) ?? '',
 			client: $text('client'),
 			token: $text('token'),
 			before: $before,
@@ -130,7 +137,7 @@ final readonly class Activity
 			'action'   => $this->action->value,
 			'subject'  => $this->subject,
 			'title'    => $this->title,
-			'summary'  => $this->summary,
+			'summary'  => $this->summary instanceof Text ? $this->summary->toArray() : $this->summary,
 			'before'   => $this->before,
 			'revision' => $this->revision,
 			'undoes'   => $this->undoes,

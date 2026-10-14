@@ -6,7 +6,7 @@
  */
 
 import type { ReferenceItem } from '../references';
-import { withArticle } from '../format';
+import MessageText from './MessageText.vue';
 
 defineProps<{
 	// Each value as written, with what's known about it.
@@ -20,7 +20,7 @@ defineEmits<{ replace: [value: string, slug: string] }>();
 
 <template>
 	<p v-for="{ value, item } in missing" :key="value" class="field__error reference__missing">
-		<span><span class="mono">{{ value }}</span> doesn't match {{ withArticle(noun) }}.<template v-if="item.closest"> Did you mean <b>{{ item.closest.title }}</b>?</template></span>
-		<button v-if="item.closest" type="button" class="lnk" @click="$emit('replace', value, item.closest.slug)">Replace</button>
+		<span><MessageText :text="t('reference_missing.no_match', '{value} doesn\'t match any {noun}.', { noun })"><template #value><span class="mono">{{ value }}</span></template></MessageText><template v-if="item.closest"> <MessageText :text="t('reference_missing.did_you_mean', 'Did you mean {title}?')"><template #title><b>{{ item.closest.title }}</b></template></MessageText></template></span>
+		<button v-if="item.closest" type="button" class="lnk" @click="$emit('replace', value, item.closest.slug)">{{ t('reference_missing.replace', 'Replace') }}</button>
 	</p>
 </template>

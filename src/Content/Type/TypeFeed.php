@@ -15,6 +15,8 @@ namespace Blush\Content\Type;
 
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A content type's feed settings: the taxonomy whose terms become each
@@ -34,20 +36,21 @@ final readonly class TypeFeed
 	 * Builds feed settings from a map.
 	 *
 	 * @param  array<array-key, mixed> $data
+	 * @param  string|Text             $label What the feed is, to start the messages about it: "Content type "post" feed".
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, string $label): self
+	public static function fromArray(array $data, string|Text $label, Messages $messages): self
 	{
 		$data    = [...$data, 'categories' => $data['categories'] ?? $data['taxonomy'] ?? null, 'listing' => $data['listing'] ?? $data['collection'] ?? null];
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['categories', 'listing', 'taxonomy', 'collection']);
 
 		if ($unknown !== []) {
-			throw new InvalidContentType(sprintf('%s has unknown options: %s.', $label, implode(', ', $unknown)));
+			throw new InvalidContentType((string) $messages->t('content.type_feed.unknown_options', '{subject} has unknown options: {options}.', subject: $label, options: implode(', ', $unknown)));
 		}
 
 		try {
-			$feed    = new Definition($data, $label);
-			$listing = $data['listing'] === null ? null : Listing::fromArray($feed->map('listing'), "{$label} listing");
+			$feed    = new Definition($data, (string) $label);
+			$listing = $data['listing'] === null ? null : Listing::fromArray($feed->map('listing'), $messages->t('content.type_feed.listing_subject', '{feed} listing', feed: $label), $messages);
 
 			return new self($feed->nullableString('categories'), $listing);
 		} catch (InvalidSchema $e) {

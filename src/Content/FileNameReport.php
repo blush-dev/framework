@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content;
 
+use Blush\Translation\Text;
+
 /**
  * What `FileNames::report()` found (D-512): the entries named by another
  * pattern than their type's, and the ones it leaves as they are, with
@@ -22,7 +24,7 @@ final readonly class FileNameReport
 {
 	/**
 	 * @param array<string, list<FileNameRename>>   $renames By type.
-	 * @param array<string, array<string, string>> $skipped Why, by type and path.
+	 * @param array<string, array<string, Text>>   $skipped Why, by type and path.
 	 */
 	public function __construct(
 		public array $renames = [],

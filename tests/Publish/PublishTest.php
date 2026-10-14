@@ -54,6 +54,7 @@ use Blush\Publish\WebhookThrottle;
 use Blush\Routing\RouteCache;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Tests\Fixtures\Publish\RecordingPuller;
+use Blush\Translation\Messages;
 
 #[CoversClass(Publisher::class)]
 #[CoversClass(PublishReport::class)]
@@ -257,12 +258,12 @@ final class PublishTest extends TestCase
 		$this->assertSame(['about.md'], $report->index?->added);
 		$this->assertFileExists("{$root}/user/content/about.md");
 
-		$broken = new GitPuller(new PublishConfig(gitBinary: 'git'))->pull("{$root}/storage");
+		$broken = new GitPuller(new PublishConfig(gitBinary: 'git'), new Messages())->pull("{$root}/storage");
 
 		$this->assertFalse($broken->successful);
 		$this->assertStringContainsString('git', strtolower($broken->output));
-		$this->assertFalse(new GitPuller(new PublishConfig())->pull("{$root}/missing")->successful);
-		$this->assertFalse(new GitPuller(new PublishConfig(gitBinary: "{$root}/no-such-git"))->pull($root)->successful);
+		$this->assertFalse(new GitPuller(new PublishConfig(), new Messages())->pull("{$root}/missing")->successful);
+		$this->assertFalse(new GitPuller(new PublishConfig(gitBinary: "{$root}/no-such-git"), new Messages())->pull($root)->successful);
 	}
 
 	public function testThePublishCommand(): void

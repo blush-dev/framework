@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Extension\Install;
 
 use ZipArchive;
+use Blush\Translation\Messages;
 
 /**
  * A `.zip` of an extension's folder, read before anything is written
@@ -51,7 +52,8 @@ final class ExtensionArchive
 
 	private function __construct(
 		private readonly ZipArchive $zip,
-		private readonly string $name
+		private readonly string $name,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -61,19 +63,19 @@ final class ExtensionArchive
 	 * @param  string $name Its name, for messages.
 	 * @throws InstallException When it isn't a zip, or isn't safe to unpack.
 	 */
-	public static function open(string $file, string $name): self
+	public static function open(string $file, string $name, Messages $messages = new Messages()): self
 	{
 		if (! class_exists(ZipArchive::class)) {
-			throw new InstallException('This server\'s PHP can\'t read .zip files (it has no zip extension), so nothing can be installed here.');
+			throw new InstallException((string) $messages->t('extension.extension_archive.no_zip', 'This server\'s PHP can\'t read .zip files (it has no zip extension), so nothing can be installed here.'));
 		}
 
 		$zip = new ZipArchive();
 
 		if ($zip->open($file, ZipArchive::RDONLY) !== true) {
-			throw new InstallException(sprintf('%s isn\'t a .zip file Blush can read.', $name));
+			throw new InstallException((string) $messages->t('extension.extension_archive.not_zip', '{name} isn\'t a .zip file Blush can read.', name: $name));
 		}
 
-		$archive = new self($zip, $name);
+		$archive = new self($zip, $name, $messages);
 		$archive->check();
 
 		return $archive;
@@ -91,14 +93,14 @@ final class ExtensionArchive
 			$parent = dirname($target);
 
 			if (! is_dir($parent) && ! @mkdir($parent, 0775, true) && ! is_dir($parent)) {
-				throw new InstallException(sprintf('%s couldn\'t be unpacked: a folder couldn\'t be made.', $this->name));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.folder_not_made', '{name} couldn\'t be unpacked: a folder couldn\'t be made.', name: $this->name));
 			}
 
 			$stream = $this->zip->getStream($this->zip->getNameIndex($index) ?: '');
 			$out    = @fopen($target, 'xb');
 
 			if ($stream === false || $out === false) {
-				throw new InstallException(sprintf('%s couldn\'t be unpacked: %s couldn\'t be written.', $this->name, $path));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.file_not_written', '{name} couldn\'t be unpacked: {file} couldn\'t be written.', name: $this->name, file: $path));
 			}
 
 			stream_copy_to_stream($stream, $out);
@@ -120,7 +122,7 @@ final class ExtensionArchive
 	private function check(): void
 	{
 		if ($this->zip->numFiles > self::MAX_FILES) {
-			throw new InstallException(sprintf('%s holds more than %d files.', $this->name, self::MAX_FILES));
+			throw new InstallException((string) $this->messages->t('extension.extension_archive.too_many_files', '{name} holds more than {count, number} files.', name: $this->name, count: self::MAX_FILES));
 		}
 
 		$files = [];
@@ -130,7 +132,7 @@ final class ExtensionArchive
 			$stat = $this->zip->statIndex($index);
 
 			if ($stat === false) {
-				throw new InstallException(sprintf('%s is damaged.', $this->name));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.damaged', '{name} is damaged.', name: $this->name));
 			}
 
 			$path = $stat['name'];
@@ -140,7 +142,7 @@ final class ExtensionArchive
 			}
 
 			if (! self::safe($path)) {
-				throw new InstallException(sprintf('%s has a file that would land outside its folder (%s), so it wasn\'t unpacked.', $this->name, $path));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.outside', '{name} has a file that would land outside its folder ({file}), so it wasn\'t unpacked.', name: $this->name, file: $path));
 			}
 
 			$system     = 0;
@@ -149,13 +151,13 @@ final class ExtensionArchive
 			$this->zip->getExternalAttributesIndex($index, $system, $attributes);
 
 			if ($system === ZipArchive::OPSYS_UNIX && (((is_int($attributes) ? $attributes : 0) >> 16) & 0o170000) === 0o120000) {
-				throw new InstallException(sprintf('%s has a symbolic link (%s), so it wasn\'t unpacked.', $this->name, $path));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.symlink', '{name} has a symbolic link ({file}), so it wasn\'t unpacked.', name: $this->name, file: $path));
 			}
 
 			$total += $stat['size'];
 
 			if ($total > self::MAX_UNPACKED) {
-				throw new InstallException(sprintf('%s comes to more than %d MB unpacked.', $this->name, self::MAX_UNPACKED / 1024 / 1024));
+				throw new InstallException((string) $this->messages->t('extension.extension_archive.too_large', '{name} comes to more than {size, number} MB unpacked.', name: $this->name, size: self::MAX_UNPACKED / 1024 / 1024));
 			}
 
 			if (! str_ends_with($path, '/')) {

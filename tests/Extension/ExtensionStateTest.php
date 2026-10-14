@@ -251,7 +251,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertSame('Conflicts with Old-seo <2.0 (version 1.0.0 is on).', Requirements::reason($state->plugins->unmet()['acme/new-seo'] ?? []));
 		$this->assertSame(
 			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo', 'metBy' => '']],
-			$state->report($plugins[0])['conflicts']
+			self::spoken($state->report($plugins[0])['conflicts'])
 		);
 		$this->assertSame([], $state->report($plugins[0])['requirements'], 'Conflicts are listed apart from requirements.');
 	}
@@ -263,7 +263,7 @@ final class ExtensionStateTest extends TestCase
 		$state = self::settle($plugins, ['acme/new-seo', 'acme/old-seo'], [], Themes::DEFAULT);
 
 		$this->assertTrue($state->runs('acme/new-seo'));
-		$this->assertSame(['version 1.0.0 is installed', 'is turned off'], array_column($state->report($plugins[0])['conflicts'], 'note'));
+		$this->assertSame(['version 1.0.0 is installed', 'is turned off'], array_map(strval(...), array_column($state->report($plugins[0])['conflicts'], 'note')));
 	}
 
 	public function testAConflictIsJudgedAgainstWhatsOnNotWhatRuns(): void
@@ -297,7 +297,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue($state->runs('acme/modern'), 'It conflicts only with PHP below 8.5.');
 		$this->assertFalse($state->runs('acme/legacy'));
 		$this->assertSame('Conflicts with PHP >=8.5 (this site runs 8.5.1).', Requirements::reason($state->plugins->unmet()['acme/legacy'] ?? []));
-		$this->assertSame(['isn\'t loaded', 'isn\'t installed'], array_slice(array_column($state->report($plugins[2])['conflicts'], 'note'), 1), 'An extension that isn\'t loaded or installed conflicts with nothing.');
+		$this->assertSame(['isn\'t loaded', 'isn\'t installed'], array_slice(array_map(strval(...), array_column($state->report($plugins[2])['conflicts'], 'note')), 1), 'An extension that isn\'t loaded or installed conflicts with nothing.');
 	}
 
 	public function testAnInvalidConstraintIsAConflict(): void
@@ -332,7 +332,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue($state->runs('acme/sitemap'));
 		$this->assertSame(
 			[['name' => 'acme/seo', 'constraint' => '^2.0', 'kind' => 'plugin', 'met' => true, 'note' => 'Seo-pro 2.0.0 replaces it', 'label' => '', 'metBy' => 'acme/seo-pro']],
-			$state->report($plugins[1])['requirements']
+			self::spoken($state->report($plugins[1])['requirements'])
 		);
 		$this->assertFalse($state->runs('acme/legacy-map'), 'It replaces 2.0.0 only (self.version), which ^1.0 doesn\'t match.');
 		$this->assertSame(['acme/legacy-map', 'acme/sitemap'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/seo-pro')), 'What requires what it replaces requires it.');
@@ -361,7 +361,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertSame('acme/seo-pro', $swapped->check($plugins[2])[0]->metBy ?? null);
 		$this->assertSame(
 			[['name' => 'acme/seo', 'constraint' => '*', 'kind' => 'plugin', 'met' => true, 'note' => 'is turned off', 'label' => 'Seo', 'metBy' => '']],
-			$swapped->report($plugins[0])['replaces']
+			self::spoken($swapped->report($plugins[0])['replaces'])
 		);
 	}
 
@@ -388,7 +388,7 @@ final class ExtensionStateTest extends TestCase
 		$one = self::settle($plugins, ['acme/openai', 'acme/writer'], [], Themes::DEFAULT);
 
 		$this->assertTrue($one->runs('acme/writer'));
-		$this->assertSame(['Openai 1.2.0 provides it', 'acme/openai'], [$one->check($plugins[3])[0]->note, $one->check($plugins[3])[0]->metBy]);
+		$this->assertSame(['Openai 1.2.0 provides it', 'acme/openai'], [(string) $one->check($plugins[3])[0]->note, $one->check($plugins[3])[0]->metBy]);
 		$this->assertSame([['name' => 'acme/ai-provider', 'constraint' => '1.2.0']], $one->report($plugins[0])['provides'], 'self.version is its own.');
 		$this->assertSame(['acme/writer'], array_map(static fn ($other): string => $other->name, $one->requiredBy('acme/claude')), 'What requires what it provides requires it.');
 
@@ -503,5 +503,16 @@ final class ExtensionStateTest extends TestCase
 	{
 		$this->assertSame('Nova ^1.0 (isn\'t active)', new Requirement('acme/nova', '^1.0', RequirementKind::Theme, false, 'isn\'t active', 'Nova')->describe());
 		$this->assertSame('acme/crm (isn\'t installed)', new Requirement('acme/crm', '*', RequirementKind::Missing, false, 'isn\'t installed')->describe());
+	}
+
+	/**
+	 * Report rows with their notes as the text they print.
+	 *
+	 * @param  list<array<string, mixed>> $rows
+	 * @return list<array<string, mixed>>
+	 */
+	private static function spoken(array $rows): array
+	{
+		return array_map(static fn (array $row): array => [...$row, 'note' => is_scalar($row['note']) || $row['note'] instanceof \Stringable ? (string) $row['note'] : ''], $rows);
 	}
 }

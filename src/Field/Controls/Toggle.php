@@ -18,6 +18,8 @@ use Blush\Field\Control;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\BoolField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * On or off: a yes-or-no field.
@@ -37,18 +39,18 @@ final class Toggle extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Toggle';
+		return $messages->t('field.toggle.label', 'Toggle');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'On or off.';
+		return $messages->t('field.toggle.description', 'On or off.');
 	}
 
 	/**

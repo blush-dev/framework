@@ -17,20 +17,22 @@ import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import { useAction } from '../action';
 import { loadCounts, navCounts } from '../counts';
-import { formatWhen, plural } from '../format';
+import { formatWhen } from '../format';
 import { finish } from '../jobs';
 import { can, session } from '../session';
 import { copyText, toast } from '../toast';
 import { request, type HealthArea, type HealthCheck, type HealthFact, type HealthRequirement, type SiteHealth } from '../api';
 import type { IconName } from '../icons';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 type Tab = 'checks' | 'requirements' | 'info';
 
 const route = useRoute();
 const TABS: { key: Tab; label: string }[] = [
-	{ key: 'checks', label: 'Checks' },
-	{ key: 'requirements', label: 'Requirements' },
-	{ key: 'info', label: 'Site & Server' }
+	{ key: 'checks', label: t('site_health_view.tab_checks', 'Checks') },
+	{ key: 'requirements', label: t('site_health_view.tab_requirements', 'Requirements') },
+	{ key: 'info', label: t('site_health_view.tab_info', 'Site & Server') }
 ];
 const tab = computed<Tab>(() => TABS.find((item) => item.key === route.query.tab)?.key ?? 'checks');
 
@@ -48,7 +50,7 @@ const checking = ref<number | null>(null);
 async function check(again = false): Promise<void> {
 	checking.value = null;
 
-	await run('Site health couldn\'t be checked.', async () => {
+	await run(t('site_health_view.check_failed', 'Site health couldn\'t be checked.'), async () => {
 		const answer = await request<SiteHealth & { job?: string }>(again ? 'POST' : 'GET', '/health/site');
 
 		health.value = answer;
@@ -63,7 +65,7 @@ async function check(again = false): Promise<void> {
 		}
 
 		if (again) {
-			toast(`Ran ${plural(health.value.checks.length, 'check')}`);
+			toast(t('site_health_view.ran', 'Ran {count, plural, one {# check} other {# checks}}', { count: health.value.checks.length }));
 		}
 
 		void loadCounts();
@@ -109,10 +111,10 @@ function linkOf(item: HealthCheck): object | null {
 }
 
 const PILLS: Record<HealthCheck['status'] | HealthRequirement['status'], { label: string; kind: string }> = {
-	failure: { label: 'Fail', kind: 'pill--danger' },
-	warning: { label: 'Check', kind: 'pill--warn' },
-	pass: { label: 'Pass', kind: 'pill--good' },
-	optional: { label: 'Not loaded', kind: '' }
+	failure: { label: t('site_health_view.pill_fail', 'Fail'), kind: 'pill--danger' },
+	warning: { label: t('site_health_view.pill_check', 'Check'), kind: 'pill--warn' },
+	pass: { label: t('site_health_view.pill_pass', 'Pass'), kind: 'pill--good' },
+	optional: { label: t('site_health_view.pill_not_loaded', 'Not loaded'), kind: '' }
 };
 
 // The requirements in their groups.
@@ -155,7 +157,7 @@ function copyReport(): void {
 		...health.value.requirements.map((row) => `  [${row.status === 'pass' ? 'ok' : (row.status === 'optional' ? '--' : '!!')}] ${row.name}: needs ${row.needs.toLowerCase()}, has ${row.installed.toLowerCase()}`)
 	];
 
-	void copyText(lines.join('\n'), 'the report');
+	void copyText(lines.join('\n'), t('site_health_view.the_report', 'the report'));
 }
 
 const toolsShown = computed(() => (navCounts.value?.tools ?? 0) > 0 || can('site.logs'));
@@ -168,40 +170,40 @@ onMounted(() => {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Site Health</h1>
-			<p class="page-header__hint">{{ health ? `Last checked ${formatWhen(health.checked).toLowerCase()}` : 'Checking…' }}</p>
+			<h1 tabindex="-1">{{ t('site_health_view.title', 'Site Health') }}</h1>
+			<p class="page-header__hint">{{ health ? t('site_health_view.last_checked', 'Last checked {when}', { when: formatWhen(health.checked).toLowerCase() }) : t('site_health_view.checking', 'Checking…') }}</p>
 		</div>
 		<div class="page-header__actions">
 			<button v-if="tab === 'checks'" type="button" class="button button--primary" :disabled="loading" @click="check(true)">
-				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? `Checking… ${checking}%` : 'Checking…') : 'Run a Check' }}
+				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? t('site_health_view.checking_percent', 'Checking… {percent}%', { percent: checking }) : t('site_health_view.checking', 'Checking…')) : t('site_health_view.run_check', 'Run a Check') }}
 			</button>
-			<button v-else type="button" class="button" :disabled="!health" @click="copyReport"><AdminIcon name="copy" />Copy Report</button>
+			<button v-else type="button" class="button" :disabled="!health" @click="copyReport"><AdminIcon name="copy" />{{ t('site_health_view.copy_report', 'Copy Report') }}</button>
 		</div>
 	</header>
 
-	<nav class="status-tabs" aria-label="Site Health">
+	<nav class="status-tabs" :aria-label="t('site_health_view.title', 'Site Health')">
 		<RouterLink v-for="item in TABS" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'checks' ? {} : { tab: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</RouterLink>
 	</nav>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-else-if="!health" class="loading">Checking the site…</p>
+	<p v-else-if="!health" class="loading">{{ t('site_health_view.checking_site', 'Checking the site…') }}</p>
 
 	<template v-else-if="tab === 'checks'">
 		<dl class="stats stats--three">
 			<div class="stat" :class="{ 'stat--danger': failing, 'stat--warn': !failing && needy }">
-				<dt class="stat__label"><AdminIcon name="triangle-alert" />Needs Attention</dt>
+				<dt class="stat__label"><AdminIcon name="triangle-alert" />{{ t('site_health_view.needs_attention', 'Needs Attention') }}</dt>
 				<dd class="stat__value">{{ needy }}</dd>
-				<dd class="stat__context">{{ needy ? [failing ? `${failing} failing` : '', warnings ? `${warnings} worth a look` : ''].filter(Boolean).join(', ') : 'Nothing is wrong right now' }}</dd>
+				<dd class="stat__context">{{ needy ? [failing ? t('site_health_view.failing', '{count} failing', { count: failing }) : '', warnings ? t('site_health_view.worth_a_look', '{count} worth a look', { count: warnings }) : ''].filter(Boolean).join(', ') : t('site_health_view.nothing_wrong', 'Nothing is wrong right now') }}</dd>
 			</div>
 			<div class="stat">
-				<dt class="stat__label"><AdminIcon name="circle-check" />Passing</dt>
+				<dt class="stat__label"><AdminIcon name="circle-check" />{{ t('site_health_view.passing', 'Passing') }}</dt>
 				<dd class="stat__value">{{ passing }}</dd>
-				<dd class="stat__context">Nothing to do in those</dd>
+				<dd class="stat__context">{{ t('site_health_view.nothing_to_do', 'Nothing to do in those') }}</dd>
 			</div>
 			<div class="stat">
-				<dt class="stat__label"><AdminIcon name="list-checks" />Checks Run</dt>
+				<dt class="stat__label"><AdminIcon name="list-checks" />{{ t('site_health_view.checks_run', 'Checks Run') }}</dt>
 				<dd class="stat__value">{{ checks.length }}</dd>
-				<dd class="stat__context">Across {{ plural(health.areas.length, 'area') }}</dd>
+				<dd class="stat__context">{{ t('site_health_view.across_areas', 'Across {count, plural, one {# area} other {# areas} }', { count: health.areas.length }) }}</dd>
 			</div>
 		</dl>
 
@@ -209,8 +211,8 @@ onMounted(() => {
 			<div class="columns__col">
 				<section class="panel" aria-labelledby="issues-heading">
 					<header class="panel__header">
-						<h2 id="issues-heading">Issues</h2>
-						<p v-if="issues.length" class="panel__hint">{{ failing ? 'Failing first' : 'Worst first' }}</p>
+						<h2 id="issues-heading">{{ t('site_health_view.issues', 'Issues') }}</h2>
+						<p v-if="issues.length" class="panel__hint">{{ failing ? t('site_health_view.failing_first', 'Failing first') : t('site_health_view.worst_first', 'Worst first') }}</p>
 					</header>
 					<ul v-if="issues.length" class="rows">
 						<li v-for="item in issues" :key="`${item.area}:${item.key}`">
@@ -227,12 +229,12 @@ onMounted(() => {
 							</component>
 						</li>
 					</ul>
-					<p v-else class="panel__body muted">Every check passed. Nothing needs you here.</p>
+					<p v-else class="panel__body muted">{{ t('site_health_view.all_passed', 'Every check passed. Nothing needs you here.') }}</p>
 				</section>
 			</div>
 			<div class="columns__col">
 				<section class="panel" aria-labelledby="areas-heading">
-					<header class="panel__header"><h2 id="areas-heading">Areas</h2></header>
+					<header class="panel__header"><h2 id="areas-heading">{{ t('site_health_view.areas', 'Areas') }}</h2></header>
 					<ul class="rows">
 						<li v-for="area in health.areas" :key="area.key">
 							<div class="rows__item">
@@ -241,14 +243,14 @@ onMounted(() => {
 									<span class="rows__title">{{ area.label }}</span>
 									<span class="rows__sub">{{ area.description }}</span>
 								</span>
-								<span v-if="areaState(area.key).issues" class="pill" :class="areaState(area.key).failing ? 'pill--danger' : 'pill--warn'">{{ plural(areaState(area.key).issues, 'issue') }}</span>
-								<span v-else class="pill pill--good">Clear</span>
+								<span v-if="areaState(area.key).issues" class="pill" :class="areaState(area.key).failing ? 'pill--danger' : 'pill--warn'">{{ t('site_health_view.issue_count', '{count, plural, one {# issue} other {# issues} }', { count: areaState(area.key).issues }) }}</span>
+								<span v-else class="pill pill--good">{{ t('site_health_view.clear', 'Clear') }}</span>
 							</div>
 						</li>
 					</ul>
 					<p class="panel__foot">
-						<span>The same checks <code>doctor</code> runs.</span>
-						<RouterLink v-if="toolsShown" class="lnk" :to="{ name: 'tools' }">Open Tools<AdminIcon name="arrow-right" /></RouterLink>
+						<span><MessageText :text="t('site_health_view.same_as_doctor', 'The same checks {command} runs.')"><template #command><code>doctor</code></template></MessageText></span>
+						<RouterLink v-if="toolsShown" class="lnk" :to="{ name: 'tools' }">{{ t('site_health_view.open_tools', 'Open Tools') }}<AdminIcon name="arrow-right" /></RouterLink>
 					</p>
 				</section>
 			</div>
@@ -257,14 +259,14 @@ onMounted(() => {
 
 	<section v-else-if="tab === 'requirements'" class="panel" aria-labelledby="requirements-heading">
 		<header class="panel__header">
-			<h2 id="requirements-heading">Requirements</h2>
-			<p class="panel__hint">{{ unmet ? `${plural(health.requirements.length, 'requirement')} · ${unmet} worth a look` : `All ${health.requirements.length} met` }}</p>
+			<h2 id="requirements-heading">{{ t('site_health_view.requirements', 'Requirements') }}</h2>
+			<p class="panel__hint">{{ unmet ? t('site_health_view.requirements_unmet', '{count, plural, one {# requirement} other {# requirements} } · {unmet} worth a look', { count: health.requirements.length, unmet }) : t('site_health_view.requirements_met', 'All {count} met', { count: health.requirements.length }) }}</p>
 		</header>
 		<div class="table-wrap">
 			<table class="table" aria-labelledby="requirements-heading">
 				<colgroup><col><col class="site-health__needs"><col class="site-health__installed"><col class="site-health__status"></colgroup>
 				<thead>
-					<tr><th scope="col">Requirement</th><th scope="col">Needs</th><th scope="col">Installed</th><th scope="col">Status</th></tr>
+					<tr><th scope="col">{{ t('site_health_view.col_requirement', 'Requirement') }}</th><th scope="col">{{ t('site_health_view.col_needs', 'Needs') }}</th><th scope="col">{{ t('site_health_view.col_installed', 'Installed') }}</th><th scope="col">{{ t('site_health_view.col_status', 'Status') }}</th></tr>
 				</thead>
 				<tbody v-for="group in groups" :key="group.name">
 					<tr class="table__group"><th scope="rowgroup" colspan="4">{{ group.name }}</th></tr>
@@ -285,8 +287,8 @@ onMounted(() => {
 	<div v-else class="columns columns--even">
 		<section class="panel" aria-labelledby="site-heading">
 			<header class="panel__header">
-				<h2 id="site-heading">This Site</h2>
-				<p class="panel__hint">As Blush reports it</p>
+				<h2 id="site-heading">{{ t('site_health_view.this_site', 'This Site') }}</h2>
+				<p class="panel__hint">{{ t('site_health_view.this_site_hint', 'As Blush reports it') }}</p>
 			</header>
 			<dl class="fact-rows fact-rows--panel">
 				<div v-for="fact in health.site" :key="fact.key">
@@ -297,8 +299,8 @@ onMounted(() => {
 		</section>
 		<section class="panel" aria-labelledby="server-heading">
 			<header class="panel__header">
-				<h2 id="server-heading">The Server</h2>
-				<p class="panel__hint">What PHP sees from here</p>
+				<h2 id="server-heading">{{ t('site_health_view.the_server', 'The Server') }}</h2>
+				<p class="panel__hint">{{ t('site_health_view.the_server_hint', 'What PHP sees from here') }}</p>
 			</header>
 			<dl class="fact-rows fact-rows--panel">
 				<div v-for="fact in health.server" :key="fact.key">

@@ -18,6 +18,7 @@ use Blush\Content\ContentConfig;
 use Blush\Content\Type\DefinitionTables;
 use Blush\Extension\DefinitionClash;
 use Blush\Storage\Record\RecordException;
+use Blush\Translation\Messages;
 
 /**
  * Loads the site's relation definitions (D-593), each replacing one of
@@ -32,7 +33,8 @@ final readonly class RelationLoader
 	public function __construct(
 		private ContentConfig $config,
 		private DefinitionTables $tables,
-		private Container $container
+		private Container $container,
+		private Messages $messages
 	) {}
 
 	/**
@@ -113,9 +115,9 @@ final readonly class RelationLoader
 
 		foreach ($definitions as $name => $definition) {
 			try {
-				$relations[] = Relation::fromArray([...$definition, 'name' => (string) $name]);
+				$relations[] = Relation::fromArray([...$definition, 'name' => (string) $name], $this->messages);
 			} catch (InvalidRelation $e) {
-				throw new InvalidRelation(sprintf('%s: %s', $table->location($name), $e->getMessage()), previous: $e);
+				throw new InvalidRelation((string) $this->messages->t('content.relation_loader.in_file', '{location}: {problem}', location: $table->location($name), problem: $e->getMessage()), previous: $e);
 			}
 		}
 

@@ -13,6 +13,8 @@ import AuthCard from '../components/AuthCard.vue';
 import { useAction } from '../action';
 import { ApiError } from '../api';
 import { config } from '../config';
+import MessageText from '../components/MessageText.vue';
+import { t } from '../messages';
 import { setPassword } from '../people';
 import { loadSession, session } from '../session';
 import { toast } from '../toast';
@@ -39,10 +41,10 @@ onMounted(() => {
 async function submit(): Promise<void> {
 	field.value = false;
 
-	await run('Your password couldn\'t be set.', async () => {
+	await run(t('set_password_view.errors.not_set', "Your password couldn't be set."), async () => {
 		await setPassword(account, token, password.value);
 		await loadSession(true);
-		toast('Password set. Welcome!');
+		toast(t('set_password_view.welcome', 'Password set. Welcome!'));
 		await router.replace({ name: 'dashboard' });
 	}, (caught) => {
 		field.value = caught instanceof ApiError && caught.field === 'password';
@@ -56,24 +58,24 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-	<AuthCard title="Choose a Password" wide>
+	<AuthCard :title="t('set_password_view.title', 'Choose a Password')" wide>
 		<template v-if="dead">
-			<p class="notice notice--error" role="alert">{{ error || 'This link is missing its account or token. Copy the whole link and try again.' }}</p>
-			<RouterLink class="button" :to="{ name: 'sign-in' }">Sign In</RouterLink>
+			<p class="notice notice--error" role="alert">{{ error || t('set_password_view.errors.incomplete_link', 'This link is missing its account or token. Copy the whole link and try again.') }}</p>
+			<RouterLink class="button" :to="{ name: 'sign-in' }">{{ t('set_password_view.sign_in', 'Sign In') }}</RouterLink>
 		</template>
 
 		<form v-else class="auth-card__form" :aria-busy="busy" @submit.prevent="submit">
-			<p v-if="session.account && session.account.username !== account" class="notice notice--warn"><span>You're signed in as {{ session.account.displayName }}. Choosing this password signs you in as {{ account }} instead.</span></p>
-			<p class="set-password__intro">For the <strong class="mono">{{ account }}</strong> account on {{ config.site.name }}. You'll sign in with it from now on.</p>
+			<p v-if="session.account && session.account.username !== account" class="notice notice--warn"><span>{{ t('set_password_view.signed_in_as_other', "You're signed in as {name}. Choosing this password signs you in as {account} instead.", { name: session.account.displayName, account }) }}</span></p>
+			<p class="set-password__intro"><MessageText :text="t('set_password_view.intro', 'For the {account} account on {site}. You\'ll sign in with it from now on.', { site: config.site.name })"><template #account><strong class="mono">{{ account }}</strong></template></MessageText></p>
 			<input type="text" name="username" autocomplete="username" :value="account" readonly hidden>
 			<p class="field">
-				<label for="new-password">New password</label>
+				<label for="new-password">{{ t('set_password_view.new_password', 'New password') }}</label>
 				<input id="new-password" ref="input" v-model="password" name="password" type="password" autocomplete="new-password" required :aria-invalid="field ? 'true' : undefined" aria-describedby="new-password-help">
 				<span v-if="field" id="new-password-help" class="field__error" role="alert">{{ error }}</span>
-				<span v-else id="new-password-help" class="field__help">Long is strong: a few words you'll remember works well.</span>
+				<span v-else id="new-password-help" class="field__help">{{ t('set_password_view.password_help', "Long is strong: a few words you'll remember works well.") }}</span>
 			</p>
 			<p v-if="error && !field" class="notice notice--error" role="alert">{{ error }}</p>
-			<button type="submit" class="button button--primary" :disabled="busy || password === ''">{{ busy ? 'Saving…' : 'Set Password and Sign In' }}</button>
+			<button type="submit" class="button button--primary" :disabled="busy || password === ''">{{ busy ? t('set_password_view.saving', 'Saving…') : t('set_password_view.submit', 'Set Password and Sign In') }}</button>
 		</form>
 	</AuthCard>
 </template>

@@ -19,6 +19,7 @@ import { listMove } from '../grid';
 import type { IconName } from '../icons';
 import { usePopover } from '../popover';
 import AdminIcon from './AdminIcon.vue';
+import MessageText from './MessageText.vue';
 
 export interface LinkOption {
 	key: string;
@@ -149,12 +150,12 @@ defineExpose({ focus: () => field.value?.focus() });
 </script>
 
 <template>
-	<div v-if="chosen" :id="id" class="input link-picker__chosen" :class="{ 'is-invalid': invalid }" tabindex="0" role="group" :aria-label="`${label ?? 'Link'}: ${chosen.title}`" :aria-describedby="describedBy" @keydown="tokenKey">
+	<div v-if="chosen" :id="id" class="input link-picker__chosen" :class="{ 'is-invalid': invalid }" tabindex="0" role="group" :aria-label="t('link_picker.chosen_label', '{label}: {title}', { label: label ?? t('link_picker.link', 'Link'), title: chosen.title })" :aria-describedby="describedBy" @keydown="tokenKey">
 		<AdminIcon :name="chosen.icon" />
 		<strong>{{ chosen.title }}</strong>
 		<span v-if="chosen.pill" class="pill" :class="`pill--${chosen.pill.kind}`">{{ chosen.pill.label }}</span>
 		<span v-if="chosen.hint" class="link-picker__at mono">{{ chosen.hint }}</span>
-		<button type="button" class="button button--ghost button--icon button--small" @click="clear"><AdminIcon name="x" /><span class="visually-hidden">Clear {{ chosen.title }}</span></button>
+		<button type="button" class="button button--ghost button--icon button--small" @click="clear"><AdminIcon name="x" /><span class="visually-hidden">{{ t('link_picker.clear', 'Clear {title}', { title: chosen.title }) }}</span></button>
 	</div>
 	<input
 		v-else
@@ -163,7 +164,7 @@ defineExpose({ focus: () => field.value?.focus() });
 		v-model="text"
 		class="mono"
 		type="text"
-		:placeholder="placeholder ?? 'A path, a page\'s name, or https://…'"
+		:placeholder="placeholder ?? t('link_picker.placeholder', 'A path, a page\'s name, or https://…')"
 		autocomplete="off"
 		autocapitalize="none"
 		spellcheck="false"
@@ -181,7 +182,7 @@ defineExpose({ focus: () => field.value?.focus() });
 	>
 	<Teleport :to="layer">
 		<div v-if="open" ref="list" class="select-list link-picker__list" :style="place ?? { visibility: 'hidden' }">
-			<div :id="listId" class="select-list__options" role="listbox" :aria-label="label ?? 'Pages'">
+			<div :id="listId" class="select-list__options" role="listbox" :aria-label="label ?? t('link_picker.pages', 'Pages')">
 				<button
 					v-for="(option, index) in options"
 					:id="`${listId}-${index}`"
@@ -196,7 +197,7 @@ defineExpose({ focus: () => field.value?.focus() });
 					@click="choose(option)"
 				>
 					<AdminIcon :name="option.icon" class="select-list__icon" />
-					<span class="select-list__label link-picker__title"><template v-if="option.typed">Link to <b>{{ option.title }}</b></template><template v-else>{{ option.title }}</template></span>
+					<span class="select-list__label link-picker__title"><template v-if="option.typed"><MessageText :text="t('link_picker.link_to', 'Link to {title}')"><template #title><b>{{ option.title }}</b></template></MessageText></template><template v-else>{{ option.title }}</template></span>
 					<span v-if="option.pill" class="pill" :class="`pill--${option.pill.kind}`">{{ option.pill.label }}</span>
 					<span v-if="option.hint && !option.typed" class="select-list__hint mono link-picker__at">{{ option.hint }}</span>
 				</button>

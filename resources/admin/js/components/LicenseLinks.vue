@@ -14,7 +14,7 @@ defineProps<{ parts: LicensePart[] }>();
 	<template v-if="parts.length === 0">—</template>
 	<template v-for="(part, index) in parts" :key="index">
 		<template v-if="index > 0">{{ ' ' }}</template>
-		<a v-if="part.url" :href="part.url" target="_blank" rel="noopener">{{ part.text }}<span class="visually-hidden"> (new tab)</span></a>
+		<a v-if="part.url" :href="part.url" target="_blank" rel="noopener">{{ part.text }}<span class="visually-hidden"> {{ t('license_links.new_tab', '(new tab)') }}</span></a>
 		<span v-else-if="part.operator" class="license-operator">{{ part.text }}</span>
 		<template v-else>{{ part.text }}</template>
 	</template>

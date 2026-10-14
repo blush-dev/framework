@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Core;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a multilingual site does with an entry that has no translation in
  * a language (D-467), from `config/app.php`'s `untranslated`. Each level
@@ -56,24 +59,24 @@ enum Untranslated: string
 	/**
 	 * Returns the admin's name for it (D-468).
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Hide     => 'Show "Page not found"',
-			self::Redirect => 'Redirect to the original',
-			self::Include  => 'Redirect, and list originals too'
+			self::Hide     => $messages->t('core.untranslated.hide.label', 'Show "Page not found"'),
+			self::Redirect => $messages->t('core.untranslated.redirect.label', 'Redirect to the original'),
+			self::Include  => $messages->t('core.untranslated.include.label', 'Redirect, and list originals too')
 		};
 	}
 
 	/**
 	 * Returns what it does, in a sentence, for the admin.
 	 */
-	public function description(): string
+	public function description(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Hide     => 'A page without a translation isn\'t found in that language, and lists show only translated entries.',
-			self::Redirect => 'A page without a translation sends readers to the original. Lists show only translated entries.',
-			self::Include  => 'A page without a translation sends readers to the original, and lists show the originals of untranslated entries too.'
+			self::Hide     => $messages->t('core.untranslated.hide.description', 'A page without a translation isn\'t found in that language, and lists show only translated entries.'),
+			self::Redirect => $messages->t('core.untranslated.redirect.description', 'A page without a translation sends readers to the original. Lists show only translated entries.'),
+			self::Include  => $messages->t('core.untranslated.include.description', 'A page without a translation sends readers to the original, and lists show the originals of untranslated entries too.')
 		};
 	}
 }

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Menu\Link;
 
 use Override;
+use Blush\Translation\Text;
 use Blush\View\Escaper;
 
 /**
@@ -40,15 +41,15 @@ final class UrlLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function validate(mixed $value, array $item): ?string
+	public function validate(string $key, mixed $value, array $item): ?Text
 	{
-		$problem = parent::validate($value, $item);
+		$problem = parent::validate($key, $value, $item);
 
 		if ($problem !== null || ! is_string($value)) {
 			return $problem;
 		}
 
-		return Escaper::url($value) === '' ? 'isn\'t a safe URL.' : null;
+		return Escaper::url($value) === '' ? $this->messages->t('menu.url_link.unsafe', '"{link}" isn\'t a safe URL.', link: $key) : null;
 	}
 
 	/**

@@ -11,6 +11,7 @@
 
 import { computed, ref } from 'vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
+import { t } from '../messages';
 import { loadLinkable, NEW_PROFILE, type LinkableProfile } from '../people';
 
 const props = defineProps<{
@@ -41,9 +42,9 @@ loadLinkable().then((list) => {
 });
 
 function labelOf(profile: LinkableProfile): string {
-	const state = profile.status === 'published' ? '' : ` (${profile.status})`;
-	const owner = profile.account && profile.account.username !== props.username ? ` · linked to ${profile.account.displayName}` : '';
-	const lock  = !owner && !choosable(profile) ? ' · locked' : '';
+	const state = profile.status === 'published' ? '' : t('profile_picker.status', ' ({status})', { status: profile.status });
+	const owner = profile.account && profile.account.username !== props.username ? t('profile_picker.linked_to', ' · linked to {name}', { name: profile.account.displayName }) : '';
+	const lock  = !owner && !choosable(profile) ? t('profile_picker.locked', ' · locked') : '';
 
 	return `${profile.title}${state}${owner}${lock}`;
 }
@@ -57,8 +58,8 @@ function choosable(profile: LinkableProfile): boolean {
 }
 
 const options = computed<SelectOption[]>(() => [
-	{ value: '', label: failed.value ? 'The profiles couldn\'t be loaded' : (profiles.value === null ? 'Loading the profiles…' : (props.none ?? 'None')) },
-	...(props.create ? [{ value: NEW_PROFILE, label: 'Create a new profile…' }] : []),
+	{ value: '', label: failed.value ? t('profile_picker.failed', 'The profiles couldn\'t be loaded') : (profiles.value === null ? t('profile_picker.loading', 'Loading the profiles…') : (props.none ?? t('profile_picker.none', 'None'))) },
+	...(props.create ? [{ value: NEW_PROFILE, label: t('profile_picker.create', 'Create a new profile…') }] : []),
 	...(profiles.value ?? []).map((profile) => ({
 		value: profile.slug,
 		label: labelOf(profile),

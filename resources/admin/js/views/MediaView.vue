@@ -21,7 +21,7 @@ import MediaPicker from '../components/MediaPicker.vue';
 import { mediaFacts, useMediaList } from '../media';
 import { request, type MediaItem, type MediaList } from '../api';
 import { loadCounts } from '../counts';
-import { plural } from '../format';
+import { t } from '../messages';
 import { canUpload } from '../session';
 
 type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
@@ -36,20 +36,20 @@ const router = useRouter();
 const mine = computed(() => route.query.mine === '1');
 
 const TABS = [
-	{ key: 'all', label: 'All' },
-	{ key: 'mine', label: 'Mine' }
+	{ key: 'all', label: t('media_view.tabs.all', 'All') },
+	{ key: 'mine', label: t('media_view.tabs.mine', 'Mine') }
 ] as const;
 
 // Each tab's count, whatever the search and kind.
 const counts = ref<{ all?: number; mine?: number }>({});
 
 const KINDS: { value: Kind; label: string }[] = [
-	{ value: 'any', label: 'All kinds' },
-	{ value: 'image', label: 'Images' },
-	{ value: 'video', label: 'Video' },
-	{ value: 'audio', label: 'Audio' },
-	{ value: 'document', label: 'Documents' },
-	{ value: 'file', label: 'Other files' }
+	{ value: 'any', label: t('media_view.kinds.any', 'All kinds') },
+	{ value: 'image', label: t('media_view.kinds.image', 'Images') },
+	{ value: 'video', label: t('media_view.kinds.video', 'Video') },
+	{ value: 'audio', label: t('media_view.kinds.audio', 'Audio') },
+	{ value: 'document', label: t('media_view.kinds.document', 'Documents') },
+	{ value: 'file', label: t('media_view.kinds.file', 'Other files') }
 ];
 
 const kindValue = computed({
@@ -96,7 +96,7 @@ watch(indexing, (now, before) => {
 // Its facts, and how many sizes an image has (D-488), which aren't
 // cards of their own.
 function details(file: MediaItem): string {
-	return [mediaFacts(file), file.sizeCount ? plural(file.sizeCount, 'size') : ''].filter((part) => part !== '').join(' · ');
+	return [mediaFacts(file), file.sizeCount ? t('media_view.sizes', '{count, plural, one {# size} other {# sizes}}', { count: file.sizeCount }) : ''].filter((part) => part !== '').join(' · ');
 }
 
 // A library file's screen is at its path under `user/media`.
@@ -123,15 +123,15 @@ function closed(): void {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Media</h1>
-			<p class="page-header__hint">Files every entry can use</p>
+			<h1 tabindex="-1">{{ t('media_view.title', 'Media') }}</h1>
+			<p class="page-header__hint">{{ t('media_view.hint', 'Files every entry can use') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<button v-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload</button>
+			<button v-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />{{ t('media_view.upload', 'Upload') }}</button>
 		</div>
 	</header>
 
-	<nav class="status-tabs" aria-label="Owner">
+	<nav class="status-tabs" :aria-label="t('media_view.owner', 'Owner')">
 		<RouterLink v-for="tab in TABS" :key="tab.key" class="status-tabs__tab" :to="{ query: tab.key === 'mine' ? { mine: '1' } : {} }" :aria-current="(tab.key === 'mine') === mine ? 'page' : undefined">
 			{{ tab.label }}
 			<span v-if="counts[tab.key] !== undefined" class="status-tabs__count">{{ counts[tab.key] }}</span>
@@ -141,26 +141,26 @@ function closed(): void {
 	<div class="toolbar" role="search">
 		<label class="search-field toolbar__search">
 			<AdminIcon name="search" />
-			<span class="visually-hidden">Search names and details</span>
-			<input v-model="search" type="search" placeholder="Search names and details" autocomplete="off">
+			<span class="visually-hidden">{{ t('media_view.search', 'Search names and details') }}</span>
+			<input v-model="search" type="search" :placeholder="t('media_view.search', 'Search names and details')" autocomplete="off">
 		</label>
 		<div class="toolbar__filter">
-			<label class="visually-hidden" for="media-kind">Kind</label>
+			<label class="visually-hidden" for="media-kind">{{ t('media_view.kind', 'Kind') }}</label>
 			<AdminSelect id="media-kind" v-model="kindValue" :options="KINDS" />
 		</div>
-		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear Filters</button>
+		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">{{ t('media_view.clear_filters', 'Clear Filters') }}</button>
 	</div>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<div v-if="indexing !== null" class="notice" aria-live="polite">
 		<AdminIcon name="refresh-cw" />
-		<span class="notice__text">Reading the library's files ({{ indexing }}%). Files not read yet aren't listed, or show their details from before; the list fills in when it's done.</span>
+		<span class="notice__text">{{ t('media_view.indexing', 'Reading the library\'s files ({percent}%). Files not read yet aren\'t listed, or show their details from before; the list fills in when it\'s done.', { percent: indexing }) }}</span>
 	</div>
 
 	<section class="panel" aria-labelledby="media-heading" :aria-busy="loading">
 		<header class="panel__header">
-			<h2 id="media-heading">{{ mine ? 'Mine' : 'All' }}</h2>
-			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : plural(total, 'file', 'files') }}</p>
+			<h2 id="media-heading">{{ mine ? t('media_view.tabs.mine', 'Mine') : t('media_view.tabs.all', 'All') }}</h2>
+			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? t('common.loading', 'Loading…') : t('media_view.files', '{count, plural, one {# file} other {# files} }', { count: total }) }}</p>
 		</header>
 
 		<div class="panel__body">
@@ -172,19 +172,19 @@ function closed(): void {
 			<div v-else-if="loading" class="grid" aria-hidden="true">
 				<span v-for="card in 10" :key="card" class="skeleton card__skeleton" />
 			</div>
-			<EmptyState v-else-if="!error" :icon="filtered ? 'search' : 'image'" :heading="filtered ? 'No Files Match' : (mine ? 'No Files of Yours' : 'The Library Is Empty')" :text="filtered ? 'Try another name or kind.' : (mine ? 'Files you upload show up here. The All tab shows everyone\'s.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.')">
+			<EmptyState v-else-if="!error" :icon="filtered ? 'search' : 'image'" :heading="filtered ? t('media_view.empty.no_match', 'No Files Match') : (mine ? t('media_view.empty.none_yours', 'No Files of Yours') : t('media_view.empty.library_empty', 'The Library Is Empty'))" :text="filtered ? t('media_view.empty.try_another', 'Try another name or kind.') : (mine ? t('media_view.empty.yours_text', 'Files you upload show up here. The All tab shows everyone\'s.') : t('media_view.empty.library_text', 'Images, video, audio, and documents you upload land here, and any entry can use them.'))">
 				<template #actions>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
-					<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload {{ mine && counts.all ? 'a file' : 'your first file' }}</button>
+					<button v-if="filtered" type="button" class="button" @click="clear">{{ t('media_view.clear_filters', 'Clear Filters') }}</button>
+					<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />{{ mine && counts.all ? t('media_view.upload_a_file', 'Upload a file') : t('media_view.upload_first', 'Upload your first file') }}</button>
 				</template>
 			</EmptyState>
 			<p v-if="page < pages" class="more">
-				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show More' }}</button>
+				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? t('common.loading', 'Loading…') : t('media_view.show_more', 'Show More') }}</button>
 			</p>
 		</div>
 	</section>
 
-	<MediaPicker v-if="uploading" title="Upload to the Library" action="Open" upload-only @choose="uploaded" @close="closed" />
+	<MediaPicker v-if="uploading" :title="t('media_view.upload_title', 'Upload to the Library')" :action="t('media_view.open', 'Open')" upload-only @choose="uploaded" @close="closed" />
 </template>
 
 <style scoped>

@@ -9,6 +9,7 @@
 
 import { ref, watch } from 'vue';
 import { mediaFile, mediaName } from '../media';
+import MessageText from './MessageText.vue';
 
 const props = defineProps<{
 	id: string;
@@ -46,10 +47,10 @@ watch(model, async (value) => {
 <template>
 	<div class="media-choice-row">
 		<span :id="id" class="media-choice mono" :class="{ 'is-empty': model === '', 'is-missing': model !== '' && name === '' }" role="status" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined">
-			{{ model === '' ? 'No file chosen' : (name === null ? 'Looking it up…' : (name === '' ? 'Not in the library' : name)) }}
+			{{ model === '' ? t('media_choice.none', 'No file chosen') : (name === null ? t('media_choice.looking', 'Looking it up…') : (name === '' ? t('media_choice.missing', 'Not in the library') : name)) }}
 		</span>
-		<button type="button" class="button button--small" :disabled="disabled" @click="emit('pick')">Choose<span class="visually-hidden"> {{ noun }}</span></button>
-		<button v-if="model !== ''" type="button" class="button button--ghost button--small" :disabled="disabled" @click="model = ''">Clear<span class="visually-hidden"> {{ noun }}</span></button>
+		<button type="button" class="button button--small" :disabled="disabled" @click="emit('pick')"><MessageText :text="t('media_choice.choose', 'Choose {noun}')"><template #noun><span class="visually-hidden">{{ noun }}</span></template></MessageText></button>
+		<button v-if="model !== ''" type="button" class="button button--ghost button--small" :disabled="disabled" @click="model = ''"><MessageText :text="t('media_choice.clear', 'Clear {noun}')"><template #noun><span class="visually-hidden">{{ noun }}</span></template></MessageText></button>
 	</div>
 </template>
 

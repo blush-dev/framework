@@ -36,7 +36,7 @@ const colors = computed(() => props.preview === null ? undefined : {
 		</template>
 		<template v-else>
 			<AdminIcon name="image-off" />
-			<span>No preview</span>
+			<span>{{ t('admin_theme_sketch.no_preview', 'No preview') }}</span>
 		</template>
 	</span>
 </template>

@@ -25,6 +25,7 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
 
 /**
  * Reads and writes secrets by their definitions (D-715): the environment
@@ -50,6 +51,7 @@ final readonly class SecretStore
 		private SecretKeys $keys,
 		private RecordStores|RecordStore $stores,
 		private ClockInterface $clock,
+		private Messages $messages,
 		private RequestMemo $memo = new RequestMemo()
 	) {}
 
@@ -149,7 +151,7 @@ final readonly class SecretStore
 	public function update(SecretDefinition $definition, Closure $change, ?string $by = null): Secret
 	{
 		if ($this->fromEnv($definition) !== null) {
-			throw self::locked($definition);
+			throw $this->locked($definition);
 		}
 
 		$this->keys->current();
@@ -165,7 +167,7 @@ final readonly class SecretStore
 				return new Secret($value);
 			});
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 	}
 
@@ -180,7 +182,7 @@ final readonly class SecretStore
 		try {
 			$this->records()->delete($definition->recordKey());
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 	}
 
@@ -196,7 +198,7 @@ final readonly class SecretStore
 		try {
 			$records = $this->records()->all();
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 
 		$all = [];
@@ -264,7 +266,7 @@ final readonly class SecretStore
 				}
 			});
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 
 		return $result;
@@ -291,7 +293,7 @@ final readonly class SecretStore
 		try {
 			$value = $this->records()->find($definition->recordKey())['value'] ?? null;
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 
 		return is_string($value) ? $value : null;
@@ -306,11 +308,11 @@ final readonly class SecretStore
 	private function checkWritable(SecretDefinition $definition, #[\SensitiveParameter] string $value): void
 	{
 		if ($this->fromEnv($definition) !== null) {
-			throw self::locked($definition);
+			throw $this->locked($definition);
 		}
 
 		if ($value === '') {
-			throw new InvalidSecret(sprintf('"%s" can\'t be stored empty; remove it instead.', $definition->name()));
+			throw new InvalidSecret((string) $this->messages->t('secret.secret_store.empty', '"{name}" can\'t be stored empty; remove it instead.', name: $definition->name()));
 		}
 
 		$this->keys->current();
@@ -333,7 +335,7 @@ final readonly class SecretStore
 				'by'      => $by
 			]);
 		} catch (RecordException | StorageException $e) {
-			throw self::failure($e);
+			throw $this->failure($e);
 		}
 	}
 
@@ -348,16 +350,16 @@ final readonly class SecretStore
 	/**
 	 * The error for a secret the environment sets.
 	 */
-	private static function locked(SecretDefinition $definition): SecretLocked
+	private function locked(SecretDefinition $definition): SecretLocked
 	{
-		return new SecretLocked(sprintf('"%s" is set in the environment (%s), which always wins; change it there.', $definition->name(), $definition->env));
+		return new SecretLocked((string) $this->messages->t('secret.secret_store.locked', '"{name}" is set in the environment ({variable}), which always wins; change it there.', name: $definition->name(), variable: $definition->env));
 	}
 
 	/**
 	 * The error for a table that can't be read or written.
 	 */
-	private static function failure(RecordException|StorageException $error): SecretStoreFailure
+	private function failure(RecordException|StorageException $error): SecretStoreFailure
 	{
-		return new SecretStoreFailure(sprintf('The secrets couldn\'t be read or written: %s', $error->getMessage()), previous: $error);
+		return new SecretStoreFailure((string) $this->messages->t('secret.secret_store.failure', 'The secrets couldn\'t be read or written: {error}', error: $error->getMessage()), previous: $error);
 	}
 }

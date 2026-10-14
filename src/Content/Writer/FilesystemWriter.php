@@ -46,6 +46,7 @@ use Blush\Support\Progress;
 use Blush\Support\FilesystemException;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Writes content files in `user/content` (D-228), by path: the
@@ -95,7 +96,8 @@ final readonly class FilesystemWriter
 		private Relations $relations,
 		private ContentVersion $contentVersion,
 		private ClockInterface $clock,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -112,7 +114,7 @@ final readonly class FilesystemWriter
 		try {
 			$document = $this->parser->parse($contents);
 		} catch (InvalidDocument $e) {
-			throw new WriteException(sprintf('%s can\'t be read: %s', $path, $e->getMessage()), previous: $e);
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.unreadable', '{path} can\'t be read: {problem}', path: $path, problem: $e->getMessage()), previous: $e);
 		}
 
 		clearstatcache(true, $file);
@@ -145,7 +147,7 @@ final readonly class FilesystemWriter
 	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 
 		$date ??= $this->clock->now();
@@ -155,7 +157,7 @@ final readonly class FilesystemWriter
 
 		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
 			if (file_exists($file)) {
-				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.exists', '{path} already exists.', path: $this->paths->relative($file)));
 			}
 
 			$this->write($file, $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name)));
@@ -179,7 +181,7 @@ final readonly class FilesystemWriter
 
 		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
 			if (file_exists($file)) {
-				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.exists', '{path} already exists.', path: $this->paths->relative($file)));
 			}
 
 			$this->write($file, $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name)));
@@ -210,7 +212,7 @@ final readonly class FilesystemWriter
 	public function pathAt(ContentType $type, string $key): string
 	{
 		if (! self::isPageKey($key)) {
-			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_key', '"{page}" isn\'t a page key: slugs separated by "/", each may start with "_".', page: $key));
 		}
 
 		return ltrim("{$type->folder}/{$key}." . FilesystemSource::EXTENSION, '/');
@@ -233,7 +235,7 @@ final readonly class FilesystemWriter
 	public function createUnder(string $parentPath, string $slug, EntryChanges $changes): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 
 		return $this->locked(function () use ($parentPath, $slug, $changes): WriteResult {
@@ -241,11 +243,11 @@ final readonly class FilesystemWriter
 			$type   = $parent === null ? null : $this->types->find($parent->type);
 
 			if ($parent === null || ! $type instanceof Tree) {
-				throw new WriteException(sprintf('%s isn\'t a page other pages can go under.', $parentPath));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_parent', '{path} isn\'t a page other pages can go under.', path: $parentPath));
 			}
 
 			if ($parent->landing) {
-				throw new WriteException(sprintf('%s is an index page; pages under it go at the top.', $parentPath));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.index_parent', '{path} is an index page; pages under it go at the top.', path: $parentPath));
 			}
 
 			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
@@ -257,7 +259,7 @@ final readonly class FilesystemWriter
 				|| file_exists($file)
 				|| file_exists($this->folder("{$folder}/{$slug}") . '/index.' . FilesystemSource::EXTENSION)
 			) {
-				throw new WriteException(sprintf('There\'s already a page at %s/%s.', $parent->key, $slug));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.page_taken', 'There\'s already a page at {page}.', page: "{$parent->key}/{$slug}"));
 			}
 
 			// Edited before anything moves, so a refused edit moves nothing.
@@ -301,13 +303,13 @@ final readonly class FilesystemWriter
 		$directory = $this->folder($folder);
 
 		if (file_exists("{$directory}/index." . FilesystemSource::EXTENSION)) {
-			throw new WriteException(sprintf('%s can\'t move into %s/: that folder already has a page. Remove one of the two, then try again.', $path, $folder));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.folder_has_page', '{path} can\'t move into {folder}/: that folder already has a page. Remove one of the two, then try again.', path: $path, folder: $folder));
 		}
 
 		$made = ! is_dir($directory);
 
 		if ($made && ! @mkdir($directory, 0775, true)) {
-			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($directory)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.no_folder', 'The folder {path} couldn\'t be created.', path: $this->paths->relative($directory)));
 		}
 
 		$newPath = "{$folder}/index." . FilesystemSource::EXTENSION;
@@ -317,7 +319,7 @@ final readonly class FilesystemWriter
 				@rmdir($directory);
 			}
 
-			throw new WriteException(sprintf('%s couldn\'t be moved to %s.', $path, $newPath));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_moved', '{path} couldn\'t be moved to {to}.', path: $path, to: $newPath));
 		}
 
 		return $newPath;
@@ -335,7 +337,7 @@ final readonly class FilesystemWriter
 	public function duplicate(string $path, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 
 		$file = $this->file($path);
@@ -345,7 +347,7 @@ final readonly class FilesystemWriter
 			$entry    = $this->record($path);
 
 			if ($entry?->landing === true) {
-				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s, so it can\'t be copied.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.landing_copy', '{path} is a landing page; its name is its folder\'s, so it can\'t be copied.', path: $path));
 			}
 
 			// A copy is a new file, so it's named as its type names them now,
@@ -420,7 +422,7 @@ final readonly class FilesystemWriter
 	public function rename(string $path, string $slug, ?string $version = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 
 		$file = $this->file($path);
@@ -431,7 +433,7 @@ final readonly class FilesystemWriter
 			$entry = $this->record($path);
 
 			if ($entry?->landing === true) {
-				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.landing_name', '{path} is a landing page; its name is its folder\'s.', path: $path));
 			}
 
 			return $this->renamed($path, $contents, ...$this->renameTargets($path, $slug, $entry));
@@ -455,7 +457,7 @@ final readonly class FilesystemWriter
 			$entry    = $this->record($path);
 
 			if ($entry === null || $entry->landing) {
-				throw new WriteException(sprintf('%s is a landing page; it\'s in the language of the pages it lists.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.landing_language', '{path} is a landing page; it\'s in the language of the pages it lists.', path: $path));
 			}
 
 			$directory = dirname($path) === '.' ? '' : dirname($path);
@@ -485,13 +487,13 @@ final readonly class FilesystemWriter
 		}
 
 		if (file_exists($to)) {
-			throw new WriteException(sprintf('%s already exists.', $this->paths->relative($to)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.exists', '{path} already exists.', path: $this->paths->relative($to)));
 		}
 
 		[$referrers, $filed] = $this->fileReferrers($path);
 
 		if (! @rename($from, $to)) {
-			throw new WriteException(sprintf('%s couldn\'t be renamed.', $path));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_renamed', '{path} couldn\'t be renamed.', path: $path));
 		}
 
 		$report = $this->refresh($filed, $referrers);
@@ -522,21 +524,21 @@ final readonly class FilesystemWriter
 			$type     = $entry === null ? null : $this->types->find($entry->type);
 
 			if ($entry === null || ! $type instanceof Tree) {
-				throw new WriteException(sprintf('%s isn\'t a page that can move.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.cannot_move', '{path} isn\'t a page that can move.', path: $path));
 			}
 
 			if ($entry->landing) {
-				throw new WriteException(sprintf('%s is an index page; it stays at the top of its folder.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.index_stays', '{path} is an index page; it stays at the top of its folder.', path: $path));
 			}
 
 			$parent = $parentPath === null ? null : $this->record($parentPath);
 
 			if ($parentPath !== null && ($parent === null || $parent->type !== $type->name || $parent->landing)) {
-				throw new WriteException(sprintf('%s isn\'t one of the %s a page can go under.', $parentPath, $type->labels->items));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.wrong_parent', '{path} isn\'t one of the {items} a page can go under.', path: $parentPath, items: $type->labels->items));
 			}
 
 			if ($parent !== null && ($parent->key === $entry->key || str_starts_with($parent->key, "{$entry->key}/"))) {
-				throw new WriteException(sprintf('%s can\'t go under itself or a page under it.', $entry->title === '' ? $path : $entry->title));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.under_itself', '{name} can\'t go under itself or a page under it.', name: $entry->title === '' ? $path : $entry->title));
 			}
 
 			if ($type->parentKey($entry->key, []) === $parent?->key) {
@@ -548,7 +550,7 @@ final readonly class FilesystemWriter
 			$target = ltrim($type->folder . ($parent === null ? '' : "/{$parent->key}"), '/');
 
 			if ($this->named($type->name, $newKey) !== null) {
-				throw new WriteException(sprintf('There\'s already a page at %s.', $newKey));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.page_taken', 'There\'s already a page at {page}.', page: $newKey));
 			}
 
 			// What moves: the page's file or folder, and the folder its key
@@ -567,7 +569,7 @@ final readonly class FilesystemWriter
 				$to = ltrim("{$target}/" . basename($item), '/');
 
 				if (file_exists($this->folder($to))) {
-					throw new WriteException(sprintf('%s already exists.', $to));
+					throw new WriteException((string) $this->messages->t('content.filesystem_writer.exists', '{path} already exists.', path: $to));
 				}
 
 				$plan[$item] = $to;
@@ -606,7 +608,7 @@ final readonly class FilesystemWriter
 
 				foreach ($plan as $from => $to) {
 					if (! @rename($this->folder($from), $this->folder($to))) {
-						throw new WriteException(sprintf('%s couldn\'t be moved to %s.', $from, $to));
+						throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_moved', '{path} couldn\'t be moved to {to}.', path: $from, to: $to));
 					}
 
 					$done[] = [$this->folder($from), $this->folder($to)];
@@ -675,7 +677,7 @@ final readonly class FilesystemWriter
 			$bundle = preg_match('#(^|/)index\.[a-z]+$#', $path) === 1 && $this->record($path)?->landing !== true;
 
 			if (! @unlink($file)) {
-				throw new WriteException(sprintf('%s couldn\'t be deleted.', $path));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_deleted', '{path} couldn\'t be deleted.', path: $path));
 			}
 
 			// A bundle's folder goes with its entry once it's empty; pages
@@ -762,7 +764,7 @@ final readonly class FilesystemWriter
 	private function copyFolder(string $from, string $to): void
 	{
 		if (! @mkdir($to, 0775, true)) {
-			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($to)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.no_folder', 'The folder {path} couldn\'t be created.', path: $this->paths->relative($to)));
 		}
 
 		$items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($from, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
@@ -776,7 +778,7 @@ final readonly class FilesystemWriter
 			$copied = $item->isDir() ? (is_dir($target) || @mkdir($target, 0775)) : @copy($item->getPathname(), $target);
 
 			if (! $copied) {
-				throw new WriteException(sprintf('%s couldn\'t be copied.', $this->paths->relative($item->getPathname())));
+				throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_copied', '{path} couldn\'t be copied.', path: $this->paths->relative($item->getPathname())));
 			}
 		}
 	}
@@ -792,7 +794,7 @@ final readonly class FilesystemWriter
 		$contents = $this->read($file);
 
 		if ($version !== null && ! hash_equals(self::version($contents), $version)) {
-			throw new WriteConflict(sprintf('%s changed since it was opened. Reload it, then make your change again.', $path));
+			throw new WriteConflict((string) $this->messages->t('content.filesystem_writer.changed', '{path} changed since it was opened. Reload it, then make your change again.', path: $path));
 		}
 
 		return $contents;
@@ -807,13 +809,13 @@ final readonly class FilesystemWriter
 	private function file(string $path): string
 	{
 		if ($path === '' || str_starts_with($path, '/') || ! FilesystemSource::isContent($path) || str_contains($path, "\0")) {
-			throw new WriteException(sprintf('"%s" isn\'t a content file.', $path));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_content', '"{path}" isn\'t a content file.', path: $path));
 		}
 
 		try {
 			return $this->paths->join($this->paths->content, $path);
 		} catch (FilesystemException $e) {
-			throw new WriteException(sprintf('"%s" is outside the content folder.', $path), previous: $e);
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.outside', '"{path}" is outside the content folder.', path: $path), previous: $e);
 		}
 	}
 
@@ -827,7 +829,7 @@ final readonly class FilesystemWriter
 		try {
 			return $this->paths->join($this->paths->content, $relative);
 		} catch (FilesystemException $e) {
-			throw new WriteException(sprintf('"%s" is outside the content folder.', $relative), previous: $e);
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.outside', '"{path}" is outside the content folder.', path: $relative), previous: $e);
 		}
 	}
 
@@ -841,7 +843,7 @@ final readonly class FilesystemWriter
 		$contents = is_file($file) ? @file_get_contents($file) : false;
 
 		return $contents === false
-			? throw new WriteException(sprintf('There\'s no content file %s.', $this->paths->relative($file)))
+			? throw new WriteException((string) $this->messages->t('content.filesystem_writer.no_file', 'There\'s no content file {path}.', path: $this->paths->relative($file)))
 			: $contents;
 	}
 
@@ -855,7 +857,7 @@ final readonly class FilesystemWriter
 		try {
 			$this->filesystem->writeAtomic($file, $contents);
 		} catch (FilesystemException $e) {
-			throw new WriteException(sprintf('%s couldn\'t be written: %s', $this->paths->relative($file), $e->getMessage()), previous: $e);
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_written', '{path} couldn\'t be written: {problem}', path: $this->paths->relative($file), problem: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -878,7 +880,7 @@ final readonly class FilesystemWriter
 			$done   = 0;
 
 			foreach ($paths as $path) {
-				$steps->step('Writing ids', $done++, count($paths));
+				$steps->step((string) $this->messages->t('content.filesystem_writer.writing_ids', 'Writing ids'), $done++, count($paths));
 
 				try {
 					$file     = $this->file($path);
@@ -894,7 +896,7 @@ final readonly class FilesystemWriter
 				}
 			}
 
-			$steps->step('Writing ids', $done, count($paths));
+			$steps->step((string) $this->messages->t('content.filesystem_writer.writing_ids', 'Writing ids'), $done, count($paths));
 
 			return new AssignedIds($ids, $failed, $ids === [] ? new IndexReport() : $this->refresh(array_keys($ids), progress: $steps));
 		});
@@ -921,7 +923,7 @@ final readonly class FilesystemWriter
 			$count   = 0;
 
 			foreach ($moves as $path => $entryMoves) {
-				$steps->step('Renaming files', $count++, count($moves));
+				$steps->step((string) $this->messages->t('content.filesystem_writer.renaming_files', 'Renaming files'), $count++, count($moves));
 
 				$done = [];
 
@@ -946,7 +948,7 @@ final readonly class FilesystemWriter
 				}
 			}
 
-			$steps->step('Renaming files', $count, count($moves));
+			$steps->step((string) $this->messages->t('content.filesystem_writer.renaming_files', 'Renaming files'), $count, count($moves));
 
 			return new RenamedFiles($renamed, $failed, $renamed === [] ? new IndexReport() : $this->refresh(progress: $steps));
 		});
@@ -1001,20 +1003,20 @@ final readonly class FilesystemWriter
 		}
 
 		if (! file_exists($source)) {
-			throw new WriteException(sprintf('There\'s no %s.', $from));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.missing', 'There\'s no {path}.', path: $from));
 		}
 
 		if (file_exists($target)) {
-			throw new WriteException(sprintf('%s already exists.', $to));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.exists', '{path} already exists.', path: $to));
 		}
 
 		// A folder pattern's folder may not be there yet (D-629).
 		if (! is_dir(dirname($target)) && ! @mkdir(dirname($target), 0775, true) && ! is_dir(dirname($target))) {
-			throw new WriteException(sprintf('The folder for %s couldn\'t be created.', $to));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.no_folder_for', 'The folder for {path} couldn\'t be created.', path: $to));
 		}
 
 		if (! @rename($source, $target)) {
-			throw new WriteException(sprintf('%s couldn\'t be renamed.', $from));
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.not_renamed', '{path} couldn\'t be renamed.', path: $from));
 		}
 	}
 
@@ -1128,7 +1130,7 @@ final readonly class FilesystemWriter
 		return $this->locked(function () use ($paths, $progress): FiledRefs {
 			$steps = new Progress($progress);
 
-			$this->indexer->index(progress: $steps->of('Checking the content index'));
+			$this->indexer->index(progress: $steps->of((string) $this->messages->t('content.filesystem_writer.checking_index', 'Checking the content index')));
 
 			$snapshot = $this->index->snapshot();
 			$stale    = array_intersect_key(new LinkBuilder()->build($snapshot, $this->relations, $this->types)->stale, array_flip($paths));
@@ -1150,7 +1152,7 @@ final readonly class FilesystemWriter
 	 */
 	private function refresh(array $written = [], array $referrers = [], Progress $progress = new Progress()): IndexReport
 	{
-		$report   = $this->indexer->index(progress: $progress->of('Updating the content index'), written: $written);
+		$report   = $this->indexer->index(progress: $progress->of((string) $this->messages->t('content.filesystem_writer.updating_index', 'Updating the content index')), written: $written);
 		$snapshot = $this->index->snapshot();
 		$paths    = [...$written, ...array_filter(array_map($snapshot->path(...), $referrers))];
 		$stale    = array_intersect_key($report->stale, array_flip($paths));
@@ -1233,7 +1235,7 @@ final readonly class FilesystemWriter
 		$done   = 0;
 
 		foreach ($stale as $path => $resolutions) {
-			$progress->step('Filing relations', $done++, count($stale));
+			$progress->step((string) $this->messages->t('content.filesystem_writer.filing_relations', 'Filing relations'), $done++, count($stale));
 
 			$path = (string) $path;
 			$type = $snapshot->record($path)?->type;
@@ -1259,7 +1261,7 @@ final readonly class FilesystemWriter
 			}
 		}
 
-		$progress->step('Filing relations', $done, count($stale));
+		$progress->step((string) $this->messages->t('content.filesystem_writer.filing_relations', 'Filing relations'), $done, count($stale));
 
 		return [$filed, $failed];
 	}
@@ -1311,7 +1313,7 @@ final readonly class FilesystemWriter
 		$handle = @fopen($file, 'c');
 
 		if ($handle === false || ! flock($handle, LOCK_EX)) {
-			throw new WriteException('Content can\'t be written right now: the write lock couldn\'t be taken.');
+			throw new WriteException((string) $this->messages->t('content.filesystem_writer.locked', 'Content can\'t be written right now: the write lock couldn\'t be taken.'));
 		}
 
 		try {

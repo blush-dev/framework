@@ -65,14 +65,14 @@ function choose(key: string): void {
 	<dialog ref="dialog" class="modal control-picker" aria-labelledby="control-picker-heading" @close="emit('close')" @click="backdrop" @keydown.esc.prevent.stop="close()">
 		<div class="panel__header">
 			<div class="control-picker__title">
-				<h2 id="control-picker-heading">{{ current === undefined ? 'Choose a Control' : 'Change the Control' }}</h2>
-				<p v-if="flat" class="panel__hint">This one sits inside a group, so it can't be a group itself.</p>
-				<p v-else-if="current !== undefined" class="panel__hint">These store the same value, so what entries have is kept.</p>
+				<h2 id="control-picker-heading">{{ current === undefined ? t('control_picker.choose', 'Choose a Control') : t('control_picker.change', 'Change the Control') }}</h2>
+				<p v-if="flat" class="panel__hint">{{ t('control_picker.flat_hint', 'This one sits inside a group, so it can\'t be a group itself.') }}</p>
+				<p v-else-if="current !== undefined" class="panel__hint">{{ t('control_picker.same_value_hint', 'These store the same value, so what entries have is kept.') }}</p>
 			</div>
 			<div class="panel__actions">
 				<button type="button" class="button button--ghost button--small button--icon" @click="close()">
 					<AdminIcon name="x" />
-					<span class="visually-hidden">Close</span>
+					<span class="visually-hidden">{{ t('common.close', 'Close') }}</span>
 				</button>
 			</div>
 		</div>
@@ -80,12 +80,12 @@ function choose(key: string): void {
 		<div class="modal__bar">
 			<label class="search-field control-picker__search">
 				<AdminIcon name="search" />
-				<input ref="input" v-model="query" type="search" placeholder="Search controls…" autocomplete="off" spellcheck="false" aria-label="Search controls">
+				<input ref="input" v-model="query" type="search" :placeholder="t('control_picker.search_placeholder', 'Search controls…')" autocomplete="off" spellcheck="false" :aria-label="t('control_picker.search_label', 'Search controls')">
 			</label>
 		</div>
 
 		<div class="modal__body">
-			<p v-if="!sections.length" class="control-picker__none">No control matches that.</p>
+			<p v-if="!sections.length" class="control-picker__none">{{ t('control_picker.no_match', 'No control matches that.') }}</p>
 			<section v-for="section in sections" :key="section.value" class="control-picker__section" :aria-labelledby="`control-section-${section.value}`">
 				<h3 :id="`control-section-${section.value}`" class="eyebrow control-picker__heading">{{ section.label }}</h3>
 				<div class="control-picker__grid" role="radiogroup" :aria-labelledby="`control-section-${section.value}`">
@@ -112,9 +112,9 @@ function choose(key: string): void {
 		<div class="modal__foot">
 			<p id="control-picker-hint" class="modal__selected control-picker__hint" aria-live="polite">
 				<template v-if="hint"><b>{{ hint.label }}</b><span>{{ hint.description }}</span></template>
-				<span v-else class="control-picker__quiet">Point at a control to see what it holds.</span>
+				<span v-else class="control-picker__quiet">{{ t('control_picker.point_hint', 'Point at a control to see what it holds.') }}</span>
 			</p>
-			<button type="button" class="button" @click="close()">Cancel</button>
+			<button type="button" class="button" @click="close()">{{ t('common.cancel', 'Cancel') }}</button>
 		</div>
 	</dialog>
 </template>

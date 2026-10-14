@@ -35,6 +35,8 @@ use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Deletes a theme's folder from `extensions/` (D-381), for accounts with
@@ -62,7 +64,8 @@ final readonly class ThemeEditController
 		private Permissions $permissions,
 		private Filesystem $filesystem,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -70,7 +73,7 @@ final readonly class ThemeEditController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::Delete->on(ExtensionKind::Theme))) {
-			return self::error('You aren\'t allowed to delete themes.', Status::Forbidden);
+			return self::error($this->messages->t('admin.theme_edit_controller.delete_forbidden', 'You aren\'t allowed to delete themes.'), Status::Forbidden);
 		}
 
 		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
@@ -78,7 +81,7 @@ final readonly class ThemeEditController
 		$theme = array_find($this->themes->all(), fn (ThemeManifest $theme): bool => $theme->source === ThemeSource::Local && $theme->path === $path);
 
 		if (! is_dir($path) || ($theme === null && ! array_key_exists($where, $this->themes->invalid()))) {
-			return self::error(sprintf('There\'s no theme in %s.', $where), Status::NotFound);
+			return self::error($this->messages->t('admin.theme_edit_controller.none_in', 'There\'s no theme in {where}.', where: $where), Status::NotFound);
 		}
 
 		if ($theme !== null && ($refusal = $this->inUse($theme)) !== null) {
@@ -88,7 +91,7 @@ final readonly class ThemeEditController
 		try {
 			$this->filesystem->removeDirectory($path);
 		} catch (FilesystemException) {
-			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
+			return self::error($this->messages->t('admin.theme_edit_controller.not_deleted', '{where} couldn\'t be deleted. Check that the web server may change it.', where: $where), Status::InternalServerError);
 		}
 
 		LocalExtensions::prune($this->paths, $path);
@@ -108,10 +111,10 @@ final readonly class ThemeEditController
 	 * Why a theme can't be deleted, when the site uses it: it's the active
 	 * theme, or the active theme falls back to it.
 	 */
-	private function inUse(ThemeManifest $theme): ?string
+	private function inUse(ThemeManifest $theme): ?Text
 	{
 		if ($theme->name === $this->config->active) {
-			return sprintf('%s is the active theme. Activate another theme before deleting it.', $this->text->label($theme));
+			return $this->messages->t('admin.theme_edit_controller.active', '{label} is the active theme. Activate another theme before deleting it.', label: (string) $this->text->label($theme));
 		}
 
 		try {
@@ -126,10 +129,10 @@ final readonly class ThemeEditController
 
 		$active = $this->themes->find($this->config->active);
 
-		return sprintf('The active theme, %s, falls back to %s. Activate another theme before deleting it.', $active === null ? $this->config->active : $this->text->label($active), $this->text->label($theme));
+		return $this->messages->t('admin.theme_edit_controller.parent_of_active', 'The active theme, {active}, falls back to {label}. Activate another theme before deleting it.', active: $active === null ? $this->config->active : (string) $this->text->label($active), label: (string) $this->text->label($theme));
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

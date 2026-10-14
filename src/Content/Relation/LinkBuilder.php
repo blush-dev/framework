@@ -16,6 +16,7 @@ namespace Blush\Content\Relation;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
+use Blush\Translation\Messages;
 
 /**
  * Builds every link from the content index (D-585), for the relation
@@ -46,12 +47,19 @@ use Blush\Content\Type\Tree;
 final readonly class LinkBuilder
 {
 	/**
+	 * @param Messages $messages Writes the problems' text; English by
+	 *                           default, for callers that only want the links.
+	 */
+	public function __construct(private Messages $messages = new Messages())
+	{}
+
+	/**
 	 * Builds the links.
 	 */
 	public function build(IndexSnapshot $snapshot, Relations $relations, ContentTypes $types): LinkReport
 	{
 		$targets  = new SnapshotTargets($snapshot);
-		$resolver = new LinkResolver($targets);
+		$resolver = new LinkResolver($targets, $this->messages);
 		$links    = [];
 		$problems = [];
 		$stale    = [];

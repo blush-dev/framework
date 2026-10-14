@@ -24,6 +24,7 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Tool\ToolError;
 use Blush\Tool\Tools;
+use Blush\Translation\Messages;
 
 /**
  * The Tools screen's buttons (D-222, D-540, D-761): each tool that needs
@@ -44,7 +45,8 @@ final readonly class ToolController
 		private Tools $tools,
 		private ToolButtons $buttons,
 		private Provenance $provenance,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
+		private Messages $messages
 	) {}
 
 	/**
@@ -55,7 +57,7 @@ final readonly class ToolController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		$groups = [];
@@ -69,7 +71,7 @@ final readonly class ToolController
 				'key'         => $key,
 				'title'       => (string) $tool->title(),
 				'description' => (string) $tool->description(),
-				'confirm'     => ToolButtons::confirm($tool)
+				'confirm'     => $this->buttons->confirm($tool)
 			];
 		}
 
@@ -86,13 +88,13 @@ final readonly class ToolController
 		$instance = $this->buttons->get($tool);
 
 		if ($instance === null) {
-			return self::json(['error' => sprintf('There\'s no "%s" tool.', $tool)], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.tool_controller.no_tool', 'There\'s no "{tool}" tool.', tool: $tool)], Status::NotFound);
 		}
 
 		$context = $account instanceof Account ? $this->buttons->context($account) : null;
 
 		if ($context === null || ! $this->tools->allows($tool, $instance, $context)) {
-			return self::json(['error' => 'You aren\'t allowed to do that.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.tool_controller.not_allowed', 'You aren\'t allowed to do that.')], Status::Forbidden);
 		}
 
 		try {
@@ -102,11 +104,11 @@ final readonly class ToolController
 		} catch (Throwable $error) {
 			$this->logger->error('The tool "{key}" failed: {problem}', ['key' => $tool, 'problem' => $error->getMessage(), 'exception' => $error]);
 
-			return self::json(['successful' => false, 'message' => 'Something went wrong; the site\'s log says what.', 'details' => []]);
+			return self::json(['successful' => false, 'message' => $this->messages->t('admin.tool_controller.failed', 'Something went wrong; the site\'s log says what.'), 'details' => []]);
 		}
 
 		return $result->job === null
-			? self::json(['successful' => true, 'message' => (string) ($result->text ?? 'Done.'), 'details' => array_map(strval(...), $result->details)])
+			? self::json(['successful' => true, 'message' => (string) ($result->text ?? $this->messages->t('admin.tool_controller.done', 'Done.')), 'details' => array_map(strval(...), $result->details)])
 			: self::json(['job' => $result->job]);
 	}
 

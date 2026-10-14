@@ -5,6 +5,7 @@
  */
 
 import { request } from './api';
+import { t } from './messages';
 
 export type ActivityVia = 'admin' | 'mcp' | 'cli' | 'api';
 
@@ -48,7 +49,7 @@ export interface ActivityQuery {
 	page?: number;
 }
 
-const VIA: Record<ActivityVia, string> = { admin: 'Admin', mcp: 'MCP', cli: 'Command line', api: 'API' };
+const VIA: Record<ActivityVia, string> = { admin: t('activity.via_admin', 'Admin'), mcp: 'MCP', cli: t('activity.via_cli', 'Command line'), api: 'API' };
 
 /**
  * How a change came: an app's or token's name, else the way.

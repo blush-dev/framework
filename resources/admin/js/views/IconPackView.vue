@@ -29,6 +29,8 @@ import { packIconMask, useIconPacks } from '../icon-packs';
 import { screenTitle } from '../screen';
 import { can } from '../session';
 import { copyText } from '../toast';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const route  = useRoute();
 const router = useRouter();
@@ -74,7 +76,7 @@ async function load(): Promise<void> {
 		if (caught instanceof ApiError && caught.status === 404) {
 			missing.value = true;
 		} else {
-			error.value = errorMessage(caught, 'The icon pack couldn\'t be loaded.');
+			error.value = errorMessage(caught, t('icon_pack_view.load_failed', 'The icon pack couldn\'t be loaded.'));
 		}
 	}
 }
@@ -122,84 +124,84 @@ async function remove(): Promise<void> {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'icon-packs' }"><AdminIcon name="chevron-left" />All icon packs</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'icon-packs' }"><AdminIcon name="chevron-left" />{{ t('icon_pack_view.back', 'All icon packs') }}</RouterLink>
 		<div class="page-header__text">
 			<div class="page-header__title">
-				<h1 tabindex="-1">{{ label ?? 'Icon Pack' }}</h1>
-				<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
-				<span v-else-if="core" class="pill">Built in</span>
+				<h1 tabindex="-1">{{ label ?? t('icon_pack_view.title', 'Icon Pack') }}</h1>
+				<span v-if="blocked" class="pill pill--warn">{{ t('icon_pack_view.cant_turn_on', "Can't turn on") }}</span>
+				<span v-else-if="core" class="pill">{{ t('icon_pack_view.built_in', 'Built in') }}</span>
 			</div>
-			<p v-if="pack" class="page-header__hint">{{ pack.description || 'This icon pack has no description.' }}</p>
-			<p v-else-if="core" class="page-header__hint">Blush's own icons: always on, and always available to content.</p>
+			<p v-if="pack" class="page-header__hint">{{ pack.description || t('icon_pack_view.no_description', 'This icon pack has no description.') }}</p>
+			<p v-else-if="core" class="page-header__hint">{{ t('icon_pack_view.core_hint', "Blush's own icons: always on, and always available to content.") }}</p>
 		</div>
 		<div v-if="pack" class="page-header__actions">
-			<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked !== null || !canActivate" :busy="busy === pack.name" :reason="blocked ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle" />
+			<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked !== null || !canActivate" :busy="busy === pack.name" :reason="blocked ?? (canActivate ? null : t('icon_pack_view.no_capability', 'Your role can\'t turn icon packs on and off.'))" @change="toggle" />
 		</div>
 		<div v-else-if="core" class="page-header__actions">
-			<ToggleSwitch :checked="true" :label="core.label" locked reason="The core set is always on." />
+			<ToggleSwitch :checked="true" :label="core.label" locked :reason="t('icon_pack_view.core_always_on', 'The core set is always on.')" />
 		</div>
 	</header>
 
 	<p v-if="error || failure" class="notice notice--error" role="alert">{{ error || failure }}</p>
 
 	<div v-if="shown" class="extension-detail">
-		<AbandonedNotice v-if="pack" noun="icon pack" :abandoned="pack.abandoned" :replacement="pack.replacement" />
+		<AbandonedNotice v-if="pack" :noun="t('icon_pack_view.noun', 'icon pack')" :abandoned="pack.abandoned" :replacement="pack.replacement" />
 		<p v-if="pack && blocked" class="notice notice--warn">
-			<span>{{ blocked }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed, and anywhere one is used shows nothing.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+			<span>{{ blocked }} {{ pack.enabled ? t('icon_pack_view.blocked_on', 'It\'s turned on, but its icons aren\'t available until that\'s fixed, and anywhere one is used shows nothing.') : t('icon_pack_view.blocked_off', 'It can\'t be turned on until that\'s fixed.') }}</span>
 		</p>
 		<p v-else-if="pack && !pack.enabled" class="notice notice--warn">
-			<span>This pack is off, so its icons aren't available, and anywhere one is used shows nothing.</span>
+			<span>{{ t('icon_pack_view.off', 'This pack is off, so its icons aren\'t available, and anywhere one is used shows nothing.') }}</span>
 		</p>
 
 		<section class="panel" aria-labelledby="icons-heading">
 			<header class="panel__header">
-				<h2 id="icons-heading">Icons</h2>
-				<p class="panel__hint">Click one to copy how it's used</p>
+				<h2 id="icons-heading">{{ t('icon_pack_view.icons_heading', 'Icons') }}</h2>
+				<p class="panel__hint">{{ t('icon_pack_view.icons_hint', "Click one to copy how it's used") }}</p>
 			</header>
 			<div class="panel__body">
 				<div class="browse-bar">
 					<label class="search-field browse-bar__field">
 						<AdminIcon name="search" />
-						<span class="visually-hidden">Filter icons</span>
-						<input v-model="query" type="search" placeholder="Filter icons">
+						<span class="visually-hidden">{{ t('icon_pack_view.filter', 'Filter icons') }}</span>
+						<input v-model="query" type="search" :placeholder="t('icon_pack_view.filter', 'Filter icons')">
 					</label>
-					<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? `${shown.count} icons` : `${icons.length} of ${shown.count}` }}</span>
+					<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? t('icon_pack_view.count', '{count} icons', { count: shown.count }) : t('icon_pack_view.count_filtered', '{shown} of {count}', { shown: icons.length, count: shown.count }) }}</span>
 				</div>
 				<div v-if="icons.length" class="browse">
-					<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, 'the icon\'s name', icon.name)">
+					<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, t('icon_pack_view.copy_what', 'the icon\'s name'), icon.name)">
 						<span v-if="icon.svg" class="browse__glyph" :style="{ maskImage: packIconMask(icon) }" aria-hidden="true" />
 						<AdminIcon v-else name="image-off" />
 						<code>{{ icon.name }}</code>
 					</button>
 				</div>
-				<p v-else class="field__help">No icon in this {{ core ? 'set' : 'pack' }} matches “{{ query }}”.</p>
+				<p v-else class="field__help">{{ core ? t('icon_pack_view.no_match_set', 'No icon in this set matches “{query}”.', { query }) : t('icon_pack_view.no_match_pack', 'No icon in this pack matches “{query}”.', { query }) }}</p>
 			</div>
 		</section>
 
 		<div class="extension-detail__columns">
 			<template v-if="pack">
-				<ExtensionFacts :extension="pack" :installed-by="pack.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="pack.path" :namespace="`${pack.namespace}/`">
+				<ExtensionFacts :extension="pack" :installed-by="pack.source === 'composer' ? 'Composer' : t('icon_pack_view.installed_folder', 'A folder in extensions/')" :folder="pack.path" :namespace="`${pack.namespace}/`">
 					<template #kind>
-						<dt>Icons</dt>
+						<dt>{{ t('icon_pack_view.fact_icons', 'Icons') }}</dt>
 						<dd>{{ pack.count }}</dd>
 					</template>
 				</ExtensionFacts>
-				<ExtensionDependencies :extension="pack" noun="icon pack" replaces-hint="It adds no icons" />
+				<ExtensionDependencies :extension="pack" :noun="t('icon_pack_view.noun', 'icon pack')" :replaces-hint="t('icon_pack_view.replaces_hint', 'It adds no icons')" />
 			</template>
 			<section v-else-if="core" class="panel" aria-labelledby="details-heading">
-				<header class="panel__header"><h2 id="details-heading">Details</h2></header>
+				<header class="panel__header"><h2 id="details-heading">{{ t('icon_pack_view.details', 'Details') }}</h2></header>
 				<div class="panel__section">
 					<dl class="facts facts--grid">
-						<dt>Version</dt>
+						<dt>{{ t('icon_pack_view.fact_version', 'Version') }}</dt>
 						<dd class="mono">{{ core.version }}</dd>
-						<dt>Used as</dt>
-						<dd>Each icon's name alone, such as <code>{{ core.icons[0]?.name ?? 'house' }}</code></dd>
-						<dt>Icons</dt>
+						<dt>{{ t('icon_pack_view.fact_used_as', 'Used as') }}</dt>
+						<dd><MessageText :text="t('icon_pack_view.used_as', 'Each icon\'s name alone, such as {example}')"><template #example><code>{{ core.icons[0]?.name ?? 'house' }}</code></template></MessageText></dd>
+						<dt>{{ t('icon_pack_view.fact_icons', 'Icons') }}</dt>
 						<dd>{{ core.count }}</dd>
-						<dt>Installed by</dt>
+						<dt>{{ t('icon_pack_view.fact_installed_by', 'Installed by') }}</dt>
 						<dd>Blush</dd>
-						<dt>Drawn from</dt>
-						<dd><a href="https://lucide.dev" target="_blank" rel="noopener">Lucide<span class="visually-hidden"> (new tab)</span></a></dd>
+						<dt>{{ t('icon_pack_view.fact_drawn_from', 'Drawn from') }}</dt>
+						<dd><a href="https://lucide.dev" target="_blank" rel="noopener">Lucide<span class="visually-hidden">{{ t('icon_pack_view.new_tab', ' (new tab)') }}</span></a></dd>
 					</dl>
 				</div>
 			</section>
@@ -208,17 +210,17 @@ async function remove(): Promise<void> {
 		<template v-if="pack">
 			<PreviousVersion kind="icon-pack" :extension="pack" :live="pack.enabled" @changed="load" />
 			<p v-if="pack.source === 'composer'" class="notice">
-				<span>Composer manages this icon pack, so it can't be deleted here. Remove it from the project with <code>composer remove {{ pack.name }}</code>, and it leaves this list.</span>
+				<span><MessageText :text="t('icon_pack_view.composer', 'Composer manages this icon pack, so it can\'t be deleted here. Remove it from the project with {command}, and it leaves this list.')"><template #command><code>composer remove {{ pack.name }}</code></template></MessageText></span>
 			</p>
 			<DangerZone v-else-if="canDelete && pack.deletable">
-				Deleting removes the folder from the server, and its icons stop working wherever they're used.
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Icon Pack</button></template>
+				{{ t('icon_pack_view.delete_body', 'Deleting removes the folder from the server, and its icons stop working wherever they\'re used.') }}
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('icon_pack_view.delete', 'Delete Icon Pack') }}</button></template>
 			</DangerZone>
 		</template>
 	</div>
 
 	<p v-else-if="missing" class="notice notice--warn" role="alert">
-		<span>No icon pack named <span class="mono">{{ name }}</span> is installed.</span>
+		<span><MessageText :text="t('icon_pack_view.missing', 'No icon pack named {name} is installed.')"><template #name><span class="mono">{{ name }}</span></template></MessageText></span>
 	</p>
 
 	<div v-else-if="!error" class="extension-detail" aria-hidden="true">

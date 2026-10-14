@@ -15,6 +15,8 @@ namespace Blush\Content\Type;
 
 use DateTimeInterface;
 use Stringable;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * How a collection names the files it creates (D-511), such as
@@ -61,14 +63,16 @@ final readonly class FileName implements Stringable
 	];
 
 	/**
+	 * @param  Messages $messages Writes why a pattern is refused; English
+	 *                            without a translator, for a pattern in code.
 	 * @throws InvalidContentType When the pattern isn't one.
 	 */
-	public function __construct(public string $pattern)
+	public function __construct(public string $pattern, Messages $messages = new Messages())
 	{
-		$problem = self::problem($pattern);
+		$problem = self::problem($pattern, $messages);
 
 		if ($problem !== null) {
-			throw new InvalidContentType(sprintf('The file name pattern "%s" %s', $pattern, $problem));
+			throw new InvalidContentType((string) $problem);
 		}
 	}
 
@@ -138,13 +142,12 @@ final readonly class FileName implements Stringable
 	}
 
 	/**
-	 * Returns what's wrong with a pattern, finishing a sentence, or
-	 * `null` when nothing is.
+	 * Returns what's wrong with a pattern, or `null` when nothing is.
 	 */
-	private static function problem(string $pattern): ?string
+	private static function problem(string $pattern, Messages $messages): ?Text
 	{
 		if (! str_ends_with($pattern, self::SLUG)) {
-			return 'must end in {slug}.';
+			return $messages->t('content.file_name.no_slug', 'The file name pattern "{pattern}" must end in \'{slug}\'.', pattern: $pattern);
 		}
 
 		$prefix = substr($pattern, 0, -strlen(self::SLUG));
@@ -154,7 +157,7 @@ final readonly class FileName implements Stringable
 		}
 
 		if (! str_ends_with($prefix, '.')) {
-			return 'needs a "." before {slug}, which starts the slug.';
+			return $messages->t('content.file_name.no_dot', 'The file name pattern "{pattern}" needs a "." before \'{slug}\', which starts the slug.', pattern: $pattern);
 		}
 
 		preg_match_all('/\{([^}]*)\}/', $prefix, $tokens);
@@ -162,13 +165,19 @@ final readonly class FileName implements Stringable
 		$unknown = array_diff($tokens[1], array_keys(self::TOKENS));
 
 		if ($unknown !== []) {
-			return sprintf('uses {%s}; the tokens are {slug} and {%s}.', implode('}, {', $unknown), implode('}, {', array_keys(self::TOKENS)));
+			return $messages->t(
+				'content.file_name.unknown_tokens',
+				'The file name pattern "{pattern}" uses {unknown}; the tokens are \'{slug}\' and {tokens}.',
+				pattern: $pattern,
+				unknown: '{' . implode('}, {', $unknown) . '}',
+				tokens: '{' . implode('}, {', array_keys(self::TOKENS)) . '}'
+			);
 		}
 
 		$literal = (string) preg_replace('/\{[a-z]+\}/', '0', $prefix);
 
 		return preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $literal) === 1
 			? null
-			: 'may use only the tokens, letters, digits, "-", "_", and ".", and can\'t start with "_" or ".".';
+			: $messages->t('content.file_name.characters', 'The file name pattern "{pattern}" may use only the tokens, letters, digits, "-", "_", and ".", and can\'t start with "_" or ".".', pattern: $pattern);
 	}
 }

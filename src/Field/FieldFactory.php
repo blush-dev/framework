@@ -15,6 +15,7 @@ namespace Blush\Field;
 
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\ObjectField;
+use Blush\Translation\Messages;
 
 /**
  * Builds fields and schemas from definition arrays, looking up each
@@ -38,7 +39,8 @@ final readonly class FieldFactory
 {
 	public function __construct(
 		private FieldRegistry $registry,
-		private ControlFactory $controls
+		private ControlFactory $controls,
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -60,17 +62,19 @@ final readonly class FieldFactory
 			: (is_string($type) ? $this->registry->get($type) : null);
 
 		if ($class === null && $type === 'reference') {
-			throw new InvalidSchema(sprintf(
-				'Field "%s" is a reference, which isn\'t a field type; entries are linked by relationships (Structure → Relationships, or user/data/relations).',
-				is_string($data['name'] ?? null) ? $data['name'] : ''
+			throw new InvalidSchema((string) $this->messages->t(
+				'field.field_factory.reference',
+				'Field "{name}" is a reference, which isn\'t a field type; entries are linked by relationships (Structure → Relationships, or user/data/relations).',
+				name: is_string($data['name'] ?? null) ? $data['name'] : ''
 			));
 		}
 
 		if ($class === null) {
-			throw new InvalidSchema(sprintf(
-				'Field "%s" has an unknown type "%s".',
-				is_string($data['name'] ?? null) ? $data['name'] : '',
-				is_scalar($type) ? (string) $type : get_debug_type($type)
+			throw new InvalidSchema((string) $this->messages->t(
+				'field.field_factory.unknown_type',
+				'Field "{name}" has an unknown type "{type}".',
+				name: is_string($data['name'] ?? null) ? $data['name'] : '',
+				type: is_scalar($type) ? (string) $type : get_debug_type($type)
 			));
 		}
 
@@ -90,7 +94,7 @@ final readonly class FieldFactory
 		[$definitions, $controls] = $this->controls->split($definitions);
 		$fields                   = array_map($this->fromArray(...), $definitions);
 
-		self::check($fields, $controls, '');
+		$this->check($fields, $controls, '');
 
 		return [$fields, $controls];
 	}
@@ -102,22 +106,28 @@ final readonly class FieldFactory
 	 * @param  iterable<Field> $fields
 	 * @throws InvalidSchema
 	 */
-	private static function check(iterable $fields, FieldControls $controls, string $parent): void
+	private function check(iterable $fields, FieldControls $controls, string $parent): void
 	{
 		foreach ($fields as $field) {
 			$path    = FieldControls::path($parent, $field->name);
 			$control = $controls->at($path);
 
 			if ($control !== null && ! $control->fits($field) && $control::name() !== ControlDefaults::core($field)?->name()) {
-				throw new InvalidSchema(sprintf('Field "%s" (%s) can\'t be edited with the "%s" control.', $field->name, $field->type(), $control::name()));
+				throw new InvalidSchema((string) $this->messages->t(
+					'field.field_factory.control',
+					'Field "{name}" ({type}) can\'t be edited with the "{control}" control.',
+					name: $field->name,
+					type: $field->type(),
+					control: $control::name()
+				));
 			}
 
 			if ($field instanceof ObjectField) {
-				self::check($field->schema->fields, $controls, $path);
+				$this->check($field->schema->fields, $controls, $path);
 			}
 
 			if ($field instanceof ListField) {
-				self::check([$field->item->named(FieldControls::ITEM)], $controls, $path);
+				$this->check([$field->item->named(FieldControls::ITEM)], $controls, $path);
 			}
 		}
 	}

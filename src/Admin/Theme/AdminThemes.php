@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Blush\Admin\Theme;
 
 use Blush\Extension\Requirement;
+use Blush\Translation\Text;
 
 /**
  * The installed admin themes (D-827), as `AdminThemeDiscovery` (or its
  * cache) found them: valid themes by name, plus the broken ones, by where
- * they were found, with the reason. Which are on is `AdminThemeConfig`'s,
+ * they were found, with the reason (a message where it was written with
+ * `t()`, D-836). Which are on is `AdminThemeConfig`'s,
  * as icon packs' is `IconConfig`'s (D-390, D-391); Neutral, the admin's
  * own look, is always on.
  *
@@ -37,7 +39,7 @@ final readonly class AdminThemes
 
 	/**
 	 * @param array<string, AdminTheme>        $themes  Valid themes, by name.
-	 * @param array<string, string>            $invalid Broken themes, by where they were found, with the reason.
+	 * @param array<string, string|Text>       $invalid Broken themes, by where they were found, with the reason.
 	 * @param array<string, list<Requirement>> $unmet   The themes that are on but can't be offered, with the requirements each doesn't meet (D-431).
 	 */
 	public function __construct(
@@ -256,7 +258,7 @@ final readonly class AdminThemes
 	 * Returns the broken themes, by where they were found, with the
 	 * reason.
 	 *
-	 * @return array<string, string>
+	 * @return array<string, string|Text>
 	 */
 	public function invalid(): array
 	{
@@ -268,7 +270,7 @@ final readonly class AdminThemes
 	 * by where it was found, with a reason (a name another extension has,
 	 * D-431).
 	 *
-	 * @param array<string, array{string, string}> $reasons Where each was found and why, by theme name.
+	 * @param array<string, array{string, string|Text}> $reasons Where each was found and why, by theme name.
 	 */
 	#[\NoDiscard]
 	public function without(array $reasons): self

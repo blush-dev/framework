@@ -15,6 +15,7 @@ namespace Blush\Content\Relation;
 
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Listing;
+use Blush\Translation\Messages;
 
 /**
  * A relation seen from its targets (D-585): what a target calls the
@@ -39,6 +40,7 @@ final readonly class Inverse
 {
 	/**
 	 * @param  list<string> $types
+	 * @param  Messages     $messages Writes why it's refused; English without a translator, for one in code.
 	 * @throws InvalidRelation
 	 */
 	public function __construct(
@@ -47,14 +49,15 @@ final readonly class Inverse
 		public string|false $archive = false,
 		public array $types = [],
 		public ?int $max = null,
-		public Listing $listing = new Listing()
+		public Listing $listing = new Listing(),
+		Messages $messages = new Messages()
 	) {
 		if ($archive !== false && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $archive) !== 1) {
-			throw new InvalidRelation(sprintf('A relation\'s archive word must be a slug, such as "authors", or false for none; "%s" isn\'t.', $archive));
+			throw new InvalidRelation((string) $messages->t('content.inverse.bad_archive', 'A relation\'s archive word must be a slug, such as "authors", or false for none; "{archive}" isn\'t.', archive: $archive));
 		}
 
 		if ($max !== null && $max < 1) {
-			throw new InvalidRelation(sprintf('A relation\'s inverse max must be at least 1, not %d.', $max));
+			throw new InvalidRelation((string) $messages->t('content.inverse.max_below_one', 'A relation\'s inverse max must be at least 1, not {max, number, integer}.', max: $max));
 		}
 	}
 
@@ -65,7 +68,7 @@ final readonly class Inverse
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidRelation
 	 */
-	public static function fromArray(array $data): self
+	public static function fromArray(array $data, Messages $messages): self
 	{
 		$archive = $data['archive'] ?? false;
 		$page    = $data['page'] ?? false;
@@ -74,18 +77,19 @@ final readonly class Inverse
 		$listing = $data['listing'] ?? [];
 
 		try {
-			$listing = Listing::fromArray(is_array($listing) ? $listing : [], 'A relation\'s inverse listing');
+			$listing = Listing::fromArray(is_array($listing) ? $listing : [], $messages->t('content.inverse.listing_subject', 'A relation\'s inverse listing'), $messages);
 		} catch (InvalidContentType $e) {
 			throw new InvalidRelation($e->getMessage(), previous: $e);
 		}
 
 		return new self(
 			label: is_string($data['label'] ?? null) ? $data['label'] : '',
-			page: is_bool($page) ? $page : throw new InvalidRelation('A relation\'s inverse page must be true or false.'),
-			archive: is_string($archive) || $archive === false ? $archive : throw new InvalidRelation('A relation\'s inverse archive must be a word or false; for the target\'s own page, use "page": true.'),
+			page: is_bool($page) ? $page : throw new InvalidRelation((string) $messages->t('content.inverse.bad_page', 'A relation\'s inverse page must be true or false.')),
+			archive: is_string($archive) || $archive === false ? $archive : throw new InvalidRelation((string) $messages->t('content.inverse.bad_archive_type', 'A relation\'s inverse archive must be a word or false; for the target\'s own page, use "page": true.')),
 			types: is_array($types) ? array_values(array_map(strval(...), array_filter($types, is_string(...)))) : [],
-			max: is_int($max) || $max === null ? $max : throw new InvalidRelation('A relation\'s inverse max must be a number.'),
-			listing: $listing
+			max: is_int($max) || $max === null ? $max : throw new InvalidRelation((string) $messages->t('content.inverse.max_not_number', 'A relation\'s inverse max must be a number.')),
+			listing: $listing,
+			messages: $messages
 		);
 	}
 

@@ -65,7 +65,9 @@ import { config } from '../config';
 import { fromForm, toForm, type FormValue } from '../fields';
 import { attributeText, CORE, imageText, linkText } from '../markdown';
 import { siteDateTime } from '../dates';
-import { formatSize, plural } from '../format';
+import { formatSize } from '../format';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 import { embeddedText, forgetFile, formatDuration, mediaFacts, mediaIcon, mediaName } from '../media';
 import { screenCrumb, screenTitle } from '../screen';
 import { copyText, toast } from '../toast';
@@ -108,42 +110,42 @@ const extra   = computed(() => Object.entries(file.value?.extra ?? {}));
 // What the file says about itself, labeled, with the field each value
 // can fill, if the file's kind has it.
 const EMBEDDED: Record<string, { label: string; field?: string }> = {
-	title: { label: 'Title', field: 'title' },
-	description: { label: 'Description', field: 'content' },
-	creator: { label: 'Creator', field: 'credit' },
-	album: { label: 'Album' },
-	track: { label: 'Track' },
-	genre: { label: 'Genre' },
-	credit: { label: 'Credit', field: 'credit' },
-	copyright: { label: 'Copyright' },
-	keywords: { label: 'Keywords' },
-	created: { label: 'Made' },
-	camera: { label: 'Camera' },
-	lens: { label: 'Lens' },
-	focalLength: { label: 'Focal length' },
-	aperture: { label: 'Aperture' },
-	exposure: { label: 'Exposure' },
-	iso: { label: 'ISO' },
-	orientation: { label: 'Orientation' },
-	artwork: { label: 'Artwork' },
-	format: { label: 'Format' },
-	bitrate: { label: 'Bitrate' },
-	sampleRate: { label: 'Sample rate' },
-	channels: { label: 'Channels' },
-	frameRate: { label: 'Frame rate' },
-	audioFormat: { label: 'Audio' },
-	pageSize: { label: 'Page size' },
-	software: { label: 'Software' },
-	producer: { label: 'Producer' }
+	title: { label: t('media_file_view.embedded.title', 'Title'), field: 'title' },
+	description: { label: t('media_file_view.embedded.description', 'Description'), field: 'content' },
+	creator: { label: t('media_file_view.embedded.creator', 'Creator'), field: 'credit' },
+	album: { label: t('media_file_view.embedded.album', 'Album') },
+	track: { label: t('media_file_view.embedded.track', 'Track') },
+	genre: { label: t('media_file_view.embedded.genre', 'Genre') },
+	credit: { label: t('media_file_view.embedded.credit', 'Credit'), field: 'credit' },
+	copyright: { label: t('media_file_view.embedded.copyright', 'Copyright') },
+	keywords: { label: t('media_file_view.embedded.keywords', 'Keywords') },
+	created: { label: t('media_file_view.embedded.created', 'Made') },
+	camera: { label: t('media_file_view.embedded.camera', 'Camera') },
+	lens: { label: t('media_file_view.embedded.lens', 'Lens') },
+	focalLength: { label: t('media_file_view.embedded.focal_length', 'Focal length') },
+	aperture: { label: t('media_file_view.embedded.aperture', 'Aperture') },
+	exposure: { label: t('media_file_view.embedded.exposure', 'Exposure') },
+	iso: { label: t('media_file_view.embedded.iso', 'ISO') },
+	orientation: { label: t('media_file_view.embedded.orientation', 'Orientation') },
+	artwork: { label: t('media_file_view.embedded.artwork', 'Artwork') },
+	format: { label: t('media_file_view.embedded.format', 'Format') },
+	bitrate: { label: t('media_file_view.embedded.bitrate', 'Bitrate') },
+	sampleRate: { label: t('media_file_view.embedded.sample_rate', 'Sample rate') },
+	channels: { label: t('media_file_view.embedded.channels', 'Channels') },
+	frameRate: { label: t('media_file_view.embedded.frame_rate', 'Frame rate') },
+	audioFormat: { label: t('media_file_view.embedded.audio_format', 'Audio') },
+	pageSize: { label: t('media_file_view.embedded.page_size', 'Page size') },
+	software: { label: t('media_file_view.embedded.software', 'Software') },
+	producer: { label: t('media_file_view.embedded.producer', 'Producer') }
 };
 
 // What `format` is: a video's picture, a document's version, or a
 // sound's codec.
-const FORMAT: Record<string, string> = { video: 'Video', document: 'Version' };
+const FORMAT: Record<string, string> = { video: t('media_file_view.format_video', 'Video'), document: t('media_file_view.format_document', 'Version') };
 
 const embedded = computed(() => Object.entries(file.value?.embedded.values ?? {}).filter(([key]) => EMBEDDED[key] !== undefined).map(([key, value]) => ({
 	key,
-	label: key === 'format' ? FORMAT[file.value?.kind ?? ''] ?? 'Format' : EMBEDDED[key]?.label ?? key,
+	label: key === 'format' ? FORMAT[file.value?.kind ?? ''] ?? t('media_file_view.embedded.format', 'Format') : EMBEDDED[key]?.label ?? key,
 	text: embeddedText(key, value),
 	field: EMBEDDED[key]?.field
 })));
@@ -250,11 +252,11 @@ function removeArtwork(): void {
 const artNote = computed(() => {
 	switch (artChange.value?.set) {
 		case 'image':
-			return 'Chosen from the library; saved with the details';
+			return t('media_file_view.art_chosen', 'Chosen from the library; saved with the details');
 		case 'file':
-			return 'Added to the library when you save';
+			return t('media_file_view.art_added', 'Added to the library when you save');
 		case 'none':
-			return 'Removed when you save; the image stays in the library';
+			return t('media_file_view.art_removed', 'Removed when you save; the image stays in the library');
 		default:
 			return null;
 	}
@@ -279,12 +281,12 @@ function fillFromFile(): void {
 const heading = computed(() => {
 	const title = typeof form.value.title === 'string' ? form.value.title.trim() : '';
 
-	return title !== '' ? title : (file.value?.name ?? 'File');
+	return title !== '' ? title : (file.value?.name ?? t('media_file_view.file', 'File'));
 });
 
 // The line under the heading: its type, size in pixels or length, size
 // on disk, and folder.
-const summary = computed(() => file.value === null ? '' : [file.value.mime, ...(pages.value === null ? [] : [plural(pages.value, 'page')]), mediaFacts(file.value)].join(' · '));
+const summary = computed(() => file.value === null ? '' : [file.value.mime, ...(pages.value === null ? [] : [t('media_file_view.pages', '{count, plural, one {# page} other {# pages} }', { count: pages.value })]), mediaFacts(file.value)].join(' · '));
 
 // An image without alt text, which its field says.
 const missingAlt = computed(() => file.value?.kind === 'image' && fields.value.some((field) => field.name === 'alt') && altText.value === '');
@@ -300,7 +302,7 @@ const track = computed(() => {
 
 	return {
 		title: text('title') || heading.value,
-		by: [text('creator'), text('album'), text('track') === '' ? '' : `Track ${text('track')}`].filter((part) => part !== '').join(' · ')
+		by: [text('creator'), text('album'), text('track') === '' ? '' : t('media_file_view.track', 'Track {track}', { track: text('track') })].filter((part) => part !== '').join(' · ')
 	};
 });
 
@@ -349,13 +351,13 @@ watch(path, async () => {
 	try {
 		fill(await request<MediaDetail>('GET', address.value));
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The file couldn\'t be loaded.');
+		error.value = errorMessage(caught, t('media_file_view.load_failed', 'The file couldn\'t be loaded.'));
 	}
 }, { immediate: true });
 
 watch(file, (value) => {
 	screenTitle.value = value === null ? null : mediaName(value);
-	screenCrumb.value = value?.may.edit === true && value.original === null ? 'Editing' : null;
+	screenCrumb.value = value?.may.edit === true && value.original === null ? t('media_file_view.editing', 'Editing') : null;
 });
 
 async function save(): Promise<void> {
@@ -378,7 +380,7 @@ async function save(): Promise<void> {
 		}
 	}
 
-	await run('It couldn\'t be saved.', async () => {
+	await run(t('media_file_view.save_failed', 'It couldn\'t be saved.'), async () => {
 		// The details first, so a refused artwork leaves them saved.
 		if (changes.value.length > 0) {
 			fill(await request<MediaDetail>('PATCH', address.value, { set, remove }));
@@ -396,7 +398,7 @@ async function save(): Promise<void> {
 		}
 
 		forgetFile(file.value?.reference ?? '', file.value?.id ?? '');
-		toast('Saved');
+		toast(t('media_file_view.saved', 'Saved'));
 	}, (caught) => {
 		// A field the server blamed says so under it, not above the form.
 		if (caught instanceof ApiError && caught.field !== null) {
@@ -429,17 +431,17 @@ async function remove(): Promise<void> {
 	const used  = item.usedIn.length;
 	const shows = item.artworkFor.length;
 	const goes  = item.sizes.length
-		? `The file and its **${plural(item.sizes.length, 'other size')}** will be removed from the library and from disk.`
-		: 'The file will be removed from the library and from disk.';
+		? t('media_file_view.delete_with_sizes', 'The file and its **{count, plural, one {# other size} other {# other sizes}}** will be removed from the library and from disk.', { count: item.sizes.length })
+		: t('media_file_view.delete_file', 'The file will be removed from the library and from disk.');
 	const body  = [
 		goes,
 		used === 0
-			? 'It isn\'t used in any entry. This can\'t be undone.'
-			: `**${plural(used, 'entry', 'entries')} ${used === 1 ? 'uses' : 'use'} it**, and will be left pointing at an address that no longer resolves. This can't be undone.`,
-		...(shows === 0 ? [] : [`It's the artwork of **${plural(shows, 'file')}**, which will have none of their own.`])
+			? t('media_file_view.delete_unused', 'It isn\'t used in any entry. This can\'t be undone.')
+			: t('media_file_view.delete_used', '{count, plural, one {**# entry uses it**} other {**# entries use it**}}, and will be left pointing at an address that no longer resolves. This can\'t be undone.', { count: used }),
+		...(shows === 0 ? [] : [t('media_file_view.delete_artwork', 'It\'s the artwork of **{count, plural, one {# file} other {# files}}**, which will have none of their own.', { count: shows })])
 	];
 
-	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the File', danger: true })) {
+	if (!await confirmAction({ title: t('media_file_view.confirm_delete', 'Delete {name}?', { name: mediaName(item) }), body, confirm: t('media_file_view.confirm_delete_button', 'Delete the File'), danger: true })) {
 		return;
 	}
 
@@ -449,10 +451,10 @@ async function remove(): Promise<void> {
 		await request('DELETE', address.value);
 		forgetFile(item.reference, item.id);
 		initial.value = { ...form.value };
-		toast(`Deleted ${mediaName(item)}`);
+		toast(t('media_file_view.deleted', 'Deleted {name}', { name: mediaName(item) }));
 		await router.push({ name: 'media' });
 	} catch (caught) {
-		toast(errorMessage(caught, 'The file couldn\'t be deleted.'), { kind: 'warn' });
+		toast(errorMessage(caught, t('media_file_view.delete_failed', 'The file couldn\'t be deleted.')), { kind: 'warn' });
 	} finally {
 		deleting.value = false;
 	}
@@ -470,20 +472,20 @@ const snippet = computed(() => {
 	}
 
 	if (item.kind === 'image') {
-		return { text: imageText(item.reference, item.alt, item.caption).text, label: 'In Markdown', note: 'the alt text is filled in for you', what: 'the Markdown' };
+		return { text: imageText(item.reference, item.alt, item.caption).text, label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_alt', 'the alt text is filled in for you'), what: t('media_file_view.what_markdown', 'the Markdown') };
 	}
 
 	if (item.kind === 'video' || item.kind === 'audio') {
-		return { text: `::${CORE}/${item.kind}{${attributeText('src', item.reference)}}`, label: 'In the editor', note: 'inserted by the media button', what: 'the block' };
+		return { text: `::${CORE}/${item.kind}{${attributeText('src', item.reference)}}`, label: t('media_file_view.in_editor', 'In the editor'), note: t('media_file_view.note_block', 'inserted by the media button'), what: t('media_file_view.what_block', 'the block') };
 	}
 
-	return { text: linkText(mediaName(item), item.reference), label: 'In Markdown', note: 'the link text is the title', what: 'the Markdown' };
+	return { text: linkText(mediaName(item), item.reference), label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_link', 'the link text is the title'), what: t('media_file_view.what_markdown', 'the Markdown') };
 });
 </script>
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'media' }"><AdminIcon name="chevron-left" />All media</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'media' }"><AdminIcon name="chevron-left" />{{ t('media_file_view.all_media', 'All media') }}</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ heading }}</h1>
 			<p v-if="file" class="page-header__hint">
@@ -491,8 +493,8 @@ const snippet = computed(() => {
 			</p>
 		</div>
 		<div class="page-header__actions">
-			<a v-if="file" class="button" :href="file.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />Open<span class="visually-hidden"> the file (new tab)</span></a>
-			<button v-if="file?.may.delete" type="button" class="button button--danger" :disabled="deleting" @click="remove"><AdminIcon name="trash-2" />Delete</button>
+			<a v-if="file" class="button" :href="file.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />{{ t('media_file_view.open', 'Open') }}<span class="visually-hidden">{{ t('media_file_view.open_hidden', ' the file (new tab)') }}</span></a>
+			<button v-if="file?.may.delete" type="button" class="button button--danger" :disabled="deleting" @click="remove"><AdminIcon name="trash-2" />{{ t('common.delete', 'Delete') }}</button>
 		</div>
 	</header>
 
@@ -500,28 +502,28 @@ const snippet = computed(() => {
 
 	<div v-if="file" class="detail">
 		<div class="detail__column">
-			<section class="panel preview" aria-label="Preview">
-				<img v-if="file.kind === 'image'" class="preview__image" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
+			<section class="panel preview" :aria-label="t('media_file_view.preview', 'Preview')">
+				<img v-if="file.kind === 'image'" class="preview__image" :src="file.url" :alt="t('media_file_view.preview_of', 'Preview of {name}', { name: mediaName(file) })">
 				<VideoPlayer v-else-if="file.kind === 'video'" class="preview__video" :src="file.url" :poster="artwork" />
 				<AudioPlayer v-else-if="file.kind === 'audio'" class="preview__audio" :src="file.url" :title="track.title" :by="track.by" :artwork="artwork" />
 				<div v-else-if="pages !== null" class="preview__page">
 					<div class="preview__sheet" :style="{ aspectRatio: pageShape }" aria-hidden="true">
 						<i class="preview__line preview__line--head" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" />
 						<i class="preview__line preview__line--end" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" /><i class="preview__line preview__line--end" />
-						<span class="preview__pages mono">{{ plural(pages, 'page') }}</span>
+						<span class="preview__pages mono">{{ t('media_file_view.pages', '{count, plural, one {# page} other {# pages} }', { count: pages }) }}</span>
 					</div>
 				</div>
 				<div v-else class="preview__none">
 					<AdminIcon :name="mediaIcon(file)" />
 					<span v-if="extension" class="preview__ext mono">{{ extension }}</span>
-					<span>No preview for this kind of file</span>
+					<span>{{ t('media_file_view.no_preview', 'No preview for this kind of file') }}</span>
 				</div>
 			</section>
 
 			<section v-if="file.kind === 'audio' || file.kind === 'video'" class="panel" aria-labelledby="artwork-heading">
 				<header class="panel__header">
-					<h2 id="artwork-heading">Artwork</h2>
-					<span class="panel__hint">{{ file.kind === 'video' ? 'Its poster, where a page names none' : 'Shown with it on the site' }}</span>
+					<h2 id="artwork-heading">{{ t('media_file_view.artwork', 'Artwork') }}</h2>
+					<span class="panel__hint">{{ file.kind === 'video' ? t('media_file_view.artwork_hint_video', 'Its poster, where a page names none') : t('media_file_view.artwork_hint_audio', 'Shown with it on the site') }}</span>
 				</header>
 				<div class="panel__body art">
 					<div class="art__row">
@@ -530,52 +532,52 @@ const snippet = computed(() => {
 						<div class="art__text">
 							<template v-if="linked">
 								<RouterLink :to="{ name: 'media-file', params: { path: linked.path.split('/') } }">{{ linked.title || linked.name }}</RouterLink>
-								<span class="art__note">{{ artNote ?? 'An image in the library' }}</span>
+								<span class="art__note">{{ artNote ?? t('media_file_view.art_library', 'An image in the library') }}</span>
 							</template>
 							<template v-else-if="carried">
-								<span>Carried in the file</span>
+								<span>{{ t('media_file_view.art_carried', 'Carried in the file') }}</span>
 								<span class="art__note">{{ artNote ?? embeddedText('artwork', file.embedded.values.artwork ?? '') }}</span>
 							</template>
 							<template v-else>
-								<span>None</span>
-								<span class="art__note">{{ artNote ?? (file.kind === 'video' ? 'It shows its first frame until it plays.' : 'Its card shows the title alone.') }}</span>
+								<span>{{ t('media_file_view.art_none', 'None') }}</span>
+								<span class="art__note">{{ artNote ?? (file.kind === 'video' ? t('media_file_view.art_none_video', 'It shows its first frame until it plays.') : t('media_file_view.art_none_audio', 'Its card shows the title alone.')) }}</span>
 							</template>
 						</div>
 					</div>
-					<p v-if="artChange === null && file.artwork && !linked" class="field__warn"><AdminIcon name="triangle-alert" /><span>The image it named is no longer in the library{{ carried ? ', so what it carries is shown' : '' }}.</span></p>
+					<p v-if="artChange === null && file.artwork && !linked" class="field__warn"><AdminIcon name="triangle-alert" /><span>{{ carried ? t('media_file_view.art_gone_carried', 'The image it named is no longer in the library, so what it carries is shown.') : t('media_file_view.art_gone', 'The image it named is no longer in the library.') }}</span></p>
 					<div v-if="file.may.edit" class="art__actions">
-						<button v-if="!linked && artChange?.set !== 'file' && file.may.addArtwork" type="button" class="button button--small" :disabled="saving" @click="addArtwork"><AdminIcon name="plus" />Add to Library</button>
-						<button type="button" class="button button--small" :disabled="saving" @click="choosingArt = true"><AdminIcon name="image" />{{ linked ? 'Change Image' : 'Choose Image' }}</button>
-						<button v-if="willLink" type="button" class="button button--small button--ghost" :disabled="saving" @click="removeArtwork"><AdminIcon name="x" />Remove</button>
+						<button v-if="!linked && artChange?.set !== 'file' && file.may.addArtwork" type="button" class="button button--small" :disabled="saving" @click="addArtwork"><AdminIcon name="plus" />{{ t('media_file_view.add_to_library', 'Add to Library') }}</button>
+						<button type="button" class="button button--small" :disabled="saving" @click="choosingArt = true"><AdminIcon name="image" />{{ linked ? t('media_file_view.change_image', 'Change Image') : t('media_file_view.choose_image', 'Choose Image') }}</button>
+						<button v-if="willLink" type="button" class="button button--small button--ghost" :disabled="saving" @click="removeArtwork"><AdminIcon name="x" />{{ t('common.remove', 'Remove') }}</button>
 					</div>
-					<p v-if="file.may.edit" class="field__help">A link to a library image, with its own alt text and sizes; the file itself isn't changed.</p>
+					<p v-if="file.may.edit" class="field__help">{{ t('media_file_view.art_help', "A link to a library image, with its own alt text and sizes; the file itself isn't changed.") }}</p>
 				</div>
 			</section>
 
 			<section class="panel" aria-labelledby="usage-heading">
 				<header class="panel__header">
-					<h2 id="usage-heading">Usage</h2>
-					<span class="panel__hint">Copy it, and see where it already is</span>
+					<h2 id="usage-heading">{{ t('media_file_view.usage', 'Usage') }}</h2>
+					<span class="panel__hint">{{ t('media_file_view.usage_hint', 'Copy it, and see where it already is') }}</span>
 				</header>
 				<div class="panel__body usage">
 					<div class="usage__copy">
-						<p class="usage__label"><span>Address</span> the file itself</p>
+						<p class="usage__label"><span>{{ t('media_file_view.address', 'Address') }}</span> {{ t('media_file_view.address_note', 'the file itself') }}</p>
 						<div class="usage__row">
 							<code>{{ file.reference }}</code>
-							<button type="button" class="button button--icon" aria-label="Copy the address" title="Copy" @click="copyText(file.reference, 'the address')"><AdminIcon name="copy" /></button>
+							<button type="button" class="button button--icon" :aria-label="t('media_file_view.copy_address', 'Copy the address')" :title="t('media_file_view.copy', 'Copy')" @click="copyText(file.reference, t('media_file_view.the_address', 'the address'))"><AdminIcon name="copy" /></button>
 						</div>
 					</div>
 					<div class="usage__copy">
 						<p class="usage__label"><span>{{ snippet.label }}</span> {{ snippet.note }}</p>
 						<div class="usage__row">
 							<code>{{ snippet.text }}</code>
-							<button type="button" class="button button--icon" :aria-label="`Copy ${snippet.what}`" title="Copy" @click="copyText(snippet.text, snippet.what)"><AdminIcon name="copy" /></button>
+							<button type="button" class="button button--icon" :aria-label="t('media_file_view.copy_what', 'Copy {what}', { what: snippet.what })" :title="t('media_file_view.copy', 'Copy')" @click="copyText(snippet.text, snippet.what)"><AdminIcon name="copy" /></button>
 						</div>
 					</div>
 				</div>
 				<div class="panel__body panel__body--ruled usage__uses">
-					<p class="eyebrow">{{ file.usedIn.length === 0 ? 'Not used yet' : `Used in ${plural(file.usedIn.length, 'entry', 'entries')}` }}</p>
-					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
+					<p class="eyebrow">{{ file.usedIn.length === 0 ? t('media_file_view.not_used', 'Not used yet') : t('media_file_view.used_in', 'Used in {count, plural, one {# entry} other {# entries} }', { count: file.usedIn.length }) }}</p>
+					<p v-if="file.usedIn.length === 0" class="field__help">{{ t('media_file_view.unused_help', 'No entry uses it, by any of its addresses.') }}</p>
 					<template v-else>
 						<ul class="used" :class="{ 'used--scroll': longList && showAll }">
 							<li v-for="entry in shownUses" :key="entry.path">
@@ -583,15 +585,15 @@ const snippet = computed(() => {
 								<span v-if="entry.typeLabel" class="used__type">{{ entry.typeLabel }}</span>
 							</li>
 						</ul>
-						<button v-if="longList" type="button" class="button button--ghost button--small" :aria-expanded="showAll" @click="showAll = !showAll"><AdminIcon :name="showAll ? 'chevron-up' : 'chevron-down'" />{{ showAll ? 'Show Fewer' : `Show All ${file.usedIn.length}` }}</button>
+						<button v-if="longList" type="button" class="button button--ghost button--small" :aria-expanded="showAll" @click="showAll = !showAll"><AdminIcon :name="showAll ? 'chevron-up' : 'chevron-down'" />{{ showAll ? t('media_file_view.show_fewer', 'Show Fewer') : t('media_file_view.show_all', 'Show All {count}', { count: file.usedIn.length }) }}</button>
 					</template>
 				</div>
 				<div v-if="file.artworkFor.length" class="panel__body panel__body--ruled usage__uses">
-					<p class="eyebrow">Artwork for {{ plural(file.artworkFor.length, 'file') }}</p>
+					<p class="eyebrow">{{ t('media_file_view.artwork_for', 'Artwork for {count, plural, one {# file} other {# files} }', { count: file.artworkFor.length }) }}</p>
 					<ul class="used" :class="{ 'used--scroll': file.artworkFor.length > LONG }">
 						<li v-for="shown in file.artworkFor" :key="shown.path">
 							<RouterLink :to="{ name: 'media-file', params: { path: shown.path.split('/') } }">{{ shown.title || shown.name }}</RouterLink>
-							<span class="used__type">{{ shown.kind === 'video' ? 'Video' : 'Sound' }}</span>
+							<span class="used__type">{{ shown.kind === 'video' ? t('media_file_view.kind_video', 'Video') : t('media_file_view.kind_sound', 'Sound') }}</span>
 						</li>
 					</ul>
 				</div>
@@ -599,26 +601,26 @@ const snippet = computed(() => {
 
 			<section class="panel" aria-labelledby="storage-heading">
 				<header class="panel__header">
-					<h2 id="storage-heading">Storage</h2>
-					<span class="panel__hint">Where it lives</span>
+					<h2 id="storage-heading">{{ t('media_file_view.storage', 'Storage') }}</h2>
+					<span class="panel__hint">{{ t('media_file_view.storage_hint', 'Where it lives') }}</span>
 				</header>
 				<dl class="panel__body facts">
-					<div><dt>Folder</dt><dd class="mono">user/media/{{ file.folder }}</dd></div>
-					<div><dt>Type</dt><dd class="mono">{{ file.mime }}</dd></div>
-					<div><dt>Size</dt><dd class="mono">{{ formatSize(file.size) }}</dd></div>
-					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd class="mono">{{ file.width }} × {{ file.height }}</dd></div>
-					<div v-if="file.duration !== null"><dt>Length</dt><dd class="mono">{{ formatDuration(file.duration) }}</dd></div>
-					<div v-if="pages !== null"><dt>Pages</dt><dd class="mono">{{ pages }}</dd></div>
-					<div><dt>Uploaded</dt><dd :class="{ 'facts__none': file.uploaded === null }">{{ file.uploaded === null ? 'Not recorded' : siteDateTime(file.uploaded) }}</dd></div>
-					<div><dt>Changed</dt><dd>{{ siteDateTime(file.modified) }}</dd></div>
-					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
+					<div><dt>{{ t('media_file_view.folder', 'Folder') }}</dt><dd class="mono">user/media/{{ file.folder }}</dd></div>
+					<div><dt>{{ t('media_file_view.type', 'Type') }}</dt><dd class="mono">{{ file.mime }}</dd></div>
+					<div><dt>{{ t('media_file_view.size', 'Size') }}</dt><dd class="mono">{{ formatSize(file.size) }}</dd></div>
+					<div v-if="file.width !== null && file.height !== null"><dt>{{ t('media_file_view.dimensions', 'Dimensions') }}</dt><dd class="mono">{{ file.width }} × {{ file.height }}</dd></div>
+					<div v-if="file.duration !== null"><dt>{{ t('media_file_view.length', 'Length') }}</dt><dd class="mono">{{ formatDuration(file.duration) }}</dd></div>
+					<div v-if="pages !== null"><dt>{{ t('media_file_view.pages_label', 'Pages') }}</dt><dd class="mono">{{ pages }}</dd></div>
+					<div><dt>{{ t('media_file_view.uploaded', 'Uploaded') }}</dt><dd :class="{ 'facts__none': file.uploaded === null }">{{ file.uploaded === null ? t('media_file_view.not_recorded', 'Not recorded') : siteDateTime(file.uploaded) }}</dd></div>
+					<div><dt>{{ t('media_file_view.changed', 'Changed') }}</dt><dd>{{ siteDateTime(file.modified) }}</dd></div>
+					<div><dt>{{ t('media_file_view.uploaded_by', 'Uploaded by') }}</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? t('media_file_view.not_recorded', 'Not recorded') }}</dd></div>
 				</dl>
 			</section>
 
 			<section v-if="file.sizes.length" class="panel" aria-labelledby="sizes-heading">
 				<header class="panel__header">
-					<h2 id="sizes-heading">Other Sizes</h2>
-					<span class="panel__hint">{{ plural(file.sizes.length, 'other size') }}</span>
+					<h2 id="sizes-heading">{{ t('media_file_view.other_sizes', 'Other Sizes') }}</h2>
+					<span class="panel__hint">{{ t('media_file_view.other_sizes_count', '{count, plural, one {# other size} other {# other sizes} }', { count: file.sizes.length }) }}</span>
 				</header>
 				<ul class="panel__body sizes">
 					<li v-for="size in file.sizes" :key="size.path">
@@ -632,15 +634,15 @@ const snippet = computed(() => {
 		<div class="detail__column">
 			<form class="panel" aria-labelledby="text-heading" @submit.prevent="save">
 				<header class="panel__header">
-					<h2 id="text-heading">Details</h2>
-					<span class="panel__hint">{{ file.kind === 'audio' || file.kind === 'video' ? 'Saved with the artwork' : 'The only part of this screen that saves' }}</span>
+					<h2 id="text-heading">{{ t('media_file_view.details', 'Details') }}</h2>
+					<span class="panel__hint">{{ file.kind === 'audio' || file.kind === 'video' ? t('media_file_view.details_hint_artwork', 'Saved with the artwork') : t('media_file_view.details_hint', 'The only part of this screen that saves') }}</span>
 					<div v-if="fillable.length" class="panel__actions">
-						<button type="button" class="button button--small" @click="fillFromFile"><AdminIcon name="import" />Fill from the File</button>
+						<button type="button" class="button button--small" @click="fillFromFile"><AdminIcon name="import" />{{ t('media_file_view.fill', 'Fill from the File') }}</button>
 					</div>
 				</header>
 				<fieldset class="panel__body text" :disabled="!file.may.edit">
-					<p v-if="file.original" class="field__help text__note"><AdminIcon name="info" />A size of <RouterLink :to="{ name: 'media-file', params: { path: file.original.path.split('/') } }">{{ file.original.title || file.original.name }}</RouterLink>, whose details it goes by. Change them there.</p>
-					<p v-else-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.' : `Only ${file.uploader.name}, or someone who may change anyone's files, can change its details.` }}</p>
+					<p v-if="file.original" class="field__help text__note"><AdminIcon name="info" /><MessageText :text="t('media_file_view.size_of', 'A size of {link}, whose details it goes by. Change them there.')"><template #link><RouterLink :to="{ name: 'media-file', params: { path: file.original.path.split('/') } }">{{ file.original.title || file.original.name }}</RouterLink></template></MessageText></p>
+					<p v-else-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? t('media_file_view.no_uploader', 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.') : t('media_file_view.only_uploader', 'Only {name}, or someone who may change anyone\'s files, can change its details.', { name: file.uploader.name }) }}</p>
 					<FieldControl
 						v-for="field in ownFields"
 						:key="`${file.reference}-${field.name}`"
@@ -652,11 +654,11 @@ const snippet = computed(() => {
 						@update:model-value="form[field.name] = $event"
 					>
 						<template v-if="offers.has(field.name)" #after>
-							<p v-if="form[field.name] === offers.get(field.name)" class="offer offer--taken"><AdminIcon name="check" />From the file</p>
-							<p v-else class="offer"><AdminIcon name="file" />The file says <q>{{ offers.get(field.name) }}</q><button type="button" class="button button--ghost button--small" @click="use(field.name, offers.get(field.name) ?? '')">Use It<span class="visually-hidden"> as the {{ fieldLabel(field.name).toLowerCase() }}</span></button></p>
+							<p v-if="form[field.name] === offers.get(field.name)" class="offer offer--taken"><AdminIcon name="check" />{{ t('media_file_view.from_file', 'From the file') }}</p>
+							<p v-else class="offer"><AdminIcon name="file" /><MessageText :text="t('media_file_view.file_says', 'The file says {value}')"><template #value><q>{{ offers.get(field.name) }}</q></template></MessageText><button type="button" class="button button--ghost button--small" @click="use(field.name, offers.get(field.name) ?? '')">{{ t('media_file_view.use_it', 'Use It') }}<span class="visually-hidden">{{ t('media_file_view.use_it_as', ' as the {field}', { field: fieldLabel(field.name).toLowerCase() }) }}</span></button></p>
 						</template>
 						<template v-if="field.name === 'alt' && missingAlt" #help="{ id }">
-							<p :id="id" class="field__warn"><AdminIcon name="triangle-alert" /><span><strong>No alt text.</strong> It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</span></p>
+							<p :id="id" class="field__warn"><AdminIcon name="triangle-alert" /><span><MessageText :text="t('media_file_view.no_alt', '{title} It\'s what the image shows, for anyone who can\'t see it; images inserted from the library start with it, and pages use it where they have none.')"><template #title><strong>{{ t('media_file_view.no_alt_title', 'No alt text.') }}</strong></template></MessageText></span></p>
 						</template>
 					</FieldControl>
 					<div v-for="set in setGroups" :key="`${file.reference}-set-${set.name}`" class="text__set">
@@ -673,10 +675,10 @@ const snippet = computed(() => {
 						/>
 					</div>
 					<div v-if="extra.length" class="text__extra">
-						<p class="field__help">Also in its metadata file, kept as they are:</p>
+						<p class="field__help">{{ t('media_file_view.extra', 'Also in its metadata file, kept as they are:') }}</p>
 						<RawValues :entries="extra" />
 					</div>
-					<p v-if="file.may.edit" class="field__help">Kept in <code>user/data/media</code>, not written back into the file.</p>
+					<p v-if="file.may.edit" class="field__help"><MessageText :text="t('media_file_view.kept_in', 'Kept in {path}, not written back into the file.')"><template #path><code>user/data/media</code></template></MessageText></p>
 				</fieldset>
 
 				<SaveBar v-if="file.may.edit" :count="changes.length + (artChange === null ? 0 : 1)" :failure="failure" :saving="saving" @revert="revert" />
@@ -684,24 +686,24 @@ const snippet = computed(() => {
 
 			<section class="panel" aria-labelledby="metadata-heading">
 				<header class="panel__header">
-					<h2 id="metadata-heading">Metadata</h2>
-					<span class="panel__hint">What the file says about itself</span>
+					<h2 id="metadata-heading">{{ t('media_file_view.metadata', 'Metadata') }}</h2>
+					<span class="panel__hint">{{ t('media_file_view.metadata_hint', 'What the file says about itself') }}</span>
 				</header>
 				<div class="panel__body">
-					<p v-if="file.embedded.location" class="field__warn"><AdminIcon name="triangle-alert" /><span>This file carries where it was taken (GPS). The site never shows it, but anyone who downloads the file can read it.</span></p>
+					<p v-if="file.embedded.location" class="field__warn"><AdminIcon name="triangle-alert" /><span>{{ t('media_file_view.location', 'This file carries where it was taken (GPS). The site never shows it, but anyone who downloads the file can read it.') }}</span></p>
 					<dl v-if="metadata.length" class="facts">
 						<div v-for="item in metadata" :key="item.key">
 							<dt>{{ item.label }}</dt>
 							<dd>{{ item.text }}</dd>
 						</div>
 					</dl>
-					<p v-else-if="!file.embedded.location" class="field__help">{{ embedded.length ? 'Nothing more than the details above.' : 'None in this file.' }}</p>
+					<p v-else-if="!file.embedded.location" class="field__help">{{ embedded.length ? t('media_file_view.nothing_more', 'Nothing more than the details above.') : t('media_file_view.none_in_file', 'None in this file.') }}</p>
 				</div>
 			</section>
 		</div>
 	</div>
 
-	<MediaPicker v-if="choosingArt" title="Choose Artwork" action="Use as Artwork" kind="image" locked @choose="chooseArtwork" @close="choosingArt = false" />
+	<MediaPicker v-if="choosingArt" :title="t('media_file_view.choose_artwork', 'Choose Artwork')" :action="t('media_file_view.use_as_artwork', 'Use as Artwork')" kind="image" locked @choose="chooseArtwork" @close="choosingArt = false" />
 </template>
 
 <style scoped>

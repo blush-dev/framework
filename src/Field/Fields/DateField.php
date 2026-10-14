@@ -20,6 +20,8 @@ use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A date and time, stored as a Unix timestamp and hydrated as a
@@ -52,18 +54,18 @@ final class DateField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Date and time';
+		return $messages->t('field.date_field.type_label', 'Date and time');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'A date and time.';
+		return $messages->t('field.date_field.type_description', 'A date and time.');
 	}
 
 	/**
@@ -81,13 +83,13 @@ final class DateField extends Field
 		}
 
 		if (! is_string($value) || preg_match('/^\s*\d{4}-\d{2}-\d{2}/', $value) !== 1) {
-			throw $this->invalid(sprintf('must be a date such as 2026-05-01 15:40:00, not %s.', is_string($value) ? "\"{$value}\"" : self::describe($value)));
+			throw $this->invalid($context->messages->t('field.date_field.invalid', 'must be a date such as 2026-05-01 15:40:00, not {value}.', value: is_string($value) ? "\"{$value}\"" : self::describe($value, $context->messages)));
 		}
 
 		try {
 			$date = new DateTimeImmutable(trim($value), $context->timezone);
 		} catch (DateMalformedStringException) {
-			throw $this->invalid(sprintf('"%s" is not a valid date.', $value));
+			throw $this->invalid($context->messages->t('field.date_field.not_a_date', '"{value}" is not a valid date.', value: $value));
 		}
 
 		return $this->time ? $date->getTimestamp() : $this->day($date, $context);

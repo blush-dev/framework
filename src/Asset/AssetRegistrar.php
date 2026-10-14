@@ -18,7 +18,8 @@ namespace Blush\Asset;
  * theme, or the site registered first:
  *
  * - `core/player`: the audio and video players (D-553, D-554), which
- *   `::audio` and `::video` ask for (D-573).
+ *   `::audio` and `::video` ask for (D-573), with their labels from
+ *   core's `site` catalog (D-831).
  * - `core/embed-x`: X's script, which draws the posts `::embed` shows
  *   as quotes (D-691), in the foot. A site that would rather show the
  *   quotes alone registers an empty one.
@@ -52,7 +53,7 @@ final readonly class AssetRegistrar
 		$this->registry->registerIf(new Asset(
 			self::PLAYER,
 			styles: [new Style('css/player.css', AssetUrls::CORE)],
-			scripts: [new Script('js/player.js', AssetUrls::CORE, ['type' => 'module'])]
+			scripts: [new Script('js/player.js', AssetUrls::CORE, ['type' => 'module'], catalog: 'site')]
 		));
 
 		$this->registry->registerIf(new Asset(

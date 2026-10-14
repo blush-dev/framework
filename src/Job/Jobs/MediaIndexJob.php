@@ -18,6 +18,8 @@ use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
 use Blush\Media\Index\MediaIndexer;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Brings the media index up to date a batch at a time (`core/media-index`,
@@ -34,16 +36,16 @@ final class MediaIndexJob extends Job
 	 */
 	public const int BATCH = 250;
 
-	public function __construct(private readonly MediaIndexer $indexer)
+	public function __construct(private readonly MediaIndexer $indexer, private readonly Messages $messages)
 	{}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Index media files';
+		return $this->messages->t('job.media_index_job.label', 'Index media files');
 	}
 
 	/**
@@ -57,9 +59,9 @@ final class MediaIndexJob extends Job
 		if ($report->pending > 0) {
 			$all = $report->total + $report->pending;
 
-			return JobResult::more([], intdiv(($all - $report->pending) * 100, max(1, $all)), sprintf('%d media files left to read.', $report->pending));
+			return JobResult::more([], intdiv(($all - $report->pending) * 100, max(1, $all)), $this->messages->t('job.media_index_job.left', '{count, plural, one {# media file} other {# media files}} left to read.', count: $report->pending));
 		}
 
-		return JobResult::done(sprintf('Indexed %d media %s.', $report->total, $report->total === 1 ? 'file' : 'files'));
+		return JobResult::done($this->messages->t('job.media_index_job.indexed', 'Indexed {count, plural, one {# media file} other {# media files}}.', count: $report->total));
 	}
 }

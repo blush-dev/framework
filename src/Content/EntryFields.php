@@ -29,6 +29,7 @@ use Blush\Field\Fields\TextField;
 use Blush\Field\RegisteredField;
 use Blush\Field\Schema;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
 use Override;
 
 /**
@@ -60,13 +61,17 @@ final class EntryFields implements FieldSource
 	 */
 	public const string TRANSLATION_OF = 'translation_of';
 
+	public function __construct(
+		private readonly Messages $messages
+	) {}
+
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
 	public function fields(): iterable
 	{
-		foreach (self::schema()->fields as $field) {
+		foreach (self::schema($this->messages)->fields as $field) {
 			yield new RegisteredField(RegisteredField::CORE, $field, ['type:' . FieldSet::EVERY]);
 		}
 	}
@@ -84,24 +89,24 @@ final class EntryFields implements FieldSource
 	/**
 	 * Returns the built-in schema.
 	 */
-	public static function schema(): Schema
+	public static function schema(Messages $messages): Schema
 	{
 		return new Schema([
-			new TextField('title')->labeled('Title')->described('The entry\'s title.'),
-			new TextField('subtitle')->labeled('Subtitle')->described('A line shown under the title.'),
-			new SlugField('slug')->labeled('Slug')->described('The URL name, instead of the file name.'),
-			new DateField('published')->labeled('Published')->aliases('date')->described('The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.'),
-			new DateField('updated')->labeled('Updated')->described('When it last changed; defaults to published, then the file\'s modified time.'),
-			new EnumField('status', Status::writable())->labeled('Status')->described('published (the default), draft, or trash.'),
-			new DateField(self::TRASHED)->labeled('Trashed')->described('When the entry was moved to the trash, set with status: trash.'),
-			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->labeled('Visibility')->described('public (the default), unlisted, or hidden.'),
-			new MarkdownField('summary')->labeled('Summary')->aliases('excerpt')->described('A short Markdown summary for listings and feeds. Without one, the first 50 words are used.'),
-			new MediaField('image', MediaKind::Image)->labeled('Featured image')->described('A featured image.'),
-			new TextField('template')->labeled('Template')->aliases('view')->described('The theme template to use, such as single-wide.'),
-			new TextField('stylesheet')->labeled('Stylesheet')->described('An extra stylesheet for this page.'),
-			new TextField('class')->labeled('Classes')->described('Extra CSS classes for the page\'s <body>, separated by spaces.'),
-			new ReferenceField(self::TRANSLATION_OF, multiple: false)->labeled('Original')->described('For a translation, the id of the entry it translates, which links them whatever their file names.'),
-			new ObjectField('collection')->labeled('Collection')->described('Lists other entries on this page.')
+			new TextField('title')->labeled($messages->t('content.entry_fields.title.label', 'Title'))->described($messages->t('content.entry_fields.title.description', 'The entry\'s title.')),
+			new TextField('subtitle')->labeled($messages->t('content.entry_fields.subtitle.label', 'Subtitle'))->described($messages->t('content.entry_fields.subtitle.description', 'A line shown under the title.')),
+			new SlugField('slug')->labeled($messages->t('content.entry_fields.slug.label', 'Slug'))->described($messages->t('content.entry_fields.slug.description', 'The URL name, instead of the file name.')),
+			new DateField('published')->labeled($messages->t('content.entry_fields.published.label', 'Published'))->aliases('date')->described($messages->t('content.entry_fields.published.description', 'The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.')),
+			new DateField('updated')->labeled($messages->t('content.entry_fields.updated.label', 'Updated'))->described($messages->t('content.entry_fields.updated.description', 'When it last changed; defaults to published, then the file\'s modified time.')),
+			new EnumField('status', Status::writable())->labeled($messages->t('content.entry_fields.status.label', 'Status'))->described($messages->t('content.entry_fields.status.description', 'published (the default), draft, or trash.')),
+			new DateField(self::TRASHED)->labeled($messages->t('content.entry_fields.trashed.label', 'Trashed'))->described($messages->t('content.entry_fields.trashed.description', 'When the entry was moved to the trash, set with status: trash.')),
+			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->labeled($messages->t('content.entry_fields.visibility.label', 'Visibility'))->described($messages->t('content.entry_fields.visibility.description', 'public (the default), unlisted, or hidden.')),
+			new MarkdownField('summary')->labeled($messages->t('content.entry_fields.summary.label', 'Summary'))->aliases('excerpt')->described($messages->t('content.entry_fields.summary.description', 'A short Markdown summary for listings and feeds. Without one, the first 50 words are used.')),
+			new MediaField('image', MediaKind::Image)->labeled($messages->t('content.entry_fields.image.label', 'Featured image'))->described($messages->t('content.entry_fields.image.description', 'A featured image.')),
+			new TextField('template')->labeled($messages->t('content.entry_fields.template.label', 'Template'))->aliases('view')->described($messages->t('content.entry_fields.template.description', 'The theme template to use, such as single-wide.')),
+			new TextField('stylesheet')->labeled($messages->t('content.entry_fields.stylesheet.label', 'Stylesheet'))->described($messages->t('content.entry_fields.stylesheet.description', 'An extra stylesheet for this page.')),
+			new TextField('class')->labeled($messages->t('content.entry_fields.class.label', 'Classes'))->described($messages->t('content.entry_fields.class.description', 'Extra CSS classes for the page\'s <body>, separated by spaces.')),
+			new ReferenceField(self::TRANSLATION_OF, multiple: false)->labeled($messages->t('content.entry_fields.translation_of.label', 'Original'))->described($messages->t('content.entry_fields.translation_of.description', 'For a translation, the id of the entry it translates, which links them whatever their file names.')),
+			new ObjectField('collection')->labeled($messages->t('content.entry_fields.collection.label', 'Collection'))->described($messages->t('content.entry_fields.collection.description', 'Lists other entries on this page.'))
 		]);
 	}
 }

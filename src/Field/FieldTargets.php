@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Field;
 
 use Blush\Container\Container;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Every place field sets can attach to on the site (D-337), from the
@@ -33,8 +35,10 @@ final class FieldTargets
 	 */
 	private ?array $targets = null;
 
-	public function __construct(private readonly Container $container)
-	{}
+	public function __construct(
+		private readonly Container $container,
+		private readonly Messages $messages
+	) {}
 
 	/**
 	 * Returns the sources, keyed by kind.
@@ -104,7 +108,7 @@ final class FieldTargets
 	 * (`FieldSets::clashes()`), then each kind's conflicts across its
 	 * targets (`FieldTargetSource::conflicts()`).
 	 *
-	 * @return array<string, list<string>>
+	 * @return array<string, list<string|Text>>
 	 * @throws InvalidSchema When a target's own fields don't fit.
 	 */
 	public function problems(FieldSets $sets): array
@@ -112,7 +116,7 @@ final class FieldTargets
 		$problems = [];
 
 		foreach ($this->all() as $target) {
-			foreach ($sets->clashes($target) as $name => $messages) {
+			foreach ($sets->clashes($target, $this->messages) as $name => $messages) {
 				$problems[$name] = [...$problems[$name] ?? [], ...$messages];
 			}
 		}

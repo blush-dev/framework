@@ -14,6 +14,7 @@
 import { computed } from 'vue';
 import type { BrokenPluginSummary, ExtensionDependent, Plugins, PluginSummary } from './api';
 import { folderName, list, useExtensionList } from './extensions';
+import { t } from './messages';
 
 export function usePlugins() {
 	const { answer, error, busy, load, turn, deleteFolder, restoreConfig } = useExtensionList<Plugins>('plugin');
@@ -47,7 +48,7 @@ export function usePlugins() {
 
 	// Puts `config/plugins.php`'s list back in charge.
 	function useConfig(): Promise<void> {
-		return restoreConfig('plugins.enabled', () => 'Using the plugins config/plugins.php turns on and off', 'The plugins couldn\'t be saved.');
+		return restoreConfig('plugins.enabled', () => t('plugins.using_config', 'Using the plugins config/plugins.php turns on and off'), t('plugins.save_failed', 'The plugins couldn\'t be saved.'));
 	}
 
 	// Asks, then deletes a plugin's folder; resolves whether it was deleted.
@@ -56,11 +57,11 @@ export function usePlugins() {
 			return false;
 		}
 
-		const body    = ['Content that used what it added keeps its text, without what the plugin drew.'];
+		const body    = [t('plugins.delete_body', 'Content that used what it added keeps its text, without what the plugin drew.')];
 		const needing = requiredBy(plugin);
 
 		if (needing.length > 0) {
-			body.push(`${list(needing.map((other) => other.label))} require${needing.length === 1 ? 's' : ''} it, and can't be turned on without it.`);
+			body.push(t('plugins.delete_required', '{names} {count, plural, one {requires} other {require}} it, and can\'t be turned on without it.', { names: list(needing.map((other) => other.label)), count: needing.length }));
 		}
 
 		return deleteFolder(plugin.label, plugin.folder, body);

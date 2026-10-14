@@ -21,6 +21,7 @@ use Blush\Extension\LocalExtension;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
+use Blush\Translation\Messages;
 
 /**
  * Finds every installed icon pack (D-378): Composer packages of type
@@ -37,8 +38,13 @@ use Blush\Support\ComposerPackages;
  */
 final readonly class IconPackDiscovery
 {
-	public function __construct(private Paths $paths)
-	{}
+	/**
+	 * @param Messages $messages Its messages: English at boot, before there's a translator.
+	 */
+	public function __construct(
+		private Paths $paths,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * Finds every pack.
@@ -71,15 +77,15 @@ final readonly class IconPackDiscovery
 					$data = $at->read();
 				} else {
 					$path            = $at;
-					$data            = ManifestFile::load($path, ExtensionKind::IconPack);
+					$data            = ManifestFile::load($path, ExtensionKind::IconPack, $this->messages);
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {
-						throw new ExtensionException(sprintf('The icon pack in Composer package "%s" is named "%s"; a Composer icon pack\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
+						throw new ExtensionException((string) $this->messages->t('icon.icon_pack_discovery.composer_name', 'The icon pack in Composer package "{package}" is named "{name}"; a Composer icon pack\'s name is its package\'s.', package: $where, name: is_string($data['name']) ? $data['name'] : ''));
 					}
 				}
 
-				$pack = IconPack::fromArray($path, $data, $source);
+				$pack = IconPack::fromArray($path, $data, $source, $this->messages);
 			} catch (ExtensionException $error) {
 				$invalid[$where] = $error->getMessage();
 
@@ -104,7 +110,7 @@ final readonly class IconPackDiscovery
 			$names = array_map(static fn (IconPack $pack): string => $pack->name, $claimants);
 
 			foreach ($claimants as $pack) {
-				$reasons[$pack->name] = [self::where($pack, $this->paths), sprintf('The icon packs %s all have the namespace "%s".', implode(', ', $names), $namespace)];
+				$reasons[$pack->name] = [self::where($pack, $this->paths), (string) $this->messages->t('icon.icon_pack_discovery.namespace_clash', 'The icon packs {packs} all have the namespace "{namespace}".', packs: implode(', ', $names), namespace: $namespace)];
 			}
 		}
 

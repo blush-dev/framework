@@ -15,6 +15,8 @@ namespace Blush\Content\Type;
 
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * How a content type's URLs are built: a prefix (the type's folder when
@@ -99,21 +101,22 @@ final readonly class TypeUrls
 	 * `paths`, as data types and 1.x's `routing` write them.
 	 *
 	 * @param  array<array-key, mixed> $data
+	 * @param  string|Text             $label What the URLs are, to start the messages about them: "Content type "post" urls".
 	 * @throws InvalidSchema
 	 */
-	public static function fromArray(array $data, string $label): self
+	public static function fromArray(array $data, string|Text $label, Messages $messages): self
 	{
-		$urls  = new Definition($data, $label);
+		$urls  = new Definition($data, (string) $label);
 		$paths = $urls->map('paths');
 
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['prefix', 'single', 'collection', 'paths']);
 
 		if ($unknown !== []) {
-			throw new InvalidSchema(sprintf('%s has unknown options: %s.', $label, implode(', ', $unknown)));
+			throw new InvalidSchema((string) $messages->t('content.type_urls.unknown_options', '{subject} has unknown options: {options}.', subject: $label, options: implode(', ', $unknown)));
 		}
 
 		if (! array_all($paths, static fn (mixed $path, mixed $key): bool => is_string($key) && is_string($path))) {
-			throw new InvalidSchema(sprintf('%s "paths" must map route keys to paths.', $label));
+			throw new InvalidSchema((string) $messages->t('content.type_urls.bad_paths', '{subject} "paths" must map route keys to paths.', subject: $label));
 		}
 
 		/** @var array<string, string> $paths */

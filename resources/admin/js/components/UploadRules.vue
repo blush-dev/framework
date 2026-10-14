@@ -22,7 +22,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } fro
 import type { UploadsInfo } from '../api';
 import type { IconName } from '../icons';
 import { expand, megabytes, patternOf, sizeProblem, type UploadGrid, type UploadRow } from '../uploads';
+import { t } from '../messages';
 import AdminIcon from './AdminIcon.vue';
+import MessageText from './MessageText.vue';
 import ToggleSwitch from './ToggleSwitch.vue';
 
 const props = defineProps<{
@@ -48,7 +50,7 @@ interface Row {
 }
 
 const rows = computed<Row[]>(() => [
-	{ key: 'all', label: 'All Files', icon: 'files', all: true, example: props.info.kinds[0]?.example ?? 'photo.jpg', extensions: [] },
+	{ key: 'all', label: t('upload_rules.all_files', 'All Files'), icon: 'files', all: true, example: props.info.kinds[0]?.example ?? 'photo.jpg', extensions: [] },
 	...props.info.kinds.map((kind) => ({ key: kind.key, label: kind.label, icon: ICONS[kind.key] ?? 'file', all: false, example: kind.example, extensions: kind.extensions }))
 ]);
 
@@ -80,20 +82,20 @@ function lockReason(row: Row): string | null {
 	}
 
 	if (row.extensions.length === 0) {
-		return `The site allows no ${row.label.toLowerCase()}: the types config/media.php allows say what can be.`;
+		return t('upload_rules.none_allowed_reason', 'The site allows no {kind}: the types config/media.php allows say what can be.', { kind: row.label.toLowerCase() });
 	}
 
-	return grid.value.all.enabled ? null : 'Every upload is off while All Files is.';
+	return grid.value.all.enabled ? null : t('upload_rules.all_off_reason', 'Every upload is off while All Files is.');
 }
 
 function sizePlaceholder(row: Row): string {
 	const all = grid.value.all.size.trim();
 
-	return row.all ? (server.value === null ? 'None' : String(server.value)) : (all || (server.value === null ? '—' : String(server.value)));
+	return row.all ? (server.value === null ? t('upload_rules.none', 'None') : String(server.value)) : (all || (server.value === null ? '—' : String(server.value)));
 }
 
 function pathPlaceholder(row: Row): string {
-	return row.all ? 'Straight in user/media' : (grid.value.all.path.trim() || 'Straight in user/media');
+	return row.all ? t('upload_rules.straight_in', 'Straight in user/media') : (grid.value.all.path.trim() || t('upload_rules.straight_in', 'Straight in user/media'));
 }
 
 // The file a row's own pattern would make, where it can't be read off
@@ -107,31 +109,31 @@ function example(row: Row): string | null {
 // What a row does, in a line, for its closed head.
 function rowSummary(row: Row): string {
 	if (!grid.value.all.enabled) {
-		return 'No uploads at all';
+		return t('upload_rules.no_uploads', 'No uploads at all');
 	}
 
 	if (!allowed(row)) {
-		return row.extensions.length === 0 ? 'None allowed' : 'Turned off';
+		return row.extensions.length === 0 ? t('upload_rules.none_allowed', 'None allowed') : t('upload_rules.turned_off', 'Turned off');
 	}
 
 	if (row.all) {
 		const size = grid.value.all.size.trim();
 
-		return ['Allowed', size === '' ? (server.value === null ? 'any size' : `up to ${server.value} MB`) : `up to ${size} MB`, expand(grid.value.all.path.trim(), props.info, props.info.kinds[0]?.key ?? 'image', '').replace(/\/$/, '') || 'user/media'].join(' · ');
+		return [t('upload_rules.allowed', 'Allowed'), size === '' ? (server.value === null ? t('upload_rules.any_size', 'any size') : t('upload_rules.up_to', 'up to {size} MB', { size: server.value })) : t('upload_rules.up_to', 'up to {size} MB', { size }), expand(grid.value.all.path.trim(), props.info, props.info.kinds[0]?.key ?? 'image', '').replace(/\/$/, '') || 'user/media'].join(' · ');
 	}
 
 	const own   = rowOf(row);
-	const parts = ['Allowed'];
+	const parts = [t('upload_rules.allowed', 'Allowed')];
 
 	if (own.size.trim() !== '') {
-		parts.push(`${own.size.trim()} MB`);
+		parts.push(t('upload_rules.megabytes', '{size} MB', { size: own.size.trim() }));
 	}
 
 	if (own.path.trim() !== '') {
 		parts.push(expand(own.path.trim(), props.info, row.key, '').replace(/\/$/, '') || 'user/media');
 	}
 
-	return parts.length === 1 ? 'Allowed, as All Files' : parts.join(' · ');
+	return parts.length === 1 ? t('upload_rules.allowed_as_all', 'Allowed, as All Files') : parts.join(' · ');
 }
 
 // The rows whose path changed from the saved one.
@@ -144,7 +146,7 @@ const moved = computed(() => rows.value.filter((row) => {
 const effectiveMoved = computed(() => props.info.kinds.some((kind) => patternOf(grid.value, kind.key) !== patternOf(props.saved, kind.key)));
 
 function list(names: string[]): string {
-	return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+	return names.length <= 1 ? (names[0] ?? '') : t('upload_rules.list', '{list} and {last}', { list: names.slice(0, -1).join(', '), last: names[names.length - 1] });
 }
 
 // The narrow layout, by the grid's own width.
@@ -245,16 +247,16 @@ async function insert(row: Row, token: string): Promise<void> {
 <template>
 	<div ref="root" class="uploads" :class="{ 'uploads--narrow': narrow }">
 		<div class="uploads__note">
-			<p><strong>All Files</strong> sets what every kind does. A kind takes those settings until you fill in one of its own: leave a box empty and it keeps what All Files says, shown in gray.</p>
+			<p><MessageText :text="t('upload_rules.note_all', '{all} sets what every kind does. A kind takes those settings until you fill in one of its own: leave a box empty and it keeps what All Files says, shown in gray.')"><template #all><strong>{{ t('upload_rules.all_files', 'All Files') }}</strong></template></MessageText></p>
 			<p>
-				A path is a plain folder name such as <code>uploads</code>, or a pattern; click into one for its tokens.
-				<template v-if="server !== null"> Your server takes files of at most <strong>{{ server }} MB</strong> (<code>upload_max_filesize</code>, <code>post_max_size</code>), so a larger number won't hold.</template>
+				<MessageText :text="t('upload_rules.note_path', 'A path is a plain folder name such as {folder}, or a pattern; click into one for its tokens.')"><template #folder><code>uploads</code></template></MessageText>
+				<template v-if="server !== null"> <MessageText :text="t('upload_rules.note_server', 'Your server takes files of at most {size} ({upload}, {post}), so a larger number won\'t hold.')"><template #size><strong>{{ t('upload_rules.megabytes', '{size} MB', { size: server }) }}</strong></template><template #upload><code>upload_max_filesize</code></template><template #post><code>post_max_size</code></template></MessageText></template>
 			</p>
 		</div>
 
 		<table class="uploads__table">
 			<thead v-if="!narrow">
-				<tr><th scope="col">Kind</th><th scope="col">Uploads</th><th scope="col">Largest file</th><th scope="col">Path</th></tr>
+				<tr><th scope="col">{{ t('upload_rules.kind', 'Kind') }}</th><th scope="col">{{ t('upload_rules.uploads', 'Uploads') }}</th><th scope="col">{{ t('upload_rules.largest_file', 'Largest file') }}</th><th scope="col">{{ t('upload_rules.path', 'Path') }}</th></tr>
 			</thead>
 			<tbody>
 				<tr v-for="row in rows" :key="row.key" class="uploads__row" :class="{ 'is-all': row.all, 'is-off': !allowed(row), 'is-open': shown(row) }">
@@ -269,19 +271,19 @@ async function insert(row: Row, token: string): Promise<void> {
 						</span>
 					</th>
 					<template v-if="shown(row)">
-						<td data-label="Uploads">
+						<td :data-label="t('upload_rules.uploads', 'Uploads')">
 							<div class="uploads__cell">
 								<ToggleSwitch
 									form
 									:checked="rowOf(row).enabled && (row.all || row.extensions.length > 0)"
-									:label="row.all ? 'Files may be uploaded' : `${row.label} may be uploaded`"
+									:label="row.all ? t('upload_rules.files_may', 'Files may be uploaded') : t('upload_rules.kind_may', '{kind} may be uploaded', { kind: row.label })"
 									:locked="locked(row)"
 									:reason="lockReason(row)"
 									@change="set(row, { enabled: $event })"
 								/>
 							</div>
 						</td>
-						<td data-label="Largest file">
+						<td :data-label="t('upload_rules.largest_file', 'Largest file')">
 							<div class="uploads__cell uploads__size field">
 								<input
 									:id="`${id}-size-${row.key}`"
@@ -290,16 +292,16 @@ async function insert(row: Row, token: string): Promise<void> {
 									inputmode="numeric"
 									:placeholder="sizePlaceholder(row)"
 									:disabled="disabled || !allowed(row)"
-									:aria-label="`Largest file for ${row.label.toLowerCase()}, in megabytes${server === null ? '' : `, up to ${server}`}`"
+									:aria-label="server === null ? t('upload_rules.size_label', 'Largest file for {kind}, in megabytes', { kind: row.label.toLowerCase() }) : t('upload_rules.size_label_max', 'Largest file for {kind}, in megabytes, up to {max}', { kind: row.label.toLowerCase(), max: server })"
 									:aria-invalid="sizeProblem(rowOf(row).size, info.serverLimit) !== null ? 'true' : undefined"
 									:maxlength="server === null ? 6 : String(server).length"
 									@input="typeSize(row, $event)"
 								>
-								<span class="uploads__unit">MB</span>
+								<span class="uploads__unit">{{ t('upload_rules.mb', 'MB') }}</span>
 							</div>
 							<p v-if="allowed(row) && sizeProblem(rowOf(row).size, info.serverLimit)" class="uploads__problem"><AdminIcon name="triangle-alert" />{{ sizeProblem(rowOf(row).size, info.serverLimit) }}</p>
 						</td>
-						<td data-label="Path" @focusin="tokensFor = row.key" @focusout="leave($event, row)">
+						<td :data-label="t('upload_rules.path', 'Path')" @focusin="tokensFor = row.key" @focusout="leave($event, row)">
 							<div class="uploads__path">
 								<div class="uploads__prefix" :class="{ 'is-disabled': disabled || !allowed(row) }">
 									<span class="uploads__lead" aria-hidden="true">user/media/</span>
@@ -311,12 +313,12 @@ async function insert(row: Row, token: string): Promise<void> {
 										autocomplete="off"
 										:placeholder="pathPlaceholder(row)"
 										:disabled="disabled || !allowed(row)"
-										:aria-label="`Path for ${row.label.toLowerCase()}, under user/media`"
+										:aria-label="t('upload_rules.path_label', 'Path for {kind}, under user/media', { kind: row.label.toLowerCase() })"
 										@input="set(row, { path: ($event.target as HTMLInputElement).value })"
 									>
 								</div>
 								<p v-if="example(row)" class="uploads__example">→ {{ example(row) }}</p>
-								<div v-if="tokensFor === row.key && allowed(row) && !disabled" class="uploads__tokens" role="group" :aria-label="`Tokens for the ${row.label.toLowerCase()} path`">
+								<div v-if="tokensFor === row.key && allowed(row) && !disabled" class="uploads__tokens" role="group" :aria-label="t('upload_rules.tokens_label', 'Tokens for the {kind} path', { kind: row.label.toLowerCase() })">
 									<button v-for="token in info.tokens" :key="token" type="button" class="mono" @mousedown.prevent @click="insert(row, token)" v-text="braced(token)" />
 								</div>
 							</div>
@@ -328,14 +330,14 @@ async function insert(row: Row, token: string): Promise<void> {
 
 		<div v-if="!grid.all.enabled" class="uploads__bar">
 			<AdminIcon name="info" />
-			<p>Nothing can be uploaded while <strong>All Files</strong> is off. The kinds keep their settings, and take effect again when it's turned back on.</p>
+			<p><MessageText :text="t('upload_rules.all_off', 'Nothing can be uploaded while {all} is off. The kinds keep their settings, and take effect again when it\'s turned back on.')"><template #all><strong>{{ t('upload_rules.all_files', 'All Files') }}</strong></template></MessageText></p>
 		</div>
 
 		<div v-if="moved.length > 0 && effectiveMoved" class="uploads__bar uploads__bar--warn">
 			<AdminIcon name="triangle-alert" />
 			<div>
-				<p><strong>Files already uploaded keep their addresses.</strong> <template v-if="info.files !== null">The {{ info.files.toLocaleString() }} {{ info.files === 1 ? 'file' : 'files' }} in the library stay where they are</template><template v-else>The library's files stay where they are</template>, so no link on the site breaks and nothing has to be inserted again. Only files uploaded after you save take the new path.</p>
-				<p class="uploads__who">Changed: <strong>{{ list(moved) }}</strong>.</p>
+				<p><MessageText :text="info.files !== null ? t('upload_rules.moved_count', '{kept} The {count, plural, one {# file} other {# files} } in the library stay where they are, so no link on the site breaks and nothing has to be inserted again. Only files uploaded after you save take the new path.', { count: info.files }) : t('upload_rules.moved', '{kept} The library\'s files stay where they are, so no link on the site breaks and nothing has to be inserted again. Only files uploaded after you save take the new path.')"><template #kept><strong>{{ t('upload_rules.kept', 'Files already uploaded keep their addresses.') }}</strong></template></MessageText></p>
+				<p class="uploads__who"><MessageText :text="t('upload_rules.changed', 'Changed: {names}.')"><template #names><strong>{{ list(moved) }}</strong></template></MessageText></p>
 			</div>
 		</div>
 	</div>

@@ -14,6 +14,7 @@
 
 import { errorMessage, request, type AdminThemes, type AdminThemeSummary } from './api';
 import { followDefault } from './admin-theme';
+import { t } from './messages';
 import { useExtensionList } from './extensions';
 import { toast } from './toast';
 
@@ -26,7 +27,7 @@ export function useAdminThemes() {
 	// calls `undone` with the state it's back in.
 	function toggle(theme: AdminThemeSummary, on: boolean, undone?: (on: boolean) => void): Promise<boolean> {
 		return turn(theme, on, {
-			message: (also) => on ? `Turned on ${theme.label}${also}; anyone can choose it now` : `Turned off ${theme.label}${also}; anyone who chose it sees the site's default`,
+			message: (also) => on ? t('admin_themes.turned_on', 'Turned on {label}{also}; anyone can choose it now', { label: theme.label, also }) : t('admin_themes.turned_off', 'Turned off {label}{also}; anyone who chose it sees the site\'s default', { label: theme.label, also }),
 			undo: undone === undefined ? undefined : () => void toggle(theme, !on).then((back) => back && undone(!on))
 		});
 	}
@@ -39,11 +40,11 @@ export function useAdminThemes() {
 		try {
 			await request('PUT', '/admin-themes/default', { name: theme.name });
 			followDefault(theme.name);
-			toast(`${theme.label} is the site's admin theme now`, { kind: 'good' });
+			toast(t('admin_themes.made_default', '{label} is the site\'s admin theme now', { label: theme.label }), { kind: 'good' });
 
 			return true;
 		} catch (caught) {
-			toast(errorMessage(caught, `${theme.label} couldn't be made the default`), { kind: 'warn' });
+			toast(errorMessage(caught, t('admin_themes.default_failed', '{label} couldn\'t be made the default', { label: theme.label })), { kind: 'warn' });
 
 			return false;
 		} finally {
@@ -54,17 +55,17 @@ export function useAdminThemes() {
 	// Puts `config/admin-themes.php`'s list of themes turned on back in
 	// charge, or its default.
 	function useConfig(): Promise<void> {
-		return restoreConfig('admin-themes.enabled', () => 'Using the admin themes config/admin-themes.php turns on and off', 'The admin themes couldn\'t be saved.');
+		return restoreConfig('admin-themes.enabled', () => t('admin_themes.using_config', 'Using the admin themes config/admin-themes.php turns on and off'), t('admin_themes.save_failed', 'The admin themes couldn\'t be saved.'));
 	}
 
 	function useConfigDefault(): Promise<void> {
-		return restoreConfig('admin-themes.default', () => 'Using the default config/admin-themes.php names', 'The default couldn\'t be saved.');
+		return restoreConfig('admin-themes.default', () => t('admin_themes.using_config_default', 'Using the default config/admin-themes.php names'), t('admin_themes.default_save_failed', 'The default couldn\'t be saved.'));
 	}
 
 	// Asks, then deletes a theme's folder (or a broken one's); resolves
 	// whether it was deleted.
 	function remove(label: string, folder: string, theme: AdminThemeSummary | null = null): Promise<boolean> {
-		return deleteFolder(label, folder, theme === null ? [] : ['Anyone who chose it sees the site\'s default instead.']);
+		return deleteFolder(label, folder, theme === null ? [] : [t('admin_themes.delete_note', 'Anyone who chose it sees the site\'s default instead.')]);
 	}
 
 	return { answer, error, busy, load, toggle, makeDefault, useConfig, useConfigDefault, remove };

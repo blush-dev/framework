@@ -8,6 +8,7 @@
 import { ref } from 'vue';
 import { request } from './api';
 import type { IconName } from './icons';
+import { t } from './messages';
 
 export interface SiteIcon {
 	// As the icon block's `name` takes it: `house`, `jtcom/github`.
@@ -32,20 +33,20 @@ export interface IconGroup {
 
 // The core categories, in the order the picker lists them.
 const CATEGORIES: Record<string, { label: string; icon: IconName }> = {
-	status: { label: 'Status', icon: 'info' },
-	interface: { label: 'Interface', icon: 'layout-grid' },
-	arrows: { label: 'Arrows', icon: 'arrow-up-right' },
-	writing: { label: 'Writing', icon: 'file-text' },
-	media: { label: 'Media', icon: 'image' },
-	communication: { label: 'Communication', icon: 'message-square' },
-	people: { label: 'People', icon: 'users' },
-	security: { label: 'Security', icon: 'shield' },
-	time: { label: 'Time', icon: 'clock' },
-	places: { label: 'Places', icon: 'globe' },
-	development: { label: 'Development', icon: 'code' },
-	design: { label: 'Design', icon: 'paintbrush' },
-	nature: { label: 'Nature', icon: 'leaf' },
-	things: { label: 'Things', icon: 'lightbulb' }
+	status: { label: t('site_icons.category_status', 'Status'), icon: 'info' },
+	interface: { label: t('site_icons.category_interface', 'Interface'), icon: 'layout-grid' },
+	arrows: { label: t('site_icons.category_arrows', 'Arrows'), icon: 'arrow-up-right' },
+	writing: { label: t('site_icons.category_writing', 'Writing'), icon: 'file-text' },
+	media: { label: t('site_icons.category_media', 'Media'), icon: 'image' },
+	communication: { label: t('site_icons.category_communication', 'Communication'), icon: 'message-square' },
+	people: { label: t('site_icons.category_people', 'People'), icon: 'users' },
+	security: { label: t('site_icons.category_security', 'Security'), icon: 'shield' },
+	time: { label: t('site_icons.category_time', 'Time'), icon: 'clock' },
+	places: { label: t('site_icons.category_places', 'Places'), icon: 'globe' },
+	development: { label: t('site_icons.category_development', 'Development'), icon: 'code' },
+	design: { label: t('site_icons.category_design', 'Design'), icon: 'paintbrush' },
+	nature: { label: t('site_icons.category_nature', 'Nature'), icon: 'leaf' },
+	things: { label: t('site_icons.category_things', 'Things'), icon: 'lightbulb' }
 };
 
 const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', 'icon-pack': 'shapes', plugin: 'plug' };

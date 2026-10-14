@@ -34,6 +34,8 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingsStore;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers the Admin Themes screens (D-827), for accounts with
@@ -57,13 +59,15 @@ final readonly class AdminThemesController
 		private SettingsStore $settings,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private AdminThemeContrast $contrast,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$themes = array_values($this->themes->all());
@@ -72,9 +76,11 @@ final readonly class AdminThemesController
 
 		$invalid = [];
 
+		// A reason written as a message during boot, before there was a
+		// translator, is read again here, in the viewer's language (D-836).
 		foreach ($this->themes->invalid() as $where => $reason) {
 			$name      = LocalExtensions::nameAt($this->paths, $where);
-			$invalid[] = ['where' => $where, 'reason' => $reason, 'deletable' => $name !== null && is_dir(LocalExtensions::path($this->paths, $name))];
+			$invalid[] = ['where' => $where, 'reason' => $reason instanceof Text ? $this->messages->restore($reason->toArray()) ?? $reason : $reason, 'deletable' => $name !== null && is_dir(LocalExtensions::path($this->paths, $name))];
 		}
 
 		$saved = $this->settings->read();
@@ -93,13 +99,13 @@ final readonly class AdminThemesController
 	public function show(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$theme = $this->themes->find("{$vendor}/{$name}");
 
 		if ($theme === null) {
-			return Response::json(['error' => sprintf('No admin theme named %s/%s is installed.', $vendor, $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.admin_themes_controller.not_installed', 'No admin theme named {name} is installed.', name: "{$vendor}/{$name}")], Status::NotFound, ['Cache-Control' => 'no-store']);
 		}
 
 		return Response::json(['theme' => $this->theme($theme)], headers: ['Cache-Control' => 'no-store']);
@@ -146,7 +152,7 @@ final readonly class AdminThemesController
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::AdminTheme, $folder === null ? null : $theme->path, $theme->name),
 			'preview'     => $this->themes->preview($theme),
 			'palette'     => $this->themes->palette($theme),
-			'contrast'    => AdminThemeContrast::check($this->themes->resolved($theme))
+			'contrast'    => $this->contrast->check($this->themes->resolved($theme))
 		];
 	}
 
@@ -157,8 +163,8 @@ final readonly class AdminThemesController
 		return $account instanceof Account && $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::AdminTheme));
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return Response::json(['error' => 'You aren\'t allowed to see the site\'s admin themes.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		return Response::json(['error' => $this->messages->t('admin.admin_themes_controller.forbidden', 'You aren\'t allowed to see the site\'s admin themes.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}
 }

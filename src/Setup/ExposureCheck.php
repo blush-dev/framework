@@ -17,6 +17,8 @@ use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Asks the site's own address for files that must never be served
@@ -38,11 +40,6 @@ use Blush\Support\FilesystemException;
 final readonly class ExposureCheck
 {
 	/**
-	 * The label its result goes by.
-	 */
-	public const string LABEL = 'Private files';
-
-	/**
 	 * How many of a file's first bytes are compared.
 	 */
 	public const int PREFIX = 512;
@@ -56,8 +53,17 @@ final readonly class ExposureCheck
 		private Paths $paths,
 		private AppConfig $app,
 		private UrlProbe $probe,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private Messages $messages
 	) {}
+
+	/**
+	 * The label its result goes by.
+	 */
+	public function label(): Text
+	{
+		return $this->messages->t('setup.exposure_check.label', 'Private files');
+	}
 
 	/**
 	 * Whether the check runs: in production, at an address others can
@@ -81,7 +87,7 @@ final readonly class ExposureCheck
 		$url = rtrim($this->app->url, '/');
 
 		if (PHP_SAPI === 'cli-server') {
-			return CheckResult::warning(self::LABEL, 'Not checked under PHP\'s built-in server, which can\'t answer a request to itself.', 'Run "doctor" from the command line to check.');
+			return CheckResult::warning($this->label(), $this->messages->t('setup.exposure_check.built_in_server', 'Not checked under PHP\'s built-in server, which can\'t answer a request to itself.'), $this->messages->t('setup.exposure_check.built_in_server_hint', 'Run "{command}" from the command line to check.', command: 'doctor'));
 		}
 
 		$sentinel = "{$this->paths->storage}/" . self::SENTINEL;
@@ -106,23 +112,23 @@ final readonly class ExposureCheck
 
 		if ($found['served'] !== []) {
 			return CheckResult::failure(
-				self::LABEL,
-				sprintf('Anyone can download %s from %s.', self::list($found['served']), $url),
-				'Point the web server at the public/ folder, not the site\'s folder (or move public/\'s files into the host\'s web folder), so nothing else is served.'
+				$this->label(),
+				$this->messages->t('setup.exposure_check.served', 'Anyone can download {files} from {url}.', files: self::list($found['served']), url: $url),
+				$this->messages->t('setup.exposure_check.served_hint', 'Point the web server at the public/ folder, not the site\'s folder (or move public/\'s files into the host\'s web folder), so nothing else is served.')
 			);
 		}
 
 		if ($found['unreached'] !== []) {
 			return CheckResult::warning(
-				self::LABEL,
-				sprintf('Couldn\'t reach %s to check that %s %s served.', $url, self::list($found['unreached']), count($found['unreached']) === 1 ? 'isn\'t' : 'aren\'t'),
-				'Check that APP_URL is the site\'s address and that this server can reach it.'
+				$this->label(),
+				$this->messages->t('setup.exposure_check.unreached', 'Couldn\'t reach {url} to check that {files} {count, plural, one {isn\'t} other {aren\'t}} served.', url: $url, files: self::list($found['unreached']), count: count($found['unreached'])),
+				$this->messages->t('setup.exposure_check.unreached_hint', 'Check that {setting} is the site\'s address and that this server can reach it.', setting: 'APP_URL')
 			);
 		}
 
 		return $found['checked'] === []
-			? CheckResult::pass(self::LABEL, 'Nothing to check.')
-			: CheckResult::pass(self::LABEL, sprintf('Not served at %s: %s.', $url, self::list($found['checked'])));
+			? CheckResult::pass($this->label(), $this->messages->t('setup.exposure_check.nothing', 'Nothing to check.'))
+			: CheckResult::pass($this->label(), $this->messages->t('setup.exposure_check.checked', 'Not served at {url}: {files}.', url: $url, files: self::list($found['checked'])));
 	}
 
 	/**

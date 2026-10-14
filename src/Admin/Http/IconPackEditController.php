@@ -43,6 +43,8 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Turns icon packs on and off, and deletes them (D-385), for accounts
@@ -78,13 +80,14 @@ final readonly class IconPackEditController
 		private Permissions $permissions,
 		private Filesystem $filesystem,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Activate)) {
-			return self::error('You aren\'t allowed to turn icon packs on and off.', Status::Forbidden);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.toggle_forbidden', 'You aren\'t allowed to turn icon packs on and off.'), Status::Forbidden);
 		}
 
 		$enable = self::input($request)['enabled'] ?? null;
@@ -96,14 +99,14 @@ final readonly class IconPackEditController
 		$pack = $this->packs->find("{$vendor}/{$name}");
 
 		if ($pack === null) {
-			return self::error(sprintf('No icon pack named %s/%s is installed.', $vendor, $name), Status::NotFound);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.not_installed', 'No icon pack named {name} is installed.', name: "{$vendor}/{$name}"), Status::NotFound);
 		}
 
 		// One whose requirements aren't met can't be turned on (D-431).
 		$checked = $this->extensions->check($pack);
 
 		if ($enable && ! Requirements::met($checked)) {
-			return self::error(sprintf('%s can\'t be turned on. %s', $this->text->label($pack), Requirements::reason($checked)), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.unmet', '{label} can\'t be turned on. {reason}', label: (string) $this->text->label($pack), reason: Requirements::reason($checked, $this->messages)), Status::UnprocessableContent);
 		}
 
 		try {
@@ -141,7 +144,7 @@ final readonly class IconPackEditController
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete)) {
-			return self::error('You aren\'t allowed to delete icon packs.', Status::Forbidden);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.delete_forbidden', 'You aren\'t allowed to delete icon packs.'), Status::Forbidden);
 		}
 
 		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
@@ -149,13 +152,13 @@ final readonly class IconPackEditController
 		$pack  = array_find($this->packs->all(), static fn (IconPack $pack): bool => $pack->source === IconPackSource::Local && $pack->path === $path);
 
 		if (! is_dir($path) || ($pack === null && ! array_key_exists($where, $this->packs->invalid()))) {
-			return self::error(sprintf('There\'s no icon pack in %s.', $where), Status::NotFound);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.none_in', 'There\'s no icon pack in {where}.', where: $where), Status::NotFound);
 		}
 
 		try {
 			$this->filesystem->removeDirectory($path);
 		} catch (FilesystemException) {
-			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
+			return self::error($this->messages->t('admin.icon_pack_edit_controller.not_deleted', '{where} couldn\'t be deleted. Check that the web server may change it.', where: $where), Status::InternalServerError);
 		}
 
 		LocalExtensions::prune($this->paths, $path);
@@ -216,7 +219,7 @@ final readonly class IconPackEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

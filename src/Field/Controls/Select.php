@@ -18,6 +18,8 @@ use Blush\Field\Control;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\EnumField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One of a set, chosen from a menu: a choice field.
@@ -37,18 +39,18 @@ final class Select extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Select Dropdown';
+		return $messages->t('field.select.label', 'Select Dropdown');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'One of a set, chosen from a menu.';
+		return $messages->t('field.select.description', 'One of a set, chosen from a menu.');
 	}
 
 	/**

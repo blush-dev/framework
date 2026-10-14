@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Menu;
 
 use Stringable;
+use Blush\Translation\Messages;
 
 /**
  * A place a theme shows a menu, declared in `theme.json` `menus` (D-199,
@@ -48,18 +49,19 @@ final readonly class MenuLocation
 	) {}
 
 	/**
-	 * Builds a location from its declaration.
+	 * Builds a location from its declaration, saying what's wrong with it
+	 * with `$messages`.
 	 *
 	 * @throws MenuException When it has the wrong shape.
 	 */
-	public static function fromDeclaration(string $name, mixed $value, string $theme): self
+	public static function fromDeclaration(string $name, mixed $value, string $theme, Messages $messages): self
 	{
 		if (is_string($value)) {
 			return new self($name, trim($value));
 		}
 
 		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
-			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" must be a label or an object.', $theme, $name));
+			throw new MenuException((string) $messages->t('menu.menu_location.shape', 'The "{theme}" theme\'s menu location "{location}" must be a label or an object.', theme: $theme, location: $name));
 		}
 
 		$label  = $value['label'] ?? '';
@@ -68,19 +70,19 @@ final readonly class MenuLocation
 		$items  = $value['items'] ?? [];
 
 		if (! is_string($label)) {
-			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" has a "label" that isn\'t a string.', $theme, $name));
+			throw new MenuException((string) $messages->t('menu.menu_location.label', 'The "{theme}" theme\'s menu location "{location}" has a "label" that isn\'t a string.', theme: $theme, location: $name));
 		}
 
 		if ($depth !== null && (! is_int($depth) || $depth < 1)) {
-			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" has a "depth" that isn\'t a whole number from 1.', $theme, $name));
+			throw new MenuException((string) $messages->t('menu.menu_location.depth', 'The "{theme}" theme\'s menu location "{location}" has a "depth" that isn\'t a whole number from 1.', theme: $theme, location: $name));
 		}
 
 		if (! is_array($fields) || ($fields !== [] && array_is_list($fields)) || ! array_all($fields, static fn (mixed $field): bool => is_array($field))) {
-			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" must map "fields" names to field definitions.', $theme, $name));
+			throw new MenuException((string) $messages->t('menu.menu_location.fields', 'The "{theme}" theme\'s menu location "{location}" must map "fields" names to field definitions.', theme: $theme, location: $name));
 		}
 
 		if (! is_array($items) || ! array_is_list($items)) {
-			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" has "items" that aren\'t a list.', $theme, $name));
+			throw new MenuException((string) $messages->t('menu.menu_location.items', 'The "{theme}" theme\'s menu location "{location}" has "items" that aren\'t a list.', theme: $theme, location: $name));
 		}
 
 		/** @var array<string, array<array-key, mixed>> $fields */

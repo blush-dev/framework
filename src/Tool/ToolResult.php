@@ -48,10 +48,10 @@ final readonly class ToolResult
 	}
 
 	/**
-	 * A tool queued to run in the background.
+	 * A tool queued to run in the background, said in words.
 	 */
-	public static function queued(JobRecord $job): self
+	public static function queued(JobRecord $job, string|Stringable $text): self
 	{
-		return new self(['job' => $job->id, 'status' => $job->status->value], 'Queued; it runs in the background.', job: $job->id);
+		return new self(['job' => $job->id, 'status' => $job->status->value], $text, job: $job->id);
 	}
 }

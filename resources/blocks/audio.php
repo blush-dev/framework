@@ -53,7 +53,7 @@ $card     = new Bem('audio-card');
 	<?php if ($block->artwork() !== '') : ?>
 		<img class="<?= attr($card->element('art')) ?>" src="<?= url($block->artwork()) ?>" alt="" loading="lazy" decoding="async">
 	<?php endif ?>
-	<blush-audio-player <?= $block->labelAttributes() ?>>
+	<blush-audio-player>
 		<audio <?= $block->playerAttributes() ?>>
 			<a href="<?= url($block->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 		</audio>
@@ -61,7 +61,7 @@ $card     = new Bem('audio-card');
 </figure>
 <?php else : ?>
 <figure <?= $block->attributes() ?>>
-	<blush-audio-player <?= $block->labelAttributes() ?>>
+	<blush-audio-player>
 		<audio <?= $block->playerAttributes() ?>>
 			<a href="<?= url($block->src) ?>"><?= e($messages->t('media.audio_fallback')) ?></a>
 		</audio>

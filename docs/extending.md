@@ -1512,7 +1512,19 @@ from where the code lives, so you never name your plugin:
 It's the same `t()` everywhere, and it gives back a message that's
 translated when it's printed, in the current language: the page's on a
 page, the site's elsewhere. Print it, or cast it with `(string)` where
-you need a string now.
+you need a string now. In the admin, the current language is the
+signed-in account's.
+
+Write every message people may read this way, an exception's message
+included when the admin shows it (cast it as you throw it). Text only
+a developer sees, in a PHP error or a log, stays in plain English.
+
+To keep a message and show it later (a report, a job's result), store
+`$text->toArray()` (its key, its text, and its values) and read it back
+with `$this->messages->restore($stored)`: it's shown in the language of
+whoever reads it, and with the text you wrote if a later version has no
+such key. `restore()` returns `null` for anything else, such as plain
+text you stored before.
 
 `bin/blush lang:extract acme/hello` writes it all to `lang/en.json` for
 translators when you want them. It's optional: your code's text shows
@@ -1523,7 +1535,9 @@ your code, since its text would win (see
 Your `plugin.json` `label` and `description` are translated the same
 way, under `manifest.label` and `manifest.description` in your catalogs,
 and `lang:extract` writes them too (see
-[Your manifest's text](themes.md#your-manifests-text)).
+[Your manifest's text](themes.md#your-manifests-text)). Text in your
+scripts goes in catalogs of its own (see
+[Text in scripts](#text-in-scripts)).
 
 ### Template engines from a plugin
 
@@ -1970,6 +1984,61 @@ says so. Without `for:` or `after:`, data prints before the head's or
 foot's scripts and inline code after them. Both are on the head and the
 foot, and on `$event->head` and `$event->foot` in a `PageRendering`
 listener.
+
+### Text in scripts
+
+A script that shows text writes it the way PHP does, with `t()`, and
+names the catalog it reads:
+
+```php
+new Script('js/gallery.js', from: 'acme/gallery', attributes: ['type' => 'module'], catalog: 'site')
+```
+
+```js
+import { messages } from 'blush/messages';
+
+const t = messages('acme/gallery');
+
+button.textContent = t('gallery.next', 'Next');
+count.textContent = t('gallery.count', '{count, plural, one {# photo} other {# photos}}', { count: photos.length });
+```
+
+`t(key, text, params)` works as it does in PHP: the catalog's message
+when it has the key, else the text beside it, formatted with its
+values, which are named. Messages are ICU, as PHP's are (`plural`,
+`select`, `selectordinal`, `number`, `date`, and `time`), formatted in
+the page's language. Name your own plugin's or theme's domain in
+`messages()`; `plugin:check` and `theme:check` warn about another.
+
+A script's text goes in a **named catalog**, `lang/{catalog}/{locale}.json`
+(`lang/site/fr.json`), apart from your PHP's `lang/fr.json`, so a page
+only gets the text its scripts show. Start each with `@@locale`,
+`@@domain`, and `@@catalog`. When a page loads a script with a
+`catalog`, the catalog prints before it, once, in the page's language,
+with the [site's own wording](themes.md#your-own-wording) over it
+(`user/lang/fr/site/extensions/acme/gallery.json`):
+
+```html
+<script type="importmap">{"imports":{"blush/messages":"https://example.com/blush/js/messages.js?v=…"}}</script>
+<script type="application/json" data-blush-messages="acme/gallery" data-blush-catalog="site">{"gallery.next":"Suivant"}</script>
+<script src="/extensions/acme/gallery/js/gallery.js?v=…" type="module"></script>
+```
+
+`blush/messages` is Blush's, mapped in the page's import map, so leave
+it out of your build (in Vite, `build.rolldownOptions.external:
+['blush/messages']`). Only module scripts can import it.
+
+`lang:extract` reads your `.ts`, `.js`, and `.vue` files for `t()` calls
+and writes each folder's to its catalog: by default, each folder under
+`resources/` is a catalog of its name (`resources/site/**` writes to
+`lang/site/en.json`). Name them yourself with `catalogs` in your
+manifest, and a folder under two catalogs writes to both:
+
+```json
+"catalogs": {"site": ["resources/site", "resources/player"]}
+```
+
+A script from a URL has no catalog of its own.
 
 There are three ways to load an asset:
 

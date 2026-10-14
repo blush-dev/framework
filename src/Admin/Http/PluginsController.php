@@ -35,6 +35,8 @@ use Blush\Plugin\PluginDiscovery;
 use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
@@ -86,7 +88,8 @@ final readonly class PluginsController
 		private Permissions $permissions,
 		private ExtensionInstaller $installer,
 		private ContentTypes $types,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -94,7 +97,7 @@ final readonly class PluginsController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Plugin))) {
-			return self::error('You aren\'t allowed to see the site\'s plugins.', Status::Forbidden);
+			return self::error($this->messages->t('admin.plugins_controller.forbidden', 'You aren\'t allowed to see the site\'s plugins.'), Status::Forbidden);
 		}
 
 		try {
@@ -175,7 +178,7 @@ final readonly class PluginsController
 	 * plugin defines a content type or relation by the same name first
 	 * (D-597).
 	 *
-	 * @return list<string>
+	 * @return list<Text>
 	 */
 	private function clashes(string $name): array
 	{
@@ -183,11 +186,12 @@ final readonly class PluginsController
 
 		foreach ($this->types->clashes as $clash) {
 			if ($this->plugins->owning($clash->dropped)?->name === $name) {
-				$said[] = sprintf(
-					'Its "%s" %s is left out: %s defines one by that name too.',
-					$clash->name,
-					$clash->kind === 'type' ? 'content type' : $clash->kind,
-					$this->plugins->owning($clash->kept)->label ?? $clash->kept
+				$said[] = $this->messages->t(
+					'admin.plugins_controller.clash',
+					'Its "{name}" {kind, select, type {content type} relation {relation} other {{kind}}} is left out: {owner} defines one by that name too.',
+					name: $clash->name,
+					kind: $clash->kind,
+					owner: $this->plugins->owning($clash->kept)->label ?? $clash->kept
 				);
 			}
 		}
@@ -206,7 +210,7 @@ final readonly class PluginsController
 			: null;
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

@@ -34,6 +34,7 @@ use Blush\Menu\Link\MenuLink;
 use Blush\Menu\Link\MenuLinkType;
 use ReflectionClass;
 use Blush\Theme\ThemeManifest;
+use Blush\Translation\Messages;
 
 #[CoversClass(JsonSchemas::class)]
 #[CoversClass(Field::class)]
@@ -59,7 +60,7 @@ final class JsonSchemasTest extends TestCase
 			'name' => 'actors', 'kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'field' => 'cast', 'aliases' => ['stars'],
 			'label' => 'Cast', 'multiple' => true, 'ordered' => true, 'min' => 1, 'max' => 9, 'create' => true, 'translations' => 'add',
 			'control' => 'cards', 'defaults' => ['tom'], 'inverse' => ['archive' => 'actors', 'label' => 'Acted in', 'types' => ['movie'], 'max' => 5]
-		]);
+		], new Messages());
 		$properties = new JsonSchemas()->relation()['properties'] ?? null;
 		$this->assertIsArray($properties);
 		$inverseSchema = $properties['inverse'] ?? null;

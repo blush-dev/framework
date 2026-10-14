@@ -22,6 +22,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `core/clear-caches`: clears the cache store and moves the content
@@ -34,19 +36,20 @@ final class ClearCaches extends Tool
 {
 	public function __construct(
 		private readonly Caches $caches,
-		private readonly ContentVersion $version
+		private readonly ContentVersion $version,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Clear Caches';
+		return $this->messages->t('tool.clear_caches.title', 'Clear Caches');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Empty the page, body, and fragment caches, so every page renders fresh.';
+		return $this->messages->t('tool.clear_caches.description', 'Empty the page, body, and fragment caches, so every page renders fresh.');
 	}
 
 	#[Override]
@@ -77,6 +80,6 @@ final class ClearCaches extends Tool
 		$cleared = $this->caches->clear();
 		$this->version->bump();
 
-		return ToolResult::done(sprintf('Cleared the caches (%s).', implode(', ', $cleared)));
+		return ToolResult::done($this->messages->t('tool.clear_caches.cleared', 'Cleared the caches ({caches}).', caches: implode(', ', $cleared)));
 	}
 }

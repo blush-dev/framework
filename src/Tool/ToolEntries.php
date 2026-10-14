@@ -30,6 +30,7 @@ use Blush\Content\Writer\WriteException;
 use Blush\Media\MediaException;
 use Blush\Preview\PreviewLinks;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 use LogicException;
 
 /**
@@ -56,7 +57,8 @@ final readonly class ToolEntries
 		private ApiEntries $api,
 		private EntryResource $resource,
 		private AdminLinks $admin,
-		private PreviewLinks $previews
+		private PreviewLinks $previews,
+		private Messages $messages
 	) {}
 
 	/**
@@ -85,7 +87,7 @@ final readonly class ToolEntries
 	 */
 	public function type(ToolContext $context, string $name): ContentType
 	{
-		return $this->types($context)[$name] ?? throw new ToolError(sprintf('There\'s no "%s" type; list_types says which there are.', $name));
+		return $this->types($context)[$name] ?? throw new ToolError((string) $this->messages->t('tool.tool_entries.no_type', 'There\'s no "{name}" type; list_types says which there are.', name: $name));
 	}
 
 	/**
@@ -130,9 +132,9 @@ final readonly class ToolEntries
 		};
 
 		if ($entry === null || ! $this->sees($context, $entry)) {
-			throw new ToolError($id !== null
-				? sprintf('There\'s no entry with the id "%s" that this connection may see.', $id)
-				: sprintf('There\'s no published entry at "%s"; search_entries finds drafts.', (string) $url));
+			throw new ToolError((string) ($id !== null
+				? $this->messages->t('tool.tool_entries.no_entry', 'There\'s no entry with the id "{id}" that this connection may see.', id: $id)
+				: $this->messages->t('tool.tool_entries.no_published', 'There\'s no published entry at "{url}"; search_entries finds drafts.', url: (string) $url)));
 		}
 
 		return $entry;
@@ -190,7 +192,7 @@ final readonly class ToolEntries
 			$item = $this->resource->item($entry, 'none', new ApiIncludes(relations: false));
 			$file = $this->content->editable($entry);
 		} catch (MediaException | WriteException $error) {
-			throw new ToolError(sprintf('“%s” can\'t be read: %s', $entry->title, $error->getMessage()));
+			throw new ToolError((string) $this->messages->t('tool.tool_entries.unreadable', '“{title}” can\'t be read: {problem}', title: $entry->title, problem: $error->getMessage()));
 		}
 
 		$item['status'] = $entry->status->value;

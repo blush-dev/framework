@@ -18,6 +18,8 @@ use Blush\Field\Control;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\EnumField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One of a set, with every option in view: a choice field.
@@ -37,18 +39,18 @@ final class Radios extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Radio Buttons';
+		return $messages->t('field.radios.label', 'Radio Buttons');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'One of a set, with every option in view.';
+		return $messages->t('field.radios.description', 'One of a set, with every option in view.');
 	}
 
 	/**

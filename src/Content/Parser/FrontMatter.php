@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Parser;
 
 use Blush\Data\InvalidData;
+use Blush\Translation\Messages;
 
 /**
  * Splits YAML front matter off the top of a document and parses it. Front
@@ -29,8 +30,10 @@ final readonly class FrontMatter
 	 */
 	private const string PATTERN = '/\A(?:\xEF\xBB\xBF)?---[ \t]*\R(?:(.*?)\R)?(?:---|\.\.\.)[ \t]*(?:\R|\z)/s';
 
-	public function __construct(private YamlParser $yaml)
-	{}
+	public function __construct(
+		private YamlParser $yaml,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Returns the front matter's YAML (or `null` when there's no block)
@@ -83,7 +86,7 @@ final readonly class FrontMatter
 		try {
 			$data = $this->yaml->parse($yaml);
 		} catch (InvalidData $e) {
-			throw new InvalidDocument(sprintf('Invalid front matter: %s', $e->getMessage()), previous: $e);
+			throw new InvalidDocument((string) $this->messages->t('content.front_matter.invalid', 'Invalid front matter: {problem}', problem: $e->getMessage()), previous: $e);
 		}
 
 		if ($data === null) {
@@ -91,7 +94,7 @@ final readonly class FrontMatter
 		}
 
 		if (! is_array($data) || ($data !== [] && array_is_list($data))) {
-			throw new InvalidDocument('Front matter must be a map of keys to values.');
+			throw new InvalidDocument((string) $this->messages->t('content.front_matter.not_a_map', 'Front matter must be a map of keys to values.'));
 		}
 
 		return [$data, $body];

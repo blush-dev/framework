@@ -21,6 +21,7 @@ use Blush\Container\Container;
 use Blush\Job\JobException;
 use Blush\Job\JobQueue;
 use Blush\Job\JobType;
+use Blush\Translation\Messages;
 
 /**
  * The registered tools, built through the container, and running them
@@ -41,7 +42,8 @@ final readonly class Tools
 		private ToolRegistry $registry,
 		private Container $container,
 		private JobQueue $jobs,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
+		private Messages $messages
 	) {}
 
 	/**
@@ -117,7 +119,7 @@ final readonly class Tools
 		$tool = $this->get($key);
 
 		if ($tool === null || ! $this->allows($key, $tool, $context)) {
-			throw new ToolError(sprintf('There\'s no tool "%s" for you.', $key));
+			throw new ToolError((string) $this->messages->t('tool.tools.not_found', 'There\'s no tool "{tool}" for you.', tool: $key));
 		}
 
 		$problem = InputCheck::problem($input, $tool->input());
@@ -136,7 +138,7 @@ final readonly class Tools
 				'input'  => $input,
 				'via'    => $context->actor->via->value,
 				'client' => $context->actor->client
-			], $context->actor->account->id, $input === [] ? "tool:{$key}" : null));
+			], $context->actor->account->id, $input === [] ? "tool:{$key}" : null), $this->messages->t('tool.tools.queued', 'Queued; it runs in the background.'));
 		} catch (JobException $e) {
 			throw new ToolError($e->getMessage());
 		}

@@ -17,7 +17,9 @@
 
 import { computed, ref } from 'vue';
 import { FOLD, CAP } from '../references';
+import { t } from '../messages';
 import { usePicker, type PickerProps } from '../picker';
+import MessageText from './MessageText.vue';
 import AdminIcon from './AdminIcon.vue';
 import ReferenceInherited from './ReferenceInherited.vue';
 import ReferenceMissing from './ReferenceMissing.vue';
@@ -62,14 +64,14 @@ function focusInput(event: MouseEvent): void {
 
 const placeholder = computed(() => {
 	if (full.value) {
-		return 'That\'s the most it takes';
+		return t('reference_tokens.full', 'That\'s the most it takes');
 	}
 
 	if (whole.value === null && total.value > 0) {
-		return `Search ${total.value.toLocaleString()} ${names.value.items}…`;
+		return t('reference_tokens.search', 'Search {count} {items}…', { count: total.value, items: names.value.items });
 	}
 
-	return values.value.length ? 'Add another…' : 'Type to add…';
+	return values.value.length ? t('reference_tokens.add_another', 'Add another…') : t('reference_tokens.type_to_add', 'Type to add…');
 });
 </script>
 
@@ -87,9 +89,9 @@ const placeholder = computed(() => {
 				<AdminIcon v-if="ordered && values.length > 1" name="grip-vertical" class="reference__grip" />
 				<AdminIcon v-if="isNew(value)" name="plus" />
 				<span class="reference__token-name">{{ isMissing(value) ? value : itemOf(value).title }}</span>
-				<button type="button" @click="picker.remove(itemOf(value).slug)"><AdminIcon name="x" /><span class="visually-hidden">Remove {{ itemOf(value).title }}</span></button>
+				<button type="button" @click="picker.remove(itemOf(value).slug)"><AdminIcon name="x" /><span class="visually-hidden">{{ t('reference_tokens.remove', 'Remove {title}', { title: itemOf(value).title }) }}</span></button>
 			</span>
-			<button v-if="folded > 0" type="button" class="reference__token is-more" @click="unfold = true">+{{ folded }} more</button>
+			<button v-if="folded > 0" type="button" class="reference__token is-more" @click="unfold = true">{{ t('reference_tokens.more', '+{count} more', { count: folded }) }}</button>
 			<input
 				:id="id"
 				ref="input"
@@ -113,10 +115,10 @@ const placeholder = computed(() => {
 			:items="offered"
 			:active="active"
 			:query="query"
-			:heading="typing ? undefined : (before.some((item) => item.uses !== null) ? 'Most Used' : 'Recently Edited')"
+			:heading="typing ? undefined : (before.some((item) => item.uses !== null) ? t('reference_tokens.most_used', 'Most Used') : t('reference_tokens.recent', 'Recently Edited'))"
 			:more="more"
-			:create="creatable ? `Create “${query.trim()}”` : null"
-			:empty="typing ? `No ${names.item} matches “${query.trim()}”.` : undefined"
+			:create="creatable ? t('reference_tokens.create', 'Create “{query}”', { query: query.trim() }) : null"
+			:empty="typing ? t('reference_tokens.no_match', 'No {item} matches “{query}”.', { item: names.item, query: query.trim() }) : undefined"
 			@choose="picker.choose"
 		/>
 
@@ -125,7 +127,7 @@ const placeholder = computed(() => {
 				<span v-for="value in inheritedShown" :key="`inherited-${value}`" class="reference__token is-inherited">{{ itemOf(value).title }}</span>
 			</div>
 		</ReferenceInherited>
-		<p v-for="value in added" :key="`new-${value}`" class="field__help"><b>{{ value }}</b> is new. Updating creates it as a published {{ names.item }}.</p>
+		<p v-for="value in added" :key="`new-${value}`" class="field__help"><MessageText :text="t('reference_tokens.new', '{value} is new. Updating creates it as a published {item}.', { item: names.item })"><template #value><b>{{ value }}</b></template></MessageText></p>
 		<ReferenceMissing :missing="missing" :noun="names.item" @replace="picker.replace" />
 		<p v-if="error" class="field__error">{{ error }}</p>
 	</div>

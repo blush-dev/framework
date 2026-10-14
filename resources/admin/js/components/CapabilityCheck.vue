@@ -24,7 +24,7 @@ const emit = defineEmits<{ change: [on: boolean] }>();
 	<label class="capability" :class="{ 'is-off': !checked, 'is-locked': disabled }">
 		<input type="checkbox" class="check-input" :checked="checked" :disabled="disabled" @change="emit('change', ($event.target as HTMLInputElement).checked)">
 		<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
-		<span class="capability__label">{{ label }}<span v-if="from" class="capability__from"> · {{ from }}</span><span v-else-if="unheld" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
+		<span class="capability__label">{{ label }}<span v-if="from" class="capability__from"> · {{ from }}</span><span v-else-if="unheld" class="visually-hidden">{{ t('capability_check.unheld', " (you don't have it, so you can't give it)") }}</span></span>
 		<code class="capability__key">{{ name }}</code>
 	</label>
 </template>

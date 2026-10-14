@@ -15,7 +15,8 @@ import AdminIcon from './AdminIcon.vue';
 import type { EntryDetail } from '../api';
 import type { Differences } from '../diff';
 import { siteDateTime } from '../dates';
-import { plural } from '../format';
+import { t } from '../messages';
+import MessageText from './MessageText.vue';
 
 const props = defineProps<{
 	noun: string;
@@ -41,21 +42,20 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 		<div class="conflict__bar">
 			<AdminIcon name="triangle-alert" />
 			<div class="conflict__text">
-				<h2 id="conflict-heading">This {{ noun }} changed while you were editing</h2>
+				<h2 id="conflict-heading">{{ t('conflict_bar.heading', 'This {noun} changed while you were editing', { noun }) }}</h2>
 				<p>
-					<template v-if="theirs?.modified">Its file was saved at {{ siteDateTime(theirs.modified) }}, </template>
-					<template v-else>Its file was saved again, </template>
-					from the admin or by editing the file itself. {{ safe }}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.
+					<template v-if="theirs?.modified">{{ t('conflict_bar.saved_at', 'Its file was saved at {time}, from the admin or by editing the file itself. {safe}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.', { time: siteDateTime(theirs.modified), safe }) }}</template>
+					<template v-else>{{ t('conflict_bar.saved_again', 'Its file was saved again, from the admin or by editing the file itself. {safe}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.', { safe }) }}</template>
 				</p>
-				<p v-if="!loading && theirs === null" class="field__error">The saved version couldn't be loaded. Check your connection, then try again.</p>
+				<p v-if="!loading && theirs === null" class="field__error">{{ t('conflict_bar.load_failed', "The saved version couldn't be loaded. Check your connection, then try again.") }}</p>
 			</div>
 			<p class="conflict__buttons">
 				<template v-if="theirs">
-					<button type="button" class="button button--small" @click="emit('keepTheirs')">Keep Theirs</button>
-					<button type="button" class="button button--small" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">Compare</button>
-					<button type="button" class="button button--small button--primary" @click="emit('keepMine')">Keep Mine</button>
+					<button type="button" class="button button--small" @click="emit('keepTheirs')">{{ t('conflict_bar.keep_theirs', 'Keep Theirs') }}</button>
+					<button type="button" class="button button--small" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">{{ t('conflict_bar.compare', 'Compare') }}</button>
+					<button type="button" class="button button--small button--primary" @click="emit('keepMine')">{{ t('conflict_bar.keep_mine', 'Keep Mine') }}</button>
 				</template>
-				<button v-else type="button" class="button button--small" :disabled="loading" @click="emit('retry')">{{ loading ? 'Loading the saved version…' : 'Try Again' }}</button>
+				<button v-else type="button" class="button button--small" :disabled="loading" @click="emit('retry')">{{ loading ? t('conflict_bar.loading', 'Loading the saved version…') : t('common.retry', 'Try Again') }}</button>
 			</p>
 		</div>
 
@@ -63,9 +63,9 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 			<table v-if="differences.rows.length" class="table compare__fields">
 				<thead>
 					<tr>
-						<th scope="col">Field</th>
-						<th scope="col">Theirs</th>
-						<th scope="col">Mine</th>
+						<th scope="col">{{ t('conflict_bar.field', 'Field') }}</th>
+						<th scope="col">{{ t('conflict_bar.theirs', 'Theirs') }}</th>
+						<th scope="col">{{ t('conflict_bar.mine', 'Mine') }}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -77,10 +77,10 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 				</tbody>
 			</table>
 			<div v-if="differences.body" class="compare__body">
-				<p class="compare__label">Body <span class="compare__key"><span class="compare__mark compare__mark--theirs">−</span> theirs <span class="compare__mark compare__mark--mine">+</span> mine</span></p>
-				<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ plural(line.count, 'unchanged line') }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? 'Theirs: ' : 'Mine: ' }}</span>{{ line.text }}</span></template></pre>
+				<p class="compare__label">{{ t('conflict_bar.body', 'Body') }} <span class="compare__key"><MessageText :text="t('conflict_bar.key', '{theirs_mark} theirs {mine_mark} mine')"><template #theirs_mark><span class="compare__mark compare__mark--theirs">−</span></template><template #mine_mark><span class="compare__mark compare__mark--mine">+</span></template></MessageText></span></p>
+				<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ t('conflict_bar.unchanged_lines', '{count, plural, one {# unchanged line} other {# unchanged lines} }', { count: line.count }) }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? t('conflict_bar.theirs_line', 'Theirs: ') : t('conflict_bar.mine_line', 'Mine: ') }}</span>{{ line.text }}</span></template></pre>
 			</div>
-			<p v-if="!differences.rows.length && !differences.body" class="compare__same">Your changes and theirs match in everything the editor shows.</p>
+			<p v-if="!differences.rows.length && !differences.body" class="compare__same">{{ t('conflict_bar.same', 'Your changes and theirs match in everything the editor shows.') }}</p>
 		</div>
 	</section>
 </template>

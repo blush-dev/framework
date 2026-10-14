@@ -38,6 +38,7 @@ use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaValues;
+use Blush\Translation\Messages;
 
 /**
  * Answers the profiles for linking accounts to them (D-356), for
@@ -84,7 +85,8 @@ final readonly class ProfilesController
 		private Accounts $accounts,
 		private UsersJson $json,
 		private AccountProfiles $names,
-		private MediaValues $media
+		private MediaValues $media,
+		private Messages $messages
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -93,7 +95,7 @@ final readonly class ProfilesController
 		$profiles = $this->types->profiles();
 
 		if (! $viewer instanceof Account || ! $this->permissions->can($viewer, Capability::AccountsView)) {
-			return self::json(['error' => 'You aren\'t allowed to see accounts.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.cannot_view', 'You aren\'t allowed to see accounts.')], Status::Forbidden);
 		}
 
 		if ($profiles === null) {
@@ -171,7 +173,7 @@ final readonly class ProfilesController
 		[$viewer, , $profile] = $found;
 
 		if (! $this->permissions->can($viewer, Capability::AccountsView) || ! $this->permissions->can($viewer, Capability::AccountsEdit)) {
-			return self::json(['error' => 'You aren\'t allowed to change accounts\' profiles.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.cannot_lock', 'You aren\'t allowed to change accounts\' profiles.')], Status::Forbidden);
 		}
 
 		try {
@@ -222,7 +224,7 @@ final readonly class ProfilesController
 		[$type, $relation] = $place;
 
 		if (! $this->permissions->can($viewer, ContentAction::Create, $type->name)) {
-			return self::json(['error' => sprintf('You aren\'t allowed to create %s.', $type->labels->items)], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.cannot_create', 'You aren\'t allowed to create {items}.', items: $type->labels->items)], Status::Forbidden);
 		}
 
 		try {
@@ -248,11 +250,11 @@ final readonly class ProfilesController
 		$page  = $place === null ? null : $this->content->named($place[0]->name, RelatedController::word($place[1]) . "/{$profile->slug}");
 
 		if ($page === null) {
-			return self::json(['error' => 'There\'s no page written for that archive.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.no_page', 'There\'s no page written for that archive.')], Status::NotFound);
 		}
 
 		if (! $this->permissions->can($viewer, ContentAction::Delete, $page)) {
-			return self::json(['error' => 'You aren\'t allowed to delete that page.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.cannot_delete', 'You aren\'t allowed to delete that page.')], Status::Forbidden);
 		}
 
 		try {
@@ -275,17 +277,17 @@ final readonly class ProfilesController
 		$viewer = $request->getAttribute(Account::class);
 
 		if (! $viewer instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		$profiles = $this->types->profiles();
 		$profile  = $profiles === null ? null : $this->content->term($profiles->name, $slug);
 
 		if ($profiles === null || $profile === null) {
-			return self::json(['error' => sprintf('There\'s no profile "%s".', $slug)], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.profiles_controller.not_found', 'There\'s no profile "{slug}".', slug: $slug)], Status::NotFound);
 		}
 
-		return $this->permissions->can($viewer, ContentAction::Edit, $profile) ? [$viewer, $profiles, $profile] : self::json(['error' => 'You aren\'t allowed to edit that profile.'], Status::Forbidden);
+		return $this->permissions->can($viewer, ContentAction::Edit, $profile) ? [$viewer, $profiles, $profile] : self::json(['error' => $this->messages->t('admin.profiles_controller.cannot_edit', 'You aren\'t allowed to edit that profile.')], Status::Forbidden);
 	}
 
 	/**

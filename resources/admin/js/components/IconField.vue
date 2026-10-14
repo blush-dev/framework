@@ -42,16 +42,16 @@ function choose(icon: SiteIcon): void {
 <template>
 	<div class="icon-field">
 		<template v-if="name">
-			<button :id="id" type="button" class="icon-field__tile is-set" aria-haspopup="dialog" :aria-describedby="describedBy" :title="known ? chosen?.label ?? name : `No icon is named ${name}`" @click="picking = true">
+			<button :id="id" type="button" class="icon-field__tile is-set" aria-haspopup="dialog" :aria-describedby="describedBy" :title="known ? chosen?.label ?? name : t('icon_field.unknown', 'No icon is named {name}', { name })" @click="picking = true">
 				<span v-if="chosen && chosen.svg" class="icon icon-field__mask" :style="{ maskImage: iconMask(chosen) }" aria-hidden="true" />
 				<AdminIcon v-else-if="!known" name="triangle-alert" />
-				<span class="visually-hidden">Change the icon, {{ chosen?.label ?? name }}</span>
+				<span class="visually-hidden">{{ t('icon_field.change', 'Change the icon, {label}', { label: chosen?.label ?? name }) }}</span>
 			</button>
-			<button type="button" class="button button--ghost button--small" @click="name = ''">Reset</button>
+			<button type="button" class="button button--ghost button--small" @click="name = ''">{{ t('icon_field.reset', 'Reset') }}</button>
 		</template>
 		<template v-else>
 			<button type="button" class="icon-field__tile" tabindex="-1" aria-hidden="true" @click="picking = true"><AdminIcon name="plus" /></button>
-			<button :id="id" type="button" class="button button--ghost button--small" aria-haspopup="dialog" :aria-describedby="describedBy" @click="picking = true">Insert an Icon</button>
+			<button :id="id" type="button" class="button button--ghost button--small" aria-haspopup="dialog" :aria-describedby="describedBy" @click="picking = true">{{ t('icon_field.insert', 'Insert an Icon') }}</button>
 		</template>
 	</div>
 	<IconPicker v-if="picking" :preview="preview" @choose="choose" @close="picking = false" />

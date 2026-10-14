@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Where to learn about, get help with, and fund an extension (D-428), as
  * `composer.json` has them (https://getcomposer.org/doc/04-schema.md):
@@ -50,31 +52,31 @@ final readonly class ExtensionLinks
 	 * @param  array<array-key, mixed> $data
 	 * @throws ExtensionException When one doesn't fit.
 	 */
-	public static function fromArray(array $data): self
+	public static function fromArray(array $data, Messages $messages = new Messages()): self
 	{
 		$homepage = $data['homepage'] ?? '';
 		$support  = $data['support'] ?? [];
 		$funding  = $data['funding'] ?? [];
 
 		if (! is_string($homepage) || ($homepage !== '' && ! self::isUrl($homepage))) {
-			throw new ExtensionException('"homepage" must be an http or https URL.');
+			throw new ExtensionException((string) $messages->t('extension.extension_links.homepage', '"homepage" must be an http or https URL.'));
 		}
 
 		if (! is_array($support) || ($support !== [] && array_is_list($support))) {
-			throw new ExtensionException(sprintf('"support" must be an object with any of %s.', implode(', ', self::SUPPORT)));
+			throw new ExtensionException((string) $messages->t('extension.extension_links.support_not_object', '"support" must be an object with any of {keys}.', keys: implode(', ', self::SUPPORT)));
 		}
 
 		$links = [];
 
 		foreach ($support as $key => $value) {
-			$links[(string) $key] = self::support((string) $key, $value);
+			$links[(string) $key] = self::support((string) $key, $value, $messages);
 		}
 
 		if (! is_array($funding) || ! array_is_list($funding)) {
-			throw new ExtensionException('"funding" must be a list, each an object with a "url" and an optional "type".');
+			throw new ExtensionException((string) $messages->t('extension.extension_links.funding_not_list', '"funding" must be a list, each an object with a "url" and an optional "type".'));
 		}
 
-		return new self(trim($homepage), self::ordered($links), array_map(self::funding(...), $funding));
+		return new self(trim($homepage), self::ordered($links), array_map(static fn (mixed $entry): array => self::funding($entry, $messages), $funding));
 	}
 
 	/**
@@ -86,6 +88,7 @@ final readonly class ExtensionLinks
 	 */
 	public static function lenient(array $data): self
 	{
+		$messages = new Messages();
 		$homepage = $data['homepage'] ?? '';
 		$support  = is_array($data['support'] ?? null) ? $data['support'] : [];
 		$funding  = is_array($data['funding'] ?? null) && array_is_list($data['funding']) ? $data['funding'] : [];
@@ -94,7 +97,7 @@ final readonly class ExtensionLinks
 
 		foreach ($support as $key => $value) {
 			try {
-				$links[(string) $key] = self::support((string) $key, $value);
+				$links[(string) $key] = self::support((string) $key, $value, $messages);
 			} catch (ExtensionException) {
 				continue;
 			}
@@ -102,7 +105,7 @@ final readonly class ExtensionLinks
 
 		foreach ($funding as $entry) {
 			try {
-				$funds[] = self::funding($entry);
+				$funds[] = self::funding($entry, $messages);
 			} catch (ExtensionException) {
 				continue;
 			}
@@ -151,10 +154,10 @@ final readonly class ExtensionLinks
 	 *
 	 * @throws ExtensionException
 	 */
-	private static function support(string $key, mixed $value): string
+	private static function support(string $key, mixed $value, Messages $messages): string
 	{
 		if (! in_array($key, self::SUPPORT, true)) {
-			throw new ExtensionException(sprintf('"support" has %s; "%s" isn\'t one.', implode(', ', self::SUPPORT), $key));
+			throw new ExtensionException((string) $messages->t('extension.extension_links.support_unknown', '"support" has {keys}; "{field}" isn\'t one.', keys: implode(', ', self::SUPPORT), field: $key));
 		}
 
 		$value = is_string($value) ? trim($value) : '';
@@ -165,11 +168,11 @@ final readonly class ExtensionLinks
 		};
 
 		if (! $fits) {
-			throw new ExtensionException(sprintf('"support.%s" must be %s.', $key, match ($key) {
-				'email' => 'an email address',
-				'irc'   => 'an irc or ircs URL',
-				default => 'an http or https URL'
-			}));
+			throw new ExtensionException((string) match ($key) {
+				'email' => $messages->t('extension.extension_links.support_email', '"support.email" must be an email address.'),
+				'irc'   => $messages->t('extension.extension_links.support_irc', '"support.irc" must be an irc or ircs URL.'),
+				default => $messages->t('extension.extension_links.support_url', '"support.{field}" must be an http or https URL.', field: $key)
+			});
 		}
 
 		return $value;
@@ -181,17 +184,17 @@ final readonly class ExtensionLinks
 	 * @return array{type: string, url: string}
 	 * @throws ExtensionException
 	 */
-	private static function funding(mixed $entry): array
+	private static function funding(mixed $entry, Messages $messages): array
 	{
 		if (! is_array($entry) || array_diff(array_map(strval(...), array_keys($entry)), ['type', 'url']) !== []) {
-			throw new ExtensionException('Each of "funding" must be an object with a "url" and an optional "type".');
+			throw new ExtensionException((string) $messages->t('extension.extension_links.funding_not_object', 'Each of "funding" must be an object with a "url" and an optional "type".'));
 		}
 
 		$type = $entry['type'] ?? '';
 		$url  = $entry['url'] ?? '';
 
 		if (! is_string($type) || ! is_string($url) || ! self::isUrl($url)) {
-			throw new ExtensionException('Each of "funding" needs a "url", an http or https URL, and its "type" must be a string.');
+			throw new ExtensionException((string) $messages->t('extension.extension_links.funding_url', 'Each of "funding" needs a "url", an http or https URL, and its "type" must be a string.'));
 		}
 
 		return ['type' => trim($type), 'url' => trim($url)];

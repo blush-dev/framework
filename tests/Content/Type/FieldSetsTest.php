@@ -29,6 +29,7 @@ use Blush\Field\InvalidSchema;
 use Blush\Field\RegisteredField;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\Field\SeoProvider;
+use Blush\Translation\Messages;
 
 #[CoversClass(FieldSetLoader::class)]
 #[CoversClass(EntryFields::class)]
@@ -97,7 +98,7 @@ final class FieldSetsTest extends TestCase
 		$this->assertTrue($types->schema('page')->has('servings'), 'It\'s still on the types it fits.');
 		$this->assertSame(
 			['kitchen' => ['type:recipe can\'t take field set "kitchen": "servings" is already one of its own fields.']],
-			$types->sets->clashes(new ContentTypeTarget($types, $types->get('recipe')))
+			self::clashes($types, 'recipe')
 		);
 	}
 
@@ -110,7 +111,7 @@ final class FieldSetsTest extends TestCase
 		$this->assertFalse($types->schema('page')->has('when'), 'The whole set is left off.');
 		$this->assertSame(
 			['dates' => ['type:page can\'t take field set "dates": "date" is Blush\'s own key, so nothing else can declare it.']],
-			$types->sets->clashes(new ContentTypeTarget($types, $types->get('page')))
+			self::clashes($types, 'page')
 		);
 	}
 
@@ -125,14 +126,14 @@ final class FieldSetsTest extends TestCase
 		$this->assertFalse($types->schema('page')->has('zest'));
 		$this->assertSame(
 			['zest' => ['type:page can\'t take field set "zest": field set "apron" declares "note" there already, and a key is declared once.']],
-			$types->sets->clashes(new ContentTypeTarget($types, $types->get('page')))
+			self::clashes($types, 'page')
 		);
 	}
 
 	public function testCoreRegistersTheEntryFieldsEveryTypeStartsWith(): void
 	{
 		$types = $this->types();
-		$core  = array_keys(EntryFields::schema()->fields);
+		$core  = array_keys(EntryFields::schema(new Messages())->fields);
 
 		$this->assertSame($core, array_slice(array_keys($types->schema('page')->fields), 0, count($core)), 'A type\'s fields start with them (D-790).');
 		$this->assertSame($core, array_map(static fn (RegisteredField $field): string => $field->field->name, $types->sets->registered->fields), 'Registered by core, never a set.');
@@ -166,7 +167,7 @@ final class FieldSetsTest extends TestCase
 		$this->assertFalse($types->formSchema('page')->has('noindex'));
 		$this->assertTrue($types->formSchema('page')->has('title'));
 
-		$compiled = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class));
+		$compiled = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class), $application->container()->make(Messages::class));
 
 		$this->assertEquals($types->schema('page'), $compiled->schema('page'), 'Kept with the compiled types.');
 	}
@@ -182,7 +183,7 @@ final class FieldSetsTest extends TestCase
 
 		$this->assertSame(
 			['search' => ['type:page can\'t take field set "search": acme/seo\'s field "meta_title" declares "meta_title" there already, and a key is declared once.']],
-			$types->sets->clashes(new ContentTypeTarget($types, $types->get('page'))),
+			self::clashes($types, 'page'),
 			'Code first, so the site renames its own (D-789).'
 		);
 	}
@@ -249,9 +250,22 @@ final class FieldSetsTest extends TestCase
 
 		$application = $this->scratchApplication();
 		$types       = $this->types($application);
-		$compiled    = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class));
+		$compiled    = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class), $application->container()->make(Messages::class));
 
 		$this->assertEquals($types->sets, $compiled->sets);
 		$this->assertEquals($types->schema('recipe'), $compiled->schema('recipe'));
+	}
+
+	/**
+	 * Returns why sets are left off a type, as text.
+	 *
+	 * @return array<string, list<string>>
+	 */
+	private static function clashes(ContentTypes $types, string $type): array
+	{
+		return array_map(
+			static fn (array $messages): array => array_map(strval(...), $messages),
+			$types->sets->clashes(new ContentTypeTarget($types, $types->get($type)), new Messages())
+		);
 	}
 }

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Secret;
 
 use SodiumException;
+use Blush\Translation\Messages;
 
 /**
  * Encrypts and decrypts stored secrets (D-715), the only code that does:
@@ -33,7 +34,8 @@ final readonly class SecretCipher
 	public const string VERSION = 'v1';
 
 	public function __construct(
-		private SecretKeys $keys
+		private SecretKeys $keys,
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -50,7 +52,7 @@ final readonly class SecretCipher
 		try {
 			$sealed = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt($value, self::data($id, $name), $nonce, $key);
 		} catch (SodiumException $e) {
-			throw new InvalidSecret(sprintf('"%s" couldn\'t be encrypted: %s', $name, $e->getMessage()), previous: $e);
+			throw new InvalidSecret((string) $this->messages->t('secret.secret_cipher.not_encrypted', '"{name}" couldn\'t be encrypted: {error}', name: $name, error: $e->getMessage()), previous: $e);
 		}
 
 		return sprintf('%s:%s:%s', self::VERSION, $id, sodium_bin2base64($nonce . $sealed, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING));
@@ -66,16 +68,17 @@ final readonly class SecretCipher
 		$parts = explode(':', $stored, 3);
 
 		if (count($parts) !== 3 || $parts[0] !== self::VERSION) {
-			throw new SecretUnreadable(sprintf('"%s" isn\'t stored in a form this site reads.', $name));
+			throw new SecretUnreadable((string) $this->messages->t('secret.secret_cipher.unknown_form', '"{name}" isn\'t stored in a form this site reads.', name: $name));
 		}
 
 		[, $id, $body] = $parts;
 
-		$key = $this->keys->find($id) ?? throw new SecretUnreadable(sprintf(
-			'"%s" was stored under a key this site doesn\'t have (%s); set it again, or put that key back in %s.',
-			$name,
-			$id,
-			SecretKeys::PREVIOUS
+		$key = $this->keys->find($id) ?? throw new SecretUnreadable((string) $this->messages->t(
+			'secret.secret_cipher.key_missing',
+			'"{name}" was stored under a key this site doesn\'t have ({id}); set it again, or put that key back in {variable}.',
+			name: $name,
+			id: $id,
+			variable: SecretKeys::PREVIOUS
 		));
 
 		$length = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES;
@@ -90,7 +93,7 @@ final readonly class SecretCipher
 		}
 
 		if ($value === false) {
-			throw new SecretUnreadable(sprintf('"%s" won\'t decrypt: it was changed, or stored under another name.', $name));
+			throw new SecretUnreadable((string) $this->messages->t('secret.secret_cipher.wont_decrypt', '"{name}" won\'t decrypt: it was changed, or stored under another name.', name: $name));
 		}
 
 		return new Secret($value);

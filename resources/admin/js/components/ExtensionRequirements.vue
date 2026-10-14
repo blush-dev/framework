@@ -14,14 +14,15 @@
 import AdminIcon from './AdminIcon.vue';
 import type { ExtensionRequirement } from '../api';
 import { extensionRoute, requirementKind, requirementText } from '../extensions';
+import { t } from '../messages';
 
 defineProps<{ requirements: ExtensionRequirement[]; list?: 'requires' | 'conflicts' | 'replaces' }>();
 
 // What a screen reader hears before each, as the icon shows it.
 const STATUS = {
-	requires:  ['Met:', 'Not met:'],
-	conflicts: ['No conflict:', 'Conflicts:'],
-	replaces:  ['Not on:', 'On:']
+	requires:  [t('extension_requirements.met', 'Met:'), t('extension_requirements.not_met', 'Not met:')],
+	conflicts: [t('extension_requirements.no_conflict', 'No conflict:'), t('extension_requirements.conflicts', 'Conflicts:')],
+	replaces:  [t('extension_requirements.not_on', 'Not on:'), t('extension_requirements.on', 'On:')]
 } as const;
 
 // The name and versions beside a linked extension's label.

@@ -27,6 +27,7 @@ use Blush\Http\ClientIp;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
 
 /**
  * Answers `POST {path}/api/password` (D-273): changes the signed-in
@@ -40,7 +41,8 @@ final readonly class PasswordController
 	public function __construct(
 		private Accounts $accounts,
 		private Authenticator $authenticator,
-		private AuthConfig $config
+		private AuthConfig $config,
+		private Messages $messages
 	) {}
 
 	/**
@@ -51,7 +53,7 @@ final readonly class PasswordController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		try {
@@ -71,7 +73,7 @@ final readonly class PasswordController
 		}
 
 		if (! $confirmed) {
-			return self::json(['error' => 'Your current password is wrong.', 'field' => 'current'], Status::UnprocessableContent);
+			return self::json(['error' => $this->messages->t('admin.password_controller.wrong_current', 'Your current password is wrong.'), 'field' => 'current'], Status::UnprocessableContent);
 		}
 
 		$problem = $this->accounts->passwordProblem($input['password']);

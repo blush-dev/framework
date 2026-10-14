@@ -29,7 +29,8 @@ use Blush\Theme\ThemeException;
  * in the place it was first added. The head prints `<meta charset>`
  * first (Blush is UTF-8 throughout, and the encoding has to come before
  * any text), then the title, then the tags grouped by kind (D-472):
- * `<meta name>` tags, `<meta property>` tags, links, resource hints
+ * `<meta name>` tags, `<meta property>` tags, links, the import map
+ * (D-831), resource hints
  * (`preload`, `preconnect`, …), styles, data for scripts, scripts, then
  * inline scripts (D-579, D-580); data and inline code tied to an asset
  * print beside its scripts instead. Each group keeps the
@@ -359,12 +360,13 @@ final class Head implements SafeHtml
 
 		return match (true) {
 			$element === 'meta'                                      => isset($attributes['property']) ? 1 : 0,
-			$element === 'style', $rel === 'stylesheet'              => 4,
-			$element === 'link' && in_array($rel, self::HINTS, true) => 3,
+			$element === 'style', $rel === 'stylesheet'              => 5,
+			$element === 'link' && in_array($rel, self::HINTS, true) => 4,
 			$element === 'link'                                      => 2,
-			($attributes['type'] ?? null) === 'application/json'    => 5,
-			! isset($attributes['src'])                              => 7,
-			default                                                  => 6
+			($attributes['type'] ?? null) === 'importmap'           => 3,
+			($attributes['type'] ?? null) === 'application/json'    => 6,
+			! isset($attributes['src'])                              => 8,
+			default                                                  => 7
 		};
 	}
 }

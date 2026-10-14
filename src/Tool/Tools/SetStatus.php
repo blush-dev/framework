@@ -23,6 +23,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `set_status` (D-756): the only tool that publishes, unpublishes, or
@@ -31,19 +33,21 @@ use Blush\Tool\ToolResult;
  */
 final class SetStatus extends Tool
 {
-	public function __construct(private readonly ToolEntries $entries)
-	{}
+	public function __construct(
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Publish, Unpublish, or Schedule';
+		return $this->messages->t('tool.set_status.title', 'Publish, Unpublish, or Schedule');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Changes whether an entry is live: "published" puts it on the site now, "draft" takes it off, and "scheduled" puts it on at a future "published" date. Only use it when the person asked to publish or unpublish. Needs the revision get_entry answered.';
+		return $this->messages->t('tool.set_status.description', 'Changes whether an entry is live: "published" puts it on the site now, "draft" takes it off, and "scheduled" puts it on at a future "published" date. Only use it when the person asked to publish or unpublish. Needs the revision get_entry answered.');
 	}
 
 	#[Override]
@@ -81,19 +85,19 @@ final class SetStatus extends Tool
 		$status = self::text($input, 'status');
 
 		if ($status === 'scheduled' && ! is_string($input['published'] ?? null)) {
-			throw new ToolError('Scheduling needs a future "published" date.');
+			throw new ToolError((string) $this->messages->t('tool.set_status.needs_date', 'Scheduling needs a future "published" date.'));
 		}
 
 		try {
 			$updated = $context->entries->setStatus($context->actor, $entry, $status, self::text($input, 'revision'), self::optional($input, 'published'));
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
 		return new ToolResult($this->entries->stub($updated), match ($status) {
-			'published' => sprintf('Published “%s”.', $updated->title),
-			'scheduled' => sprintf('Scheduled “%s”.', $updated->title),
-			default     => sprintf('Moved “%s” to draft.', $updated->title)
+			'published' => $this->messages->t('tool.set_status.published', 'Published “{title}”.', title: $updated->title),
+			'scheduled' => $this->messages->t('tool.set_status.scheduled', 'Scheduled “{title}”.', title: $updated->title),
+			default     => $this->messages->t('tool.set_status.draft', 'Moved “{title}” to draft.', title: $updated->title)
 		});
 	}
 }

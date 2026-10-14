@@ -23,6 +23,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `create_entry` (D-756): a new entry, always a draft, through the one
@@ -31,19 +33,21 @@ use Blush\Tool\ToolResult;
  */
 final class CreateEntry extends Tool
 {
-	public function __construct(private readonly ToolEntries $entries)
-	{}
+	public function __construct(
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Create a Draft';
+		return $this->messages->t('tool.create_entry.title', 'Create a Draft');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries\' slugs), and a Markdown body. It\'s never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site\'s editor and to preview it.';
+		return $this->messages->t('tool.create_entry.description', 'Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries\' slugs), and a Markdown body. It\'s never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site\'s editor and to preview it.');
 	}
 
 	#[Override]
@@ -83,7 +87,7 @@ final class CreateEntry extends Tool
 		$fields = Fields::from($input['fields'] ?? []);
 
 		if (array_key_exists('status', $fields)) {
-			throw new ToolError('New entries are drafts; leave "status" out, and use set_status after, when asked to publish.');
+			throw new ToolError((string) $this->messages->t('tool.create_entry.no_status', 'New entries are drafts; leave "status" out, and use set_status after, when asked to publish.'));
 		}
 
 		try {
@@ -97,9 +101,9 @@ final class CreateEntry extends Tool
 				language: self::optional($input, 'language')
 			));
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
-		return new ToolResult($this->entries->item($context, $entry), sprintf('Created the draft “%s”.', $entry->title));
+		return new ToolResult($this->entries->item($context, $entry), $this->messages->t('tool.create_entry.created', 'Created the draft “{title}”.', title: $entry->title));
 	}
 }

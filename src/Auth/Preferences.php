@@ -24,8 +24,9 @@ use Blush\Extension\ExtensionName;
  * id of the entry the account last saved, for "You Were Editing", and
  * whether it skipped the setup path. And its shortcuts (D-547): the
  * screens pinned in Home's panel, in order, by the ids the admin gives
- * them, or `null` for the admin's default. Stored with the account;
- * settings at their defaults are left out.
+ * them, or `null` for the admin's default. And its language (D-831), a
+ * locale the admin has text in, or `null` for the site's. Stored with
+ * the account; settings at their defaults are left out.
  */
 final readonly class Preferences
 {
@@ -37,8 +38,14 @@ final readonly class Preferences
 		public ?string $adminTheme = null,
 		public ?string $lastEdited = null,
 		public bool $setupSkipped = false,
-		public ?array $shortcuts = null
+		public ?array $shortcuts = null,
+		public ?string $language = null
 	) {}
+
+	/**
+	 * What a language preference looks like: a locale (`fr`, `pt_BR`).
+	 */
+	public const string LANGUAGE = '/^[a-z]{2,3}(_[A-Za-z0-9]{2,8})*$/';
 
 	/**
 	 * The most shortcuts an account keeps.
@@ -109,6 +116,16 @@ final readonly class Preferences
 	}
 
 	/**
+	 * Returns a copy with another language, or `null` for the site's
+	 * (D-831).
+	 */
+	#[NoDiscard]
+	public function withLanguage(?string $language): self
+	{
+		return clone($this, ['language' => $language]);
+	}
+
+	/**
 	 * Builds preferences from their stored array. Unknown keys and values
 	 * fall back to the defaults, so a damaged setting never locks anyone
 	 * out.
@@ -120,20 +137,22 @@ final readonly class Preferences
 		$scheme = $data['colorScheme'] ?? null;
 		$theme  = $data['adminTheme'] ?? null;
 		$edited = $data['lastEdited'] ?? null;
+		$language = $data['language'] ?? null;
 
 		return new self(
 			colorScheme: (is_string($scheme) ? ColorScheme::tryFrom($scheme) : null) ?? ColorScheme::System,
 			adminTheme: is_string($theme) && ExtensionName::isValid($theme) ? $theme : null,
 			lastEdited: is_string($edited) && $edited !== '' ? $edited : null,
 			setupSkipped: ($data['setupSkipped'] ?? false) === true,
-			shortcuts: self::isShortcuts($data['shortcuts'] ?? null) ? $data['shortcuts'] : null
+			shortcuts: self::isShortcuts($data['shortcuts'] ?? null) ? $data['shortcuts'] : null,
+			language: is_string($language) && preg_match(self::LANGUAGE, $language) === 1 ? $language : null
 		);
 	}
 
 	/**
 	 * Returns every preference by name.
 	 *
-	 * @return array{colorScheme: string, adminTheme: ?string, lastEdited: ?string, setupSkipped: bool, shortcuts: ?list<string>}
+	 * @return array{colorScheme: string, adminTheme: ?string, lastEdited: ?string, setupSkipped: bool, shortcuts: ?list<string>, language: ?string}
 	 */
 	public function toArray(): array
 	{
@@ -142,7 +161,8 @@ final readonly class Preferences
 			'adminTheme'   => $this->adminTheme,
 			'lastEdited'   => $this->lastEdited,
 			'setupSkipped' => $this->setupSkipped,
-			'shortcuts'    => $this->shortcuts
+			'shortcuts'    => $this->shortcuts,
+			'language'     => $this->language
 		];
 	}
 

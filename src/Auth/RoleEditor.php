@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Translation\Messages;
+
 /**
  * Makes and changes the roles the admin keeps (D-312), `Roles::stored()`:
  *
@@ -34,7 +36,8 @@ final readonly class RoleEditor
 	public function __construct(
 		private Roles $roles,
 		private Capabilities $capabilities,
-		private Accounts $accounts
+		private Accounts $accounts,
+		private Messages $messages
 	) {}
 
 	/**
@@ -69,10 +72,10 @@ final readonly class RoleEditor
 	public function create(string $name, string $label, string $description, array $capabilities): Roles
 	{
 		if ($this->roles->has($name)) {
-			throw new AuthException(sprintf('There\'s already a role named "%s".', $name));
+			throw new AuthException((string) $this->messages->t('auth.role_editor.name_taken', 'There\'s already a role named "{name}".', name: $name));
 		}
 
-		$role = new Role($name, self::label($label), $this->checked($capabilities, []), trim($description));
+		$role = new Role($name, $this->label($label), $this->checked($capabilities, []), trim($description));
 
 		return $this->save([...$this->roles->stored(), $role]);
 	}
@@ -92,13 +95,13 @@ final readonly class RoleEditor
 		$current = $this->editable($name);
 		$custom  = BuiltInRole::tryFrom($name) === null;
 
-		if (! $custom && (($label !== null && $label !== $current->label) || ($description !== null && $description !== $current->description))) {
-			throw new AuthException(sprintf('The %s role\'s name and description are built in; only its capabilities can change.', $current->label));
+		if (! $custom && (($label !== null && $label !== (string) $current->label) || ($description !== null && $description !== (string) $current->description))) {
+			throw new AuthException((string) $this->messages->t('auth.role_editor.built_in_fixed', 'The {role} role\'s name and description are built in; only its capabilities can change.', role: $current->label));
 		}
 
 		$role = new Role(
 			$name,
-			$label === null ? $current->label : self::label($label),
+			$label === null ? $current->label : $this->label($label),
 			$capabilities === null ? $current->capabilities : $this->checked($capabilities, $current->capabilities),
 			$description === null ? $current->description : trim($description)
 		);
@@ -120,7 +123,7 @@ final readonly class RoleEditor
 		$role = $this->editable($name);
 
 		if ($this->roles->origin($name) === RoleOrigin::BuiltIn) {
-			throw new AuthException(sprintf('The %s role is built in and hasn\'t changed, so there\'s nothing to reset.', $role->label));
+			throw new AuthException((string) $this->messages->t('auth.role_editor.nothing_to_reset', 'The {role} role is built in and hasn\'t changed, so there\'s nothing to reset.', role: $role->label));
 		}
 
 		if (BuiltInRole::tryFrom($name) === null) {
@@ -130,7 +133,7 @@ final readonly class RoleEditor
 			);
 
 			if ($holders !== []) {
-				throw new AuthException(sprintf('Accounts still hold the %s role (%s). Take it from them first.', $role->label, implode(', ', $holders)));
+				throw new AuthException((string) $this->messages->t('auth.role_editor.still_held', 'Accounts still hold the {role} role ({accounts}). Take it from them first.', role: $role->label, accounts: implode(', ', $holders)));
 			}
 		}
 
@@ -157,16 +160,16 @@ final readonly class RoleEditor
 	 */
 	private function editable(string $name): Role
 	{
-		$role   = $this->roles->get($name) ?? throw new AuthException(sprintf('There\'s no "%s" role.', $name));
+		$role   = $this->roles->get($name) ?? throw new AuthException((string) $this->messages->t('auth.role_editor.no_role', 'There\'s no "{name}" role.', name: $name));
 		$origin = $this->roles->origin($name);
 
 		return $origin?->editable($name) === true
 			? $role
-			: throw new AuthException($origin === RoleOrigin::Config
-				? sprintf('The %s role is defined in config/auth.php, so it\'s changed there.', $role->label)
-				: ($name === BuiltInRole::Member->value
-					? sprintf('The %s role never has a capability.', $role->label)
-					: sprintf('The %s role always has every capability, so it\'s never changed.', $role->label)));
+			: throw new AuthException((string) match (true) {
+				$origin === RoleOrigin::Config        => $this->messages->t('auth.role_editor.in_config', 'The {role} role is defined in {file}, so it\'s changed there.', role: $role->label, file: 'config/auth.php'),
+				$name === BuiltInRole::Member->value => $this->messages->t('auth.role_editor.member_fixed', 'The {role} role never has a capability.', role: $role->label),
+				default                              => $this->messages->t('auth.role_editor.owner_fixed', 'The {role} role always has every capability, so it\'s never changed.', role: $role->label)
+			});
 	}
 
 	/**
@@ -182,7 +185,7 @@ final readonly class RoleEditor
 	{
 		foreach ($capabilities as $capability) {
 			if (! $this->capabilities->has($capability) && ! in_array($capability, $kept, true)) {
-				throw new AuthException(sprintf('There\'s no "%s" capability.', $capability));
+				throw new AuthException((string) $this->messages->t('auth.role_editor.no_capability', 'There\'s no "{capability}" capability.', capability: $capability));
 			}
 		}
 
@@ -194,10 +197,10 @@ final readonly class RoleEditor
 	 *
 	 * @throws AuthException When it's empty.
 	 */
-	private static function label(string $label): string
+	private function label(string $label): string
 	{
 		$label = trim($label);
 
-		return $label === '' ? throw new AuthException('A role needs a name.') : $label;
+		return $label === '' ? throw new AuthException((string) $this->messages->t('auth.role_editor.label_required', 'A role needs a name.')) : $label;
 	}
 }

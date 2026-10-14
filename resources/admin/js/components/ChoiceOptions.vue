@@ -13,6 +13,7 @@ import { nextTick, ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import { keyOf } from '../type-form';
+import { t } from '../messages';
 
 export interface ChoiceOption {
 	value: string;
@@ -55,7 +56,7 @@ function moveTo(from: number, to: number): void {
 	next.splice(to, 0, option);
 	options.value = next;
 	typed.value   = new Set(next.map((_, index) => index));
-	said.value    = `Moved ${option.label || 'the option'} to ${to + 1} of ${next.length}.`;
+	said.value    = t('choice_options.moved', 'Moved {label} to {position} of {total}.', { label: option.label || t('choice_options.the_option', 'the option'), position: to + 1, total: next.length });
 }
 
 function remove(index: number): void {
@@ -63,7 +64,7 @@ function remove(index: number): void {
 
 	options.value = options.value.filter((_, at) => at !== index);
 	typed.value   = new Set([...typed.value].filter((at) => at !== index).map((at) => at > index ? at - 1 : at));
-	said.value    = `Removed ${gone?.label || 'the option'}.`;
+	said.value    = t('choice_options.removed', 'Removed {label}.', { label: gone?.label || t('choice_options.the_option', 'the option') });
 }
 
 async function add(): Promise<void> {
@@ -121,9 +122,9 @@ function dropped(): void {
 
 <template>
 	<div class="nest choice-options">
-		<p v-if="!options.length" class="nest__none">No options yet. Add the ones people can pick.</p>
+		<p v-if="!options.length" class="nest__none">{{ t('choice_options.none', 'No options yet. Add the ones people can pick.') }}</p>
 		<template v-else>
-			<div class="choice-options__head" aria-hidden="true"><span /><span>Label</span><span>Key</span><span /></div>
+			<div class="choice-options__head" aria-hidden="true"><span /><span>{{ t('choice_options.label', 'Label') }}</span><span>{{ t('choice_options.key', 'Key') }}</span><span /></div>
 			<div
 				v-for="(option, index) in options"
 				:key="index"
@@ -136,24 +137,24 @@ function dropped(): void {
 				@dragend="dragging = null; drop = null"
 			>
 				<span class="choice-options__grip" aria-hidden="true"><AdminIcon v-if="!locked" name="grip-vertical" /></span>
-				<input :id="`${idPrefix}option-${index}-label`" class="input" :value="option.label" placeholder="Label" autocomplete="off" :aria-label="`Label for option ${index + 1}`" :readonly="locked" @input="setLabel(index, ($event.target as HTMLInputElement).value)">
-				<input class="input mono" :value="option.value" placeholder="key" autocomplete="off" spellcheck="false" :aria-label="`Key for option ${index + 1}`" :aria-invalid="shared(index) ? 'true' : undefined" :readonly="locked" @change="setKey(index, ($event.target as HTMLInputElement).value)">
-				<MenuButton v-if="!locked" button-class="button button--ghost button--small button--icon" :label="`Actions for the option ${option.label || index + 1}`" floating>
+				<input :id="`${idPrefix}option-${index}-label`" class="input" :value="option.label" :placeholder="t('choice_options.label', 'Label')" autocomplete="off" :aria-label="t('choice_options.label_for', 'Label for option {number}', { number: index + 1 })" :readonly="locked" @input="setLabel(index, ($event.target as HTMLInputElement).value)">
+				<input class="input mono" :value="option.value" :placeholder="t('choice_options.key_placeholder', 'key')" autocomplete="off" spellcheck="false" :aria-label="t('choice_options.key_for', 'Key for option {number}', { number: index + 1 })" :aria-invalid="shared(index) ? 'true' : undefined" :readonly="locked" @change="setKey(index, ($event.target as HTMLInputElement).value)">
+				<MenuButton v-if="!locked" button-class="button button--ghost button--small button--icon" :label="t('choice_options.actions_for', 'Actions for the option {option}', { option: option.label || index + 1 })" floating>
 					<template #button><AdminIcon name="ellipsis-vertical" /></template>
-					<button type="button" class="menu-item" :disabled="index === 0" @click="moveTo(index, index - 1)"><AdminIcon name="arrow-up" />Move up</button>
-					<button type="button" class="menu-item" :disabled="index === options.length - 1" @click="moveTo(index, index + 1)"><AdminIcon name="arrow-down" />Move down</button>
+					<button type="button" class="menu-item" :disabled="index === 0" @click="moveTo(index, index - 1)"><AdminIcon name="arrow-up" />{{ t('choice_options.move_up', 'Move up') }}</button>
+					<button type="button" class="menu-item" :disabled="index === options.length - 1" @click="moveTo(index, index + 1)"><AdminIcon name="arrow-down" />{{ t('choice_options.move_down', 'Move down') }}</button>
 					<div class="menu-divider" />
-					<button type="button" class="menu-item menu-item--danger" @click="remove(index)"><AdminIcon name="trash-2" />Remove option</button>
+					<button type="button" class="menu-item menu-item--danger" @click="remove(index)"><AdminIcon name="trash-2" />{{ t('choice_options.remove', 'Remove option') }}</button>
 				</MenuButton>
 				<span v-else />
 			</div>
 		</template>
 		<div v-if="!locked" class="nest__foot">
-			<button type="button" class="button button--ghost button--small" @click="add"><AdminIcon name="plus" />Add Option</button>
+			<button type="button" class="button button--ghost button--small" @click="add"><AdminIcon name="plus" />{{ t('choice_options.add', 'Add Option') }}</button>
 		</div>
 		<span class="visually-hidden" aria-live="polite">{{ said }}</span>
 	</div>
-	<p v-if="options.some((_, index) => shared(index))" class="field__error">Two options can't share a key.</p>
+	<p v-if="options.some((_, index) => shared(index))" class="field__error">{{ t('choice_options.shared_key', 'Two options can\'t share a key.') }}</p>
 </template>
 
 <style scoped>

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 use JsonException;
+use Blush\Translation\Messages;
 
 /**
  * Finds and reads an extension's manifest file, for every kind: JSON, as
@@ -41,11 +42,11 @@ final readonly class ManifestFile
 	 * @return array<string, mixed>
 	 * @throws ExtensionException When the manifest can't be parsed or isn't a map.
 	 */
-	public static function load(string $folder, ExtensionKind $kind): array
+	public static function load(string $folder, ExtensionKind $kind, Messages $messages = new Messages()): array
 	{
 		$file = self::find($folder, $kind);
 
-		return ComposerJson::fill($file === null ? [] : self::read($file), $folder);
+		return ComposerJson::fill($file === null ? [] : self::read($file, $messages), $folder);
 	}
 
 	/**
@@ -56,18 +57,18 @@ final readonly class ManifestFile
 	 * @return array<string, mixed>
 	 * @throws ExtensionException When it can't be parsed or isn't a map.
 	 */
-	public static function read(string $file): array
+	public static function read(string $file, Messages $messages = new Messages()): array
 	{
 		$contents = (string) file_get_contents($file);
 
 		try {
 			$data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
 		} catch (JsonException $e) {
-			throw new ExtensionException(sprintf('The manifest %s is invalid: %s', $file, $e->getMessage()), previous: $e);
+			throw new ExtensionException((string) $messages->t('extension.manifest_file.invalid', 'The manifest {file} is invalid: {error}', file: $file, error: $e->getMessage()), previous: $e);
 		}
 
 		if (! is_array($data) || ($data !== [] && array_is_list($data))) {
-			throw new ExtensionException(sprintf('The manifest %s must be a map of keys to values.', $file));
+			throw new ExtensionException((string) $messages->t('extension.manifest_file.not_map', 'The manifest {file} must be a map of keys to values.', file: $file));
 		}
 
 		/** @var array<string, mixed> Not a list, so its keys are strings. */

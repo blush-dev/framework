@@ -38,6 +38,7 @@ use Blush\Field\Fields\ReferenceField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\RegisteredFields;
 use Blush\Field\Schema;
+use Blush\Translation\Messages;
 
 /**
  * The site's resolved content types, from every source (`ContentTypeLoader`
@@ -88,6 +89,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param list<string>               $legacy    Data types still in the taxonomy form, read as a collection and its relation until they're migrated (D-591).
 	 * @param list<DefinitionClash>      $clashes   Types and relations two extensions define by one name; the first of each is kept (D-597).
 	 * @param list<string>               $namedFolders Data types that still name their folder, read in `_` and their name until they're moved (D-683).
+	 * @param Messages                   $messages  Writes why a type's fields are refused, and the help of the fields it adds.
 	 */
 	public function __construct(
 		private readonly array $types,
@@ -99,7 +101,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 		private readonly array $relationOrigins = [],
 		public readonly array $legacy = [],
 		public readonly array $clashes = [],
-		public readonly array $namedFolders = []
+		public readonly array $namedFolders = [],
+		private readonly Messages $messages = new Messages()
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -572,11 +575,21 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		// The entry's id is no field's (D-477), nor are its links' ids (D-589).
 		if ($schema->field(EntryFields::ID) !== null) {
-			throw new InvalidContentType(sprintf('Content type "%s" has a field (or alias) named "%s", which is reserved for the entry\'s id; rename it.', $name, EntryFields::ID));
+			throw new InvalidContentType((string) $this->messages->t(
+				'content.content_types.id_field',
+				'Content type "{name}" has a field (or alias) named "{field}", which is reserved for the entry\'s id; rename it.',
+				name: $name,
+				field: EntryFields::ID
+			));
 		}
 
 		if ($schema->field(Refs::FIELD) !== null) {
-			throw new InvalidContentType(sprintf('Content type "%s" has a field (or alias) named "%s", which is reserved for the ids of the entry\'s links; rename it.', $name, Refs::FIELD));
+			throw new InvalidContentType((string) $this->messages->t(
+				'content.content_types.refs_field',
+				'Content type "{name}" has a field (or alias) named "{field}", which is reserved for the ids of the entry\'s links; rename it.',
+				name: $name,
+				field: Refs::FIELD
+			));
 		}
 
 		return $this->schemas[$name] = $schema;
@@ -615,23 +628,23 @@ final class ContentTypes implements IteratorAggregate, Countable
 				array_filter($this->relations, static fn (Relation $relation): bool => ! $relation->kind->isWithinType() && $relation->isFrom($name))
 			));
 			$avatar   = $type instanceof Profiles ? [
-				new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.'),
-				new BoolField('linkable')->described('false locks the profile against being linked to an account (D-605).')
+				new MediaField('avatar')->described($this->messages->t('content.content_types.avatar_help', 'A portrait, shown beside the name; without one, initials stand in.')),
+				new BoolField('linkable')->described($this->messages->t('content.content_types.linkable_help', 'false locks the profile against being linked to an account (D-605).'))
 			] : [];
-			$parent   = $type instanceof Collection ? $type->parentField() : null;
+			$parent   = $type instanceof Collection ? $type->parentField($this->messages) : null;
 			$position = $type instanceof Tree || ($type instanceof Collection && $type->isPositioned())
-				? [new NumberField(Position::FIELD, integer: true)->described(sprintf('Its place among its sibling %s, lowest first; those without one follow, by title.', $type->labels->items))]
+				? [new NumberField(Position::FIELD, integer: true)->described($this->messages->t('content.content_types.position_help', 'Its place among its sibling {items}, lowest first; those without one follow, by title.', items: $type->labels->items))]
 				: [];
 
 			return new Schema([
-				...array_values(EntryFields::schema()->fields),
+				...array_values(EntryFields::schema($this->messages)->fields),
 				...$terms,
 				...$avatar,
 				...($parent === null ? [] : [$parent]),
 				...$position
 			])->merge($type->schema);
 		} catch (InvalidSchema $e) {
-			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $this->messages->t('content.content_types.clashing_fields', 'Content type "{name}" has clashing fields: {reason}', name: $name, reason: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -663,14 +676,14 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, FieldFactory $fields): self
+	public static function fromArray(array $data, FieldFactory $fields, Messages $messages): self
 	{
 		$types   = [];
 		$origins = [];
 
 		foreach (is_array($data['types'] ?? null) ? $data['types'] : [] as $definition) {
 			if (is_array($definition)) {
-				$type               = ContentType::fromArray($definition, $fields);
+				$type               = ContentType::fromArray($definition, $fields, $messages);
 				$types[$type->name] = $type;
 			}
 		}
@@ -687,7 +700,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 			$sets = FieldSets::fromArray(
 				is_array($data['sets'] ?? null) ? $data['sets'] : [],
 				$fields,
-				RegisteredFields::fromArray(is_array($data['fields'] ?? null) ? $data['fields'] : [], $fields, iterator_to_array(new EntryFields()->fields(), false))
+				RegisteredFields::fromArray(is_array($data['fields'] ?? null) ? $data['fields'] : [], $fields, iterator_to_array(new EntryFields($messages)->fields(), false))
 			);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
@@ -700,7 +713,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 		try {
 			foreach (is_array($data['relations'] ?? null) ? $data['relations'] : [] as $definition) {
 				if (is_array($definition)) {
-					$relation                    = Relation::fromArray($definition);
+					$relation                    = Relation::fromArray($definition, $messages);
 					$relations[$relation->name] = $relation;
 				}
 			}
@@ -720,7 +733,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		$named = array_values(array_filter(is_array($data['namedFolders'] ?? null) ? $data['namedFolders'] : [], is_string(...)));
 
-		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy, $clashes, $named);
+		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy, $clashes, $named, $messages);
 	}
 
 	/**

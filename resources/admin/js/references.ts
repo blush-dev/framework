@@ -4,6 +4,7 @@
  */
 
 import { request } from './api';
+import { locale, t } from './messages';
 
 export interface ReferenceItem {
 	slug: string;
@@ -100,7 +101,7 @@ export function ranked<T extends Pick<ReferenceItem, 'title' | 'slug'>>(items: r
 	return items
 		.map((item) => ({ item, rank: matchRank(item, query) }))
 		.filter((found): found is { item: T; rank: number } => found.rank !== null)
-		.sort((a, b) => a.rank - b.rank || a.item.title.localeCompare(b.item.title, undefined, { numeric: true, sensitivity: 'base' }))
+		.sort((a, b) => a.rank - b.rank || a.item.title.localeCompare(b.item.title, locale(), { numeric: true, sensitivity: 'base' }))
 		.map((found) => found.item);
 }
 
@@ -133,7 +134,7 @@ export function marked(title: string, query: string): [string, string, string] {
  * shown, never a scrollbar.
  */
 export function moreLine(shown: number, total: number): string {
-	return total > shown ? `${shown.toLocaleString()} of ${total.toLocaleString()} matches. Keep typing to narrow.` : `${total.toLocaleString()} ${total === 1 ? 'match' : 'matches'}.`;
+	return total > shown ? t('references.capped', '{shown} of {total} matches. Keep typing to narrow.', { shown, total }) : t('references.count', '{count, plural, one {# match} other {# matches}}.', { count: total });
 }
 
 /**

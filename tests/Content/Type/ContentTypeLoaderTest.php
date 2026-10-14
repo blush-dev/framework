@@ -38,6 +38,7 @@ use Blush\Tests\Fixtures\Content\MoreRecipeTypes;
 use Blush\Tests\Fixtures\Content\RecipeProvider;
 use Blush\Tests\Fixtures\Content\RecipeRelations;
 use Blush\Tests\Fixtures\Content\RecipeTypes;
+use Blush\Translation\Messages;
 
 #[CoversClass(ContentTypeLoader::class)]
 #[CoversClass(ContentTypes::class)]
@@ -169,7 +170,7 @@ final class ContentTypeLoaderTest extends TestCase
 			new DefinitionClash('type', 'recipe', RecipeTypes::class, MoreRecipeTypes::class),
 			new DefinitionClash('relation', 'ingredient', RecipeRelations::class, MoreRecipeRelations::class)
 		], $types->clashes);
-		$this->assertEquals($types->clashes, ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class))->clashes, 'Kept in the compiled types.');
+		$this->assertEquals($types->clashes, ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class), $application->container()->make(Messages::class))->clashes, 'Kept in the compiled types.');
 	}
 
 	public function testDisablesBuiltInTypes(): void
@@ -366,7 +367,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$application = $this->scratchApplication();
 		$types       = $this->types($application);
-		$rebuilt     = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class));
+		$rebuilt     = ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class), $application->container()->make(Messages::class));
 
 		$this->assertEquals($types->all(), $rebuilt->all());
 		$this->assertSame(TypeOrigin::BuiltIn, $rebuilt->origin('page'));
@@ -380,7 +381,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->writeTemporaryFile('user/data/types/movie.json', '{"description": "Films."}');
 
 		$application = $this->scratchApplication();
-		$rebuilt     = ContentTypes::fromArray($this->types($application)->toArray(), $application->container()->make(FieldFactory::class));
+		$rebuilt     = ContentTypes::fromArray($this->types($application)->toArray(), $application->container()->make(FieldFactory::class), $application->container()->make(Messages::class));
 
 		$this->assertTrue($rebuilt->isOverridden('movie'));
 		$this->assertSame('Films.', $rebuilt->get('movie')->description);

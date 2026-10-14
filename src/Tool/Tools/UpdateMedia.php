@@ -25,6 +25,8 @@ use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `update_media` (D-756): a file's alt text, caption, or title, by whose
@@ -32,19 +34,21 @@ use Blush\Support\Uuid;
  */
 final class UpdateMedia extends Tool
 {
-	public function __construct(private readonly MediaResource $resource)
-	{}
+	public function __construct(
+		private readonly MediaResource $resource,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Update a Media File';
+		return $this->messages->t('tool.update_media.title', 'Update a Media File');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Changes a media file\'s alt text, caption, or title, by its id. Alt text describes an image for someone who can\'t see it; keep it to a sentence. An empty value clears one.';
+		return $this->messages->t('tool.update_media.description', 'Changes a media file\'s alt text, caption, or title, by its id. Alt text describes an image for someone who can\'t see it; keep it to a sentence. An empty value clears one.');
 	}
 
 	#[Override]
@@ -93,11 +97,11 @@ final class UpdateMedia extends Tool
 		try {
 			$record = Uuid::isValid($id) ? $this->resource->find($id) : null;
 		} catch (MediaException $error) {
-			throw new ToolError(sprintf('The media library can\'t be read: %s', $error->getMessage()));
+			throw new ToolError((string) $this->messages->t('tool.update_media.unreadable', 'The media library can\'t be read: {problem}', problem: $error->getMessage()));
 		}
 
 		if ($record === null) {
-			throw new ToolError(sprintf('No media file has the id "%s".', $id));
+			throw new ToolError((string) $this->messages->t('tool.update_media.not_found', 'No media file has the id "{id}".', id: $id));
 		}
 
 		$set    = [];
@@ -116,16 +120,16 @@ final class UpdateMedia extends Tool
 		}
 
 		if ($set === [] && $remove === []) {
-			throw new ToolError('Send "alt", "caption", or "title" to change.');
+			throw new ToolError((string) $this->messages->t('tool.update_media.nothing', 'Send "alt", "caption", or "title" to change.'));
 		}
 
 		try {
 			$context->media->update($context->actor, $record->key, $set, $remove);
-			return new ToolResult($this->resource->item($this->refound($id, $record)), sprintf('Updated %s.', basename($record->key)));
+			return new ToolResult($this->resource->item($this->refound($id, $record)), $this->messages->t('tool.update_media.updated', 'Updated {name}.', name: basename($record->key)));
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		} catch (MediaException $error) {
-			throw new ToolError(sprintf('The media library can\'t be read: %s', $error->getMessage()));
+			throw new ToolError((string) $this->messages->t('tool.update_media.unreadable', 'The media library can\'t be read: {problem}', problem: $error->getMessage()));
 		}
 	}
 }

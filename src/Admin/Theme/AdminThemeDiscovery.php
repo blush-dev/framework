@@ -22,6 +22,7 @@ use Blush\Extension\LocalExtension;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
+use Blush\Translation\Messages;
 
 /**
  * Finds every installed admin theme (D-827): the framework's own, in
@@ -41,8 +42,16 @@ final readonly class AdminThemeDiscovery
 	 */
 	public const string FOLDER = 'resources/admin-themes';
 
-	public function __construct(private Paths $paths)
-	{}
+	/**
+	 * @param Messages $messages What writes why a theme is broken: one
+	 *                           without a translator during boot, since
+	 *                           the reasons are kept as messages and
+	 *                           translated where they're shown (D-836).
+	 */
+	public function __construct(
+		private Paths $paths,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * Finds every theme.
@@ -74,9 +83,9 @@ final readonly class AdminThemeDiscovery
 
 		foreach ($found as [$where, $at, $source]) {
 			try {
-				$theme = self::read($where, $at, $source);
+				$theme = $this->read($where, $at, $source);
 			} catch (ExtensionException $error) {
-				$invalid[$where] = $error->getMessage();
+				$invalid[$where] = $error->reason();
 
 				continue;
 			}
@@ -84,7 +93,7 @@ final readonly class AdminThemeDiscovery
 			$framework = $themes[$theme->name] ?? null;
 
 			if ($framework !== null && $framework->source === AdminThemeSource::Framework) {
-				$invalid[$where] = sprintf('"%s" is a framework admin theme\'s name.', $theme->name);
+				$invalid[$where] = $this->messages->t('admin.admin_theme_discovery.framework_name', '"{name}" is a framework admin theme\'s name.', name: $theme->name);
 
 				continue;
 			}
@@ -114,10 +123,10 @@ final readonly class AdminThemeDiscovery
 	 *
 	 * @throws ExtensionException
 	 */
-	private static function read(string $where, string|LocalExtension $at, AdminThemeSource $source): AdminTheme
+	private function read(string $where, string|LocalExtension $at, AdminThemeSource $source): AdminTheme
 	{
 		if ($at instanceof LocalExtension) {
-			return AdminTheme::fromArray($at->path, $at->read(), $source);
+			return AdminTheme::fromArray($at->path, $at->read(), $source, messages: $this->messages);
 		}
 
 		$data = ManifestFile::load($at, ExtensionKind::AdminTheme);
@@ -126,10 +135,10 @@ final readonly class AdminThemeDiscovery
 			$data['name'] ??= $where;
 
 			if ($data['name'] !== $where) {
-				throw new ExtensionException(sprintf('The admin theme in Composer package "%s" is named "%s"; a Composer admin theme\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
+				throw new ExtensionException($this->messages->t('admin.admin_theme_discovery.composer_name', 'The admin theme in Composer package "{package}" is named "{name}"; a Composer admin theme\'s name is its package\'s.', package: $where, name: is_string($data['name']) ? $data['name'] : ''));
 			}
 		}
 
-		return AdminTheme::fromArray($at, $data, $source);
+		return AdminTheme::fromArray($at, $data, $source, messages: $this->messages);
 	}
 }

@@ -28,9 +28,10 @@ import MenuTree from '../components/MenuTree.vue';
 import { ApiError, errorMessage } from '../api';
 import { confirmAction, confirmLeave, guardLeave } from '../confirm';
 import { loadCounts } from '../counts';
-import { plural } from '../format';
 import { deleteMenu, draft, empty, flatten, loadMenu, loadMenus, saveMenu, textOf, toData, toItems, toNodes, withText, type MenuDetail, type MenuDraft, type MenuLocation, type MenuNode } from '../menus';
 import { toast } from '../toast';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const route  = useRoute();
 const router = useRouter();
@@ -78,7 +79,7 @@ const changed = computed(() => {
 	return saved.value === null || state() !== snapshot.value;
 });
 
-const button = computed(() => saved.value === null ? 'Publish' : changed.value ? 'Update' : 'Saved');
+const button = computed(() => saved.value === null ? t('menu_view.publish', 'Publish') : changed.value ? t('menu_view.update', 'Update') : t('menu_view.saved', 'Saved'));
 
 const locationNames = computed(() => (context.value?.locations ?? []).filter((location) => shownIn.value.includes(location.name)).map((location) => location.label));
 
@@ -117,7 +118,7 @@ async function load(menu: string): Promise<void> {
 			problems.value = [];
 			loaded.value   = fresh.name;
 		} catch (caught) {
-			error.value = errorMessage(caught, 'The menu couldn\'t be loaded.');
+			error.value = errorMessage(caught, t('menu_view.errors.load', 'The menu couldn\'t be loaded.'));
 		}
 
 		return;
@@ -127,7 +128,7 @@ async function load(menu: string): Promise<void> {
 		fill(await loadMenu(menu));
 	} catch (caught) {
 		loaded.value = null;
-		error.value  = errorMessage(caught, 'The menu couldn\'t be loaded.');
+		error.value  = errorMessage(caught, t('menu_view.errors.load', 'The menu couldn\'t be loaded.'));
 	}
 }
 
@@ -156,7 +157,7 @@ async function save(): Promise<void> {
 	const blank = flatten(nodes.value).find((placed) => empty(placed.node, locale.value));
 
 	if (blank) {
-		toast('Give every item a label or a link first. Items marked Empty have neither.', { kind: 'warn' });
+		toast(t('menu_view.errors.blank', 'Give every item a label or a link first. Items marked Empty have neither.'), { kind: 'warn' });
 
 		return;
 	}
@@ -177,16 +178,17 @@ async function save(): Promise<void> {
 
 		const after   = new Set(shownIn.value);
 		const moved   = detail.locations.filter((location) => before.has(location.name) !== after.has(location.name)).map((location) => location.label);
-		const renamed = was !== null && was !== detail.menu.name ? `Renamed ${was} to ${detail.menu.name}` : '';
-		const extra   = [renamed, moved.length ? `${moved.join(' and ')} changed` : ''].filter((text) => text !== '');
+		const renamed = was !== null && was !== detail.menu.name ? t('menu_view.renamed', 'Renamed {from} to {to}', { from: was, to: detail.menu.name }) : '';
+		const extra   = [renamed, moved.length ? t('menu_view.locations_changed', '{locations} changed', { locations: moved.join(' and ') }) : ''].filter((text) => text !== '');
+		const head    = publishing ? t('menu_view.published', 'Published {title}', { title: title.value }) : t('menu_view.updated', 'Updated {title}', { title: title.value });
 
-		toast(`${publishing ? 'Published' : 'Updated'} ${title.value}${extra.length ? `. ${extra.join('. ')}.` : ''}`);
+		toast(extra.length ? t('menu_view.saved_and', '{head}. {extra}.', { head, extra: extra.join('. ') }) : head);
 
 		if (route.params.name !== detail.menu.name) {
 			await router.replace({ name: 'menu', params: { name: detail.menu.name } });
 		}
 	} catch (caught) {
-		const problem = caught instanceof ApiError ? caught.message : 'The menu couldn\'t be saved.';
+		const problem = caught instanceof ApiError ? caught.message : t('menu_view.errors.save', 'The menu couldn\'t be saved.');
 
 		toast(problem, { kind: 'warn' });
 	} finally {
@@ -206,13 +208,13 @@ async function remove(): Promise<void> {
 	const menu    = saved.value;
 	const showing = (context.value?.locations ?? []).filter((location) => location.menu === menu);
 	const ok      = await confirmAction({
-		title: `Delete ${title.value}?`,
+		title: t('menu_view.delete_title', 'Delete {title}?', { title: title.value }),
 		body: [
-			showing.length ? 'The locations showing it go back to the theme\'s default, or show nothing.' : 'It isn\'t in any location.',
-			`An entry that shows it with **::menu{name=${menu}}** shows nothing there.`
+			showing.length ? t('menu_view.delete_locations', 'The locations showing it go back to the theme\'s default, or show nothing.') : t('menu_view.delete_no_location', 'It isn\'t in any location.'),
+			t('menu_view.delete_entries', 'An entry that shows it with **{snippet}** shows nothing there.', { snippet: `::menu{name=${menu}}` })
 		],
-		items: showing.map((location) => ({ title: location.label, meta: 'Location' })),
-		confirm: `Delete ${title.value}`,
+		items: showing.map((location) => ({ title: location.label, meta: t('menu_view.location', 'Location') })),
+		confirm: t('menu_view.delete', 'Delete {title}', { title: title.value }),
 		danger: true
 	});
 
@@ -227,7 +229,7 @@ async function remove(): Promise<void> {
 		leaving = true;
 		void loadCounts();
 		await router.push({ name: 'menus' });
-		toast(`Deleted ${was}`, {
+		toast(t('menu_view.deleted', 'Deleted {title}', { title: was }), {
 			undo: async () => {
 				await saveMenu({ was: null, name: answer.deleted.name, label: answer.deleted.label, items: answer.deleted.items, locations: answer.locations });
 				void loadCounts();
@@ -235,16 +237,16 @@ async function remove(): Promise<void> {
 			}
 		});
 	} catch (caught) {
-		toast(errorMessage(caught, `${title.value} couldn't be deleted.`), { kind: 'warn' });
+		toast(errorMessage(caught, t('menu_view.errors.delete', '{title} couldn\'t be deleted.', { title: title.value })), { kind: 'warn' });
 	}
 }
 
 guardLeave(() => !leaving && editable.value && loaded.value !== null && changed.value, async () => {
 	if (saved.value !== null) {
-		return confirmLeave('The items, settings, and locations you changed haven\'t been saved.');
+		return confirmLeave(t('menu_view.leave_unsaved', 'The items, settings, and locations you changed haven\'t been saved.'));
 	}
 
-	const ok = await confirmAction({ title: `Leave Without Publishing ${title.value}?`, body: 'It hasn\'t been published yet. Leaving discards it.', confirm: 'Discard Menu', cancel: 'Keep Editing', danger: true });
+	const ok = await confirmAction({ title: t('menu_view.leave_title', 'Leave Without Publishing {title}?', { title: title.value }), body: t('menu_view.leave_body', 'It hasn\'t been published yet. Leaving discards it.'), confirm: t('menu_view.discard_menu', 'Discard Menu'), cancel: t('menu_view.keep_editing', 'Keep Editing'), danger: true });
 
 	// A copy made from here is a draft of its own, and stays.
 	if (ok && draft.value === ownDraft) {
@@ -257,29 +259,29 @@ guardLeave(() => !leaving && editable.value && loaded.value !== null && changed.
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'menus' }"><AdminIcon name="chevron-left" />All menus</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'menus' }"><AdminIcon name="chevron-left" />{{ t('menu_view.all_menus', 'All menus') }}</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ loaded ? title : 'Menu' }}</h1>
+			<h1 tabindex="-1">{{ loaded ? title : t('menu_view.menu', 'Menu') }}</h1>
 			<div v-if="loaded" class="page-facts">
 				<span class="page-facts__item"><AdminIcon name="menu" /><span class="mono">{{ name }}</span></span>
 				<span class="page-facts__divider" aria-hidden="true" />
-				<span class="page-facts__item">{{ plural(count, 'item') }}</span>
+				<span class="page-facts__item">{{ t('menu_view.items', '{count, plural, one {# item} other {# items} }', { count }) }}</span>
 				<span class="page-facts__divider" aria-hidden="true" />
-				<span class="page-facts__item"><AdminIcon name="map-pin" />{{ locationNames.length ? locationNames.join(', ') : 'No locations' }}</span>
+				<span class="page-facts__item"><AdminIcon name="map-pin" />{{ locationNames.length ? locationNames.join(', ') : t('menu_view.no_locations', 'No locations') }}</span>
 				<template v-if="saved === null">
 					<span class="page-facts__divider" aria-hidden="true" />
-					<span class="pill pill--warn">Not Published</span>
+					<span class="pill pill--warn">{{ t('menu_view.not_published', 'Not Published') }}</span>
 				</template>
 			</div>
 		</div>
 		<div v-if="loaded" class="page-header__actions">
-			<button type="button" class="button" :disabled="!editable" aria-haspopup="dialog" @click="settings = true"><AdminIcon name="settings" />Settings</button>
-			<button type="button" class="button button--primary" :disabled="!changed || saving || !editable" @click="save">{{ saving ? 'Saving…' : button }}</button>
-			<MenuButton button-class="button button--icon" label="More actions" align="end">
+			<button type="button" class="button" :disabled="!editable" aria-haspopup="dialog" @click="settings = true"><AdminIcon name="settings" />{{ t('menu_view.settings', 'Settings') }}</button>
+			<button type="button" class="button button--primary" :disabled="!changed || saving || !editable" @click="save">{{ saving ? t('menu_view.saving', 'Saving…') : button }}</button>
+			<MenuButton button-class="button button--icon" :label="t('menu_view.more_actions', 'More actions')" align="end">
 				<template #button><AdminIcon name="ellipsis-vertical" /></template>
-				<button type="button" class="menu-item" @click="copying = true"><AdminIcon name="copy" />Duplicate</button>
+				<button type="button" class="menu-item" @click="copying = true"><AdminIcon name="copy" />{{ t('menu_view.duplicate', 'Duplicate') }}</button>
 				<div class="menu-divider" />
-				<button type="button" class="menu-item menu-item--danger" @click="remove"><AdminIcon name="trash-2" />{{ saved === null ? 'Discard' : 'Delete' }}</button>
+				<button type="button" class="menu-item menu-item--danger" @click="remove"><AdminIcon name="trash-2" />{{ saved === null ? t('menu_view.discard', 'Discard') : t('common.delete', 'Delete') }}</button>
 			</MenuButton>
 		</div>
 	</header>
@@ -290,7 +292,7 @@ guardLeave(() => !leaving && editable.value && loaded.value !== null && changed.
 		<div v-if="!editable" class="notice notice--error" role="alert">
 			<AdminIcon name="triangle-alert" />
 			<div class="notice__text">
-				<p><strong>This menu can't be edited here until it's fixed.</strong> Fix it in <code>{{ where }}</code>, then reload.</p>
+				<p><strong>{{ t('menu_view.not_editable', 'This menu can\'t be edited here until it\'s fixed.') }}</strong> <MessageText :text="t('menu_view.fix_in', 'Fix it in {file}, then reload.')"><template #file><code>{{ where }}</code></template></MessageText></p>
 				<ul>
 					<li v-for="(problem, index) in problems" :key="index">{{ problem }}</li>
 				</ul>

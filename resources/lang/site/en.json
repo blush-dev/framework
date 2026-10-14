@@ -1,0 +1,16 @@
+{
+	"@@locale": "en",
+	"@@domain": "core",
+	"@@catalog": "site",
+	"player": {
+		"play": "Play",
+		"captions": "Captions",
+		"exit_fullscreen": "Exit fullscreen",
+		"fullscreen": "Fullscreen",
+		"seek": "Seek",
+		"pause": "Pause",
+		"volume": "Volume",
+		"unmute": "Unmute",
+		"mute": "Mute"
+	}
+}

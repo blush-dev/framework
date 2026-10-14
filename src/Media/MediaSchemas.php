@@ -22,6 +22,7 @@ use Blush\Field\Fields\MarkdownField;
 use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
+use Blush\Translation\Messages;
 
 /**
  * The metadata fields each kind of media file has (D-238, D-287, D-341),
@@ -38,8 +39,10 @@ final class MediaSchemas
 	 */
 	private array $schemas = [];
 
-	public function __construct(private readonly FieldSets $sets)
-	{}
+	public function __construct(
+		private readonly FieldSets $sets,
+		private readonly Messages $messages
+	) {}
 
 	/**
 	 * Returns a kind's built-in fields: `title` first, so every kind's form
@@ -47,16 +50,16 @@ final class MediaSchemas
 	 * `caption`, `credit`, and the description (`content`, a record's
 	 * content, D-674), which every kind has.
 	 */
-	public static function builtIn(MediaKind $kind): Schema
+	public static function builtIn(MediaKind $kind, Messages $messages): Schema
 	{
 		$own = $kind === MediaKind::Image
-			? [new TextField('alt')->labeled('Alt text')->described('What the image shows, for anyone who can\'t see it.')]
+			? [new TextField('alt')->labeled($messages->t('media.media_schemas.alt', 'Alt text'))->described($messages->t('media.media_schemas.alt_description', 'What the image shows, for anyone who can\'t see it.'))]
 			: [];
 
 		return new Schema([
-			new TextField('title')->described('What the library calls it, in place of its file name.'),
+			new TextField('title')->described($messages->t('media.media_schemas.title_description', 'What the library calls it, in place of its file name.')),
 			...$own,
-			...self::shared()
+			...self::shared($messages)
 		]);
 	}
 
@@ -65,12 +68,12 @@ final class MediaSchemas
 	 * editor schema (`media.schema.json`), since a metadata file doesn't
 	 * say its kind.
 	 */
-	public static function allBuiltIn(): Schema
+	public static function allBuiltIn(Messages $messages): Schema
 	{
 		$fields = [];
 
 		foreach (MediaKind::cases() as $kind) {
-			foreach (self::builtIn($kind)->fields as $name => $field) {
+			foreach (self::builtIn($kind, $messages)->fields as $name => $field) {
 				$fields[$name] ??= $field;
 			}
 		}
@@ -90,14 +93,19 @@ final class MediaSchemas
 		}
 
 		try {
-			$schema = $this->sets->schemaFor(new MediaKindTarget($kind));
+			$schema = $this->sets->schemaFor(new MediaKindTarget($kind, $this->messages));
 		} catch (InvalidSchema $e) {
 			throw new InvalidConfig($e->getMessage(), previous: $e);
 		}
 
-		foreach ([MediaMetadata::ID => 'id', MediaMetadata::OWNER => 'uploader', MediaMetadata::UPLOADED => 'upload date', MediaMetadata::RENDITIONS => 'renditions', MediaMetadata::ARTWORK => 'artwork'] as $key => $what) {
+		foreach ([MediaMetadata::ID, MediaMetadata::OWNER, MediaMetadata::UPLOADED, MediaMetadata::RENDITIONS, MediaMetadata::ARTWORK] as $key) {
 			if ($schema->field($key) !== null) {
-				throw new InvalidConfig(sprintf('A field set for %s media has a field (or alias) named "%s", which is reserved for the file\'s %s; rename it.', $kind->value, $key, $what));
+				throw new InvalidConfig((string) $this->messages->t(
+					'media.media_schemas.reserved',
+					'A field set for {kind} media has a field (or alias) named "{field}", which is reserved for the file\'s {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.',
+					kind: $kind->value,
+					field: $key
+				));
 			}
 		}
 
@@ -155,12 +163,12 @@ final class MediaSchemas
 	 *
 	 * @return list<Field>
 	 */
-	private static function shared(): array
+	private static function shared(Messages $messages): array
 	{
 		return [
-			new TextField('caption')->described('Shown with the file where it\'s used, such as under an image.'),
-			new TextField('credit')->described('Who made it, or where it\'s from.'),
-			new MarkdownField(MediaMetadata::CONTENT)->labeled('Description')->described('A longer description, for the library.')
+			new TextField('caption')->described($messages->t('media.media_schemas.caption_description', 'Shown with the file where it\'s used, such as under an image.')),
+			new TextField('credit')->described($messages->t('media.media_schemas.credit_description', 'Who made it, or where it\'s from.')),
+			new MarkdownField(MediaMetadata::CONTENT)->labeled($messages->t('media.media_schemas.description', 'Description'))->described($messages->t('media.media_schemas.description_description', 'A longer description, for the library.'))
 		];
 	}
 }

@@ -26,6 +26,8 @@ use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
 use Blush\Job\JobStore;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Moves the content version on when a scheduled entry's time has come
@@ -51,16 +53,17 @@ final class GoLiveJob extends Job
 		private readonly Entries $content,
 		private readonly JobStore $store,
 		private readonly Dispatcher $events,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Put scheduled entries live';
+		return $this->messages->t('job.go_live_job.label', 'Put scheduled entries live');
 	}
 
 	/**
@@ -83,7 +86,7 @@ final class GoLiveJob extends Job
 		$seen = is_array($state['scheduled'] ?? null) ? array_filter($state['scheduled'], is_string(...)) : null;
 
 		if ($seen === null) {
-			return JobResult::done(sprintf('The content version is %s.', $version));
+			return JobResult::done($this->messages->t('job.go_live_job.version', 'The content version is {version}.', version: $version));
 		}
 
 		$live = array_values(array_filter(
@@ -102,11 +105,9 @@ final class GoLiveJob extends Job
 			));
 		}
 
-		return JobResult::done(sprintf(
-			'The content version is %s.%s',
-			$version,
-			$live === [] ? '' : sprintf(' %d %s went live.', count($live), count($live) === 1 ? 'entry' : 'entries')
-		));
+		return JobResult::done($live === []
+			? $this->messages->t('job.go_live_job.version', 'The content version is {version}.', version: $version)
+			: $this->messages->t('job.go_live_job.went_live', 'The content version is {version}. {count, plural, one {# entry} other {# entries}} went live.', version: $version, count: count($live)));
 	}
 
 	/**

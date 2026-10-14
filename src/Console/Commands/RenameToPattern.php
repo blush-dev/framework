@@ -24,6 +24,7 @@ use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Framework;
+use Blush\Translation\Text;
 
 /**
  * Lists the entries of each type named by another pattern than its
@@ -75,7 +76,7 @@ final readonly class RenameToPattern
 
 		$output->status([
 			...array_map(static fn (FileNameRename $rename): StatusLine => new StatusLine(Outcome::Warning, 'rename', "{$rename->path} → {$rename->to}"), $renames),
-			...array_map(static fn (string $path, string $why): StatusLine => new StatusLine(Outcome::Notice, 'skipped', "{$path} keeps its name: {$why}."), array_keys($skipped), array_values($skipped))
+			...array_map(static fn (string $path, string|Text $why): StatusLine => new StatusLine(Outcome::Notice, 'skipped', "{$path} keeps its name: {$why}."), array_keys($skipped), array_values($skipped))
 		]);
 
 		if ($renames === []) {

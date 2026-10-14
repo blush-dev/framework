@@ -45,20 +45,11 @@ use Blush\Support\BemClass;
  */
 final class Playlist extends Block
 {
-	use PlayerLabels;
-
 	/**
 	 * The BEM block its rows and list share with `audio` (D-708), beside
 	 * its own `block-playlist`.
 	 */
 	private const string SHARED = 'playlist';
-
-	/**
-	 * The player's labels (`PlayerLabels`).
-	 *
-	 * @var list<string>
-	 */
-	private const array LABELS = ['play', 'pause', 'seek', 'mute', 'unmute', 'volume'];
 
 	/**
 	 * @inheritDoc

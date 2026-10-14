@@ -17,6 +17,7 @@ use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldTarget;
 use Blush\Field\Schema;
+use Blush\Translation\Messages;
 
 /**
  * A kind of media file as a place field sets attach to (D-341):
@@ -31,8 +32,10 @@ final readonly class MediaKindTarget implements FieldTarget
 	 */
 	public const string KIND = 'media';
 
-	public function __construct(private MediaKind $kind)
-	{}
+	public function __construct(
+		private MediaKind $kind,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Returns the target key for a kind of file.
@@ -57,7 +60,7 @@ final readonly class MediaKindTarget implements FieldTarget
 	#[Override]
 	public function label(): string
 	{
-		return $this->kind->label();
+		return (string) $this->kind->label($this->messages);
 	}
 
 	/**
@@ -78,6 +81,6 @@ final readonly class MediaKindTarget implements FieldTarget
 	#[Override]
 	public function schema(): Schema
 	{
-		return MediaSchemas::builtIn($this->kind);
+		return MediaSchemas::builtIn($this->kind, $this->messages);
 	}
 }

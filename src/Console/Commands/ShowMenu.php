@@ -57,10 +57,11 @@ final readonly class ShowMenu
 			$menu     = $this->menus->forLocation($chain, $location, $locale);
 			$menuName = $this->menus->menuName($chain, $location);
 			$record   = $menuName === null ? null : $this->menus->menus()[$menuName] ?? null;
-			$subject  = $menuName === null ? "location {$location} (the theme's default)" : "menu {$menuName}";
+			$subject  = $menuName === null ? $this->menus->locationSubject($location, default: true) : $this->menus->menuSubject($menuName);
+			$own      = $this->menus->locationSubject($location);
 			$problems = array_filter(
 				$this->menus->check($chain),
-				static fn (Violation $problem): bool => $problem->field === $subject || $problem->field === "location {$location}"
+				static fn (Violation $problem): bool => $problem->field === $subject || $problem->field === $own
 			);
 		} catch (ThemeException | MenuException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
@@ -79,7 +80,7 @@ final readonly class ShowMenu
 		}
 
 		foreach ($problems as $problem) {
-			$output->warning($problem->message);
+			$output->warning((string) $problem->message);
 		}
 
 		return $menu === null ? ExitCode::Failure : ExitCode::Success;

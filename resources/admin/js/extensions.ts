@@ -14,6 +14,7 @@ import { loadCounts } from './counts';
 import type { IconName } from './icons';
 import { useQueryState } from './query';
 import { toast } from './toast';
+import { t } from './messages';
 
 export type ExtensionKind = ExtensionDependent['kind'];
 
@@ -67,7 +68,7 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 			answer.value = await request<T>('GET', `/${path}`);
 			error.value  = '';
 		} catch (caught) {
-			error.value = errorMessage(caught, `The ${path.replace('-', ' ')} couldn't be loaded.`);
+			error.value = errorMessage(caught, loadFailure(kind));
 		}
 	}
 
@@ -76,7 +77,7 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 	// happened, naming the other extensions, of any kind, that started or
 	// stopped with it (D-431); resolves whether it was saved.
 	async function turn(extension: Switchable, on: boolean, options: SwitchOptions = {}): Promise<boolean> {
-		if (on && extension.stops.length > 0 && !await confirmAction({ title: `Turn on ${extension.label}?`, body: stopsParagraph(extension.stops), confirm: `Turn On ${extension.label}` })) {
+		if (on && extension.stops.length > 0 && !await confirmAction({ title: t('extensions.turn_on_title', 'Turn on {label}?', { label: extension.label }), body: stopsParagraph(extension.stops), confirm: t('extensions.turn_on', 'Turn On {label}', { label: extension.label }) })) {
 			return false;
 		}
 
@@ -85,18 +86,18 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 		try {
 			const saved  = await request<{ started: string[]; stopped: string[]; refresh: boolean }>('PUT', `/${path}/${extension.name}`, { enabled: on });
 			const others = on ? saved.started : saved.stopped;
-			const also   = others.length === 0 ? '' : `, and ${list(others)} ${on ? 'started' : 'stopped'} with it`;
+			const also   = others.length === 0 ? '' : (on ? t('extensions.also_started', ', and {names} started with it', { names: list(others) }) : t('extensions.also_stopped', ', and {names} stopped with it', { names: list(others) }));
 
 			await refreshIfAsked(saved);
 			await options.then?.();
-			toast(options.message?.(also) ?? `Turned ${on ? 'on' : 'off'} ${extension.label}${also}`, {
+			toast(options.message?.(also) ?? (on ? t('extensions.turned_on', 'Turned on {label}{also}', { label: extension.label, also }) : t('extensions.turned_off', 'Turned off {label}{also}', { label: extension.label, also })), {
 				kind: on ? 'good' : 'danger',
 				undo: others.length === 0 ? options.undo : undefined
 			});
 
 			return true;
 		} catch (caught) {
-			toast(errorMessage(caught, `${extension.label} couldn't be turned ${on ? 'on' : 'off'}`), { kind: 'warn' });
+			toast(errorMessage(caught, on ? t('extensions.errors.turn_on', '{label} couldn\'t be turned on', { label: extension.label }) : t('extensions.errors.turn_off', '{label} couldn\'t be turned off', { label: extension.label })), { kind: 'warn' });
 
 			return false;
 		} finally {
@@ -108,20 +109,20 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 	// {kind}/{vendor}/{name}`), with what else deleting it does after the
 	// first paragraph; resolves whether it was deleted.
 	async function deleteFolder(label: string, folder: string, more: string[] = []): Promise<boolean> {
-		const body = [`The folder **${folder}** and everything in it is removed from the server. This can't be undone.`, ...more];
+		const body = [t('extensions.delete_body', 'The folder **{folder}** and everything in it is removed from the server. This can\'t be undone.', { folder }), ...more];
 
-		if (!await confirmAction({ title: `Delete ${label}?`, body, confirm: `Delete ${label}`, danger: true })) {
+		if (!await confirmAction({ title: t('extensions.delete_title', 'Delete {label}?', { label }), body, confirm: t('extensions.delete', 'Delete {label}', { label }), danger: true })) {
 			return false;
 		}
 
 		try {
 			await request('DELETE', `/${path}/${folderPath(folder)}`);
 			void loadCounts();
-			toast(`Deleted ${label}`, { kind: 'danger' });
+			toast(t('extensions.deleted', 'Deleted {label}', { label }), { kind: 'danger' });
 
 			return true;
 		} catch (caught) {
-			error.value = errorMessage(caught, `${label} couldn't be deleted.`);
+			error.value = errorMessage(caught, t('extensions.errors.delete', '{label} couldn\'t be deleted.', { label }));
 
 			return false;
 		}
@@ -141,6 +142,20 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 	}
 
 	return { answer, error, busy, load, turn, deleteFolder, restoreConfig };
+}
+
+// Why a kind's list couldn't be loaded.
+function loadFailure(kind: ExtensionKind): string {
+	switch (kind) {
+		case 'theme':
+			return t('extensions.errors.load_themes', 'The themes couldn\'t be loaded.');
+		case 'plugin':
+			return t('extensions.errors.load_plugins', 'The plugins couldn\'t be loaded.');
+		case 'icon-pack':
+			return t('extensions.errors.load_icon_packs', 'The icon packs couldn\'t be loaded.');
+		case 'admin-theme':
+			return t('extensions.errors.load_admin_themes', 'The admin themes couldn\'t be loaded.');
+	}
 }
 
 // An extension's details screen's address, by its kind:
@@ -178,7 +193,7 @@ export function requirementText(requirement: ExtensionRequirement): string {
 		case 'php':
 			return `PHP${constraint}`;
 		case 'extension':
-			return `PHP Extension: ${requirement.name.slice(4)}${constraint}`;
+			return t('extensions.php_extension', 'PHP Extension: {name}{constraint}', { name: requirement.name.slice(4), constraint });
 		case 'plugin':
 		case 'theme':
 		case 'icon-pack':
@@ -191,11 +206,15 @@ export function requirementText(requirement: ExtensionRequirement): string {
 
 // Names joined as a sentence says them: "A", "A and B", "A, B, and C".
 export function list(names: string[]): string {
-	if (names.length < 3) {
-		return names.join(' and ');
+	if (names.length < 2) {
+		return names.join('');
 	}
 
-	return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1] ?? ''}`;
+	if (names.length === 2) {
+		return t('extensions.list.two', '{first} and {second}', { first: names[0], second: names[1] });
+	}
+
+	return t('extensions.list.many', '{rest}, and {last}', { rest: names.slice(0, -1).join(', '), last: names[names.length - 1] ?? '' });
 }
 
 // What turning an extension on stops (D-440), as a confirmation's
@@ -209,7 +228,7 @@ export function stopsParagraph(stops: ExtensionDependent[]): string {
 
 	const names = list(stops.map((other) => `**${other.label}**`));
 
-	return `It also stops ${names}. An extension that conflicts with it or replaces it can't run alongside it, and neither can one that needs it.`;
+	return t('extensions.stops', 'It also stops {names}. An extension that conflicts with it or replaces it can\'t run alongside it, and neither can one that needs it.', { names });
 }
 
 

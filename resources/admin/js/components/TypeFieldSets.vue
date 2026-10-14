@@ -8,7 +8,8 @@
 
 import { RouterLink } from 'vue-router';
 import type { ContentTypeDetail } from '../api';
-import { plural } from '../format';
+import { t } from '../messages';
+import MessageText from './MessageText.vue';
 
 defineProps<{ type: ContentTypeDetail }>();
 </script>
@@ -16,17 +17,17 @@ defineProps<{ type: ContentTypeDetail }>();
 <template>
 	<section class="panel" aria-labelledby="sets-heading">
 		<header class="panel__header">
-			<h2 id="sets-heading">Field Sets</h2>
-			<p class="panel__hint">Fields added after its own</p>
+			<h2 id="sets-heading">{{ t('type_field_sets.heading', 'Field Sets') }}</h2>
+			<p class="panel__hint">{{ t('type_field_sets.hint', 'Fields added after its own') }}</p>
 		</header>
 		<div class="panel__body">
 			<ul v-if="type.sets.length" class="type-sets">
 				<li v-for="set in type.sets" :key="set.name">
 					<RouterLink :to="{ name: 'field-set', params: { name: set.name } }">{{ set.label }}</RouterLink>
-					<span class="field__help">{{ plural(set.fields, 'field') }}</span>
+					<span class="field__help">{{ t('type_field_sets.fields', '{count, plural, one {# field} other {# fields} }', { count: set.fields }) }}</span>
 				</li>
 			</ul>
-			<p v-else class="field__help">None. A set chooses its types on its screen, under <RouterLink :to="{ name: 'fields' }">Fields</RouterLink>.</p>
+			<p v-else class="field__help"><MessageText :text="t('type_field_sets.none', 'None. A set chooses its types on its screen, under {link}.')"><template #link><RouterLink :to="{ name: 'fields' }">{{ t('type_field_sets.fields_link', 'Fields') }}</RouterLink></template></MessageText></p>
 		</div>
 	</section>
 </template>

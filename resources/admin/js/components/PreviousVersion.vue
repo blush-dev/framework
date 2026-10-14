@@ -15,6 +15,8 @@ import { confirmAction } from '../confirm';
 import { KIND_PATHS } from '../extensions';
 import { can } from '../session';
 import { toast } from '../toast';
+import { t } from '../messages';
+import MessageText from './MessageText.vue';
 
 const props = defineProps<{
 	kind: InstallKind;
@@ -27,29 +29,29 @@ const emit = defineEmits<{
 	changed: [];
 }>();
 
-const kept       = computed(() => props.extension.backup?.version || 'An earlier version');
+const kept       = computed(() => props.extension.backup?.version || t('previous_version.earlier', 'An earlier version'));
 const canRollBack = computed(() => can(`extensions.${KIND_PATHS[props.kind]}.update`));
 const canDiscard = computed(() => can(`extensions.${KIND_PATHS[props.kind]}.delete`));
 
 // What rolling back changes at once, for one that runs.
 function now(to: string): string {
 	return props.kind === 'theme'
-		? `It's in use, so visitors see ${to} as soon as it's done.`
-		: (props.kind === 'plugin' ? `It's on, so the site runs ${to} as soon as it's done.` : `It's on, so its icons change as soon as it's done.`);
+		? t('previous_version.now_theme', 'It\'s in use, so visitors see {to} as soon as it\'s done.', { to })
+		: (props.kind === 'plugin' ? t('previous_version.now_plugin', 'It\'s on, so the site runs {to} as soon as it\'s done.', { to }) : t('previous_version.now_icons', 'It\'s on, so its icons change as soon as it\'s done.'));
 }
 
 async function rollBack(ask = true): Promise<void> {
 	const { label, version } = props.extension;
 	const to                 = kept.value;
-	const from               = version || 'the installed version';
+	const from               = version || t('previous_version.installed', 'the installed version');
 
 	if (ask && !await confirmAction({
-		title: `Roll Back ${label} to ${to}?`,
+		title: t('previous_version.roll_back_title', 'Roll Back {label} to {to}?', { label, to }),
 		body: [
-			`${label} ${from} is swapped for ${to}, the version kept from before it was last replaced. ${from} is kept in its place, so you can switch back.`,
+			t('previous_version.roll_back_body', '{label} {from} is swapped for {to}, the version kept from before it was last replaced. {from} is kept in its place, so you can switch back.', { label, from, to }),
 			...(props.live ? [now(to)] : [])
 		],
-		confirm: `Roll Back to ${to}`
+		confirm: t('previous_version.roll_back_to', 'Roll Back to {to}', { to })
 	})) {
 		return;
 	}
@@ -59,11 +61,11 @@ async function rollBack(ask = true): Promise<void> {
 
 		await refreshIfAsked(answer);
 		emit('changed');
-		toast(`Rolled back ${label} to ${answer.rolledBack.version || to}`, {
+		toast(t('previous_version.rolled_back', 'Rolled back {label} to {to}', { label, to: answer.rolledBack.version || to }), {
 			undo: ask ? () => void rollBack(false) : undefined
 		});
 	} catch (caught) {
-		toast(errorMessage(caught, `${label} couldn't be rolled back.`), { kind: 'warn' });
+		toast(errorMessage(caught, t('previous_version.errors.roll_back', '{label} couldn\'t be rolled back.', { label })), { kind: 'warn' });
 	}
 }
 
@@ -71,9 +73,9 @@ async function discard(): Promise<void> {
 	const { label } = props.extension;
 
 	if (!await confirmAction({
-		title: `Discard ${label} ${kept.value}?`,
-		body: `The kept folder is removed from the server, so ${label} can't be rolled back to it. This can't be undone.`,
-		confirm: `Discard ${kept.value}`,
+		title: t('previous_version.discard_title', 'Discard {label} {version}?', { label, version: kept.value }),
+		body: t('previous_version.discard_body', 'The kept folder is removed from the server, so {label} can\'t be rolled back to it. This can\'t be undone.', { label }),
+		confirm: t('previous_version.discard_version', 'Discard {version}', { version: kept.value }),
 		danger: true
 	})) {
 		return;
@@ -82,9 +84,9 @@ async function discard(): Promise<void> {
 	try {
 		await request('DELETE', `/${KIND_PATHS[props.kind]}/${props.extension.name}/backup`);
 		emit('changed');
-		toast(`Discarded ${label} ${kept.value}`, { kind: 'danger' });
+		toast(t('previous_version.discarded', 'Discarded {label} {version}', { label, version: kept.value }), { kind: 'danger' });
 	} catch (caught) {
-		toast(errorMessage(caught, `${label} ${kept.value} couldn't be discarded.`), { kind: 'warn' });
+		toast(errorMessage(caught, t('previous_version.errors.discard', '{label} {version} couldn\'t be discarded.', { label, version: kept.value })), { kind: 'warn' });
 	}
 }
 </script>
@@ -92,10 +94,10 @@ async function discard(): Promise<void> {
 <template>
 	<div v-if="extension.backup" class="previous">
 		<AdminIcon name="undo-2" />
-		<p><b>{{ kept }}</b> is kept from before {{ extension.label }} was last replaced.</p>
+		<p><MessageText :text="t('previous_version.kept', '{version} is kept from before {label} was last replaced.', { label: extension.label })"><template #version><b>{{ kept }}</b></template></MessageText></p>
 		<span class="previous__actions">
-			<button v-if="canDiscard" type="button" class="button button--ghost" @click="discard">Discard</button>
-			<button v-if="canRollBack" type="button" class="button" @click="rollBack()">Roll Back to {{ kept }}</button>
+			<button v-if="canDiscard" type="button" class="button button--ghost" @click="discard">{{ t('previous_version.discard', 'Discard') }}</button>
+			<button v-if="canRollBack" type="button" class="button" @click="rollBack()">{{ t('previous_version.roll_back_to', 'Roll Back to {to}', { to: kept }) }}</button>
 		</span>
 	</div>
 </template>

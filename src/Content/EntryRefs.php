@@ -22,6 +22,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\FiledRefs;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Finds and files the content files whose relations aren't filed in
@@ -40,7 +41,8 @@ final readonly class EntryRefs
 		private Indexer $indexer,
 		private Relations $relations,
 		private ContentTypes $types,
-		private FilesystemWriter $writer
+		private FilesystemWriter $writer,
+		private Messages $messages
 	) {}
 
 	/**
@@ -52,7 +54,7 @@ final readonly class EntryRefs
 	 */
 	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
+		$this->indexer->index(progress: new Progress($progress)->of((string) $this->messages->t('content.entry_refs.checking_index', 'Checking the content index')));
 
 		$stale = [];
 

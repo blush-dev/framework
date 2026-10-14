@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A yes-or-no value. Besides booleans, it accepts `0` and `1` and the
@@ -42,18 +44,18 @@ final class BoolField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Yes or no';
+		return $messages->t('field.bool_field.type_label', 'Yes or no');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'true or false.';
+		return $messages->t('field.bool_field.type_description', 'true or false.');
 	}
 
 	/**
@@ -72,7 +74,7 @@ final class BoolField extends Field
 			default                      => null
 		};
 
-		return $bool ?? throw $this->invalid(sprintf('must be true or false, not %s.', is_string($value) ? "\"{$value}\"" : self::describe($value)));
+		return $bool ?? throw $this->invalid($context->messages->t('field.bool_field.invalid', 'must be true or false, not {value}.', value: is_string($value) ? "\"{$value}\"" : self::describe($value, $context->messages)));
 	}
 
 	/**

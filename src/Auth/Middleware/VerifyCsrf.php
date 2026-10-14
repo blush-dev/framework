@@ -23,6 +23,8 @@ use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Refuses cross-site requests that change things (anything but `GET`,
@@ -48,7 +50,8 @@ final readonly class VerifyCsrf implements MiddlewareInterface
 
 	public function __construct(
 		private Authenticator $authenticator,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -64,14 +67,14 @@ final readonly class VerifyCsrf implements MiddlewareInterface
 		$site = $request->getHeaderLine('Sec-Fetch-Site');
 
 		if ($site !== '' && ! in_array($site, ['same-origin', 'none'], true)) {
-			return self::refuse('Cross-site requests aren\'t allowed.');
+			return self::refuse($this->crossSite());
 		}
 
 		$origin = $request->getHeaderLine('Origin');
 		$uri    = $request->getUri();
 
 		if ($origin !== '' && ! in_array(rtrim($origin, '/'), [$this->app->origin(), $uri->getScheme() . '://' . $uri->getAuthority()], true)) {
-			return self::refuse('Cross-site requests aren\'t allowed.');
+			return self::refuse($this->crossSite());
 		}
 
 		$session = $request->getAttribute(Session::class);
@@ -79,16 +82,24 @@ final readonly class VerifyCsrf implements MiddlewareInterface
 
 		// A session signed out elsewhere (D-273) has nothing to protect.
 		if ($token !== null && ! hash_equals($token, $request->getHeaderLine(self::HEADER)) && $this->authenticator->account($session) !== null) {
-			return self::refuse('The request\'s CSRF token is missing or wrong.');
+			return self::refuse($this->messages->t('auth.verify_csrf.token_wrong', 'The request\'s CSRF token is missing or wrong.'));
 		}
 
 		return $handler->handle($request);
 	}
 
 	/**
+	 * Says a cross-site request isn't allowed.
+	 */
+	private function crossSite(): Text
+	{
+		return $this->messages->t('auth.verify_csrf.cross_site', 'Cross-site requests aren\'t allowed.');
+	}
+
+	/**
 	 * Builds a refusal.
 	 */
-	private static function refuse(string $message): ResponseInterface
+	private static function refuse(Text $message): ResponseInterface
 	{
 		return Response::json(['error' => $message], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}

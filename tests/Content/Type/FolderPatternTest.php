@@ -27,6 +27,7 @@ use Blush\Field\ControlFactory;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
+use Blush\Translation\Messages;
 
 #[CoversClass(FolderPattern::class)]
 #[CoversClass(ContentType::class)]
@@ -108,6 +109,6 @@ final class FolderPatternTest extends TestCase
 		$registry = new FieldRegistry();
 		new FieldRegistrar($registry)->register();
 
-		ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'folders' => '{year}'], new FieldFactory($registry, ControlFactory::core()));
+		ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'folders' => '{year}'], new FieldFactory($registry, ControlFactory::core()), new Messages());
 	}
 }

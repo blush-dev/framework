@@ -7,6 +7,7 @@
  */
 
 import type { ContentTypeDetail, FieldDescription } from './api';
+import { t } from './messages';
 
 export type TypeKind = 'collection' | 'tree';
 
@@ -205,36 +206,36 @@ export function folderOf(name: string): string {
  * A pattern from config that isn't one of these is offered as itself.
  */
 export const FILENAMES = [
-	{ value: '', label: 'Default', hint: 'hello-world.md' },
-	{ value: '{slug}', label: 'Slug', hint: 'hello-world.md' },
-	{ value: '{date}.{slug}', label: 'Date and slug', hint: '2026-10-05.hello-world.md' },
-	{ value: '{date}-{time}.{slug}', label: 'Date, time, and slug', hint: '2026-10-05-093000.hello-world.md' }
+	{ value: '', label: t('type_form.filename_default', 'Default'), hint: 'hello-world.md' },
+	{ value: '{slug}', label: t('type_form.filename_slug', 'Slug'), hint: 'hello-world.md' },
+	{ value: '{date}.{slug}', label: t('type_form.filename_date', 'Date and slug'), hint: '2026-10-05.hello-world.md' },
+	{ value: '{date}-{time}.{slug}', label: t('type_form.filename_date_time', 'Date, time, and slug'), hint: '2026-10-05-093000.hello-world.md' }
 ];
 
 /**
  * The folder patterns offered (D-629), each below the type's folder.
  */
 export const FOLDERS = [
-	{ value: '', label: 'None', hint: 'all in one folder' },
-	{ value: '{year}', label: 'By year', hint: '2026/hello-world.md' },
-	{ value: '{year}/{month}', label: 'By year and month', hint: '2026/10/hello-world.md' },
-	{ value: '{initial}', label: 'By first letter', hint: 'h/hello-world.md' }
+	{ value: '', label: t('type_form.folders_none', 'None'), hint: t('type_form.folders_none_hint', 'all in one folder') },
+	{ value: '{year}', label: t('type_form.folders_year', 'By year'), hint: '2026/hello-world.md' },
+	{ value: '{year}/{month}', label: t('type_form.folders_year_month', 'By year and month'), hint: '2026/10/hello-world.md' },
+	{ value: '{initial}', label: t('type_form.folders_initial', 'By first letter'), hint: 'h/hello-world.md' }
 ];
 
 /**
  * A collection's orders (D-593, `TypeOrder`).
  */
 export const ORDERS = [
-	{ value: 'published', label: 'Newest published first' },
-	{ value: 'position', label: 'By position, then title' }
+	{ value: 'published', label: t('type_form.order_published', 'Newest published first') },
+	{ value: 'position', label: t('type_form.order_position', 'By position, then title') }
 ];
 
 export const DATE_ARCHIVES = [
-	{ value: 'none', label: 'None' },
-	{ value: 'year', label: 'By year' },
-	{ value: 'month', label: 'By month' },
-	{ value: 'day', label: 'By day' },
-	{ value: 'hour', label: 'By hour' },
-	{ value: 'minute', label: 'By minute' },
-	{ value: 'second', label: 'By second' }
+	{ value: 'none', label: t('type_form.date_archives_none', 'None') },
+	{ value: 'year', label: t('type_form.date_archives_year', 'By year') },
+	{ value: 'month', label: t('type_form.date_archives_month', 'By month') },
+	{ value: 'day', label: t('type_form.date_archives_day', 'By day') },
+	{ value: 'hour', label: t('type_form.date_archives_hour', 'By hour') },
+	{ value: 'minute', label: t('type_form.date_archives_minute', 'By minute') },
+	{ value: 'second', label: t('type_form.date_archives_second', 'By second') }
 ];

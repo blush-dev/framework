@@ -16,6 +16,7 @@ namespace Blush\Tool\Tools;
 use Blush\Content\Editing\EditRefused;
 use Blush\Content\Editing\Refusal;
 use Blush\Tool\ToolError;
+use Blush\Translation\Messages;
 
 /**
  * What the entry tools share: reading field values from input, and
@@ -43,17 +44,15 @@ final class Fields
 	 * Says why an edit was refused, with the field it's about and what
 	 * to do next.
 	 */
-	public static function refused(EditRefused $refused): ToolError
+	public static function refused(EditRefused $refused, Messages $messages): ToolError
 	{
-		$message = $refused->getMessage();
+		$message = $refused->field === null
+			? $refused->getMessage()
+			: (string) $messages->t('tool.fields.on_field', '{problem} (field "{field}")', problem: $refused->getMessage(), field: $refused->field);
 
-		if ($refused->field !== null) {
-			$message = sprintf('%s (field "%s")', $message, $refused->field);
-		}
-
-		return new ToolError(match ($refused->refusal) {
-			Refusal::Conflict         => "{$message} Read it again with get_entry, then make the change on what's there now.",
-			Refusal::RevisionRequired => 'Send the "revision" get_entry answered, so no one else\'s change is lost.',
+		return new ToolError((string) match ($refused->refusal) {
+			Refusal::Conflict         => $messages->t('tool.fields.conflict', '{problem} Read it again with get_entry, then make the change on what\'s there now.', problem: $message),
+			Refusal::RevisionRequired => $messages->t('tool.fields.revision_required', 'Send the "revision" get_entry answered, so no one else\'s change is lost.'),
 			default                   => $message
 		});
 	}

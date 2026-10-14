@@ -58,7 +58,9 @@ use Blush\Media\MediaSizes;
  * another check reports (an id, a term with no file, an entry in a
  * folder, an image's sizes) is left out of the files' problems: one
  * problem, one check. Its `version` changes with its shape, so a kept
- * report in an older one is checked again.
+ * report in an older one is checked again. A problem's `message` is
+ * kept as a message (`Text::toArray()`, D-836) when it was written with
+ * `t()`, and shown in its reader's language (`SiteHealth`).
  *
  * It reads every file, so it runs when asked.
  */
@@ -99,7 +101,7 @@ final readonly class ContentHealth
 	 * `strict`. `$lint` is a lint already done, a chunk at a time
 	 * (`HealthCheckJob`, D-625); without it, every file is linted now.
 	 *
-	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, typeFolders: list<array{name: string, from: string, to: string}>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string|array<string, mixed>, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, typeFolders: list<array{name: string, from: string, to: string}>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
@@ -124,7 +126,7 @@ final readonly class ContentHealth
 				'area'       => $this->isMedia((string) $path, $metadata) ? 'media' : 'content',
 				'violations' => array_map(static fn (Violation $violation): array => [
 					'field'    => $violation->field,
-					'message'  => $violation->message,
+					'message'  => SiteHealth::kept($violation->message),
 					'severity' => $violation->severity->value,
 					'kind'     => $violation->kind?->value
 				], $kept)

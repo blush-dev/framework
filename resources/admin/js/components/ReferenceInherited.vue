@@ -16,8 +16,8 @@ defineProps<{ inherited: InheritedValues }>();
 	<div class="reference__inherited">
 		<p class="reference__inherited-head">
 			<AdminIcon name="languages" />
-			<span v-if="inherited.rule === 'add'">Also shown, from {{ inherited.title }} ({{ inherited.language }})</span>
-			<span v-else>Shown from {{ inherited.title }} ({{ inherited.language }}) until this translation sets its own</span>
+			<span v-if="inherited.rule === 'add'">{{ t('reference_inherited.also_shown', 'Also shown, from {title} ({language})', { title: inherited.title, language: inherited.language }) }}</span>
+			<span v-else>{{ t('reference_inherited.shown_until', 'Shown from {title} ({language}) until this translation sets its own', { title: inherited.title, language: inherited.language }) }}</span>
 		</p>
 		<slot />
 	</div>

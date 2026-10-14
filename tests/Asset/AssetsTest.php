@@ -28,6 +28,7 @@ use Blush\Asset\AssetUrls;
 use Blush\Asset\Script;
 use Blush\Asset\Style;
 use Blush\Cache\RenderedBodies;
+use Blush\Data\DataLoader;
 use Blush\Core\Application;
 use Blush\Block\Media\Audio;
 use Blush\Block\Media\Video;
@@ -42,6 +43,7 @@ use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
+use Blush\Translation\Translator;
 use Blush\View\Events\PageRendering;
 use Blush\View\Foot;
 use Blush\View\Head;
@@ -147,6 +149,47 @@ final class AssetsTest extends TestCase
 		$this->assertSame("\t<script src=\"/foot.js\" defer></script>\n\t<script id=\"late\">go();</script>", $markup->foot->render(), 'Assets\' files are added when the page prints, before inline scripts.');
 		$this->assertSame(['acme/app', 'acme/unknown'], $markup->head->enqueued());
 		$this->assertFalse($markup->head->dequeue('acme/app')->isEnqueued('acme/app'));
+	}
+
+	/**
+	 * A script that names a catalog (D-831) has it printed before its
+	 * asset's first script, in the page's language, once, and the head
+	 * maps `blush/messages` before any script.
+	 */
+	public function testAScriptsCatalogPrintsBeforeIt(): void
+	{
+		$this->writeTemporaryFile('catalogs/lang/site/en.json', '{"@@catalog": "site", "next": "Next", "back": "Back", "@next": {"context": "A button"}}');
+		$this->writeTemporaryFile('catalogs/lang/site/fr.json', '{"next": "Suivant </script>"}');
+
+		$registry   = new AssetRegistry();
+		$translator = new Translator(new DataLoader(), 'en_US', ['core' => [$this->temporaryDirectory() . '/catalogs/lang']]);
+		$markup     = new PageMarkup('Site', origin: 'https://example.com', assets: new Assets($registry, new AssetUrls(new Themes([]), new Plugins())), translator: $translator, locale: 'fr_CA');
+
+		$registry->register(new Asset('acme/first', scripts: [new Script('/plain.js'), new Script('js/player.js', AssetUrls::CORE, ['type' => 'module'], catalog: 'site')]));
+		$registry->register(new Asset('acme/second', scripts: [new Script('js/player.js', AssetUrls::CORE, ['type' => 'module'], footer: true, catalog: 'site'), new Script('js/messages.js', AssetUrls::CORE, ['type' => 'module'], catalog: 'empty')]));
+		$markup->head->style('/style.css')->script('/theme.js');
+		$markup->enqueue('acme/first', 'acme/second');
+
+		$html = $markup->head->render();
+
+		$this->assertMatchesRegularExpression('#<script type="importmap">\{"imports":\{"blush/messages":"https://example\.com/blush/js/messages\.js\?v=[0-9a-f]{8}"\}\}</script>\n\t<link rel="stylesheet"#', $html, 'The map prints before the stylesheets and scripts.');
+		$this->assertStringContainsString(
+			"<script type=\"application/json\" data-blush-messages=\"core\" data-blush-catalog=\"site\">{\"next\":\"Suivant \\u003C/script\\u003E\"}</script>\n\t<script src=\"https://example.com/plain.js\" defer></script>",
+			$html,
+			'The catalog prints once, before its asset\'s first script, in the page\'s language, without notes or what reads as core\'s English.'
+		);
+		$this->assertSame(1, substr_count($html, 'data-blush-messages'), 'An empty catalog doesn\'t print.');
+		$this->assertStringNotContainsString('data-blush-messages', $markup->foot->render());
+	}
+
+	public function testOnlyAScriptFromAnExtensionNamesACatalog(): void
+	{
+		$this->assertSame('core', new Script('js/player.js', AssetUrls::CORE, catalog: 'site')->domain());
+		$this->assertSame('acme/gallery', Asset::fromArray('acme/gallery', ['scripts' => [['path' => 'js/gallery.js', 'catalog' => 'site']]], 'acme/gallery')->scripts[0]->domain());
+
+		$this->expectException(AssetException::class);
+
+		new Script('https://example.com/x.js', catalog: 'site');
 	}
 
 	/**
@@ -267,7 +310,9 @@ final class AssetsTest extends TestCase
 
 			$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/blush/css/player\.css\?v=[0-9a-f]{8}">#', $html, $message);
 			$this->assertMatchesRegularExpression('#<script src="http://localhost/blush/js/player\.js\?v=[0-9a-f]{8}" type="module"></script>#', $html, $message);
-			$this->assertStringContainsString('<blush-audio-player label-play="Play" label-pause="Pause" label-seek="Seek" label-mute="Mute" label-unmute="Unmute" label-volume="Volume">', $html, $message);
+			$this->assertStringContainsString('<blush-audio-player>', $html, $message);
+			$this->assertStringNotContainsString('data-blush-messages', $html, 'Core\'s English is its code\'s own text, so an English page prints none (D-834).');
+			$this->assertMatchesRegularExpression('#<script type="importmap">\{"imports":\{"blush/messages":"http://localhost/blush/js/messages\.js\?v=[0-9a-f]{8}"\}\}</script>#', $html, $message);
 		}
 
 		$this->assertStringNotContainsString('player.js', $this->html('/about'), 'Only pages that play something load the player.');

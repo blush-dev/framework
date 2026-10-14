@@ -47,6 +47,8 @@ import { useInstall } from '../install';
 import { can } from '../session';
 import { previewUrl, useThemes } from '../themes';
 import { copyText } from '../toast';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const { answer, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, fallbackMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
 
@@ -58,7 +60,7 @@ const canDelete   = can('extensions.themes.delete');
 const { installing, canInstall, afterInstall, hop, installState, next } = useInstall('theme', load, {
 	find,
 	state: (theme, name) => ({
-		words: theme?.active ? 'the active theme' : 'inactive',
+		words: theme?.active ? t('themes_view.words_active', 'the active theme') : t('themes_view.words_inactive', 'inactive'),
 		next: theme !== null && !theme.active && theme.blocked === null && canActivate,
 		live: answer.value?.chain.includes(name) ?? false
 	}),
@@ -108,25 +110,25 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Themes</h1>
-			<p class="page-header__hint">The theme visitors see. How the admin looks is yours alone, and is set on <RouterLink :to="{ name: 'profile' }">Your Account</RouterLink>.</p>
+			<h1 tabindex="-1">{{ t('themes_view.title', 'Themes') }}</h1>
+			<p class="page-header__hint"><MessageText :text="t('themes_view.hint', 'The theme visitors see. How the admin looks is yours alone, and is set on {link}.')"><template #link><RouterLink :to="{ name: 'profile' }">{{ t('themes_view.hint_link', 'Your Account') }}</RouterLink></template></MessageText></p>
 		</div>
 		<div class="page-header__actions">
-			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Theme</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />{{ t('themes_view.install', 'Install Theme') }}</button>
 		</div>
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<p v-if="answer?.problem" class="notice notice--warn" role="alert">
-		<span>The active theme, <span class="mono">{{ answer.active }}</span>, can't be used: {{ answer.problem }} Activate another theme to fix the site.</span>
+		<span><MessageText :text="t('themes_view.problem', 'The active theme, {theme}, can\'t be used: {problem} Activate another theme to fix the site.', { problem: answer.problem })"><template #theme><span class="mono">{{ answer.active }}</span></template></MessageText></span>
 	</p>
 
 	<template v-if="answer">
-		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" noun="themes" on="Active" off="Inactive" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" summary="1 active" :filtered="filtered" views @clear="clear" />
+		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" :noun="t('themes_view.filter_noun', 'themes')" :on="t('themes_view.filter_on', 'Active')" :off="t('themes_view.filter_off', 'Inactive')" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="t('themes_view.filter_summary', '1 active')" :filtered="filtered" views @clear="clear" />
 
 		<div v-if="shown === 0" class="panel">
-			<EmptyState icon="search" heading="No Theme Matches" text="Nothing here fits the filters in force. Clearing them brings the other themes back.">
-				<template #actions><button type="button" class="button" @click="clear">Clear Filters</button></template>
+			<EmptyState icon="search" :heading="t('themes_view.no_match', 'No Theme Matches')" :text="t('themes_view.no_match_text', 'Nothing here fits the filters in force. Clearing them brings the other themes back.')">
+				<template #actions><button type="button" class="button" @click="clear">{{ t('themes_view.clear_filters', 'Clear Filters') }}</button></template>
 			</EmptyState>
 		</div>
 
@@ -135,40 +137,40 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 				<template v-if="list" #mark><AdminIcon name="paintbrush" /></template>
 				<template v-else #media><ThemeSketch :preview="theme.preview" /></template>
 				<template #pills>
-					<span v-if="theme.active" class="pill pill--good">Active</span>
-					<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
-					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">Can't activate</span>
-					<span v-else-if="theme.source === 'framework'" class="pill">Built in</span>
-					<span v-if="theme.abandoned !== false" class="pill pill--warn">Abandoned</span>
+					<span v-if="theme.active" class="pill pill--good">{{ t('themes_view.pill_active', 'Active') }}</span>
+					<span v-if="fallbackMessage(theme)" class="pill pill--warn">{{ t('themes_view.pill_not_running', 'Not running') }}</span>
+					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">{{ t('themes_view.pill_cant_activate', 'Can\'t activate') }}</span>
+					<span v-else-if="theme.source === 'framework'" class="pill">{{ t('themes_view.pill_built_in', 'Built in') }}</span>
+					<span v-if="theme.abandoned !== false" class="pill pill--warn">{{ t('themes_view.pill_abandoned', 'Abandoned') }}</span>
 				</template>
 				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
-					<li v-if="theme.source === 'framework'"><AdminIcon name="package" />Ships with Blush</li>
+					<li v-if="theme.source === 'framework'"><AdminIcon name="package" />{{ t('themes_view.ships_with', 'Ships with Blush') }}</li>
 					<li v-else-if="theme.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ theme.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ theme.folder }}</span></li>
 					<li v-if="theme.preview?.type"><AdminIcon name="type" />{{ theme.preview.type }}</li>
-					<li v-if="theme.parent && !installed(theme.parent)" class="is-warn"><AdminIcon name="triangle-alert" /><span>Falls back to <span class="mono">{{ theme.parent }}</span>, which isn't installed</span></li>
-					<li v-else-if="theme.parent"><AdminIcon name="corner-down-right" /><span>Falls back to <RouterLink :to="extensionRoute('theme', theme.parent)">{{ label(theme.parent) }}</RouterLink></span></li>
+					<li v-if="theme.parent && !installed(theme.parent)" class="is-warn"><AdminIcon name="triangle-alert" /><span><MessageText :text="t('themes_view.parent_missing', 'Falls back to {parent}, which isn\'t installed')"><template #parent><span class="mono">{{ theme.parent }}</span></template></MessageText></span></li>
+					<li v-else-if="theme.parent"><AdminIcon name="corner-down-right" /><span><MessageText :text="t('themes_view.parent', 'Falls back to {parent}')"><template #parent><RouterLink :to="extensionRoute('theme', theme.parent)">{{ label(theme.parent) }}</RouterLink></template></MessageText></span></li>
 				</ul>
 				<p v-if="fallbackMessage(theme)" class="notice notice--small notice--warn extension__message">
 					<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
 				</p>
 				<p v-if="failed?.name === theme.name" class="notice notice--small notice--error extension__message" role="alert">
-					<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
+					<AdminIcon name="triangle-alert" /><span>{{ t('themes_view.activate_failed', 'Your site is still showing {theme}; nothing changed. {reason}', { theme: active?.label ?? answer.active, reason: failed.reason }) }}</span>
 				</p>
 				<p v-else-if="theme.blocked && !theme.active" class="notice notice--small notice--warn extension__message">
 					<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
 				</p>
 				<template #[foot]>
-					<a v-if="theme.active" class="button button--small" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
-					<button v-else-if="busy === theme.name" type="button" class="button button--small" disabled><span class="spin" aria-hidden="true" />Activating…</button>
+					<a v-if="theme.active" class="button button--small" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />{{ t('themes_view.view_site', 'View Site') }}<span class="visually-hidden">{{ t('themes_view.new_tab', ' (new tab)') }}</span></a>
+					<button v-else-if="busy === theme.name" type="button" class="button button--small" disabled><span class="spin" aria-hidden="true" />{{ t('themes_view.activating', 'Activating…') }}</button>
 					<button v-else-if="canActivate" type="button" class="button button--small" :class="{ 'button--danger': failed?.name === theme.name }" :disabled="theme.blocked !== null || busy !== null" @click="activate(theme)">
-						{{ failed?.name === theme.name ? 'Try Again' : 'Activate' }}<span class="visually-hidden"> {{ theme.label }}</span>
+						{{ failed?.name === theme.name ? t('common.retry', 'Try Again') : t('themes_view.activate', 'Activate') }}<span class="visually-hidden"> {{ theme.label }}</span>
 					</button>
-					<ExtensionMenu :label="theme.label" :details="extensionRoute('theme', theme.name)" details-label="Theme details" :copy="theme.folder ?? undefined" :delete-label="canDelete && theme.deletable && theme.folder ? 'Delete theme' : undefined" @delete="remove(theme.label, theme.folder ?? '', dependents(theme))">
+					<ExtensionMenu :label="theme.label" :details="extensionRoute('theme', theme.name)" :details-label="t('themes_view.details', 'Theme details')" :copy="theme.folder ?? undefined" :delete-label="canDelete && theme.deletable && theme.folder ? t('themes_view.delete', 'Delete theme') : undefined" @delete="remove(theme.label, theme.folder ?? '', dependents(theme))">
 						<template #lead>
-							<a v-if="answer.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />Preview on the site</a>
+							<a v-if="answer.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />{{ t('themes_view.preview', 'Preview on the site') }}</a>
 						</template>
-						<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copyText(`bin/blush theme:activate ${theme.name}`, 'the command')"><AdminIcon name="terminal" />Copy activate command</button>
+						<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copyText(`bin/blush theme:activate ${theme.name}`, t('themes_view.copy_what', 'the command'))"><AdminIcon name="terminal" />{{ t('themes_view.copy_command', 'Copy activate command') }}</button>
 					</ExtensionMenu>
 				</template>
 			</component>
@@ -176,13 +178,13 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 			<component :is="list ? ExtensionRow : ExtensionCard" v-for="theme in shownBroken" :key="theme.where" class="is-off" :label="theme.where">
 				<template v-if="list" #mark><AdminIcon name="paintbrush" /></template>
 				<template v-else #media><ThemeSketch :preview="null" broken /></template>
-				<template #pills><span class="pill pill--warn">Can't activate</span></template>
+				<template #pills><span class="pill pill--warn">{{ t('themes_view.pill_cant_activate', 'Can\'t activate') }}</span></template>
 				<p class="notice notice--small notice--warn extension__message">
-					<AdminIcon name="triangle-alert" /><span>{{ theme.reason }} It can't be activated until that's fixed.</span>
+					<AdminIcon name="triangle-alert" /><span>{{ t('themes_view.broken', '{reason} It can\'t be activated until that\'s fixed.', { reason: theme.reason }) }}</span>
 				</p>
 				<template #[foot]>
-					<button type="button" class="button button--small" disabled>Activate</button>
-					<ExtensionMenu v-if="canDelete && theme.deletable" :label="theme.where" :copy="theme.where" delete-label="Delete theme" @delete="remove(folderName(theme.where), theme.where)" />
+					<button type="button" class="button button--small" disabled>{{ t('themes_view.activate', 'Activate') }}</button>
+					<ExtensionMenu v-if="canDelete && theme.deletable" :label="theme.where" :copy="theme.where" :delete-label="t('themes_view.delete', 'Delete theme')" @delete="remove(folderName(theme.where), theme.where)" />
 					<span v-else-if="list" class="extension__menu-slot" />
 				</template>
 			</component>
@@ -213,11 +215,12 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 	<p v-if="answer" class="notice extension__note">
 		<span>
 			<template v-if="answer.saved">
-				The active theme was set here, and is saved in <code>user/data/settings.json</code> over <code>config/theme.php</code>.
-				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/theme.php</code>'s theme</button>
+				<MessageText :text="t('themes_view.note_saved', 'The active theme was set here, and is saved in {settings} over {config}.')"><template #settings><code>user/data/settings.json</code></template><template #config><code>config/theme.php</code></template></MessageText>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig"><MessageText :text="t('themes_view.use_config', 'Use {config}\'s theme')"><template #config><code>config/theme.php</code></template></MessageText></button>
 			</template>
-			<template v-else>The active theme is set in <code>config/theme.php</code><template v-if="!answer.config"> (the default theme until it exists)</template>; activating one here saves it in <code>user/data/settings.json</code>, over that file.</template>
-			A deploy usually activates a theme from the command line instead: <code>bin/blush theme:activate {name}</code>.
+			<template v-else-if="!answer.config"><MessageText :text="t('themes_view.note_config_missing', 'The active theme is set in {config} (the default theme until it exists); activating one here saves it in {settings}, over that file.')"><template #config><code>config/theme.php</code></template><template #settings><code>user/data/settings.json</code></template></MessageText></template>
+			<template v-else><MessageText :text="t('themes_view.note_config', 'The active theme is set in {config}; activating one here saves it in {settings}, over that file.')"><template #config><code>config/theme.php</code></template><template #settings><code>user/data/settings.json</code></template></MessageText></template>
+			<MessageText :text="t('themes_view.note_deploy', 'A deploy usually activates a theme from the command line instead: {command}.')"><template #command><code>bin/blush theme:activate {name}</code></template></MessageText>
 		</span>
 	</p>
 

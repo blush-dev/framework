@@ -40,11 +40,12 @@ final readonly class SourceCatalog
 	{}
 
 	/**
-	 * Returns the source catalog's path in an extension's `lang/`.
+	 * Returns the source catalog's path in an extension's `lang/`: its
+	 * default catalog's, or a named one's (D-831).
 	 */
-	public static function path(string $lang, string $locale = self::LOCALE): string
+	public static function path(string $lang, string $locale = self::LOCALE, ?string $catalog = null): string
 	{
-		return "{$lang}/{$locale}.json";
+		return $catalog === null ? "{$lang}/{$locale}.json" : "{$lang}/{$catalog}/{$locale}.json";
 	}
 
 	/**
@@ -64,7 +65,7 @@ final readonly class SourceCatalog
 		}
 
 		$catalog = $this->read($file);
-		$name    = basename(dirname($file)) . '/' . basename($file);
+		$name    = self::name($file);
 
 		if ($catalog === null) {
 			return [];
@@ -84,17 +85,30 @@ final readonly class SourceCatalog
 	}
 
 	/**
+	 * Returns a catalog's name as messages give it: from `lang/` on
+	 * (`lang/en.json`, `lang/site/en.json`).
+	 */
+	private static function name(string $file): string
+	{
+		$at = strrpos($file, '/lang/');
+
+		return $at === false ? basename($file) : substr($file, $at + 1);
+	}
+
+	/**
 	 * Writes the messages to a catalog, returning the keys added, the
 	 * keys whose text changed, and the keys that couldn't be written
 	 * (one nested under a key that holds text, or the other way round).
+	 *
+	 * A named catalog (D-831) says which with `@@catalog`.
 	 *
 	 * @param  array<string, ExtractedMessage> $messages
 	 * @return array{added: list<string>, changed: list<string>, conflicts: list<string>}
 	 * @throws TranslationException When the catalog can't be read.
 	 */
-	public function write(array $messages, string $file, string $domain, string $locale = self::LOCALE, bool $dryRun = false): array
+	public function write(array $messages, string $file, string $domain, string $locale = self::LOCALE, bool $dryRun = false, ?string $named = null): array
 	{
-		$catalog = $this->read($file) ?? [Catalog::LOCALE => $locale, Catalog::DOMAIN => $domain];
+		$catalog = $this->read($file) ?? [Catalog::LOCALE => $locale, Catalog::DOMAIN => $domain, ...($named === null ? [] : [Catalog::CATALOG => $named])];
 		$before  = $catalog;
 		$result  = ['added' => [], 'changed' => [], 'conflicts' => []];
 

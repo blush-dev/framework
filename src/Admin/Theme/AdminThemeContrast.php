@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Admin\Theme;
 
 use Blush\Auth\ColorScheme;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Checks an admin theme's colors against WCAG's contrast ratios (D-827),
@@ -44,15 +46,19 @@ final readonly class AdminThemeContrast
 		[AdminToken::Danger, AdminToken::DangerSubtle, 4.5]
 	];
 
+	public function __construct(private Messages $messages)
+	{}
+
 	/**
 	 * Returns a warning for each pair below its ratio, in either scheme,
 	 * given everything a theme shows (Neutral's tokens with its own laid
 	 * over them). A color with any transparency isn't judged, since what
-	 * shows through it varies.
+	 * shows through it varies. The warnings are messages, in the current
+	 * language where they're shown (D-835).
 	 *
-	 * @return list<string>
+	 * @return list<Text>
 	 */
-	public static function check(AdminTokens $tokens): array
+	public function check(AdminTokens $tokens): array
 	{
 		$warnings = [];
 
@@ -75,13 +81,15 @@ final readonly class AdminThemeContrast
 				$ratio = $a->contrast($b);
 
 				if ($ratio < $needed) {
-					$warnings[] = sprintf(
-						'In the %s scheme, %s on %s is %.2f:1, under the %s:1 it needs.',
-						$scheme->value,
-						$foreground->value,
-						$background->value,
-						$ratio,
-						rtrim(rtrim(number_format($needed, 1), '0'), '.')
+					$warnings[] = $this->messages->t(
+						'admin.admin_theme_contrast.low',
+						'In the {scheme} scheme, {foreground} on {background} is {ratio}:1, under the {needed}:1 it needs.',
+						scheme: $scheme->value,
+						foreground: $foreground->value,
+						background: $background->value,
+						ratio: sprintf('%.2f', $ratio),
+						needed: rtrim(rtrim(number_format($needed, 1), '0'), '.'),
+						context: 'The scheme is light or dark; the foreground and background are token names.'
 					);
 				}
 			}

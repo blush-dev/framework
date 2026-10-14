@@ -13,13 +13,18 @@ declare(strict_types=1);
 
 namespace Blush\Admin\Health;
 
+use Blush\Translation\Messages;
+
 /**
  * Each problem a Site Health check finds has a key (D-613), the same
  * from one check to the next, which ignoring keeps and the admin's rows
  * use (`resources/admin/js/health.ts` builds the same keys). A key
  * starts with its area and check:
  *
- * - `{area}:files:{path}:{field}:{message}`: a file's problem.
+ * - `{area}:files:{path}:{field}:{message}`: a file's problem, its
+ *   message in the English the code wrote it in (`message()`), so the
+ *   key is the same in every language (D-836); the admin is given each
+ *   problem's key (`problem`).
  * - `{area}:ids:{path}`: a file with no valid id; `{area}:ids-shared:{id}`,
  *   an id files share.
  * - `content:terms:{type}/{slug}`, `content:refs:{path}`,
@@ -62,7 +67,7 @@ final class ProblemKeys
 		foreach (self::lists($report, 'files') as $file) {
 			foreach (is_array($file['violations'] ?? null) ? $file['violations'] : [] as $violation) {
 				if (is_array($violation)) {
-					$keys[] = self::file(self::text($file['area'] ?? ''), self::text($file['path'] ?? ''), self::text($violation['field'] ?? ''), self::text($violation['message'] ?? ''));
+					$keys[] = self::file(self::text($file['area'] ?? ''), self::text($file['path'] ?? ''), self::text($violation['field'] ?? ''), self::message($violation['message'] ?? ''));
 				}
 			}
 		}
@@ -132,6 +137,16 @@ final class ProblemKeys
 		$part = is_array($report[$key] ?? null) ? $report[$key] : [];
 
 		return array_values(array_filter(is_array($part['items'] ?? null) ? $part['items'] : [], is_array(...)));
+	}
+
+	/**
+	 * Returns a problem's message as its key has it: a kept message
+	 * (`Text::toArray()`) in the English it was written in, else the text
+	 * as it was kept.
+	 */
+	public static function message(mixed $message): string
+	{
+		return is_array($message) ? (string) new Messages()->restore($message) : self::text($message);
 	}
 
 	private static function text(mixed $value): string

@@ -31,6 +31,7 @@ use Blush\Storage\StorageException;
 use Blush\Storage\StorageResolver;
 use Blush\Support\Filesystem;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Reads and writes media files' metadata (D-238, D-269), never beside
@@ -72,7 +73,8 @@ final readonly class MediaMetadataStore
 		private RecordStores|RecordStore $stores,
 		private ClockInterface $clock,
 		private StorageResolver $resolver,
-		#[Defer(MediaFiles::class)] private Closure $files
+		#[Defer(MediaFiles::class)] private Closure $files,
+		private Messages $messages
 	) {
 		$this->filesystem = new Filesystem();
 	}
@@ -258,11 +260,11 @@ final readonly class MediaMetadataStore
 			$data   = $this->load($path);
 			$record = $this->record($path);
 		} catch (RecordException $error) {
-			throw new MediaException(sprintf('The metadata can\'t be read; fix it by hand first. %s', $error->getMessage()), previous: $error);
+			throw new MediaException((string) $this->messages->t('media.media_metadata_store.unreadable', 'The metadata can\'t be read; fix it by hand first. {problem}', problem: $error->getMessage()), previous: $error);
 		}
 
 		if ($data !== [] && array_is_list($data)) {
-			throw new MediaException('The metadata isn\'t a map of fields; fix it by hand first.');
+			throw new MediaException((string) $this->messages->t('media.media_metadata_store.not_a_map', 'The metadata isn\'t a map of fields; fix it by hand first.'));
 		}
 
 		// Each key's names: its field's name and aliases, when it has one.

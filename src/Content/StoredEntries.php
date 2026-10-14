@@ -44,6 +44,7 @@ use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Refs;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
 
 /**
  * The default `Entries` (D-654), on records (D-649), the same for every
@@ -72,6 +73,7 @@ final class StoredEntries implements Entries
 		private readonly RecordStores $stores,
 		private readonly EntryLocations $locations,
 		#[Defer(ContentWriter::class)] private readonly Closure $writer,
+		private readonly Messages $messages,
 		private readonly RequestMemo $memo = new RequestMemo()
 	) {}
 
@@ -386,7 +388,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function editable(Entry|string $entry): EditableEntry
 	{
-		return $this->writer()->load(self::id($entry));
+		return $this->writer()->load($this->id($entry));
 	}
 
 	/**
@@ -404,7 +406,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function create(ContentType $type, string $slug, EntryChanges $changes, Entry|string|null $parent = null, ?DateTimeInterface $date = null): Entry
 	{
-		return $this->written($this->writer()->create($type, $slug, $changes, $parent === null ? null : self::id($parent), $date));
+		return $this->written($this->writer()->create($type, $slug, $changes, $parent === null ? null : $this->id($parent), $date));
 	}
 
 	/**
@@ -424,7 +426,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function duplicate(Entry|string $entry, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): Entry
 	{
-		return $this->written($this->writer()->duplicate(self::id($entry), $slug, $changes, $date));
+		return $this->written($this->writer()->duplicate($this->id($entry), $slug, $changes, $date));
 	}
 
 	/**
@@ -433,7 +435,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function change(Entry|string $entry, EntryChanges $changes, ?string $version = null): Entry
 	{
-		$id = $this->writer()->update(self::id($entry), $changes, $version);
+		$id = $this->writer()->update($this->id($entry), $changes, $version);
 
 		return $this->written($id);
 	}
@@ -444,7 +446,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function rename(Entry|string $entry, string $slug, ?string $version = null): Entry
 	{
-		$id = $this->writer()->rename(self::id($entry), $slug, $version);
+		$id = $this->writer()->rename($this->id($entry), $slug, $version);
 
 		return $this->written($id);
 	}
@@ -455,7 +457,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function changeLanguage(Entry|string $entry, string $language, ?string $version = null): Entry
 	{
-		$id = $this->writer()->changeLanguage(self::id($entry), $language, $version);
+		$id = $this->writer()->changeLanguage($this->id($entry), $language, $version);
 
 		return $this->written($id);
 	}
@@ -466,7 +468,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function move(Entry|string $entry, Entry|string|null $parent, ?string $version = null): Entry
 	{
-		$id = $this->writer()->move(self::id($entry), $parent === null ? null : self::id($parent), $version);
+		$id = $this->writer()->move($this->id($entry), $parent === null ? null : $this->id($parent), $version);
 
 		return $this->written($id);
 	}
@@ -477,7 +479,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function trash(Entry|string $entry, ?string $version = null): Entry
 	{
-		$id = $this->writer()->trash(self::id($entry), $version);
+		$id = $this->writer()->trash($this->id($entry), $version);
 
 		return $this->written($id);
 	}
@@ -488,7 +490,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry
 	{
-		$id = $this->writer()->restore(self::id($entry), $version, $status);
+		$id = $this->writer()->restore($this->id($entry), $version, $status);
 
 		return $this->written($id);
 	}
@@ -499,7 +501,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function delete(Entry|string $entry, ?string $version = null): void
 	{
-		$this->writer()->delete(self::id($entry), $version);
+		$this->writer()->delete($this->id($entry), $version);
 		$this->memo->forget();
 	}
 
@@ -539,13 +541,13 @@ final class StoredEntries implements Entries
 	 *
 	 * @throws WriteException When the entry has none.
 	 */
-	private static function id(Entry|string $entry): string
+	private function id(Entry|string $entry): string
 	{
 		if (is_string($entry)) {
 			return $entry;
 		}
 
-		return $entry->id ?? throw new WriteException(sprintf('"%s" has no id, so it can\'t be changed here until it has one (Site Health, or `content:ids`; D-481).', $entry->title === '' ? $entry->key : $entry->title));
+		return $entry->id ?? throw new WriteException((string) $this->messages->t('content.stored_entries.no_id', '"{title}" has no id, so it can\'t be changed here until it has one (Site Health, or `content:ids`; D-481).', title: $entry->title === '' ? $entry->key : $entry->title));
 	}
 
 	/**
@@ -567,7 +569,7 @@ final class StoredEntries implements Entries
 		$this->locations->refresh();
 		$this->memo->forget();
 
-		return $this->find($id) ?? throw new WriteException('The entry was written but couldn\'t be read back; check Site Health.');
+		return $this->find($id) ?? throw new WriteException((string) $this->messages->t('content.stored_entries.not_read_back', 'The entry was written but couldn\'t be read back; check Site Health.'));
 	}
 
 	/**

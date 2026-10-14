@@ -17,7 +17,7 @@ import { OPEN_LEVEL, type FieldLevel } from '../field-levels';
 import AdminIcon from './AdminIcon.vue';
 import FieldControl from './FieldControl.vue';
 import { childrenOf, fromGroup, groupOf, help, isEmptyState, label, type FieldStep, type FormValue } from '../fields';
-import { plural } from '../format';
+import { t } from '../messages';
 
 const props = defineProps<{
 	field: FieldDescription;
@@ -53,11 +53,11 @@ function where(child: FieldDescription): FieldLevel {
 <template>
 	<button v-if="asRow" :id="id" type="button" class="level-link level-link--boxed" :class="{ 'is-quiet': filled === 0 }" @click="openLevel?.(at)">
 		<AdminIcon name="layers" />
-		<span class="level-link__text"><strong>{{ label(field) }}</strong><span>{{ filled === 0 ? 'Nothing filled in' : `${filled} of ${plural(fields.length, 'field')} filled in` }}</span></span>
+		<span class="level-link__text"><strong>{{ label(field) }}</strong><span>{{ filled === 0 ? t('field_group.nothing_filled', 'Nothing filled in') : t('field_group.filled', '{filled} of {count, plural, one {# field} other {# fields} } filled in', { filled, count: fields.length }) }}</span></span>
 		<AdminIcon name="chevron-right" class="level-link__go" />
 	</button>
 	<fieldset v-else :id="id" class="fieldset fieldset--group" :aria-describedby="help(field) !== '' ? `${id}-help` : undefined">
-		<legend>{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></legend>
+		<legend>{{ label(field) }}<span v-if="field.required" class="field__required"> {{ t('field_group.required', '(required)') }}</span></legend>
 		<p v-if="help(field) !== ''" :id="`${id}-help`" class="field__help">{{ help(field) }}</p>
 		<FieldControl
 			v-for="child in fields"

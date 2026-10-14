@@ -18,6 +18,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\TextField;
 use Blush\Field\TextFormat;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A web address: a text field whose format is `url`.
@@ -37,18 +39,18 @@ final class Link extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Link';
+		return $messages->t('field.link.label', 'Link');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'A web address.';
+		return $messages->t('field.link.description', 'A web address.');
 	}
 
 	/**

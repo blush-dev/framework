@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
 
 /**
  * What people call a content type and its entries (D-278): the names,
@@ -118,17 +119,16 @@ final readonly class TypeLabels
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, string $name): self
+	public static function fromArray(array $data, string $name, Messages $messages): self
 	{
-		$label   = sprintf('Content type "%s" labels', $name);
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), self::KEYS);
 
 		if ($unknown !== []) {
-			throw new InvalidContentType(sprintf('%s has unknown options: %s.', $label, implode(', ', $unknown)));
+			throw new InvalidContentType((string) $messages->t('content.type_labels.unknown_options', 'Content type "{name}" labels has unknown options: {options}.', name: $name, options: implode(', ', $unknown)));
 		}
 
 		try {
-			$labels = new Definition($data, $label);
+			$labels = new Definition($data, (string) $messages->t('content.type_labels.subject', 'Content type "{name}" labels', name: $name));
 			$given  = array_map($labels->nullableString(...), array_combine(self::KEYS, self::KEYS));
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);

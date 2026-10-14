@@ -18,6 +18,7 @@ use Blush\Admin\Health\HealthReportStore;
 use Blush\Admin\Health\IgnoredProblems;
 use Blush\Admin\Health\StoredIgnoredProblems;
 use Blush\Admin\Http\ActivityController;
+use Blush\Admin\Http\AdminLanguage;
 use Blush\Admin\Http\AssetController;
 use Blush\Admin\Http\AuthorizeController;
 use Blush\Admin\Http\DashboardController;
@@ -42,7 +43,8 @@ final class AdminServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
-		AdminApp::class
+		AdminApp::class,
+		AdminLanguages::class
 	];
 
 	/**
@@ -50,6 +52,7 @@ final class AdminServiceProvider extends ServiceProvider
 	 */
 	protected const array TRANSIENTS = [
 		AdminRoutes::class,
+		AdminLanguage::class,
 		ActivityController::class,
 		AuthorizeController::class,
 		AssetController::class,

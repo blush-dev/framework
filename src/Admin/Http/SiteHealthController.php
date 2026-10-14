@@ -24,6 +24,7 @@ use Blush\Http\Status;
 use Blush\Job\JobException;
 use Blush\Job\JobQueue;
 use Blush\Job\JobType;
+use Blush\Translation\Messages;
 
 /**
  * Site Health's report (`SiteHealth`, D-543, D-545), with `site.health`:
@@ -42,7 +43,8 @@ final readonly class SiteHealthController
 	public function __construct(
 		private SiteHealth $health,
 		private Permissions $permissions,
-		private JobQueue $jobs
+		private JobQueue $jobs,
+		private Messages $messages
 	) {}
 
 	/**
@@ -92,7 +94,7 @@ final readonly class SiteHealthController
 
 		return $account instanceof Account && $this->permissions->can($account, Capability::SiteHealth)
 			? null
-			: self::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden);
+			: self::json(['error' => $this->messages->t('admin.site_health_controller.not_allowed', 'You aren\'t allowed to see site health.')], Status::Forbidden);
 	}
 
 	/**

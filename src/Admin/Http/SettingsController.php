@@ -75,6 +75,8 @@ use Blush\Sitemap\SitemapConfig;
 use Blush\Tool\ToolRegistry;
 use Blush\Tool\Tools;
 use Blush\Translation\Locales;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
@@ -149,7 +151,8 @@ final readonly class SettingsController
 		private Tools $tools,
 		private Provenance $provenance,
 		private OAuthServer $oauth,
-		private ControlDefaults $defaults
+		private ControlDefaults $defaults,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -157,7 +160,7 @@ final readonly class SettingsController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
-			return Response::json(['error' => 'You aren\'t allowed to see the site\'s settings.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.settings_controller.not_allowed', 'You aren\'t allowed to see the site\'s settings.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$saved = $this->store->read();
@@ -183,7 +186,7 @@ final readonly class SettingsController
 		}
 
 		return $groups === null
-			? Response::json(['error' => 'There\'s no such settings screen.'], Status::NotFound, ['Cache-Control' => 'no-store'])
+			? Response::json(['error' => $this->messages->t('admin.settings_controller.no_screen', 'There\'s no such settings screen.')], Status::NotFound, ['Cache-Control' => 'no-store'])
 			: Response::json(['groups' => $groups], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -199,13 +202,13 @@ final readonly class SettingsController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
-			return Response::json(['error' => 'You aren\'t allowed to see the site\'s settings.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.settings_controller.not_allowed', 'You aren\'t allowed to see the site\'s settings.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$query   = $request->getQueryParams();
 		$format  = is_string($query['format'] ?? null) ? trim($query['format']) : '';
 		$locale  = is_string($query['locale'] ?? null) && preg_match('/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/', $query['locale']) === 1 ? $query['locale'] : $this->app->locale;
-		$problem = DateFormat::problem($format);
+		$problem = DateFormat::problem($format, $this->messages);
 
 		if ($problem !== null) {
 			return Response::json(['error' => $problem], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
@@ -246,7 +249,7 @@ final readonly class SettingsController
 				];
 			}
 
-			$groups[] = self::group("set-{$set->name}", $set->label, $set->description === '' ? sprintf('From the %s field set', $set->label) : $set->description, $items);
+			$groups[] = self::group("set-{$set->name}", $set->label, $set->description === '' ? $this->messages->t('admin.settings_controller.field_set_hint', 'From the {set} field set', set: $set->label) : $set->description, $items);
 		}
 
 		return $groups;
@@ -265,31 +268,31 @@ final readonly class SettingsController
 		$now         = DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->app->timezone());
 
 		return [
-			self::group('site', 'Site', 'Its name, email, and language', [
-				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
-				$this->edit(self::item('description', 'Description', $this->app->description, $this->app->description === '', help: Setting::DESCRIPTION_HELP), $saved, Setting::Description, $this->app->description),
-				$this->edit(self::item('email', 'Email address', $this->app->email, $this->app->email === '', help: Setting::EMAIL_HELP), $saved, Setting::Email, $this->app->email),
-				[...$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'Choose Other to type a code the menu doesn\'t have.'), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
+			self::group('site', $this->messages->t('admin.settings_controller.groups.site.title', 'Site'), $this->messages->t('admin.settings_controller.groups.site.hint', 'Its name, email, and language'), [
+				$this->edit(self::item('name', $this->messages->t('admin.settings_controller.general.name', 'Site name'), $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
+				$this->edit(self::item('description', $this->messages->t('admin.settings_controller.general.description', 'Description'), $this->app->description, $this->app->description === '', help: Setting::Description->field($this->types, $this->messages)->description), $saved, Setting::Description, $this->app->description),
+				$this->edit(self::item('email', $this->messages->t('admin.settings_controller.general.email', 'Email address'), $this->app->email, $this->app->email === '', help: Setting::Email->field($this->types, $this->messages)->description), $saved, Setting::Email, $this->app->email),
+				[...$this->edit(self::item('locale', $this->messages->t('admin.settings_controller.general.locale', 'Language and region'), $this->app->locale, $this->app->locale === $app->locale, 'mono', $this->messages->t('admin.settings_controller.general.locale_help', 'Choose Other to type a code the menu doesn\'t have.')), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
 				...$this->untranslated($saved, $app),
-				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
+				self::item('url', $this->messages->t('admin.settings_controller.general.url', 'Site address'), $this->app->url, $this->app->url === $app->url, 'mono', $this->messages->t('admin.settings_controller.general.url_help', 'From APP_URL in .env by default.'), 'config/app.php')
 			]),
-			self::group('dates', 'Dates and Time', 'How times are read and shown', [
-				[...$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone), 'menu' => TimeZones::options($now)],
-				[...$this->edit(self::item('dateFormat', 'Date format', $this->app->dateFormat, $this->app->dateFormat === $app->dateFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::DateFormat, $this->app->dateFormat), 'formats' => DateFormat::options('date', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]],
-				[...$this->edit(self::item('timeFormat', 'Time format', $this->app->timeFormat, $this->app->timeFormat === $app->timeFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::TimeFormat, $this->app->timeFormat), 'formats' => DateFormat::options('time', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]]
+			self::group('dates', $this->messages->t('admin.settings_controller.groups.dates.title', 'Dates and Time'), $this->messages->t('admin.settings_controller.groups.dates.hint', 'How times are read and shown'), [
+				[...$this->edit(self::item('timezone', $this->messages->t('admin.settings_controller.general.timezone', 'Time zone'), $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', $this->messages->t('admin.settings_controller.general.timezone_help', 'It\'s {time} there now.', time: $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone), 'menu' => TimeZones::options($now)],
+				[...$this->edit(self::item('dateFormat', $this->messages->t('admin.settings_controller.general.date_format', 'Date format'), $this->app->dateFormat, $this->app->dateFormat === $app->dateFormat, 'mono', Setting::DateFormat->field($this->types, $this->messages)->description), $saved, Setting::DateFormat, $this->app->dateFormat), 'formats' => DateFormat::options('date', $now, $this->app->locale, $this->app->timezone, $this->messages), 'link' => ['label' => $this->messages->t('admin.settings_controller.general.pattern_letters', 'Pattern letters'), 'href' => DateFormat::REFERENCE]],
+				[...$this->edit(self::item('timeFormat', $this->messages->t('admin.settings_controller.general.time_format', 'Time format'), $this->app->timeFormat, $this->app->timeFormat === $app->timeFormat, 'mono', Setting::TimeFormat->field($this->types, $this->messages)->description), $saved, Setting::TimeFormat, $this->app->timeFormat), 'formats' => DateFormat::options('time', $now, $this->app->locale, $this->app->timezone, $this->messages), 'link' => ['label' => $this->messages->t('admin.settings_controller.general.pattern_letters', 'Pattern letters'), 'href' => DateFormat::REFERENCE]]
 			]),
-			self::group('accounts', 'Accounts', 'Who can make one', $this->accounts($saved)),
-			self::group('environment', 'Environment', 'Set where the site runs', [
-				self::item('environment', 'Environment', ucfirst($environment->value), $environment === $app->environment, help: match ($environment) {
-					Environment::Development => 'Content changes show up on the next request, caching is off, and search engines are asked not to index the site.',
-					Environment::Staging     => 'Search engines are asked not to index the site.',
+			self::group('accounts', $this->messages->t('admin.settings_controller.groups.accounts.title', 'Accounts'), $this->messages->t('admin.settings_controller.groups.accounts.hint', 'Who can make one'), $this->accounts($saved)),
+			self::group('environment', $this->messages->t('admin.settings_controller.groups.environment.title', 'Environment'), $this->messages->t('admin.settings_controller.groups.environment.hint', 'Set where the site runs'), [
+				self::item('environment', $this->messages->t('admin.settings_controller.general.environment', 'Environment'), $this->environment($environment), $environment === $app->environment, help: match ($environment) {
+					Environment::Development => $this->messages->t('admin.settings_controller.general.environment_help.development', 'Content changes show up on the next request, caching is off, and search engines are asked not to index the site.'),
+					Environment::Staging     => $this->messages->t('admin.settings_controller.general.environment_help.staging', 'Search engines are asked not to index the site.'),
 					Environment::Production  => null
 				}, file: 'config/app.php'),
 				[
-					...self::item('debug', 'Detailed error pages', $this->app->debug, $this->app->debug === $app->debug, 'bool', file: 'config/app.php'),
-					'warning' => $this->app->debug && $environment === Environment::Production ? 'Never on a live site: error pages show the site\'s code and settings.' : null
+					...self::item('debug', $this->messages->t('admin.settings_controller.general.debug', 'Detailed error pages'), $this->app->debug, $this->app->debug === $app->debug, 'bool', file: 'config/app.php'),
+					'warning' => $this->app->debug && $environment === Environment::Production ? $this->messages->t('admin.settings_controller.general.debug_warning', 'Never on a live site: error pages show the site\'s code and settings.') : null
 				]
-			], 'From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default.')
+			], $this->messages->t('admin.settings_controller.groups.environment.note', 'From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default.'))
 		];
 	}
 
@@ -305,8 +308,8 @@ final readonly class SettingsController
 		$roles    = array_filter($this->roles->all(), static fn (Role $role): bool => AuthConfig::signupRoleProblem($role->name) === null);
 		$role     = $this->roles->get($this->auth->signupRole);
 		$field    = new EnumField('signupRole', array_keys($roles))
-			->labeled(Setting::SignupRole->field($this->types)->label)
-			->described(Setting::SignupRole->field($this->types)->description)
+			->labeled(Setting::SignupRole->field($this->types, $this->messages)->label)
+			->described(Setting::SignupRole->field($this->types, $this->messages)->description)
 			->required();
 		$item     = $this->edit(
 			self::item('signupRole', $field->label, $role->label ?? $this->auth->signupRole, $this->auth->signupRole === $defaults->signupRole, help: $field->description),
@@ -317,11 +320,11 @@ final readonly class SettingsController
 		);
 
 		return [
-			$this->edit(self::item('signups', 'Sign-ups', $this->auth->signups, $this->auth->signups === $defaults->signups, 'bool', Setting::Signups->field($this->types)->description), $saved, Setting::Signups, $this->auth->signups),
+			$this->edit(self::item('signups', $this->messages->t('admin.settings_controller.accounts.signups', 'Sign-ups'), $this->auth->signups, $this->auth->signups === $defaults->signups, 'bool', Setting::Signups->field($this->types, $this->messages)->description), $saved, Setting::Signups, $this->auth->signups),
 			[
 				...$item,
-				'field'    => [...is_array($item['field'] ?? null) ? $item['field'] : [], 'choices' => array_map(static fn (Role $role): string => $role->label, $roles)],
-				'requires' => ['setting' => Setting::Signups->value, 'note' => 'It needs sign-ups on.']
+				'field'    => [...is_array($item['field'] ?? null) ? $item['field'] : [], 'choices' => array_map(static fn (Role $role): string => (string) $role->label, $roles)],
+				'requires' => ['setting' => Setting::Signups->value, 'note' => $this->messages->t('admin.settings_controller.accounts.signup_role_requires', 'It needs sign-ups on.')]
 			]
 		];
 	}
@@ -336,7 +339,7 @@ final readonly class SettingsController
 	private function untranslated(Settings $saved, AppConfig $app): array
 	{
 		$setting = $this->app->untranslated;
-		$item    = self::item('untranslated', 'Untranslated pages', $setting->label(), $setting === $app->untranslated, help: Setting::Untranslated->field($this->types)->description);
+		$item    = self::item('untranslated', $this->messages->t('admin.settings_controller.general.untranslated', 'Untranslated pages'), $setting->label($this->messages), $setting === $app->untranslated, help: Setting::Untranslated->field($this->types, $this->messages)->description);
 
 		return $this->app->languages->isMultilingual() ? [$this->edit($item, $saved, Setting::Untranslated, $setting->value)] : [];
 	}
@@ -351,15 +354,15 @@ final readonly class SettingsController
 		$feeds = new FeedConfig();
 
 		return [
-			self::group('home', 'Homepage', 'What the site opens with', [
-				Setting::homeChoices($this->types) === []
-					? self::item('home', 'Homepage', $this->homeLabel(), $this->content->home === null, help: 'The site has no collection with addresses to show instead.', file: Setting::Home->file())
-					: $this->edit(self::item('home', 'Homepage', $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, $this->content->home)
+			self::group('home', $this->messages->t('admin.settings_controller.groups.home.title', 'Homepage'), $this->messages->t('admin.settings_controller.groups.home.hint', 'What the site opens with'), [
+				Setting::homeChoices($this->types, $this->messages) === []
+					? self::item('home', $this->messages->t('admin.settings_controller.reading.home', 'Homepage'), $this->homeLabel(), $this->content->home === null, help: $this->messages->t('admin.settings_controller.reading.home_help', 'The site has no collection with addresses to show instead.'), file: Setting::Home->file())
+					: $this->edit(self::item('home', $this->messages->t('admin.settings_controller.reading.home', 'Homepage'), $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, $this->content->home)
 			]),
-			self::group('feeds', 'Feeds', 'For types with a feed', [
-				$this->edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
-				$this->edit(self::item('content', 'Full content', $this->feeds->content, $this->feeds->content, 'bool', 'Off, a feed carries each entry\'s summary only.'), $saved, Setting::FeedContent, $this->feeds->content),
-				$this->edit(self::item('limit', 'Entries per feed', (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: sprintf('From 1 to %d.', Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, $this->feeds->limit)
+			self::group('feeds', $this->messages->t('admin.settings_controller.groups.feeds.title', 'Feeds'), $this->messages->t('admin.settings_controller.groups.feeds.hint', 'For types with a feed'), [
+				$this->edit(self::item('formats', $this->messages->t('admin.settings_controller.reading.formats', 'Formats'), array_map(fn (FeedFormat $format): string => (string) $format->label($this->messages), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', $this->messages->t('admin.settings_controller.reading.formats_help', 'None turns every feed off.')), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
+				$this->edit(self::item('content', $this->messages->t('admin.settings_controller.reading.content', 'Full content'), $this->feeds->content, $this->feeds->content, 'bool', $this->messages->t('admin.settings_controller.reading.content_help', 'Off, a feed carries each entry\'s summary only.')), $saved, Setting::FeedContent, $this->feeds->content),
+				$this->edit(self::item('limit', $this->messages->t('admin.settings_controller.reading.limit', 'Entries per feed'), (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: $this->messages->t('admin.settings_controller.reading.limit_help', 'From 1 to {max}.', max: Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, $this->feeds->limit)
 			])
 		];
 	}
@@ -376,30 +379,30 @@ final readonly class SettingsController
 	{
 		$defaults = new ApiConfig();
 		$tokens   = array_values(array_map(
-			static fn (Role $role): string => $role->label,
+			static fn (Role $role): string => (string) $role->label,
 			array_filter($this->roles->all(), static fn (Role $role): bool => $role->allows(Capability::ApiTokens->value))
 		));
 
 		return [
-			self::group('api', 'API', 'For other sites, apps, and AI tools', [
-				$this->edit(self::item('api', 'API', $this->api->enabled, ! $this->api->enabled, 'bool', Setting::Api->field($this->types)->description), $saved, Setting::Api, $this->api->enabled),
-				$this->edit(self::item('access', 'Who can read it', $this->api->access->label(), $this->api->access === ApiAccess::Anyone, 'segmented', Setting::ApiAccess->field($this->types)->description), $saved, Setting::ApiAccess, $this->api->access->value),
+			self::group('api', $this->messages->t('admin.settings_controller.groups.api.title', 'API'), $this->messages->t('admin.settings_controller.groups.api.hint', 'For other sites, apps, and AI tools'), [
+				$this->edit(self::item('api', $this->messages->t('admin.settings_controller.api.api', 'API'), $this->api->enabled, ! $this->api->enabled, 'bool', Setting::Api->field($this->types, $this->messages)->description), $saved, Setting::Api, $this->api->enabled),
+				$this->edit(self::item('access', $this->messages->t('admin.settings_controller.api.access', 'Who can read it'), $this->api->access->label($this->messages), $this->api->access === ApiAccess::Anyone, 'segmented', Setting::ApiAccess->field($this->types, $this->messages)->description), $saved, Setting::ApiAccess, $this->api->access->value),
 				[
-					...self::item('path', 'Address', $this->api->base(), $this->api->path === $defaults->path, 'mono', 'Where the API is served, with its version.', 'config/api.php'),
-					'link' => $this->api->enabled ? ['label' => 'View the API', 'href' => $this->app->absoluteUrl($this->api->base())] : null
+					...self::item('path', $this->messages->t('admin.settings_controller.api.path', 'Address'), $this->api->base(), $this->api->path === $defaults->path, 'mono', $this->messages->t('admin.settings_controller.api.path_help', 'Where the API is served, with its version.'), 'config/api.php'),
+					'link' => $this->api->enabled ? ['label' => $this->messages->t('admin.settings_controller.api.view', 'View the API'), 'href' => $this->app->absoluteUrl($this->api->base())] : null
 				]
 			]),
-			self::group('changes', 'Changes', 'What a token may change', [
-				self::item('maxWrites', 'Changes per token', sprintf($this->api->maxWrites === 1 ? '%s change an hour' : '%s changes an hour', number_format($this->api->maxWrites)), $this->api->maxWrites === $defaults->maxWrites, help: 'How many entries and media files a token may create or change through the API in an hour. Past it, changes are refused until the hour is up. Each is listed under Tools → Activity.', file: 'config/api.php'),
+			self::group('changes', $this->messages->t('admin.settings_controller.groups.changes.title', 'Changes'), $this->messages->t('admin.settings_controller.groups.changes.hint', 'What a token may change'), [
+				self::item('maxWrites', $this->messages->t('admin.settings_controller.api.max_writes', 'Changes per token'), $this->messages->t('admin.settings_controller.api.max_writes_value', '{count, plural, one {# change an hour} other {# changes an hour}}', count: $this->api->maxWrites), $this->api->maxWrites === $defaults->maxWrites, help: $this->messages->t('admin.settings_controller.api.max_writes_help', 'How many entries and media files a token may create or change through the API in an hour. Past it, changes are refused until the hour is up. Each is listed under Tools → Activity.'), file: 'config/api.php'),
 				[
-					...self::item('tokens', 'Who can make tokens', $tokens, null, 'list', 'Roles with Make API tokens. A token is made on an account\'s screen, under API Tokens, and does what its account may, or less.'),
-					'links' => [['label' => 'Your Account', 'to' => '/accounts/' . rawurlencode($account->username)], ['label' => 'Roles', 'to' => '/roles']]
+					...self::item('tokens', $this->messages->t('admin.settings_controller.api.tokens', 'Who can make tokens'), $tokens, null, 'list', $this->messages->t('admin.settings_controller.api.tokens_help', 'Roles with Make API tokens. A token is made on an account\'s screen, under API Tokens, and does what its account may, or less.')),
+					'links' => [['label' => $this->messages->t('admin.settings_controller.api.your_account', 'Your Account'), 'to' => '/accounts/' . rawurlencode($account->username)], ['label' => $this->messages->t('admin.settings_controller.api.roles', 'Roles'), 'to' => '/roles']]
 				]
 			]),
-			self::group('mcp', 'MCP Server', 'For AI apps, beside the API', [
+			self::group('mcp', $this->messages->t('admin.settings_controller.groups.api_mcp.title', 'MCP Server'), $this->messages->t('admin.settings_controller.groups.api_mcp.hint', 'For AI apps, beside the API'), [
 				[
-					...self::item('mcpStatus', 'MCP server', $this->mcp->enabled ? 'On' : 'Off', ! $this->mcp->enabled, help: 'AI apps connect to it with the API\'s tokens, or by signing in. It\'s set on the AI screen.'),
-					'links' => [['label' => 'AI Settings', 'to' => '/settings/ai']]
+					...self::item('mcpStatus', $this->messages->t('admin.settings_controller.api.mcp', 'MCP server'), $this->mcp->enabled ? $this->messages->t('admin.settings_controller.api.mcp_on', 'On') : $this->messages->t('admin.settings_controller.api.mcp_off', 'Off'), ! $this->mcp->enabled, help: $this->messages->t('admin.settings_controller.api.mcp_help', 'AI apps connect to it with the API\'s tokens, or by signing in. It\'s set on the AI screen.')),
+					'links' => [['label' => $this->messages->t('admin.settings_controller.api.ai_settings', 'AI Settings'), 'to' => '/settings/ai']]
 				]
 			])
 		];
@@ -427,7 +430,7 @@ final readonly class SettingsController
 		foreach (MediaKind::cases() as $kind) {
 			$kinds[] = [
 				'key'        => $kind->value,
-				'label'      => $kind->label(),
+				'label'      => $kind->label($this->messages),
 				'folder'     => $kind->folder(),
 				'example'    => match ($kind) {
 					MediaKind::Image    => 'photo.jpg',
@@ -447,9 +450,9 @@ final readonly class SettingsController
 		}
 
 		return [
-			self::group('uploads', 'Uploads', 'What may be uploaded, and where it goes', [[
+			self::group('uploads', $this->messages->t('admin.settings_controller.groups.uploads.title', 'Uploads'), $this->messages->t('admin.settings_controller.groups.uploads.hint', 'What may be uploaded, and where it goes'), [[
 				'key'     => 'uploads',
-				'label'   => 'Uploads',
+				'label'   => $this->messages->t('admin.settings_controller.media.uploads', 'Uploads'),
 				'value'   => [],
 				'kind'    => 'uploads',
 				'default' => $uploads->toArray() === new MediaUploads()->toArray(),
@@ -467,8 +470,8 @@ final readonly class SettingsController
 					'files'       => $files
 				]
 			]]),
-			self::group('artwork', 'Artwork', 'The pictures sounds and videos carry', [
-				$this->edit(self::item('addArtwork', Setting::AddArtwork->field($this->types)->label, $this->media->addArtwork, ! $this->media->addArtwork, 'bool', Setting::AddArtwork->field($this->types)->description), $saved, Setting::AddArtwork, $this->media->addArtwork)
+			self::group('artwork', $this->messages->t('admin.settings_controller.groups.artwork.title', 'Artwork'), $this->messages->t('admin.settings_controller.groups.artwork.hint', 'The pictures sounds and videos carry'), [
+				$this->edit(self::item('addArtwork', Setting::AddArtwork->field($this->types, $this->messages)->label, $this->media->addArtwork, ! $this->media->addArtwork, 'bool', Setting::AddArtwork->field($this->types, $this->messages)->description), $saved, Setting::AddArtwork, $this->media->addArtwork)
 			])
 		];
 	}
@@ -488,31 +491,31 @@ final readonly class SettingsController
 		$markdown = $this->markdown;
 		$defaults = new MarkdownConfig();
 		$switch   = fn (Setting $setting, string $key, bool $value, bool $default): array => $this->edit(
-			self::item($key, $setting->field($this->types)->label, $value, $value === $default, 'bool', $setting->field($this->types)->description),
+			self::item($key, $setting->field($this->types, $this->messages)->label, $value, $value === $default, 'bool', $setting->field($this->types, $this->messages)->description),
 			$saved,
 			$setting,
 			$value
 		);
 
 		return [
-			self::group('markdown', 'Markdown', 'How what\'s written renders', [
+			self::group('markdown', $this->messages->t('admin.settings_controller.groups.markdown.title', 'Markdown'), $this->messages->t('admin.settings_controller.groups.markdown.hint', 'How what\'s written renders'), [
 				$switch(Setting::Mentions, 'mentions', $markdown->mentions, $defaults->mentions),
 				$switch(Setting::SmartPunctuation, 'smartPunctuation', $markdown->smartPunctuation, $defaults->smartPunctuation),
 				$switch(Setting::HeadingAnchors, 'headingAnchors', $markdown->headingAnchors, $defaults->headingAnchors),
 				$switch(Setting::Figures, 'figures', $markdown->figures, $defaults->figures)
 			]),
-			self::group('html', 'HTML', 'Raw HTML in content', [
+			self::group('html', $this->messages->t('admin.settings_controller.groups.html.title', 'HTML'), $this->messages->t('admin.settings_controller.groups.html.hint', 'Raw HTML in content'), [
 				$this->edit(
-					self::item('html', 'Raw HTML', $markdown->html->label(), $markdown->html === $defaults->html, 'segmented', Setting::Html->field($this->types)->description),
+					self::item('html', $this->messages->t('admin.settings_controller.writing.html', 'Raw HTML'), $markdown->html->label($this->messages), $markdown->html === $defaults->html, 'segmented', Setting::Html->field($this->types, $this->messages)->description),
 					$saved,
 					Setting::Html,
 					$markdown->html->value
 				)
 			]),
-			self::group('embeds', 'Embeds', 'Sites whose links play on the page', [
+			self::group('embeds', $this->messages->t('admin.settings_controller.groups.embeds.title', 'Embeds'), $this->messages->t('admin.settings_controller.groups.embeds.hint', 'Sites whose links play on the page'), [
 				[
 					...$this->edit(
-						self::item('enabled', Setting::Embeds->field($this->types)->label, $this->embed->enabled, $this->embed->enabled === [], 'embeds', Setting::Embeds->field($this->types)->description),
+						self::item('enabled', Setting::Embeds->field($this->types, $this->messages)->label, $this->embed->enabled, $this->embed->enabled === [], 'embeds', Setting::Embeds->field($this->types, $this->messages)->description),
 						$saved,
 						Setting::Embeds,
 						$this->embed->enabled
@@ -560,17 +563,17 @@ final readonly class SettingsController
 		$environment = $this->app->environment;
 
 		return [
-			self::group('addresses', 'Addresses', 'How URLs are written', [
-				$this->edit(self::item('trailingSlash', 'Trailing slash', $this->routes->trailingSlash, ! $this->routes->trailingSlash, 'bool', 'The other form redirects, so links to either still work.'), $saved, Setting::TrailingSlash, $this->routes->trailingSlash),
+			self::group('addresses', $this->messages->t('admin.settings_controller.groups.addresses.title', 'Addresses'), $this->messages->t('admin.settings_controller.groups.addresses.hint', 'How URLs are written'), [
+				$this->edit(self::item('trailingSlash', $this->messages->t('admin.settings_controller.search.trailing_slash', 'Trailing slash'), $this->routes->trailingSlash, ! $this->routes->trailingSlash, 'bool', $this->messages->t('admin.settings_controller.search.trailing_slash_help', 'The other form redirects, so links to either still work.')), $saved, Setting::TrailingSlash, $this->routes->trailingSlash),
 				[
-					...self::item('media', 'Media address', $this->media->url, $this->media->url === new MediaConfig()->url, 'mono', 'Where user/media is served. The folders under it are named on Media.', 'config/media.php'),
-					'links' => [['label' => 'Media settings', 'to' => '/settings/media']]
+					...self::item('media', $this->messages->t('admin.settings_controller.search.media', 'Media address'), $this->media->url, $this->media->url === new MediaConfig()->url, 'mono', $this->messages->t('admin.settings_controller.search.media_help', 'Where user/media is served. The folders under it are named on Media.'), 'config/media.php'),
+					'links' => [['label' => $this->messages->t('admin.settings_controller.search.media_settings', 'Media settings'), 'to' => '/settings/media']]
 				]
 			]),
-			self::group('search', 'Search Engines', 'The sitemap and robots.txt', [
-				$this->edit(self::item('sitemap', 'Sitemap and robots.txt', $this->sitemap->enabled, $this->sitemap->enabled, 'bool', 'Off, the site has neither, and search engines find pages by their links.'), $saved, Setting::Sitemap, $this->sitemap->enabled),
-				$this->edit(self::item('disallow', 'Paths robots.txt asks to skip', $this->sitemap->disallow, $this->sitemap->disallow === [], 'list', 'One path a line, each starting with /, such as /drafts/.'), $saved, Setting::SitemapDisallow, $this->sitemap->disallow),
-				self::item('indexing', 'Asks not to be indexed', $environment !== Environment::Production, null, 'bool', 'Outside production, robots.txt asks search engines to skip the whole site. It follows the environment.')
+			self::group('search', $this->messages->t('admin.settings_controller.groups.search.title', 'Search Engines'), $this->messages->t('admin.settings_controller.groups.search.hint', 'The sitemap and robots.txt'), [
+				$this->edit(self::item('sitemap', $this->messages->t('admin.settings_controller.search.sitemap', 'Sitemap and robots.txt'), $this->sitemap->enabled, $this->sitemap->enabled, 'bool', $this->messages->t('admin.settings_controller.search.sitemap_help', 'Off, the site has neither, and search engines find pages by their links.')), $saved, Setting::Sitemap, $this->sitemap->enabled),
+				$this->edit(self::item('disallow', $this->messages->t('admin.settings_controller.search.disallow', 'Paths robots.txt asks to skip'), $this->sitemap->disallow, $this->sitemap->disallow === [], 'list', $this->messages->t('admin.settings_controller.search.disallow_help', 'One path a line, each starting with /, such as /drafts/.')), $saved, Setting::SitemapDisallow, $this->sitemap->disallow),
+				self::item('indexing', $this->messages->t('admin.settings_controller.search.indexing', 'Asks not to be indexed'), $environment !== Environment::Production, null, 'bool', $this->messages->t('admin.settings_controller.search.indexing_help', 'Outside production, robots.txt asks search engines to skip the whole site. It follows the environment.'))
 			])
 		];
 	}
@@ -589,37 +592,37 @@ final readonly class SettingsController
 	{
 		$types   = $this->llmsTxt->types();
 		$listed  = $this->llms->enabled ? $this->llmsTxt->count() : 0;
-		$blocked = array_map(static fn (AiCrawlerGroup $group): string => $group->label(), $this->sitemap->blockAi);
+		$blocked = array_map(fn (AiCrawlerGroup $group): string => (string) $group->label($this->messages), $this->sitemap->blockAi);
 
 		return [
 			[
-				...self::group('markdown', 'Markdown Copies', 'What AI tools read', [
-					$this->edit(self::item('llms', 'Markdown copies', $this->llms->enabled, $this->llms->enabled, 'bool', Setting::Llms->field($this->types)->description), $saved, Setting::Llms, $this->llms->enabled),
+				...self::group('markdown', $this->messages->t('admin.settings_controller.groups.ai_markdown.title', 'Markdown Copies'), $this->messages->t('admin.settings_controller.groups.ai_markdown.hint', 'What AI tools read'), [
+					$this->edit(self::item('llms', $this->messages->t('admin.settings_controller.ai.llms', 'Markdown copies'), $this->llms->enabled, $this->llms->enabled, 'bool', Setting::Llms->field($this->types, $this->messages)->description), $saved, Setting::Llms, $this->llms->enabled),
 					[
-						...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? '' : 'Off, with the Markdown copies', null, help: 'A Markdown map of the site: its name and description, then each listed type\'s pages.'),
-						'aside' => $this->llms->enabled ? sprintf($listed === 1 ? '%s page' : '%s pages', number_format($listed)) : null,
-						'link'  => $this->llms->enabled ? ['label' => 'View', 'href' => $this->app->absoluteUrl('/llms.txt')] : null
+						...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? '' : $this->messages->t('admin.settings_controller.ai.llms_txt_off', 'Off, with the Markdown copies'), null, help: $this->messages->t('admin.settings_controller.ai.llms_txt_help', 'A Markdown map of the site: its name and description, then each listed type\'s pages.')),
+						'aside' => $this->llms->enabled ? $this->messages->t('admin.settings_controller.ai.llms_txt_pages', '{count, plural, one {# page} other {# pages}}', count: $listed) : null,
+						'link'  => $this->llms->enabled ? ['label' => $this->messages->t('admin.settings_controller.view', 'View'), 'href' => $this->app->absoluteUrl('/llms.txt')] : null
 					],
 					$this->full($saved),
 					[
-						...self::item('types', 'Types in llms.txt', array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.'),
-						'links' => [['label' => 'Manage Content Types', 'to' => '/types']]
+						...self::item('types', $this->messages->t('admin.settings_controller.ai.types', 'Types in llms.txt'), array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', $this->messages->t('admin.settings_controller.ai.types_help', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.')),
+						'links' => [['label' => $this->messages->t('admin.settings_controller.ai.manage_types', 'Manage Content Types'), 'to' => '/types']]
 					],
 					[
-						...self::item('description', 'Description', $this->app->description === '' ? 'None' : $this->app->description, null, help: 'The line under the site\'s name in llms.txt.'),
-						'links' => [['label' => 'Change in General Settings', 'to' => '/settings/general']]
+						...self::item('description', $this->messages->t('admin.settings_controller.ai.description', 'Description'), $this->app->description === '' ? $this->messages->t('admin.settings_controller.ai.description_none', 'None') : $this->app->description, null, help: $this->messages->t('admin.settings_controller.ai.description_help', 'The line under the site\'s name in llms.txt.')),
+						'links' => [['label' => $this->messages->t('admin.settings_controller.ai.change_in_general', 'Change in General Settings'), 'to' => '/settings/general']]
 					]
 				]),
 				'compact' => true
 			],
 			[...$this->mcpGroup($saved), 'compact' => true],
-			self::group('crawlers', 'AI Crawlers', 'What robots.txt asks of them', [
+			self::group('crawlers', $this->messages->t('admin.settings_controller.groups.crawlers.title', 'AI Crawlers'), $this->messages->t('admin.settings_controller.groups.crawlers.hint', 'What robots.txt asks of them'), [
 				[
-					...$this->edit(self::item('blockAi', 'Ask to stay away', $blocked, $blocked === [], 'switches', Setting::BlockAi->field($this->types)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
-					'words'   => ['on' => 'Asked to Stay Away', 'off' => 'Allowed'],
+					...$this->edit(self::item('blockAi', $this->messages->t('admin.settings_controller.ai.block_ai', 'Ask to stay away'), $blocked, $blocked === [], 'switches', Setting::BlockAi->field($this->types, $this->messages)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
+					'words'   => ['on' => $this->messages->t('admin.settings_controller.ai.block_ai_on', 'Asked to Stay Away'), 'off' => $this->messages->t('admin.settings_controller.ai.block_ai_off', 'Allowed')],
 					'warning' => match (true) {
-						$this->sitemap->robots !== null                          => 'config/sitemap.php\'s own robots.txt replaces the generated one, so these choices aren\'t used.',
-						$this->app->environment !== Environment::Production => 'Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.',
+						$this->sitemap->robots !== null                          => $this->messages->t('admin.settings_controller.ai.block_ai_robots', 'config/sitemap.php\'s own robots.txt replaces the generated one, so these choices aren\'t used.'),
+						$this->app->environment !== Environment::Production => $this->messages->t('admin.settings_controller.ai.block_ai_environment', 'Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.'),
 						default                                              => null
 					}
 				]
@@ -637,19 +640,19 @@ final readonly class SettingsController
 	private function mcpGroup(Settings $saved): array
 	{
 		$connect = array_values(array_map(
-			static fn (Role $role): string => $role->label,
+			static fn (Role $role): string => (string) $role->label,
 			array_filter($this->roles->all(), static fn (Role $role): bool => $role->allows(Capability::ApiConnect->value))
 		));
 
-		return self::group('mcp', 'MCP Server', 'How AI apps work with the site', [
-			$this->edit(self::item('mcp', 'MCP server', $this->mcp->enabled, ! $this->mcp->enabled, 'bool', Setting::Mcp->field($this->types)->description), $saved, Setting::Mcp, $this->mcp->enabled),
+		return self::group('mcp', $this->messages->t('admin.settings_controller.groups.mcp.title', 'MCP Server'), $this->messages->t('admin.settings_controller.groups.mcp.hint', 'How AI apps work with the site'), [
+			$this->edit(self::item('mcp', $this->messages->t('admin.settings_controller.ai.mcp', 'MCP server'), $this->mcp->enabled, ! $this->mcp->enabled, 'bool', Setting::Mcp->field($this->types, $this->messages)->description), $saved, Setting::Mcp, $this->mcp->enabled),
 			[
-				...self::item('mcpAddress', 'Server address', $this->mcp->enabled ? $this->oauth->resource() : 'Off, with the MCP server', null, $this->mcp->enabled ? 'mono' : 'text', 'Paste it into an app\'s connector settings, such as Claude\'s. Each user signs in and approves the app, and it acts as them. Every change it makes is listed under Tools → Activity.'),
+				...self::item('mcpAddress', $this->messages->t('admin.settings_controller.ai.mcp_address', 'Server address'), $this->mcp->enabled ? $this->oauth->resource() : $this->messages->t('admin.settings_controller.ai.mcp_address_off', 'Off, with the MCP server'), null, $this->mcp->enabled ? 'mono' : 'text', $this->messages->t('admin.settings_controller.ai.mcp_address_help', 'Paste it into an app\'s connector settings, such as Claude\'s. Each user signs in and approves the app, and it acts as them. Every change it makes is listed under Tools → Activity.')),
 				'copy' => $this->mcp->enabled
 			],
 			[
-				...self::item('mcpConnect', 'Who can connect apps', $connect, null, 'list', 'Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.'),
-				'links' => [['label' => 'Manage Roles', 'to' => '/roles'], ['label' => 'API Settings', 'to' => '/settings/api']]
+				...self::item('mcpConnect', $this->messages->t('admin.settings_controller.ai.mcp_connect', 'Who can connect apps'), $connect, null, 'list', $this->messages->t('admin.settings_controller.ai.mcp_connect_help', 'Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.')),
+				'links' => [['label' => $this->messages->t('admin.settings_controller.ai.manage_roles', 'Manage Roles'), 'to' => '/roles'], ['label' => $this->messages->t('admin.settings_controller.ai.api_settings', 'API Settings'), 'to' => '/settings/api']]
 			]
 		]);
 	}
@@ -690,9 +693,9 @@ final readonly class SettingsController
 		uasort($sources, static fn (array $a, array $b): int => [$order[$a['kind']] ?? 3, $a['label']] <=> [$order[$b['kind']] ?? 3, $b['label']]);
 
 		return [
-			self::group('tools', 'Tools', 'What a connected app can be asked to do', [
-				[...self::item('tools', 'Tools', [], null, 'tools'), 'sources' => array_values($sources)]
-			], 'Core tools ship with the site. A plugin\'s tools arrive when it\'s turned on and leave when it\'s turned off. Every change a tool makes is listed under Tools → Activity.')
+			self::group('tools', $this->messages->t('admin.settings_controller.groups.tools.title', 'Tools'), $this->messages->t('admin.settings_controller.groups.tools.hint', 'What a connected app can be asked to do'), [
+				[...self::item('tools', $this->messages->t('admin.settings_controller.ai.tools', 'Tools'), [], null, 'tools'), 'sources' => array_values($sources)]
+			], $this->messages->t('admin.settings_controller.groups.tools.note', 'Core tools ship with the site. A plugin\'s tools arrive when it\'s turned on and leave when it\'s turned off. Every change a tool makes is listed under Tools → Activity.'))
 		];
 	}
 
@@ -711,12 +714,12 @@ final readonly class SettingsController
 		$cached = $this->cache->isEnabled($this->app->environment) && $this->cache->pages;
 
 		return [
-			...$this->edit(self::item('full', 'llms-full.txt', $this->llms->full, ! $this->llms->full, 'bool', Setting::LlmsFull->field($this->types)->description), $saved, Setting::LlmsFull, $this->llms->full),
-			'requires' => ['setting' => Setting::Llms->value, 'note' => 'It needs the Markdown copies on.'],
-			'aside'    => $served ? self::bytes($size) : null,
-			'link'     => $served ? ['label' => 'View', 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
+			...$this->edit(self::item('full', 'llms-full.txt', $this->llms->full, ! $this->llms->full, 'bool', Setting::LlmsFull->field($this->types, $this->messages)->description), $saved, Setting::LlmsFull, $this->llms->full),
+			'requires' => ['setting' => Setting::Llms->value, 'note' => $this->messages->t('admin.settings_controller.ai.full_requires', 'It needs the Markdown copies on.')],
+			'aside'    => $served ? $this->bytes($size) : null,
+			'link'     => $served ? ['label' => $this->messages->t('admin.settings_controller.view', 'View'), 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
 			'warning'  => $served && $cached && $size > PageCache::MAX_BYTES
-				? sprintf('At %s, it\'s over the page cache\'s %s, so it\'s built again on every request for it.', self::bytes($size), self::bytes(PageCache::MAX_BYTES))
+				? $this->messages->t('admin.settings_controller.ai.full_too_big', 'At {size}, it\'s over the page cache\'s {max}, so it\'s built again on every request for it.', size: $this->bytes($size), max: $this->bytes(PageCache::MAX_BYTES))
 				: null
 		];
 	}
@@ -724,12 +727,12 @@ final readonly class SettingsController
 	/**
 	 * A size in words: `3.6 MB`, `140 KB`.
 	 */
-	private static function bytes(int $bytes): string
+	private function bytes(int $bytes): Text
 	{
 		return match (true) {
-			$bytes >= 1_048_576 => sprintf('%s MB', rtrim(rtrim(number_format($bytes / 1_048_576, 1), '0'), '.')),
-			$bytes >= 1_024     => sprintf('%d KB', (int) round($bytes / 1_024)),
-			default             => sprintf('%d bytes', $bytes)
+			$bytes >= 1_048_576 => $this->messages->t('admin.settings_controller.bytes.mb', '{size} MB', size: rtrim(rtrim(number_format($bytes / 1_048_576, 1), '0'), '.')),
+			$bytes >= 1_024     => $this->messages->t('admin.settings_controller.bytes.kb', '{size} KB', size: (int) round($bytes / 1_024)),
+			default             => $this->messages->t('admin.settings_controller.bytes.bytes', '{count, plural, one {# byte} other {# bytes}}', count: $bytes)
 		};
 	}
 
@@ -743,32 +746,46 @@ final readonly class SettingsController
 		$environment = $this->app->environment;
 
 		return [
-			self::group('types', 'Content Types', 'Where types come from', [
-				self::item('dataTypes', 'Content types from user/data/types', $this->content->dataTypes, $this->content->dataTypes, 'bool', file: 'config/content.php'),
-				self::item('disabled', 'Built-in types turned off', $this->content->disabled, $this->content->disabled === [], 'list', file: 'config/content.php')
+			self::group('types', $this->messages->t('admin.settings_controller.groups.types.title', 'Content Types'), $this->messages->t('admin.settings_controller.groups.types.hint', 'Where types come from'), [
+				self::item('dataTypes', $this->messages->t('admin.settings_controller.system.data_types', 'Content types from user/data/types'), $this->content->dataTypes, $this->content->dataTypes, 'bool', file: 'config/content.php'),
+				self::item('disabled', $this->messages->t('admin.settings_controller.system.disabled', 'Built-in types turned off'), $this->content->disabled, $this->content->disabled === [], 'list', file: 'config/content.php')
 			]),
-			self::group('caching', 'Caching', 'How pages are kept', [
-				self::item('enabled', 'Caching', $this->cache->isEnabled($environment), $this->cache->enabled === null, 'bool', $this->cache->enabled === null ? 'Off in development, on elsewhere.' : null, 'config/cache.php'),
-				self::item('driver', 'Where it\'s kept', $this->cache->driver, $this->cache->driver === new CacheConfig()->driver, 'mono', file: 'config/cache.php'),
-				self::item('pages', 'Whole pages', $this->cache->pages, $this->cache->pages, 'bool', file: 'config/cache.php'),
-				self::item('maxAge', 'Browsers keep a page', $this->cache->maxAge === 0 ? 'Not at all; they ask each time' : sprintf('%d seconds', $this->cache->maxAge), $this->cache->maxAge === 0, file: 'config/cache.php')
+			self::group('caching', $this->messages->t('admin.settings_controller.groups.caching.title', 'Caching'), $this->messages->t('admin.settings_controller.groups.caching.hint', 'How pages are kept'), [
+				self::item('enabled', $this->messages->t('admin.settings_controller.system.caching', 'Caching'), $this->cache->isEnabled($environment), $this->cache->enabled === null, 'bool', $this->cache->enabled === null ? $this->messages->t('admin.settings_controller.system.caching_help', 'Off in development, on elsewhere.') : null, 'config/cache.php'),
+				self::item('driver', $this->messages->t('admin.settings_controller.system.driver', 'Where it\'s kept'), $this->cache->driver, $this->cache->driver === new CacheConfig()->driver, 'mono', file: 'config/cache.php'),
+				self::item('pages', $this->messages->t('admin.settings_controller.system.pages', 'Whole pages'), $this->cache->pages, $this->cache->pages, 'bool', file: 'config/cache.php'),
+				self::item('maxAge', $this->messages->t('admin.settings_controller.system.max_age', 'Browsers keep a page'), $this->cache->maxAge === 0 ? $this->messages->t('admin.settings_controller.system.max_age_none', 'Not at all; they ask each time') : $this->messages->t('admin.settings_controller.system.max_age_seconds', '{count, plural, one {# second} other {# seconds}}', count: $this->cache->maxAge), $this->cache->maxAge === 0, file: 'config/cache.php')
 			]),
-			self::group('publishing', 'Publishing and Previews', 'Secrets are never shown', [
-				self::item('webhook', 'Publish webhook', $this->publish->secret !== null, $this->publish->secret === null, 'bool', $this->publish->secret === null ? 'On with a PUBLISH_SECRET in .env.' : null, 'config/publish.php'),
-				self::item('git', 'Pull with git when publishing', $this->publish->git, ! $this->publish->git, 'bool', file: 'config/publish.php'),
-				self::item('preview', 'Preview links', $this->preview->secret !== null, $this->preview->secret === null, 'bool', $this->preview->secret === null ? 'On with an APP_SECRET in .env.' : null, 'config/preview.php')
-			], 'From `.env` (`PUBLISH_*`, `APP_SECRET`) when these files don\'t exist.')
+			self::group('publishing', $this->messages->t('admin.settings_controller.groups.publishing.title', 'Publishing and Previews'), $this->messages->t('admin.settings_controller.groups.publishing.hint', 'Secrets are never shown'), [
+				self::item('webhook', $this->messages->t('admin.settings_controller.system.webhook', 'Publish webhook'), $this->publish->secret !== null, $this->publish->secret === null, 'bool', $this->publish->secret === null ? $this->messages->t('admin.settings_controller.system.webhook_help', 'On with a PUBLISH_SECRET in .env.') : null, 'config/publish.php'),
+				self::item('git', $this->messages->t('admin.settings_controller.system.git', 'Pull with git when publishing'), $this->publish->git, ! $this->publish->git, 'bool', file: 'config/publish.php'),
+				self::item('preview', $this->messages->t('admin.settings_controller.system.preview', 'Preview links'), $this->preview->secret !== null, $this->preview->secret === null, 'bool', $this->preview->secret === null ? $this->messages->t('admin.settings_controller.system.preview_help', 'On with an APP_SECRET in .env.') : null, 'config/preview.php')
+			], $this->messages->t('admin.settings_controller.groups.publishing.note', 'From `.env` (`PUBLISH_*`, `APP_SECRET`) when these files don\'t exist.'))
 		];
 	}
 
 	/**
 	 * What the homepage shows, in words.
 	 */
-	private function homeLabel(): string
+	private function homeLabel(): Text
 	{
 		$home = $this->content->home === null ? null : $this->types->find($this->content->home);
 
-		return $home === null ? 'The page at user/content/index.md' : sprintf('The latest %s', mb_strtolower($home->labels->plural));
+		return $home === null
+			? $this->messages->t('admin.settings_controller.reading.home_page', 'The page at user/content/index.md')
+			: $this->messages->t('admin.settings_controller.reading.home_latest', 'The latest {types}', types: mb_strtolower($home->labels->plural));
+	}
+
+	/**
+	 * Where the site runs, in words.
+	 */
+	private function environment(Environment $environment): Text
+	{
+		return match ($environment) {
+			Environment::Development => $this->messages->t('admin.settings_controller.environments.development', 'Development'),
+			Environment::Staging     => $this->messages->t('admin.settings_controller.environments.staging', 'Staging'),
+			Environment::Production  => $this->messages->t('admin.settings_controller.environments.production', 'Production')
+		};
 	}
 
 	/**
@@ -819,7 +836,7 @@ final readonly class SettingsController
 	 * @param  list<array<string, mixed>> $items
 	 * @return array<string, mixed>
 	 */
-	private static function group(string $key, string $title, string $hint, array $items, ?string $note = null): array
+	private static function group(string $key, string|Text $title, string|Text $hint, array $items, string|Text|null $note = null): array
 	{
 		return ['key' => $key, 'title' => $title, 'hint' => $hint, 'note' => $note, 'items' => $items];
 	}
@@ -835,11 +852,11 @@ final readonly class SettingsController
 	 */
 	private function edit(array $item, Settings $saved, Setting $setting, mixed $input, ?Field $field = null): array
 	{
-		$field   = $field ?? $setting->field($this->types);
+		$field   = $field ?? $setting->field($this->types, $this->messages);
 		$control = $setting->control();
 		$field   = FormField::of($field, $control === null ? new FieldControls() : new FieldControls([$field->name => $control]), $this->defaults)->toArray();
-		$choices = $setting->choices($this->types);
-		$details = $setting->details();
+		$choices = $setting->choices($this->types, $this->messages);
+		$details = $setting->details($this->messages);
 
 		if ($choices !== []) {
 			if (is_array($field['item'] ?? null)) {
@@ -853,8 +870,8 @@ final readonly class SettingsController
 			$field['details'] = $details;
 		}
 
-		if ($setting->caption() !== null) {
-			$field['caption'] = $setting->caption();
+		if ($setting->caption($this->messages) !== null) {
+			$field['caption'] = $setting->caption($this->messages);
 		}
 
 		return [...$item, 'setting' => $setting->value, 'field' => $field, 'input' => $input, 'saved' => $saved->has($setting), 'file' => $setting->file()];
@@ -863,11 +880,11 @@ final readonly class SettingsController
 	/**
 	 * One setting.
 	 *
-	 * @param  string|bool|list<string> $value
-	 * @param  ?bool                    $default `null` for a value that follows from others.
+	 * @param  string|bool|list<string>|Text $value
+	 * @param  ?bool                         $default `null` for a value that follows from others.
 	 * @return array<string, mixed>
 	 */
-	private static function item(string $key, string $label, string|bool|array $value, ?bool $default, string $kind = 'text', ?string $help = null, ?string $file = null): array
+	private static function item(string $key, string|Text $label, string|bool|array|Text $value, ?bool $default, string $kind = 'text', string|Text|null $help = null, ?string $file = null): array
 	{
 		return ['key' => $key, 'label' => $label, 'value' => $value, 'kind' => $kind, 'default' => $default, 'help' => $help, 'warning' => null, 'file' => $file];
 	}

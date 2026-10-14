@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\MarkdownField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Markdown, with links and emphasis.
@@ -36,18 +38,18 @@ final class Markdown extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Formatted Text';
+		return $messages->t('field.markdown.label', 'Formatted Text');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Markdown, with links and emphasis.';
+		return $messages->t('field.markdown.description', 'Markdown, with links and emphasis.');
 	}
 
 	/**

@@ -13,6 +13,7 @@
  */
 
 import type { FieldDescription } from './api';
+import { t } from './messages';
 
 /**
  * The controls the admin draws (`Blush\Field\ControlType`, D-766).
@@ -86,7 +87,7 @@ export function isContainer(kind: Control): boolean {
  */
 export function childrenOf(field: FieldDescription): FieldDescription[] {
 	if (holdsValues(field)) {
-		return [{ ...field.item!, name: ITEM_VALUE, label: field.item?.label ?? field.itemLabel ?? 'Item' }];
+		return [{ ...field.item!, name: ITEM_VALUE, label: field.item?.label ?? field.itemLabel ?? t('fields.item', 'Item') }];
 	}
 
 	return (control(field) === 'repeater' ? field.item?.fields : field.fields) ?? [];
@@ -238,7 +239,7 @@ export function inSentence(name: string): string {
  */
 export function help(field: FieldDescription): string {
 	const kind = control(field);
-	const how  = kind === 'code' && holdsSlugs(field, kind) ? 'Separate slugs with commas.' : '';
+	const how  = kind === 'code' && holdsSlugs(field, kind) ? t('fields.separate_slugs', 'Separate slugs with commas.') : '';
 
 	return [field.description ?? '', how].filter((text) => text !== '').join(' ');
 }

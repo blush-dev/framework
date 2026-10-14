@@ -7,6 +7,7 @@
  */
 
 import type { UploadsInfo } from './api';
+import { t } from './messages';
 
 /**
  * One row of the grid, as its boxes hold it.
@@ -82,12 +83,12 @@ export function sizeProblem(text: string, serverLimit: number | null): string | 
 	}
 
 	if (!/^\d+$/.test(trimmed) || Number(trimmed) < 1) {
-		return 'A whole number of megabytes, 1 or more.';
+		return t('uploads.size_whole', 'A whole number of megabytes, 1 or more.');
 	}
 
 	// The box can't be typed past it; a value saved before the server's
 	// limit went down can be.
-	return serverLimit !== null && Number(trimmed) * 1024 * 1024 > serverLimit ? `Over the server's ${megabytes(serverLimit)} MB, so it won't hold.` : null;
+	return serverLimit !== null && Number(trimmed) * 1024 * 1024 > serverLimit ? t('uploads.size_over', 'Over the server\'s {size} MB, so it won\'t hold.', { size: megabytes(serverLimit) }) : null;
 }
 
 /**
@@ -125,16 +126,16 @@ export function patternOf(grid: UploadGrid, kind: string): string {
  */
 export function summary(grid: UploadGrid): string {
 	if (!grid.all.enabled) {
-		return 'No files can be uploaded';
+		return t('uploads.summary_off', 'No files can be uploaded');
 	}
 
 	const rows = Object.values(grid.kinds);
 	const own  = rows.filter((row) => row.enabled && (row.size.trim() !== '' || row.path.trim() !== '')).length;
 	const off  = rows.filter((row) => !row.enabled).length;
 	const parts = [
-		...(own > 0 ? [own === 1 ? '1 kind set on its own' : `${own} kinds set on their own`] : []),
-		...(off > 0 ? [off === 1 ? '1 kind turned off' : `${off} kinds turned off`] : [])
+		...(own > 0 ? [t('uploads.summary_own', '{count, plural, one {# kind set on its own} other {# kinds set on their own}}', { count: own })] : []),
+		...(off > 0 ? [t('uploads.summary_off_kinds', '{count, plural, one {# kind turned off} other {# kinds turned off}}', { count: off })] : [])
 	];
 
-	return parts.length > 0 ? parts.join(' · ') : 'Every kind follows All Files';
+	return parts.length > 0 ? parts.join(' · ') : t('uploads.summary_all', 'Every kind follows All Files');
 }

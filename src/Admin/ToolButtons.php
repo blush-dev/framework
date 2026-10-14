@@ -19,6 +19,7 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolContexts;
 use Blush\Tool\Tools;
+use Blush\Translation\Messages;
 
 /**
  * Which tools are buttons on the Tools screen (D-761): those that need no
@@ -29,7 +30,8 @@ final readonly class ToolButtons
 {
 	public function __construct(
 		private Tools $tools,
-		private ToolContexts $contexts
+		private ToolContexts $contexts,
+		private Messages $messages
 	) {}
 
 	/**
@@ -73,10 +75,10 @@ final readonly class ToolButtons
 	 * The question to ask before running a tool: its own, or, for one
 	 * that may destroy something, a warning.
 	 */
-	public static function confirm(Tool $tool): ?string
+	public function confirm(Tool $tool): ?string
 	{
 		$confirm = $tool->confirm();
 
-		return $confirm !== null ? (string) $confirm : ($tool->annotations()->destructive ? sprintf('%s may remove something that can\'t be put back.', $tool->title()) : null);
+		return $confirm !== null ? (string) $confirm : ($tool->annotations()->destructive ? (string) $this->messages->t('admin.tool_buttons.destructive', '{tool} may remove something that can\'t be put back.', tool: (string) $tool->title()) : null);
 	}
 }

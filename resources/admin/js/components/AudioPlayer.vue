@@ -32,7 +32,7 @@ watch(() => props.artwork, () => {
 			<span class="audio-card__title">{{ title }}</span>
 			<span v-if="by" class="audio-card__by">{{ by }}</span>
 		</figcaption>
-		<img v-if="artwork && !failed" class="audio-card__art" :src="artwork" alt="Its artwork" @error="failed = true">
+		<img v-if="artwork && !failed" class="audio-card__art" :src="artwork" :alt="t('audio_player.artwork', 'Its artwork')" @error="failed = true">
 		<span v-else-if="artwork !== undefined" class="audio-card__art audio-card__art--none"><AdminIcon name="music" /></span>
 		<blush-audio-player>
 			<audio :src="src" controls preload="metadata" />

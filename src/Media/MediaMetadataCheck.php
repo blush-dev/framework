@@ -23,6 +23,7 @@ use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
 use Blush\Media\Index\MediaIndex;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Checks the metadata files under `user/data/media` (D-238, D-293), as
@@ -56,7 +57,8 @@ final readonly class MediaMetadataCheck
 		private AppConfig $app,
 		private MediaIds $ids,
 		private MediaSizes $sizes,
-		private MediaIndex $index
+		private MediaIndex $index,
+		private Messages $messages
 	) {}
 
 	/**
@@ -158,9 +160,9 @@ final readonly class MediaMetadataCheck
 
 		foreach (array_diff($report->missing, array_map(strval(...), $unreadable)) as $key) {
 			if (isset($files[$key]) && array_key_exists(MediaMetadata::ID, $records[$key]->metadata ?? [])) {
-				$violations[$files[$key]['location']][] = new Violation(MediaMetadata::ID, 'isn\'t a UUID; give the file a new one with media:ids --write, or on Site Health in the admin.', kind: ViolationKind::Id);
+				$violations[$files[$key]['location']][] = new Violation(MediaMetadata::ID, $this->messages->t('media.media_metadata_check.id_invalid', 'isn\'t a UUID; give the file a new one with {command}, or on Site Health in the admin.', command: 'media:ids --write'), kind: ViolationKind::Id);
 			} else {
-				$violations[$media($key)][] = new Violation(MediaMetadata::ID, 'has no id; add one with media:ids --write, or on Site Health in the admin.', kind: ViolationKind::Id);
+				$violations[$media($key)][] = new Violation(MediaMetadata::ID, $this->messages->t('media.media_metadata_check.id_missing', 'has no id; add one with {command}, or on Site Health in the admin.', command: 'media:ids --write'), kind: ViolationKind::Id);
 			}
 		}
 
@@ -168,7 +170,7 @@ final readonly class MediaMetadataCheck
 			$shown = array_map(fn (string $key): string => isset($files[$key]) ? $files[$key]['location'] : $media($key), $keys);
 
 			foreach ($shown as $path) {
-				$violations[$path][] = new Violation(MediaMetadata::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with media:ids --keep, or on Site Health in the admin.', implode(', ', array_diff($shown, [$path]))), kind: ViolationKind::Id);
+				$violations[$path][] = new Violation(MediaMetadata::ID, $this->messages->t('media.media_metadata_check.id_shared', 'is also the id of {files}; keep it on one file and give the others new ones with {command}, or on Site Health in the admin.', files: implode(', ', array_diff($shown, [$path])), command: 'media:ids --keep'), kind: ViolationKind::Id);
 			}
 		}
 
@@ -181,7 +183,7 @@ final readonly class MediaMetadataCheck
 		foreach ($stale as $key => $listed) {
 			if (isset($files[$key])) {
 				foreach ($listed as $size) {
-					$violations[$files[$key]['location']][] = new Violation(MediaMetadata::RENDITIONS, sprintf('lists %s, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.', $media($size)), Severity::Warning, ViolationKind::Sizes);
+					$violations[$files[$key]['location']][] = new Violation(MediaMetadata::RENDITIONS, $this->messages->t('media.media_metadata_check.size_stale', 'lists {file}, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with {command}, or on Site Health in the admin.', file: $media($size), command: 'media:sizes --write'), Severity::Warning, ViolationKind::Sizes);
 				}
 			}
 		}
@@ -203,8 +205,8 @@ final readonly class MediaMetadataCheck
 			}
 
 			$problem = match (true) {
-				! MediaArtwork::has($record->kind()) => 'is only for sounds and videos; this file never shows it.',
-				! isset($images[$artwork])           => 'names an image that isn\'t in the media library; choose another on the file\'s screen in the admin, or remove it.',
+				! MediaArtwork::has($record->kind()) => $this->messages->t('media.media_metadata_check.artwork_kind', 'is only for sounds and videos; this file never shows it.'),
+				! isset($images[$artwork])           => $this->messages->t('media.media_metadata_check.artwork_missing', 'names an image that isn\'t in the media library; choose another on the file\'s screen in the admin, or remove it.'),
 				default                              => null
 			};
 
@@ -215,7 +217,7 @@ final readonly class MediaMetadataCheck
 
 		foreach ($records as $key => $record) {
 			if ($record->original !== null && isset($files[$key])) {
-				$violations[$files[$key]['location']][] = new Violation(Linter::FILE, sprintf('describes %s, a size of %s, whose details are read instead; move these there, or give this file an id of its own to keep it apart.', $media((string) $key), $media($record->original)), Severity::Warning, ViolationKind::Details);
+				$violations[$files[$key]['location']][] = new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.size_details', 'describes {file}, a size of {original}, whose details are read instead; move these there, or give this file an id of its own to keep it apart.', file: $media((string) $key), original: $media($record->original)), Severity::Warning, ViolationKind::Details);
 			}
 		}
 
@@ -236,11 +238,11 @@ final readonly class MediaMetadataCheck
 			$message = $error->getMessage();
 			$message = str_starts_with($message, "{$location}: ") ? substr($message, strlen($location) + 2) : $message;
 
-			return [new Violation(Linter::FILE, sprintf('can\'t be read, so the file has no details: %s', $message), kind: ViolationKind::Unreadable)];
+			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.unreadable', 'can\'t be read, so the file has no details: {error}', error: $message), kind: ViolationKind::Unreadable)];
 		}
 
 		if ($data !== [] && array_is_list($data)) {
-			return [new Violation(Linter::FILE, 'isn\'t a map of fields, so the file has no details.', kind: ViolationKind::Unreadable)];
+			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.not_a_map', 'isn\'t a map of fields, so the file has no details.'), kind: ViolationKind::Unreadable)];
 		}
 
 		$media = $this->resolver->fromKey($key);
@@ -249,18 +251,18 @@ final readonly class MediaMetadataCheck
 			return [$this->orphan($key)];
 		}
 
-		$violations = $this->schemas->forFile($media)->resolve(MediaMetadata::fromArray($data)->fields(), new FieldContext($this->app->timezone()))->violations;
+		$violations = $this->schemas->forFile($media)->resolve(MediaMetadata::fromArray($data)->fields(), new FieldContext($this->app->timezone(), $this->messages))->violations;
 
 		if (array_key_exists(MediaMetadata::ARTWORK, $data) && ! Uuid::isValid($data[MediaMetadata::ARTWORK])) {
-			$violations[] = new Violation(MediaMetadata::ARTWORK, 'isn\'t a library image\'s id; choose the artwork again on the file\'s screen in the admin.', kind: ViolationKind::Artwork);
+			$violations[] = new Violation(MediaMetadata::ARTWORK, $this->messages->t('media.media_metadata_check.artwork_invalid', 'isn\'t a library image\'s id; choose the artwork again on the file\'s screen in the admin.'), kind: ViolationKind::Artwork);
 		}
 
 		if (array_key_exists(MediaMetadata::UPLOADED, $data) && MediaMetadata::readDate($data[MediaMetadata::UPLOADED]) === null) {
-			$violations[] = new Violation(MediaMetadata::UPLOADED, 'isn\'t a date and time with its offset, such as 2026-10-10 19:03:00 +00:00; the library orders the file by a likely one until it\'s fixed.', kind: ViolationKind::Value);
+			$violations[] = new Violation(MediaMetadata::UPLOADED, $this->messages->t('media.media_metadata_check.uploaded_invalid', 'isn\'t a date and time with its offset, such as {example}; the library orders the file by a likely one until it\'s fixed.', example: '2026-10-10 19:03:00 +00:00'), kind: ViolationKind::Value);
 		}
 
 		if (array_key_exists(MediaMetadata::RENDITIONS, $data) && ! self::sizesFit($data[MediaMetadata::RENDITIONS])) {
-			$violations[] = new Violation(MediaMetadata::RENDITIONS, 'isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.', kind: ViolationKind::Value);
+			$violations[] = new Violation(MediaMetadata::RENDITIONS, $this->messages->t('media.media_metadata_check.sizes_invalid', 'isn\'t a map of each size\'s file to its width and height; record them again with {command}.', command: 'media:sizes --write'), kind: ViolationKind::Value);
 		}
 
 		return $violations;
@@ -289,7 +291,7 @@ final readonly class MediaMetadataCheck
 		$shown = $this->paths->relative($media);
 
 		return new Violation(Linter::FILE, is_file($media)
-			? sprintf('describes %s, which isn\'t a type of media the site allows.', $shown)
-			: sprintf('describes %s, which isn\'t there; move this file with its media file, or delete it.', $shown), Severity::Warning, ViolationKind::Details);
+			? $this->messages->t('media.media_metadata_check.orphan_refused', 'describes {file}, which isn\'t a type of media the site allows.', file: $shown)
+			: $this->messages->t('media.media_metadata_check.orphan_missing', 'describes {file}, which isn\'t there; move this file with its media file, or delete it.', file: $shown), Severity::Warning, ViolationKind::Details);
 	}
 }

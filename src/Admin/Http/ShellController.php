@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Admin\Http;
 
+use JsonException;
+use stdClass;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Admin\AdminApp;
 use Blush\Admin\AdminConfig;
+use Blush\Admin\AdminLanguages;
 use Blush\Admin\Theme\AdminThemes;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
@@ -31,6 +34,9 @@ use Blush\Markdown\Html\HtmlRules;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Session\SessionReader;
+use Blush\Translation\CurrentLocale;
+use Blush\Translation\Messages;
+use Blush\Translation\Translator;
 
 /**
  * Serves the page the admin app runs in, at `{path}` and every screen
@@ -45,6 +51,10 @@ use Blush\Session\SessionReader;
  * date and time formats and language, which the admin shows dates read
  * as dates in (D-693). Everything else comes from the API. The session is only
  * read, never started or kept alive, so the page sets no cookies.
+ *
+ * The page is in the account's language (D-831), or the site's: it's
+ * `<html lang>`, and core's `admin` catalog in it is printed for
+ * `blush/messages` to read, with the languages an account may choose.
  *
  * The page is never cached or framed, and a strict Content Security
  * Policy allows only the site's own scripts and styles.
@@ -65,7 +75,11 @@ final readonly class ShellController
 		private MediaConfig $media,
 		private MarkdownConfig $markdown,
 		private AdminThemes $themes,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private AdminLanguages $languages,
+		private Translator $translator,
+		private CurrentLocale $locale,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -96,12 +110,13 @@ final readonly class ShellController
 		$choice      = $preferences?->adminTheme;
 		$theme       = $this->themes->inUse($choice);
 		$skinned     = $theme !== null && $theme->name !== AdminThemes::BASE;
+		$language    = $this->languages->for($preferences);
 
 		if ($skinned) {
 			$styles .= sprintf("<link rel=\"stylesheet\" id=\"blush-admin-theme\" href=\"%s\">\n", self::escape($this->app->themeUrl($theme)));
 		}
 
-		$config = json_encode([
+		$config = self::json([
 			'base'        => $this->config->path,
 			'api'         => "{$this->config->path}/api",
 			'site'        => ['name' => $this->site->name, 'url' => $this->site->url],
@@ -109,6 +124,10 @@ final readonly class ShellController
 			'colorScheme' => $scheme?->value,
 			'adminTheme'  => $choice,
 			'adminThemes' => $this->adminThemes(),
+			// The account's language, `null` for the site's, and the ones
+			// it may choose (D-831).
+			'language'    => $preferences?->language,
+			'adminLanguages' => $this->languages->offered(),
 			'mentions'    => $this->markdown->mentions,
 			'dates'       => [
 				'locale' => str_replace('_', '-', $this->site->locale),
@@ -125,9 +144,11 @@ final readonly class ShellController
 				'refusedAttributes' => HtmlRules::REFUSED_ATTRIBUTES,
 				'urlAttributes'     => HtmlRules::URL_ATTRIBUTES
 			]
-		], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+		]);
 
-		$title  = self::escape("Admin · {$this->site->name}");
+		$messages = self::json($this->translator->catalog(Translator::CORE, AdminLanguages::CATALOG, $language, Translator::LAST) ?: new stdClass());
+		$lang     = self::escape(str_replace('_', '-', $language));
+		$title    = self::escape($this->locale->in($language, fn (): string => (string) $this->messages->t('admin.shell_controller.title', 'Admin · {site}', site: $this->site->name)));
 		$script = self::escape($this->app->url($entry['script']));
 		$id     = self::CONFIG_ID;
 		$html   = ($scheme === null || $scheme === ColorScheme::System ? '' : " data-color-scheme=\"{$scheme->value}\"")
@@ -135,7 +156,7 @@ final readonly class ShellController
 
 		return Response::html(<<<HTML
 			<!doctype html>
-			<html lang="en"{$html}>
+			<html lang="{$lang}"{$html}>
 			<head>
 			<meta charset="utf-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -146,6 +167,7 @@ final readonly class ShellController
 			<body>
 			<div id="app"></div>
 			<script type="application/json" id="{$id}">{$config}</script>
+			<script type="application/json" data-blush-messages="core" data-blush-catalog="admin">{$messages}</script>
 			</body>
 			</html>
 
@@ -189,6 +211,16 @@ final readonly class ShellController
 		} catch (AuthException) {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns a value as JSON safe in a `<script>` block.
+	 *
+	 * @throws JsonException
+	 */
+	private static function json(mixed $value): string
+	{
+		return json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 	}
 
 	/**

@@ -24,6 +24,8 @@ use Blush\Tool\ToolContext;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `search_media` (D-755): files in the media library by kind, by words in
@@ -34,19 +36,20 @@ final class SearchMedia extends Tool
 {
 	public function __construct(
 		private readonly MediaLibrary $library,
-		private readonly MediaResource $resource
+		private readonly MediaResource $resource,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Search Media';
+		return $this->messages->t('tool.search_media.title', 'Search Media');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Finds files in the media library (images, video, audio, documents) by kind, by words in their name, title, alt text, or caption, and those missing alt text. Answers each file\'s id, address, size, title, alt text, and caption; get_media adds where it\'s used.';
+		return $this->messages->t('tool.search_media.description', 'Finds files in the media library (images, video, audio, documents) by kind, by words in their name, title, alt text, or caption, and those missing alt text. Answers each file\'s id, address, size, title, alt text, and caption; get_media adds where it\'s used.');
 	}
 
 	#[Override]
@@ -70,7 +73,7 @@ final class SearchMedia extends Tool
 	{
 		$limit  = is_int($input['limit'] ?? null) ? $input['limit'] : SearchEntries::LIMIT;
 		$cursor = $input['cursor'] ?? null;
-		$page   = $cursor === null ? 1 : (is_string($cursor) && ctype_digit($cursor) && (int) $cursor >= 1 ? (int) $cursor : throw new ToolError('"cursor" must be the next_cursor a search answered.'));
+		$page   = $cursor === null ? 1 : (is_string($cursor) && ctype_digit($cursor) && (int) $cursor >= 1 ? (int) $cursor : throw new ToolError((string) $this->messages->t('tool.search_media.cursor', '"cursor" must be the next_cursor a search answered.')));
 
 		try {
 			$found = array_values(array_filter(
@@ -85,13 +88,13 @@ final class SearchMedia extends Tool
 
 			$items = array_map($this->resource->item(...), array_slice($found, ($page - 1) * $limit, $limit));
 		} catch (MediaException $error) {
-			throw new ToolError(sprintf('The media library can\'t be read: %s', $error->getMessage()));
+			throw new ToolError((string) $this->messages->t('tool.search_media.unreadable', 'The media library can\'t be read: {problem}', problem: $error->getMessage()));
 		}
 
 		return new ToolResult([
 			'media'       => $items,
 			'total'       => count($found),
 			'next_cursor' => $page * $limit < count($found) ? (string) ($page + 1) : null
-		], sprintf('Found %d file%s.', count($found), count($found) === 1 ? '' : 's'));
+		], $this->messages->t('tool.search_media.found', 'Found {count, plural, one {# file} other {# files}}.', count: count($found)));
 	}
 }

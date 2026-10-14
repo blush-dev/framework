@@ -36,6 +36,7 @@ use Blush\Job\RunnerKind;
 use Blush\Job\Schedule;
 use Blush\Job\Scheduler;
 use Blush\Job\WebRunner;
+use Blush\Translation\Messages;
 
 /**
  * Background jobs in the admin (D-621): the Tools screen's Jobs tab, and
@@ -78,7 +79,8 @@ final readonly class JobController
 		private Permissions $permissions,
 		private AppConfig $app,
 		private Paths $paths,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -98,7 +100,7 @@ final readonly class JobController
 			$tasks[] = [
 				'job'       => $key,
 				'label'     => $this->jobs->label($key),
-				'frequency' => $task->frequency->describe(),
+				'frequency' => $task->frequency->describe($this->messages),
 				'last'      => $this->format($this->scheduler->lastRun($key)),
 				'next'      => $this->format($this->scheduler->nextRun($task))
 			];
@@ -123,7 +125,7 @@ final readonly class JobController
 		$job     = $this->queue->find($id);
 
 		if ($job === null) {
-			return self::json(['error' => 'There\'s no such job.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.job_controller.no_job', 'There\'s no such job.')], Status::NotFound);
 		}
 
 		if (! $this->canFollow($account, $job)) {
@@ -143,7 +145,7 @@ final readonly class JobController
 		$job     = $this->queue->find($id);
 
 		if ($job === null) {
-			return self::json(['error' => 'There\'s no such job.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.job_controller.no_job', 'There\'s no such job.')], Status::NotFound);
 		}
 
 		if (! $this->canFollow($account, $job)) {
@@ -172,7 +174,7 @@ final readonly class JobController
 		$job = $this->queue->find($id);
 
 		if ($job === null) {
-			return self::json(['error' => 'There\'s no such job.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.job_controller.no_job', 'There\'s no such job.')], Status::NotFound);
 		}
 
 		try {
@@ -182,7 +184,7 @@ final readonly class JobController
 		}
 
 		return $queued === null
-			? self::json(['error' => 'Only a failed job can be tried again.'], Status::Conflict)
+			? self::json(['error' => $this->messages->t('admin.job_controller.retry_failed_only', 'Only a failed job can be tried again.')], Status::Conflict)
 			: self::json(['job' => $this->describe($queued)]);
 	}
 
@@ -200,12 +202,12 @@ final readonly class JobController
 		$job = $this->queue->find($id);
 
 		if ($job === null) {
-			return self::json(['error' => 'There\'s no such job.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.job_controller.no_job', 'There\'s no such job.')], Status::NotFound);
 		}
 
 		return $this->queue->delete($job)
 			? self::json(['deleted' => $job->id])
-			: self::json(['error' => 'A running job can\'t be deleted. Wait for it to finish.'], Status::Conflict);
+			: self::json(['error' => $this->messages->t('admin.job_controller.running', 'A running job can\'t be deleted. Wait for it to finish.')], Status::Conflict);
 	}
 
 	/**
@@ -226,7 +228,7 @@ final readonly class JobController
 		}
 
 		return $record === null
-			? self::json(['error' => sprintf('"%s" isn\'t on the schedule.', $job)], Status::NotFound)
+			? self::json(['error' => $this->messages->t('admin.job_controller.not_scheduled', '"{job}" isn\'t on the schedule.', job: $job)], Status::NotFound)
 			: self::json(['job' => $this->describe($record)]);
 	}
 
@@ -292,8 +294,8 @@ final readonly class JobController
 	private function forbidden(?Account $account): ResponseInterface
 	{
 		return $account === null
-			? self::json(['error' => 'Sign in first.'], Status::Unauthorized)
-			: self::json(['error' => 'You aren\'t allowed to do that.'], Status::Forbidden);
+			? self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized)
+			: self::json(['error' => $this->messages->t('admin.job_controller.not_allowed', 'You aren\'t allowed to do that.')], Status::Forbidden);
 	}
 
 	/**

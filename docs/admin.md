@@ -119,6 +119,18 @@ light, dark, or your device's setting (the default). Each choice is saved with y
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
 
+**Language** sets the language the admin is shown in: the site's (the
+default), or one the admin has text in, each named in its own
+language. Like the theme, it's saved with your account. Content is
+still written in the site's languages. The admin's text is in core's
+`admin` catalog (`resources/lang/admin/en.json`); Blush ships it in
+English for now, and a language appears here once there's a catalog
+for it, such as your site's own translation in
+`user/lang/{locale}/admin/core.json`. What the server sends the admin
+(errors, and the Settings and Site Health screens' text) is in core's
+main catalog under `admin.` keys (`resources/lang/en.json`, translated
+in `user/lang/{locale}/core.json`), and follows the same language.
+
 **Change Password** asks for your current password and a new one (at
 least 12 characters, unless your site sets another length). You stay
 signed in where you changed it, and you're signed out on every other

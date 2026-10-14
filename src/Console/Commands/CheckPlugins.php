@@ -32,6 +32,7 @@ use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
 use Blush\Translation\CatalogCheck;
 use Blush\Translation\MessageExtractor;
+use Blush\Translation\ScriptMessages;
 use Blush\Translation\SourceCatalog;
 use Blush\Translation\TranslationException;
 
@@ -53,7 +54,8 @@ final readonly class CheckPlugins
 		private ExtensionState $extensions,
 		private CatalogCheck $catalogs,
 		private MessageExtractor $extractor,
-		private SourceCatalog $sourceCatalog
+		private SourceCatalog $sourceCatalog,
+		private ScriptMessages $scripts
 	) {}
 
 	public function __invoke(
@@ -85,12 +87,14 @@ final readonly class CheckPlugins
 			$catalogs = array_filter($this->catalogs->check("{$plugin->path}/lang", $plugin->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
 
 			// The messages its code and manifest write against lang/en.json
-			// (D-784, D-824); a catalog that can't be read is reported above.
+			// (D-784, D-824), and its scripts' against their named catalogs
+			// (D-831); a catalog that can't be read is reported above.
 			[$messages, $problems] = $this->extractor->extract($plugin->path);
 			$messages              = [...ExtensionText::extracted($plugin), ...$messages];
 
 			try {
 				$problems = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path("{$plugin->path}/lang"))];
+				$problems = [...$problems, ...$this->scripts->check($plugin->path, $plugin->catalogs, $plugin->name, "{$plugin->path}/lang")];
 			} catch (TranslationException) {
 				// Reported by the catalog check.
 			}
@@ -105,7 +109,7 @@ final readonly class CheckPlugins
 
 			// An abandoned plugin still runs, as in Composer (D-433).
 			if ($abandoned !== null) {
-				$lines[] = new StatusLine(Outcome::Warning, $plugin->name, $abandoned);
+				$lines[] = new StatusLine(Outcome::Warning, $plugin->name, (string) $abandoned);
 			}
 
 			// A version Composer can't read meets only `*` (D-429).

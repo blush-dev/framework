@@ -32,6 +32,8 @@ use Blush\Content\Type\InvalidContentType;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Creates, changes, and deletes the field sets the site defines in
@@ -70,13 +72,14 @@ final readonly class FieldSetEditController
 		private AppConfig $app,
 		private Permissions $permissions,
 		private FieldMoves $moves,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input = self::input($request);
@@ -94,7 +97,7 @@ final readonly class FieldSetEditController
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$set = self::input($request)['set'] ?? [];
@@ -138,7 +141,7 @@ final readonly class FieldSetEditController
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -163,7 +166,7 @@ final readonly class FieldSetEditController
 	{
 		try {
 			$types = $change();
-			$set   = $types->sets->find($name) ?? throw new InvalidContentType(sprintf('The "%s" field set was saved, but a set of that name from elsewhere is used.', $name));
+			$set   = $types->sets->find($name) ?? throw new InvalidContentType((string) $this->messages->t('admin.field_set_edit_controller.shadowed', 'The "{name}" field set was saved, but a set of that name from elsewhere is used.', name: $name));
 
 			$this->compile();
 		} catch (InvalidContentType $error) {
@@ -212,12 +215,12 @@ final readonly class FieldSetEditController
 		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return self::error('You aren\'t allowed to change field sets.', Status::Forbidden);
+		return self::error($this->messages->t('admin.field_set_edit_controller.forbidden', 'You aren\'t allowed to change field sets.'), Status::Forbidden);
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

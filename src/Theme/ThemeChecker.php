@@ -36,9 +36,11 @@ use Blush\View\ViewFactory;
 use Blush\View\Views;
 use Blush\Translation\CatalogCheck;
 use Blush\Translation\MessageExtractor;
+use Blush\Translation\ScriptMessages;
 use Blush\Translation\SourceCatalog;
 use Blush\View\EntryTemplate;
 use Blush\View\EntryTemplateRegistry;
+use Blush\Translation\Messages;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
@@ -92,7 +94,9 @@ final readonly class ThemeChecker
 		private ThemeResolver $resolver,
 		private MessageExtractor $extractor,
 		private SourceCatalog $sourceCatalog,
-		private EntryTemplateRegistry $templates
+		private EntryTemplateRegistry $templates,
+		private ScriptMessages $scripts,
+		private Messages $messages
 	) {}
 
 	/**
@@ -109,7 +113,7 @@ final readonly class ThemeChecker
 		}
 
 		try {
-			$chain = $this->themes->chain($name);
+			$chain = $this->themes->chain($name, $this->messages);
 		} catch (ThemeException $error) {
 			return new ThemeReport($name, [new Violation('manifest', $error->getMessage()), ...$problems]);
 		}
@@ -131,7 +135,7 @@ final readonly class ThemeChecker
 			try {
 				$this->resolver->start($name);
 			} catch (Throwable $error) {
-				$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider couldn\'t start: %s', $name, $error->getMessage()));
+				$problems[] = new Violation('provider', $this->messages->t('theme.theme_checker.provider_failed', 'The "{theme}" theme\'s provider couldn\'t start: {error}', theme: $name, error: $error->getMessage()));
 			}
 
 			foreach ($chain as $theme) {
@@ -170,7 +174,8 @@ final readonly class ThemeChecker
 
 	/**
 	 * Checks the messages a theme's code and manifest write (D-784,
-	 * D-824) against its source catalog, `lang/en.json`: text it has
+	 * D-824) against its source catalog, `lang/en.json`, and its
+	 * scripts' against their named catalogs (D-831): text it has
 	 * otherwise (run `lang:extract`), and calls that can't be collected.
 	 *
 	 * @return list<Violation>
@@ -181,6 +186,7 @@ final readonly class ThemeChecker
 			[$messages, $problems] = $this->extractor->extract($theme->path);
 			$messages              = [...ExtensionText::extracted($theme), ...$messages];
 			$problems              = [...$problems, ...$this->sourceCatalog->compare($messages, SourceCatalog::path($theme->langPath()))];
+			$problems              = [...$problems, ...$this->scripts->check($theme->path, $theme->catalogs, $theme->name, $theme->langPath())];
 		} catch (Throwable $error) {
 			$problems = [new Violation('lang', $error->getMessage(), Severity::Warning)];
 		}
@@ -201,19 +207,19 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		if ($theme->provider !== null && ! is_subclass_of($theme->provider, ServiceProvider::class)) {
-			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));
+			$problems[] = new Violation('provider', $this->messages->t('theme.theme_checker.provider_class', 'The "{theme}" theme\'s provider {provider} isn\'t a service provider class (check its "autoload").', theme: $theme->name, provider: $theme->provider));
 		}
 
-		$abandoned = ExtensionAbandoned::warning($theme->abandoned);
+		$abandoned = ExtensionAbandoned::warning($theme->abandoned, $this->messages);
 
 		// An abandoned theme still runs, as in Composer (D-433).
 		if ($abandoned !== null) {
-			$problems[] = new Violation('abandoned', sprintf('The "%s" theme: %s', $theme->name, $abandoned), Severity::Warning);
+			$problems[] = new Violation('abandoned', $this->messages->t('theme.theme_checker.abandoned', 'The "{theme}" theme: {warning}', theme: $theme->name, warning: $abandoned), Severity::Warning);
 		}
 
 		// A version Composer can't read meets only `*` (D-429, D-430).
 		if ($theme->version !== '' && VersionConstraint::normalize($theme->version) === null) {
-			$problems[] = new Violation('version', sprintf('The "%s" theme\'s version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".', $theme->name, $theme->version), Severity::Warning);
+			$problems[] = new Violation('version', $this->messages->t('theme.theme_checker.version', 'The "{theme}" theme\'s version, "{version}", isn\'t one Composer can read, so a requirement of it is met only by "*".', theme: $theme->name, version: $theme->version), Severity::Warning);
 		}
 
 		return $problems;
@@ -237,11 +243,11 @@ final readonly class ThemeChecker
 			return [];
 		}
 
-		$reason = Requirements::reason(array_merge(...array_values($unmet)));
+		$reason = Requirements::reason(array_merge(...array_values($unmet)), $this->messages);
 
 		return [$active
-			? new Violation('require', sprintf('%s The default theme runs in its place until that\'s fixed.', $reason))
-			: new Violation('require', sprintf('%s It can\'t be activated until that\'s fixed.', $reason), Severity::Warning)];
+			? new Violation('require', $this->messages->t('theme.theme_checker.unmet_active', '{reason} The default theme runs in its place until that\'s fixed.', reason: $reason))
+			: new Violation('require', $this->messages->t('theme.theme_checker.unmet', '{reason} It can\'t be activated until that\'s fixed.', reason: $reason), Severity::Warning)];
 	}
 
 	/**
@@ -298,7 +304,7 @@ final readonly class ThemeChecker
 
 		foreach ($blocks as $block) {
 			if ($block->isMissingTemplate()) {
-				$problems[] = new Violation("block {$block->name}", sprintf('The "%s" block (%s) has no %s template in the chain.', $block->name, $block->className(), array_last($block->name->views())), Severity::Warning);
+				$problems[] = new Violation("block {$block->name}", $this->messages->t('theme.theme_checker.block_template', 'The "{block}" block ({class}) has no {view} template in the chain.', block: (string) $block->name, class: $block->className(), view: array_last($block->name->views())), Severity::Warning);
 			}
 		}
 
@@ -308,25 +314,27 @@ final readonly class ThemeChecker
 			}
 
 			if ($component->isMissingTemplate()) {
-				$problems[] = new Violation("component {$component->name}", sprintf('The "%s" component (%s) has no %s template in the chain.', $component->name, $component->class ?? 'no class', $component->name->view()), Severity::Warning);
+				$problems[] = new Violation("component {$component->name}", ($component->class === null
+					? $this->messages->t('theme.theme_checker.component_template_no_class', 'The "{component}" component (no class) has no {view} template in the chain.', component: (string) $component->name, view: $component->name->view())
+					: $this->messages->t('theme.theme_checker.component_template', 'The "{component}" component ({class}) has no {view} template in the chain.', component: (string) $component->name, class: $component->class, view: $component->name->view())), Severity::Warning);
 			}
 		}
 
 		foreach ($missing as $template) {
-			$problems[] = new Violation("template {$template->name}", sprintf('The "%s" template (%s) is declared for entries but has no %s view in the chain, so the editor doesn\'t offer it.', $template->name, $views->text($template->label), $template->name), Severity::Warning);
+			$problems[] = new Violation("template {$template->name}", $this->messages->t('theme.theme_checker.entry_template', 'The "{template}" template ({label}) is declared for entries but has no {template} view in the chain, so the editor doesn\'t offer it.', template: $template->name, label: $views->text($template->label)), Severity::Warning);
 		}
 
 		$problems = [...$problems, ...$this->variants($theme, $views, $blocks)];
 
 		foreach ($strayBlocks as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
-				$problems[] = new Violation('block ' . basename($file), sprintf('blocks/%s isn\'t for a registered block, so it never renders. Themes can\'t add blocks (D-532): make it a component (components/%s-%s) for the theme\'s templates.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
+				$problems[] = new Violation('block ' . basename($file), $this->messages->t('theme.theme_checker.stray_block', 'blocks/{file} isn\'t for a registered block, so it never renders. Themes can\'t add blocks (D-532): make it a component (components/{namespace}-{file}) for the theme\'s templates.', file: basename($file), namespace: $theme->namespace), Severity::Warning);
 			}
 		}
 
 		foreach ($strayComponents as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
-				$problems[] = new Violation('component ' . basename($file), sprintf('components/%s isn\'t named for a component, so it never renders; name it components/%s-%s.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
+				$problems[] = new Violation('component ' . basename($file), $this->messages->t('theme.theme_checker.stray_component', 'components/{file} isn\'t named for a component, so it never renders; name it components/{namespace}-{file}.', file: basename($file), namespace: $theme->namespace), Severity::Warning);
 			}
 		}
 
@@ -355,7 +363,7 @@ final readonly class ThemeChecker
 			$name = BlockName::parse($block);
 
 			if ($name === null || ! in_array((string) $name, $known, true)) {
-				$problems[] = new Violation("variants {$block}", sprintf('theme.json lists variants for "%s", which isn\'t a block.', $block), Severity::Warning);
+				$problems[] = new Violation("variants {$block}", $this->messages->t('theme.theme_checker.variants_not_block', 'theme.json lists variants for "{block}", which isn\'t a block.', block: $block), Severity::Warning);
 
 				continue;
 			}
@@ -364,9 +372,9 @@ final readonly class ThemeChecker
 				$variant = BlockVariants::manifestItem($item, $theme->namespace);
 
 				if ($variant === null) {
-					$problems[] = new Violation("variants {$name}", sprintf('theme.json lists a variant of "%s" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', $name), Severity::Warning);
+					$problems[] = new Violation("variants {$name}", $this->messages->t('theme.theme_checker.variant_invalid', 'theme.json lists a variant of "{block}" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', block: (string) $name), Severity::Warning);
 				} elseif ($views->variantText($name, $variant, 'label') === null) {
-					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "blocks.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
+					$problems[] = new Violation("variants {$name}", $this->messages->t('theme.theme_checker.variant_label', 'The "{variant}" variant of "{block}" has no label; add "blocks.{name}.variants.{variant}.label" to the theme\'s lang/ catalog.', variant: $variant->name, block: (string) $name, name: $name->name), Severity::Notice);
 				}
 			}
 		}
@@ -377,7 +385,7 @@ final readonly class ThemeChecker
 			$other = BlockName::fromFileName($fileName, $namespaces);
 
 			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
-				$problems[] = new Violation("block {$other}", sprintf('blocks/%s is both the "%s" block\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
+				$problems[] = new Violation("block {$other}", $this->messages->t('theme.theme_checker.variant_clash', 'blocks/{file} is both the "{other}" block\'s template and the "{variant}" variant\'s of "{block}"; rename one.', file: $fileName, other: (string) $other, variant: $variant->name, block: (string) $name), Severity::Warning);
 			}
 		}
 
@@ -399,9 +407,9 @@ final readonly class ThemeChecker
 			$variant = BlockVariants::manifestItem($item, $theme->namespace);
 
 			if ($variant === null) {
-				$problems[] = new Violation('variants image', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', Severity::Warning);
+				$problems[] = new Violation('variants image', $this->messages->t('theme.theme_checker.image_variant_invalid', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".'), Severity::Warning);
 			} elseif ($views->imageVariantText($variant, 'label') === null) {
-				$problems[] = new Violation('variants image', sprintf('The "%s" image variant has no label; add "images.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $variant->name), Severity::Notice);
+				$problems[] = new Violation('variants image', $this->messages->t('theme.theme_checker.image_variant_label', 'The "{variant}" image variant has no label; add "images.variants.{variant}.label" to the theme\'s lang/ catalog.', variant: $variant->name), Severity::Notice);
 			}
 		}
 
@@ -423,7 +431,7 @@ final readonly class ThemeChecker
 			$context->foot->inlineScript(self::FOOT_MARK, '');
 			$html    = $views->render('welcome', [], $context);
 		} catch (Throwable $error) {
-			return [new Violation('layout', sprintf('The welcome page doesn\'t render: %s', $error->getMessage()))];
+			return [new Violation('layout', $this->messages->t('theme.theme_checker.welcome_failed', 'The welcome page doesn\'t render: {error}', error: $error->getMessage()))];
 		}
 
 		$document = HTMLDocument::createFromString($html, LIBXML_NOERROR);
@@ -432,29 +440,29 @@ final readonly class ThemeChecker
 		$mains    = $document->querySelectorAll('main');
 
 		if (! $root instanceof Element || trim((string) $root->getAttribute('lang')) === '') {
-			$problems[] = new Violation('layout', 'The base layout\'s <html> has no lang attribute.');
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_lang', 'The base layout\'s <html> has no lang attribute.'));
 		}
 
 		if ($root instanceof Element && trim((string) $root->getAttribute('dir')) === '') {
-			$problems[] = new Violation('layout', 'The base layout\'s <html> has no dir attribute; add dir="<?= attr($site->dir) ?>" so right-to-left languages read right to left.', Severity::Notice);
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_dir', 'The base layout\'s <html> has no dir attribute; add dir="<?= attr($site->dir) ?>" so right-to-left languages read right to left.'), Severity::Notice);
 		}
 
 		foreach (['meta[charset]' => '<meta charset>', 'meta[name="viewport"]' => '<meta name="viewport">', 'meta[name="generator"]' => '<meta name="generator">', 'title' => '<title>'] as $selector => $tag) {
 			if ($document->querySelectorAll($selector)->length > 1) {
-				$problems[] = new Violation('layout', sprintf('The base layout prints %s more than once; $template->head() prints it, so take it out of the layout.', $tag), Severity::Warning);
+				$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.head_repeated', 'The base layout prints {tag} more than once; $template->head() prints it, so take it out of the layout.', tag: $tag), Severity::Warning);
 			}
 		}
 
 		$foot = $document->getElementById(self::FOOT_MARK);
 
 		if ($foot === null) {
-			$problems[] = new Violation('layout', 'The base layout doesn\'t print the footer; add <?= $template->foot() ?> just before </body>, or footer scripts never load.');
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_foot', 'The base layout doesn\'t print the footer; add <?= $template->foot() ?> just before </body>, or footer scripts never load.'));
 		} elseif ($foot->closest('body') === null) {
-			$problems[] = new Violation('layout', 'The base layout prints $template->foot() outside <body>; print it just before </body>.', Severity::Warning);
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.foot_outside', 'The base layout prints $template->foot() outside <body>; print it just before </body>.'), Severity::Warning);
 		}
 
 		if ($mains->length !== 1) {
-			$problems[] = new Violation('layout', sprintf('The base layout needs one <main> landmark; it has %d.', $mains->length));
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.main_count', 'The base layout needs one <main> landmark; it has {count, number}.', count: $mains->length));
 		}
 
 		$main = $mains->item(0);
@@ -462,17 +470,17 @@ final readonly class ThemeChecker
 		$id   = $skip instanceof Element ? substr((string) $skip->getAttribute('href'), 1) : '';
 
 		if ($id === '' || ! $main instanceof Element || ($main->getAttribute('id') !== $id && $main->querySelector('[id="' . addslashes($id) . '"]') === null)) {
-			$problems[] = new Violation('layout', 'The base layout needs a skip link (the first in-page link) to the <main> content.');
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_skip_link', 'The base layout needs a skip link (the first in-page link) to the <main> content.'));
 		}
 
 		// The framework's skeleton has no header or footer of its own
 		// (D-632), so a theme without a base layout hears that instead.
 		if (str_starts_with($views->finder->find('layouts/base') ?? '', Framework::path(ViewFactory::VIEWS) . '/')) {
-			$problems[] = new Violation('layout', 'The theme has no layouts/base view, so pages render in the framework\'s skeleton, with no site header or footer.', Severity::Notice);
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_base', 'The theme has no layouts/base view, so pages render in the framework\'s skeleton, with no site header or footer.'), Severity::Notice);
 		} else {
 			foreach (['header', 'footer'] as $landmark) {
 				if (! self::hasLandmark($document, $landmark)) {
-					$problems[] = new Violation('layout', "The base layout has no <{$landmark}> landmark.", Severity::Warning);
+					$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.no_landmark', 'The base layout has no <{landmark}> landmark.', landmark: $landmark), Severity::Warning);
 				}
 			}
 		}
@@ -480,7 +488,7 @@ final readonly class ThemeChecker
 		$headings = $document->querySelectorAll('h1')->length;
 
 		if ($headings !== 1) {
-			$problems[] = new Violation('layout', sprintf('The welcome page has %d <h1> headings; pages should have one.', $headings), Severity::Warning);
+			$problems[] = new Violation('layout', $this->messages->t('theme.theme_checker.h1_count', 'The welcome page has {count, plural, one {# <h1> heading} other {# <h1> headings}}; pages should have one.', count: $headings), Severity::Warning);
 		}
 
 		return $problems;

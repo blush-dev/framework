@@ -22,11 +22,13 @@
 import { computed, nextTick, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import MessageText from '../components/MessageText.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import TokenFields from '../components/TokenFields.vue';
 import { useAction } from '../action';
 import { ApiError, errorMessage } from '../api';
+import { t } from '../messages';
 import { createAccount, createTokenOnlyAccount, freshLink, freshToken, loadRoles, MEMBER, NEW_PROFILE, presetCapabilities, type LinkableProfile, type RoleInfo, type TokenPreset } from '../people';
 import { slugOf } from '../references';
 import { can, canType } from '../session';
@@ -67,11 +69,11 @@ loadRoles().then((list) => {
 	// `accounts.roles`.
 	chosen.value = [MEMBER];
 }, (caught: unknown) => {
-	loadFail.value = errorMessage(caught, 'The roles couldn\'t be loaded.');
+	loadFail.value = errorMessage(caught, t('new_account_view.roles_load_failed', 'The roles couldn\'t be loaded.'));
 });
 
 const usernameProblem = computed(() => username.value !== '' && !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(username.value.toLowerCase())
-	? 'Use lowercase letters, digits, “.”, “_”, and “-”, starting with a letter or digit.'
+	? t('new_account_view.username_problem', 'Use lowercase letters, digits, “.”, “_”, and “-”, starting with a letter or digit.')
 	: '');
 
 const creating = computed(() => author.value === NEW_PROFILE);
@@ -91,7 +93,7 @@ const willBe = computed(() => {
 });
 
 async function submitTokenOnly(): Promise<void> {
-	await run('The account couldn\'t be created.', async () => {
+	await run(t('new_account_view.create_failed', 'The account couldn\'t be created.'), async () => {
 		const first  = makeFirst.value && can('accounts.edit') && tokenName.value.trim() !== '';
 		const answer = await createTokenOnlyAccount({
 			username: username.value.trim().toLowerCase(),
@@ -105,10 +107,10 @@ async function submitTokenOnly(): Promise<void> {
 			freshToken.value = { username: answer.account.username, token: { token: answer.token, secret: answer.secret } };
 		}
 
-		toast(`Created ${answer.account.displayName}`);
+		toast(t('new_account_view.created', 'Created {name}', { name: answer.account.displayName }));
 
 		if (answer.tokenError) {
-			toast(`Its token wasn't made: ${answer.tokenError}`, { kind: 'warn' });
+			toast(t('new_account_view.token_failed', 'Its token wasn\'t made: {error}', { error: answer.tokenError }), { kind: 'warn' });
 		}
 
 		await router.push({ name: 'account', params: { username: answer.account.username } });
@@ -128,7 +130,7 @@ async function submit(): Promise<void> {
 	}
 
 	if (creating.value && newName.value.trim() === '') {
-		error.value = 'A profile needs a display name.';
+		error.value = t('new_account_view.profile_needs_name', 'A profile needs a display name.');
 		field.value = 'name';
 		nameInput.value?.focus();
 
@@ -136,14 +138,14 @@ async function submit(): Promise<void> {
 	}
 
 	if (creating.value && profiles.value.some((item) => item.slug === slug.value)) {
-		error.value = `There's already a profile at “${slug.value}”. Choose it from the list instead, or pick another slug.`;
+		error.value = t('new_account_view.slug_taken', 'There\'s already a profile at “{slug}”. Choose it from the list instead, or pick another slug.', { slug: slug.value });
 		field.value = 'slug';
 		slugInput.value?.focus();
 
 		return;
 	}
 
-	await run('The account couldn\'t be created.', async () => {
+	await run(t('new_account_view.create_failed', 'The account couldn\'t be created.'), async () => {
 		// A new profile is made with the account, a draft (D-668).
 		const answer = await createAccount({
 			username: username.value.trim().toLowerCase(),
@@ -157,7 +159,7 @@ async function submit(): Promise<void> {
 
 		freshLink.value = { username: answer.account.username, link: answer.link };
 
-		toast(`Created ${called}`);
+		toast(t('new_account_view.created', 'Created {name}', { name: called }));
 		await router.push({ name: 'account', params: { username: answer.account.username } });
 	}, (caught) => {
 		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'email' || caught.field === 'roles' || caught.field === 'author') ? caught.field : (caught instanceof ApiError && caught.field === 'name' ? 'accountName' : null);
@@ -172,122 +174,122 @@ async function submit(): Promise<void> {
 <template>
 	<div class="people">
 		<header class="page-header">
-			<RouterLink class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />All accounts</RouterLink>
+			<RouterLink class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />{{ t('new_account_view.all_accounts', 'All accounts') }}</RouterLink>
 			<div class="page-header__text">
-				<h1 tabindex="-1">New Account</h1>
-				<p class="page-header__hint">{{ tokenOnly ? 'An account for an app, script, or agent. It never signs in, and is used through its API tokens.' : 'Someone who can sign in. They choose their own password from a link you send them.' }}</p>
+				<h1 tabindex="-1">{{ t('new_account_view.title', 'New Account') }}</h1>
+				<p class="page-header__hint">{{ tokenOnly ? t('new_account_view.hint_token', 'An account for an app, script, or agent. It never signs in, and is used through its API tokens.') : t('new_account_view.hint_person', 'Someone who can sign in. They choose their own password from a link you send them.') }}</p>
 			</div>
 		</header>
 
 		<p v-if="loadFail" class="notice notice--error" role="alert">{{ loadFail }}</p>
 
 		<form v-else class="people" @submit.prevent="submit">
-			<p v-if="error && field !== null" class="notice notice--error"><AdminIcon name="triangle-alert" /><span class="notice__text">One field needs attention before this account can be made.</span></p>
+			<p v-if="error && field !== null" class="notice notice--error"><AdminIcon name="triangle-alert" /><span class="notice__text">{{ t('new_account_view.field_needs_attention', 'One field needs attention before this account can be made.') }}</span></p>
 
 			<div class="pair">
 				<section class="panel" aria-labelledby="account-heading">
 					<header class="panel__header">
-						<h2 id="account-heading">Account</h2>
+						<h2 id="account-heading">{{ t('new_account_view.account', 'Account') }}</h2>
 					</header>
 					<div class="panel__body form-stack new-account__form">
 						<fieldset class="fieldset">
-							<legend>Kind</legend>
+							<legend>{{ t('new_account_view.kind', 'Kind') }}</legend>
 							<div class="choices choices--detailed">
 								<label class="checkbox">
 									<input v-model="kind" type="radio" name="account-kind" value="person">
 									<span class="choice">
-										<span class="choice__name">Someone who signs in</span>
-										<span class="choice__text">A person, with a password they choose from a link you send them.</span>
+										<span class="choice__name">{{ t('new_account_view.kind_person', 'Someone who signs in') }}</span>
+										<span class="choice__text">{{ t('new_account_view.kind_person_text', 'A person, with a password they choose from a link you send them.') }}</span>
 									</span>
 								</label>
 								<label class="checkbox">
 									<input v-model="kind" type="radio" name="account-kind" value="token">
 									<span class="choice">
-										<span class="choice__name">Token-only</span>
-										<span class="choice__text">An app, script, or agent. It never signs in, and does what its roles allow through its API tokens.</span>
+										<span class="choice__name">{{ t('new_account_view.kind_token', 'Token-only') }}</span>
+										<span class="choice__text">{{ t('new_account_view.kind_token_text', 'An app, script, or agent. It never signs in, and does what its roles allow through its API tokens.') }}</span>
 									</span>
 								</label>
 							</div>
 						</fieldset>
 						<div class="field">
-							<label for="account-username">Username</label>
+							<label for="account-username">{{ t('new_account_view.username', 'Username') }}</label>
 							<input id="account-username" ref="usernameInput" v-model="username" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" required :aria-invalid="usernameProblem || field === 'username' ? 'true' : undefined" aria-describedby="account-username-help">
 							<p v-if="usernameProblem" id="account-username-help" class="field__error">{{ usernameProblem }}</p>
 							<p v-else-if="field === 'username'" id="account-username-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-username-help" class="field__help">{{ tokenOnly ? 'How the admin names it. Fixed once it\'s made.' : 'What they sign in with. Fixed once it\'s made.' }}</p>
+							<p v-else id="account-username-help" class="field__help">{{ tokenOnly ? t('new_account_view.username_help_token', 'How the admin names it. Fixed once it\'s made.') : t('new_account_view.username_help_person', 'What they sign in with. Fixed once it\'s made.') }}</p>
 						</div>
 						<div class="field">
-							<label for="account-email">Email <span v-if="tokenOnly" class="field__optional">Optional</span></label>
+							<label for="account-email">{{ t('new_account_view.email', 'Email') }} <span v-if="tokenOnly" class="field__optional">{{ t('new_account_view.optional', 'Optional') }}</span></label>
 							<input id="account-email" ref="emailInput" v-model="email" type="email" autocomplete="off" :required="!tokenOnly" :aria-invalid="field === 'email' ? 'true' : undefined" aria-describedby="account-email-help">
 							<p v-if="field === 'email'" id="account-email-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-email-help" class="field__help">{{ tokenOnly ? 'Whose it is, for the people who manage accounts, if you like.' : 'Every account needs one. Blush sends no email, so the password link is still yours to send.' }}</p>
+							<p v-else id="account-email-help" class="field__help">{{ tokenOnly ? t('new_account_view.email_help_token', 'Whose it is, for the people who manage accounts, if you like.') : t('new_account_view.email_help_person', 'Every account needs one. Blush sends no email, so the password link is still yours to send.') }}</p>
 						</div>
 						<div class="field">
-							<label for="account-name">Display name <span class="field__optional">Optional</span></label>
+							<label for="account-name">{{ t('new_account_view.display_name', 'Display name') }} <span class="field__optional">{{ t('new_account_view.optional', 'Optional') }}</span></label>
 							<input id="account-name" v-model="name" autocomplete="off" maxlength="100" :aria-invalid="field === 'accountName' ? 'true' : undefined" aria-describedby="account-name-help">
 							<p v-if="field === 'accountName'" id="account-name-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-name-help" class="field__help">What the admin calls them. Left empty, it's their profile's title, else the username.</p>
+							<p v-else id="account-name-help" class="field__help">{{ t('new_account_view.display_name_help', 'What the admin calls them. Left empty, it\'s their profile\'s title, else the username.') }}</p>
 						</div>
 						<div v-if="profileType && !tokenOnly" class="field">
-							<label for="account-author">Profile</label>
+							<label for="account-author">{{ t('new_account_view.profile', 'Profile') }}</label>
 							<ProfilePicker id="account-author" v-model="author" :create="canType(profileType, 'create')" described-by="account-author-help" :invalid="field === 'author'" @loaded="profiles = $event" />
 							<p v-if="field === 'author'" id="account-author-help" class="field__error">{{ error }}</p>
 							<div v-if="creating" class="sub-fields">
 								<div class="field">
-									<label for="account-profile-name">Display name on the site</label>
-									<input id="account-profile-name" ref="nameInput" v-model="newName" autocomplete="off" maxlength="100" placeholder="Their name as readers should see it" :aria-invalid="field === 'name' ? 'true' : undefined" aria-describedby="account-profile-name-help">
+									<label for="account-profile-name">{{ t('new_account_view.profile_name', 'Display name on the site') }}</label>
+									<input id="account-profile-name" ref="nameInput" v-model="newName" autocomplete="off" maxlength="100" :placeholder="t('new_account_view.profile_name_placeholder', 'Their name as readers should see it')" :aria-invalid="field === 'name' ? 'true' : undefined" aria-describedby="account-profile-name-help">
 									<p v-if="field === 'name'" id="account-profile-name-help" class="field__error">{{ error }}</p>
-									<p v-else id="account-profile-name-help" class="field__help">The name on every byline: the profile's title.</p>
+									<p v-else id="account-profile-name-help" class="field__help">{{ t('new_account_view.profile_name_help', 'The name on every byline: the profile\'s title.') }}</p>
 								</div>
 								<div class="field">
-									<label for="account-profile-slug">Slug</label>
+									<label for="account-profile-slug">{{ t('new_account_view.slug', 'Slug') }}</label>
 									<input id="account-profile-slug" ref="slugInput" v-model="newSlug" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" :placeholder="slugOf(newName)" :aria-invalid="field === 'slug' ? 'true' : undefined" aria-describedby="account-profile-slug-help">
 									<p v-if="field === 'slug'" id="account-profile-slug-help" class="field__error">{{ error }}</p>
-									<p v-else id="account-profile-slug-help" class="field__help">Every archive address for this person uses it. Left empty, it follows the name.</p>
+									<p v-else id="account-profile-slug-help" class="field__help">{{ t('new_account_view.slug_help', 'Every archive address for this person uses it. Left empty, it follows the name.') }}</p>
 								</div>
 							</div>
 							<p class="will" aria-live="polite">
 								<AdminIcon name="info" />
-								<span v-if="willBe">The admin will call this account <strong>{{ willBe }}</strong>.</span>
-								<span v-else-if="creating">Name the profile, and the admin calls this account by it unless it has a display name.</span>
-								<span v-else>With no profile, this account has <strong>no presence</strong> on the site. You can link or create one later.</span>
+								<span v-if="willBe"><MessageText :text="t('new_account_view.will_call', 'The admin will call this account {name}.')"><template #name><strong>{{ willBe }}</strong></template></MessageText></span>
+								<span v-else-if="creating">{{ t('new_account_view.will_call_profile', 'Name the profile, and the admin calls this account by it unless it has a display name.') }}</span>
+								<span v-else><MessageText :text="t('new_account_view.no_presence', 'With no profile, this account has {presence} on the site. You can link or create one later.')"><template #presence><strong>{{ t('new_account_view.no_presence_strong', 'no presence') }}</strong></template></MessageText></span>
 							</p>
 						</div>
 					</div>
-					<p class="panel__note">A profile belongs to at most one account, so those already linked can't be chosen.</p>
+					<p class="panel__note">{{ t('new_account_view.profile_note', 'A profile belongs to at most one account, so those already linked can\'t be chosen.') }}</p>
 				</section>
 
 				<section class="panel" aria-labelledby="roles-heading">
 					<header class="panel__header">
-						<h2 id="roles-heading">Roles</h2>
-						<p class="panel__hint">{{ can('accounts.roles') ? 'An account can hold more than one' : 'New accounts are Members' }}</p>
+						<h2 id="roles-heading">{{ t('new_account_view.roles', 'Roles') }}</h2>
+						<p class="panel__hint">{{ can('accounts.roles') ? t('new_account_view.roles_hint', 'An account can hold more than one') : t('new_account_view.roles_hint_member', 'New accounts are Members') }}</p>
 					</header>
 					<div class="panel__body">
-						<p v-if="!can('accounts.roles')" class="field__help new-account__member">You can't give roles, so the account starts as a Member. Someone who can give roles can change that on its screen.</p>
+						<p v-if="!can('accounts.roles')" class="field__help new-account__member">{{ t('new_account_view.cant_give_roles', 'You can\'t give roles, so the account starts as a Member. Someone who can give roles can change that on its screen.') }}</p>
 						<RoleChecks v-model="chosen" :roles="roles" id-prefix="account-role-" :disabled="!can('accounts.roles')" :invalid="field === 'roles'" :described-by="field === 'roles' ? 'account-roles-error' : undefined" />
 						<p v-if="field === 'roles'" id="account-roles-error" class="field__error">{{ error }}</p>
 					</div>
-					<p class="panel__note">Pick at least one. Roles can be changed later, from the account.</p>
+					<p class="panel__note">{{ t('new_account_view.roles_note', 'Pick at least one. Roles can be changed later, from the account.') }}</p>
 				</section>
 			</div>
 
 			<section v-if="tokenOnly && can('accounts.edit')" class="panel" aria-labelledby="token-heading">
 				<header class="panel__header">
-					<h2 id="token-heading">Its First Token</h2>
-					<p class="panel__hint">Shown once, on its screen</p>
+					<h2 id="token-heading">{{ t('new_account_view.first_token', 'Its First Token') }}</h2>
+					<p class="panel__hint">{{ t('new_account_view.first_token_hint', 'Shown once, on its screen') }}</p>
 				</header>
 				<div class="panel__body form-stack new-account__form">
-					<label class="checkbox"><input v-model="makeFirst" type="checkbox"> Make a token with the account</label>
+					<label class="checkbox"><input v-model="makeFirst" type="checkbox"> {{ t('new_account_view.make_token', 'Make a token with the account') }}</label>
 					<template v-if="makeFirst">
 						<TokenFields v-model:name="tokenName" v-model:days="tokenDays" v-model:scope="tokenScope" />
 					</template>
 				</div>
-				<p class="panel__note">Its roles decide what a token can do at most; more tokens, and ones narrowed capability by capability, are made on its screen.</p>
+				<p class="panel__note">{{ t('new_account_view.token_note', 'Its roles decide what a token can do at most; more tokens, and ones narrowed capability by capability, are made on its screen.') }}</p>
 			</section>
 
 			<div class="submit-row">
-				<button type="submit" class="button button--primary" :disabled="busy || username === '' || (!tokenOnly && email.trim() === '') || usernameProblem !== '' || chosen.length === 0 || (tokenOnly && makeFirst && can('accounts.edit') && tokenName.trim() === '')">{{ busy ? 'Creating…' : 'Create Account' }}</button>
-				<p class="submit-row__why">{{ tokenOnly ? 'Next, its screen shows its token once, to copy.' : 'Next, you\'ll get a one-time link to send them. It works for a week.' }}</p>
+				<button type="submit" class="button button--primary" :disabled="busy || username === '' || (!tokenOnly && email.trim() === '') || usernameProblem !== '' || chosen.length === 0 || (tokenOnly && makeFirst && can('accounts.edit') && tokenName.trim() === '')">{{ busy ? t('new_account_view.creating', 'Creating…') : t('new_account_view.create', 'Create Account') }}</button>
+				<p class="submit-row__why">{{ tokenOnly ? t('new_account_view.next_token', 'Next, its screen shows its token once, to copy.') : t('new_account_view.next_person', 'Next, you\'ll get a one-time link to send them. It works for a week.') }}</p>
 				<p v-if="error && field === null" class="field__error" role="alert">{{ error }}</p>
 				<p v-else class="visually-hidden" role="alert">{{ error }}</p>
 			</div>

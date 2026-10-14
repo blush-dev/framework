@@ -143,8 +143,8 @@ final class MediaFieldIdsTest extends TestCase
 		$found  = array_values(array_filter($report->violations()['_recipe/chili.md'] ?? [], static fn (Violation $violation): bool => $violation->kind === ViolationKind::Media));
 
 		$this->assertSame(['image', 'gallery.0', 'rights.photo'], array_map(static fn (Violation $violation): string => $violation->field, $found));
-		$this->assertStringContainsString('content:media-ids', $found[0]->message ?? '');
-		$this->assertStringContainsString('names no media file', $found[2]->message ?? '');
+		$this->assertStringContainsString('content:media-ids', (string) ($found[0]->message ?? ''));
+		$this->assertStringContainsString('names no media file', (string) ($found[2]->message ?? ''));
 	}
 
 	public function testTheCommandChecksAndRewrites(): void

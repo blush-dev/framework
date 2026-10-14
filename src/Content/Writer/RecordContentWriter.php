@@ -45,6 +45,7 @@ use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Table;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Writes entries as records (D-662), for every driver that keeps content
@@ -88,7 +89,8 @@ final readonly class RecordContentWriter implements ContentWriter
 		private FieldContext $context,
 		private ContentVersion $version,
 		private ClockInterface $clock,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -127,7 +129,7 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function loadAt(ContentType $type, string $key): ?EditableEntry
 	{
-		self::checkKey($key);
+		$this->checkKey($key);
 
 		$id = $this->idAt($type, $key);
 
@@ -140,17 +142,17 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function create(ContentType $type, string $slug, EntryChanges $changes, ?string $parent = null, ?DateTimeInterface $date = null): string
 	{
-		self::checkSlug($slug);
+		$this->checkSlug($slug);
 
 		if ($parent !== null) {
 			$above = $this->stored($parent);
 
 			if (! $type->keysByFolder() || EntryRecords::text($above, 'type') !== $type->name) {
-				throw new WriteException(sprintf('The page to go under isn\'t one of the %s.', $type->labels->items));
+				throw new WriteException((string) $this->messages->t('content.record_content_writer.wrong_parent', 'The page to go under isn\'t one of the {items}.', items: $type->labels->items));
 			}
 
 			if (EntryRecords::text($above, 'slug') === '') {
-				throw new WriteException('That\'s an index page; pages under it go at the top.');
+				throw new WriteException((string) $this->messages->t('content.record_content_writer.index_parent', 'That\'s an index page; pages under it go at the top.'));
 			}
 		}
 
@@ -163,7 +165,7 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function createAt(ContentType $type, string $key, EntryChanges $changes): string
 	{
-		self::checkKey($key);
+		$this->checkKey($key);
 
 		if ($key === 'index') {
 			return $this->write(null, $this->place($type, ''), self::apply([], $this->withNew($changes)), $changes->body ?? '');
@@ -180,7 +182,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		}
 
 		$parent = $this->idAt($type, dirname($key))
-			?? throw new WriteException(sprintf('There\'s no page at %s to put %s under.', dirname($key), $key));
+			?? throw new WriteException((string) $this->messages->t('content.record_content_writer.no_parent', 'There\'s no page at {parent} to put {page} under.', parent: dirname($key), page: $key));
 
 		return $this->write(null, $this->place($type, $slug, $parent), self::apply([], $this->withNew($changes)), $changes->body ?? '');
 	}
@@ -191,13 +193,13 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): string
 	{
-		self::checkSlug($slug);
+		$this->checkSlug($slug);
 
 		$record = $this->stored($id);
 		$place  = $this->placeOf($record);
 
 		if ($place['slug'] === '') {
-			throw new WriteException('That\'s a landing page; its name is its folder\'s, so it can\'t be copied.');
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.landing_copy', 'That\'s a landing page; its name is its folder\'s, so it can\'t be copied.'));
 		}
 
 		$written = $this->load($id)->frontMatter;
@@ -245,13 +247,13 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function rename(string $id, string $slug, ?string $version = null): string
 	{
-		self::checkSlug($slug);
+		$this->checkSlug($slug);
 
 		$record = $this->current($id, $version);
 		$place  = $this->placeOf($record);
 
 		if ($place['slug'] === '') {
-			throw new WriteException('That\'s a landing page; its name is its folder\'s.');
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.landing_name', 'That\'s a landing page; its name is its folder\'s.'));
 		}
 
 		if ($place['slug'] === $slug) {
@@ -269,7 +271,7 @@ final readonly class RecordContentWriter implements ContentWriter
 	#[Override]
 	public function changeLanguage(string $id, string $language, ?string $version = null): string
 	{
-		$named  = $this->app->languages->find($language) ?? throw new WriteException(sprintf('The site has no language "%s".', $language));
+		$named  = $this->app->languages->find($language) ?? throw new WriteException((string) $this->messages->t('content.record_content_writer.no_language', 'The site has no language "{code}".', code: $language));
 		$record = $this->current($id, $version);
 		$place  = $this->placeOf($record);
 
@@ -278,7 +280,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		}
 
 		if ($place['slug'] === '' || $place['archive'] !== null) {
-			throw new WriteException('That\'s a landing page; it\'s in the language of the pages it lists.');
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.landing_language', 'That\'s a landing page; it\'s in the language of the pages it lists.'));
 		}
 
 		// Its translations: the original, and those naming it (D-511).
@@ -287,7 +289,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		foreach ([new RecordQuery()->where('id', Operator::Equal, $group), new RecordQuery()->where('original_id', Operator::Equal, $group)] as $query) {
 			foreach ($this->store()->select(EntryTable::table(), $query->where('language', Operator::Equal, $language)->withoutContent())->records as $found) {
 				if ($found->id !== $record->id) {
-					throw new WriteException(sprintf('Its %s translation is “%s”.', $named->name(), EntryRecords::text($found, 'title')));
+					throw new WriteException((string) $this->messages->t('content.record_content_writer.translated', 'Its {language} translation is “{title}”.', language: $named->name(), title: EntryRecords::text($found, 'title')));
 				}
 			}
 		}
@@ -308,22 +310,22 @@ final readonly class RecordContentWriter implements ContentWriter
 		$name   = $title === '' ? $place['slug'] : $title;
 
 		if (! $type->keysByFolder()) {
-			throw new WriteException(sprintf('%s isn\'t a page that can move.', $name));
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.cannot_move', '{name} isn\'t a page that can move.', name: $name));
 		}
 
 		if ($place['slug'] === '') {
-			throw new WriteException(sprintf('%s is an index page; it stays at the top of its folder.', $name));
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.index_stays', '{name} is an index page; it stays at the top of its folder.', name: $name));
 		}
 
 		if ($parent !== null) {
 			$above = $this->stores->store(EntryTable::table())->find(EntryTable::table(), $parent);
 
 			if ($above === null || EntryRecords::text($above, 'type') !== $type->name || EntryRecords::text($above, 'slug') === '') {
-				throw new WriteException(sprintf('That isn\'t one of the %s a page can go under.', $type->labels->items));
+				throw new WriteException((string) $this->messages->t('content.record_content_writer.not_a_parent', 'That isn\'t one of the {items} a page can go under.', items: $type->labels->items));
 			}
 
 			if ($this->isUnder($above->id, $record->id)) {
-				throw new WriteException(sprintf('%s can\'t go under itself or a page under it.', $name));
+				throw new WriteException((string) $this->messages->t('content.record_content_writer.under_itself', '{name} can\'t go under itself or a page under it.', name: $name));
 			}
 
 			$parent = $above->id;
@@ -419,10 +421,10 @@ final readonly class RecordContentWriter implements ContentWriter
 				continue;
 			}
 
-			$resolution = new LinkResolver($this->targets)->resolve($relation, $value, new Refs(), $place['id'], $type->name, $place['language']);
+			$resolution = new LinkResolver($this->targets, $this->messages)->resolve($relation, $value, new Refs(), $place['id'], $type->name, $place['language']);
 
 			if ($resolution->problems !== []) {
-				throw new WriteException($resolution->problems[0]->message);
+				throw new WriteException((string) $resolution->problems[0]->message);
 			}
 
 			if ($relation->kind === RelationKind::Parent) {
@@ -473,7 +475,9 @@ final readonly class RecordContentWriter implements ContentWriter
 		$taken = $this->taken($place);
 
 		if ($taken !== null && $taken !== $place['id']) {
-			throw new WriteException(sprintf('There\'s already a %s at %s.', $type->labels->item, $key === '' ? 'the top of its type' : $key));
+			throw new WriteException($key === ''
+				? (string) $this->messages->t('content.record_content_writer.top_taken', 'There\'s already a {item} at the top of its type.', item: $type->labels->item)
+				: (string) $this->messages->t('content.record_content_writer.taken', 'There\'s already a {item} at {page}.', item: $type->labels->item, page: $key));
 		}
 
 		$store   = $this->store();
@@ -553,7 +557,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		try {
 			$write();
 		} catch (RecordConflict $e) {
-			throw new WriteConflict('The entry changed since it was opened. Reload it, then make your change again.', previous: $e);
+			throw new WriteConflict((string) $this->messages->t('content.record_content_writer.changed', 'The entry changed since it was opened. Reload it, then make your change again.'), previous: $e);
 		}
 	}
 
@@ -713,7 +717,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		$record = $this->stored($id);
 
 		if ($version !== null && $record->version !== $version) {
-			throw new WriteConflict('The entry changed since it was opened. Reload it, then make your change again.');
+			throw new WriteConflict((string) $this->messages->t('content.record_content_writer.changed', 'The entry changed since it was opened. Reload it, then make your change again.'));
 		}
 
 		return $record;
@@ -727,7 +731,7 @@ final readonly class RecordContentWriter implements ContentWriter
 	private function stored(string $id): Record
 	{
 		return $this->store()->find(EntryTable::table(), $id)
-			?? throw new WriteException(sprintf('There\'s no entry with the id "%s".', $id));
+			?? throw new WriteException((string) $this->messages->t('content.record_content_writer.no_id', 'There\'s no entry with the id "{id}".', id: $id));
 	}
 
 	/**
@@ -908,10 +912,10 @@ final readonly class RecordContentWriter implements ContentWriter
 	 *
 	 * @throws WriteException
 	 */
-	private static function checkSlug(string $slug): void
+	private function checkSlug(string $slug): void
 	{
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 	}
 
@@ -920,10 +924,10 @@ final readonly class RecordContentWriter implements ContentWriter
 	 *
 	 * @throws WriteException
 	 */
-	private static function checkKey(string $key): void
+	private function checkKey(string $key): void
 	{
 		if (! FilesystemWriter::isPageKey($key)) {
-			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
+			throw new WriteException((string) $this->messages->t('content.record_content_writer.not_a_key', '"{page}" isn\'t a page key: slugs separated by "/", each may start with "_".', page: $key));
 		}
 	}
 }

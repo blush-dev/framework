@@ -63,12 +63,12 @@ const described = computed(() => [help(props.field) === '' && slots.help === und
 		<slot v-if="$slots.help" name="help" :id="`${id}-help`" />
 	</template>
 	<div v-else class="field" :class="{ 'field--toggle': kind === 'toggle', 'field--warn': warn }">
-		<span v-if="labelOnly" :id="`${id}-label`" class="field__label">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></span>
-		<label v-else :for="id">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></label>
+		<span v-if="labelOnly" :id="`${id}-label`" class="field__label">{{ label(field) }}<span v-if="field.required" class="field__required">{{ t('field_control.required', ' (required)') }}</span></span>
+		<label v-else :for="id">{{ label(field) }}<span v-if="field.required" class="field__required">{{ t('field_control.required', ' (required)') }}</span></label>
 
 		<FieldInput v-model="model" :field="field" :id="id" :described-by="described" :invalid="errorId !== undefined" :labelled-by="labelOnly ? `${id}-label` : undefined" :pickable="pickable" :narrow="narrow" @pick="emit('pick', field, where.steps)" />
 
-		<p v-if="isShownOnly(kind)" :id="`${id}-readonly`" class="field__help">Edit this one in the file for now.</p>
+		<p v-if="isShownOnly(kind)" :id="`${id}-readonly`" class="field__help">{{ t('field_control.shown_only', 'Edit this one in the file for now.') }}</p>
 		<slot name="after" />
 		<slot name="help" :id="`${id}-help`">
 			<p v-if="help(field) !== ''" :id="`${id}-help`" class="field__help">{{ help(field) }}</p>

@@ -26193,8 +26193,9 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-831: Text in the browser: named catalogs, `catalog:` on a script, and `blush/messages`
 
 - **Date:** 2026-10-14
-- **Status:** Planned. Nothing built; the admin's strings are converted
-  after the system is in place, not as part of it.
+- **Status:** Built (2026-10-14; the details settled in building are
+  D-833). The admin's strings are converted after the system is in
+  place, not as part of it.
 - **Settles:** "The admin's own strings, which aren't translatable yet
   (D-278)" in `open-questions.md`, and D-278's open item (translating
   labels), for labels set in code.
@@ -26322,3 +26323,276 @@ decision, add a new entry that supersedes it and mark the old one
   to `symfony/mailer` behind Blush's own interface, to templates in
   core and plugins, and to keeping notices and notifications apart,
   with "Notifications" as the name.
+
+### D-833: Building D-831: what the build settled
+
+- **Date:** 2026-10-14
+- **Refines:** D-831.
+- **Decision:** the author's go to build D-831 without converting the
+  admin's strings ("that'll be a later step"). Settled while building:
+  - **`Translator::catalog($domain, $name, $locale)`** resolves a named
+    catalog as a whole: for each key, the most specific locale that has
+    it, the site's override over the domain's own within one, as
+    `translate()` resolves a key; `@` keys left out.
+    `catalogLocales()` lists the locales with a file, shipped or in
+    `user/lang/{locale}/{catalog}/`. `overridePath()` takes the catalog.
+  - **Printed by `PageMarkup`**, given the page's translator (the theme
+    chain's) and locale by `ViewFactory::context()`: `Assets` calls
+    `addMessages()` for each script with a catalog, data tied to the
+    asset (`data:messages:{domain}:{catalog}`, printed before its first
+    script, once), with `data-blush-messages` and `data-blush-catalog`
+    (no `id`). **An empty catalog doesn't print**, since it would say
+    what the scripts' own text says. `import()` keeps the import map
+    (absolute URLs), printed after links and before resource hints,
+    styles, and scripts (`Head`'s groups).
+  - **`Script` refuses a `catalog` without a `from`** (a URL has no
+    domain); `Script::domain()` is `core` for core's files.
+    `theme.json` assets take `catalog` on a script object.
+  - **`blush/messages`** is `resources/site/js/messages.ts`, built to
+    `public/site/js/messages.js` with its exports kept
+    (`preserveEntrySignatures: 'strict'`), `blush/messages` external to
+    core's site build. It reads the page's language from `<html lang>`.
+    A missing parameter prints as `{name}` and a pattern it can't parse
+    as written, as PHP's `MessageFormatter` does. The admin imports the
+    source (`resources/admin/js/messages.ts`, `t` from `core`) and sets
+    `t` as a Vue global property.
+  - **Extraction:** `MessageExtractor::extractScripts()` reads `.ts`,
+    `.js`, `.mjs`, and `.vue` files (not `.d.ts`, `node_modules`, or
+    `dist`) for `t('key', 'text', …)` calls, with comments blanked (a
+    `.vue` file's template only loses `<!-- -->`, since an apostrophe
+    in its text is just one). Scripts have no `context:`. `messages()`
+    with another domain is a warning. `ScriptMessages` groups them by
+    catalog (`ExtensionCatalogs::resolve()`: the manifest's `catalogs`,
+    which **replace** the default of a catalog per `resources/` folder,
+    not add to it), and core's mapping is `ScriptMessages::CORE`.
+    `lang:extract` writes a named catalog only once it has a message
+    or exists, starting it with `@@catalog`. `CatalogCheck` checks the
+    folders under `lang/` too, and `@@catalog` against the folder.
+  - **The account's language is a preference** (`Preferences::$language`,
+    in the account's stored preferences beside the admin theme, so no
+    new column), `null` for the site's. `AdminLanguages` offers English
+    (the code's language) and each locale core has an `admin` catalog
+    for; one no longer offered falls back to the site's. Your Account
+    has a Language panel (`AccountLanguage`) that saves and reloads,
+    since the catalog is printed by the page.
+  - **Admin API requests** run in the account's language through
+    `AdminLanguage`, a middleware on the whole admin API group (after
+    `StartSession`, reading the account itself, since `Authenticate` is
+    per route and runs later); signed out, the site's.
+  - **The shell** is `<html lang>` in the admin's language and prints
+    the `admin` catalog (`{}` when empty) with `adminLanguages` and the
+    account's `language` in its config.
+  - **The players are left as they are:** their labels already come
+    translated from PHP as `label-{name}` attributes (`PlayerLabels`),
+    and the admin uses them too; moving them to the `site` catalog
+    waits for the admin's strings.
+- **Status:** Built (2026-10-14).
+
+### D-834: The admin's strings and the players' labels in catalogs
+
+- **Date:** 2026-10-14
+- **Refines:** D-831, D-833.
+- **Decision:** the author's go to convert the admin's strings and move
+  the players' labels, the step D-833 left. Settled:
+  - **Keys:** the first segment is the snake_case of the source file's
+    name (`EditorView.vue` → `editor_view.`, `field-tree.ts` →
+    `field_tree.`; every name in `resources/admin/js` is unique), then
+    short snake_case names (`editor_view.errors.not_saved`). A few
+    generic words share `common.` keys with fixed text (`common.save`
+    "Save", `common.cancel`, `common.close`, `common.delete`,
+    `common.edit`, `common.remove`, `common.add`, `common.back`,
+    `common.done`, `common.undo`, `common.retry` "Try Again",
+    `common.search`, `common.loading` "Loading…", `common.yes`,
+    `common.no`); everything else is the file's own, so a translator can
+    word the same English differently where it reads differently.
+  - **The English stays as it was:** a mechanical conversion, with
+    interpolation as ICU parameters and hand-made plurals as ICU
+    plurals.
+  - **Sentences with elements in them** (a link, a code span) stay one
+    message: `MessageText.vue` fills each `{name}` with the slot of that
+    name, so a translator can move the element.
+  - **Not converted:** text the server sends (already translated, D-818,
+    D-824), brand names, values compared in code, and errors meant for
+    programmers.
+  - **The players** read `t()` from `blush/messages` (`controls.ts`,
+    domain `core`); their keys stay `player.*`, moved from
+    `resources/lang/en.json` to `resources/lang/site/en.json`.
+    `core/player`'s script names the `site` catalog, and core's `admin`
+    catalog reads `resources/player` too (`ScriptMessages::CORE`), since
+    the admin shows the players. `PlayerLabels` and the blocks'
+    `label-{name}` attributes are gone; a page can still word one
+    itself with the attribute. The admin build aliases
+    `blush/messages` to its source; both tsconfigs map it.
+  - **Built, as it went:** eight agents converted the admin's files by
+    group (about 4,000 messages, `resources/lang/admin/en.json`), then
+    `lang:extract core` found no key with two texts. Vue ends a `{{ }}`
+    interpolation at the first `}}`, even inside a string, so ICU text
+    in a template ends its braces `} }` (ICU allows the space).
+    `ExtensionFilters`' ids come from `useId()`, since its noun is
+    translated now; `redirects.ts`'s unused `addedVerb()` is gone.
+  - **Core's English isn't printed:** `Translator::catalog()` takes the
+    locale the code is written in and leaves out what reads the same
+    in that catalog, so an English page of the admin (or the site's
+    players) prints only what the site rewords, not about 200 KB of
+    what its code already says. Only core passes it (`Translator::LAST`),
+    since only core's code is known to be English.
+  - **Still English in places:** sentences built from English nouns the
+    callers pass (`plural()`, `withArticle()`, `series()`, ItemTree's and
+    HealthView's nouns, CapabilitySections' verb phrases, lists joined
+    with "and"), and search keywords. The English reads as before.
+  - **Month and weekday names come from `Intl`** (`month.ts`'s
+    `WEEKDAYS`, `MONTHS`, `SHORT_MONTHS`), in the admin's language, not
+    from keys.
+- **Left for later:** the admin API's own messages written in PHP
+  (errors and notices in `Admin\Http` controllers), which aren't `t()`
+  calls yet; they arrive in the account's language once they are
+  (D-833's `AdminLanguage`).
+- **Status:** Built (2026-10-14).
+
+### D-835: The admin API's messages in core's catalog
+
+- **Date:** 2026-10-14
+- **Refines:** D-831, D-833, D-834.
+- **Decision:** the author's go to convert the admin API's own PHP
+  text, D-834's "left for later". Settled:
+  - **Core's default catalog** (`resources/lang/en.json`), since PHP
+    always writes to it (D-831), under `admin.`, then the snake_case of
+    the class's name, as D-834 keys the admin's scripts
+    (`PasswordController` → `admin.password_controller.wrong_current`).
+    The one shared message is `admin.common.sign_in_first` ("Sign in
+    first."), the same answer in every controller.
+  - **A class asks for `Messages`** in its constructor (D-816), and
+    the text goes out as the `Text` `t()` returns (it encodes as JSON
+    in the current language), cast to a string only where a string is
+    needed. Text that was a static method's becomes an instance's.
+  - **The English stays as it was**, as in D-834: `sprintf()` becomes
+    named parameters, and hand-made plurals ICU plurals.
+  - **Not converted, as in D-834:** errors meant for programmers (a
+    request in the wrong shape, "Send a JSON …"; OAuth's error codes;
+    wiring errors), values compared in code, and brand names.
+  - **In stages:** first the text written in `src/Admin`; then text
+    the admin shows that comes from elsewhere (services' exceptions
+    and problems, such as `Accounts::passwordProblem()`, the settings'
+    help, Site Health's checks), and text kept in storage (a stored
+    report's words would be in the language of whoever ran it).
+- **Built, as it went (stage 1):** six agents converted `src/Admin` by
+  group, about 510 messages; `lang:extract core` found no problems.
+  Sentences put together from parts became whole sentences (a
+  `select` on an extension kind's case name, since ICU keys can't
+  hold a hyphen; one message each for "its index page" and "its
+  {page} page"). Redirect messages with code in them are translated
+  whole and split around slot parameters (`Message::of()`,
+  `Message::slot()`), so the API's `parts` are unchanged. The shell's
+  `<title>` is rendered in the admin's language through
+  `CurrentLocale::in()`, since the shell isn't behind `AdminLanguage`.
+  `AdminThemeContrast::check()` takes `Messages`, English by default
+  for the CLI. Two plurals gained the singular they lacked ("1
+  second", "1 byte"), and ICU groups digits in figures ("1,024 MB").
+  Lists joined with "and" stay English, as in D-834.
+- **Status:** Stage 1 built (2026-10-14); stage 2 open
+  (`open-questions.md`).
+
+### D-836: Text is translated where it's written, and stored text keeps its key, text, and values
+
+- **Date:** 2026-10-14
+- **Refines:** D-835 (stage 2).
+- **Decision:**
+  - **All text people see is translated where it's written** (the
+    author's rule): a service that writes a message for people (an
+    exception's message, a problem, a label, help) asks for `Messages`
+    and writes it with `t()`, as `src/Admin` does since D-835. During an
+    admin request that's the account's language (`AdminLanguage`); from
+    the CLI, the API, or MCP, the language those run in.
+  - **Text kept to show later is stored as its message, not its
+    sentence:** the key, the text the code wrote beside it, and the
+    named values, and turned into a sentence when it's shown, in the
+    viewer's language. The key picks up later wording and
+    translations; the text is the fallback when a newer version has no
+    such key (as `t()` shows its text when no catalog has the key), so
+    a stored message never shows a bare key. Applies to Site Health's
+    report, job results, and the admin theme cache's reasons; the
+    activity log's summaries too, unless they're kept as a record.
+- **Open:** the stored shape (a `Text` written as `{key, text,
+  params}`, with values that are themselves messages), and what reads
+  reports saved before it (shown as stored until the next check).
+- **Why:** the author: "All user-facing text should be internationalized
+  at the point where it's written", and storing the text beside the key
+  in case a newer version's key is gone.
+- **Built, as it went:** `Text::toArray()` stores a message (key, text,
+  domain, values, a message among them nested, a date as its
+  timestamp; HTML refused) and `Messages::restore()` reads one back as
+  its own domain's text, or `null` for a value stored as a sentence
+  before, which is shown as it is. Nine agents converted the services
+  by area, about 1,400 messages under `{area}.{class_snake}.` keys
+  (`auth.accounts.…`), enum cases `{area}.{enum}.{case}`. Site Health's
+  report, job results and details, activity summaries, tool results,
+  and admin themes' cached reasons are stored as messages; an
+  `ExtensionException` keeps its `Text`, so a reason written at boot,
+  before a translator exists, is restored in the reader's language
+  when the admin shows it. Enums' labels take `Messages`
+  (`label(Messages)`); classes also built by hand take
+  `Messages $messages = new Messages()` (the container gives the real
+  one, since a default is only its fallback). `Violation::$message`,
+  `CheckResult`'s text, `JobRecord`'s, `Activity::$summary`, and
+  `Role`'s label are `string|Text`; `StatusLine` takes `Stringable`.
+  A `t()` parameter can't be named `key` or `text` (they're `t()`'s
+  own). Sentences pieced together became whole messages (ICU
+  `select`, `plural`); lists joined with "and" stay English (D-834).
+- **Status:** Built (2026-10-14); what's left is in `open-questions.md`.
+
+### D-837: What the admin shows is translated; text only developers see stays English
+
+- **Date:** 2026-10-14
+- **Refines:** D-835, D-836.
+- **Decision:** the line is where the text is shown. Text the admin
+  shows people is translated, even when only a developer can fix what
+  it says: a plugin's manifest errors as its "broken" reason, unmet
+  requirements, admin themes' validation, Site Health's findings,
+  refusals, settings. Text only a developer sees stays English: PHP
+  exceptions on an error page or in a log, wiring errors,
+  `LogicException`s, wrong arguments, and requests in the wrong shape
+  (D-835), which the admin never sends.
+- **Why:** the author, checking that the D-836 sweep wasn't translating
+  developer text ("admin text that the user sees is internationalized.
+  Text only shown in php error messages to a developer is english").
+- **Status:** Decided (2026-10-14).
+
+### D-838: No English grammar built outside the admin's messages
+
+- **Date:** 2026-10-14
+- **Refines:** D-834 ("Still English in places").
+- **Decision:** the author's go to fix the admin's grammar helpers.
+  `plural()` and `withArticle()` are gone, and `series()` joins a list
+  with `Intl.ListFormat` in the admin's language. A count is one ICU
+  plural in the message (`{count, plural, one {# {item}} other
+  {# {items}}}` for a site's type labels); a component that counts
+  what a screen gives it takes a function from that screen
+  (`ItemTree`'s `words`, `ListPager`'s `counted`, Site Health's
+  `Counted`), so each sentence is one message with its noun in it.
+  Sentences that put an article before a site's noun are reworded so
+  the noun needs none ("Takes one {item} at most", "Add {item}…",
+  "Every {source} has at least one {item}", "No {item} can sit inside
+  itself", "doesn't match any {noun}"), since a site's label has no
+  gender or article for a translator to choose by. The keys they
+  orphaned are taken out of `resources/lang/admin/en.json`.
+- **Status:** Built (2026-10-14).
+
+### D-839: The admin's dates, numbers, and sorting in its own language
+
+- **Date:** 2026-10-14
+- **Refines:** D-833, D-838.
+- **Decision:** the author's go to fix the date formatting found in
+  D-838. Every `Intl` formatter in the admin takes the admin's language
+  (`locale()`, the account's), not the browser's: `format.ts`'s dates,
+  sizes, and lists, media's numbers, Settings' time zones, the
+  dashboard's day, the editor's "Saved" time. Sorting names
+  (`localeCompare`) uses it too. A count printed outside a message is
+  `formatNumber()`; one given to `t()` is passed as a number, which the
+  message formats. `formatWhenInline()` no longer lowercases what
+  `formatWhen()` gives (which turned "Monday" and "October 1" into
+  "monday" and "october 1"): its own words have mid-sentence messages
+  (`format.inline.today_at`, `tomorrow_at`, `yesterday`), and a
+  weekday's or month's name is as the language writes it. Dates read
+  as dates keep the site's formats and language (`dates.ts`, D-693).
+  Three counts that read "1 recipes" became ICU plurals.
+- **Status:** Built (2026-10-14).

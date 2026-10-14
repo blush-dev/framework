@@ -25,9 +25,9 @@ import { confirmAction } from '../confirm';
 import { blankField, controlIcon, controlLabel, holdsFields } from '../controls';
 import { copyField, fieldNode, fieldsAccept, isContainer, keysBeside, type FieldNode } from '../field-tree';
 import { label as labelOf } from '../fields';
-import { plural } from '../format';
+import { t } from '../messages';
 import { toast } from '../toast';
-import type { ItemTreeApi, Placed } from '../tree';
+import type { ItemTreeApi, ItemTreeWords, Placed } from '../tree';
 import AdminIcon from './AdminIcon.vue';
 import ControlPicker from './ControlPicker.vue';
 import FieldForm from './FieldForm.vue';
@@ -57,9 +57,21 @@ const picking = ref<{ flat: boolean; resolve: (key: string | null) => void } | n
 
 // The top level takes a field into a group above it; a group's fields
 // stay where they are (D-770).
+const words: ItemTreeWords = {
+	under: (count) => t('field_node_tree.under', '{count, plural, one {# field} other {# fields}}', { count }),
+	added: (place, name) => place === null
+		? t('field_node_tree.added', 'Added a field.')
+		: t('field_node_tree.added_at', 'Added a field {place, select, above {above} below {after} other {inside}} {name}.', { place, name }),
+	addAbove: t('field_node_tree.add_above', 'Add field above'),
+	addBelow: t('field_node_tree.add_below', 'Add field below'),
+	removedWith: (name, count) => t('field_node_tree.removed_with', 'Removed {name} and its {count, plural, one {# field} other {# fields}}', { name, count }),
+	showUnder: (name) => t('field_node_tree.show_under', 'Show the fields under {name}', { name }),
+	hideUnder: (name) => t('field_node_tree.hide_under', 'Hide the fields under {name}', { name })
+};
+
 const accepts = computed(() => props.depth === 0 ? fieldsAccept(props.nodes) : (_node: FieldNode, parent: FieldNode | null) => parent === null);
 
-const name = (node: FieldNode): string => node.field.label || (node.field.name ? labelOf(node.field) : 'Untitled field');
+const name = (node: FieldNode): string => node.field.label || (node.field.name ? labelOf(node.field) : t('field_node_tree.untitled', 'Untitled field'));
 
 function pick(flat: boolean): Promise<string | null> {
 	return new Promise((resolve) => {
@@ -87,10 +99,6 @@ function countOf(node: FieldNode, group: string | null = props.at): number {
 	return props.counts[group === null ? node.saved : `${group}.${node.saved}`] ?? 0;
 }
 
-// What a move says of the values that go with it on saving.
-function movesValues(count: number, where: string): string {
-	return count === 0 ? '' : `. Saving moves its values in ${plural(count, 'entry', 'entries')} ${where} too`;
-}
 
 async function confirmRemove(node: FieldNode): Promise<boolean> {
 	const count = countOf(node);
@@ -100,9 +108,9 @@ async function confirmRemove(node: FieldNode): Promise<boolean> {
 	}
 
 	return confirmAction({
-		title: `Remove ${name(node)}?`,
-		body: `${plural(count, 'entry has', 'entries have')} a value for it. Their files keep it, listed as other front matter once the field is gone.`,
-		confirm: 'Remove Field',
+		title: t('field_node_tree.remove_title', 'Remove {name}?', { name: name(node) }),
+		body: t('field_node_tree.remove_body', '{count, plural, one {# entry has} other {# entries have}} a value for it. Their files keep it, listed as other front matter once the field is gone.', { count }),
+		confirm: t('field_node_tree.remove_field', 'Remove Field'),
 		danger: true
 	});
 }
@@ -110,7 +118,7 @@ async function confirmRemove(node: FieldNode): Promise<boolean> {
 // Keys a field can't take: the others' at its level, and at the top, the
 // ones the set's types already use.
 function takenFor(placed: Placed<FieldNode>): Record<string, string> {
-	const beside = Object.fromEntries(keysBeside(placed.list, placed.node).map((key) => [key, props.group ? `The ${props.group} group` : 'This set']));
+	const beside = Object.fromEntries(keysBeside(placed.list, placed.node).map((key) => [key, props.group ? t('field_node_tree.taken_group', 'The {group} group', { group: props.group }) : t('field_node_tree.taken_set', 'This set')]));
 
 	return { ...props.taken, ...beside };
 }
@@ -132,7 +140,12 @@ function moveInto(placed: Placed<FieldNode>, group: FieldNode): void {
 	placed.list.splice(placed.index, 1);
 	group.children.push(placed.node);
 	emit('change');
-	toast(`Moved ${name(placed.node)} into ${name(group)}${movesValues(countOf(placed.node), 'into it')}`);
+	const count = countOf(placed.node);
+	const names = { field: name(placed.node), group: name(group), count };
+
+	toast(count === 0
+		? t('field_node_tree.moved_into', 'Moved {field} into {group}', names)
+		: t('field_node_tree.moved_into_values', 'Moved {field} into {group}. Saving moves its values in {count, plural, one {# entry} other {# entries}} into it too', names));
 }
 
 // A group's field moved out goes after the group.
@@ -142,7 +155,12 @@ function moveOut(placed: Placed<FieldNode>, node: FieldNode): void {
 	children.splice(children.indexOf(node), 1);
 	placed.list.splice(placed.index + 1, 0, node);
 	emit('change');
-	toast(`Moved ${name(node)} out of ${name(placed.node)}${movesValues(countOf(node, placed.node.saved), 'out of it')}`);
+	const count = countOf(node, placed.node.saved);
+	const names = { field: name(node), group: name(placed.node), count };
+
+	toast(count === 0
+		? t('field_node_tree.moved_out', 'Moved {field} out of {group}', names)
+		: t('field_node_tree.moved_out_values', 'Moved {field} out of {group}. Saving moves its values in {count, plural, one {# entry} other {# entries}} out of it too', names));
 }
 
 async function add(): Promise<void> {
@@ -154,14 +172,13 @@ defineExpose({ add });
 
 <template>
 	<div class="field-nodes" :class="{ 'nest field-nodes--inside': depth > 0 }">
-		<p v-if="depth > 0 && !nodes.length" class="nest__none">No fields yet.</p>
+		<p v-if="depth > 0 && !nodes.length" class="nest__none">{{ t('field_node_tree.no_fields', 'No fields yet.') }}</p>
 		<ItemTree
 			v-show="nodes.length"
 			ref="tree"
 			:nodes="nodes"
 			:name="name"
-			under="field"
-			noun="field"
+			:words="words"
 			:labelled-by="labelledBy"
 			:blank="() => fieldNode(blankField('text'))"
 			:copy="copyField"
@@ -177,15 +194,15 @@ defineExpose({ add });
 			<template #pick="{ placed }">
 				<span class="item-tree__kind" :title="controlLabel(placed.node.field.control ?? 'text')"><AdminIcon :name="controlIcon(placed.node.field.control ?? 'text')" /><span class="visually-hidden">{{ controlLabel(placed.node.field.control ?? 'text') }}: </span></span>
 				<span class="item-tree__title">{{ name(placed.node) }}</span>
-				<span v-if="!placed.node.field.name" class="pill pill--warn">No Key</span>
-				<span v-else-if="placed.node.field.required" class="pill">Required</span>
+				<span v-if="!placed.node.field.name" class="pill pill--warn">{{ t('field_node_tree.no_key', 'No Key') }}</span>
+				<span v-else-if="placed.node.field.required" class="pill">{{ t('field_node_tree.required', 'Required') }}</span>
 			</template>
 			<template #menu="{ placed }">
-				<button v-if="depth === 0 && isContainer(placed.node)" type="button" class="menu-item" @click="tree?.add('inside', placed.node.id)"><AdminIcon name="corner-down-right" />Add field inside</button>
+				<button v-if="depth === 0 && isContainer(placed.node)" type="button" class="menu-item" @click="tree?.add('inside', placed.node.id)"><AdminIcon name="corner-down-right" />{{ t('field_node_tree.add_inside', 'Add field inside') }}</button>
 				<template v-if="depth === 0 && !isContainer(placed.node)">
-					<button v-for="group in nodes.filter((node) => isContainer(node))" :key="group.id" type="button" class="menu-item" @click="moveInto(placed, group)"><AdminIcon name="indent-increase" />Move into {{ name(group) }}</button>
+					<button v-for="group in nodes.filter((node) => isContainer(node))" :key="group.id" type="button" class="menu-item" @click="moveInto(placed, group)"><AdminIcon name="indent-increase" />{{ t('field_node_tree.move_into', 'Move into {group}', { group: name(group) }) }}</button>
 				</template>
-				<button v-if="depth > 0" type="button" class="menu-item" @click="emit('out', placed.node)"><AdminIcon name="indent-decrease" />Move out of {{ group || 'the group' }}</button>
+				<button v-if="depth > 0" type="button" class="menu-item" @click="emit('out', placed.node)"><AdminIcon name="indent-decrease" />{{ t('field_node_tree.move_out', 'Move out of {group}', { group: group || t('field_node_tree.the_group', 'the group') }) }}</button>
 			</template>
 			<template #fields="{ placed, done: close }">
 				<FieldForm
@@ -219,7 +236,7 @@ defineExpose({ add });
 			</template>
 		</ItemTree>
 		<div v-if="depth > 0 && !locked" class="nest__foot">
-			<button type="button" class="button button--ghost button--small" @click="add"><AdminIcon name="plus" />Add Field</button>
+			<button type="button" class="button button--ghost button--small" @click="add"><AdminIcon name="plus" />{{ t('field_node_tree.add_field', 'Add Field') }}</button>
 		</div>
 
 		<ControlPicker v-if="picking" :flat="picking.flat" @choose="chose" @close="chose(null)" />

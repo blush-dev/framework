@@ -23,6 +23,8 @@ use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Relation\Refs;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Applies `EntryChanges` to a content document's text (D-228, D-501):
@@ -46,8 +48,10 @@ use Blush\Content\Relation\Refs;
  */
 final readonly class DocumentEditor
 {
-	public function __construct(private DocumentParser $parser)
-	{}
+	public function __construct(
+		private DocumentParser $parser,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Returns the file's new text.
@@ -190,24 +194,24 @@ final readonly class DocumentEditor
 			$present = array_find($keys((string) $name), static fn (string $key): bool => array_key_exists($key, $after->frontMatter));
 
 			if ($present === null || ! self::same($value, $after->frontMatter[$present])) {
-				throw self::unsafe($path, sprintf('"%s" wouldn\'t read back as given', $name));
+				throw $this->unsafe($path, $this->messages->t('content.document_editor.value_changes', '"{name}" wouldn\'t read back as given', name: $name));
 			}
 		}
 
 		foreach ($changes->remove as $name) {
 			if (array_any($keys($name), static fn (string $key): bool => array_key_exists($key, $after->frontMatter))) {
-				throw self::unsafe($path, sprintf('"%s" wouldn\'t be removed', $name));
+				throw $this->unsafe($path, $this->messages->t('content.document_editor.not_removed', '"{name}" wouldn\'t be removed', name: $name));
 			}
 		}
 
 		$untouched = static fn (array $data): array => array_diff_key($data, array_flip($touched));
 
 		if ($untouched($before->frontMatter) !== $untouched($after->frontMatter)) {
-			throw self::unsafe($path, 'other front matter would change');
+			throw $this->unsafe($path, $this->messages->t('content.document_editor.others_change', 'other front matter would change'));
 		}
 
 		if ($after->body !== ($changes->body ?? $before->body)) {
-			throw self::unsafe($path, 'the body wouldn\'t read back as given');
+			throw $this->unsafe($path, $this->messages->t('content.document_editor.body_changes', 'the body wouldn\'t read back as given'));
 		}
 	}
 
@@ -245,15 +249,15 @@ final readonly class DocumentEditor
 		try {
 			return $this->parser->parse($contents);
 		} catch (InvalidDocument $e) {
-			throw new WriteException(sprintf('%s can\'t be read, so it can\'t be edited safely: %s', $path, $e->getMessage()), previous: $e);
+			throw new WriteException((string) $this->messages->t('content.document_editor.unreadable', '{path} can\'t be read, so it can\'t be edited safely: {problem}', path: $path, problem: $e->getMessage()), previous: $e);
 		}
 	}
 
 	/**
 	 * Builds the exception for an edit that wouldn't read back.
 	 */
-	private static function unsafe(string $path, string $reason): WriteException
+	private function unsafe(string $path, Text $reason): WriteException
 	{
-		return new WriteException(sprintf('Blush couldn\'t edit %s safely (%s), so nothing was saved.', $path, $reason));
+		return new WriteException((string) $this->messages->t('content.document_editor.unsafe', 'Blush couldn\'t edit {path} safely ({reason}), so nothing was saved.', path: $path, reason: $reason));
 	}
 }

@@ -8,6 +8,7 @@ import { request, type FieldDescription } from './api';
 import { MARKDOWN_BLOCK_KINDS } from './markdown-blocks';
 import { attributeText, registerBlockKinds, shortName } from './markdown';
 import type { IconName } from './icons';
+import { t } from './messages';
 
 export interface BlockProp extends FieldDescription {
 	// A choice's labels, by value.
@@ -57,11 +58,11 @@ export interface BlockGroup {
 }
 
 const CATEGORIES: Record<string, { label: string; icon: IconName }> = {
-	text: { label: 'Text', icon: 'pen-line' },
-	media: { label: 'Media', icon: 'image' },
-	layout: { label: 'Layout', icon: 'rows-3' },
-	navigation: { label: 'Navigation', icon: 'compass' },
-	data: { label: 'Data', icon: 'sliders-horizontal' }
+	text: { label: t('blocks.categories.text', 'Text'), icon: 'pen-line' },
+	media: { label: t('blocks.categories.media', 'Media'), icon: 'image' },
+	layout: { label: t('blocks.categories.layout', 'Layout'), icon: 'rows-3' },
+	navigation: { label: t('blocks.categories.navigation', 'Navigation'), icon: 'compass' },
+	data: { label: t('blocks.categories.data', 'Data'), icon: 'sliders-horizontal' }
 };
 
 const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', 'icon-pack': 'shapes', plugin: 'plug' };
@@ -161,8 +162,8 @@ export async function bleedClasses(): Promise<BleedClasses> {
  */
 export const IMAGE_BLOCK: BlockDescription = {
 	name: 'image',
-	label: 'Image',
-	description: 'An ordinary Markdown image, from the media library. The quoted part after its address is its caption.',
+	label: t('blocks.image', 'Image'),
+	description: t('blocks.image_description', 'An ordinary Markdown image, from the media library. The quoted part after its address is its caption.'),
 	content: 'none',
 	kind: 'leaf',
 	category: 'media',
@@ -195,13 +196,13 @@ function markdownElement(kind: keyof typeof MARKDOWN_BLOCK_KINDS, category: stri
 }
 
 export const MARKDOWN_ELEMENTS: BlockDescription[] = [
-	markdownElement('heading', 'text', 'h1 h2 h3 title', 'A heading, at level 2: the entry\'s title is the page\'s level 1.', '## Heading', 'Heading'),
-	markdownElement('quote', 'text', 'blockquote citation', 'A block quotation. Every line carries the marker.', '> Quoted text.', 'Quoted text.'),
-	markdownElement('list', 'text', 'bullet numbered ordered task checklist ul ol', 'A list. Its type, bulleted, numbered, or task, is in the settings.', '- First item\n- Second item', 'First item'),
-	markdownElement('definitions', 'text', 'definition dl terms glossary', 'Terms, each with one or more definitions under it.', 'Term\n: Its definition.', 'Term'),
-	markdownElement('code', 'text', 'fence fenced pre snippet', 'A fenced code block. The word after the fence is its language.', '```\ncode\n```', 'code'),
-	markdownElement('table', 'data', 'grid rows columns pipe', 'A table written with pipes. Enter on its last row adds another.', '| Column | Column |\n| --- | --- |\n| Cell | Cell |', 'Column'),
-	markdownElement('rule', 'layout', 'divider hr rule thematic break separator', 'A horizontal rule between sections.', '---', '')
+	markdownElement('heading', 'text', 'h1 h2 h3 title', t('blocks.descriptions.heading', 'A heading, at level 2: the entry\'s title is the page\'s level 1.'), '## Heading', 'Heading'),
+	markdownElement('quote', 'text', 'blockquote citation', t('blocks.descriptions.quote', 'A block quotation. Every line carries the marker.'), '> Quoted text.', 'Quoted text.'),
+	markdownElement('list', 'text', 'bullet numbered ordered task checklist ul ol', t('blocks.descriptions.list', 'A list. Its type, bulleted, numbered, or task, is in the settings.'), '- First item\n- Second item', 'First item'),
+	markdownElement('definitions', 'text', 'definition dl terms glossary', t('blocks.descriptions.definitions', 'Terms, each with one or more definitions under it.'), 'Term\n: Its definition.', 'Term'),
+	markdownElement('code', 'text', 'fence fenced pre snippet', t('blocks.descriptions.code', 'A fenced code block. The word after the fence is its language.'), '```\ncode\n```', 'code'),
+	markdownElement('table', 'data', 'grid rows columns pipe', t('blocks.descriptions.table', 'A table written with pipes. Enter on its last row adds another.'), '| Column | Column |\n| --- | --- |\n| Cell | Cell |', 'Column'),
+	markdownElement('rule', 'layout', 'divider hr rule thematic break separator', t('blocks.descriptions.rule', 'A horizontal rule between sections.'), '---', '')
 ];
 
 /**
@@ -220,7 +221,7 @@ export function groupOf(block: BlockDescription): BlockGroup {
 		key: `${source.kind}:${source.label}`,
 		label: source.label,
 		icon: SOURCE_ICONS[source.kind] ?? 'plug',
-		source: source.kind === 'theme' ? 'Theme' : 'Plugin'
+		source: source.kind === 'theme' ? t('blocks.source_theme', 'Theme') : t('blocks.source_plugin', 'Plugin')
 	};
 }
 

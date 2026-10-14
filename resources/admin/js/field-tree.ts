@@ -10,6 +10,7 @@
 
 import type { FieldDescription } from './api';
 import { holdsFields } from './controls';
+import { t } from './messages';
 import type { Accepts, TreeNode } from './tree';
 
 export interface FieldNode extends TreeNode<FieldNode> {
@@ -103,7 +104,7 @@ export function fieldNode(field: FieldDescription): FieldNode {
  * A copy of a node and the fields under it, not saved.
  */
 export function copyField(node: FieldNode): FieldNode {
-	return { id: nodeId(), field: structuredClone({ ...node.field, name: `${node.field.name}_copy`, label: node.field.label ? `${node.field.label} copy` : undefined }), saved: null, children: node.children.map(copyField), open: node.open };
+	return { id: nodeId(), field: structuredClone({ ...node.field, name: `${node.field.name}_copy`, label: node.field.label ? t('field_tree.copy_label', '{label} copy', { label: node.field.label }) : undefined }), saved: null, children: node.children.map(copyField), open: node.open };
 }
 
 /**

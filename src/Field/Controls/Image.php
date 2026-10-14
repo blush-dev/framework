@@ -19,6 +19,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\MediaField;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One picture from the library: a media field of images.
@@ -38,18 +40,18 @@ final class Image extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Image';
+		return $messages->t('field.image.label', 'Image');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'One picture from the library.';
+		return $messages->t('field.image.description', 'One picture from the library.');
 	}
 
 	/**

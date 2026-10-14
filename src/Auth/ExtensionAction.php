@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use Blush\Extension\ExtensionKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * What a role may do with each kind of extension (D-389). Each kind has a
@@ -63,33 +65,38 @@ enum ExtensionAction: string
 	/**
 	 * Returns the action's label on a kind.
 	 */
-	public function label(ExtensionKind $kind): string
+	public function label(ExtensionKind $kind, Messages $messages): Text
 	{
-		$plural = strtolower(self::group($kind));
+		$name = match ($kind) {
+			ExtensionKind::Plugin     => 'plugin',
+			ExtensionKind::Theme      => 'theme',
+			ExtensionKind::IconPack   => 'icon_pack',
+			ExtensionKind::AdminTheme => 'admin_theme'
+		};
 
 		return match ($this) {
-			self::View     => "See {$plural}",
-			self::Install  => "Install {$plural}",
-			self::Update   => "Update {$plural}",
+			self::View     => $messages->t('auth.extension_action.view', 'See {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}', kind: $name),
+			self::Install  => $messages->t('auth.extension_action.install', 'Install {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}', kind: $name),
+			self::Update   => $messages->t('auth.extension_action.update', 'Update {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}', kind: $name),
 			self::Activate => match ($kind) {
-				ExtensionKind::Theme      => 'Activate themes',
-				ExtensionKind::AdminTheme => 'Turn admin themes on and off, and choose the site\'s default',
-				default                   => "Turn {$plural} on and off"
+				ExtensionKind::Theme      => $messages->t('auth.extension_action.activate_themes', 'Activate themes'),
+				ExtensionKind::AdminTheme => $messages->t('auth.extension_action.activate_admin_themes', 'Turn admin themes on and off, and choose the site\'s default'),
+				default                   => $messages->t('auth.extension_action.activate', 'Turn {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}} on and off', kind: $name)
 			},
-			self::Delete   => "Delete {$plural}"
+			self::Delete   => $messages->t('auth.extension_action.delete', 'Delete {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}', kind: $name)
 		};
 	}
 
 	/**
 	 * Returns the group a kind's capabilities are shown in.
 	 */
-	public static function group(ExtensionKind $kind): string
+	public static function group(ExtensionKind $kind, Messages $messages): Text
 	{
 		return match ($kind) {
-			ExtensionKind::Plugin     => 'Plugins',
-			ExtensionKind::Theme      => 'Themes',
-			ExtensionKind::IconPack   => 'Icon Packs',
-			ExtensionKind::AdminTheme => 'Admin Themes'
+			ExtensionKind::Plugin     => $messages->t('auth.extension_action.group.plugin', 'Plugins'),
+			ExtensionKind::Theme      => $messages->t('auth.extension_action.group.theme', 'Themes'),
+			ExtensionKind::IconPack   => $messages->t('auth.extension_action.group.icon_pack', 'Icon Packs'),
+			ExtensionKind::AdminTheme => $messages->t('auth.extension_action.group.admin_theme', 'Admin Themes')
 		};
 	}
 

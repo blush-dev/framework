@@ -22,6 +22,7 @@ use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Media\Index\MediaRecord;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * When each media file was added to the library (D-709), the date the
@@ -55,7 +56,8 @@ final readonly class MediaDates
 		private MediaIndex $index,
 		private MediaMetadataStore $store,
 		private MediaResolver $resolver,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -121,13 +123,13 @@ final readonly class MediaDates
 			$file = $this->resolver->fromKey($key);
 
 			if ($file === null) {
-				$failed[$key] = 'isn\'t in the media library.';
+				$failed[$key] = (string) $this->messages->t('media.common.not_in_library', 'isn\'t in the media library.', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 
 			// A metadata file that can't be read isn't written over.
 			if (! $this->store->isWritable($file)) {
-				$failed[$key] = 'its metadata file can\'t be read; fix it first (content:lint says why).';
+				$failed[$key] = (string) $this->messages->t('media.common.metadata_unreadable', 'its metadata file can\'t be read; fix it first (content:lint says why).', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 

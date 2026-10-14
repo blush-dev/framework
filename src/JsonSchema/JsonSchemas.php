@@ -38,7 +38,9 @@ use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
 use Blush\Theme\PreviewLayout;
 use Blush\Theme\ThemePreview;
+use Blush\Translation\Catalog;
 use Blush\Translation\LocaleMap;
+use Blush\Translation\Messages;
 
 /**
  * Builds the JSON Schemas editors use to autocomplete and check Blush's
@@ -148,7 +150,10 @@ final readonly class JsonSchemas
 								: 'More attributes for its <link>, such as {"media": "print"}.',
 							'additionalProperties' => ['type' => ['string', 'boolean']]
 						],
-						...($script ? ['footer' => ['type' => 'boolean', 'default' => false, 'description' => 'Print it just before </body> instead of in the <head>.']] : [])
+						...($script ? [
+							'footer'  => ['type' => 'boolean', 'default' => false, 'description' => 'Print it just before </body> instead of in the <head>.'],
+							'catalog' => ['type' => 'string', 'pattern' => Catalog::NAME_PATTERN, 'description' => 'The named catalog of the extension\'s text it reads, such as "site" (lang/site/{locale}.json), which the page prints before it in its language for blush/messages. A module script only.']
+						] : [])
 					]
 				]
 			]
@@ -219,6 +224,7 @@ final readonly class JsonSchemas
 					'description' => 'Files every page preloads, relative to the theme, such as the fonts its stylesheet uses. What each is comes from its extension.'
 				],
 				'assets'      => $this->assets(),
+				'catalogs'    => $this->catalogs('theme'),
 				'provider'    => [
 					'type'        => 'string',
 					'description' => 'The class name of the theme\'s service provider, registered before the site\'s.'
@@ -318,7 +324,27 @@ final readonly class JsonSchemas
 				'provide'     => $this->requires('The packages the plugin provides an implementation of, as composer.json says it, each with the versions it provides (self.version for its own): a require of one is met by this plugin when it runs, and any number of extensions may provide one. Without it, the provide in the composer.json beside this file is used.'),
 				'authors'     => $this->authors('plugin'),
 				'license'     => $this->license('plugin'),
+				'catalogs'    => $this->catalogs('plugin'),
 				...$this->links('plugin')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a manifest's `catalogs` (D-831).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function catalogs(string $kind): array
+	{
+		return [
+			'type'                 => 'object',
+			'description'          => sprintf('Which of the %s\'s folders hold scripts that write to which named catalog (lang/{catalog}/{locale}.json), such as {"site": ["resources/site"]}; lang:extract reads their t() calls. Without it, each folder under resources/ is a catalog of its name.', $kind),
+			'propertyNames'        => ['pattern' => Catalog::NAME_PATTERN],
+			'additionalProperties' => [
+				'type'     => 'array',
+				'minItems' => 1,
+				'items'    => ['type' => 'string', 'pattern' => '^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$']
 			]
 		];
 	}
@@ -615,7 +641,7 @@ final readonly class JsonSchemas
 	 */
 	public function media(): array
 	{
-		$schema = MediaSchemas::allBuiltIn()->jsonSchema();
+		$schema = MediaSchemas::allBuiltIn(new Messages())->jsonSchema();
 		$fields = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
 
 		return [
@@ -660,7 +686,7 @@ final readonly class JsonSchemas
 	 */
 	public function entry(): array
 	{
-		$schema = EntryFields::schema()->jsonSchema();
+		$schema = EntryFields::schema(new Messages())->jsonSchema();
 		$fields = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
 
 		return [
@@ -792,7 +818,7 @@ final readonly class JsonSchemas
 	{
 		$field = ['$ref' => '#/definitions/field'];
 		$types = array_map(
-			static fn (FieldType $type): array => ['const' => $type->value, 'description' => $type->className()::typeDescription()],
+			static fn (FieldType $type): array => ['const' => $type->value, 'description' => (string) $type->className()::typeDescription(new Messages())],
 			FieldType::cases()
 		);
 
@@ -814,7 +840,7 @@ final readonly class JsonSchemas
 				'required'             => ['name'],
 				'additionalProperties' => false,
 				'properties'           => [
-					'name' => ['anyOf' => array_map(static fn (ControlType $control): array => ['const' => $control->value, 'description' => $control->className()::label()], ControlType::cases())],
+					'name' => ['anyOf' => array_map(static fn (ControlType $control): array => ['const' => $control->value, 'description' => (string) $control->className()::label(new Messages())], ControlType::cases())],
 					...array_merge(...array_map(static fn (ControlType $control): array => $control->className()::definitionSchema(), ControlType::cases()))
 				]
 			]] : [])

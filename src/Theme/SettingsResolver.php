@@ -23,6 +23,7 @@ use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\SettingGroups;
+use Blush\Translation\Messages;
 
 /**
  * Resolves a theme chain's settings (D-022). A manifest's `settings` are
@@ -60,7 +61,8 @@ final class SettingsResolver
 		private readonly FieldFactory $fields,
 		private readonly FieldContext $context,
 		private readonly SettingGroups $groups,
-		private readonly ExtensionText $text
+		private readonly ExtensionText $text,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -92,7 +94,7 @@ final class SettingsResolver
 				try {
 					$schema = $schema->with($this->translated($this->fields->fromArray([...$definition, 'name' => $name]), $theme, $name, $definition));
 				} catch (InvalidSchema $error) {
-					throw new ThemeException(sprintf('The "%s" theme\'s setting "%s" is invalid: %s', $theme->name, $name, $error->getMessage()), 0, $error);
+					throw new ThemeException((string) $this->messages->t('theme.settings_resolver.invalid', 'The "{theme}" theme\'s setting "{name}" is invalid: {error}', theme: $theme->name, name: $name, error: $error->getMessage()), 0, $error);
 				}
 			}
 		}

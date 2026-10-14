@@ -32,6 +32,8 @@ use Blush\Extension\Install\InstallClash;
 use Blush\Extension\Install\InstallException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Installs an extension from a `.zip` of its folder (D-392):
@@ -60,7 +62,8 @@ final readonly class ExtensionInstallController
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private ContentVersion $version,
-		private InstalledExtensions $extensions
+		private InstalledExtensions $extensions,
+		private Messages $messages
 	) {}
 
 	public function theme(ServerRequestInterface $request): ResponseInterface
@@ -88,7 +91,7 @@ final readonly class ExtensionInstallController
 	 * `upload`): the largest archive taken (`limit`, in bytes), and why
 	 * nothing can be installed (`problem`), or `null`.
 	 *
-	 * @return array{limit: int, problem: ?string}
+	 * @return array{limit: int, problem: ?Text}
 	 */
 	public static function upload(ExtensionInstaller $installer, ExtensionKind $kind): array
 	{
@@ -124,23 +127,28 @@ final readonly class ExtensionInstallController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, $action->on($kind))) {
-			return self::error(sprintf('You aren\'t allowed to %s %ss.', $replace ? 'update' : 'install', $kind->label()), Status::Forbidden);
+			return self::error(
+				$replace
+					? $this->messages->t('admin.extension_install_controller.update_forbidden', '{kind, select, Plugin {You aren\'t allowed to update plugins.} Theme {You aren\'t allowed to update themes.} IconPack {You aren\'t allowed to update icon packs.} other {You aren\'t allowed to update admin themes.}}', kind: $kind->name)
+					: $this->messages->t('admin.extension_install_controller.install_forbidden', '{kind, select, Plugin {You aren\'t allowed to install plugins.} Theme {You aren\'t allowed to install themes.} IconPack {You aren\'t allowed to install icon packs.} other {You aren\'t allowed to install admin themes.}}', kind: $kind->name),
+				Status::Forbidden
+			);
 		}
 
 		$upload = $request->getUploadedFiles()['file'] ?? null;
 
 		if (! $upload instanceof UploadedFileInterface) {
-			return self::error(sprintf('No file arrived. It may be larger than the site allows (up to %d MB).', intdiv(self::limit(), 1024 * 1024)), Status::BadRequest);
+			return self::error($this->messages->t('admin.extension_install_controller.no_file', 'No file arrived. It may be larger than the site allows (up to {size} MB).', size: intdiv(self::limit(), 1024 * 1024)), Status::BadRequest);
 		}
 
-		$name = basename(str_replace('\\', '/', (string) $upload->getClientFilename())) ?: 'The file';
+		$name = basename(str_replace('\\', '/', (string) $upload->getClientFilename())) ?: (string) $this->messages->t('admin.extension_install_controller.the_file', 'The file', context: 'Stands in for a file\'s name, at the start of a sentence, when it has none.');
 
 		if ($upload->getError() !== UPLOAD_ERR_OK || ($upload->getSize() ?? 0) > self::limit()) {
-			return self::error(sprintf('%s is larger than the site allows (up to %d MB).', $name, intdiv(self::limit(), 1024 * 1024)), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.extension_install_controller.too_large', '{name} is larger than the site allows (up to {size} MB).', name: $name, size: intdiv(self::limit(), 1024 * 1024)), Status::UnprocessableContent);
 		}
 
 		if (! str_ends_with(strtolower($name), '.zip')) {
-			return self::error(sprintf('%s isn\'t a .zip file.', $name), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.extension_install_controller.not_zip', '{name} isn\'t a .zip file.', name: $name), Status::UnprocessableContent);
 		}
 
 		$file = sprintf('%s/install-%s.zip', $this->paths->cache, bin2hex(random_bytes(6)));
@@ -160,7 +168,7 @@ final readonly class ExtensionInstallController
 		} catch (InstallException $error) {
 			return Response::json(['error' => $error->getMessage(), 'kind' => $error->kind?->value], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
 		} catch (Throwable) {
-			return self::error(sprintf('%s couldn\'t be saved to the server.', $name), Status::InternalServerError);
+			return self::error($this->messages->t('admin.extension_install_controller.not_saved', '{name} couldn\'t be saved to the server.', name: $name), Status::InternalServerError);
 		} finally {
 			@unlink($file);
 		}
@@ -205,7 +213,7 @@ final readonly class ExtensionInstallController
 		];
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

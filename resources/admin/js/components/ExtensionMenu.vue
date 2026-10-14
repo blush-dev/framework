@@ -9,6 +9,7 @@ import type { RouteLocationRaw } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import { copyText } from '../toast';
+import { t } from '../messages';
 
 withDefaults(defineProps<{
 	// What the menu is for, in its button's name.
@@ -21,13 +22,13 @@ withDefaults(defineProps<{
 	copyLabel?: string;
 	// Delete's words, when it's offered.
 	deleteLabel?: string;
-}>(), { copyWhat: 'the folder path', copyLabel: 'Copy folder path' });
+}>(), { copyWhat: t('extension_menu.copy_what', 'the folder path'), copyLabel: t('extension_menu.copy_label', 'Copy folder path') });
 
 const emit = defineEmits<{ delete: [] }>();
 </script>
 
 <template>
-	<MenuButton class="extension__menu" button-class="button button--ghost button--small button--icon" :label="`More actions for ${label}`" floating>
+	<MenuButton class="extension__menu" button-class="button button--ghost button--small button--icon" :label="t('extension_menu.more_actions', 'More actions for {label}', { label })" floating>
 		<template #button>
 			<AdminIcon name="ellipsis" />
 		</template>

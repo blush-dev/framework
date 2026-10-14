@@ -397,7 +397,7 @@ final class MediaBlocksTest extends TestCase
 		$this->assertStringContainsString('<span class="audio-card__title">Given</span>', $html, 'The label is the title.');
 		$this->assertStringContainsString('<span class="audio-card__by">Someone · Tides</span>', $html, 'A prop wins over the file.');
 		$this->assertStringContainsString('<img class="audio-card__art" src="http://localhost/media/cover.png"', $html);
-		$this->assertStringContainsString('label-volume="Volume"', $html);
+		$this->assertStringNotContainsString('label-volume', $html, 'The player\'s labels come from core\'s catalog (D-834).');
 
 		// A file that carries nothing: the player alone.
 		$this->assertMatchesRegularExpression('#<figure class="block-audio block-audio--card audio-card">\s*<blush-audio-player#', $html);

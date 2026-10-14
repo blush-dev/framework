@@ -17,7 +17,8 @@
  * - **Public Profile** (D-353), the full width: linked, linked but a
  *   draft, linked to a slug with no file, or none (link an existing one,
  *   or create one).
- * - On your own, **Theme and Color Scheme** (`AccountPreferences`).
+ * - On your own, **Theme and Color Scheme** (`AccountPreferences`) and
+ *   **Language** (`AccountLanguage`, D-831).
  *
  * Blush sends no email, so a password is never set here: **Make a
  * password link** gives a link to copy and send, for a new account or a
@@ -33,11 +34,13 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminAvatar from '../components/AdminAvatar.vue';
+import AccountLanguage from '../components/AccountLanguage.vue';
 import AccountPreferences from '../components/AccountPreferences.vue';
 import AccountTokens from '../components/AccountTokens.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import MenuButton from '../components/MenuButton.vue';
 import AdminModal from '../components/AdminModal.vue';
+import MessageText from '../components/MessageText.vue';
 import PickModal, { type PickItem } from '../components/PickModal.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import ShownOnce from '../components/ShownOnce.vue';
@@ -45,8 +48,8 @@ import StatusPill from '../components/StatusPill.vue';
 import { useAction } from '../action';
 import { ApiError, errorMessage, patchEntry, request, type EntryDetail } from '../api';
 import { config } from '../config';
-import { plural } from '../format';
 import { confirmAction } from '../confirm';
+import { t } from '../messages';
 import { slugOf } from '../references';
 import { claimable, freshLink, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
@@ -94,7 +97,7 @@ async function load(): Promise<void> {
 			? [[], null]
 			: await Promise.all([loadAccounts(), loadRoles()]);
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The account couldn\'t be loaded.');
+		error.value = errorMessage(caught, t('account_view.load_failed', 'The account couldn\'t be loaded.'));
 	}
 }
 
@@ -123,7 +126,7 @@ const editable = computed(() => account.value !== undefined && !mine.value && ac
 const linking  = computed(() => account.value !== undefined && (mine.value || account.value.manages) && can('accounts.edit'));
 
 watch(account, (value) => {
-	screenTitle.value = mine.value ? 'Your Account' : (value ? value.displayName : null);
+	screenTitle.value = mine.value ? t('account_view.your_account', 'Your Account') : (value ? value.displayName : null);
 }, { immediate: true });
 
 function replace(changed: AccountInfo): void {
@@ -159,11 +162,11 @@ async function saveRoles(): Promise<void> {
 		return;
 	}
 
-	await runRoles('The roles couldn\'t be saved.', async () => {
+	await runRoles(t('account_view.roles_save_failed', 'The roles couldn\'t be saved.'), async () => {
 		const changed = await updateAccount(current.username, { roles: held.value });
 
 		replace(changed);
-		toast(`Saved roles for ${changed.displayName}`);
+		toast(t('account_view.roles_saved', 'Saved roles for {name}', { name: changed.displayName }));
 	});
 }
 
@@ -174,10 +177,10 @@ function discardRoles(): void {
 
 const rolesNote = computed(() => {
 	if (editable.value) {
-		return 'Changes take effect when you save them, not as you tick.';
+		return t('account_view.roles_note_editable', 'Changes take effect when you save them, not as you tick.');
 	}
 
-	return mine.value ? 'Read-only, because it\'s your own account: someone else who manages accounts changes your roles.' : 'Read-only, because you can\'t change this account\'s roles.';
+	return mine.value ? t('account_view.roles_note_mine', 'Read-only, because it\'s your own account: someone else who manages accounts changes your roles.') : t('account_view.roles_note_other', 'Read-only, because you can\'t change this account\'s roles.');
 });
 
 // Making yourself the owner of a site that has none (D-500).
@@ -187,20 +190,20 @@ async function claimOwner(): Promise<void> {
 	const current = account.value;
 
 	if (current === undefined || !await confirmAction({
-		title: 'Make Yourself the Owner?',
+		title: t('account_view.claim_title', 'Make Yourself the Owner?'),
 		body: [
-			'An owner can do everything, always, and only an owner can change an owner\'s account or make another owner. Nobody else can suspend, remove, or demote you.',
-			'You keep the roles you have. Once the site has an owner, only owners can make more.'
+			t('account_view.claim_body', 'An owner can do everything, always, and only an owner can change an owner\'s account or make another owner. Nobody else can suspend, remove, or demote you.'),
+			t('account_view.claim_body_roles', 'You keep the roles you have. Once the site has an owner, only owners can make more.')
 		],
-		confirm: 'Make Me the Owner'
+		confirm: t('account_view.make_me_owner', 'Make Me the Owner')
 	})) {
 		return;
 	}
 
-	await runClaim('You couldn\'t be made the owner.', async () => {
+	await runClaim(t('account_view.claim_failed', 'You couldn\'t be made the owner.'), async () => {
 		await updateAccount(current.username, { roles: [...current.roles, OWNER] });
 		await refresh();
-		toast('You\'re the site\'s owner');
+		toast(t('account_view.claimed', 'You\'re the site\'s owner'));
 	});
 }
 
@@ -220,7 +223,7 @@ const linkItems    = computed<PickItem[] | null>(() => linkable.value === null ?
 	key: item.slug,
 	name: item.title,
 	meta: item.slug,
-	aside: item.status === 'published' ? undefined : (item.status === 'draft' ? 'Draft' : 'Scheduled')
+	aside: item.status === 'published' ? undefined : (item.status === 'draft' ? t('account_view.draft', 'Draft') : t('account_view.scheduled', 'Scheduled'))
 })));
 const newName      = ref('');
 
@@ -251,13 +254,13 @@ async function startLink(): Promise<void> {
 	try {
 		linkable.value = await loadLinkable();
 	} catch (caught) {
-		profileError.value = errorMessage(caught, 'The profiles couldn\'t be loaded.');
+		profileError.value = errorMessage(caught, t('account_view.profiles_load_failed', 'The profiles couldn\'t be loaded.'));
 		linkable.value     = [];
 	}
 }
 
 async function copyEmail(email: string): Promise<void> {
-	await copyText(email, 'the email address', email);
+	await copyText(email, t('account_view.the_email_address', 'the email address'), email);
 }
 
 async function changeLink(author: string | null, done: string): Promise<void> {
@@ -267,7 +270,7 @@ async function changeLink(author: string | null, done: string): Promise<void> {
 		return;
 	}
 
-	await runProfile('The profile couldn\'t be linked.', async () => {
+	await runProfile(t('account_view.link_failed', 'The profile couldn\'t be linked.'), async () => {
 		replace(await updateAccount(current.username, { author }));
 
 		if (mine.value) {
@@ -282,7 +285,7 @@ async function changeLink(author: string | null, done: string): Promise<void> {
 function linkProfile(): Promise<void> {
 	const chosen = free.value.find((item) => item.slug === pick.value);
 
-	return pick.value === '' ? Promise.resolve() : changeLink(pick.value, `Linked ${chosen?.title ?? pick.value}`);
+	return pick.value === '' ? Promise.resolve() : changeLink(pick.value, t('account_view.linked', 'Linked {title}', { title: chosen?.title ?? pick.value }));
 }
 
 async function unlinkProfile(): Promise<void> {
@@ -291,17 +294,17 @@ async function unlinkProfile(): Promise<void> {
 	const title   = page ? page.title || page.slug : '';
 
 	if (current === undefined || !await confirmAction({
-		title: `Unlink ${title}?`,
+		title: t('account_view.unlink_title', 'Unlink {title}?', { title }),
 		body: [
-			`The profile stays exactly as it is${page?.status === 'published' ? ': published' : ''}, with its **${plural(page?.uses ?? 0, 'byline', 'bylines')}** and every archive it serves. It becomes a **guest profile**: credited on the site, unable to sign in.`,
-			`${mine.value ? 'Your account keeps its' : 'The account keeps its'} roles and its sign-in.`
+			t('account_view.unlink_body', 'The profile stays exactly as it is{published, select, yes {: published} other {}}, with its **{count, plural, one {# byline} other {# bylines}}** and every archive it serves. It becomes a **guest profile**: credited on the site, unable to sign in.', { published: page?.status === 'published' ? 'yes' : 'no', count: page?.uses ?? 0 }),
+			mine.value ? t('account_view.unlink_keeps_mine', 'Your account keeps its roles and its sign-in.') : t('account_view.unlink_keeps_other', 'The account keeps its roles and its sign-in.')
 		],
-		confirm: 'Unlink the Profile'
+		confirm: t('account_view.unlink_confirm', 'Unlink the Profile')
 	})) {
 		return;
 	}
 
-	await changeLink(null, `Unlinked ${title}`);
+	await changeLink(null, t('account_view.unlinked', 'Unlinked {title}', { title }));
 }
 
 async function createProfile(): Promise<void> {
@@ -313,7 +316,7 @@ async function createProfile(): Promise<void> {
 
 	const type = profileType.value;
 
-	await runProfile('The profile couldn\'t be created.', async () => {
+	await runProfile(t('account_view.create_failed', 'The profile couldn\'t be created.'), async () => {
 		const created = await request<EntryDetail>('POST', '/entries', { type, title: newName.value.trim(), slug: newSlug.value, status: 'draft' });
 
 		replace(await updateAccount(current.username, { author: created.slug }));
@@ -323,7 +326,7 @@ async function createProfile(): Promise<void> {
 		}
 
 		profileMode.value = '';
-		toast(`Created ${newName.value.trim()}`);
+		toast(t('account_view.created', 'Created {name}', { name: newName.value.trim() }));
 		await router.push({ name: 'profile-detail', params: { slug: created.slug } });
 	});
 }
@@ -338,10 +341,10 @@ async function publishProfile(): Promise<void> {
 
 	const id = page.id;
 
-	await runProfile('The profile couldn\'t be published.', async () => {
+	await runProfile(t('account_view.publish_failed', 'The profile couldn\'t be published.'), async () => {
 		await patchEntry(id, { status: 'published' });
 		await refresh();
-		toast(`Published ${page.title || page.slug}`);
+		toast(t('account_view.published', 'Published {title}', { title: page.title || page.slug }));
 	});
 }
 
@@ -372,11 +375,11 @@ onBeforeUnmount(() => {
 async function makeLink(): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || (current.link !== null && !current.link.expired && !await confirmAction({ title: `Make a New Link for ${current.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a New Link' }))) {
+	if (current === undefined || (current.link !== null && !current.link.expired && !await confirmAction({ title: t('account_view.new_link_title', 'Make a New Link for {name}?', { name: current.displayName }), body: t('account_view.new_link_body', 'The one they have stops working.'), confirm: t('account_view.make_new_link', 'Make a New Link') }))) {
 		return;
 	}
 
-	await runLink('The link couldn\'t be made.', async () => {
+	await runLink(t('account_view.link_make_failed', 'The link couldn\'t be made.'), async () => {
 		const answer = await makePasswordLink(current.username);
 
 		replace(answer.account);
@@ -398,35 +401,35 @@ async function setSuspended(suspended: boolean): Promise<void> {
 	const current = account.value;
 
 	if (current === undefined || (suspended && !await confirmAction({
-		title: `Suspend ${current.displayName}?`,
+		title: t('account_view.suspend_title', 'Suspend {name}?', { name: current.displayName }),
 		body: [
-			'They stay in the list and keep their roles, but they\'re signed out and can\'t sign in until someone reinstates them.',
-			current.profile ? `Their profile stays as it is, and its **${plural(current.profile.uses, 'byline', 'bylines')}** are untouched: suspending an account is about signing in, not about the site.` : 'Suspending an account is about signing in, not about the site.'
+			t('account_view.suspend_body', 'They stay in the list and keep their roles, but they\'re signed out and can\'t sign in until someone reinstates them.'),
+			current.profile ? t('account_view.suspend_profile', 'Their profile stays as it is, and its **{count, plural, one {# byline} other {# bylines}}** are untouched: suspending an account is about signing in, not about the site.', { count: current.profile.uses }) : t('account_view.suspend_no_profile', 'Suspending an account is about signing in, not about the site.')
 		],
-		confirm: 'Suspend the Account'
+		confirm: t('account_view.suspend_confirm', 'Suspend the Account')
 	}))) {
 		return;
 	}
 
-	await runActions('The account couldn\'t be changed.', async () => {
+	await runActions(t('account_view.change_failed', 'The account couldn\'t be changed.'), async () => {
 		replace(await updateAccount(current.username, { suspended }));
 		link.value = null;
-		toast(suspended ? `Suspended ${current.displayName}` : `Reinstated ${current.displayName}`, { kind: suspended ? 'danger' : 'good' });
+		toast(suspended ? t('account_view.suspended', 'Suspended {name}', { name: current.displayName }) : t('account_view.reinstated', 'Reinstated {name}', { name: current.displayName }), { kind: suspended ? 'danger' : 'good' });
 	});
 }
 
 async function remove(): Promise<void> {
 	const current = account.value;
 	const page    = current?.profile;
-	const stays   = page ? `**${page.title || page.slug}** isn't deleted. It stays as a guest profile, keeps its **${plural(page.uses, 'byline', 'bylines')}**, and keeps serving its archives.` : 'This account has no profile, so nothing on the site changes.';
+	const stays   = page ? t('account_view.delete_profile_stays', '**{title}** isn\'t deleted. It stays as a guest profile, keeps its **{count, plural, one {# byline} other {# bylines}}**, and keeps serving its archives.', { title: page.title || page.slug, count: page.uses }) : t('account_view.delete_no_profile', 'This account has no profile, so nothing on the site changes.');
 
-	if (current === undefined || !await confirmAction({ title: `Delete ${current.displayName}?`, body: ['This can\'t be undone. The account, its roles, and its sign-in are gone for good.', stays], confirm: 'Delete the Account', danger: true })) {
+	if (current === undefined || !await confirmAction({ title: t('account_view.delete_title', 'Delete {name}?', { name: current.displayName }), body: [t('account_view.delete_body', 'This can\'t be undone. The account, its roles, and its sign-in are gone for good.'), stays], confirm: t('account_view.delete_confirm', 'Delete the Account'), danger: true })) {
 		return;
 	}
 
-	await runActions('The account couldn\'t be deleted.', async () => {
+	await runActions(t('account_view.delete_failed', 'The account couldn\'t be deleted.'), async () => {
 		await removeAccount(current.username);
-		toast(`Deleted ${current.displayName}`, { kind: 'danger' });
+		toast(t('account_view.deleted', 'Deleted {name}', { name: current.displayName }), { kind: 'danger' });
 		await router.push({ name: 'accounts' });
 	});
 }
@@ -468,7 +471,7 @@ async function saveDetails(): Promise<void> {
 
 	const changes = { name: detailName.value.trim() === '' ? null : detailName.value, email: detailEmail.value.trim() };
 
-	await runDetails('The details couldn\'t be saved.', async () => {
+	await runDetails(t('account_view.details_save_failed', 'The details couldn\'t be saved.'), async () => {
 		if (mine.value) {
 			await saveOwnDetails(changes);
 		} else {
@@ -476,7 +479,7 @@ async function saveDetails(): Promise<void> {
 		}
 
 		editingDetails.value = false;
-		toast(`Saved ${mine.value ? 'your' : `${account.value?.displayName ?? current.username}'s`} details`);
+		toast(mine.value ? t('account_view.details_saved_mine', 'Saved your details') : t('account_view.details_saved', 'Saved {name}\'s details', { name: account.value?.displayName ?? current.username }));
 	}, (caught) => {
 		detailsField.value = caught instanceof ApiError && (caught.field === 'name' || caught.field === 'email') ? caught.field : null;
 		(detailsField.value === 'email' ? emailInput : nameInput).value?.focus();
@@ -513,10 +516,10 @@ async function stopPasswordChange(): Promise<void> {
 async function changePassword(): Promise<void> {
 	passwordField.value = null;
 
-	await runPassword('Your password couldn\'t be changed.', async () => {
+	await runPassword(t('account_view.password_failed', 'Your password couldn\'t be changed.'), async () => {
 		await request<void>('POST', '/password', { current: currentPassword.value, password: newPassword.value });
 		await stopPasswordChange();
-		toast('Password changed. You\'re signed out everywhere else.');
+		toast(t('account_view.password_changed', 'Password changed. You\'re signed out everywhere else.'));
 	}, (caught) => {
 		passwordField.value = caught instanceof ApiError && (caught.field === 'current' || caught.field === 'password') ? caught.field : null;
 		(passwordField.value === 'password' ? newInput : currentInput).value?.focus();
@@ -527,155 +530,155 @@ async function changePassword(): Promise<void> {
 <template>
 	<div class="people">
 		<header class="page-header">
-			<RouterLink v-if="can('accounts.view')" class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />All accounts</RouterLink>
+			<RouterLink v-if="can('accounts.view')" class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />{{ t('account_view.all_accounts', 'All accounts') }}</RouterLink>
 			<div class="page-header__id">
 				<AdminAvatar v-if="account" class="avatar--large" :class="{ 'avatar--guest': !hasProfile }" :name="account.displayName" :image="account.avatar" />
 				<div class="page-header__text">
-					<h1 tabindex="-1">{{ account ? account.displayName : (mine ? 'Your Account' : 'Account') }}</h1>
+					<h1 tabindex="-1">{{ account ? account.displayName : (mine ? t('account_view.your_account', 'Your Account') : t('account_view.account', 'Account')) }}</h1>
 					<p v-if="account" class="page-header__hint">
 						<span class="mono">{{ account.username }}</span>
 						<span class="page-header__sep" aria-hidden="true">·</span>
 						<span class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
-						<template v-if="account.tokenOnly"><span class="page-header__sep" aria-hidden="true">·</span><span class="pill">Token-only</span></template>
+						<template v-if="account.tokenOnly"><span class="page-header__sep" aria-hidden="true">·</span><span class="pill">{{ t('account_view.token_only', 'Token-only') }}</span></template>
 						<span class="page-header__sep" aria-hidden="true">·</span>
 						<span>{{ account.roles.map(label).join(', ') }}</span>
 						<span class="page-header__sep" aria-hidden="true">·</span>
-						<span>{{ account.tokenOnly ? 'never signs in' : `last signed in ${account.lastLogin ? when(account.lastLogin) : 'never'}` }}</span>
+						<span>{{ account.tokenOnly ? t('account_view.never_signs_in', 'never signs in') : t('account_view.last_signed_in', 'last signed in {when}', { when: account.lastLogin ? when(account.lastLogin) : t('account_view.never', 'never') }) }}</span>
 					</p>
 				</div>
 			</div>
 			<div v-if="actions && account" class="page-header__actions">
 				<MenuButton button-class="button" align="end">
-					<template #button><AdminIcon name="ellipsis" />Actions</template>
-					<RouterLink v-if="account.profile && canOpenProfile" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />Open profile</RouterLink>
-					<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />Copy email address</button>
-					<button v-if="can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" :disabled="linkBusy" @click="makeLink"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
+					<template #button><AdminIcon name="ellipsis" />{{ t('account_view.actions', 'Actions') }}</template>
+					<RouterLink v-if="account.profile && canOpenProfile" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />{{ t('account_view.open_profile', 'Open profile') }}</RouterLink>
+					<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />{{ t('account_view.copy_email', 'Copy email address') }}</button>
+					<button v-if="can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" :disabled="linkBusy" @click="makeLink"><AdminIcon name="key-round" />{{ account.link ? t('account_view.make_new_password_link', 'Make a new password link') : t('account_view.make_password_link', 'Make a password link') }}</button>
 					<template v-if="can('accounts.suspend') || can('accounts.delete')">
 						<div class="menu-divider" />
 						<template v-if="can('accounts.suspend')">
-							<button v-if="account.status === 'suspended'" type="button" class="menu-item" :disabled="actionsBusy" @click="setSuspended(false)"><AdminIcon name="circle-check" />Reinstate account</button>
-							<button v-else type="button" class="menu-item" :disabled="actionsBusy" @click="setSuspended(true)"><AdminIcon name="circle-pause" />Suspend account</button>
+							<button v-if="account.status === 'suspended'" type="button" class="menu-item" :disabled="actionsBusy" @click="setSuspended(false)"><AdminIcon name="circle-check" />{{ t('account_view.reinstate', 'Reinstate account') }}</button>
+							<button v-else type="button" class="menu-item" :disabled="actionsBusy" @click="setSuspended(true)"><AdminIcon name="circle-pause" />{{ t('account_view.suspend', 'Suspend account') }}</button>
 						</template>
-						<button v-if="can('accounts.delete')" type="button" class="menu-item menu-item--danger" :disabled="actionsBusy" @click="remove"><AdminIcon name="trash-2" />Delete account</button>
+						<button v-if="can('accounts.delete')" type="button" class="menu-item menu-item--danger" :disabled="actionsBusy" @click="remove"><AdminIcon name="trash-2" />{{ t('account_view.delete', 'Delete account') }}</button>
 					</template>
 				</MenuButton>
 			</div>
 		</header>
 
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-		<p v-else-if="accounts && !account" class="notice notice--error" role="alert">There's no “{{ route.params.username }}” account.</p>
+		<p v-else-if="accounts && !account" class="notice notice--error" role="alert">{{ t('account_view.not_found', 'There\'s no “{username}” account.', { username: route.params.username }) }}</p>
 		<p v-if="actionsError" class="notice notice--error" role="alert">{{ actionsError }}</p>
 		<p v-if="linkError" class="notice notice--error" role="alert">{{ linkError }}</p>
 
 		<div v-if="account && mine && claimable" class="notice notice--warn">
 			<AdminIcon name="shield" />
-			<span class="notice__text"><strong>This site has no owner.</strong> An owner can do everything, and only an owner can change an owner's account, so nobody can lock them out. You can make yourself the owner.</span>
-			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? 'Saving…' : 'Make Me the Owner' }}</button></span>
+			<span class="notice__text"><strong>{{ t('account_view.no_owner', 'This site has no owner.') }}</strong> {{ t('account_view.no_owner_text', 'An owner can do everything, and only an owner can change an owner\'s account, so nobody can lock them out. You can make yourself the owner.') }}</span>
+			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? t('account_view.saving', 'Saving…') : t('account_view.make_me_owner', 'Make Me the Owner') }}</button></span>
 		</div>
 		<p v-if="claimError" class="notice notice--error" role="alert">{{ claimError }}</p>
-		<p v-else-if="account && !mine && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
-		<p v-else-if="account && !mine && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} can do things you can't,</strong> so its details, roles, standing, and profile aren't yours to change.</span></p>
+		<p v-else-if="account && !mine && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><MessageText :text="t('account_view.is_owner', '{lead} and only an owner can change an owner\'s details, roles, standing, and profile.')"><template #lead><strong>{{ t('account_view.is_owner_lead', '{name} is an owner,', { name: account.displayName }) }}</strong></template></MessageText></span></p>
+		<p v-else-if="account && !mine && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><MessageText :text="t('account_view.can_do_more', '{lead} so its details, roles, standing, and profile aren\'t yours to change.')"><template #lead><strong>{{ t('account_view.can_do_more_lead', '{name} can do things you can\'t,', { name: account.displayName }) }}</strong></template></MessageText></span></p>
 
-		<p v-if="account && account.tokenOnly" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ mine ? 'Your account' : 'This account' }} is token-only.</strong> It never signs in, so it has no password: apps, scripts, and agents use it through its API tokens, below, with its roles.</span></p>
+		<p v-if="account && account.tokenOnly" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ mine ? t('account_view.token_only_mine', 'Your account is token-only.') : t('account_view.token_only_other', 'This account is token-only.') }}</strong> {{ t('account_view.token_only_text', 'It never signs in, so it has no password: apps, scripts, and agents use it through its API tokens, below, with its roles.') }}</span></p>
 
 		<div v-if="account && !account.email && !account.tokenOnly" class="notice notice--warn">
 			<AdminIcon name="triangle-alert" />
-			<span class="notice__text"><strong>{{ mine ? 'Your account has' : 'This account has' }} no email address.</strong> Every account needs one; {{ mine ? 'yours' : 'this one' }} was made before they were asked for.</span>
-			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">Add an Email Address</button></span>
+			<span class="notice__text"><strong>{{ mine ? t('account_view.no_email_mine', 'Your account has no email address.') : t('account_view.no_email_other', 'This account has no email address.') }}</strong> {{ mine ? t('account_view.no_email_text_mine', 'Every account needs one; yours was made before they were asked for.') : t('account_view.no_email_text_other', 'Every account needs one; this one was made before they were asked for.') }}</span>
+			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">{{ t('account_view.add_email', 'Add an Email Address') }}</button></span>
 		</div>
 
-		<ShownOnce v-if="account && link" :value="link.url" label="Password link" noun="the link" copy="Copy Link">
-			<strong>Send this link to {{ account.displayName }}</strong> however you like, so they can choose a password. It's shown once, works once, and lasts until {{ when(link.expires) }}.
+		<ShownOnce v-if="account && link" :value="link.url" :label="t('account_view.password_link', 'Password link')" :noun="t('account_view.the_link', 'the link')" :copy="t('account_view.copy_link', 'Copy Link')">
+			<MessageText :text="t('account_view.send_link', '{send} however you like, so they can choose a password. It\'s shown once, works once, and lasts until {date}.', { date: when(link.expires) })"><template #send><strong>{{ t('account_view.send_link_lead', 'Send this link to {name}', { name: account.displayName }) }}</strong></template></MessageText>
 		</ShownOnce>
 		<div v-else-if="account && account.status === 'invited' && account.link" class="notice">
 			<AdminIcon name="mail" />
-			<span class="notice__text"><strong>This account is waiting on its invitation.</strong> {{ account.link.expired ? `Its password link expired ${when(account.link.expires)}; make a new one to send.` : `Its password link works until ${when(account.link.expires)}.` }}</span>
-			<span v-if="linking" class="notice__buttons"><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? 'Making…' : 'Make a New Link' }}</button></span>
+			<span class="notice__text"><strong>{{ t('account_view.invited', 'This account is waiting on its invitation.') }}</strong> {{ account.link.expired ? t('account_view.link_expired', 'Its password link expired {date}; make a new one to send.', { date: when(account.link.expires) }) : t('account_view.link_works_until', 'Its password link works until {date}.', { date: when(account.link.expires) }) }}</span>
+			<span v-if="linking" class="notice__buttons"><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? t('account_view.making', 'Making…') : t('account_view.make_new_link', 'Make a New Link') }}</button></span>
 		</div>
 
 		<div v-if="account" class="pair">
 			<section class="panel" aria-labelledby="account-heading">
 				<header class="panel__header">
-					<h2 id="account-heading">Account</h2>
-					<p class="panel__hint">{{ mine ? 'Yours to change' : (canEditDetails ? 'An administrator\'s to change' : 'Read-only') }}</p>
+					<h2 id="account-heading">{{ t('account_view.account', 'Account') }}</h2>
+					<p class="panel__hint">{{ mine ? t('account_view.yours_to_change', 'Yours to change') : (canEditDetails ? t('account_view.admins_to_change', 'An administrator\'s to change') : t('account_view.read_only', 'Read-only')) }}</p>
 				</header>
 				<div class="panel__body">
 					<dl v-if="!editingDetails" class="kv">
-						<div><dt>Username</dt><dd class="mono">{{ account.username }}</dd></div>
-						<div><dt>Email</dt><dd :class="{ muted: !account.email }">{{ account.email ?? 'None yet' }}</dd></div>
-						<div><dt>Display name</dt><dd :class="{ muted: !account.name }">{{ account.name ?? (account.profile ? `${account.displayName}, from the profile` : 'Not set') }}</dd></div>
-						<div><dt>Created</dt><dd>{{ when(account.created) }}</dd></div>
-						<div><dt>Last signed in</dt><dd>{{ account.tokenOnly ? 'Never: it\'s token-only' : when(account.lastLogin) }}</dd></div>
+						<div><dt>{{ t('account_view.username', 'Username') }}</dt><dd class="mono">{{ account.username }}</dd></div>
+						<div><dt>{{ t('account_view.email', 'Email') }}</dt><dd :class="{ muted: !account.email }">{{ account.email ?? t('account_view.none_yet', 'None yet') }}</dd></div>
+						<div><dt>{{ t('account_view.display_name', 'Display name') }}</dt><dd :class="{ muted: !account.name }">{{ account.name ?? (account.profile ? t('account_view.from_profile', '{name}, from the profile', { name: account.displayName }) : t('account_view.not_set', 'Not set')) }}</dd></div>
+						<div><dt>{{ t('account_view.created_label', 'Created') }}</dt><dd>{{ when(account.created) }}</dd></div>
+						<div><dt>{{ t('account_view.last_signed_in_label', 'Last signed in') }}</dt><dd>{{ account.tokenOnly ? t('account_view.never_token_only', 'Never: it\'s token-only') : when(account.lastLogin) }}</dd></div>
 					</dl>
 					<form v-else class="form-stack details-form" :aria-busy="detailsBusy" @submit.prevent="saveDetails" @keydown.esc="editingDetails = false">
 						<p class="field">
-							<label for="account-name">Display name</label>
+							<label for="account-name">{{ t('account_view.display_name', 'Display name') }}</label>
 							<input id="account-name" ref="nameInput" v-model="detailName" autocomplete="off" maxlength="100" :placeholder="account.profile?.title ?? account.username" :aria-invalid="detailsField === 'name' || undefined" :aria-describedby="detailsField === 'name' ? 'details-error' : 'account-name-help'">
-							<span id="account-name-help" class="field__help">What the admin calls {{ mine ? 'you' : 'them' }}. Left empty, it's {{ mine ? 'your' : 'their' }} profile's title, else the username.</span>
+							<span id="account-name-help" class="field__help">{{ mine ? t('account_view.display_name_help_mine', 'What the admin calls you. Left empty, it\'s your profile\'s title, else the username.') : t('account_view.display_name_help_other', 'What the admin calls them. Left empty, it\'s their profile\'s title, else the username.') }}</span>
 						</p>
 						<p class="field">
-							<label for="account-email">Email</label>
+							<label for="account-email">{{ t('account_view.email', 'Email') }}</label>
 							<input id="account-email" ref="emailInput" v-model="detailEmail" type="email" autocomplete="email" :required="!account.tokenOnly" :aria-invalid="detailsField === 'email' || undefined" :aria-describedby="detailsField === 'email' ? 'details-error' : 'account-email-help'">
-							<span id="account-email-help" class="field__help">{{ account.tokenOnly ? 'Optional for a token-only account.' : 'Every account needs one.' }} Blush sends no email; it's for the people who manage accounts.</span>
+							<span id="account-email-help" class="field__help">{{ account.tokenOnly ? t('account_view.email_optional', 'Optional for a token-only account.') : t('account_view.email_needed', 'Every account needs one.') }} {{ t('account_view.email_help', 'Blush sends no email; it\'s for the people who manage accounts.') }}</span>
 						</p>
 						<p v-if="detailsError" id="details-error" class="field__error" role="alert">{{ detailsError }}</p>
 						<p class="submit-row submit-row--tight">
-							<button type="submit" class="button button--primary button--small" :disabled="detailsBusy">{{ detailsBusy ? 'Saving…' : 'Save' }}</button>
-							<button type="button" class="button button--ghost button--small" :disabled="detailsBusy" @click="editingDetails = false">Cancel</button>
+							<button type="submit" class="button button--primary button--small" :disabled="detailsBusy">{{ detailsBusy ? t('account_view.saving', 'Saving…') : t('common.save', 'Save') }}</button>
+							<button type="button" class="button button--ghost button--small" :disabled="detailsBusy" @click="editingDetails = false">{{ t('common.cancel', 'Cancel') }}</button>
 						</p>
 					</form>
 				</div>
 				<div v-if="(mine || canEditDetails) && !editingDetails && !changing" class="panel__body panel__buttons">
-					<button v-if="mine" ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />Change Password</button>
-					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? 'Change Name or Email' : 'Edit Details' }}</button>
+					<button v-if="mine" ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />{{ t('account_view.change_password', 'Change Password') }}</button>
+					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? t('account_view.change_name_email', 'Change Name or Email') : t('account_view.edit_details', 'Edit Details') }}</button>
 				</div>
 				<div v-if="mine && changing" class="panel__body panel__body--ruled">
 					<form class="form-stack details-form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
 						<input type="text" class="visually-hidden" name="username" :value="account.username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>
 						<p class="field">
-							<label for="current-password">Current password</label>
+							<label for="current-password">{{ t('account_view.current_password', 'Current password') }}</label>
 							<input id="current-password" ref="currentInput" v-model="currentPassword" type="password" autocomplete="current-password" required :aria-invalid="passwordField === 'current' || undefined" :aria-describedby="passwordField === 'current' ? 'password-error' : undefined">
 						</p>
 						<p class="field">
-							<label for="new-password">New password</label>
+							<label for="new-password">{{ t('account_view.new_password', 'New password') }}</label>
 							<input id="new-password" ref="newInput" v-model="newPassword" type="password" autocomplete="new-password" required :aria-invalid="passwordField === 'password' || undefined" :aria-describedby="passwordField === 'password' ? 'password-error' : 'new-password-help'">
-							<span id="new-password-help" class="field__help">You'll stay signed in here and be signed out on every other device.</span>
+							<span id="new-password-help" class="field__help">{{ t('account_view.new_password_help', 'You\'ll stay signed in here and be signed out on every other device.') }}</span>
 						</p>
 						<p v-if="passwordError" id="password-error" class="notice notice--error" role="alert">{{ passwordError }}</p>
 						<p class="submit-row submit-row--tight">
-							<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? 'Changing…' : 'Change Password' }}</button>
-							<button type="button" class="button button--ghost button--small" :disabled="passwordBusy" @click="stopPasswordChange">Cancel</button>
+							<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? t('account_view.changing', 'Changing…') : t('account_view.change_password', 'Change Password') }}</button>
+							<button type="button" class="button button--ghost button--small" :disabled="passwordBusy" @click="stopPasswordChange">{{ t('common.cancel', 'Cancel') }}</button>
 						</p>
 					</form>
 				</div>
 				<p class="panel__note">
-					<template v-if="account.name">{{ mine ? 'Your' : 'Their' }} display name is what the admin calls {{ mine ? 'you' : 'them' }}.<template v-if="account.profile"> On the site, {{ mine ? 'you\'re' : 'they\'re' }} {{ account.profile.title || account.profile.slug }}, the profile's title.</template></template>
-					<template v-else-if="account.profile">With no display name, the admin uses {{ mine ? 'your' : 'their' }} profile's title: {{ account.displayName }}.</template>
-					<template v-else>With no display name or profile, the admin uses the username.</template>
+					<template v-if="account.name">{{ mine ? t('account_view.name_note_mine', 'Your display name is what the admin calls you.') : t('account_view.name_note_other', 'Their display name is what the admin calls them.') }}<template v-if="account.profile"> {{ mine ? t('account_view.on_site_mine', 'On the site, you\'re {title}, the profile\'s title.', { title: account.profile.title || account.profile.slug }) : t('account_view.on_site_other', 'On the site, they\'re {title}, the profile\'s title.', { title: account.profile.title || account.profile.slug }) }}</template></template>
+					<template v-else-if="account.profile">{{ mine ? t('account_view.no_name_mine', 'With no display name, the admin uses your profile\'s title: {name}.', { name: account.displayName }) : t('account_view.no_name_other', 'With no display name, the admin uses their profile\'s title: {name}.', { name: account.displayName }) }}</template>
+					<template v-else>{{ t('account_view.no_name_no_profile', 'With no display name or profile, the admin uses the username.') }}</template>
 				</p>
 			</section>
 
 			<section class="panel" aria-labelledby="roles-heading">
 				<header class="panel__header">
-					<h2 id="roles-heading">Roles</h2>
-					<p v-if="!rolesChanged" class="panel__hint">An account can hold more than one</p>
+					<h2 id="roles-heading">{{ t('account_view.roles', 'Roles') }}</h2>
+					<p v-if="!rolesChanged" class="panel__hint">{{ t('account_view.roles_hint', 'An account can hold more than one') }}</p>
 					<div v-if="editable && rolesChanged" class="panel__actions">
-						<button type="button" class="button button--small" :disabled="rolesBusy" @click="discardRoles">Discard</button>
-						<button type="button" class="button button--primary button--small" :disabled="rolesBusy" @click="saveRoles">{{ rolesBusy ? 'Saving…' : 'Save Roles' }}</button>
+						<button type="button" class="button button--small" :disabled="rolesBusy" @click="discardRoles">{{ t('account_view.discard', 'Discard') }}</button>
+						<button type="button" class="button button--primary button--small" :disabled="rolesBusy" @click="saveRoles">{{ rolesBusy ? t('account_view.saving', 'Saving…') : t('account_view.save_roles', 'Save Roles') }}</button>
 					</div>
 				</header>
 				<div class="panel__body">
 					<RoleChecks v-model="held" :roles="roleList" id-prefix="role-" :disabled="!editable" :described-by="rolesError ? 'roles-error' : undefined" />
 					<p v-if="rolesError" id="roles-error" class="field__error" role="alert">{{ rolesError }}</p>
 				</div>
-				<p class="panel__note">{{ rolesNote }}<template v-if="can('accounts.view')"> What each role allows is on <RouterLink class="lnk" :to="{ name: 'roles' }">Roles</RouterLink>.</template></p>
+				<p class="panel__note">{{ rolesNote }}<template v-if="can('accounts.view')"> <MessageText :text="t('account_view.roles_link_note', 'What each role allows is on {link}.')"><template #link><RouterLink class="lnk" :to="{ name: 'roles' }">{{ t('account_view.roles', 'Roles') }}</RouterLink></template></MessageText></template></p>
 			</section>
 		</div>
 
 		<section v-if="account && profileType" class="panel" aria-labelledby="public-heading">
 			<header class="panel__header">
-				<h2 id="public-heading">Public Profile</h2>
-				<p class="panel__hint">{{ mine ? 'Your name and bio on the site' : 'How they appear on the site' }}</p>
+				<h2 id="public-heading">{{ t('account_view.public_profile', 'Public Profile') }}</h2>
+				<p class="panel__hint">{{ mine ? t('account_view.public_hint_mine', 'Your name and bio on the site') : t('account_view.public_hint_other', 'How they appear on the site') }}</p>
 			</header>
 			<div class="panel__body">
 				<div v-if="account.profile" class="link-box">
@@ -686,62 +689,64 @@ async function changePassword(): Promise<void> {
 						<span v-if="account.profile.url" class="link-box__path">{{ account.profile.url }}</span>
 						<span class="link-box__meta">
 							<StatusPill :status="account.profile.status" />
-							<span>· {{ account.profile.status === 'published' ? plural(account.profile.uses, 'byline', 'bylines') : 'nothing answers at this address yet' }}</span>
+							<span>· {{ account.profile.status === 'published' ? t('account_view.bylines', '{count, plural, one {# byline} other {# bylines} }', { count: account.profile.uses }) : t('account_view.nothing_answers', 'nothing answers at this address yet') }}</span>
 						</span>
 					</span>
 					<span class="link-box__buttons">
-						<RouterLink v-if="canOpenProfile" class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">Open Profile</RouterLink>
-						<a v-if="profileUrl" class="button button--small" :href="profileUrl" target="_blank" rel="noopener"><AdminIcon name="external-link" />View<span class="visually-hidden"> (new tab)</span></a>
-						<button v-if="account.profile.status === 'draft' && profileType !== null && canType(profileType, 'publish')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="publishProfile">Publish</button>
-						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />Unlink</button>
+						<RouterLink v-if="canOpenProfile" class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">{{ t('account_view.open_profile_button', 'Open Profile') }}</RouterLink>
+						<a v-if="profileUrl" class="button button--small" :href="profileUrl" target="_blank" rel="noopener"><AdminIcon name="external-link" />{{ t('account_view.view', 'View') }}<span class="visually-hidden"> {{ t('account_view.new_tab', '(new tab)') }}</span></a>
+						<button v-if="account.profile.status === 'draft' && profileType !== null && canType(profileType, 'publish')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="publishProfile">{{ t('account_view.publish', 'Publish') }}</button>
+						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />{{ t('account_view.unlink', 'Unlink') }}</button>
 					</span>
 				</div>
 				<div v-else class="link-box link-box--blank">
 					<span class="avatar avatar--large avatar--guest" aria-hidden="true"><AdminIcon name="user-round" /></span>
 					<span class="link-box__text">
-						<strong class="link-box__name">No public profile</strong>
-						<span class="link-box__meta">{{ mine ? 'You don\'t appear on the site. Entries you write show no byline until a profile is linked.' : `${account.displayName} doesn't appear on the site. Entries they write show no byline until a profile is linked.` }}</span>
+						<strong class="link-box__name">{{ t('account_view.no_public_profile', 'No public profile') }}</strong>
+						<span class="link-box__meta">{{ mine ? t('account_view.not_on_site_mine', 'You don\'t appear on the site. Entries you write show no byline until a profile is linked.') : t('account_view.not_on_site_other', '{name} doesn\'t appear on the site. Entries they write show no byline until a profile is linked.', { name: account.displayName }) }}</span>
 					</span>
 					<span v-if="linking" class="link-box__buttons">
-						<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an Existing One</button>
-						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" @click="startCreate">Create One</button>
+						<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />{{ t('account_view.link_existing', 'Link an Existing One') }}</button>
+						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" @click="startCreate">{{ t('account_view.create_one', 'Create One') }}</button>
 					</span>
 				</div>
 				<p v-if="profileError && profileMode === ''" class="field__error" role="alert">{{ profileError }}</p>
 			</div>
-			<p v-if="account.profile && linking" class="panel__note">Unlinking leaves the profile and its <strong>{{ plural(account.profile.uses, 'byline', 'bylines') }}</strong> in place, as a guest profile.</p>
-			<p v-else-if="!account.profile && linking" class="panel__note"><strong>Create one</strong> makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.</p>
+			<p v-if="account.profile && linking" class="panel__note"><MessageText :text="t('account_view.unlink_note', 'Unlinking leaves the profile and its {bylines} in place, as a guest profile.')"><template #bylines><strong>{{ t('account_view.bylines', '{count, plural, one {# byline} other {# bylines} }', { count: account.profile.uses }) }}</strong></template></MessageText></p>
+			<p v-else-if="!account.profile && linking" class="panel__note"><MessageText :text="t('account_view.create_note', '{create} makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.')"><template #create><strong>{{ t('account_view.create_note_lead', 'Create one') }}</strong></template></MessageText></p>
 		</section>
 
 		<AccountTokens v-if="account && (mine || can('accounts.edit'))" :account="account" :mine="mine" />
 
 		<AccountPreferences v-if="account && mine" />
 
-		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" noun="Profile" :items="linkItems" none="Every profile already belongs to an account. Create a new one instead, and it's linked as it's made." :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
-			Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become {{ mine ? 'yours' : 'theirs' }}.
+		<AccountLanguage v-if="account && mine" />
+
+		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" :noun="t('account_view.profile_noun', 'Profile')" :items="linkItems" :none="t('account_view.pick_none', 'Every profile already belongs to an account. Create a new one instead, and it\'s linked as it\'s made.')" :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
+			{{ mine ? t('account_view.pick_text_mine', 'Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become yours.') : t('account_view.pick_text_other', 'Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become theirs.') }}
 			<template v-if="profileType !== null && canType(profileType, 'create')" #empty>
-				<button type="button" class="button button--primary" @click="startCreate">Create a Profile</button>
+				<button type="button" class="button button--primary" @click="startCreate">{{ t('account_view.create_a_profile', 'Create a Profile') }}</button>
 			</template>
 		</PickModal>
 
-		<AdminModal v-if="account" :open="profileMode === 'create'" title="Create a Profile" @close="profileMode = ''">
-			<p>It starts as a draft, linked to {{ mine ? 'your account' : 'this account' }}, so nothing is public until you publish it.</p>
+		<AdminModal v-if="account" :open="profileMode === 'create'" :title="t('account_view.create_a_profile', 'Create a Profile')" @close="profileMode = ''">
+			<p>{{ mine ? t('account_view.create_intro_mine', 'It starts as a draft, linked to your account, so nothing is public until you publish it.') : t('account_view.create_intro_other', 'It starts as a draft, linked to this account, so nothing is public until you publish it.') }}</p>
 			<form id="create-profile" class="form-stack create-profile" @submit.prevent="createProfile">
 				<p class="field">
-					<label for="create-profile-name">Display name</label>
-					<input id="create-profile-name" v-model="newName" autocomplete="off" maxlength="100" placeholder="Their name as readers should see it" autofocus aria-describedby="create-profile-name-help">
-					<span id="create-profile-name-help" class="field__help">The name on every byline: the profile's title.</span>
+					<label for="create-profile-name">{{ t('account_view.profile_display_name', 'Display name') }}</label>
+					<input id="create-profile-name" v-model="newName" autocomplete="off" maxlength="100" :placeholder="t('account_view.profile_name_placeholder', 'Their name as readers should see it')" autofocus aria-describedby="create-profile-name-help">
+					<span id="create-profile-name-help" class="field__help">{{ t('account_view.profile_name_help', 'The name on every byline: the profile\'s title.') }}</span>
 				</p>
 				<p class="field">
-					<label for="create-profile-slug">Slug</label>
+					<label for="create-profile-slug">{{ t('account_view.slug', 'Slug') }}</label>
 					<input id="create-profile-slug" v-model="newSlugTyped" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" :placeholder="slugOf(newName)" aria-describedby="create-profile-slug-help">
-					<span id="create-profile-slug-help" class="field__help">Every archive address for this person uses it. Left empty, it follows the name.</span>
+					<span id="create-profile-slug-help" class="field__help">{{ t('account_view.slug_help', 'Every archive address for this person uses it. Left empty, it follows the name.') }}</span>
 				</p>
 			</form>
 			<p v-if="profileError" class="field__error" role="alert">{{ profileError }}</p>
 			<template #footer>
-				<button type="button" class="button" @click="profileMode = ''">Cancel</button>
-				<button type="submit" form="create-profile" class="button button--primary" :disabled="profileBusy || newSlug === ''">{{ profileBusy ? 'Creating…' : 'Create the Profile' }}</button>
+				<button type="button" class="button" @click="profileMode = ''">{{ t('common.cancel', 'Cancel') }}</button>
+				<button type="submit" form="create-profile" class="button button--primary" :disabled="profileBusy || newSlug === ''">{{ profileBusy ? t('account_view.creating', 'Creating…') : t('account_view.create_the_profile', 'Create the Profile') }}</button>
 			</template>
 		</AdminModal>
 	</div>

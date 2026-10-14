@@ -24,6 +24,7 @@ use Blush\Auth\Authenticator;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
 
 /**
  * Lets only signed-in requests through, with their account as the
@@ -32,8 +33,10 @@ use Blush\Session\Session;
  */
 final readonly class Authenticate implements MiddlewareInterface
 {
-	public function __construct(private Authenticator $authenticator)
-	{}
+	public function __construct(
+		private Authenticator $authenticator,
+		private Messages $messages
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -46,7 +49,7 @@ final readonly class Authenticate implements MiddlewareInterface
 		$account = $session instanceof Session ? $this->authenticator->account($session) : null;
 
 		return $account === null
-			? Response::json(['error' => 'Sign in first.'], Status::Unauthorized, ['Cache-Control' => 'no-store'])
+			? Response::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized, ['Cache-Control' => 'no-store'])
 			: $handler->handle($request->withAttribute(Account::class, $account));
 	}
 }

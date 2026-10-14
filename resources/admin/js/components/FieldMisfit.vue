@@ -7,6 +7,7 @@
  */
 import { RouterLink } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
+import MessageText from './MessageText.vue';
 import { can } from '../session';
 
 defineProps<{
@@ -20,7 +21,10 @@ defineProps<{
 	<p :id="id" class="field__warn">
 		<AdminIcon name="triangle-alert" />
 		<span>
-			{{ label }} {{ message }} The site leaves it out until it's fixed<template v-if="can('site.health')">, and <RouterLink :to="{ name: 'health-check', params: { area: 'content', check: 'files' } }">Site Health</RouterLink> lists it</template>.
+			<MessageText v-if="can('site.health')" :text="t('field_misfit.left_out_listed', '{label} {message} The site leaves it out until it\'s fixed, and {health} lists it.', { label, message })">
+				<template #health><RouterLink :to="{ name: 'health-check', params: { area: 'content', check: 'files' } }">{{ t('field_misfit.site_health', 'Site Health') }}</RouterLink></template>
+			</MessageText>
+			<template v-else>{{ t('field_misfit.left_out', '{label} {message} The site leaves it out until it\'s fixed.', { label, message }) }}</template>
 		</span>
 	</p>
 </template>

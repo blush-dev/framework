@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * A folder in `extensions/{vendor}/{name}` holding a kind's manifest, or
  * a `composer.json` of the kind's type (D-418, D-432), found by
@@ -35,7 +37,8 @@ final readonly class LocalExtension
 		public string $path,
 		public string $where,
 		public ?string $file,
-		public ?string $problem = null
+		public ?string $problem = null,
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -52,18 +55,18 @@ final readonly class LocalExtension
 			throw new ExtensionException($this->problem);
 		}
 
-		$data = ComposerJson::fill($this->file === null ? [] : ManifestFile::read($this->file), $this->path);
+		$data = ComposerJson::fill($this->file === null ? [] : ManifestFile::read($this->file, $this->messages), $this->path);
 		$name = $data['name'] ?? null;
 
 		// A name that isn't one at all is the manifest's to refuse.
 		if (is_string($name) && ExtensionName::isValid($name) && $name !== $this->name) {
-			throw new ExtensionException(sprintf(
-				'The %s in %s is named "%s"; an extension\'s folder is its name, so move it to %s/%s.',
-				$this->kind->label(),
-				$this->where,
-				$name,
-				dirname($this->where, 2),
-				$name
+			throw new ExtensionException((string) $this->messages->t(
+				'extension.local_extension.wrong_folder',
+				'The {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} in {where} is named "{name}"; an extension\'s folder is its name, so move it to {folder}/{name}.',
+				kind: $this->kind->name,
+				where: $this->where,
+				name: $name,
+				folder: dirname($this->where, 2)
 			));
 		}
 

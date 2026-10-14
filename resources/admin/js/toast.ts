@@ -10,6 +10,7 @@
  */
 
 import { shallowReactive } from 'vue';
+import { t } from './messages';
 
 /**
  * A toast's kind: `good` confirms (the default), `warn` is a refusal or a
@@ -88,7 +89,7 @@ export function toast(message: string, options: ToastOptions = {}): void {
 	toasts.push({ id, message, kind: options.kind ?? 'good', undo, life, held: false });
 	clocks.set(id, { left: life, ran: Date.now(), timer: setTimeout(() => dismissToast(id), life), holds: 0 });
 
-	announcement.text = undo === null ? message : `${message}. Undo is available`;
+	announcement.text = undo === null ? message : t('toast.undo_available', '{message}. Undo is available', { message });
 }
 
 /**
@@ -157,11 +158,11 @@ export function undoToast(id: number): void {
 export async function copyText(text: string, what: string, shown = what): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
-		toast(`Copied ${shown}`);
+		toast(t('toast.copied', 'Copied {shown}', { shown }));
 
 		return true;
 	} catch {
-		toast(`${what.charAt(0).toUpperCase()}${what.slice(1)} couldn't be copied`, { kind: 'warn' });
+		toast(t('toast.copy_failed', '{what} couldn\'t be copied', { what: `${what.charAt(0).toUpperCase()}${what.slice(1)}` }), { kind: 'warn' });
 
 		return false;
 	}

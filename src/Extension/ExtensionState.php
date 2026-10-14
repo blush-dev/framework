@@ -24,6 +24,7 @@ use Blush\Plugin\Plugins;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
+use Blush\Translation\Text;
 
 /**
  * Which extensions run, with every kind's `require` enforced the same
@@ -231,7 +232,7 @@ final readonly class ExtensionState
 	 * installed one, and whether a PHP extension is `loaded` (`null` for
 	 * anything else).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string|Text, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string|Text, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string|Text, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>}
 	 */
 	public function report(ExtensionManifest $extension, ?ExtensionText $text = null): array
 	{
@@ -243,7 +244,7 @@ final readonly class ExtensionState
 			'conflicts'    => array_map($row, array_values(array_filter($checked, Requirements::isConflict(...)))),
 			'replaces'     => array_map($row, array_values(array_filter($checked, Requirements::isReplace(...)))),
 			'provides'     => array_map(static fn (string $name): array => ['name' => $name, 'constraint' => Requirements::provided($extension, $name, 'provide') ?? ''], array_map(strval(...), array_keys($extension->provide))),
-			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
+			'blocked'      => Requirements::met($checked) ? null : $this->requirements->explain($checked),
 			'requiredBy'   => array_map(static fn (ExtensionManifest $other): array => self::describe($other, $text), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,
 			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned], $text) : null,
@@ -255,7 +256,7 @@ final readonly class ExtensionState
 	 * A requirement as the admin shows it, labeled with the installed
 	 * extension it names, translated when given the text (D-824).
 	 *
-	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}
+	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string|Text, label: string, metBy: string}
 	 */
 	private function row(Requirement $requirement, ?ExtensionText $text): array
 	{

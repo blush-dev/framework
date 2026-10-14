@@ -23,6 +23,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `upload_media` (D-756): a file sent as base64, with its name, alt text,
@@ -38,19 +40,21 @@ final class UploadMedia extends Tool
 	 */
 	public const int MOST = 20 * 1024 * 1024;
 
-	public function __construct(private readonly MediaResource $resource)
-	{}
+	public function __construct(
+		private readonly MediaResource $resource,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Upload a Media File';
+		return $this->messages->t('tool.upload_media.title', 'Upload a Media File');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id, for a media field such as image, and its address, for a body\'s Markdown image.';
+		return $this->messages->t('tool.upload_media.description', 'Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id, for a media field such as image, and its address, for a body\'s Markdown image.');
 	}
 
 	#[Override]
@@ -97,24 +101,24 @@ final class UploadMedia extends Tool
 		$bytes = base64_decode(self::text($input, 'data'), true);
 
 		if ($bytes === false || $bytes === '') {
-			throw new ToolError('"data" must be the file\'s contents as base64.');
+			throw new ToolError((string) $this->messages->t('tool.upload_media.not_base64', '"data" must be the file\'s contents as base64.'));
 		}
 
 		try {
 			$uploaded = $context->media->uploadBytes($context->actor, self::text($input, 'name'), $bytes);
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
 		$details = array_filter(['alt' => $input['alt'] ?? null, 'caption' => $input['caption'] ?? null], static fn (mixed $value): bool => is_string($value) && trim($value) !== '');
-		$note    = '';
+		$problem = null;
 
 		try {
 			if ($details !== []) {
 				$context->media->update($context->actor, $uploaded->relative, $details);
 			}
 		} catch (EditRefused $refused) {
-			$note = " Its alt text and caption weren't saved: {$refused->getMessage()}";
+			$problem = $refused->getMessage();
 		}
 
 		try {
@@ -124,6 +128,8 @@ final class UploadMedia extends Tool
 			$item = ['id' => $uploaded->id, 'url' => $uploaded->file->url];
 		}
 
-		return new ToolResult($item, sprintf('Uploaded %s.%s', basename($uploaded->relative), $note));
+		return new ToolResult($item, $problem === null
+			? $this->messages->t('tool.upload_media.uploaded', 'Uploaded {name}.', name: basename($uploaded->relative))
+			: $this->messages->t('tool.upload_media.uploaded_unsaved', 'Uploaded {name}. Its alt text and caption weren\'t saved: {problem}', name: basename($uploaded->relative), problem: $problem));
 	}
 }

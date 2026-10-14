@@ -16,13 +16,14 @@
  *     </blush-video-player>
  *
  * Fullscreen takes the whole player, controls and all, where the browser
- * allows; elsewhere (iOS) it's the browser's own. Its labels are English
- * unless `label-{name}` says otherwise: `play`, `pause`, `seek`, `mute`, `volume`,
+ * allows; elsewhere (iOS) it's the browser's own. Its labels are in the
+ * page's language, from core's catalog (D-831), unless `label-{name}`
+ * words one itself: `play`, `pause`, `seek`, `mute`, `volume`,
  * `unmute`, `captions`, `fullscreen`, and `exit-fullscreen`. Its colors
  * are the host's, by custom properties (`player.css`).
  */
 
-import { button, clock, label, listen, toggle, transport, volume } from './controls';
+import { button, clock, label, listen, t, toggle, transport, volume } from './controls';
 
 // How long the pointer rests before the bar hides, in milliseconds.
 const REST = 2500;
@@ -63,18 +64,18 @@ export class VideoPlayer extends HTMLElement {
 		const draw = (): void => {
 			const captioned = tracks().some((track) => track.mode === 'showing');
 
-			start.show('play', label(this, 'play', 'Play'));
+			start.show('play', label(this, 'play', t('player.play', 'Play')));
 			stamp.textContent = Number.isFinite(video.duration) ? clock(video.duration) : '';
-			shown.show('captions', label(this, 'captions', 'Captions'));
+			shown.show('captions', label(this, 'captions', t('player.captions', 'Captions')));
 			shown.button.setAttribute('aria-pressed', String(captioned));
 			shown.button.hidden = tracks().length === 0;
-			screen.show(full() ? 'minimize' : 'maximize', full() ? label(this, 'exit-fullscreen', 'Exit Fullscreen') : label(this, 'fullscreen', 'Fullscreen'));
+			screen.show(full() ? 'minimize' : 'maximize', full() ? label(this, 'exit-fullscreen', t('player.exit_fullscreen', 'Exit fullscreen')) : label(this, 'fullscreen', t('player.fullscreen', 'Fullscreen')));
 			this.toggleAttribute('data-playing', !video.paused);
 		};
 
 		const { play, seek, time } = transport(this, video, draw);
 
-		start.show('play', label(this, 'play', 'Play'));
+		start.show('play', label(this, 'play', t('player.play', 'Play')));
 		start.button.addEventListener('click', () => toggle(video));
 		video.addEventListener('click', () => toggle(video));
 		video.addEventListener('play', () => {

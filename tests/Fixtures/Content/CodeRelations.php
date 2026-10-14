@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationSource;
 use Blush\Core\Paths;
+use Blush\Translation\Messages;
 
 /**
  * Relations from code, as a plugin defines them, read from the scratch
@@ -32,7 +33,7 @@ final readonly class CodeRelations implements RelationSource
 	public function relations(): iterable
 	{
 		foreach ($this->definitions('relations') as $name => $definition) {
-			yield Relation::fromArray(['name' => $name, ...$definition]);
+			yield Relation::fromArray(['name' => $name, ...$definition], new Messages());
 		}
 	}
 

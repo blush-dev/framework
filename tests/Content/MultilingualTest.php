@@ -684,7 +684,7 @@ final class MultilingualTest extends TestCase
 		$this->entry('_post/e.md', "title: E\ntranslation_of: " . self::idFor('_post/2008-04-05.spring.md'));
 
 		$report = $this->site()->container()->make(Linter::class)->lint();
-		$found  = static fn (string $path): array => array_map(static fn ($violation): string => $violation->message, $report->files[$path] ?? []);
+		$found  = static fn (string $path): array => array_map(static fn ($violation): string => (string) $violation->message, $report->files[$path] ?? []);
 
 		$this->assertSame(['"nope" isn\'t a UUID; it names the id of the entry this translates.'], $found('_post/a.fr.md'));
 		$this->assertSame(['names no entry\'s id.'], $found('_post/b.fr.md'));
@@ -698,7 +698,7 @@ final class MultilingualTest extends TestCase
 		$this->entry('about/index.en.md', 'title: About again');
 
 		$report = $this->site()->container()->make(Linter::class)->lint();
-		$found  = array_map(static fn ($violation): string => $violation->message, $report->files['about/index.en.md'] ?? []);
+		$found  = array_map(static fn ($violation): string => (string) $violation->message, $report->files['about/index.en.md'] ?? []);
 
 		$this->assertSame(['has the default language\'s suffix beside about/index.md, which wins; the default language needs none, so remove one.'], $found);
 		$this->assertSame([], $report->files['_post/2008-04-05.spring.fr.md'] ?? []);

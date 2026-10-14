@@ -24,6 +24,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `get_media` (D-755): one file in full, by id: its alt text, caption,
@@ -36,19 +38,20 @@ final class GetMedia extends Tool
 		private readonly MediaResource $resource,
 		private readonly MediaUsage $usage,
 		private readonly Entries $content,
-		private readonly ToolEntries $entries
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Get a Media File';
+		return $this->messages->t('tool.get_media.title', 'Get a Media File');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Gets one file in the media library by id: its address, dimensions, alt text, caption, sizes, and other details, and the entries that use it.';
+		return $this->messages->t('tool.get_media.description', 'Gets one file in the media library by id: its address, dimensions, alt text, caption, sizes, and other details, and the entries that use it.');
 	}
 
 	#[Override]
@@ -71,12 +74,12 @@ final class GetMedia extends Tool
 			$record = Uuid::isValid($id) ? $this->resource->find($id) : null;
 
 			if ($record === null) {
-				throw new ToolError(sprintf('No media file has the id "%s".', $id));
+				throw new ToolError((string) $this->messages->t('tool.get_media.not_found', 'No media file has the id "{id}".', id: $id));
 			}
 
 			$item = $this->resource->item($record);
 		} catch (MediaException $error) {
-			throw new ToolError(sprintf('The media library can\'t be read: %s', $error->getMessage()));
+			throw new ToolError((string) $this->messages->t('tool.get_media.unreadable', 'The media library can\'t be read: {problem}', problem: $error->getMessage()));
 		}
 
 		$used = [];

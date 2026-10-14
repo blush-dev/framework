@@ -24,6 +24,7 @@ use Blush\Field\ViolationKind;
 use Blush\Markdown\CommonMark\Block\BlockAttributes;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
+use Blush\Translation\Messages;
 
 /**
  * Finds blocks in a body that ask for a variant the block doesn't
@@ -42,7 +43,8 @@ final readonly class VariantCheck
 	public function __construct(
 		private ThemeResolver $themes,
 		private BlockRegistry $blocks,
-		private BlockVariants $variants
+		private BlockVariants $variants,
+		private Messages $messages
 	) {}
 
 	/**
@@ -71,13 +73,11 @@ final readonly class VariantCheck
 			$names = array_map(static fn (Variant $known): string => $known->name, $this->variants->for($parsed, $chain));
 
 			if (! in_array($variant, $names, true)) {
-				$violations[] = new Violation(self::FIELD, sprintf(
-					'line %d: %s has no "%s" variant under the active theme, so it renders as Default (%s).',
-					$line,
-					$parsed,
-					$variant,
-					$names === [] ? 'it has no variants' : 'it has ' . implode(', ', $names)
-				), Severity::Warning, ViolationKind::Variant);
+				$message = $names === []
+					? $this->messages->t('content.variant_check.no_variants', 'line {line}: {block} has no "{variant}" variant under the active theme, so it renders as Default (it has no variants).', line: (string) $line, block: (string) $parsed, variant: $variant)
+					: $this->messages->t('content.variant_check.unknown', 'line {line}: {block} has no "{variant}" variant under the active theme, so it renders as Default (it has {variants}).', line: (string) $line, block: (string) $parsed, variant: $variant, variants: implode(', ', $names));
+
+				$violations[] = new Violation(self::FIELD, $message, Severity::Warning, ViolationKind::Variant);
 			}
 		}
 

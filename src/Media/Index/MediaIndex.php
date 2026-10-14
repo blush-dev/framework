@@ -17,6 +17,7 @@ use Blush\Core\Paths;
 use Blush\Media\MediaException;
 use Blush\Support\FilesystemException;
 use Blush\Support\PhpArrayFile;
+use Blush\Translation\Messages;
 
 /**
  * Stores the media index (D-288): `storage/index/media.php`, a PHP file
@@ -35,7 +36,7 @@ final class MediaIndex
 
 	private readonly PhpArrayFile $file;
 
-	public function __construct(Paths $paths)
+	public function __construct(Paths $paths, private readonly Messages $messages)
 	{
 		$this->file = new PhpArrayFile("{$paths->index}/" . self::FILE);
 	}
@@ -73,7 +74,7 @@ final class MediaIndex
 		try {
 			$this->file->write($snapshot->toArray());
 		} catch (FilesystemException $e) {
-			throw new MediaException(sprintf('Unable to write the media index: %s', $e->getMessage()), previous: $e);
+			throw new MediaException((string) $this->messages->t('media.media_index.unwritable', 'Unable to write the media index: {problem}', problem: $e->getMessage()), previous: $e);
 		}
 
 		$this->snapshot = $snapshot;

@@ -331,16 +331,16 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 						ref="search"
 						v-model="query"
 						type="search"
-						aria-label="Search"
+						:aria-label="t('common.search', 'Search')"
 						:aria-controls="listId"
 						autocomplete="off"
 						spellcheck="false"
-						placeholder="Search…"
+						:placeholder="t('admin_select.search_placeholder', 'Search…')"
 						@keydown="searchKey"
 					>
 				</div>
 				<div :id="listId" class="select-list__options" role="listbox" :aria-labelledby="id">
-					<p v-if="!found.matched" class="select-list__empty">No match</p>
+					<p v-if="!found.matched" class="select-list__empty">{{ t('admin_select.no_match', 'No match') }}</p>
 					<template v-for="(option, index) in found.shown" :key="option.value">
 						<p v-if="option.group && option.group !== found.shown[index - 1]?.group" class="select-list__group" aria-hidden="true">{{ option.group }}</p>
 						<button

@@ -6,6 +6,7 @@
 
 import { ref } from 'vue';
 import { request, type FieldDescription, type FieldTypeCatalog, type FieldTypeDescription } from './api';
+import { t } from './messages';
 
 export const catalog = ref<FieldTypeCatalog | null>(null);
 
@@ -44,7 +45,7 @@ export function typeName(field: FieldDescription): string {
 	const name = fieldType(field.type)?.label ?? field.type;
 
 	if (field.item !== undefined) {
-		return `${name} of ${(fieldType(field.item.type)?.label ?? field.item.type).toLowerCase()}`;
+		return t('field_types.list_of', '{name} of {item}', { name, item: (fieldType(field.item.type)?.label ?? field.item.type).toLowerCase() });
 	}
 
 	return name;

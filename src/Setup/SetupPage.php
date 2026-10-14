@@ -51,9 +51,9 @@ final class SetupPage
 		foreach ($failures as $failure) {
 			$items .= sprintf(
 				"<li><code>%s</code> %s%s</li>\n",
-				self::escape($failure->label),
-				self::escape($failure->message),
-				$failure->hint === '' ? '' : ' <span class="hint">' . self::escape($failure->hint) . '</span>'
+				self::escape((string) $failure->label),
+				self::escape((string) $failure->message),
+				(string) $failure->hint === '' ? '' : ' <span class="hint">' . self::escape((string) $failure->hint) . '</span>'
 			);
 		}
 

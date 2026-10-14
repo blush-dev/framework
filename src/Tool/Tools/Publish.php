@@ -23,6 +23,8 @@ use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `core/publish`: puts content changes live, as `publish` and the webhook
@@ -31,19 +33,21 @@ use Blush\Tool\ToolResult;
  */
 final class Publish extends Tool
 {
-	public function __construct(private readonly Publisher $publisher)
-	{}
+	public function __construct(
+		private readonly Publisher $publisher,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Publish';
+		return $this->messages->t('tool.publish.title', 'Publish');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Put content changes live: pull (when set up), reindex, and clear the caches.';
+		return $this->messages->t('tool.publish.description', 'Put content changes live: pull (when set up), reindex, and clear the caches.');
 	}
 
 	#[Override]
@@ -80,19 +84,21 @@ final class Publish extends Tool
 		}
 
 		if (! $report->isPublished()) {
-			throw new ToolError('Publishing stopped: the pull failed.', array_values(array_filter(explode("\n", $report->pull->output ?? ''))));
+			throw new ToolError((string) $this->messages->t('tool.publish.pull_failed', 'Publishing stopped: the pull failed.'), array_values(array_filter(explode("\n", $report->pull->output ?? ''))));
 		}
 
 		$failures = $report->index->failures ?? [];
-		$more     = ($report->media->pending ?? 0) > 0 ? sprintf(' %d more media files are being read in the background.', $report->media?->pending) : '';
+		$pending  = $report->media->pending ?? 0;
 
 		if ($failures !== []) {
 			throw new ToolError(
-				sprintf('Published, but %d file(s) couldn\'t be indexed.', count($failures)),
+				(string) $this->messages->t('tool.publish.unindexed', 'Published, but {count, plural, one {# file} other {# files}} couldn\'t be indexed.', count: count($failures)),
 				array_map(static fn (string $path, string $message): string => "{$path}: {$message}", array_keys($failures), $failures)
 			);
 		}
 
-		return ToolResult::done(sprintf('Published in %d ms.', $report->milliseconds) . $more);
+		return ToolResult::done($pending > 0
+			? $this->messages->t('tool.publish.published_more', 'Published in {ms} ms. {pending, plural, one {# more media file is} other {# more media files are}} being read in the background.', ms: $report->milliseconds, pending: $pending)
+			: $this->messages->t('tool.publish.published', 'Published in {ms} ms.', ms: $report->milliseconds));
 	}
 }

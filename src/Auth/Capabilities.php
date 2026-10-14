@@ -16,6 +16,7 @@ namespace Blush\Auth;
 use Stringable;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
 
 /**
  * Every capability the site knows, with its label and group: the site
@@ -52,35 +53,37 @@ final class Capabilities
 	/**
 	 * The content capabilities, once worked out.
 	 *
-	 * @var ?array<string, array{string, string}>
+	 * @var ?array<string, array{Stringable, string|Stringable}>
 	 */
 	private ?array $content = null;
 
 	public function __construct(
-		private readonly ?ContentTypes $types = null
+		private readonly ?ContentTypes $types = null,
+		private readonly Messages $messages = new Messages()
 	) {}
 
 	/**
 	 * Builds the registry with the built-in capabilities, and the content
 	 * capabilities of the site's types.
 	 */
-	public static function withBuiltIns(?ContentTypes $types = null): self
+	public static function withBuiltIns(?ContentTypes $types = null, Messages $messages = new Messages()): self
 	{
-		$capabilities = new self($types);
+		$capabilities = new self($types, $messages);
+		$media        = $messages->t('auth.capability_group.media', 'Media');
 
-		$capabilities->register(MediaKind::UPLOAD_EVERY, 'Upload every kind', 'Media');
+		$capabilities->register(MediaKind::UPLOAD_EVERY, $messages->t('auth.capabilities.upload_every', 'Upload every kind'), $media);
 
 		foreach (MediaKind::cases() as $kind) {
-			$capabilities->register($kind->uploadCapability(), sprintf('Upload %s', mb_strtolower($kind->label())), 'Media');
+			$capabilities->register($kind->uploadCapability(), $messages->t('auth.capabilities.upload', 'Upload {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}}', kind: $kind->value), $media);
 		}
 
 		foreach (Capability::cases() as $capability) {
-			$capabilities->register($capability->value, $capability->label(), $capability->group());
+			$capabilities->register($capability->value, $capability->label($messages), $capability->group($messages));
 		}
 
 		foreach (ExtensionAction::kinds() as $kind) {
 			foreach (ExtensionAction::cases() as $action) {
-				$capabilities->register($action->on($kind), $action->label($kind), ExtensionAction::group($kind));
+				$capabilities->register($action->on($kind), $action->label($kind, $messages), ExtensionAction::group($kind, $messages));
 			}
 		}
 
@@ -119,7 +122,7 @@ final class Capabilities
 	 */
 	public function all(): array
 	{
-		return [...array_map(static fn (string|Stringable $label): string => (string) $label, $this->labels), ...array_map(static fn (array $item): string => $item[0], $this->content())];
+		return [...array_map(static fn (string|Stringable $label): string => (string) $label, $this->labels), ...array_map(static fn (array $item): string => (string) $item[0], $this->content())];
 	}
 
 	/**
@@ -136,7 +139,7 @@ final class Capabilities
 	 * Returns the content capabilities, by name, each with its label and
 	 * group.
 	 *
-	 * @return array<string, array{string, string}>
+	 * @return array<string, array{Stringable, string|Stringable}>
 	 */
 	private function content(): array
 	{
@@ -144,7 +147,7 @@ final class Capabilities
 			return $this->content;
 		}
 
-		$groups = [ContentAction::EVERY => 'Every type'];
+		$groups = [ContentAction::EVERY => $this->messages->t('auth.capabilities.every_type', 'Every type')];
 
 		foreach ($this->types?->all() ?? [] as $type) {
 			$groups[$type->name] = $type->labels->plural;
@@ -154,7 +157,7 @@ final class Capabilities
 
 		foreach ($groups as $type => $group) {
 			foreach (ContentAction::cases() as $action) {
-				$content[$action->on($type)] = ["{$group}: {$action->label()}", $group];
+				$content[$action->on($type)] = [$this->messages->t('auth.capabilities.content', '{type}: {action}', type: $group, action: $action->label($this->messages)), $group];
 			}
 		}
 

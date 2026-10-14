@@ -17,6 +17,7 @@ use Override;
 use Blush\Field\FieldSets;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
+use Blush\Translation\Messages;
 
 /**
  * The kinds of media file as places field sets attach to (D-341),
@@ -24,6 +25,9 @@ use Blush\Field\FieldTargetSource;
  */
 final readonly class MediaKindTargets implements FieldTargetSource
 {
+	public function __construct(private Messages $messages)
+	{}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -39,7 +43,7 @@ final readonly class MediaKindTargets implements FieldTargetSource
 	#[Override]
 	public function label(): string
 	{
-		return 'Media files';
+		return (string) $this->messages->t('media.media_kind_targets.label', 'Media files');
 	}
 
 	/**
@@ -49,7 +53,7 @@ final readonly class MediaKindTargets implements FieldTargetSource
 	public function fieldTargets(): iterable
 	{
 		foreach (MediaKind::cases() as $kind) {
-			yield new MediaKindTarget($kind);
+			yield new MediaKindTarget($kind, $this->messages);
 		}
 	}
 
@@ -59,7 +63,7 @@ final readonly class MediaKindTargets implements FieldTargetSource
 	#[Override]
 	public function slots(): array
 	{
-		return [new FieldSlot('details', 'Details', 'Facts about each file, beside its built-in ones.')];
+		return [new FieldSlot('details', (string) $this->messages->t('media.media_kind_targets.details', 'Details'), (string) $this->messages->t('media.media_kind_targets.details_description', 'Facts about each file, beside its built-in ones.'))];
 	}
 
 	/**

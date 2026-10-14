@@ -30,6 +30,8 @@ use Blush\Settings\SettingGroups;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeManifest;
 use Blush\Translation\LocaleMap;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The site's menus, resolved for a theme's locations (D-199, D-200).
@@ -94,7 +96,8 @@ final class Menus
 		private readonly FieldContext $fieldContext,
 		private readonly AppConfig $app,
 		private readonly LoggerInterface $logger,
-		private readonly ExtensionText $text
+		private readonly ExtensionText $text,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -131,7 +134,7 @@ final class Menus
 			$location = array_search($name, $this->assignments($chain), true);
 			$location = is_string($location) ? $this->locations($chain)[$location] ?? new MenuLocation($location) : new MenuLocation('');
 
-			return [$this->build($location, $menu, $chain->active()->name, $locale, "menu {$name}", $problems), $problems];
+			return [$this->build($location, $menu, $chain->active()->name, $locale, $this->menuSubject($name), $problems), $problems];
 		});
 	}
 
@@ -154,7 +157,7 @@ final class Menus
 
 		foreach (array_reverse($chain->themes) as $theme) {
 			foreach ($theme->menus() as $name => $declaration) {
-				$location         = MenuLocation::fromDeclaration($name, $declaration, $theme->name);
+				$location         = MenuLocation::fromDeclaration($name, $declaration, $theme->name, $this->messages);
 				$locations[$name] = $location->withLabel($this->text->menu($theme, $name, (string) $location->label));
 			}
 		}
@@ -186,7 +189,7 @@ final class Menus
 			|| ($map !== [] && array_is_list($map))
 			|| ! array_all($map, static fn (mixed $menu): bool => is_string($menu) && preg_match(MenuLoader::NAME, $menu) === 1)
 		) {
-			throw new MenuException(sprintf('%s: "%s" must map location names to menu names.', $this->groups->location($theme), ThemeManifest::MENUS));
+			throw new MenuException((string) $this->messages->t('menu.menus.assignments', '{file}: "{name}" must map location names to menu names.', file: $this->groups->location($theme), name: ThemeManifest::MENUS));
 		}
 
 		/** @var array<string, string> $map */
@@ -289,11 +292,11 @@ final class Menus
 
 			foreach ($assignments as $location => $name) {
 				if (! isset($locations[$location])) {
-					$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", but the "%s" theme has no such location.', $name, $theme), Severity::Notice);
+					$problems[] = new Violation($this->locationSubject($location), $this->messages->t('menu.menus.no_location', 'It\'s assigned the menu "{menu}", but the "{theme}" theme has no such location.', menu: $name, theme: $theme), Severity::Notice);
 				}
 
 				if (! isset($menus[$name])) {
-					$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", which the site doesn\'t have.', $name), Severity::Warning);
+					$problems[] = new Violation($this->locationSubject($location), $this->messages->t('menu.menus.no_menu', 'It\'s assigned the menu "{menu}", which the site doesn\'t have.', menu: $name), Severity::Warning);
 				}
 			}
 
@@ -302,21 +305,21 @@ final class Menus
 
 				if ($menuName === null) {
 					if ($location->items !== []) {
-						$this->build($location, new MenuRecord('', 'theme.json'), $theme, $this->app->locale, "location {$name} (the theme's default)", $problems, $location->items);
+						$this->build($location, new MenuRecord('', 'theme.json'), $theme, $this->app->locale, $this->locationSubject($name, default: true), $problems, $location->items);
 					}
 				} elseif (isset($menus[$menuName]) && ! isset($shown[$menuName])) {
 					$shown[$menuName] = true;
 
-					$this->build($location, $menus[$menuName], $theme, $this->app->locale, "menu {$menuName}", $problems);
+					$this->build($location, $menus[$menuName], $theme, $this->app->locale, $this->menuSubject($menuName), $problems);
 				}
 			}
 
 			foreach ($menus as $name => $menu) {
 				if (! isset($shown[$name])) {
-					$problems[] = new Violation("menu {$name}", sprintf('No location of the "%s" theme shows it.', $theme), Severity::Notice);
+					$problems[] = new Violation($this->menuSubject($name), $this->messages->t('menu.menus.unshown', 'No location of the "{theme}" theme shows it.', theme: $theme), Severity::Notice);
 
 					// Resolve it on its own, to check its items.
-					$this->build(new MenuLocation(''), $menu, $theme, $this->app->locale, "menu {$name}", $problems);
+					$this->build(new MenuLocation(''), $menu, $theme, $this->app->locale, $this->menuSubject($name), $problems);
 				}
 			}
 
@@ -372,18 +375,18 @@ final class Menus
 		if ($name === null) {
 			return $declared->items === []
 				? null
-				: $this->build($declared, new MenuRecord('', 'theme.json'), $chain->active()->name, $locale, "location {$location} (the theme's default)", $problems, $declared->items);
+				: $this->build($declared, new MenuRecord('', 'theme.json'), $chain->active()->name, $locale, $this->locationSubject($location, default: true), $problems, $declared->items);
 		}
 
 		$menu = $this->menus->get($name);
 
 		if ($menu === null) {
-			$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", which the site doesn\'t have.', $name), Severity::Warning);
+			$problems[] = new Violation($this->locationSubject($location), $this->messages->t('menu.menus.no_menu', 'It\'s assigned the menu "{menu}", which the site doesn\'t have.', menu: $name), Severity::Warning);
 
 			return null;
 		}
 
-		return $this->build($declared, $menu, $chain->active()->name, $locale, "menu {$name}", $problems);
+		return $this->build($declared, $menu, $chain->active()->name, $locale, $this->menuSubject($name), $problems);
 	}
 
 	/**
@@ -403,7 +406,7 @@ final class Menus
 		$label = LocaleMap::text($menu->label, $locale, $this->app->locale);
 
 		if ($menu->label !== null && $label === null) {
-			$problems[] = new Violation($subject, '"label" must be text or a map of locales to text.', Severity::Warning);
+			$problems[] = new Violation($subject, $this->messages->t('menu.menus.label', '"label" must be text or a map of locales to text.'), Severity::Warning);
 		}
 
 		$schema   = $this->schema($location, $theme);
@@ -446,21 +449,21 @@ final class Menus
 	 */
 	private function item(mixed $item, MenuLocation $location, Schema $schema, string $locale, int $level, string $position, string $subject, array &$problems): ?MenuItem
 	{
-		$problem = static function (string $message) use (&$problems, $subject, $position): null {
-			$problems[] = new Violation($subject, "item {$position}: {$message}", Severity::Warning);
+		$problem = function (string|Text $message) use (&$problems, $subject, $position): null {
+			$problems[] = new Violation($subject, $this->messages->t('menu.menus.item', 'item {position}: {problem}', position: $position, problem: $message), Severity::Warning);
 
 			return null;
 		};
 
 		if (! is_array($item) || array_is_list($item)) {
-			return $problem('must be a map of keys to values.');
+			return $problem($this->messages->t('menu.menus.not_map', 'must be a map of keys to values.'));
 		}
 
 		/** @var array<string, mixed> $item */
 		$linkKeys = array_values(array_intersect(array_keys($item), $this->links->keys()));
 
 		if (count($linkKeys) > 1) {
-			return $problem(sprintf('has more than one link (%s); use one.', implode(', ', $linkKeys)));
+			return $problem($this->messages->t('menu.menus.links', 'has more than one link ({keys}); use one.', keys: implode(', ', $linkKeys)));
 		}
 
 		$target  = null;
@@ -469,11 +472,11 @@ final class Menus
 
 		if ($linkKey !== null) {
 			$link    = $this->links->make($linkKey);
-			$invalid = $link->validate($item[$linkKey], $item);
+			$invalid = $link->validate($linkKey, $item[$linkKey], $item);
 			$ownKeys = [...$ownKeys, $linkKey, ...$link->keys()];
 
 			if ($invalid !== null) {
-				return $problem("\"{$linkKey}\" {$invalid}");
+				return $problem($invalid);
 			}
 
 			try {
@@ -487,19 +490,19 @@ final class Menus
 		$label = LocaleMap::text($item['label'] ?? null, $locale, $this->app->locale);
 
 		if (isset($item['label']) && $label === null) {
-			return $problem('"label" must be text or a map of locales to text.');
+			return $problem($this->messages->t('menu.menus.label', '"label" must be text or a map of locales to text.'));
 		}
 
 		$label = trim($label ?? $target->label ?? '');
 
 		if ($label === '') {
-			return $problem('needs a "label".');
+			return $problem($this->messages->t('menu.menus.no_label', 'needs a "label".'));
 		}
 
 		$children = $item['children'] ?? [];
 
 		if (! is_array($children) || ! array_is_list($children)) {
-			$problem('"children" must be a list.');
+			$problem($this->messages->t('menu.menus.children', '"children" must be a list.'));
 			$children = [];
 		}
 
@@ -508,7 +511,7 @@ final class Menus
 			: $this->items($children, $location, $schema, $locale, $level + 1, $position, $subject, $problems);
 
 		if ($target === null && $children === []) {
-			return $problem('has no link and no children.');
+			return $problem($this->messages->t('menu.menus.empty', 'has no link and no children.'));
 		}
 
 		$text = [];
@@ -518,7 +521,7 @@ final class Menus
 			$text[$key] = trim($value ?? '');
 
 			if ($value === null) {
-				$problem("\"{$key}\" must be text.");
+				$problem($this->messages->t('menu.menus.not_text', '"{name}" must be text.', name: $key));
 			}
 		}
 
@@ -541,15 +544,15 @@ final class Menus
 	 * location doesn't declare, or a value that doesn't fit, is a problem;
 	 * a field that's missing or doesn't fit gets its default.
 	 *
-	 * @param  array<string, mixed>   $values
-	 * @param  callable(string): null $problem
+	 * @param  array<string, mixed>        $values
+	 * @param  callable(string|Text): null $problem
 	 * @return array<string, mixed>
 	 */
 	private function fields(array $values, Schema $schema, string $locale, callable $problem): array
 	{
 		foreach (array_keys($values) as $key) {
 			if (! $schema->has($key)) {
-				$problem(sprintf('"%s" isn\'t a menu item key or a field the location declares.', $key));
+				$problem($this->messages->t('menu.menus.unknown_key', '"{name}" isn\'t a menu item key or a field the location declares.', name: $key));
 				unset($values[$key]);
 			}
 		}
@@ -559,7 +562,7 @@ final class Menus
 		$failed = [];
 
 		foreach ($result->violations(Severity::Warning) as $violation) {
-			$problem("\"{$violation->field}\" {$violation->message}");
+			$problem($this->messages->t('menu.menus.field', '"{name}" {problem}', name: $violation->field, problem: $violation->message, context: 'The problem is the rest of the sentence, such as "must be text, not a list."'));
 			$failed[$violation->field] = true;
 		}
 
@@ -568,6 +571,26 @@ final class Menus
 		}
 
 		return $schema->hydrate($result->values, $this->fieldContext);
+	}
+
+	/**
+	 * Names a site menu in a problem: the `field` of what `check()`
+	 * reports about it.
+	 */
+	public function menuSubject(string $name): string
+	{
+		return (string) $this->messages->t('menu.menus.subject_menu', 'menu {menu}', menu: $name);
+	}
+
+	/**
+	 * Names a location in a problem, or the theme's default items for it:
+	 * the `field` of what `check()` reports about it.
+	 */
+	public function locationSubject(string $location, bool $default = false): string
+	{
+		return (string) ($default
+			? $this->messages->t('menu.menus.subject_default', 'location {location} (the theme\'s default)', location: $location)
+			: $this->messages->t('menu.menus.subject_location', 'location {location}', location: $location));
 	}
 
 	/**
@@ -596,7 +619,7 @@ final class Menus
 		try {
 			return $this->schemas[$key] = $this->fields->schema($fields);
 		} catch (InvalidSchema $error) {
-			throw new MenuException(sprintf('The menu location "%s" has an invalid field: %s', $location->name, $error->getMessage()), 0, $error);
+			throw new MenuException((string) $this->messages->t('menu.menus.invalid_field', 'The menu location "{location}" has an invalid field: {problem}', location: $location->name, problem: $error->getMessage()), 0, $error);
 		}
 	}
 }

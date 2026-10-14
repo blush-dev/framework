@@ -73,7 +73,7 @@ final class RequirementsTest extends TestCase
 		$this->assertSame(['blush', 'php', 'extension', 'extension', 'composer', 'missing'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
 		$this->assertSame('PHP >=8.6 (this site runs 8.5.1)', $checks[1]->describe());
 		$this->assertSame('the PHP extension redis (isn\'t loaded)', $checks[3]->describe());
-		$this->assertSame('isn\'t a version constraint Blush understands', $checks[5]->note);
+		$this->assertSame('isn\'t a version constraint Blush understands', (string) $checks[5]->note);
 	}
 
 	public function testReadsAnExtensionVersionAsComposerDoes(): void
@@ -102,7 +102,7 @@ final class RequirementsTest extends TestCase
 	{
 		$this->assertTrue(self::shop('^2.0', ['acme/shop' => true])->met);
 		$this->assertSame('Shop ^2.0 (is turned off)', self::shop('^2.0', [])->describe());
-		$this->assertSame('version 2.3.0 is installed', self::shop('^3.0', ['acme/shop' => true])->note);
+		$this->assertSame('version 2.3.0 is installed', (string) self::shop('^3.0', ['acme/shop' => true])->note);
 		$this->assertSame('acme/crm ^1.0 (isn\'t installed)', self::requirements()->check(self::plugin('acme/sync', ['acme/crm' => '^1.0']), [], [])[0]->describe());
 	}
 
@@ -168,7 +168,7 @@ final class RequirementsTest extends TestCase
 		$checked = self::requirements()->check($plugin, ['acme/old' => $old], [], [], ['acme/old' => true]);
 
 		$this->assertSame([false, true, true], array_map(static fn (Requirement $requirement): bool => $requirement->conflict, $checked), 'Its own name is passed over.');
-		$this->assertSame(['', 'version 8.5.1 is loaded', 'version 0.0.0 is on'], array_map(static fn (Requirement $requirement): string => $requirement->note, $checked));
+		$this->assertSame(['', 'version 8.5.1 is loaded', 'version 0.0.0 is on'], array_map(static fn (Requirement $requirement): string => (string) $requirement->note, $checked));
 		$this->assertSame('Conflicts with Old (version 0.0.0 is on).', Requirements::reason($checked));
 	}
 

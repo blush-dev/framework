@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Relation;
 
 use Blush\Content\EntryFields;
+use Blush\Translation\Messages;
 
 /**
  * One way entries link to other entries (D-585): a post's categories, a
@@ -124,6 +125,7 @@ final readonly class Relation
 	 * @param  string          $label      What people call it ("Actors"); `''` for its name's.
 	 * @param  ?RelationControl $control   How the admin picks targets, or `null` for its shape's.
 	 * @param  string          $singular   What one target is called ("Cook"); `''` for one made from the label.
+	 * @param  Messages        $messages   Writes why it's refused; English without a translator, for a relation in code.
 	 * @throws InvalidRelation
 	 */
 	public function __construct(
@@ -144,7 +146,8 @@ final readonly class Relation
 		public array $defaults = [],
 		public string $label = '',
 		public ?RelationControl $control = null,
-		string $singular = ''
+		string $singular = '',
+		Messages $messages = new Messages()
 	) {
 		$this->field    = $field ?? $name;
 		$this->singular = trim($singular) !== '' ? trim($singular) : self::singularOf($label === '' ? ucfirst(str_replace('_', ' ', $name)) : $label);
@@ -162,58 +165,65 @@ final readonly class Relation
 		);
 		$this->max      = $this->multiple ? $max : 1;
 
-		self::checkName('name', $name);
+		self::checkName('name', $name, $messages);
 
 		foreach ([$this->field, ...$aliases] as $key) {
-			self::checkName('front matter key', $key);
+			self::checkName('key', $key, $messages);
 
 			if (in_array($key, self::RESERVED, true)) {
-				throw new InvalidRelation(sprintf('Relation "%s" can\'t be written under "%s", which is reserved.', $name, $key));
+				throw new InvalidRelation((string) $messages->t('content.relation.reserved_key', 'Relation "{name}" can\'t be written under "{field}", which is reserved.', name: $name, field: $key));
 			}
 		}
 
 		if ($to === []) {
-			throw new InvalidRelation(sprintf('Relation "%s" names no type it points to.', $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.no_target', 'Relation "{name}" names no type it points to.', name: $name));
 		}
 
 		if ($min < 0) {
-			throw new InvalidRelation(sprintf('Relation "%s" has a min below 0.', $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.negative_min', 'Relation "{name}" has a min below 0.', name: $name));
 		}
 
 		if ($this->max !== null && $this->max < max(1, $min)) {
-			throw new InvalidRelation(sprintf('Relation "%s" has a max below its min (or below 1).', $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.max_below_min', 'Relation "{name}" has a max below its min (or below 1).', name: $name));
 		}
 
 		if (count($defaults) > ($this->max ?? PHP_INT_MAX) || in_array('', $defaults, true)) {
-			throw new InvalidRelation(sprintf('Relation "%s" has more defaults than it takes, or an empty one.', $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.bad_defaults', 'Relation "{name}" has more defaults than it takes, or an empty one.', name: $name));
 		}
 
 		if ($kind->isWithinType() && (count($from) !== 1 || $to !== $from || $symmetric)) {
-			throw new InvalidRelation(sprintf('Relation "%s" is a %s, which points from one type to the same type, one target each.', $name, $kind->value));
+			throw new InvalidRelation((string) $messages->t(
+				'content.relation.within_type',
+				'Relation "{name}" is a {kind}, which points from one type to the same type, one target each.',
+				name: $name,
+				kind: $kind->value
+			));
 		}
 
 		// A classify relation is named for the one type it files entries
 		// under, so a term's key in the index is its type's name (D-593).
 		if ($kind === RelationKind::Classify && $to !== [$name]) {
-			throw new InvalidRelation(sprintf('Relation "%s" classifies, so it points to one type and is named after it: "to" must be ["%s"].', $name, $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.classify_to', 'Relation "{name}" classifies, so it points to one type and is named after it: "to" must be ["{name}"].', name: $name));
 		}
 
 		if ($symmetric && $from !== [] && array_diff($to, $from) !== []) {
-			throw new InvalidRelation(sprintf('Relation "%s" is symmetric, so every type it points to must be one it points from.', $name));
+			throw new InvalidRelation((string) $messages->t('content.relation.symmetric', 'Relation "{name}" is symmetric, so every type it points to must be one it points from.', name: $name));
 		}
 	}
 
 	/**
 	 * Returns the `authors` credit setup and the new-type wizard write
 	 * (D-602): from the types given to the profiles type, read from 1.x's
-	 * `author` too, with archives under each type's `authors`.
+	 * `author` too, with archives under each type's `authors`. Its label
+	 * is in `$messages`' language: English when a plugin defines it in
+	 * code without one.
 	 *
 	 * @param  list<string> $from
 	 * @throws InvalidRelation
 	 */
-	public static function authors(array $from, string $profiles): self
+	public static function authors(array $from, string $profiles, Messages $messages = new Messages()): self
 	{
-		return new self(self::AUTHORS, RelationKind::Credit, $from, [$profiles], aliases: ['author'], label: 'Authors');
+		return new self(self::AUTHORS, RelationKind::Credit, $from, [$profiles], aliases: ['author'], label: (string) $messages->t('content.relation.authors', 'Authors'), messages: $messages);
 	}
 
 	/**
@@ -331,9 +341,10 @@ final readonly class Relation
 	 * a map or `false`, and `required` short for a `min` of 1.
 	 *
 	 * @param  array<array-key, mixed> $data
+	 * @param  Messages                $messages Writes why a definition is refused.
 	 * @throws InvalidRelation
 	 */
-	public static function fromArray(array $data): self
+	public static function fromArray(array $data, Messages $messages): self
 	{
 		$string = static fn (string $key, string $default = ''): string => is_string($data[$key] ?? null) ? $data[$key] : $default;
 		$list   = static fn (string $key): array => is_array($data[$key] ?? null)
@@ -341,9 +352,9 @@ final readonly class Relation
 			: (is_string($data[$key] ?? null) ? [$data[$key]] : []);
 		$bool   = static fn (string $key, bool $default): bool => is_bool($data[$key] ?? null) ? $data[$key] : $default;
 		$kind   = RelationKind::tryFrom($string('kind', RelationKind::Reference->value))
-			?? throw new InvalidRelation(sprintf('Relation "%s" has an unknown kind.', $string('name')));
+			?? throw new InvalidRelation((string) $messages->t('content.relation.unknown_kind', 'Relation "{name}" has an unknown kind.', name: $string('name')));
 		$rule   = $string('translations') === '' ? null : TranslationRule::tryFrom($string('translations'))
-			?? throw new InvalidRelation(sprintf('Relation "%s" has an unknown translations rule.', $string('name')));
+			?? throw new InvalidRelation((string) $messages->t('content.relation.unknown_translations', 'Relation "{name}" has an unknown translations rule.', name: $string('name')));
 		$min    = is_int($data['min'] ?? null) ? $data['min'] : (($data['required'] ?? false) === true ? 1 : 0);
 		$max    = is_int($data['max'] ?? null) ? $data['max'] : null;
 		$inverse = $data['inverse'] ?? null;
@@ -369,17 +380,19 @@ final readonly class Relation
 					...($kind === RelationKind::Classify || $kind === RelationKind::Credit ? ['page' => true] : []),
 					...($kind === RelationKind::Credit ? ['archive' => $string('name')] : []),
 					...$inverse
-				])
+				], $messages)
 				: ($inverse === false ? false : null),
 			translations: $rule,
 			defaults: $list('defaults'),
 			label: $string('label'),
 			singular: $string('singular'),
-			control: $string('control') === '' ? null : (RelationControl::tryFrom($string('control')) ?? throw new InvalidRelation(sprintf(
-				'Relation "%s" has an unknown control; it can be %s.',
-				$string('name'),
-				implode(', ', array_map(static fn (RelationControl $control): string => $control->value, RelationControl::cases()))
-			)))
+			control: $string('control') === '' ? null : (RelationControl::tryFrom($string('control')) ?? throw new InvalidRelation((string) $messages->t(
+				'content.relation.unknown_control',
+				'Relation "{name}" has an unknown control; it can be {controls}.',
+				name: $string('name'),
+				controls: implode(', ', array_map(static fn (RelationControl $control): string => $control->value, RelationControl::cases()))
+			))),
+			messages: $messages
 		);
 	}
 
@@ -460,14 +473,19 @@ final readonly class Relation
 	}
 
 	/**
-	 * Checks a name or front matter key.
+	 * Checks a name (`$what` is `name`) or front matter key (`key`).
 	 *
 	 * @throws InvalidRelation
 	 */
-	private static function checkName(string $what, string $value): void
+	private static function checkName(string $what, string $value, Messages $messages): void
 	{
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $value) !== 1) {
-			throw new InvalidRelation(sprintf('A relation\'s %s must be lowercase letters, digits, and underscores, starting with a letter; "%s" isn\'t.', $what, $value));
+			throw new InvalidRelation((string) $messages->t(
+				'content.relation.bad_name',
+				'A relation\'s {what, select, name {name} other {front matter key}} must be lowercase letters, digits, and underscores, starting with a letter; "{value}" isn\'t.',
+				what: $what,
+				value: $value
+			));
 		}
 	}
 }

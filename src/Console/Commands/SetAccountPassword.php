@@ -43,7 +43,7 @@ final readonly class SetAccountPassword
 		try {
 			$account = $this->accounts->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
 
-			$this->accounts->setPassword($account, $prompt->newSecret('New password:', 'New password again:', $this->accounts->passwordProblem(...)));
+			$this->accounts->setPassword($account, $prompt->newSecret('New password:', 'New password again:', fn (string $password): ?string => $this->accounts->passwordProblem($password)?->__toString()));
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 

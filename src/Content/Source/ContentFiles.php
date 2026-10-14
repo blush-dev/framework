@@ -18,6 +18,7 @@ use Blush\Container\Attributes\Defer;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Storage\StorageResolver;
+use Blush\Translation\Messages;
 
 /**
  * Whether the site keeps its content as files, and, when it does, their
@@ -33,7 +34,8 @@ final readonly class ContentFiles
 	 */
 	public function __construct(
 		private StorageResolver $resolver,
-		#[Defer(ContentSource::class)] private Closure $source
+		#[Defer(ContentSource::class)] private Closure $source,
+		private Messages $messages
 	) {}
 
 	/**
@@ -52,7 +54,7 @@ final readonly class ContentFiles
 	public function source(): ContentSource
 	{
 		if (! $this->kept()) {
-			throw new StorageException('The site keeps its content in a database, so there are no content files to read.');
+			throw new StorageException((string) $this->messages->t('content.content_files.in_database', 'The site keeps its content in a database, so there are no content files to read.'));
 		}
 
 		return ($this->source)();

@@ -24,6 +24,7 @@ import { entryRoute } from '../api';
 import { formatWhen } from '../format';
 import type { HealthRow } from '../health';
 import { copyText } from '../toast';
+import { t } from '../messages';
 
 const props = defineProps<{
 	row: HealthRow;
@@ -55,9 +56,9 @@ const open   = ref(props.row.choices !== undefined);
 const choice = ref(props.row.choices?.[0]?.path ?? '');
 
 const PILLS: Record<HealthRow['severity'], { label: string; kind: string }> = {
-	error: { label: 'Error', kind: 'pill--danger' },
-	warning: { label: 'Warning', kind: 'pill--warn' },
-	notice: { label: 'Notice', kind: '' }
+	error: { label: t('health_row.error', 'Error'), kind: 'pill--danger' },
+	warning: { label: t('health_row.warning', 'Warning'), kind: 'pill--warn' },
+	notice: { label: t('health_row.notice', 'Notice'), kind: '' }
 };
 
 const mediaRoute = (key: string): object => ({ name: 'media-file', params: { path: key.split('/') } });
@@ -86,45 +87,45 @@ const mediaRoute = (key: string): object => ({ name: 'media-file', params: { pat
 			<template v-else>
 				<p class="problem__found"><template v-if="row.field"><code>{{ row.field }}</code>{{ ' ' }}</template>{{ row.found }}</p>
 				<p v-if="row.says" class="problem__says">{{ row.says }}</p>
-				<p v-if="ignored" class="problem__meta">Ignored by {{ ignored.name }}, {{ formatWhen(ignored.at).toLowerCase() }}</p>
+				<p v-if="ignored" class="problem__meta">{{ t('health_row.ignored_by', 'Ignored by {name}, {when}', { name: ignored.name, when: formatWhen(ignored.at).toLowerCase() }) }}</p>
 			</template>
 		</div>
 
 		<div class="problem__actions">
-			<span v-if="fixed !== undefined" class="pill pill--good">Fixed</span>
-			<button v-else-if="ignored" type="button" class="button button--small" :disabled="busy" @click="emit('unignore')"><AdminIcon name="eye" />Stop Ignoring</button>
+			<span v-if="fixed !== undefined" class="pill pill--good">{{ t('health_row.fixed', 'Fixed') }}</span>
+			<button v-else-if="ignored" type="button" class="button button--small" :disabled="busy" @click="emit('unignore')"><AdminIcon name="eye" />{{ t('health_row.stop_ignoring', 'Stop Ignoring') }}</button>
 			<template v-else>
 				<button v-if="row.fix && !row.choices" type="button" class="button button--small" :disabled="busy" @click="emit('fix')">
 					<span v-if="fixing" class="spin" aria-hidden="true" />{{ row.fix.label }}
 				</button>
-				<RouterLink v-else-if="row.entry && !row.fix && !group" class="button button--small" :to="entryRoute(row.entry)"><AdminIcon name="file-pen-line" />Open in Editor</RouterLink>
-				<MenuButton v-if="hasMenu" button-class="button button--ghost button--small button--icon" :label="`More for ${row.title ?? row.path}`" floating>
+				<RouterLink v-else-if="row.entry && !row.fix && !group" class="button button--small" :to="entryRoute(row.entry)"><AdminIcon name="file-pen-line" />{{ t('health_row.open_in_editor', 'Open in Editor') }}</RouterLink>
+				<MenuButton v-if="hasMenu" button-class="button button--ghost button--small button--icon" :label="t('health_row.more_for', 'More for {name}', { name: row.title ?? row.path })" floating>
 					<template #button><AdminIcon name="ellipsis" /></template>
 					<template #default="{ close }">
-						<RouterLink v-if="row.entry && row.fix" class="menu-item" :to="entryRoute(row.entry)"><AdminIcon name="file-pen-line" />Open in Editor</RouterLink>
-						<RouterLink v-if="row.media" class="menu-item" :to="mediaRoute(row.media)"><AdminIcon name="image" />Open Media File</RouterLink>
-						<button v-if="copyable" type="button" class="menu-item" @click="close(); copyText(row.path, 'the file path')"><AdminIcon name="copy" />Copy File Path</button>
+						<RouterLink v-if="row.entry && row.fix" class="menu-item" :to="entryRoute(row.entry)"><AdminIcon name="file-pen-line" />{{ t('health_row.open_in_editor', 'Open in Editor') }}</RouterLink>
+						<RouterLink v-if="row.media" class="menu-item" :to="mediaRoute(row.media)"><AdminIcon name="image" />{{ t('health_row.open_media_file', 'Open Media File') }}</RouterLink>
+						<button v-if="copyable" type="button" class="menu-item" @click="close(); copyText(row.path, t('health_row.the_file_path', 'the file path'))"><AdminIcon name="copy" />{{ t('health_row.copy_file_path', 'Copy File Path') }}</button>
 						<template v-if="ignorable">
 							<hr v-if="row.entry && row.fix || row.media || copyable" class="menu-rule">
-							<button type="button" class="menu-item" :disabled="busy" @click="close(); emit('ignore')"><AdminIcon name="eye-off" />Ignore This</button>
+							<button type="button" class="menu-item" :disabled="busy" @click="close(); emit('ignore')"><AdminIcon name="eye-off" />{{ t('health_row.ignore_this', 'Ignore This') }}</button>
 						</template>
 					</template>
 				</MenuButton>
-				<button v-if="row.choices" type="button" class="button button--ghost button--small button--icon" :aria-expanded="open" :aria-label="open ? 'Hide the files' : 'Choose which file keeps it'" @click="open = !open">
+				<button v-if="row.choices" type="button" class="button button--ghost button--small button--icon" :aria-expanded="open" :aria-label="open ? t('health_row.hide_files', 'Hide the files') : t('health_row.choose_file', 'Choose which file keeps it')" @click="open = !open">
 					<AdminIcon :name="open ? 'chevron-up' : 'chevron-down'" />
 				</button>
 			</template>
 		</div>
 
 		<div v-if="row.choices && open && fixed === undefined && !ignored" class="problem__more">
-			<p class="problem__label">Which Keeps It</p>
+			<p class="problem__label">{{ t('health_row.which_keeps_it', 'Which Keeps It') }}</p>
 			<div class="pick-list">
 				<button v-for="item in row.choices" :key="item.path" type="button" class="pick" :aria-pressed="choice === item.path" @click="choice = item.path">
 					<span class="pick__text">
 						<span class="pick__name">{{ item.title ?? item.path }}</span>
 						<span v-if="item.title !== null" class="pick__meta">{{ item.path }}</span>
 					</span>
-					<span class="pick__aside">{{ choice === item.path ? 'Keeps the id' : 'Gets a new id' }}</span>
+					<span class="pick__aside">{{ choice === item.path ? t('health_row.keeps_id', 'Keeps the id') : t('health_row.gets_new_id', 'Gets a new id') }}</span>
 				</button>
 			</div>
 			<div>

@@ -36,6 +36,7 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * The filesystem driver's records (D-643): each table kept as its
@@ -92,7 +93,8 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		private Filesystem $filesystem,
 		#[Defer(IndexStore::class)] private Closure $content,
 		#[Defer(MediaFiles::class)] private ?Closure $media = null,
-		private ArrayEvaluator $evaluator = new ArrayEvaluator()
+		private ArrayEvaluator $evaluator = new ArrayEvaluator(),
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -395,7 +397,9 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		$list = $layout->root === null ? $data : ($data[$layout->root] ?? []);
 
 		if (! is_array($list) || ! array_is_list($list)) {
-			throw new InvalidRecord(sprintf('%s needs a list of records%s.', $location, $layout->root === null ? '' : " under \"{$layout->root}\""));
+			throw new InvalidRecord((string) ($layout->root === null
+				? $this->messages->t('storage.file_record_store.not_list', '{file} needs a list of records.', file: $location)
+				: $this->messages->t('storage.file_record_store.not_list_under', '{file} needs a list of records under "{name}".', file: $location, name: $layout->root)));
 		}
 
 		$records = [];
@@ -404,7 +408,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 			$record = $this->decode($table, is_array($item) ? $item : [], $location);
 
 			if (isset($records[$record->id])) {
-				throw new InvalidRecord(sprintf('%s has two records with the id %s.', $location, $record->id));
+				throw new InvalidRecord((string) $this->messages->t('storage.file_record_store.same_id', '{file} has two records with the id {id}.', file: $location, id: $record->id));
 			}
 
 			$records[$record->id] = $record;
@@ -437,7 +441,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 			$record   = $this->decode($table, $this->read($file->getPathname()) ?? [], $location, $name, $layout->keyInName);
 
 			if (isset($records[$record->id])) {
-				throw new InvalidRecord(sprintf('%s has the id of another record in %s.', $location, $this->paths->relative($layout->path)));
+				throw new InvalidRecord((string) $this->messages->t('storage.file_record_store.taken_id', '{file} has the id of another record in {folder}.', file: $location, folder: $this->paths->relative($layout->path)));
 			}
 
 			$records[$record->id] = $record;
@@ -465,11 +469,11 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		try {
 			$data = $text === false || trim($text) === '' ? [] : json_decode($text, true, 512, JSON_THROW_ON_ERROR);
 		} catch (JsonException $error) {
-			throw new InvalidRecord(sprintf('%s isn\'t valid JSON: %s', $this->paths->relative($path), $error->getMessage()), previous: $error);
+			throw new InvalidRecord((string) $this->messages->t('storage.file_record_store.invalid_json', '{file} isn\'t valid JSON: {problem}', file: $this->paths->relative($path), problem: $error->getMessage()), previous: $error);
 		}
 
 		if (! is_array($data)) {
-			throw new InvalidRecord(sprintf('%s must hold a JSON object or list.', $this->paths->relative($path)));
+			throw new InvalidRecord((string) $this->messages->t('storage.file_record_store.not_json_data', '{file} must hold a JSON object or list.', file: $this->paths->relative($path)));
 		}
 
 		return $data;
@@ -486,16 +490,17 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	private function decode(Table $table, array $data, string $location, ?string $name = null, bool $keyInName = false): Record
 	{
 		if ($data !== [] && array_is_list($data)) {
-			throw new InvalidRecord(sprintf('%s has a record that isn\'t a JSON object.', $location));
+			throw new InvalidRecord((string) $this->messages->t('storage.file_record_store.not_object', '{file} has a record that isn\'t a JSON object.', file: $location));
 		}
 
 		$fields = array_diff_key($data, array_flip([...Record::RESERVED, self::SCHEMA]));
 
 		if ($keyInName && $table->key !== null && $name !== null && array_key_exists($table->key, $fields) && $fields[$table->key] !== $name) {
-			throw new InvalidRecord(sprintf(
-				'%s names the record "%s"; a record here is named after its file.',
-				$location,
-				is_scalar($fields[$table->key]) ? (string) $fields[$table->key] : get_debug_type($fields[$table->key])
+			throw new InvalidRecord((string) $this->messages->t(
+				'storage.file_record_store.misnamed',
+				'{file} names the record "{name}"; a record here is named after its file.',
+				file: $location,
+				name: is_scalar($fields[$table->key]) ? (string) $fields[$table->key] : get_debug_type($fields[$table->key])
 			));
 		}
 
@@ -509,7 +514,9 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 			is_string($given) && Uuid::isValid($given)  => $given,
 			is_string($key) && $key !== ''              => Uuid::fromName("{$table->name}/{$key}"),
 			$name !== null && Uuid::isValid($name)      => $name,
-			default                                     => throw new InvalidRecord(sprintf('%s has a record with no id%s.', $location, $table->key === null ? '' : " or \"{$table->key}\""))
+			default                                     => throw new InvalidRecord((string) ($table->key === null
+				? $this->messages->t('storage.file_record_store.no_id', '{file} has a record with no id.', file: $location)
+				: $this->messages->t('storage.file_record_store.no_id_or_key', '{file} has a record with no id or "{name}".', file: $location, name: $table->key)))
 		};
 
 		/** @var array<string, mixed> $fields */
@@ -581,7 +588,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		try {
 			return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
 		} catch (JsonException $error) {
-			throw new RecordStoreFailure(sprintf('The record can\'t be written as JSON: %s', $error->getMessage()), previous: $error);
+			throw new RecordStoreFailure((string) $this->messages->t('storage.file_record_store.unencodable', 'The record can\'t be written as JSON: {problem}', problem: $error->getMessage()), previous: $error);
 		}
 	}
 
@@ -597,7 +604,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		try {
 			$this->filesystem->writeAtomic($path, $text, $mode);
 		} catch (Throwable $error) {
-			throw new RecordStoreFailure(sprintf('Unable to write %s.', $this->paths->relative($path)), previous: $error);
+			throw new RecordStoreFailure((string) $this->messages->t('storage.file_record_store.unwritable', 'Unable to write {file}.', file: $this->paths->relative($path)), previous: $error);
 		}
 	}
 
@@ -615,7 +622,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		$this->transactions->remember($path);
 
 		if (! @unlink($path)) {
-			throw new RecordStoreFailure(sprintf('Unable to delete %s.', $this->paths->relative($path)));
+			throw new RecordStoreFailure((string) $this->messages->t('storage.file_record_store.undeletable', 'Unable to delete {file}.', file: $this->paths->relative($path)));
 		}
 	}
 }

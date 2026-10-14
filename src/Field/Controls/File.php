@@ -19,6 +19,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\MediaField;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Any other file, to download: a media field of documents, other files, or any kind.
@@ -38,18 +40,18 @@ final class File extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'File';
+		return $messages->t('field.file.label', 'File');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Any other file, to download.';
+		return $messages->t('field.file.description', 'Any other file, to download.');
 	}
 
 	/**

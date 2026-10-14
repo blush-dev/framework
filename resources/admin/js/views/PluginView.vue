@@ -19,7 +19,9 @@ import DangerZone from '../components/DangerZone.vue';
 import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
+import MessageText from '../components/MessageText.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
+import { t } from '../messages';
 import { usePlugins } from '../plugins';
 import { screenTitle } from '../screen';
 import { can } from '../session';
@@ -55,13 +57,13 @@ async function remove(): Promise<void> {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'plugins' }"><AdminIcon name="chevron-left" />All plugins</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'plugins' }"><AdminIcon name="chevron-left" />{{ t('plugin_view.all_plugins', 'All plugins') }}</RouterLink>
 		<div class="page-header__text">
 			<div class="page-header__title">
-				<h1 tabindex="-1">{{ plugin?.label ?? 'Plugin' }}</h1>
-				<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
+				<h1 tabindex="-1">{{ plugin?.label ?? t('plugin_view.plugin', 'Plugin') }}</h1>
+				<span v-if="blocked" class="pill pill--warn">{{ t('plugin_view.cant_turn_on', "Can't turn on") }}</span>
 			</div>
-			<p v-if="plugin" class="page-header__hint">{{ plugin.description || 'This plugin has no description.' }}</p>
+			<p v-if="plugin" class="page-header__hint">{{ plugin.description || t('plugin_view.no_description', 'This plugin has no description.') }}</p>
 		</div>
 		<div v-if="plugin" class="page-header__actions">
 			<ToggleSwitch
@@ -69,7 +71,7 @@ async function remove(): Promise<void> {
 				:label="plugin.label"
 				:locked="blocked !== null || !canActivate"
 				:busy="busy === plugin.name"
-				:reason="blocked ?? (canActivate ? null : 'Your role can\'t turn plugins on and off.')"
+				:reason="blocked ?? (canActivate ? null : t('plugin_view.role_cant_toggle', 'Your role can\'t turn plugins on and off.'))"
 				@change="toggle(plugin, $event)"
 			/>
 		</div>
@@ -79,38 +81,38 @@ async function remove(): Promise<void> {
 
 	<template v-if="plugin && answer">
 		<div class="extension-detail">
-			<AbandonedNotice noun="plugin" :abandoned="plugin.abandoned" :replacement="plugin.replacement" />
+			<AbandonedNotice :noun="t('plugin_view.noun', 'plugin')" :abandoned="plugin.abandoned" :replacement="plugin.replacement" />
 			<p v-if="blocked" class="notice notice--small notice--warn">
-				<AdminIcon name="triangle-alert" /><span>{{ blocked }} {{ plugin.enabled ? 'It\'s turned on, but nothing it adds runs until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+				<AdminIcon name="triangle-alert" /><span>{{ blocked }} {{ plugin.enabled ? t('plugin_view.blocked_on', 'It\'s turned on, but nothing it adds runs until that\'s fixed.') : t('plugin_view.blocked_off', 'It can\'t be turned on until that\'s fixed.') }}</span>
 			</p>
 			<p v-for="clash in plugin.clashes" :key="clash" class="notice notice--small notice--warn">
-				<AdminIcon name="triangle-alert" /><span>{{ clash }} Turn one of them off, or ask its author to rename it.</span>
+				<AdminIcon name="triangle-alert" /><span>{{ t('plugin_view.clash', '{clash} Turn one of them off, or ask its author to rename it.', { clash }) }}</span>
 			</p>
 
 			<div class="extension-detail__columns">
-				<ExtensionFacts :extension="plugin" :installed-by="plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="plugin.path" />
-				<ExtensionDependencies :extension="plugin" noun="plugin" replaces-hint="It doesn't run" />
+				<ExtensionFacts :extension="plugin" :installed-by="plugin.source === 'composer' ? 'Composer' : t('plugin_view.installed_by_folder', 'A folder in extensions/')" :folder="plugin.path" />
+				<ExtensionDependencies :extension="plugin" :noun="t('plugin_view.noun', 'plugin')" :replaces-hint="t('plugin_view.replaces_hint', 'It doesn\'t run')" />
 			</div>
 
 			<PreviousVersion kind="plugin" :extension="plugin" :live="plugin.running" @changed="load" />
 			<p v-if="plugin.source === 'composer'" class="notice">
-				<span>Composer manages this plugin, so it can't be deleted here. Remove it from the project with <code>composer remove {{ plugin.name }}</code>, and it leaves this list.</span>
+				<span><MessageText :text="t('plugin_view.composer_managed', 'Composer manages this plugin, so it can\'t be deleted here. Remove it from the project with {command}, and it leaves this list.')"><template #command><code>composer remove {{ plugin.name }}</code></template></MessageText></span>
 			</p>
 			<p v-else-if="plugin.folder && plugin.running" class="notice">
-				<span>It's on, so it can't be deleted. Turn it off first.</span>
+				<span>{{ t('plugin_view.on_cant_delete', "It's on, so it can't be deleted. Turn it off first.") }}</span>
 			</p>
 			<p v-else-if="plugin.folder && !plugin.deletable" class="notice">
-				<span><code>config/plugins.php</code> turns it on by name, so it can't be deleted until it's taken out of that file's <code>enabled</code> list.</span>
+				<span><MessageText :text="t('plugin_view.config_enabled', '{file} turns it on by name, so it can\'t be deleted until it\'s taken out of that file\'s {list} list.')"><template #file><code>config/plugins.php</code></template><template #list><code>enabled</code></template></MessageText></span>
 			</p>
 			<DangerZone v-else-if="canDelete && plugin.deletable">
-				Deleting removes the folder from the server.{{ needs.length === 0 ? '' : ` ${needs.length === 1 ? '1 extension requires' : `${needs.length} extensions require`} it.` }}
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Plugin</button></template>
+				{{ t('plugin_view.delete_warning', 'Deleting removes the folder from the server.{count, plural, =0 {} one { # extension requires it.} other { # extensions require it.} }', { count: needs.length }) }}
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('plugin_view.delete_plugin', 'Delete Plugin') }}</button></template>
 			</DangerZone>
 		</div>
 	</template>
 
 	<p v-else-if="answer" class="notice notice--warn" role="alert">
-		<span>No plugin named <span class="mono">{{ name }}</span> is installed.</span>
+		<span><MessageText :text="t('plugin_view.not_installed', 'No plugin named {name} is installed.')"><template #name><span class="mono">{{ name }}</span></template></MessageText></span>
 	</p>
 
 	<div v-else-if="!error" class="extension-detail" aria-hidden="true">

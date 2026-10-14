@@ -22,6 +22,7 @@ use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
 use Blush\Env\Env;
+use Blush\Translation\Messages;
 
 /**
  * Site-wide application settings, from `config/app.php`. When a site has no
@@ -83,7 +84,8 @@ final readonly class AppConfig implements Config
 		}
 
 		foreach (['dateFormat' => $dateFormat, 'timeFormat' => $timeFormat] as $key => $format) {
-			$problem = DateFormat::problem($format);
+			// A developer's config, so its problem is told in English.
+			$problem = DateFormat::problem($format, new Messages());
 
 			if ($problem !== null) {
 				throw new InvalidConfig(sprintf('AppConfig "%s" "%s": %s', $key, $format, $problem));

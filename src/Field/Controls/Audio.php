@@ -19,6 +19,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\MediaField;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One sound file from the library: a media field of audio.
@@ -38,18 +40,18 @@ final class Audio extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Audio';
+		return $messages->t('field.audio.label', 'Audio');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'One sound file from the library.';
+		return $messages->t('field.audio.description', 'One sound file from the library.');
 	}
 
 	/**

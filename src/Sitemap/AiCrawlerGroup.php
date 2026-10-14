@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Sitemap;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * The kinds of AI crawler a site may ask to stay away in `robots.txt`
  * (D-398), each with the user agents it covers. The three serve different
@@ -38,12 +41,12 @@ enum AiCrawlerGroup: string
 	/**
 	 * Returns the group's name, as the admin shows it.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Training => 'Training crawlers',
-			self::Search   => 'AI search crawlers',
-			self::Fetchers => 'Fetchers acting for a person'
+			self::Training => $messages->t('sitemap.ai_crawler_group.training.label', 'Training crawlers'),
+			self::Search   => $messages->t('sitemap.ai_crawler_group.search.label', 'AI search crawlers'),
+			self::Fetchers => $messages->t('sitemap.ai_crawler_group.fetchers.label', 'Fetchers acting for a person')
 		};
 	}
 
@@ -51,12 +54,12 @@ enum AiCrawlerGroup: string
 	 * Returns what the group's crawlers do, in a sentence, as the admin
 	 * shows it under the name.
 	 */
-	public function description(): string
+	public function description(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Training => 'Collect pages to train models.',
-			self::Search   => 'Index pages so an answer can cite and link them.',
-			self::Fetchers => 'Get one page because a reader asked their assistant about it, so turning these away turns away a reader\'s own tools.'
+			self::Training => $messages->t('sitemap.ai_crawler_group.training.description', 'Collect pages to train models.'),
+			self::Search   => $messages->t('sitemap.ai_crawler_group.search.description', 'Index pages so an answer can cite and link them.'),
+			self::Fetchers => $messages->t('sitemap.ai_crawler_group.fetchers.description', 'Get one page because a reader asked their assistant about it, so turning these away turns away a reader\'s own tools.')
 		};
 	}
 

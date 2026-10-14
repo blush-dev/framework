@@ -23,11 +23,13 @@ import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldTree from '../components/FieldTree.vue';
+import MessageText from '../components/MessageText.vue';
 import TypeBasicsFields from '../components/TypeBasicsFields.vue';
 import TypeBehaviorFields from '../components/TypeBehaviorFields.vue';
 import { request, type ContentTypeDetail } from '../api';
 import { useAction } from '../action';
 import { label as fieldLabel } from '../fields';
+import { t } from '../messages';
 import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
 import { profileType, canCreateTypes, loadTypes, refreshTypes, typeFiles, typeUrls, types } from '../types';
@@ -36,7 +38,7 @@ const router = useRouter();
 
 loadTypes().catch(() => undefined);
 
-const STEPS = ['Basics', 'Behavior', 'Fields'];
+const STEPS = [t('new_type_view.step_basics', 'Basics'), t('new_type_view.step_behavior', 'Behavior'), t('new_type_view.step_fields', 'Fields')];
 
 const step          = ref(0);
 // What it is: terms are a collection a classify relation files entries
@@ -98,14 +100,14 @@ const authorsLabel = computed(() => types.value.find((item) => item.name === pro
 
 const keyError = computed(() => {
 	if (key.value === '') {
-		return 'Give it a key.';
+		return t('new_type_view.key_required', 'Give it a key.');
 	}
 
 	if (!/^[a-z][a-z0-9_]*$/.test(key.value)) {
-		return 'A key starts with a lowercase letter and uses lowercase letters, digits, and underscores.';
+		return t('new_type_view.key_invalid', 'A key starts with a lowercase letter and uses lowercase letters, digits, and underscores.');
 	}
 
-	return types.value.some((type) => type.name === key.value) ? `“${key.value}” is already a type. Pick another key.` : '';
+	return types.value.some((type) => type.name === key.value) ? t('new_type_view.key_taken', '“{key}” is already a type. Pick another key.', { key: key.value }) : '';
 });
 
 const basicsDone = computed(() => form.value.plural.trim() !== '' && keyError.value === '');
@@ -131,7 +133,7 @@ async function create(): Promise<void> {
 		return;
 	}
 
-	await run('The type couldn\'t be created.', async () => {
+	await run(t('new_type_view.create_failed', 'The type couldn\'t be created.'), async () => {
 		const type = await request<ContentTypeDetail>('POST', '/types', {
 			name: key.value,
 			kind: kind.value,
@@ -149,29 +151,29 @@ async function create(): Promise<void> {
 
 		created.value = true;
 		refreshTypes();
-		toast(`Created ${type.labels.plural}`);
+		toast(t('new_type_view.created', 'Created {type}', { type: type.labels.plural }));
 		await router.push({ name: 'content-type', params: { name: type.name } });
 	});
 }
 
-guardLeave(() => dirty.value, () => confirmAction({ title: 'Leave Without Creating the Type?', body: 'What you\'ve filled in will be lost.', confirm: 'Leave', cancel: 'Stay', danger: true }));
+guardLeave(() => dirty.value, () => confirmAction({ title: t('new_type_view.leave_title', 'Leave Without Creating the Type?'), body: t('new_type_view.leave_body', 'What you\'ve filled in will be lost.'), confirm: t('new_type_view.leave', 'Leave'), cancel: t('new_type_view.stay', 'Stay'), danger: true }));
 
-const archiveLabel = computed(() => DATE_ARCHIVES.find((option) => option.value === form.value.dateArchives)?.label ?? 'None');
+const archiveLabel = computed(() => DATE_ARCHIVES.find((option) => option.value === form.value.dateArchives)?.label ?? t('new_type_view.none', 'None'));
 const fileLabels   = computed(() => files.value.map((name) => types.value.find((type) => type.name === name)?.labels.plural ?? name));
 </script>
 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">New Content Type</h1>
-			<p class="page-header__hint">A type defines what an entry of that kind is, where it lives, and what fields it carries.</p>
+			<h1 tabindex="-1">{{ t('new_type_view.title', 'New Content Type') }}</h1>
+			<p class="page-header__hint">{{ t('new_type_view.hint', 'A type defines what an entry of that kind is, where it lives, and what fields it carries.') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'types' }">Cancel</RouterLink>
+			<RouterLink class="button" :to="{ name: 'types' }">{{ t('common.cancel', 'Cancel') }}</RouterLink>
 		</div>
 	</header>
 
-	<p v-if="!canCreateTypes" class="notice notice--warn"><span><code>config/content.php</code> turns off types in <code>user/data/types</code> (<code>dataTypes</code>), so types can't be created here.</span></p>
+	<p v-if="!canCreateTypes" class="notice notice--warn"><span><MessageText :text="t('new_type_view.data_types_off', '{config} turns off types in {folder} ({option}), so types can\'t be created here.')"><template #config><code>config/content.php</code></template><template #folder><code>user/data/types</code></template><template #option><code>dataTypes</code></template></MessageText></span></p>
 
 	<div v-else class="wizard">
 		<form class="panel" aria-labelledby="wizard-heading" @submit.prevent="next">
@@ -188,77 +190,77 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 
 			<div v-if="step === 0" class="panel__body form-stack">
 				<fieldset class="fieldset kinds">
-					<legend>Kind</legend>
+					<legend>{{ t('new_type_view.kind', 'Kind') }}</legend>
 					<label class="kind" :class="{ 'kind--on': choice === 'collection' }">
 						<input v-model="choice" type="radio" value="collection" name="kind" class="visually-hidden">
-						<span class="kind__name">Collection</span>
-						<span class="kind__text">Entries people write: posts, recipes, anything with a body.</span>
+						<span class="kind__name">{{ t('new_type_view.collection', 'Collection') }}</span>
+						<span class="kind__text">{{ t('new_type_view.collection_text', 'Entries people write: posts, recipes, anything with a body.') }}</span>
 					</label>
 					<label class="kind" :class="{ 'kind--on': choice === 'terms' }">
 						<input v-model="choice" type="radio" value="terms" name="kind" class="visually-hidden">
-						<span class="kind__name">Terms</span>
-						<span class="kind__text">Entries that file other entries, like topics or tags.</span>
+						<span class="kind__name">{{ t('new_type_view.terms', 'Terms') }}</span>
+						<span class="kind__text">{{ t('new_type_view.terms_text', 'Entries that file other entries, like topics or tags.') }}</span>
 					</label>
 					<label class="kind" :class="{ 'kind--on': choice === 'tree' }">
 						<input v-model="choice" type="radio" value="tree" name="kind" class="visually-hidden">
-						<span class="kind__name">Tree</span>
-						<span class="kind__text">Pages that nest by folder, like docs or a handbook.</span>
+						<span class="kind__name">{{ t('new_type_view.tree', 'Tree') }}</span>
+						<span class="kind__text">{{ t('new_type_view.tree_text', 'Pages that nest by folder, like docs or a handbook.') }}</span>
 					</label>
 				</fieldset>
 				<TypeBasicsFields v-model="form" id-prefix="new-" :kind="kind" />
 				<div class="field">
-					<label for="new-key">Key</label>
+					<label for="new-key">{{ t('new_type_view.key', 'Key') }}</label>
 					<input id="new-key" v-model="key" class="mono" placeholder="recipe" autocomplete="off" spellcheck="false" :aria-invalid="form.plural && keyError ? 'true' : undefined" aria-describedby="new-key-help" @input="keyTouched = true">
 					<p v-if="form.plural && keyError" id="new-key-help" class="field__error">{{ keyError }}</p>
-					<p v-else id="new-key-help" class="field__help">Names the type in files and the API, and the folder its entries are kept in. Fixed once it's created.</p>
+					<p v-else id="new-key-help" class="field__help">{{ t('new_type_view.key_help', 'Names the type in files and the API, and the folder its entries are kept in. Fixed once it\'s created.') }}</p>
 				</div>
 			</div>
 
 			<div v-else-if="step === 1" class="panel__body form-stack">
 				<fieldset v-if="choice === 'terms'" class="fieldset">
-					<legend>Files</legend>
+					<legend>{{ t('new_type_view.files', 'Files') }}</legend>
 					<label v-for="type in fileable" :key="type.name" class="checkbox"><input type="checkbox" :checked="files.includes(type.name)" @change="filed(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
-					<p class="field__help">{{ files.length === 0 ? 'None chosen, so its terms file every type.' : 'Entries of these types can be filed under its terms. Change it later under Relationships.' }}</p>
+					<p class="field__help">{{ files.length === 0 ? t('new_type_view.files_none', 'None chosen, so its terms file every type.') : t('new_type_view.files_some', 'Entries of these types can be filed under its terms. Change it later under Relationships.') }}</p>
 				</fieldset>
 				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :default-prefix="key" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" />
 			</div>
 
 			<div v-else>
-				<p class="panel__body field__help">Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.</p>
+				<p class="panel__body field__help">{{ t('new_type_view.fields_help', 'Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.') }}</p>
 				<FieldTree v-model="form.fields" heading-id="new-fields-heading" id-prefix="new-field-" bare />
 			</div>
 
 			<p v-if="failure" class="panel__body field__error" role="alert">{{ failure }}</p>
 
 			<footer class="wizard__foot">
-				<button type="button" class="button button--small" :disabled="step === 0" @click="step -= 1"><AdminIcon name="chevron-left" />Back</button>
+				<button type="button" class="button button--small" :disabled="step === 0" @click="step -= 1"><AdminIcon name="chevron-left" />{{ t('common.back', 'Back') }}</button>
 				<button type="submit" class="button button--primary button--small" :disabled="(step === 0 && !basicsDone) || creating">
-					<template v-if="step < STEPS.length - 1">Next<AdminIcon name="chevron-right" /></template>
-					<template v-else><AdminIcon name="check" />{{ creating ? 'Creating…' : 'Create Type' }}</template>
+					<template v-if="step < STEPS.length - 1">{{ t('new_type_view.next', 'Next') }}<AdminIcon name="chevron-right" /></template>
+					<template v-else><AdminIcon name="check" />{{ creating ? t('new_type_view.creating', 'Creating…') : t('new_type_view.create', 'Create Type') }}</template>
 				</button>
 			</footer>
 		</form>
 
 		<section class="panel" aria-labelledby="summary-heading">
 			<header class="panel__header">
-				<h2 id="summary-heading">What Gets Created</h2>
-				<p class="panel__hint">Updates as you go</p>
+				<h2 id="summary-heading">{{ t('new_type_view.summary', 'What Gets Created') }}</h2>
+				<p class="panel__hint">{{ t('new_type_view.summary_hint', 'Updates as you go') }}</p>
 			</header>
 			<dl class="panel__body facts">
-				<div><dt>Kind</dt><dd>{{ { collection: 'Collection', terms: 'Terms', tree: 'Tree' }[choice] }}</dd></div>
-				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
-				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.json</dd></div>
-				<div v-if="choice === 'terms'"><dt>Relationship</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
-				<div v-if="typeFiles"><dt>Entries in</dt><dd class="mono">user/content/_{{ key || '…' }}</dd></div>
-				<div><dt>Addresses</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
-				<div v-if="choice === 'collection'"><dt>Dated</dt><dd>{{ form.dateArchives === 'none' ? 'No' : `Yes, ${archiveLabel.toLowerCase()}` }}</dd></div>
-				<div v-if="kind === 'tree'"><dt>Nesting</dt><dd>By folder</dd></div>
-				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Entries nest by parent' : 'Flat' }}</dd></div>
-				<div v-if="choice === 'terms'"><dt>Files</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : 'Every type' }}</dd></div>
-				<div><dt>Index page</dt><dd>{{ index ? 'Created and pinned' : 'None' }}</dd></div>
-				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ form.authors ? 'Credited, through the authors relationship' : 'Not credited' }}</dd></div>
-				<div v-if="kind !== 'tree'"><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>
-				<div><dt>Fields</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : 'None yet' }}</dd></div>
+				<div><dt>{{ t('new_type_view.kind', 'Kind') }}</dt><dd>{{ { collection: t('new_type_view.collection', 'Collection'), terms: t('new_type_view.terms', 'Terms'), tree: t('new_type_view.tree', 'Tree') }[choice] }}</dd></div>
+				<div><dt>{{ t('new_type_view.name', 'Name') }}</dt><dd>{{ form.plural || t('new_type_view.not_set', 'Not set') }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
+				<div><dt>{{ t('new_type_view.file', 'File') }}</dt><dd class="mono">user/data/types/{{ key || '…' }}.json</dd></div>
+				<div v-if="choice === 'terms'"><dt>{{ t('new_type_view.relationship', 'Relationship') }}</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
+				<div v-if="typeFiles"><dt>{{ t('new_type_view.entries_in', 'Entries in') }}</dt><dd class="mono">user/content/_{{ key || '…' }}</dd></div>
+				<div><dt>{{ t('new_type_view.addresses', 'Addresses') }}</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
+				<div v-if="choice === 'collection'"><dt>{{ t('new_type_view.dated', 'Dated') }}</dt><dd>{{ form.dateArchives === 'none' ? t('common.no', 'No') : t('new_type_view.dated_yes', 'Yes, {archives}', { archives: archiveLabel.toLowerCase() }) }}</dd></div>
+				<div v-if="kind === 'tree'"><dt>{{ t('new_type_view.nesting', 'Nesting') }}</dt><dd>{{ t('new_type_view.by_folder', 'By folder') }}</dd></div>
+				<div v-else><dt>{{ t('new_type_view.nesting', 'Nesting') }}</dt><dd>{{ form.hierarchical ? t('new_type_view.nest_parent', 'Entries nest by parent') : t('new_type_view.flat', 'Flat') }}</dd></div>
+				<div v-if="choice === 'terms'"><dt>{{ t('new_type_view.files', 'Files') }}</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : t('new_type_view.every_type', 'Every type') }}</dd></div>
+				<div><dt>{{ t('new_type_view.index_page', 'Index page') }}</dt><dd>{{ index ? t('new_type_view.index_created', 'Created and pinned') : t('new_type_view.none', 'None') }}</dd></div>
+				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ form.authors ? t('new_type_view.credited', 'Credited, through the authors relationship') : t('new_type_view.not_credited', 'Not credited') }}</dd></div>
+				<div v-if="kind !== 'tree'"><dt>{{ t('new_type_view.feed', 'Feed') }}</dt><dd>{{ form.feed ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+				<div><dt>{{ t('new_type_view.fields', 'Fields') }}</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : t('new_type_view.none_yet', 'None yet') }}</dd></div>
 			</dl>
 		</section>
 	</div>

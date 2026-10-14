@@ -15,6 +15,7 @@ namespace Blush\Content\Relation;
 
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Status;
+use Blush\Translation\Messages;
 
 /**
  * Checks one entry's relations against their limits before it's
@@ -33,7 +34,8 @@ final readonly class RelationLimits
 		private Relations $relations,
 		private EntryLinks $links,
 		private EntryTargets $targets,
-		private EntryRecords $records
+		private EntryRecords $records,
+		private Messages $messages
 	) {}
 
 	/**
@@ -60,11 +62,11 @@ final readonly class RelationLimits
 			$noun  = $relation->label === '' ? $relation->field : $relation->label;
 
 			if ($count < $relation->min) {
-				$problems[] = new RelationProblem(ProblemKind::TooFew, $key, $source, '', sprintf('%s needs at least %d to publish; it has %d.', ucfirst($noun), $relation->min, $count));
+				$problems[] = new RelationProblem(ProblemKind::TooFew, $key, $source, '', $this->messages->t('content.relation_limits.too_few', '{relation} needs at least {min} to publish; it has {count}.', relation: ucfirst($noun), min: $relation->min, count: $count));
 			}
 
 			if ($relation->max !== null && $count > $relation->max) {
-				$problems[] = new RelationProblem(ProblemKind::TooMany, $key, $source, '', sprintf('%s takes at most %d; it has %d.', ucfirst($noun), $relation->max, $count));
+				$problems[] = new RelationProblem(ProblemKind::TooMany, $key, $source, '', $this->messages->t('content.relation_limits.too_many', '{relation} takes at most {max}; it has {count}.', relation: ucfirst($noun), max: $relation->max, count: $count));
 			}
 
 			$max = $relation->inverse === false ? null : $relation->inverse->max;
@@ -73,7 +75,7 @@ final readonly class RelationLimits
 				continue;
 			}
 
-			foreach (new LinkResolver($this->targets)->resolve($relation, $value, $refs, $source, $type, $language)->links as $link) {
+			foreach (new LinkResolver($this->targets, $this->messages)->resolve($relation, $value, $refs, $source, $type, $language)->links as $link) {
 				if (($this->taken($relation, [$link->target], $source)[$link->target] ?? 0) < $max) {
 					continue;
 				}
@@ -82,11 +84,12 @@ final readonly class RelationLimits
 				$slug   = $target === null ? '' : EntryRecords::text($target, 'slug');
 				$title  = $target === null ? '' : EntryRecords::text($target, 'title');
 
-				$problems[] = new RelationProblem(ProblemKind::InverseLimit, $key, $source, $slug === '' ? $link->target : $slug, sprintf(
-					'"%s" already has the most entries naming it in %s (%d).',
-					$title === '' ? $link->target : $title,
-					$noun,
-					$max
+				$problems[] = new RelationProblem(ProblemKind::InverseLimit, $key, $source, $slug === '' ? $link->target : $slug, $this->messages->t(
+					'content.relation_limits.inverse_full',
+					'"{title}" already has the most entries naming it in {relation} ({max}).',
+					title: $title === '' ? $link->target : $title,
+					relation: $noun,
+					max: $max
 				));
 			}
 		}

@@ -86,6 +86,7 @@ use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeDiscovery;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
+use Blush\Translation\Messages;
 
 /**
  * Builds a site's application from its project root. This is the one place
@@ -342,13 +343,14 @@ final readonly class Bootstrap
 	 * Checks that settings fit the site's config (D-825): they're laid
 	 * over the config files as a build lays them, every group at once, so
 	 * a value the config refuses is refused when it's saved rather than
-	 * on every request after.
+	 * on every request after. Its problem is told with `$messages`
+	 * (English when none is given).
 	 *
 	 * @throws InvalidSetting When a config object refuses a value.
 	 */
-	public function checkSettings(Settings $settings): void
+	public function checkSettings(Settings $settings, Messages $messages = new Messages()): void
 	{
-		$settings->apply($this->config($this->env(), settings: false));
+		$settings->apply($this->config($this->env(), settings: false), $messages);
 	}
 
 	/**
@@ -436,7 +438,7 @@ final readonly class Bootstrap
 				throw new StorageException(SqliteStorage::UNAVAILABLE);
 			}
 
-			return new SettingGroups(SqliteRecordStore::forSite($storage, $this->paths->root), new SystemClock());
+			return new SettingGroups(SqliteRecordStore::forSite($storage, $this->paths->root), new SystemClock(), new Messages());
 		}
 
 		if (StorageDriver::tryFrom($driver) !== StorageDriver::Filesystem) {
@@ -450,7 +452,8 @@ final readonly class Bootstrap
 
 		return new SettingGroups(
 			new FileRecordStore($this->paths, $layouts, new FileTransactions($this->paths, $filesystem), $filesystem, static fn (): never => throw new StorageException('Settings keep no content.')),
-			new SystemClock()
+			new SystemClock(),
+			new Messages()
 		);
 	}
 

@@ -35,6 +35,8 @@ use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingsStore;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers the Icon Packs screens (D-378, D-385), for accounts with
@@ -84,13 +86,14 @@ final readonly class IconPacksController
 		private SettingsStore $settings,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$packs = array_values(array_map(fn (IconPack $pack): array => $this->pack($pack, self::SAMPLE), $this->packs->all()));
@@ -106,7 +109,7 @@ final readonly class IconPacksController
 
 		return Response::json([
 			'packs'   => $packs,
-			'core'    => self::coreSet(self::SAMPLE),
+			'core'    => $this->coreSet(self::SAMPLE),
 			'invalid' => $invalid,
 			'saved'   => $this->settings->read()->has(Setting::IconPacks),
 			'config'  => is_file("{$this->paths->config}/icons.php"),
@@ -117,13 +120,13 @@ final readonly class IconPacksController
 	public function show(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$pack = $this->packs->find("{$vendor}/{$name}");
 
 		if ($pack === null) {
-			return Response::json(['error' => sprintf('No icon pack named %s/%s is installed.', $vendor, $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.icon_packs_controller.not_installed', 'No icon pack named {name} is installed.', name: "{$vendor}/{$name}")], Status::NotFound, ['Cache-Control' => 'no-store']);
 		}
 
 		return Response::json(['pack' => $this->pack($pack)], headers: ['Cache-Control' => 'no-store']);
@@ -132,8 +135,8 @@ final readonly class IconPacksController
 	public function core(ServerRequestInterface $request): ResponseInterface
 	{
 		return $this->allowed($request)
-			? Response::json(['core' => self::coreSet()], headers: ['Cache-Control' => 'no-store'])
-			: self::forbidden();
+			? Response::json(['core' => $this->coreSet()], headers: ['Cache-Control' => 'no-store'])
+			: $this->forbidden();
 	}
 
 	/**
@@ -178,14 +181,14 @@ final readonly class IconPacksController
 	/**
 	 * Describes the core set, with its first `$limit` icons, or all.
 	 *
-	 * @return array{label: string, version: string, count: int, icons: list<array{name: string, svg: string}>}
+	 * @return array{label: Text, version: string, count: int, icons: list<array{name: string, svg: string}>}
 	 */
-	private static function coreSet(?int $limit = null): array
+	private function coreSet(?int $limit = null): array
 	{
 		$files = self::files(Framework::path('resources/icons/' . IconName::CORE));
 
 		return [
-			'label'   => 'Core',
+			'label'   => $this->messages->t('admin.icon_packs_controller.core', 'Core', context: 'The name of the icons that come with the site\'s software, beside icon packs.'),
 			'version' => Framework::VERSION,
 			'count'   => count($files),
 			'icons'   => self::icons(array_slice($files, 0, $limit), '')
@@ -228,8 +231,8 @@ final readonly class IconPacksController
 		return $account instanceof Account && $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::IconPack));
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return Response::json(['error' => 'You aren\'t allowed to see the site\'s icon packs.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		return Response::json(['error' => $this->messages->t('admin.icon_packs_controller.forbidden', 'You aren\'t allowed to see the site\'s icon packs.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}
 }

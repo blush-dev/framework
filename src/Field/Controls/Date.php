@@ -18,6 +18,8 @@ use Blush\Field\Control;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\DateField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A day, with a time when its field has one (`time`).
@@ -37,18 +39,18 @@ final class Date extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Date and Time';
+		return $messages->t('field.date.label', 'Date and Time');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'A day, with a time if you want one.';
+		return $messages->t('field.date.description', 'A day, with a time if you want one.');
 	}
 
 	/**

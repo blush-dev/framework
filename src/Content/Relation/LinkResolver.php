@@ -15,6 +15,8 @@ namespace Blush\Content\Relation;
 
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Turns an entry's two forms of a relation (D-589) into links: the
@@ -38,8 +40,13 @@ use Blush\Support\Uuid;
  */
 final readonly class LinkResolver
 {
-	public function __construct(private TargetLookup $targets)
-	{}
+	/**
+	 * @param Messages $messages Writes what's wrong with a value.
+	 */
+	public function __construct(
+		private TargetLookup $targets,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Resolves one entry's values in one relation.
@@ -97,16 +104,17 @@ final readonly class LinkResolver
 	 */
 	private function target(Relation $relation, string $item, Refs $refs, string $key, string $source, string $language): array
 	{
-		$problem = static fn (ProblemKind $kind, string $message): array => [null, new RelationProblem($kind, $key, $source, $item, $message)];
+		$problem = static fn (ProblemKind $kind, Text $message): array => [null, new RelationProblem($kind, $key, $source, $item, $message)];
+		$self    = $this->messages->t('content.link_resolver.self_link', 'An entry can\'t link to itself.');
 
 		if (Uuid::isValid($item)) {
 			$id   = $this->targets->original(strtolower($item));
 			$type = $id === null ? null : $this->targets->typeOf($id);
 
 			return match (true) {
-				$type === null              => $problem(ProblemKind::Missing, sprintf('"%s" names no entry\'s id.', $item)),
-				! $relation->isTo($type)    => $problem(ProblemKind::WrongType, sprintf('"%s" names a %s, which "%s" doesn\'t point to.', $item, $type, $relation->name)),
-				$id === $source             => $problem(ProblemKind::SelfLink, 'An entry can\'t link to itself.'),
+				$type === null              => $problem(ProblemKind::Missing, $this->messages->t('content.link_resolver.no_id', '"{value}" names no entry\'s id.', value: $item)),
+				! $relation->isTo($type)    => $problem(ProblemKind::WrongType, $this->messages->t('content.link_resolver.wrong_type', '"{value}" names a {type}, which "{relation}" doesn\'t point to.', value: $item, type: $type, relation: $relation->name)),
+				$id === $source             => $problem(ProblemKind::SelfLink, $self),
 				default                     => [$id, null]
 			};
 		}
@@ -115,7 +123,7 @@ final readonly class LinkResolver
 		$filed = $filed === null ? null : $this->targets->original($filed);
 
 		if ($filed !== null && $relation->isTo((string) $this->targets->typeOf($filed))) {
-			return $filed === $source ? $problem(ProblemKind::SelfLink, 'An entry can\'t link to itself.') : [$filed, null];
+			return $filed === $source ? $problem(ProblemKind::SelfLink, $self) : [$filed, null];
 		}
 
 		$found = [];
@@ -129,9 +137,9 @@ final readonly class LinkResolver
 		}
 
 		return match (true) {
-			$found === []               => $problem(ProblemKind::Missing, sprintf('"%s" names no %s.', $item, implode(' or ', $relation->to))),
-			count($found) > 1           => $problem(ProblemKind::Ambiguous, sprintf('"%s" names a %s; write the id to say which.', $item, implode(' and a ', array_keys($found)))),
-			array_first($found) === $source => $problem(ProblemKind::SelfLink, 'An entry can\'t link to itself.'),
+			$found === []               => $problem(ProblemKind::Missing, $this->messages->t('content.link_resolver.missing', '"{value}" names no {types}.', value: $item, types: implode(' or ', $relation->to))),
+			count($found) > 1           => $problem(ProblemKind::Ambiguous, $this->messages->t('content.link_resolver.ambiguous', '"{value}" names a {types}; write the id to say which.', value: $item, types: implode(' and a ', array_keys($found)))),
+			array_first($found) === $source => $problem(ProblemKind::SelfLink, $self),
 			default                     => [array_first($found), null]
 		};
 	}

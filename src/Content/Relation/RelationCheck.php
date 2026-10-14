@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
+use Blush\Translation\Text;
+
 /**
  * What replacing a relation's definition does to the entries using it
  * (`RelationChanges::check()`, D-600), counted before it happens, with
@@ -36,8 +38,8 @@ final readonly class RelationCheck
 	public const int LISTED = 8;
 
 	/**
-	 * @param ?string         $refusal     Why it can't be made, or `null`.
-	 * @param list<string>    $warnings    What it puts out of limits.
+	 * @param string|Text|null $refusal    Why it can't be made, or `null`.
+	 * @param list<string|Text> $warnings  What it puts out of limits.
 	 * @param int             $uses        How many entries have a value in it.
 	 * @param int             $moved       How many entries a new key would move.
 	 * @param list<string>    $unfiled     The types no longer in its `from` whose entries have values.
@@ -51,7 +53,7 @@ final readonly class RelationCheck
 	 * @param int             $inverseOver How many targets more entries name than a new inverse `max`.
 	 */
 	public function __construct(
-		public ?string $refusal = null,
+		public string|Text|null $refusal = null,
 		public array $warnings = [],
 		public int $uses = 0,
 		public int $moved = 0,
@@ -69,7 +71,7 @@ final readonly class RelationCheck
 	/**
 	 * Returns it as the admin's form reads it.
 	 *
-	 * @return array{refusal: ?string, warnings: list<string>, uses: int, moved: int, unfiled: list<string>, stripped: int, refused: ?string, inWay: list<CheckItem>, inWayCount: int, over: list<CheckItem>, overCount: int, fewer: int, inverseOver: int}
+	 * @return array{refusal: string|Text|null, warnings: list<string|Text>, uses: int, moved: int, unfiled: list<string>, stripped: int, refused: ?string, inWay: list<CheckItem>, inWayCount: int, over: list<CheckItem>, overCount: int, fewer: int, inverseOver: int}
 	 */
 	public function toArray(): array
 	{

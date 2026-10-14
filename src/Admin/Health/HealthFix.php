@@ -48,22 +48,22 @@ enum HealthFix: string
 	}
 
 	/**
-	 * Returns what the fix changes, for its messages: one and many.
-	 *
-	 * @return array{string, string}
+	 * Returns what the fix changes, for its messages' `select`:
+	 * `media_file`, `image`, `entry`, `term` (a term or profile),
+	 * `parent` (a parent page), or `file`.
 	 */
-	public function noun(): array
+	public function noun(): string
 	{
 		return match ($this) {
-			self::MediaIds   => ['media file', 'media files'],
-			self::MediaSizes => ['image', 'images'],
+			self::MediaIds   => 'media_file',
+			self::MediaSizes => 'image',
 			self::FileNames,
 			self::Folders,
 			self::MediaFields,
-			self::Undeclared => ['entry', 'entries'],
-			self::Terms      => ['term or profile', 'terms and profiles'],
-			self::Parents    => ['parent page', 'parent pages'],
-			default          => ['file', 'files']
+			self::Undeclared => 'entry',
+			self::Terms      => 'term',
+			self::Parents    => 'parent',
+			default          => 'file'
 		};
 	}
 }

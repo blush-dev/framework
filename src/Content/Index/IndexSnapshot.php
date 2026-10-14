@@ -18,6 +18,8 @@ use Blush\Content\Relation\LinkReport;
 use Blush\Content\Relation\RelationGraph;
 use Blush\Content\Status;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The whole content index at one moment: every record, plus lookups
@@ -211,16 +213,17 @@ final readonly class IndexSnapshot
 	/**
 	 * Returns what a record's `translation_of` (D-511) links it to: the
 	 * path of the entry it names and `null`, or `null` and why it links
-	 * to nothing, finishing a sentence. Both are `null` for a record
-	 * without one. It names an original: a file of the same type
-	 * without a language suffix, in another language.
+	 * to nothing, finishing a sentence (written with `$messages`; English
+	 * by default, for callers that only want the path). Both are `null`
+	 * for a record without one. It names an original: a file of the same
+	 * type without a language suffix, in another language.
 	 *
 	 * @param  RecordArray                $record
 	 * @param  array<string, string>      $ids     Paths by id.
 	 * @param  array<string, RecordArray> $records Records by path.
-	 * @return array{?string, ?string}
+	 * @return array{?string, ?Text}
 	 */
-	public static function translationOf(array $record, array $ids, array $records): array
+	public static function translationOf(array $record, array $ids, array $records, Messages $messages = new Messages()): array
 	{
 		$id = $record['values'][EntryFields::TRANSLATION_OF] ?? null;
 
@@ -232,11 +235,11 @@ final readonly class IndexSnapshot
 		$target = $path === null ? null : $records[$path] ?? null;
 
 		return match (true) {
-			$path === null || $target === null           => [null, 'names no entry\'s id.'],
-			$path === $record['path']                    => [null, 'names the file\'s own id.'],
-			$target['type'] !== $record['type']          => [null, sprintf('names %s, which is another type\'s.', $path)],
-			$target['original'] !== null                 => [null, sprintf('names %s, a translation; name its original instead.', $path)],
-			$target['language'] === $record['language'] => [null, sprintf('names %s, which is in the same language.', $path)],
+			$path === null || $target === null           => [null, $messages->t('content.index_snapshot.no_id', 'names no entry\'s id.')],
+			$path === $record['path']                    => [null, $messages->t('content.index_snapshot.own_id', 'names the file\'s own id.')],
+			$target['type'] !== $record['type']          => [null, $messages->t('content.index_snapshot.other_type', 'names {path}, which is another type\'s.', path: $path)],
+			$target['original'] !== null                 => [null, $messages->t('content.index_snapshot.translation', 'names {path}, a translation; name its original instead.', path: $path)],
+			$target['language'] === $record['language'] => [null, $messages->t('content.index_snapshot.same_language', 'names {path}, which is in the same language.', path: $path)],
 			default                                      => [$path, null]
 		};
 	}

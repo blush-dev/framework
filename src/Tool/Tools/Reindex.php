@@ -26,6 +26,8 @@ use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `core/reindex`: brings the content and media indexes up to date with
@@ -39,19 +41,20 @@ final class Reindex extends Tool
 		private readonly Indexer $indexer,
 		private readonly MediaIndexer $media,
 		private readonly ContentVersion $version,
-		private readonly JobQueue $jobs
+		private readonly JobQueue $jobs,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Reindex Content';
+		return $this->messages->t('tool.reindex.title', 'Reindex Content');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Update the content and media indexes from the files, without pulling or clearing other caches.';
+		return $this->messages->t('tool.reindex.description', 'Update the content and media indexes from the files, without pulling or clearing other caches.');
 	}
 
 	#[Override]
@@ -92,19 +95,21 @@ final class Reindex extends Tool
 			$this->version->bump();
 		}
 
-		$summary = sprintf(
-			'Indexed %d %s: %d added, %d changed, %d removed.',
-			$report->total,
-			$report->total === 1 ? 'entry' : 'entries',
-			count($report->added),
-			count($report->changed),
-			count($report->removed)
-		) . sprintf(' Indexed %d media %s.', $media->total, $media->total === 1 ? 'file' : 'files')
-			. ($media->pending > 0 ? sprintf(' %d more are being read in the background.', $media->pending) : '');
+		$counts = [
+			'entries' => $report->total,
+			'added'   => count($report->added),
+			'changed' => count($report->changed),
+			'removed' => count($report->removed),
+			'files'   => $media->total
+		];
+
+		$summary = $media->pending > 0
+			? $this->messages->t('tool.reindex.indexed_more', 'Indexed {entries, plural, one {# entry} other {# entries}}: {added} added, {changed} changed, {removed} removed. Indexed {files, plural, one {# media file} other {# media files}}. {pending} more are being read in the background.', ...$counts, pending: $media->pending)
+			: $this->messages->t('tool.reindex.indexed', 'Indexed {entries, plural, one {# entry} other {# entries}}: {added} added, {changed} changed, {removed} removed. Indexed {files, plural, one {# media file} other {# media files}}.', ...$counts);
 
 		if ($report->failures !== []) {
 			throw new ToolError(
-				sprintf('%s %d file(s) couldn\'t be indexed.', $summary, count($report->failures)),
+				(string) $this->messages->t('tool.reindex.unindexed', '{summary} {count, plural, one {# file} other {# files}} couldn\'t be indexed.', summary: $summary, count: count($report->failures)),
 				array_map(static fn (string $path, string $message): string => "{$path}: {$message}", array_keys($report->failures), $report->failures)
 			);
 		}

@@ -17,7 +17,8 @@
 
 import { computed, ref } from 'vue';
 import { CARD_CAP, marked, type ReferenceItem } from '../references';
-import { capitalized, formatDay, plural, withArticle } from '../format';
+import { formatDay } from '../format';
+import { t } from '../messages';
 import { usePicker, type PickerProps } from '../picker';
 import { types } from '../types';
 import AdminIcon from './AdminIcon.vue';
@@ -34,6 +35,12 @@ const picker = usePicker(props, model, { cap: CARD_CAP, suggest: 'edited', sugge
 const { type, names, source, values, has, itemOf, isMissing, full, max, ordered, reorder, query, results, before, active, more, searching, missing, inheritedShown, error } = picker;
 
 // The type's icon, for a still without an image.
+// The help under a full list: how many it takes.
+const limitHelp = computed(() => t('reference_cards.limit', '{max, plural, one {Takes one {item} at most.} other {Takes # {items} at most.}} Remove one to add another.', { max: max.value ?? 0, item: names.value.item, items: names.value.items }));
+
+// The help when some aren't live.
+const hiddenHelp = computed(() => t('reference_cards.hidden', '{count, plural, one {One isn\'t live, so the site doesn\'t show it} other {# {items} aren\'t live, so the site doesn\'t show them}} on this {source}\'s page.', { count: hidden.value, items: names.value.items, source: source.value.item }));
+
 const targetType = computed(() => types.value.find((item) => item.name === type.value));
 
 const rows    = computed(() => values.value.map((value) => ({ value, item: itemOf(value) })));
@@ -60,7 +67,7 @@ function meta(item: ReferenceItem): string {
 				v-bind="ordered && rows.length > 1 ? reorder.item(index) : {}"
 				:tabindex="ordered && rows.length > 1 ? 0 : undefined"
 			>
-				<span v-if="ordered && rows.length > 1" class="reference__grip" title="Drag, or move with ⌥↑ and ⌥↓"><AdminIcon name="grip-vertical" /></span>
+				<span v-if="ordered && rows.length > 1" class="reference__grip" :title="t('reference_cards.drag', 'Drag, or move with ⌥↑ and ⌥↓')"><AdminIcon name="grip-vertical" /></span>
 				<span class="reference__still reference__still--row" :class="{ 'is-missing': isMissing(value) }" aria-hidden="true">
 					<img v-if="item.image && !isMissing(value)" :src="item.image" alt="" loading="lazy">
 					<template v-else-if="isMissing(value)">?</template>
@@ -68,18 +75,18 @@ function meta(item: ReferenceItem): string {
 				</span>
 				<span class="reference__who">
 					<span class="reference__name">
-						<span :class="{ mono: isMissing(value) }">{{ isMissing(value) ? value : item.title || 'Untitled' }}</span>
+						<span :class="{ mono: isMissing(value) }">{{ isMissing(value) ? value : item.title || t('reference_cards.untitled', 'Untitled') }}</span>
 						<StatusPill v-if="item.status === 'draft' || item.status === 'trash'" :status="item.status" />
 					</span>
-					<span class="reference__meta">{{ isMissing(value) ? `No ${names.item} has this slug` : meta(item) }}</span>
+					<span class="reference__meta">{{ isMissing(value) ? t('reference_cards.missing', 'No {item} has this slug', { item: names.item }) : meta(item) }}</span>
 				</span>
 				<button type="button" class="reference__remove" @click="picker.remove(item.slug)">
-					<AdminIcon name="x" /><span class="visually-hidden">Remove {{ item.title }}</span>
+					<AdminIcon name="x" /><span class="visually-hidden">{{ t('reference_cards.remove', 'Remove {title}', { title: item.title }) }}</span>
 				</button>
 			</li>
 		</ul>
 
-		<p v-if="full && max !== null" class="field__help">{{ capitalized(withArticle(source.item)) }} {{ max === 1 ? `takes one ${names.item}` : `takes ${max} ${names.items} at most` }}. Remove one to add another.</p>
+		<p v-if="full && max !== null" class="field__help">{{ limitHelp }}</p>
 		<div v-else class="reference__search" :class="{ 'is-invalid': invalid }">
 			<AdminIcon name="search" />
 			<input
@@ -87,7 +94,7 @@ function meta(item: ReferenceItem): string {
 				v-model="query"
 				type="text"
 				autocomplete="off"
-				:placeholder="`Search ${names.items}…`"
+				:placeholder="t('reference_cards.search', 'Search {items}…', { items: names.items })"
 				role="combobox"
 				:aria-expanded="focused && offered.length > 0"
 				:aria-controls="`${id}-results`"
@@ -110,16 +117,16 @@ function meta(item: ReferenceItem): string {
 			:items="offered"
 			:active="active"
 			:query="query"
-			:heading="typing ? undefined : 'Recently Edited'"
+			:heading="typing ? undefined : t('reference_cards.recently_edited', 'Recently Edited')"
 			:more="more"
-			:empty="typing ? `No ${names.item} matches “${query.trim()}”. Drafts are included; the trash is not.` : undefined"
+			:empty="typing ? t('reference_cards.no_match', 'No {item} matches “{query}”. Drafts are included; the trash is not.', { item: names.item, query: query.trim() }) : undefined"
 			cards
 			@choose="picker.choose"
 		>
 			<template #item="{ item }">
 				<span class="reference__still" :class="{ 'is-faded': item.status === 'draft' }" aria-hidden="true"><img v-if="item.image" :src="item.image" alt="" loading="lazy"><TypeIcon v-else-if="targetType" :type="targetType" /></span>
 				<span class="reference__who">
-					<span class="reference__card-title">{{ marked(item.title || 'Untitled', query)[0] }}<b>{{ marked(item.title || 'Untitled', query)[1] }}</b>{{ marked(item.title || 'Untitled', query)[2] }}</span>
+					<span class="reference__card-title">{{ marked(item.title || t('reference_cards.untitled', 'Untitled'), query)[0] }}<b>{{ marked(item.title || t('reference_cards.untitled', 'Untitled'), query)[1] }}</b>{{ marked(item.title || t('reference_cards.untitled', 'Untitled'), query)[2] }}</span>
 					<span class="reference__meta">{{ meta(item) }}<StatusPill v-if="item.status === 'draft' || item.status === 'scheduled'" :status="item.status" /></span>
 				</span>
 				<span class="reference__tick" :class="{ 'is-on': has(item.slug) }" aria-hidden="true"><AdminIcon name="check" /></span>
@@ -137,7 +144,7 @@ function meta(item: ReferenceItem): string {
 				</li>
 			</ul>
 		</ReferenceInherited>
-		<p v-if="hidden" class="field__help">{{ hidden === 1 ? 'One isn\'t live' : `${plural(hidden, names.item, names.items)} aren't live` }}, so the site doesn't show {{ hidden === 1 ? 'it' : 'them' }} on this {{ source.item }}'s page.</p>
+		<p v-if="hidden" class="field__help">{{ hiddenHelp }}</p>
 		<ReferenceMissing :missing="missing" :noun="names.item" @replace="picker.replace" />
 		<p v-if="error" class="field__error">{{ error }}</p>
 	</div>

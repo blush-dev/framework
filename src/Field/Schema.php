@@ -141,6 +141,7 @@ final readonly class Schema
 		$extra      = [];
 		$violations = [];
 		$seen       = [];
+		$messages   = $context->messages;
 
 		foreach ($data as $key => $value) {
 			$key  = (string) $key;
@@ -149,8 +150,8 @@ final readonly class Schema
 			if ($name === null) {
 				$extra[$key]  = $value;
 				$violations[] = $this->closed
-					? new Violation($key, 'is not a field of this type.', kind: ViolationKind::Unknown)
-					: new Violation($key, 'is not declared by the schema.', Severity::Notice, ViolationKind::Unknown);
+					? new Violation($key, $messages->t('field.schema.unknown', 'is not a field of this type.'), kind: ViolationKind::Unknown)
+					: new Violation($key, $messages->t('field.schema.undeclared', 'is not declared by the schema.'), Severity::Notice, ViolationKind::Unknown);
 
 				continue;
 			}
@@ -161,12 +162,12 @@ final readonly class Schema
 
 			if ($key !== $name) {
 				if (isset($seen[$name]) || ! self::isEmpty($data[$name] ?? null)) {
-					$violations[] = new Violation($key, sprintf('is ignored because "%s" is set.', $name), Severity::Notice, ViolationKind::Alias);
+					$violations[] = new Violation($key, $messages->t('field.schema.alias_ignored', 'is ignored because "{name}" is set.', name: $name), Severity::Notice, ViolationKind::Alias);
 
 					continue;
 				}
 
-				$violations[] = new Violation($key, sprintf('is read as "%s".', $name), Severity::Notice, ViolationKind::Alias);
+				$violations[] = new Violation($key, $messages->t('field.schema.alias', 'is read as "{name}".', name: $name), Severity::Notice, ViolationKind::Alias);
 			}
 
 			$seen[$name] = true;
@@ -174,7 +175,7 @@ final readonly class Schema
 			try {
 				$normalized = $this->fields[$name]->normalize($value, $context);
 			} catch (InvalidField $e) {
-				$violations[] = new Violation($key, $e->getMessage(), kind: ViolationKind::Value);
+				$violations[] = new Violation($key, $e->text, kind: ViolationKind::Value);
 
 				continue;
 			}
@@ -193,10 +194,10 @@ final readonly class Schema
 				try {
 					$values[$name] = $field->normalize($field->default, $context);
 				} catch (InvalidField $e) {
-					$violations[] = new Violation($name, sprintf('has an invalid default: %s', $e->getMessage()), kind: ViolationKind::Value);
+					$violations[] = new Violation($name, $messages->t('field.schema.invalid_default', 'has an invalid default: {problem}', problem: $e->text), kind: ViolationKind::Value);
 				}
 			} elseif ($field->required) {
-				$violations[] = new Violation($name, 'is required.', kind: ViolationKind::Required);
+				$violations[] = new Violation($name, $messages->t('field.schema.required', 'is required.'), kind: ViolationKind::Required);
 			}
 		}
 

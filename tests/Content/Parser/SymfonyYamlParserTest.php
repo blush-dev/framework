@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Data\InvalidData;
 use Blush\Content\Parser\SymfonyYamlParser;
+use Blush\Translation\Messages;
 
 #[CoversClass(SymfonyYamlParser::class)]
 #[CoversClass(InvalidData::class)]
@@ -24,14 +25,14 @@ final class SymfonyYamlParserTest extends TestCase
 {
 	public function testParsesPlainData(): void
 	{
-		$data = new SymfonyYamlParser()->parse("title: Hello\ntags: [a, b]\ncount: 3\ndraft: false\nnothing:\n");
+		$data = new SymfonyYamlParser(new Messages())->parse("title: Hello\ntags: [a, b]\ncount: 3\ndraft: false\nnothing:\n");
 
 		$this->assertSame(['title' => 'Hello', 'tags' => ['a', 'b'], 'count' => 3, 'draft' => false, 'nothing' => null], $data);
 	}
 
 	public function testReturnsTimestampsAsStrings(): void
 	{
-		$data = new SymfonyYamlParser()->parse(implode("\n", [
+		$data = new SymfonyYamlParser(new Messages())->parse(implode("\n", [
 			'offset: 2007-03-30 23:17:00 -5',
 			'date: 2003-04-15',
 			'local: 2003-04-15 10:30:00',
@@ -54,7 +55,7 @@ final class SymfonyYamlParserTest extends TestCase
 	{
 		$this->expectException(InvalidData::class);
 
-		new SymfonyYamlParser()->parse('a: !php/object \'O:8:"stdClass":0:{}\'');
+		new SymfonyYamlParser(new Messages())->parse('a: !php/object \'O:8:"stdClass":0:{}\'');
 	}
 
 	public function testRejectsMalformedYaml(): void
@@ -62,6 +63,6 @@ final class SymfonyYamlParserTest extends TestCase
 		$this->expectException(InvalidData::class);
 		$this->expectExceptionMessage('Invalid YAML');
 
-		new SymfonyYamlParser()->parse("a: [unclosed\nb: c");
+		new SymfonyYamlParser(new Messages())->parse("a: [unclosed\nb: c");
 	}
 }

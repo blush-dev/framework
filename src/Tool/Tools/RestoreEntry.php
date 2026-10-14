@@ -22,6 +22,8 @@ use Blush\Tool\ToolEntries;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `restore_entry` (D-756): brings an entry back from the trash as a
@@ -29,19 +31,21 @@ use Blush\Tool\ToolResult;
  */
 final class RestoreEntry extends Tool
 {
-	public function __construct(private readonly ToolEntries $entries)
-	{}
+	public function __construct(
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Restore an Entry';
+		return $this->messages->t('tool.restore_entry.title', 'Restore an Entry');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Brings an entry back from the trash as a draft. search_entries with status ["trash"] finds what\'s there.';
+		return $this->messages->t('tool.restore_entry.description', 'Brings an entry back from the trash as a draft. search_entries with status ["trash"] finds what\'s there.');
 	}
 
 	#[Override]
@@ -75,9 +79,9 @@ final class RestoreEntry extends Tool
 		try {
 			$restored = $context->entries->restore($context->actor, $entry, Status::Draft);
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
-		return new ToolResult($this->entries->stub($restored), sprintf('Restored “%s” as a draft.', $restored->title));
+		return new ToolResult($this->entries->stub($restored), $this->messages->t('tool.restore_entry.restored', 'Restored “{title}” as a draft.', title: $restored->title));
 	}
 }

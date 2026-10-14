@@ -34,6 +34,8 @@ import OptionsGroup from './OptionsGroup.vue';
 import RawValues from './RawValues.vue';
 import type { BlockDescription, BlockProp } from '../blocks';
 import type { FormValue } from '../fields';
+import { t } from '../messages';
+import MessageText from './MessageText.vue';
 import { attributeParts, attributesOf, blockHead, withAttribute, withBlockParts, withLabel, type Block, type Edit } from '../markdown';
 
 const props = defineProps<{
@@ -71,9 +73,9 @@ function changeVariant(value: string): void {
 // Default first, then the block's variants here, and one it names
 // that isn't here, kept.
 const variantOptions = computed(() => [
-	{ value: '', label: 'Default' },
-	...variants.value.map((item) => ({ value: item.name, label: item.source ? `${item.label} (${item.source.label})` : item.label })),
-	...(variant.value !== '' && variant.value !== 'default' && !chosen.value ? [{ value: variant.value, label: `${variant.value} (not available here)` }] : [])
+	{ value: '', label: t('block_options.default', 'Default') },
+	...variants.value.map((item) => ({ value: item.name, label: item.source ? t('block_options.variant_from', '{label} ({source})', { label: item.label, source: item.source.label }) : item.label })),
+	...(variant.value !== '' && variant.value !== 'default' && !chosen.value ? [{ value: variant.value, label: t('block_options.variant_missing', '{variant} (not available here)', { variant: variant.value }) }] : [])
 ]);
 
 const parts = computed(() => attributeParts(head.value.attributes?.text ?? ''));
@@ -130,10 +132,10 @@ function changeLabel(event: Event): void {
 
 const removal = computed(() => {
 	if (props.block.kind === 'leaf') {
-		return { label: 'Remove Block', note: 'Its line is removed.' };
+		return { label: t('block_options.remove', 'Remove Block'), note: t('block_options.remove_leaf', 'Its line is removed.') };
 	}
 
-	return { label: 'Remove Block', note: props.block.kind === 'container' ? 'Everything inside it goes too.' : 'Its text stays in the sentence.' };
+	return { label: t('block_options.remove', 'Remove Block'), note: props.block.kind === 'container' ? t('block_options.remove_container', 'Everything inside it goes too.') : t('block_options.remove_inline', 'Its text stays in the sentence.') };
 });
 </script>
 
@@ -142,25 +144,25 @@ const removal = computed(() => {
 		<OptionsGroup v-if="described?.description || !described">
 			<p v-if="described?.description" class="options__note">{{ described.description }}</p>
 			<p v-else class="options__note">
-				<code>{{ block.name }}</code> isn't in the list of blocks this site offers, so its options can't be shown here. Edit it in the text.
+				<MessageText :text="t('block_options.unknown', '{name} isn\'t in the list of blocks this site offers, so its options can\'t be shown here. Edit it in the text.')"><template #name><code>{{ block.name }}</code></template></MessageText>
 			</p>
 		</OptionsGroup>
 
-		<OptionsGroup v-if="variants.length" heading="Variant">
-			<OptionSelect id="option-variant" label="Variant" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" @update:model-value="changeVariant">
+		<OptionsGroup v-if="variants.length" :heading="t('block_options.variant', 'Variant')">
+			<OptionSelect id="option-variant" :label="t('block_options.variant', 'Variant')" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" @update:model-value="changeVariant">
 				<template #help>
-					<template v-if="chosen">{{ chosen.description || 'A style the theme provides.' }}</template>
-					<template v-else-if="variant !== '' && variant !== 'default'">This site's theme doesn't have it, so it shows as Default.</template>
-					<template v-else>The theme's own styling for this block.</template>
+					<template v-if="chosen">{{ chosen.description || t('block_options.variant_help', 'A style the theme provides.') }}</template>
+					<template v-else-if="variant !== '' && variant !== 'default'">{{ t('block_options.variant_unavailable', "This site's theme doesn't have it, so it shows as Default.") }}</template>
+					<template v-else>{{ t('block_options.variant_default', "The theme's own styling for this block.") }}</template>
 				</template>
 			</OptionSelect>
 		</OptionsGroup>
 
-		<OptionsGroup v-if="takesText || options.length" heading="Options">
+		<OptionsGroup v-if="takesText || options.length" :heading="t('block_options.options', 'Options')">
 			<div v-if="takesText" class="field">
-				<label for="option-label">Text</label>
+				<label for="option-label">{{ t('block_options.text', 'Text') }}</label>
 				<input id="option-label" :value="head.label?.text ?? ''" autocomplete="off" @input="changeLabel">
-				<p class="field__help">Written in the brackets after its name.</p>
+				<p class="field__help">{{ t('block_options.text_help', 'Written in the brackets after its name.') }}</p>
 			</div>
 			<FieldControl
 				v-for="prop in options"
@@ -174,24 +176,24 @@ const removal = computed(() => {
 			/>
 		</OptionsGroup>
 
-		<OptionsGroup heading="Attributes">
+		<OptionsGroup :heading="t('block_options.attributes', 'Attributes')">
 			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="option-" @change="changeParts" />
 			<template v-if="others.length">
 				<RawValues :entries="others" />
-				<p class="field__help">Not options of this block; edit them in the text.</p>
+				<p class="field__help">{{ t('block_options.others', 'Not options of this block; edit them in the text.') }}</p>
 			</template>
 		</OptionsGroup>
 
 		<slot />
 
-		<OptionsGroup heading="Source">
+		<OptionsGroup :heading="t('block_options.source', 'Source')">
 			<pre class="options__source">{{ source.slice(head.start, head.end) }}</pre>
 			<div>
 				<button type="button" class="button button--small button--danger" @click="emit('remove')">
 					<AdminIcon name="trash-2" />{{ removal.label }}
 				</button>
 			</div>
-			<p class="field__help">{{ removal.note }} Undo in the text takes it back.</p>
+			<p class="field__help">{{ t('block_options.remove_note', '{note} Undo in the text takes it back.', { note: removal.note }) }}</p>
 		</OptionsGroup>
 	</div>
 </template>

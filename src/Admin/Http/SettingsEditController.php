@@ -44,6 +44,8 @@ use Blush\Settings\SettingsStore;
 use Blush\Settings\SiteSettings;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Saves the site-wide settings the admin can change (D-324, D-325), for accounts
@@ -95,13 +97,14 @@ final readonly class SettingsEditController
 		private Themes $themes,
 		private ExtensionState $extensions,
 		private Roles $roles,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to change the site\'s settings.', Status::Forbidden);
+			return self::error($this->messages->t('admin.settings_edit_controller.not_allowed', 'You aren\'t allowed to change the site\'s settings.'), Status::Forbidden);
 		}
 
 		$input = self::input($request);
@@ -113,7 +116,7 @@ final readonly class SettingsEditController
 		}
 
 		if (! $this->allowed($request, [...array_keys($set), ...$unset])) {
-			return self::error('You aren\'t allowed to change those settings.', Status::Forbidden);
+			return self::error($this->messages->t('admin.settings_edit_controller.not_allowed_those', 'You aren\'t allowed to change those settings.'), Status::Forbidden);
 		}
 
 		// Field sets' settings (D-343) are `site.{name}`; the rest are `Setting`s.
@@ -139,16 +142,16 @@ final readonly class SettingsEditController
 				...array_fill_keys(array_map(static fn (mixed $key): string => is_string($key) ? substr($key, strlen($prefix)) : '', array_values(array_filter($unset, $isSite))), null),
 				...$this->checkSite($siteSet)
 			];
-			$check = Settings::none()->with($builtIns);
+			$check = Settings::none()->with($builtIns, $this->messages);
 			$this->assertHome($check);
 			$this->assertSignupRole($check);
 			$this->assertTheme($check);
-			self::assertUploads($check);
+			$this->assertUploads($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
 			$settings = $this->store->update(function (Settings $settings) use ($removed, $builtIns, $site): Settings {
-				$updated = $settings->without(...$removed)->with($builtIns)->withSite($site);
-				$this->bootstrap->checkSettings($updated);
+				$updated = $settings->without(...$removed)->with($builtIns, $this->messages)->withSite($site);
+				$this->bootstrap->checkSettings($updated, $this->messages);
 
 				return $updated;
 			});
@@ -170,7 +173,7 @@ final readonly class SettingsEditController
 	public function refresh(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to change the site\'s settings.', Status::Forbidden);
+			return self::error($this->messages->t('admin.settings_edit_controller.not_allowed', 'You aren\'t allowed to change the site\'s settings.'), Status::Forbidden);
 		}
 
 		try {
@@ -211,7 +214,7 @@ final readonly class SettingsEditController
 			$empty = $value === null || $value === '' || $value === [];
 
 			if ($empty && $field->required) {
-				throw new InvalidSetting(sprintf('%s is required.', $label));
+				throw new InvalidSetting((string) $this->messages->t('admin.settings_edit_controller.required', '{field} is required.', field: $label));
 			}
 
 			if (! $empty) {
@@ -241,8 +244,8 @@ final readonly class SettingsEditController
 			return;
 		}
 
-		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
-			throw new InvalidSetting(sprintf('"%s" can\'t be the homepage: it must be a collection type with addresses.', $home));
+		if (! array_key_exists($home, Setting::homeChoices($this->types, $this->messages))) {
+			throw new InvalidSetting((string) $this->messages->t('admin.settings_edit_controller.not_home', '"{type}" can\'t be the homepage: it must be a collection type with addresses.', type: $home));
 		}
 	}
 
@@ -256,7 +259,7 @@ final readonly class SettingsEditController
 		$role = $settings->get(Setting::SignupRole);
 
 		if (is_string($role) && ! $this->roles->has($role)) {
-			throw new InvalidSetting(sprintf('"%s" isn\'t a role on this site.', $role));
+			throw new InvalidSetting((string) $this->messages->t('admin.settings_edit_controller.not_role', '"{role}" isn\'t a role on this site.', role: $role));
 		}
 	}
 
@@ -268,7 +271,7 @@ final readonly class SettingsEditController
 	 *
 	 * @throws InvalidSetting
 	 */
-	private static function assertUploads(Settings $settings): void
+	private function assertUploads(Settings $settings): void
 	{
 		$rules  = $settings->get(Setting::MediaUploads);
 		$server = MediaUploadController::limit();
@@ -281,7 +284,7 @@ final readonly class SettingsEditController
 
 		foreach ($sizes as $size) {
 			if (is_int($size) && $size * 1024 * 1024 > $server) {
-				throw new InvalidSetting(sprintf('The server takes files of at most %d MB, so a largest file of %d MB won\'t hold.', intdiv($server, 1024 * 1024), $size));
+				throw new InvalidSetting((string) $this->messages->t('admin.settings_edit_controller.upload_too_big', 'The server takes files of at most {server} MB, so a largest file of {size} MB won\'t hold.', server: intdiv($server, 1024 * 1024), size: $size));
 			}
 		}
 	}
@@ -302,7 +305,7 @@ final readonly class SettingsEditController
 		}
 
 		try {
-			$this->themes->chain($theme);
+			$this->themes->chain($theme, $this->messages);
 		} catch (ThemeException $error) {
 			throw new InvalidSetting($error->getMessage(), previous: $error);
 		}
@@ -312,7 +315,7 @@ final readonly class SettingsEditController
 		if ($unmet !== []) {
 			$found = $this->themes->find($theme);
 
-			throw new InvalidSetting(sprintf('%s can\'t be activated. %s', $found === null ? $theme : $this->text->label($found), Requirements::reason(array_merge(...array_values($unmet)))));
+			throw new InvalidSetting((string) $this->messages->t('admin.settings_edit_controller.theme_unmet', '{theme} can\'t be activated. {reason}', theme: $found === null ? $theme : (string) $this->text->label($found), reason: Requirements::reason(array_merge(...array_values($unmet)), $this->messages)));
 		}
 	}
 
@@ -370,7 +373,7 @@ final readonly class SettingsEditController
 		};
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

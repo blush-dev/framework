@@ -19,6 +19,7 @@ use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Support\Progress;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Finds and fixes the media files whose ids (D-487) are missing or
@@ -43,7 +44,8 @@ final readonly class MediaIds
 		private MediaIndex $index,
 		private MediaMetadataStore $store,
 		private MediaResolver $resolver,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -105,7 +107,7 @@ final readonly class MediaIds
 		$shared = array_find($this->report($progress)->duplicates, static fn (array $keys): bool => in_array($key, $keys, true));
 
 		if ($shared === null) {
-			throw new MediaException(sprintf('%s doesn\'t share its id with another media file.', $key));
+			throw new MediaException((string) $this->messages->t('media.media_ids.not_shared', '{file} doesn\'t share its id with another media file.', file: $key));
 		}
 
 		$others = array_values(array_diff($shared, [$key]));
@@ -131,13 +133,13 @@ final readonly class MediaIds
 			$file = $this->resolver->fromKey($key);
 
 			if ($file === null) {
-				$failed[$key] = 'isn\'t in the media library.';
+				$failed[$key] = (string) $this->messages->t('media.common.not_in_library', 'isn\'t in the media library.', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 
 			// A metadata file that can't be read isn't written over.
 			if (! $this->store->isWritable($file)) {
-				$failed[$key] = 'its metadata file can\'t be read; fix it first (content:lint says why).';
+				$failed[$key] = (string) $this->messages->t('media.common.metadata_unreadable', 'its metadata file can\'t be read; fix it first (content:lint says why).', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 

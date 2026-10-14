@@ -20,6 +20,8 @@ use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
 use Blush\Session\SessionConfig;
 use Blush\Session\SessionStore;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Removes admin sessions idle past `SessionConfig::$idle`.
@@ -29,16 +31,17 @@ final class PruneSessionsJob extends Job
 	public function __construct(
 		private readonly SessionStore $sessions,
 		private readonly SessionConfig $config,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Remove idle admin sessions';
+		return $this->messages->t('job.prune_sessions_job.label', 'Remove idle admin sessions');
 	}
 
 	/**
@@ -49,6 +52,6 @@ final class PruneSessionsJob extends Job
 	{
 		$pruned = $this->sessions->prune($this->clock->now()->getTimestamp() - $this->config->idle);
 
-		return JobResult::done(sprintf('Removed %d idle session%s.', $pruned, $pruned === 1 ? '' : 's'));
+		return JobResult::done($this->messages->t('job.prune_sessions_job.removed', 'Removed {count, plural, one {# idle session} other {# idle sessions}}.', count: $pruned));
 	}
 }

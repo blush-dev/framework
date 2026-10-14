@@ -71,6 +71,8 @@ use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Media\MediaValues;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The admin's editing API (D-229), over `Entries`' writes by id (D-654):
@@ -230,7 +232,8 @@ final readonly class EntryController
 		private ActivityLog $activity,
 		private MediaValues $media,
 		private EntryTemplates $templates,
-		private ControlDefaults $defaults
+		private ControlDefaults $defaults,
+		private Messages $messages
 	) {}
 
 	/**
@@ -241,7 +244,7 @@ final readonly class EntryController
 		$entry = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id), Status::NotFound);
 		}
 
 		return $this->edit($request, $entry);
@@ -260,11 +263,11 @@ final readonly class EntryController
 		if ($type === null) {
 			return $this->permissions->can($account, ContentAction::Create)
 				? self::error('Send a known "type".', Status::BadRequest)
-				: self::error('You aren\'t allowed to create entries.', Status::Forbidden);
+				: self::error($this->messages->t('admin.entry_controller.cannot_create', 'You aren\'t allowed to create entries.'), Status::Forbidden);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Create, $type->name)) {
-			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
+			return self::error($this->messages->t('admin.entry_controller.cannot_create_type', 'You aren\'t allowed to create {items}.', items: $type->labels->items), Status::Forbidden);
 		}
 
 		$fields = array_filter($this->types->formSchema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, self::NOT_EDITED, true));
@@ -319,7 +322,7 @@ final readonly class EntryController
 		$action  = $entry->status === EntryStatus::Trash ? ContentAction::Delete : ContentAction::Edit;
 
 		if (! $this->permissions->can($account, $action, $entry)) {
-			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
+			return self::error($this->messages->t('admin.entry_controller.cannot_edit', 'You aren\'t allowed to edit that entry.'), Status::Forbidden);
 		}
 
 		try {
@@ -379,7 +382,7 @@ final readonly class EntryController
 		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id), Status::NotFound);
 		}
 
 		$refused = $this->templateRefused($input, $entry->type->name);
@@ -394,7 +397,7 @@ final readonly class EntryController
 			$parent = array_key_exists('parent', $input) ? $input['parent'] : null;
 
 			if ($parent !== null && ! is_string($parent)) {
-				return self::error(sprintf('Only a tree\'s pages move under another; "%s" doesn\'t.', $entry->title), Status::BadRequest);
+				return self::error($this->messages->t('admin.entry_controller.not_movable', 'Only a tree\'s pages move under another; "{title}" doesn\'t.', title: $entry->title), Status::BadRequest);
 			}
 
 			$edit = new EntryEdit(
@@ -458,7 +461,9 @@ final readonly class EntryController
 		}
 
 		return self::error(
-			is_string($name) ? sprintf('The theme has no "%s" template for this type.', $name) : 'Choose one template by its name.',
+			is_string($name)
+				? $this->messages->t('admin.entry_controller.template.unknown', 'The theme has no "{name}" template for this type.', name: $name)
+				: $this->messages->t('admin.entry_controller.template.choose', 'Choose one template by its name.'),
 			Status::UnprocessableContent,
 			'template'
 		);
@@ -485,7 +490,7 @@ final readonly class EntryController
 		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id), Status::NotFound);
 		}
 
 		try {
@@ -512,11 +517,11 @@ final readonly class EntryController
 		$permanently = in_array($params['permanently'] ?? null, ['1', 'true'], true);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
-			return self::error('You aren\'t allowed to delete that entry.', Status::Forbidden);
+			return self::error($this->messages->t('admin.entry_controller.cannot_delete', 'You aren\'t allowed to delete that entry.'), Status::Forbidden);
 		}
 
 		if (! $permanently) {
@@ -534,7 +539,7 @@ final readonly class EntryController
 		}
 
 		if ($entry->status !== EntryStatus::Trash) {
-			return self::error(sprintf('"%s" isn\'t in the trash; move it there first.', $entry->title), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.entry_controller.not_trashed', '"{title}" isn\'t in the trash; move it there first.', title: $entry->title), Status::UnprocessableContent);
 		}
 
 		try {
@@ -565,11 +570,11 @@ final readonly class EntryController
 		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Edit, $entry) && ! $this->permissions->can($account, ContentAction::Delete, $entry)) {
-			return self::error('You aren\'t allowed to change that entry.', Status::Forbidden);
+			return self::error($this->messages->t('admin.entry_controller.cannot_change', 'You aren\'t allowed to change that entry.'), Status::Forbidden);
 		}
 
 		$sources = $this->referrers->sources($entry);
@@ -650,7 +655,7 @@ final readonly class EntryController
 		};
 
 		if ($entry === null) {
-			return self::error('That isn\'t in the trash.', Status::NotFound);
+			return self::error($this->messages->t('admin.entry_controller.restore_missing', 'That isn\'t in the trash.'), Status::NotFound);
 		}
 
 		if ($status === false) {
@@ -675,7 +680,7 @@ final readonly class EntryController
 		$type    = self::input($request)['type'] ?? null;
 
 		if ($type !== null && (! is_string($type) || ! $this->types->has($type))) {
-			return self::error('There is no such content type.', Status::BadRequest);
+			return self::error($this->messages->t('admin.entry_controller.unknown_type', 'There is no such content type.'), Status::BadRequest);
 		}
 
 		$query   = $this->content->query()->any()->status(EntryStatus::Trash)->limit(null);
@@ -729,7 +734,7 @@ final readonly class EntryController
 
 		foreach (array_values(array_unique($given)) as $id) {
 			$entry  = $this->content->find($id);
-			$reason = $entry === null ? 'It\'s no longer there.' : $this->bulkChange($account, $entry, $action);
+			$reason = $entry === null ? $this->messages->t('admin.entry_controller.bulk.gone', 'It\'s no longer there.') : $this->bulkChange($account, $entry, $action);
 
 			if ($reason === null) {
 				$done[] = $id;
@@ -745,22 +750,22 @@ final readonly class EntryController
 	 * Makes one entry's part of a bulk change, returning why it couldn't
 	 * be made, or `null` once it's made.
 	 */
-	private function bulkChange(Account $account, Entry $entry, string $action): ?string
+	private function bulkChange(Account $account, Entry $entry, string $action): string|Text|null
 	{
 		if ($entry->status === EntryStatus::Trash) {
-			return 'It\'s in the trash already; restore it to change it.';
+			return $this->messages->t('admin.entry_controller.bulk.trashed', 'It\'s in the trash already; restore it to change it.');
 		}
 
 		if ($action === 'trash') {
 			if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
-				return 'You aren\'t allowed to delete it.';
+				return $this->messages->t('admin.entry_controller.bulk.cannot_delete', 'You aren\'t allowed to delete it.');
 			}
 
 			if (IndexPage::is($entry)) {
-				return 'It\'s an index page, so it can\'t be moved to the trash.';
+				return $this->messages->t('admin.entry_controller.bulk.index_page', 'It\'s an index page, so it can\'t be moved to the trash.');
 			}
 		} elseif (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			return 'You aren\'t allowed to edit it.';
+			return $this->messages->t('admin.entry_controller.bulk.cannot_edit', 'You aren\'t allowed to edit it.');
 		}
 
 		try {
@@ -1049,7 +1054,7 @@ final readonly class EntryController
 	 * made it (D-758), for the editor's note, or `null`: the app's name
 	 * (`client`), the account's (`account`), and when (`time`).
 	 *
-	 * @return ?array{client: string, account: string, time: string}
+	 * @return ?array{client: string|Text, account: string, time: string}
 	 */
 	private function changedBy(Entry $entry): ?array
 	{
@@ -1066,8 +1071,8 @@ final readonly class EntryController
 		$by = $this->accounts->findById($latest->account);
 
 		return [
-			'client'  => $latest->client ?? $latest->via->label(),
-			'account' => $by === null ? 'a removed account' : ($by->name ?? $by->username),
+			'client'  => $latest->client ?? $latest->via->label($this->messages),
+			'account' => $by === null ? (string) $this->messages->t('admin.entry_controller.removed_account', 'a removed account') : ($by->name ?? $by->username),
 			'time'    => new DateTimeImmutable('@' . $latest->time)->format(DateTimeInterface::ATOM)
 		];
 	}
@@ -1115,8 +1120,8 @@ final readonly class EntryController
 			return [
 				'url'    => $this->urls->relatedList($type, $list),
 				'listed' => count($this->relationArchives->linked($type, $list)),
-				'item'   => $this->types->find($list->to[0] ?? '')->labels->item ?? 'entry',
-				'items'  => $this->types->find($list->to[0] ?? '')->labels->items ?? 'entries',
+				'item'   => $this->types->find($list->to[0] ?? '')->labels->item ?? (string) $this->messages->t('admin.entry_controller.item', 'entry'),
+				'items'  => $this->types->find($list->to[0] ?? '')->labels->items ?? (string) $this->messages->t('admin.entry_controller.items', 'entries'),
 				'drafts' => 0
 			];
 		}
@@ -1337,7 +1342,7 @@ final readonly class EntryController
 	/**
 	 * Builds an error.
 	 */
-	private static function error(string $message, Status $status, ?string $field = null): ResponseInterface
+	private static function error(string|Text $message, Status $status, ?string $field = null): ResponseInterface
 	{
 		return self::json(['error' => $message, ...($field === null ? [] : ['field' => $field])], $status);
 	}

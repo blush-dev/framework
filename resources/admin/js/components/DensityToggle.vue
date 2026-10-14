@@ -10,12 +10,12 @@ import AdminIcon from './AdminIcon.vue';
 </script>
 
 <template>
-	<div class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
-		<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
-			<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
+	<div class="segmented segmented--icons toolbar__end" role="group" :aria-label="t('density_toggle.rows', 'Rows')">
+		<button type="button" :aria-pressed="!compact" :title="t('density_toggle.roomy_rows', 'Roomy rows')" @click="compact = false">
+			<AdminIcon name="rows-3" /><span class="visually-hidden">{{ t('density_toggle.roomy', 'Roomy') }}</span>
 		</button>
-		<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
-			<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
+		<button type="button" :aria-pressed="compact" :title="t('density_toggle.compact_rows', 'Compact rows')" @click="compact = true">
+			<AdminIcon name="rows-4" /><span class="visually-hidden">{{ t('density_toggle.compact', 'Compact') }}</span>
 		</button>
 	</div>
 </template>

@@ -18,6 +18,8 @@ use Blush\Job\Job;
 use Blush\Job\JobQueue;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Removes finished jobs kept past `JobConfig::$keepDone` and
@@ -25,16 +27,16 @@ use Blush\Job\JobResult;
  */
 final class PruneJobsJob extends Job
 {
-	public function __construct(private readonly JobQueue $queue)
+	public function __construct(private readonly JobQueue $queue, private readonly Messages $messages)
 	{}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Remove old finished jobs';
+		return $this->messages->t('job.prune_jobs_job.label', 'Remove old finished jobs');
 	}
 
 	/**
@@ -45,6 +47,6 @@ final class PruneJobsJob extends Job
 	{
 		$pruned = $this->queue->prune();
 
-		return JobResult::done(sprintf('Removed %d finished job%s.', $pruned, $pruned === 1 ? '' : 's'));
+		return JobResult::done($this->messages->t('job.prune_jobs_job.removed', 'Removed {count, plural, one {# finished job} other {# finished jobs}}.', count: $pruned));
 	}
 }

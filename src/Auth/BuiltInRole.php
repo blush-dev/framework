@@ -15,6 +15,8 @@ namespace Blush\Auth;
 
 use Blush\Extension\ExtensionKind;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The framework's roles (D-217). `config/auth.php` can redefine any of
@@ -56,32 +58,39 @@ enum BuiltInRole: string
 	/**
 	 * Returns the role.
 	 */
-	public function role(): Role
+	public function role(Messages $messages): Role
 	{
-		return new Role($this->value, $this->label(), $this->capabilities(), $this->description());
+		return new Role($this->value, $this->label($messages), $this->capabilities(), $this->description($messages));
 	}
 
 	/**
 	 * Returns what the role is for, in a line.
 	 */
-	public function description(): string
+	public function description(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Owner         => 'Everything, always. Only an owner can change an owner\'s account or make another owner.',
-			self::Administrator => 'Runs the site: accounts, roles, content types, settings, and every entry. Installs icon packs, but not plugins or themes, and doesn\'t see Site Health.',
-			self::Editor        => 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.',
-			self::Author        => 'Writes and publishes their own entries, and uploads media.',
-			self::Contributor   => 'Writes drafts of their own entries, and uploads images. Can\'t publish.',
-			self::Member        => 'Signs in and looks after their own account. Nothing else.'
+			self::Owner         => $messages->t('auth.built_in_role.owner.description', 'Everything, always. Only an owner can change an owner\'s account or make another owner.'),
+			self::Administrator => $messages->t('auth.built_in_role.administrator.description', 'Runs the site: accounts, roles, content types, settings, and every entry. Installs icon packs, but not plugins or themes, and doesn\'t see Site Health.'),
+			self::Editor        => $messages->t('auth.built_in_role.editor.description', 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.'),
+			self::Author        => $messages->t('auth.built_in_role.author.description', 'Writes and publishes their own entries, and uploads media.'),
+			self::Contributor   => $messages->t('auth.built_in_role.contributor.description', 'Writes drafts of their own entries, and uploads images. Can\'t publish.'),
+			self::Member        => $messages->t('auth.built_in_role.member.description', 'Signs in and looks after their own account. Nothing else.')
 		};
 	}
 
 	/**
 	 * Returns the role's label.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
-		return ucfirst($this->value);
+		return match ($this) {
+			self::Owner         => $messages->t('auth.built_in_role.owner.label', 'Owner'),
+			self::Administrator => $messages->t('auth.built_in_role.administrator.label', 'Administrator'),
+			self::Editor        => $messages->t('auth.built_in_role.editor.label', 'Editor'),
+			self::Author        => $messages->t('auth.built_in_role.author.label', 'Author'),
+			self::Contributor   => $messages->t('auth.built_in_role.contributor.label', 'Contributor'),
+			self::Member        => $messages->t('auth.built_in_role.member.label', 'Member')
+		};
 	}
 
 	/**

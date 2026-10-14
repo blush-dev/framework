@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Support;
 
 use Closure;
+use Stringable;
 
 /**
  * Says how a longer task is going, for a service that takes a progress
@@ -33,10 +34,10 @@ final readonly class Progress
 	/**
 	 * Says how far along a step is.
 	 */
-	public function step(string $step, int $done = 0, int $total = 0): void
+	public function step(string|Stringable $step, int $done = 0, int $total = 0): void
 	{
 		if ($this->report !== null) {
-			($this->report)($step, $done, $total);
+			($this->report)((string) $step, $done, $total);
 		}
 	}
 
@@ -47,7 +48,7 @@ final readonly class Progress
 	 *
 	 * @return ?Closure(int, int): void
 	 */
-	public function of(string $step): ?Closure
+	public function of(string|Stringable $step): ?Closure
 	{
 		if ($this->report === null) {
 			return null;

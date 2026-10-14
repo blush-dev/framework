@@ -29,6 +29,8 @@ use Blush\Auth\RoleEditor;
 use Blush\Auth\Roles;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Makes and changes roles from the admin (D-312), for accounts with
@@ -57,7 +59,8 @@ final readonly class RoleEditController
 		private Accounts $accounts,
 		private Permissions $permissions,
 		private UserRules $rules,
-		private UsersJson $json
+		private UsersJson $json,
+		private Messages $messages
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -65,7 +68,7 @@ final readonly class RoleEditController
 		$actor = $this->manager($request);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input        = self::input($request);
@@ -79,16 +82,16 @@ final readonly class RoleEditController
 		}
 
 		if (preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
-			return self::error('Use lowercase letters, digits, "_", and "-" for the key, starting with a letter.', field: 'name');
+			return self::error($this->messages->t('admin.role_edit_controller.key_invalid', 'Use lowercase letters, digits, "_", and "-" for the key, starting with a letter.'), field: 'name');
 		}
 
 		// The admin's New Role screen is at `roles/new`.
 		if ($name === 'new') {
-			return self::error('"new" can\'t be a role\'s key here; pick another.', field: 'name');
+			return self::error($this->messages->t('admin.role_edit_controller.key_new', '"new" can\'t be a role\'s key here; pick another.'), field: 'name');
 		}
 
 		if (! $this->rules->mayGrantAll($actor, $capabilities)) {
-			return self::error('You can\'t make a role that can do things you can\'t.', Status::Forbidden, 'capabilities');
+			return self::error($this->messages->t('admin.role_edit_controller.create_does_more', 'You can\'t make a role that can do things you can\'t.'), Status::Forbidden, 'capabilities');
 		}
 
 		return $this->change($actor, $name, fn (): Roles => $this->editor->create($name, $label, $description, $capabilities), Status::Created);
@@ -99,7 +102,7 @@ final readonly class RoleEditController
 		$actor = $this->manager($request);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$refusal = $this->check($actor, $name);
@@ -120,7 +123,7 @@ final readonly class RoleEditController
 		$capabilities = array_key_exists('capabilities', $input) ? $capabilities : null;
 
 		if ($capabilities !== null && ! $this->rules->mayGrantAll($actor, $capabilities)) {
-			return self::error('You can\'t give a role a capability you don\'t have.', Status::Forbidden, 'capabilities');
+			return self::error($this->messages->t('admin.role_edit_controller.capability_not_had', 'You can\'t give a role a capability you don\'t have.'), Status::Forbidden, 'capabilities');
 		}
 
 		return $this->change($actor, $name, fn (): Roles => $this->editor->update($name, $label, $description, $capabilities));
@@ -131,7 +134,7 @@ final readonly class RoleEditController
 		$actor = $this->manager($request);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$refusal = $this->check($actor, $name);
@@ -140,10 +143,10 @@ final readonly class RoleEditController
 			return $refusal;
 		}
 
-		$defaults = BuiltInRole::tryFrom($name)?->role();
+		$defaults = BuiltInRole::tryFrom($name)?->role($this->messages);
 
 		if ($defaults !== null && ! $this->rules->mayGrant($actor, $defaults)) {
-			return self::error(sprintf('The %s role can do things you can\'t as it was built, so you can\'t reset it.', $defaults->label), Status::Forbidden);
+			return self::error($this->messages->t('admin.role_edit_controller.reset_does_more', 'The {role} role can do things you can\'t as it was built, so you can\'t reset it.', role: $defaults->label), Status::Forbidden);
 		}
 
 		return $this->change($actor, $name, fn (): Roles => $this->editor->delete($name));
@@ -158,8 +161,8 @@ final readonly class RoleEditController
 		$role = $this->roles->get($name);
 
 		return match (true) {
-			$role === null                         => self::error(sprintf('There\'s no "%s" role.', $name), Status::NotFound),
-			! $this->rules->mayGrant($actor, $role) => self::error(sprintf('The %s role can do things you can\'t, so you can\'t change it.', $role->label), Status::Forbidden),
+			$role === null                         => self::error($this->messages->t('admin.role_edit_controller.no_role', 'There\'s no "{name}" role.', name: $name), Status::NotFound),
+			! $this->rules->mayGrant($actor, $role) => self::error($this->messages->t('admin.role_edit_controller.does_more', 'The {role} role can do things you can\'t, so you can\'t change it.', role: $role->label), Status::Forbidden),
 			default                                => null
 		};
 	}
@@ -183,7 +186,7 @@ final readonly class RoleEditController
 		if (! $this->rules->keepsManager($accounts, $roles)) {
 			$this->editor->restore($before);
 
-			return self::error('That would leave no account that can manage accounts and roles.', field: 'capabilities');
+			return self::error($this->messages->t('admin.role_edit_controller.keeps_manager', 'That would leave no account that can manage accounts and roles.'), field: 'capabilities');
 		}
 
 		$role = $roles->get($name);
@@ -239,12 +242,12 @@ final readonly class RoleEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return self::error('You aren\'t allowed to manage roles.', Status::Forbidden);
+		return self::error($this->messages->t('admin.role_edit_controller.forbidden', 'You aren\'t allowed to manage roles.'), Status::Forbidden);
 	}
 
-	private static function error(string $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
+	private static function error(string|Text $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
 	{
 		return self::json(['error' => $message, ...($field === null ? [] : ['field' => $field])], $status);
 	}

@@ -21,6 +21,8 @@ use Blush\Tool\ToolEntries;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `edit_body` (D-756): replaces one exact passage of an entry's body,
@@ -29,19 +31,21 @@ use Blush\Tool\ToolResult;
  */
 final class EditBody extends Tool
 {
-	public function __construct(private readonly ToolEntries $entries)
-	{}
+	public function __construct(
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Edit Part of a Body';
+		return $this->messages->t('tool.edit_body.title', 'Edit Part of a Body');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Replaces one passage of an entry\'s Markdown body with new text, for a small change such as a typo or a sentence, without sending the whole body back. "find" must be copied exactly from the body get_entry answered and appear in it exactly once; send more of the text around it when it\'s found more than once. Needs the revision get_entry answered.';
+		return $this->messages->t('tool.edit_body.description', 'Replaces one passage of an entry\'s Markdown body with new text, for a small change such as a typo or a sentence, without sending the whole body back. "find" must be copied exactly from the body get_entry answered and appear in it exactly once; send more of the text around it when it\'s found more than once. Needs the revision get_entry answered.');
 	}
 
 	#[Override]
@@ -80,11 +84,11 @@ final class EditBody extends Tool
 		try {
 			$updated = $context->entries->replaceInBody($context->actor, $entry, self::text($input, 'find'), self::text($input, 'replace'), self::text($input, 'revision'));
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
 		$item = $this->entries->item($context, $updated);
 
-		return new ToolResult(['id' => $item['id'] ?? null, 'title' => $updated->title, 'revision' => $item['revision'] ?? null, 'preview' => $item['preview'] ?? null], sprintf('Edited the body of “%s”.', $updated->title));
+		return new ToolResult(['id' => $item['id'] ?? null, 'title' => $updated->title, 'revision' => $item['revision'] ?? null, 'preview' => $item['preview'] ?? null], $this->messages->t('tool.edit_body.edited', 'Edited the body of “{title}”.', title: $updated->title));
 	}
 }

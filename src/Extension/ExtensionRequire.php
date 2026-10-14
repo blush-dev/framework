@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Reads a manifest's `require` (D-385, D-431), the same for every kind:
  * an object mapping what's needed to a version constraint. `conflict`
@@ -28,19 +30,19 @@ final readonly class ExtensionRequire
 	 * @return array<string, string>
 	 * @throws ExtensionException
 	 */
-	public static function fromArray(mixed $value, string $key = 'require'): array
+	public static function fromArray(mixed $value, string $key = 'require', Messages $messages = new Messages()): array
 	{
 		$value ??= [];
 
 		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
-			throw new ExtensionException(sprintf('"%s" must be an object.', $key));
+			throw new ExtensionException((string) $messages->t('extension.extension_require.not_object', '"{field}" must be an object.', field: $key));
 		}
 
 		$require = [];
 
 		foreach ($value as $name => $constraint) {
 			if (! is_string($name) || ! is_string($constraint)) {
-				throw new ExtensionException(sprintf('"%s" must map names to version constraints.', $key));
+				throw new ExtensionException((string) $messages->t('extension.extension_require.not_map', '"{field}" must map names to version constraints.', field: $key));
 			}
 
 			$require[$name] = $constraint;

@@ -51,7 +51,7 @@ function keydown(event: KeyboardEvent, item: Toast): void {
 				<template v-if="item.undo">
 					<span class="toast__divider" aria-hidden="true" />
 					<button class="toast__undo" type="button" @click="undoToast(item.id)">
-						<AdminIcon name="undo-2" />Undo
+						<AdminIcon name="undo-2" />{{ t('common.undo', 'Undo') }}
 					</button>
 				</template>
 			</div>

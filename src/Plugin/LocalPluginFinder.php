@@ -18,6 +18,7 @@ use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
+use Blush\Translation\Messages;
 
 /**
  * Finds local plugins: folders in `extensions/{vendor}/{name}` holding a
@@ -50,7 +51,8 @@ final readonly class LocalPluginFinder implements PluginFinder
 	 */
 	public function __construct(
 		private LocalExtensions $extensions,
-		private string $root = ''
+		private string $root = '',
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -64,7 +66,7 @@ final readonly class LocalPluginFinder implements PluginFinder
 
 		foreach ($this->extensions->of(ExtensionKind::Plugin) as $extension) {
 			try {
-				$manifests[] = self::build($extension->read(), $extension->path, $extension->source());
+				$manifests[] = self::build($extension->read(), $extension->path, $extension->source(), $this->messages);
 			} catch (ExtensionException $e) {
 				$reason   = $this->root === '' ? $e->getMessage() : str_replace($this->root . '/', '', $e->getMessage());
 				$broken[] = new BrokenPlugin($extension->where, $reason, self::name($extension->path), PluginSource::Local);
@@ -80,11 +82,11 @@ final readonly class LocalPluginFinder implements PluginFinder
 	 *
 	 * @throws ExtensionException
 	 */
-	public static function manifest(string $folder): PluginManifest
+	public static function manifest(string $folder, Messages $messages = new Messages()): PluginManifest
 	{
 		$file = ManifestFile::find($folder, ExtensionKind::Plugin) ?? "{$folder}/composer.json";
 
-		return self::build(ManifestFile::load($folder, ExtensionKind::Plugin), $folder, $file);
+		return self::build(ManifestFile::load($folder, ExtensionKind::Plugin, $messages), $folder, $file, $messages);
 	}
 
 	/**
@@ -94,16 +96,16 @@ final readonly class LocalPluginFinder implements PluginFinder
 	 * @param  string               $file The file it was read from, for messages.
 	 * @throws ExtensionException
 	 */
-	private static function build(array $data, string $folder, string $file): PluginManifest
+	private static function build(array $data, string $folder, string $file, Messages $messages): PluginManifest
 	{
 		try {
 			return PluginManifest::fromArray([
 				...$data,
 				'source' => PluginSource::Local,
 				'path'   => $folder
-			]);
+			], $messages);
 		} catch (ExtensionException $e) {
-			throw new ExtensionException(sprintf('%s (%s)', $e->getMessage(), $file), previous: $e);
+			throw new ExtensionException((string) $messages->t('plugin.local_plugin_finder.in_file', '{error} ({file})', error: $e->getMessage(), file: $file), previous: $e);
 		}
 	}
 

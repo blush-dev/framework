@@ -15,6 +15,8 @@ namespace Blush\Field\Controls;
 
 use Override;
 use Blush\Field\ControlSection;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Any number from a set, chosen from a menu.
@@ -34,18 +36,18 @@ final class MultiSelect extends ChoiceList
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Multi-Select';
+		return $messages->t('field.multi_select.label', 'Multi-Select');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Any number from a set, chosen from a menu.';
+		return $messages->t('field.multi_select.description', 'Any number from a set, chosen from a menu.');
 	}
 
 	/**

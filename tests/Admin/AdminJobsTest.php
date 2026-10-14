@@ -227,7 +227,7 @@ final class AdminJobsTest extends TestCase
 		$run = $this->app->container()->make(JobRunner::class)->finish($job);
 
 		$this->assertSame('failed', $run->status->value);
-		$this->assertSame('The account that asked for this fix can\'t make it any more.', $run->message);
+		$this->assertSame('The account that asked for this fix can\'t make it any more.', (string) $run->message);
 	}
 
 	public function testSiteHealthWarnsUntilCronRuns(): void
@@ -239,7 +239,7 @@ final class AdminJobsTest extends TestCase
 
 		$this->assertNotNull($jobs);
 		$this->assertSame(CheckStatus::Warning, $jobs->status);
-		$this->assertStringContainsString('schedule:run', $jobs->hint);
+		$this->assertStringContainsString('schedule:run', (string) $jobs->hint);
 
 		$this->app->container()->make(JobRunner::class)->beat(RunnerKind::Cron);
 

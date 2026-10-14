@@ -68,7 +68,7 @@ final class EntryFoldersTest extends TestCase
 	{
 		$report = $app->container()->make(Linter::class)->lint();
 
-		return array_map(static fn (array $violations): array => array_map(static fn ($violation): string => $violation->message, $violations), $report->violations($severity));
+		return array_map(static fn (array $violations): array => array_map(static fn ($violation): string => (string) $violation->message, $violations), $report->violations($severity));
 	}
 
 	public function testFindsWhereEachFileBelongs(): void

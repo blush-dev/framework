@@ -20,6 +20,7 @@ use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteException;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Finds and fixes the content files whose ids (D-477) are missing or
@@ -39,7 +40,8 @@ final readonly class EntryIds
 	public function __construct(
 		private ContentIndex $index,
 		private Indexer $indexer,
-		private FilesystemWriter $writer
+		private FilesystemWriter $writer,
+		private Messages $messages
 	) {}
 
 	/**
@@ -49,7 +51,7 @@ final readonly class EntryIds
 	 */
 	public function report(?Closure $progress = null): EntryIdReport
 	{
-		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
+		$this->indexer->index(progress: new Progress($progress)->of((string) $this->messages->t('content.entry_ids.checking_index', 'Checking the content index')));
 
 		$snapshot = $this->index->snapshot();
 		$missing  = [];
@@ -91,7 +93,7 @@ final readonly class EntryIds
 		$shared = array_find($report->duplicates, static fn (array $paths): bool => in_array($path, $paths, true));
 
 		if ($shared === null) {
-			throw new WriteException(sprintf('%s doesn\'t share its id with another file.', $path));
+			throw new WriteException((string) $this->messages->t('content.entry_ids.not_shared', '{path} doesn\'t share its id with another file.', path: $path));
 		}
 
 		$others = array_values(array_diff($shared, [$path]));

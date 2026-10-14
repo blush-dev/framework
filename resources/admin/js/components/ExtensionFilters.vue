@@ -8,10 +8,11 @@
  * **Clear Filters**. The values are the list's address (`useExtensionFilter()`).
  */
 
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
 import { extensionView } from '../density';
+import { t } from '../messages';
 import type { ExtensionSource } from '../extensions';
 
 const props = defineProps<{
@@ -37,23 +38,23 @@ const source = defineModel<string>('source', { required: true });
 
 const emit = defineEmits<{ clear: [] }>();
 
-const id = computed(() => `extensions-${props.noun.replace(/\s+/g, '-')}`);
+const id = useId();
 
 const SOURCE_LABELS: Record<ExtensionSource, string> = {
 	composer: 'Composer',
-	local: 'A folder in extensions/',
-	framework: 'Ships with Blush'
+	local: t('extension_filters.source_local', 'A folder in extensions/'),
+	framework: t('extension_filters.source_framework', 'Ships with Blush')
 };
 
 const statusOptions = computed<SelectOption[]>(() => [
-	{ value: '', label: 'Any status' },
+	{ value: '', label: t('extension_filters.any_status', 'Any status') },
 	{ value: 'on', label: props.on },
 	{ value: 'off', label: props.off },
-	{ value: 'attention', label: 'Needs attention' }
+	{ value: 'attention', label: t('extension_filters.needs_attention', 'Needs attention') }
 ]);
 
 const sourceOptions = computed<SelectOption[]>(() => [
-	{ value: '', label: 'Any source' },
+	{ value: '', label: t('extension_filters.any_source', 'Any source') },
 	...props.sources.map((value) => ({ value, label: SOURCE_LABELS[value] }))
 ]);
 
@@ -62,12 +63,12 @@ const report = computed(() => {
 	const parts = [
 		statusOptions.value.find((option) => option.value === status.value && option.value !== '')?.label,
 		sourceOptions.value.find((option) => option.value === source.value && option.value !== '')?.label,
-		query.value.trim() === '' ? undefined : `“${query.value.trim()}”`
+		query.value.trim() === '' ? undefined : t('extension_filters.query', '“{query}”', { query: query.value.trim() })
 	].filter((part) => part !== undefined);
 
 	return props.filtered
-		? [`${props.shown} of ${props.total} ${props.noun}`, ...parts].join(' · ')
-		: [`${props.total} ${props.noun}`, props.summary].filter((part) => part !== '').join(' · ');
+		? [t('extension_filters.shown_of_total', '{shown} of {total} {noun}', { shown: props.shown, total: props.total, noun: props.noun }), ...parts].join(' · ')
+		: [t('extension_filters.total', '{total} {noun}', { total: props.total, noun: props.noun }), props.summary].filter((part) => part !== '').join(' · ');
 });
 </script>
 
@@ -75,29 +76,29 @@ const report = computed(() => {
 	<div class="toolbar extension-filters" role="search">
 		<label class="search-field toolbar__search">
 			<AdminIcon name="search" />
-			<span class="visually-hidden">Filter {{ noun }}</span>
-			<input v-model="query" type="search" :placeholder="`Filter ${noun}`" autocomplete="off">
+			<span class="visually-hidden">{{ t('extension_filters.filter', 'Filter {noun}', { noun }) }}</span>
+			<input v-model="query" type="search" :placeholder="t('extension_filters.filter', 'Filter {noun}', { noun })" autocomplete="off">
 		</label>
 		<div class="toolbar__filter">
-			<label class="visually-hidden" :for="`${id}-status`">Status</label>
+			<label class="visually-hidden" :for="`${id}-status`">{{ t('extension_filters.status', 'Status') }}</label>
 			<AdminSelect :id="`${id}-status`" v-model="status" :options="statusOptions" />
 		</div>
 		<div class="toolbar__filter">
-			<label class="visually-hidden" :for="`${id}-source`">Source</label>
+			<label class="visually-hidden" :for="`${id}-source`">{{ t('extension_filters.source', 'Source') }}</label>
 			<AdminSelect :id="`${id}-source`" v-model="source" :options="sourceOptions" />
 		</div>
-		<div v-if="views" class="segmented segmented--icons toolbar__end" role="group" aria-label="View">
-			<button type="button" :aria-pressed="extensionView === 'cards'" title="Cards" @click="extensionView = 'cards'">
-				<AdminIcon name="layout-grid" /><span class="visually-hidden">Cards</span>
+		<div v-if="views" class="segmented segmented--icons toolbar__end" role="group" :aria-label="t('extension_filters.view', 'View')">
+			<button type="button" :aria-pressed="extensionView === 'cards'" :title="t('extension_filters.cards', 'Cards')" @click="extensionView = 'cards'">
+				<AdminIcon name="layout-grid" /><span class="visually-hidden">{{ t('extension_filters.cards', 'Cards') }}</span>
 			</button>
-			<button type="button" :aria-pressed="extensionView === 'list'" title="Compact list" @click="extensionView = 'list'">
-				<AdminIcon name="rows-3" /><span class="visually-hidden">Compact list</span>
+			<button type="button" :aria-pressed="extensionView === 'list'" :title="t('extension_filters.compact_list', 'Compact list')" @click="extensionView = 'list'">
+				<AdminIcon name="rows-3" /><span class="visually-hidden">{{ t('extension_filters.compact_list', 'Compact list') }}</span>
 			</button>
 		</div>
 	</div>
 
 	<p class="filter-report extension-filters__report" aria-live="polite">
 		{{ report }}
-		<button v-if="filtered" type="button" class="button button--ghost button--small" @click="emit('clear')">Clear Filters</button>
+		<button v-if="filtered" type="button" class="button button--ghost button--small" @click="emit('clear')">{{ t('extension_filters.clear_filters', 'Clear Filters') }}</button>
 	</p>
 </template>

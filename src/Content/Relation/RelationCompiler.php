@@ -17,6 +17,7 @@ use Blush\Content\EntryFields;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
+use Blush\Translation\Messages;
 
 /**
  * Makes a site's relations (D-585): the ones it defines (D-593: from
@@ -37,6 +38,12 @@ final readonly class RelationCompiler
 	public const string PARENT = 'parent';
 
 	/**
+	 * @param Messages $messages Writes the built-in relations' labels, and why relations don't fit.
+	 */
+	public function __construct(private Messages $messages)
+	{}
+
+	/**
 	 * Returns the site's relations.
 	 *
 	 * @param  iterable<Relation> $extra More relations, beyond the ones the types carry.
@@ -52,16 +59,16 @@ final readonly class RelationCompiler
 
 		foreach ($types->all() as $type) {
 			if ($type instanceof Tree || ($type instanceof Collection && $type->hierarchical)) {
-				$relations[] = new Relation(self::PARENT, RelationKind::Parent, [$type->name], [$type->name], label: 'Parent');
+				$relations[] = new Relation(self::PARENT, RelationKind::Parent, [$type->name], [$type->name], label: (string) $this->messages->t('content.relation_compiler.parent', 'Parent'));
 			}
 
-			$relations[] = new Relation(EntryFields::TRANSLATION_OF, RelationKind::Translation, [$type->name], [$type->name], label: 'Original');
+			$relations[] = new Relation(EntryFields::TRANSLATION_OF, RelationKind::Translation, [$type->name], [$type->name], label: (string) $this->messages->t('content.relation_compiler.original', 'Original'));
 		}
 
 		foreach ($extra as $relation) {
 			$relations[] = $relation;
 		}
 
-		return new Relations($relations, array_keys($types->all()));
+		return new Relations($relations, array_keys($types->all()), $this->messages);
 	}
 }

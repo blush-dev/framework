@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Activity;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a change in the activity log did (D-758), by entry or media file.
  */
@@ -46,16 +49,16 @@ enum ActivityAction: string
 	/**
 	 * Returns how the Activity tab's filter names it.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::EntryCreate  => 'Created',
-			self::EntryUpdate  => 'Edited',
-			self::EntryStatus  => 'Status changed',
-			self::EntryTrash   => 'Moved to Trash',
-			self::EntryRestore => 'Restored',
-			self::MediaUpload  => 'Uploaded',
-			self::MediaUpdate  => 'Media edited'
+			self::EntryCreate  => $messages->t('activity.activity_action.entry_create', 'Created'),
+			self::EntryUpdate  => $messages->t('activity.activity_action.entry_update', 'Edited'),
+			self::EntryStatus  => $messages->t('activity.activity_action.entry_status', 'Status changed'),
+			self::EntryTrash   => $messages->t('activity.activity_action.entry_trash', 'Moved to Trash'),
+			self::EntryRestore => $messages->t('activity.activity_action.entry_restore', 'Restored'),
+			self::MediaUpload  => $messages->t('activity.activity_action.media_upload', 'Uploaded'),
+			self::MediaUpdate  => $messages->t('activity.activity_action.media_update', 'Media edited')
 		};
 	}
 }

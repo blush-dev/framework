@@ -33,6 +33,8 @@ use Blush\Secret\SecretKeys;
 use Blush\Secret\Secrets;
 use Blush\Secret\SecretStatus;
 use Blush\Secret\SecretStore;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The checks `doctor` runs and Site Health shows (D-543), by area:
@@ -77,7 +79,8 @@ final readonly class SiteChecks
 		private SecretStore $secretStore,
 		private SecretKeys $secretKeys,
 		private ExposureCheck $exposure,
-		private FieldTargets $targets
+		private FieldTargets $targets,
+		private Messages $messages
 	) {}
 
 	/**
@@ -114,24 +117,29 @@ final readonly class SiteChecks
 	public function jobs(): array
 	{
 		if ($this->jobConfig->runner === RunnerMode::Sync) {
-			return ['jobs' => CheckResult::pass('Background jobs', 'Jobs run when they\'re queued (the "sync" runner).')];
+			return ['jobs' => CheckResult::pass($this->jobsLabel(), $this->messages->t('setup.site_checks.jobs_sync', 'Jobs run when they\'re queued (the "sync" runner).'))];
 		}
 
 		$last = $this->jobs->lastDependableRun();
 
 		if ($last !== null && $last >= $this->clock->now()->getTimestamp() - self::STALE) {
-			return ['jobs' => CheckResult::pass('Background jobs', 'Cron or a worker runs them.')];
+			return ['jobs' => CheckResult::pass($this->jobsLabel(), $this->messages->t('setup.site_checks.jobs_run', 'Cron or a worker runs them.'))];
 		}
 
-		$hint = sprintf('Add "* * * * * cd /path/to/site && php bin/%s schedule:run" to cron, or keep "%s jobs:work" running.', Framework::BINARY, Framework::BINARY);
+		$hint = $this->messages->t(
+			'setup.site_checks.jobs_hint',
+			'Add "{cron}" to cron, or keep "{worker}" running.',
+			cron: sprintf('* * * * * cd /path/to/site && php bin/%s schedule:run', Framework::BINARY),
+			worker: Framework::BINARY . ' jobs:work'
+		);
 
 		$message = match (true) {
-			$last !== null                                                      => 'Cron hasn\'t run in the last 10 minutes, so scheduled tasks and background jobs may wait.',
-			$this->jobConfig->runner === RunnerMode::Auto && WebRunner::isAvailable() => 'Cron isn\'t set up, so scheduled tasks and background jobs run only after page visits.',
-			default                                                             => 'Cron isn\'t set up, so scheduled tasks and background jobs run only while someone waits on them in the admin.'
+			$last !== null                                                      => $this->messages->t('setup.site_checks.jobs_stale', 'Cron hasn\'t run in the last {minutes} minutes, so scheduled tasks and background jobs may wait.', minutes: intdiv(self::STALE, 60)),
+			$this->jobConfig->runner === RunnerMode::Auto && WebRunner::isAvailable() => $this->messages->t('setup.site_checks.jobs_visits', 'Cron isn\'t set up, so scheduled tasks and background jobs run only after page visits.'),
+			default                                                             => $this->messages->t('setup.site_checks.jobs_waiting', 'Cron isn\'t set up, so scheduled tasks and background jobs run only while someone waits on them in the admin.')
 		};
 
-		return ['jobs' => CheckResult::warning('Background jobs', $message, $hint)];
+		return ['jobs' => CheckResult::warning($this->jobsLabel(), $message, $hint)];
 	}
 
 	/**
@@ -155,12 +163,13 @@ final readonly class SiteChecks
 	 */
 	public function secrets(): array
 	{
-		$results = array_map(static fn (string $problem): CheckResult => CheckResult::failure(SecretKeys::CURRENT, $problem, sprintf('Set it to 32 random bytes in base64, or remove it and run "%s init" to add one.', Framework::BINARY)), $this->secretKeys->problems());
+		$init    = Framework::BINARY . ' init';
+		$results = array_map(fn (string|Text $problem): CheckResult => CheckResult::failure(SecretKeys::CURRENT, $problem, $this->messages->t('setup.site_checks.key_invalid_hint', 'Set it to 32 random bytes in base64, or remove it and run "{command}" to add one.', command: $init)), $this->secretKeys->problems());
 
 		if ($results === []) {
 			$results[] = $this->secretKeys->canEncrypt()
-				? CheckResult::pass(SecretKeys::CURRENT, 'Set, so secrets can be stored.')
-				: CheckResult::warning(SecretKeys::CURRENT, 'Not set, so secrets can be set only in the environment, not stored.', sprintf('Run "%s init" to add one.', Framework::BINARY));
+				? CheckResult::pass(SecretKeys::CURRENT, $this->messages->t('setup.site_checks.key_set', 'Set, so secrets can be stored.'))
+				: CheckResult::warning(SecretKeys::CURRENT, $this->messages->t('setup.site_checks.key_missing', 'Not set, so secrets can be set only in the environment, not stored.'), $this->messages->t('setup.site_checks.key_missing_hint', 'Run "{command}" to add one.', command: $init));
 		}
 
 		try {
@@ -170,19 +179,33 @@ final readonly class SiteChecks
 				$status = $this->secretStore->status($definition);
 
 				if ($status === SecretStatus::Unreadable) {
-					$results[] = CheckResult::failure("Secret {$name}", 'Stored, but it won\'t decrypt: it was stored under a key this site doesn\'t have, or changed.', sprintf('Store it again with "%s secrets:set %s", or put the key it was stored under in %s.', Framework::BINARY, $name, SecretKeys::PREVIOUS));
+					$results[] = CheckResult::failure(
+						$this->secretLabel($name),
+						$this->messages->t('setup.site_checks.secret_unreadable', 'Stored, but it won\'t decrypt: it was stored under a key this site doesn\'t have, or changed.'),
+						$this->messages->t('setup.site_checks.secret_unreadable_hint', 'Store it again with "{command}", or put the key it was stored under in {previous}.', command: Framework::BINARY . " secrets:set {$name}", previous: SecretKeys::PREVIOUS)
+					);
 				} elseif ($definition->required && $status === SecretStatus::Missing) {
-					$results[] = CheckResult::warning("Secret {$name}", $definition->owner === $definition::CORE ? 'Core needs it, but it isn\'t set.' : sprintf('%s needs it, but it isn\'t set.', $definition->owner), sprintf('Set %s in the environment, or run "%s secrets:set %s".', $definition->env, Framework::BINARY, $name));
+					$results[] = CheckResult::warning(
+						$this->secretLabel($name),
+						$definition->owner === $definition::CORE
+							? $this->messages->t('setup.site_checks.secret_missing_core', 'Core needs it, but it isn\'t set.')
+							: $this->messages->t('setup.site_checks.secret_missing', '{owner} needs it, but it isn\'t set.', owner: $definition->owner),
+						$this->messages->t('setup.site_checks.secret_missing_hint', 'Set {env} in the environment, or run "{command}".', env: $definition->env, command: Framework::BINARY . " secrets:set {$name}")
+					);
 				}
 
 				unset($stored[$name]);
 			}
 
 			foreach (array_keys($stored) as $name) {
-				$results[] = CheckResult::warning("Secret {$name}", 'Stored, but nothing declares it any more (an extension may have been removed).', sprintf('Run "%s secrets:remove %s" if it\'s no longer needed.', Framework::BINARY, $name));
+				$results[] = CheckResult::warning(
+					$this->secretLabel($name),
+					$this->messages->t('setup.site_checks.secret_undeclared', 'Stored, but nothing declares it any more (an extension may have been removed).'),
+					$this->messages->t('setup.site_checks.secret_undeclared_hint', 'Run "{command}" if it\'s no longer needed.', command: Framework::BINARY . " secrets:remove {$name}")
+				);
 			}
 		} catch (SecretException $e) {
-			$results[] = CheckResult::failure('Secrets', $e->getMessage());
+			$results[] = CheckResult::failure($this->messages->t('setup.site_checks.secrets', 'Secrets'), $e->getMessage());
 		}
 
 		return $results;
@@ -202,11 +225,17 @@ final readonly class SiteChecks
 				return [];
 			}
 
+			$label = $this->messages->t('setup.site_checks.owner', 'Owner');
+
 			return ['owner' => $this->accounts->hasOwner()
-				? CheckResult::pass('Owner', 'The site has an owner.')
-				: CheckResult::warning('Owner', 'No account is the site\'s owner, so administrators can lock each other out.', sprintf('Run "%s account:roles {username} --role owner", or make yourself the owner on Your Account in the admin.', Framework::BINARY))];
+				? CheckResult::pass($label, $this->messages->t('setup.site_checks.owner_found', 'The site has an owner.'))
+				: CheckResult::warning(
+					$label,
+					$this->messages->t('setup.site_checks.owner_missing', 'No account is the site\'s owner, so administrators can lock each other out.'),
+					$this->messages->t('setup.site_checks.owner_missing_hint', 'Run "{command}", or make yourself the owner on Your Account in the admin.', command: Framework::BINARY . ' account:roles {username} --role owner')
+				)];
 		} catch (AuthException $e) {
-			return ['accounts' => CheckResult::failure('Accounts', $e->getMessage())];
+			return ['accounts' => CheckResult::failure($this->messages->t('setup.site_checks.accounts', 'Accounts'), $e->getMessage())];
 		}
 	}
 
@@ -223,39 +252,49 @@ final readonly class SiteChecks
 
 		if ($themes !== []) {
 			$results['theme'] = CheckResult::warning(
-				'Theme',
-				sprintf('The "%s" theme can\'t run, so the default theme runs in its place. %s', $this->extensions->theme, Requirements::reason(array_merge(...array_values($themes)))),
-				sprintf('Run "%s theme:check" for more.', Framework::BINARY)
+				$this->messages->t('setup.site_checks.theme', 'Theme'),
+				$this->sentences([
+					$this->messages->t('setup.site_checks.theme_unmet', 'The "{theme}" theme can\'t run, so the default theme runs in its place.', theme: $this->extensions->theme),
+					Requirements::reason(array_merge(...array_values($themes)), $this->messages)
+				]),
+				$this->messages->t('setup.site_checks.theme_unmet_hint', 'Run "{command}" for more.', command: Framework::BINARY . ' theme:check')
 			);
 		}
 
 		$kinds = [
-			['plugins', 'Plugins', 'plugin', array_keys($this->extensions->plugins->unmet()), 'plugin:check'],
-			['icon-packs', 'Icon packs', 'icon pack', array_keys($this->extensions->packs->unmet()), 'icon-pack:check'],
-			['admin-themes', 'Admin themes', 'admin theme', array_keys($this->extensions->adminThemes->unmet()), 'admin-theme:check']
+			['plugins', $this->messages->t('setup.site_checks.plugins', 'Plugins'), 'plugin', array_keys($this->extensions->plugins->unmet()), 'plugin:check'],
+			['icon-packs', $this->messages->t('setup.site_checks.icon_packs', 'Icon packs'), 'icon_pack', array_keys($this->extensions->packs->unmet()), 'icon-pack:check'],
+			['admin-themes', $this->messages->t('setup.site_checks.admin_themes', 'Admin themes'), 'admin_theme', array_keys($this->extensions->adminThemes->unmet()), 'admin-theme:check']
 		];
 
 		foreach ($kinds as [$key, $label, $kind, $names, $command]) {
 			if ($names !== []) {
 				$results[$key] = CheckResult::warning(
 					$label,
-					sprintf('%s %s %s turned on but can\'t run: %s.', count($names), count($names) === 1 ? $kind : "{$kind}s", count($names) === 1 ? 'is' : 'are', implode(', ', $names)),
-					sprintf('Run "%s %s" to see why.', Framework::BINARY, $command)
+					$this->messages->t(
+						'setup.site_checks.unmet',
+						'{count, plural, one {# {kind, select, plugin {plugin} icon_pack {icon pack} other {admin theme}} is} other {# {kind, select, plugin {plugins} icon_pack {icon packs} other {admin themes}} are}} turned on but can\'t run: {names}.',
+						count: count($names),
+						kind: $kind,
+						names: implode(', ', $names)
+					),
+					$this->messages->t('setup.site_checks.unmet_hint', 'Run "{command}" to see why.', command: Framework::BINARY . " {$command}")
 				);
 			}
 		}
 
 		if ($this->types->clashes !== []) {
 			$results['clashes'] = CheckResult::warning(
-				'Names defined twice',
-				implode(' ', array_map(fn (DefinitionClash $clash): string => sprintf(
-					'Two plugins define the "%s" %s: %s\'s is used, and %s\'s is left out.',
-					$clash->name,
-					$clash->kind === 'type' ? 'content type' : $clash->kind,
-					$this->pluginLabel($clash->kept),
-					$this->pluginLabel($clash->dropped)
+				$this->messages->t('setup.site_checks.clashes', 'Names defined twice'),
+				$this->sentences(array_map(fn (DefinitionClash $clash): Text => $this->messages->t(
+					'setup.site_checks.clash',
+					'Two plugins define the "{name}" {kind, select, type {content type} other {relation}}: {kept}\'s is used, and {dropped}\'s is left out.',
+					name: $clash->name,
+					kind: $clash->kind,
+					kept: $this->pluginLabel($clash->kept),
+					dropped: $this->pluginLabel($clash->dropped)
 				), $this->types->clashes)),
-				'Turn one of them off, or ask its author to rename what it defines.'
+				$this->messages->t('setup.site_checks.clashes_hint', 'Turn one of them off, or ask its author to rename what it defines.')
 			);
 		}
 
@@ -267,13 +306,47 @@ final readonly class SiteChecks
 
 		if ($problems !== []) {
 			$results['field-sets'] = CheckResult::warning(
-				'Field sets left off',
-				implode(' ', array_merge(...array_values($problems))),
-				sprintf('Rename the field in one of the sets, or turn off the plugin that adds one. Run "%s content:lint" to see each.', Framework::BINARY)
+				$this->messages->t('setup.site_checks.field_sets', 'Field sets left off'),
+				$this->sentences(array_merge(...array_values($problems))),
+				$this->messages->t('setup.site_checks.field_sets_hint', 'Rename the field in one of the sets, or turn off the plugin that adds one. Run "{command}" to see each.', command: Framework::BINARY . ' content:lint')
 			);
 		}
 
-		return $results === [] ? ['extensions' => CheckResult::pass('Extensions', 'Everything that\'s on runs.')] : $results;
+		return $results === [] ? ['extensions' => CheckResult::pass($this->messages->t('setup.site_checks.extensions', 'Extensions'), $this->messages->t('setup.site_checks.extensions_run', 'Everything that\'s on runs.'))] : $results;
+	}
+
+	/**
+	 * Puts sentences one after another as one message, each kept as it
+	 * was written (a message stays a message, D-836).
+	 *
+	 * @param list<string|Text> $sentences
+	 */
+	private function sentences(array $sentences): string|Text
+	{
+		$sentences = array_values(array_filter($sentences, static fn (string|Text $sentence): bool => $sentence instanceof Text || $sentence !== ''));
+		$last      = array_pop($sentences) ?? '';
+
+		foreach (array_reverse($sentences) as $sentence) {
+			$last = $this->messages->t('setup.site_checks.sentences', '{sentence} {next}', sentence: $sentence, next: $last);
+		}
+
+		return $last;
+	}
+
+	/**
+	 * The background jobs check's label.
+	 */
+	private function jobsLabel(): Text
+	{
+		return $this->messages->t('setup.site_checks.jobs', 'Background jobs');
+	}
+
+	/**
+	 * A secret's check's label.
+	 */
+	private function secretLabel(string $name): Text
+	{
+		return $this->messages->t('setup.site_checks.secret', 'Secret {name}', name: $name);
 	}
 
 	/**

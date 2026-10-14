@@ -16,6 +16,8 @@ import { copyText } from '../toast';
 import { menuSlug, MENU_NAME, type MenuLocation } from '../menus';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
+import MessageText from './MessageText.vue';
+import { t } from '../messages';
 
 export interface MenuSettingsValue {
 	label: string;
@@ -44,14 +46,14 @@ const snippet = computed(() => `::menu{name=${name.value || '…'}}`);
 
 const problem = computed(() => {
 	if (name.value === '') {
-		return 'A menu needs a name.';
+		return t('menu_settings.errors.name_needed', 'A menu needs a name.');
 	}
 
 	if (name.value !== props.saved && props.menus.some((menu) => menu.name === name.value)) {
-		return `There's already a menu named ${name.value}. Pick another name.`;
+		return t('menu_settings.errors.name_taken', 'There\'s already a menu named {name}. Pick another name.', { name: name.value });
 	}
 
-	return MENU_NAME.test(name.value) ? '' : 'Start the name with a letter or digit.';
+	return MENU_NAME.test(name.value) ? '' : t('menu_settings.errors.name_start', 'Start the name with a letter or digit.');
 });
 
 const renamed = computed(() => props.saved !== null && name.value !== props.saved);
@@ -72,21 +74,21 @@ function toggle(location: string, on: boolean): void {
 function state(location: MenuLocation): string {
 	const on   = chosen.value.includes(location.name);
 	const mine = props.saved !== null && location.menu === props.saved;
-	const none = location.defaults > 0 ? 'the theme\'s default' : 'nothing';
+	const none = location.defaults > 0 ? 'default' : 'nothing';
 
 	if (on) {
-		return mine ? 'Shows this menu.' : location.menu !== null ? `Replaces ${labelOf(location.menu)} when saved.` : 'Shows this menu once saved.';
+		return mine ? t('menu_settings.state.shows_this', 'Shows this menu.') : location.menu !== null ? t('menu_settings.state.replaces', 'Replaces {menu} when saved.', { menu: labelOf(location.menu) }) : t('menu_settings.state.shows_once_saved', 'Shows this menu once saved.');
 	}
 
 	if (mine) {
-		return `Goes back to ${none} when saved.`;
+		return t('menu_settings.state.goes_back', '{none, select, default {Goes back to the theme\'s default when saved.} other {Goes back to nothing when saved.}}', { none });
 	}
 
-	return location.menu !== null ? `Shows ${labelOf(location.menu)}.` : `Shows ${none}.`;
+	return location.menu !== null ? t('menu_settings.state.shows', 'Shows {menu}.', { menu: labelOf(location.menu) }) : t('menu_settings.state.shows_none', '{none, select, default {Shows the theme\'s default.} other {Shows nothing.}}', { none });
 }
 
 function depthOf(location: MenuLocation): string {
-	return location.depth === null ? 'Any depth' : location.depth === 1 ? 'One level' : `Up to ${location.depth} levels`;
+	return location.depth === null ? t('menu_settings.depth.any', 'Any depth') : location.depth === 1 ? t('menu_settings.depth.one', 'One level') : t('menu_settings.depth.up_to', 'Up to {depth, plural, one {# level} other {# levels}}', { depth: location.depth });
 }
 
 function done(): void {
@@ -97,44 +99,44 @@ function done(): void {
 </script>
 
 <template>
-	<AdminModal open title="Menu Settings" @close="emit('close')">
+	<AdminModal open :title="t('menu_settings.title', 'Menu Settings')" @close="emit('close')">
 		<form id="menu-settings" class="form-stack" novalidate @submit.prevent="done">
-			<p class="menu-settings__lead">Saved with the items when you press {{ saved === null ? 'Publish' : 'Update' }}.</p>
+			<p class="menu-settings__lead">{{ saved === null ? t('menu_settings.lead_publish', 'Saved with the items when you press Publish.') : t('menu_settings.lead_update', 'Saved with the items when you press Update.') }}</p>
 
 			<div class="field">
-				<label for="menu-settings-label">Label</label>
+				<label for="menu-settings-label">{{ t('menu_settings.label', 'Label') }}</label>
 				<input id="menu-settings-label" v-model="label" autocomplete="off" autofocus aria-describedby="menu-settings-label-help">
-				<p id="menu-settings-label-help" class="field__help">Names the navigation for screen readers. Without one, the theme's name for the location is used.</p>
+				<p id="menu-settings-label-help" class="field__help">{{ t('menu_settings.label_help', 'Names the navigation for screen readers. Without one, the theme\'s name for the location is used.') }}</p>
 			</div>
 
 			<div class="field">
-				<label for="menu-settings-name">Name</label>
+				<label for="menu-settings-name">{{ t('menu_settings.name', 'Name') }}</label>
 				<input id="menu-settings-name" :value="name" class="mono" autocomplete="off" spellcheck="false" :aria-invalid="problem !== ''" aria-describedby="menu-settings-name-help" @input="typeName">
 				<p v-if="problem" id="menu-settings-name-help" class="field__error"><AdminIcon name="triangle-alert" />{{ problem }}</p>
-				<p v-else id="menu-settings-name-help" class="field__help">Themes and the block find the menu by its name.</p>
+				<p v-else id="menu-settings-name-help" class="field__help">{{ t('menu_settings.name_help', 'Themes and the block find the menu by its name.') }}</p>
 				<p v-if="renamed && !problem" class="notice notice--warn notice--small" role="status">
 					<AdminIcon name="triangle-alert" />
-					<span><strong>Renaming changes how entries find this menu.</strong> Its locations follow the new name on their own, but an entry that shows it with <code>::menu{name={{ saved }}}</code> shows nothing there until it's changed.</span>
+					<span><strong>{{ t('menu_settings.renaming', 'Renaming changes how entries find this menu.') }}</strong> <MessageText :text="t('menu_settings.renaming_help', 'Its locations follow the new name on their own, but an entry that shows it with {snippet} shows nothing there until it\'s changed.')"><template #snippet><code>::menu{name={{ saved }}}</code></template></MessageText></span>
 				</p>
 			</div>
 
 			<div class="field">
-				<span class="field__label">In an Entry</span>
+				<span class="field__label">{{ t('menu_settings.in_entry', 'In an Entry') }}</span>
 				<div class="menu-settings__snippet">
 					<code class="mono">{{ snippet }}</code>
-					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, 'the block')"><AdminIcon name="copy" />Copy</button>
+					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, t('menu_settings.the_block', 'the block'))"><AdminIcon name="copy" />{{ t('menu_settings.copy', 'Copy') }}</button>
 				</div>
 			</div>
 
 			<fieldset class="fieldset">
-				<legend>Locations</legend>
-				<p v-if="!locations.length" class="field__help">The active theme has no menu locations.</p>
+				<legend>{{ t('menu_settings.locations', 'Locations') }}</legend>
+				<p v-if="!locations.length" class="field__help">{{ t('menu_settings.no_locations', 'The active theme has no menu locations.') }}</p>
 				<div v-else class="menu-settings__locations">
 					<label v-for="location in locations" :key="location.name" class="checkbox menu-settings__location">
 						<input type="checkbox" :checked="chosen.includes(location.name)" @change="toggle(location.name, ($event.target as HTMLInputElement).checked)">
 						<span>
 							<span class="menu-settings__location-name">{{ location.label }}</span>
-							<span class="field__help">{{ depthOf(location) }}. {{ state(location) }}</span>
+							<span class="field__help">{{ t('menu_settings.location_help', '{depth}. {state}', { depth: depthOf(location), state: state(location) }) }}</span>
 						</span>
 					</label>
 				</div>
@@ -142,8 +144,8 @@ function done(): void {
 		</form>
 
 		<template #footer>
-			<button type="button" class="button" @click="emit('close')">Cancel</button>
-			<button type="submit" form="menu-settings" class="button button--primary" :disabled="problem !== ''">Done</button>
+			<button type="button" class="button" @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
+			<button type="submit" form="menu-settings" class="button button--primary" :disabled="problem !== ''">{{ t('common.done', 'Done') }}</button>
 		</template>
 	</AdminModal>
 </template>

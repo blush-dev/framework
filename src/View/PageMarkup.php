@@ -16,7 +16,9 @@ namespace Blush\View;
 use JsonException;
 use Psr\Log\LoggerInterface;
 use Blush\Asset\Assets;
+use Blush\Data\InvalidData;
 use Blush\Theme\ThemeException;
+use Blush\Translation\Translator;
 
 /**
  * The markup Blush adds to a page around its templates' own (D-578): one
@@ -39,6 +41,12 @@ use Blush\Theme\ThemeException;
  * after it. Tied to an asset with no script on the page, they don't
  * print, which the log notes in development. Untied, data prints
  * before a placement's scripts and inline code after them (D-579).
+ *
+ * A script that names a catalog (D-831) has it printed as data before
+ * its asset's first script, once per page, in the page's language
+ * (`<script type="application/json" data-blush-messages="core"
+ * data-blush-catalog="site">`), and the head gets an import map for
+ * `blush/messages`, the module that reads it (`import()`).
  *
  * While a page renders, it's held (`hold()`): printing the head or the
  * foot leaves a placeholder, and `fill()` puts each in its place once
@@ -91,17 +99,30 @@ final class PageMarkup
 	private ?string $held = null;
 
 	/**
+	 * The import map's modules, by specifier.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $imports = [];
+
+	/**
 	 * @param string           $origin The site's origin (`https://example.com`), for
 	 *                                 resolving root-relative URLs. Empty leaves them.
 	 * @param ?LoggerInterface $logger Where to note footer scripts a page didn't
 	 *                                 print, in development.
+	 * @param ?Translator      $translator What the catalogs scripts read are
+	 *                                     resolved by (D-831); without one, none print.
+	 * @param string           $locale The page's locale, the catalogs' language, or
+	 *                                 `''` for the site's.
 	 */
 	public function __construct(
 		string $siteName = '',
 		string $separator = ' | ',
 		private readonly string $origin = '',
 		private readonly ?Assets $assets = null,
-		private readonly ?LoggerInterface $logger = null
+		private readonly ?LoggerInterface $logger = null,
+		private readonly ?Translator $translator = null,
+		private readonly string $locale = ''
 	) {
 		$this->head = new Head($this, $siteName, $separator);
 		$this->foot = new Foot($this);
@@ -153,17 +174,57 @@ final class PageMarkup
 	 */
 	public function addData(Placement $placement, string $id, mixed $value, ?string $for = null): void
 	{
-		try {
-			$json = json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-		} catch (JsonException $error) {
-			throw new ViewException(sprintf('Data "%s" can\'t be JSON: %s', $id, $error->getMessage()), previous: $error);
-		}
+		$json = self::json($value, $id);
 
 		if ($for !== null) {
 			$this->enqueue($for);
 		}
 
 		$this->add($placement, "data:{$id}", 'script', ['type' => 'application/json', 'id' => $id], $json, $for);
+	}
+
+	/**
+	 * Adds a domain's named catalog for the scripts that read it (D-831),
+	 * once per page, as data tied to an asset: the catalog's messages in
+	 * the page's language, with `@` notes left out. An empty catalog
+	 * doesn't print, since the scripts' own text is what it would say.
+	 *
+	 * @internal Used by `Assets` as it adds an asset's files.
+	 * @throws   InvalidData When a catalog can't be parsed.
+	 * @throws   ViewException When the messages can't be JSON.
+	 */
+	public function addMessages(Placement $placement, string $domain, string $catalog, string $handle): void
+	{
+		$key = "data:messages:{$domain}:{$catalog}";
+
+		if ($this->translator === null || isset($this->tags[$key])) {
+			return;
+		}
+
+		// Core's code is written in English, so its English text needn't print (D-834).
+		$messages = $this->translator->catalog($domain, $catalog, $this->locale === '' ? null : $this->locale, $domain === Translator::CORE ? Translator::LAST : null);
+
+		if ($messages === []) {
+			return;
+		}
+
+		$this->add($placement, $key, 'script', ['type' => 'application/json', 'data-blush-messages' => $domain, 'data-blush-catalog' => $catalog], self::json($messages, $key), $handle);
+	}
+
+	/**
+	 * Maps a module specifier to a URL in the head's import map, such as
+	 * `blush/messages` (D-831), so a script imports it by name. The map
+	 * prints before the head's scripts, as browsers require.
+	 *
+	 * @throws ViewException
+	 */
+	public function import(string $specifier, string $url): self
+	{
+		$this->imports[$specifier] = $this->absolute($url);
+
+		$this->add(Placement::Head, 'importmap', 'script', ['type' => 'importmap'], self::json(['imports' => $this->imports], 'importmap'));
+
+		return $this;
 	}
 
 	/**
@@ -464,6 +525,20 @@ final class PageMarkup
 				'path'    => $path === '' ? 'a page' : $path,
 				'scripts' => implode(', ', $lost)
 			]);
+		}
+	}
+
+	/**
+	 * Returns a value as JSON safe inside `<script>`.
+	 *
+	 * @throws ViewException When it can't be JSON.
+	 */
+	private static function json(mixed $value, string $id): string
+	{
+		try {
+			return json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+		} catch (JsonException $error) {
+			throw new ViewException(sprintf('Data "%s" can\'t be JSON: %s', $id, $error->getMessage()), previous: $error);
 		}
 	}
 

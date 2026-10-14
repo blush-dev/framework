@@ -23,9 +23,10 @@
 import { request, type RelationCheck, type RelationCheckItem, type RelationInfo } from './api';
 import { confirmAction, confirmChecked, type ConfirmItem } from './confirm';
 import { humanize } from './fields';
-import { plural, series } from './format';
+import { series } from './format';
 import { toast } from './toast';
 import { labelsOf, refreshTypes } from './types';
+import { t } from './messages';
 import type { IconName } from './icons';
 import type { RouteLocationRaw } from 'vue-router';
 
@@ -33,9 +34,9 @@ export type RelationPurpose = 'classify' | 'reference' | 'credit';
 
 // The list's tabs, by purpose.
 export const purposes: { key: RelationPurpose; label: string; icon: IconName }[] = [
-	{ key: 'credit', label: 'Credits', icon: 'user' },
-	{ key: 'classify', label: 'Files Under Terms', icon: 'tag' },
-	{ key: 'reference', label: 'Links', icon: 'link' }
+	{ key: 'credit', label: t('relations.purpose_credit', 'Credits'), icon: 'user' },
+	{ key: 'classify', label: t('relations.purpose_classify', 'Files Under Terms'), icon: 'tag' },
+	{ key: 'reference', label: t('relations.purpose_reference', 'Links'), icon: 'link' }
 ];
 
 /**
@@ -70,30 +71,31 @@ export function storedOn(relation: Pick<RelationInfo, 'from' | 'to'>, type: stri
  * Where a relation is defined, for people.
  */
 export function sourceOf(relation: Pick<RelationInfo, 'origin'>): string {
-	return { data: 'user/data/relations', extension: 'A plugin' }[relation.origin];
+	return { data: 'user/data/relations', extension: t('relations.source_plugin', 'A plugin') }[relation.origin];
 }
 
 /**
- * A relation said from one type's side, in three parts so the type it
- * names can stand out: "Credits", "Profiles", "as Cooks".
+ * A relation said from one type's side, as a sentence with `{type}` left
+ * in it, so the type it names can stand out (`MessageText`): "Credits
+ * {type} as Cooks", with `type` "Profiles".
  */
-export function sentenceFrom(relation: RelationInfo, type: string): { before: string; type: string; after: string } {
+export function sentenceFrom(relation: RelationInfo, type: string): { text: string; type: string } {
 	const label = relationLabel(relation);
 	const to    = plurals(relation.to);
-	const from  = relation.from.length === 0 ? 'every type' : plurals(relation.from);
+	const from  = relation.from.length === 0 ? t('relations.every_type_lower', 'every type') : plurals(relation.from);
 
 	if (storedOn(relation, type)) {
 		return {
-			classify: { before: 'Filed under', type: to, after: '' },
-			credit: { before: 'Credits', type: to, after: `as ${label}` },
-			reference: { before: 'Links to', type: to, after: `as ${label}` }
+			classify: { text: t('relations.from_classify', 'Filed under {type}'), type: to },
+			credit: { text: t('relations.from_credit', 'Credits {type} as {label}', { label }), type: to },
+			reference: { text: t('relations.from_reference', 'Links to {type} as {label}', { label }), type: to }
 		}[purposeOf(relation)];
 	}
 
 	return {
-		classify: { before: 'Files', type: from, after: '' },
-		credit: { before: 'Credited by', type: from, after: `as ${label}` },
-		reference: { before: 'Linked from', type: from, after: `as ${label}` }
+		classify: { text: t('relations.to_classify', 'Files {type}'), type: from },
+		credit: { text: t('relations.to_credit', 'Credited by {type} as {label}', { label }), type: from },
+		reference: { text: t('relations.to_reference', 'Linked from {type} as {label}', { label }), type: from }
 	}[purposeOf(relation)];
 }
 
@@ -103,14 +105,17 @@ export function sentenceFrom(relation: RelationInfo, type: string): { before: st
  */
 export function sayRelation(purpose: RelationPurpose, from: string[], to: string, label: string): string {
 	const one     = from.length === 0;
-	const subject = one ? 'Every type' : plurals(from);
+	const subject = one ? t('relations.every_type', 'Every type') : plurals(from);
 	const target  = to === '' ? '…' : labelsOf(to).plural;
 	const end     = to === '' ? '' : '.';
+	const params  = { subject, every: one ? 'yes' : 'no', target, label, end };
 
 	return {
-		classify: `${subject} ${one ? 'is' : 'are'} filed under ${target}${end}`,
-		credit: `${subject} ${one ? 'credits' : 'credit'} ${target} as ${label || target}${end}`,
-		reference: `${subject} ${one ? 'links' : 'link'} to ${target}${label ? ` as ${label}` : ''}${end}`
+		classify: t('relations.say_classify', '{subject} {every, select, yes {is} other {are}} filed under {target}{end}', params),
+		credit: t('relations.say_credit', '{subject} {every, select, yes {credits} other {credit}} {target} as {as}{end}', { ...params, as: label || target }),
+		reference: label
+			? t('relations.say_reference_as', '{subject} {every, select, yes {links} other {link}} to {target} as {label}{end}', params)
+			: t('relations.say_reference', '{subject} {every, select, yes {links} other {link}} to {target}{end}', params)
 	}[purpose];
 }
 
@@ -123,13 +128,13 @@ export function sayRelation(purpose: RelationPurpose, from: string[], to: string
 export function takes(relation: Pick<RelationInfo, 'multiple' | 'ordered' | 'min' | 'max' | 'create'>, per?: string): string {
 	const { min, max } = relation;
 	const base = !relation.multiple
-		? (min > 0 ? 'Exactly one' : 'One')
-		: (min > 0 && max !== null ? `${min} to ${max}` : (min > 0 ? `At least ${min}` : (max !== null ? `Up to ${max}` : (per ? 'Any number' : 'Several'))));
+		? (min > 0 ? t('relations.takes_exactly_one', 'Exactly one') : t('relations.takes_one', 'One'))
+		: (min > 0 && max !== null ? t('relations.takes_range', '{min} to {max}', { min, max }) : (min > 0 ? t('relations.takes_at_least', 'At least {min}', { min }) : (max !== null ? t('relations.takes_up_to', 'Up to {max}', { max }) : (per ? t('relations.takes_any', 'Any number') : t('relations.takes_several', 'Several')))));
 
 	return [
-		per ? `${base} per ${per}` : base,
-		...(relation.multiple && relation.ordered ? ['in order'] : []),
-		...(relation.create && !per ? ['created as typed'] : [])
+		per ? t('relations.takes_per', '{base} per {per}', { base, per }) : base,
+		...(relation.multiple && relation.ordered ? [t('relations.takes_ordered', 'in order')] : []),
+		...(relation.create && !per ? [t('relations.takes_created', 'created as typed')] : [])
 	].join(', ');
 }
 
@@ -139,15 +144,16 @@ export function takes(relation: Pick<RelationInfo, 'multiple' | 'ordered' | 'min
  */
 export function limitsSay(options: { item: string; singular: string; plural: string; target: string; items: string; multiple: boolean; min: number; max: number | null; inverseMax: number | null }): string {
 	const { item, singular, plural: many, target, items, multiple, min, max, inverseMax } = options;
-	const noun  = (count: number): string => count === 1 ? singular : many;
 	const takes = !multiple
-		? (min > 0 ? `needs one ${singular}` : `takes one ${singular} at most`)
+		? (min > 0 ? t('relations.limits_needs_one', 'needs one {singular}', { singular }) : t('relations.limits_one_at_most', 'takes one {singular} at most', { singular }))
 		: (min > 0
-			? `needs at least ${min} ${noun(min)}${max !== null ? ` and takes up to ${max}` : ''}`
-			: (max !== null ? `takes up to ${max} ${noun(max)}` : `takes any number of ${many}`));
-	const side  = inverseMax !== null ? `at most ${inverseMax} ${inverseMax === 1 ? item : items}` : `any number of ${items}`;
+			? (max !== null
+				? t('relations.limits_at_least_up_to', 'needs at least {min, plural, one {# {singular}} other {# {plural}}} and takes up to {max}', { min, max, singular, plural: many })
+				: t('relations.limits_at_least', 'needs at least {min, plural, one {# {singular}} other {# {plural}}}', { min, singular, plural: many }))
+			: (max !== null ? t('relations.limits_up_to', 'takes up to {max, plural, one {# {singular}} other {# {plural}}}', { max, singular, plural: many }) : t('relations.limits_any', 'takes any number of {plural}', { plural: many })));
+	const side  = inverseMax !== null ? t('relations.limits_side_at_most', 'at most {count, plural, one {# {item}} other {# {items}}}', { count: inverseMax, item, items }) : t('relations.limits_side_any', 'any number of {items}', { items });
 
-	return `Each ${item} ${takes}. One ${target} can be named by ${side}.`;
+	return t('relations.limits', 'Each {item} {takes}. One {target} can be named by {side}.', { item, takes, target, side });
 }
 
 /**
@@ -159,10 +165,8 @@ export function article(word: string): string {
 
 // The entries a check names, for a confirmation's list.
 function listed(items: RelationCheckItem[], one: string, many: string, mixed: boolean): ConfirmItem[] {
-	return items.map((item) => ({ title: item.title, meta: mixed ? labelsOf(item.type).singular : undefined, count: plural(item.count, one, many) }));
+	return items.map((item) => ({ title: item.title, meta: mixed ? labelsOf(item.type).singular : undefined, count: t('relations.listed_count', '{count, plural, one {# {singular}} other {# {plural}}}', { count: item.count, singular: one, plural: many }) }));
 }
-
-const counted = (count: number): string => count.toLocaleString();
 
 /**
  * What a change needs to know beyond the check: the relation as it was
@@ -200,7 +204,7 @@ export async function confirmRelationChange(check: RelationCheck, context: Relat
 
 	// The list of a type's entries over a number, in the way.
 	const showAll = (count: number, above: number): { label: string; run: () => void } => ({
-		label: `Show All ${counted(count)} in ${names.plural}`,
+		label: t('relations.show_all', 'Show All {count} in {types}', { count, types: names.plural }),
 		run: () => context.go({ name: 'type', params: { type }, query: { over: context.name, above: String(above) } })
 	});
 
@@ -208,14 +212,14 @@ export async function confirmRelationChange(check: RelationCheck, context: Relat
 		const several = check.refused === 'one';
 
 		await confirmAction({
-			title: several ? `${context.label} Can't Take Exactly One Yet` : `${context.label} Can't Point at Another Type Yet`,
+			title: several ? t('relations.refused_one_title', '{label} Can\'t Take Exactly One Yet', { label: context.label }) : t('relations.refused_type_title', '{label} Can\'t Point at Another Type Yet', { label: context.label }),
 			body: several
-				? `**${counted(check.inWayCount)} ${check.inWayCount === 1 ? names.item : names.items}** ${check.inWayCount === 1 ? 'has' : 'have'} more than one ${one}. Take them down to one each, or keep ${context.label} as several.`
-				: `**${counted(check.inWayCount)} ${check.inWayCount === 1 ? names.item : names.items}** ${check.inWayCount === 1 ? 'has' : 'have'} ${many} already. Make a new relationship for the other type, or keep this one pointing at ${labelsOf(context.target).plural}.`,
+				? t('relations.refused_one_body', '**{count, plural, one {# {item}} other {# {items}}}** {count, plural, one {has} other {have}} more than one {singular}. Take them down to one each, or keep {label} as several.', { count: check.inWayCount, item: names.item, items: names.items, singular: one, label: context.label })
+				: t('relations.refused_type_body', '**{count, plural, one {# {item}} other {# {items}}}** {count, plural, one {has} other {have}} {plural} already. Make a new relationship for the other type, or keep this one pointing at {target}.', { count: check.inWayCount, item: names.item, items: names.items, plural: many, target: labelsOf(context.target).plural }),
 			items: listed(check.inWay, one, many, mixed),
-			more: check.inWayCount > check.inWay.length ? `and ${counted(check.inWayCount - check.inWay.length)} more` : undefined,
+			more: check.inWayCount > check.inWay.length ? t('relations.more', 'and {count} more', { count: check.inWayCount - check.inWay.length }) : undefined,
 			action: type === '' || check.inWayCount <= check.inWay.length ? undefined : showAll(check.inWayCount, several ? 1 : 0),
-			confirm: several ? 'Keep as Several' : `Keep ${labelsOf(context.target).plural}`,
+			confirm: several ? t('relations.keep_several', 'Keep as Several') : t('relations.keep_target', 'Keep {target}', { target: labelsOf(context.target).plural }),
 			alone: true
 		});
 
@@ -226,14 +230,13 @@ export async function confirmRelationChange(check: RelationCheck, context: Relat
 	let strip   = false;
 
 	if (check.moved > 0) {
-		const files = check.moved === 1 ? '1 file' : `${counted(check.moved)} files`;
 		const answer = await confirmChecked({
-			title: `Change the Key From ${context.field} to ${context.newField}?`,
-			body: `**${files}** use “${context.field}”. Saving keeps it working as an alias: ${check.moved === 1 ? 'that file is' : 'those files are'} read as before, and new saves write “${context.newField}”.`,
-			check: check.moved === 1 ? 'Rewrite the file now' : `Rewrite all ${counted(check.moved)} files now`,
-			checkHelp: 'Changes the key in each file and drops the alias. Each file\'s history shows the change.',
+			title: t('relations.key_title', 'Change the Key From {from} to {to}?', { from: context.field, to: context.newField }),
+			body: t('relations.key_body', '**{count, plural, one {# file} other {# files}}** use “{from}”. Saving keeps it working as an alias: {count, plural, one {that file is} other {those files are}} read as before, and new saves write “{to}”.', { count: check.moved, from: context.field, to: context.newField }),
+			check: t('relations.key_rewrite', '{count, plural, one {Rewrite the file now} other {Rewrite all # files now}}', { count: check.moved }),
+			checkHelp: t('relations.key_rewrite_help', 'Changes the key in each file and drops the alias. Each file\'s history shows the change.'),
 			checked: false,
-			confirm: 'Change Key'
+			confirm: t('relations.key_confirm', 'Change Key')
 		});
 
 		if (answer === null) {
@@ -245,14 +248,14 @@ export async function confirmRelationChange(check: RelationCheck, context: Relat
 
 	if (check.stripped > 0) {
 		const unfiled = plurals(check.unfiled);
-		const entries = check.stripped === 1 ? `1 ${check.unfiled.length === 1 ? labelsOf(check.unfiled[0] ?? '').item : 'entry'}` : `${counted(check.stripped)} ${check.unfiled.length === 1 ? labelsOf(check.unfiled[0] ?? '').items : 'entries'}`;
+		const single  = check.unfiled.length === 1 ? labelsOf(check.unfiled[0] ?? '') : null;
 		const answer  = await confirmChecked({
-			title: `Stop Filing ${unfiled} Under ${context.label}?`,
-			body: `**${entries}** ${check.stripped === 1 ? 'has' : 'have'} ${many}. They stop showing in ${one} lists. Their ${many} stay in their files, unused, unless you remove them.`,
-			check: `Remove ${many} from ${check.stripped === 1 ? 'that entry' : `those ${counted(check.stripped)} entries`}`,
-			checkHelp: 'Takes the key out of each file. Each file\'s history shows the change.',
+			title: t('relations.unfile_title', 'Stop Filing {types} Under {label}?', { types: unfiled, label: context.label }),
+			body: t('relations.unfile_body', '**{count, plural, one {# {item}} other {# {items}}}** {count, plural, one {has} other {have}} {plural}. They stop showing in {singular} lists. Their {plural} stay in their files, unused, unless you remove them.', { count: check.stripped, item: single?.item ?? t('relations.entry', 'entry'), items: single?.items ?? t('relations.entries', 'entries'), plural: many, singular: one }),
+			check: t('relations.unfile_strip', 'Remove {plural} from {count, plural, one {that entry} other {those # entries}}', { plural: many, count: check.stripped }),
+			checkHelp: t('relations.unfile_strip_help', 'Takes the key out of each file. Each file\'s history shows the change.'),
 			checked: false,
-			confirm: `Save ${context.label}`
+			confirm: t('relations.unfile_confirm', 'Save {label}', { label: context.label })
 		});
 
 		if (answer === null) {
@@ -264,20 +267,20 @@ export async function confirmRelationChange(check: RelationCheck, context: Relat
 
 	if (check.overCount > 0 || check.fewer > 0 || check.inverseOver > 0) {
 		const after = [
-			...(check.fewer > 0 ? [`**${plural(check.fewer, `published ${names.item}`, `published ${names.items}`)}** ${check.fewer === 1 ? 'has' : 'have'} fewer than ${context.newMin} ${context.newMin === 1 ? one : many}, so ${check.fewer === 1 ? 'it' : 'they'} can't be published again until ${check.fewer === 1 ? 'it has' : 'they have'} more.`] : []),
-			...(check.inverseOver > 0 ? [`**${plural(check.inverseOver, labelsOf(context.target).item, labelsOf(context.target).items)}** ${check.inverseOver === 1 ? 'is' : 'are'} named by more than ${context.inverseMax} ${context.inverseMax === 1 ? names.item : names.items}; lint reports them.`] : []),
-			'Nothing in any file changes.'
+			...(check.fewer > 0 ? [t('relations.limits_fewer', '**{count, plural, one {# published {item}} other {# published {items}}}** {count, plural, one {has} other {have}} fewer than {min, plural, one {# {singular}} other {# {plural}}}, so {count, plural, one {it can\'t be published again until it has} other {they can\'t be published again until they have}} more.', { count: check.fewer, item: names.item, items: names.items, min: context.newMin, singular: one, plural: many })] : []),
+			...(check.inverseOver > 0 ? [t('relations.limits_inverse_over', '**{count, plural, one {# {target}} other {# {targets}}}** {count, plural, one {is} other {are}} named by more than {max, plural, one {# {item}} other {# {items}}}; lint reports them.', { count: check.inverseOver, target: labelsOf(context.target).item, targets: labelsOf(context.target).items, max: context.inverseMax, item: names.item, items: names.items })] : []),
+			t('relations.limits_no_files', 'Nothing in any file changes.')
 		];
 		const confirmed = await confirmAction({
-			title: check.overCount > 0 ? `${counted(check.overCount)} ${check.overCount === 1 ? names.singular : names.plural} Go${check.overCount === 1 ? 'es' : ''} Over the New Limit` : 'Save the Tighter Limits?',
+			title: check.overCount > 0 ? t('relations.limits_over_title', '{count, plural, one {# {singular} Goes} other {# {plural} Go}} Over the New Limit', { count: check.overCount, singular: names.singular, plural: names.plural }) : t('relations.limits_title', 'Save the Tighter Limits?'),
 			body: check.overCount > 0
-				? `${context.label} drops from ${context.oldMax ?? 'any number'} to ${context.newMax}. **${counted(check.overCount)} ${check.overCount === 1 ? names.item : names.items}** ${check.overCount === 1 ? 'has' : 'have'} more than ${context.newMax}; ${check.overCount === 1 ? 'it keeps them, and can\'t' : 'they keep them, and can\'t'} be published again until ${check.overCount === 1 ? 'it\'s' : 'they\'re'} down to ${context.newMax}.`
+				? t('relations.limits_over_body', '{label} drops from {from} to {max}. **{count, plural, one {# {item}} other {# {items}}}** {count, plural, one {has} other {have}} more than {max}; {count, plural, one {it keeps them, and can\'t be published again until it\'s} other {they keep them, and can\'t be published again until they\'re}} down to {max}.', { label: context.label, from: context.oldMax ?? t('relations.limits_any_number', 'any number'), max: context.newMax, count: check.overCount, item: names.item, items: names.items })
 				: undefined,
 			items: check.overCount > 0 ? listed(check.over, one, many, mixed) : undefined,
-			more: check.overCount > check.over.length ? `and ${counted(check.overCount - check.over.length)} more` : undefined,
+			more: check.overCount > check.over.length ? t('relations.more', 'and {count} more', { count: check.overCount - check.over.length }) : undefined,
 			action: check.overCount > check.over.length && type !== '' ? showAll(check.overCount, context.newMax ?? 0) : undefined,
 			after,
-			confirm: 'Save Limits'
+			confirm: t('relations.limits_confirm', 'Save Limits')
 		});
 
 		if (!confirmed) {
@@ -298,18 +301,17 @@ export async function removeRelation(relation: RelationInfo): Promise<boolean> {
 	const label   = relationLabel(relation);
 	const type    = relation.from.length === 1 ? labelsOf(relation.from[0] ?? '') : null;
 	const entries = await request<{ entries: number }>('GET', `/relations/${name}/uses`).then((answer) => answer.entries, () => 0);
-	const who     = entries === 1 ? `1 ${type?.item ?? 'entry'}` : `${counted(entries)} ${type?.items ?? 'entries'}`;
-	const picker  = `The picker leaves the editor, and ${relation.label ? label.toLowerCase() : 'the links'} stop showing on the site.`;
+	const picker  = t('relations.remove_picker', 'The picker leaves the editor, and {what} stop showing on the site.', { what: relation.label ? label.toLowerCase() : t('relations.remove_the_links', 'the links') });
 
 	const strip = entries === 0
-		? (await confirmAction({ title: `Remove ${label}?`, body: [`No entry has ${label.toLowerCase()} yet.`, picker], confirm: 'Remove Relationship', danger: true }) ? false : null)
+		? (await confirmAction({ title: t('relations.remove_title', 'Remove {label}?', { label }), body: [t('relations.remove_none', 'No entry has {label} yet.', { label: label.toLowerCase() }), picker], confirm: t('relations.remove_confirm', 'Remove Relationship'), danger: true }) ? false : null)
 		: await confirmChecked({
-			title: `Remove ${label}?`,
-			body: `**${who}** ${entries === 1 ? 'has' : 'have'} ${label.toLowerCase()}. ${picker}`,
-			check: `Also strip ${relation.field} from ${entries === 1 ? 'its file' : `the ${counted(entries)} files`}`,
-			checkHelp: 'Left in place, the key is ignored, and comes back if the relationship is added again.',
+			title: t('relations.remove_title', 'Remove {label}?', { label }),
+			body: t('relations.remove_body', '**{count, plural, one {# {item}} other {# {items}}}** {count, plural, one {has} other {have}} {label}. {picker}', { count: entries, item: type?.item ?? t('relations.entry', 'entry'), items: type?.items ?? t('relations.entries', 'entries'), label: label.toLowerCase(), picker }),
+			check: t('relations.remove_strip', 'Also strip {field} from {count, plural, one {its file} other {the # files}}', { field: relation.field, count: entries }),
+			checkHelp: t('relations.remove_strip_help', 'Left in place, the key is ignored, and comes back if the relationship is added again.'),
 			checked: false,
-			confirm: 'Remove Relationship',
+			confirm: t('relations.remove_confirm', 'Remove Relationship'),
 			danger: true
 		});
 
@@ -320,7 +322,7 @@ export async function removeRelation(relation: RelationInfo): Promise<boolean> {
 	const answer = await request<{ deleted: string; stripped: number }>('DELETE', `/relations/${name}${strip ? '?strip=1' : ''}`);
 
 	refreshTypes();
-	toast(answer.stripped > 0 ? `Removed ${label}, and its values from ${plural(answer.stripped, 'entry', 'entries')}` : `Removed ${label}`, { kind: 'danger' });
+	toast(answer.stripped > 0 ? t('relations.removed_stripped', 'Removed {label}, and its values from {count, plural, one {# entry} other {# entries}}', { label, count: answer.stripped }) : t('relations.removed', 'Removed {label}', { label }), { kind: 'danger' });
 
 	return true;
 }

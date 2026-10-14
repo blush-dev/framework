@@ -7,6 +7,7 @@
  */
 
 import { formatWhenInline } from './format';
+import { t } from './messages';
 import { request, type ToolResult, type Job } from './api';
 
 const wait = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -34,7 +35,7 @@ export async function finish(id: string, update: (job: Job) => void = () => {}):
 	const job = await follow(id, update);
 
 	if (job.status !== 'done') {
-		throw new Error(job.status === 'queued' ? `It failed, and will try again: ${job.error ?? 'no reason given'}` : (job.message || job.error || 'It didn\'t finish.'));
+		throw new Error(job.status === 'queued' ? t('jobs.failed_retrying', 'It failed, and will try again: {reason}', { reason: job.error ?? t('jobs.no_reason', 'no reason given') }) : (job.message || job.error || t('jobs.unfinished', 'It didn\'t finish.')));
 	}
 
 	return job;
@@ -48,14 +49,14 @@ export function jobResult(job: Job): ToolResult {
 	if (job.status === 'queued') {
 		return {
 			successful: false,
-			message: `It failed, and will try again ${formatWhenInline(job.available)}: ${job.error ?? 'no reason given'}`,
+			message: t('jobs.failed_retrying_when', 'It failed, and will try again {when}: {reason}', { when: formatWhenInline(job.available), reason: job.error ?? t('jobs.no_reason', 'no reason given') }),
 			details: job.details
 		};
 	}
 
 	return {
 		successful: job.status === 'done',
-		message: job.message || job.error || (job.status === 'done' ? 'Done.' : 'It failed.'),
+		message: job.message || job.error || (job.status === 'done' ? t('jobs.done', 'Done.') : t('jobs.failed', 'It failed.')),
 		details: job.details
 	};
 }
@@ -64,8 +65,8 @@ export function jobResult(job: Job): ToolResult {
  * The pill class for a job's status.
  */
 export const JOB_PILLS: Record<Job['status'], { label: string; kind: string }> = {
-	queued: { label: 'Queued', kind: '' },
-	running: { label: 'Running', kind: 'pill--accent' },
-	done: { label: 'Done', kind: 'pill--good' },
-	failed: { label: 'Failed', kind: 'pill--danger' }
+	queued: { label: t('jobs.status_queued', 'Queued'), kind: '' },
+	running: { label: t('jobs.status_running', 'Running'), kind: 'pill--accent' },
+	done: { label: t('jobs.status_done', 'Done'), kind: 'pill--good' },
+	failed: { label: t('jobs.status_failed', 'Failed'), kind: 'pill--danger' }
 };

@@ -52,17 +52,17 @@ function keydown(event: KeyboardEvent): void {
 			:aria-expanded="open"
 			:aria-invalid="props.error ? 'true' : undefined"
 			@click="open ? close() : show()"
-		>{{ text ? 'Edit summary' : 'Add a summary…' }}</button>
+		>{{ text ? t('summary_popover.edit', 'Edit summary') : t('summary_popover.add', 'Add a summary…') }}</button>
 		<p v-if="props.error" class="field__error">{{ props.error }}</p>
 	</div>
 	<Teleport :to="layer">
-		<form v-if="open" ref="panel" class="popover-form popover-form--placed" role="dialog" aria-label="Summary" :style="place ?? { visibility: 'hidden' }" @submit.prevent="close()" @keydown="keydown">
+		<form v-if="open" ref="panel" class="popover-form popover-form--placed" role="dialog" :aria-label="t('summary_popover.label', 'Summary')" :style="place ?? { visibility: 'hidden' }" @submit.prevent="close()" @keydown="keydown">
 			<div class="field">
-				<label :for="props.id" class="summary__label">Summary <span class="summary__count mono">{{ model.length }} / {{ LENGTH }}</span></label>
-				<textarea :id="props.id" v-model="model" rows="4" placeholder="Used in listings and feeds. Left empty, the opening words are used." />
+				<label :for="props.id" class="summary__label">{{ t('summary_popover.label', 'Summary') }} <span class="summary__count mono">{{ model.length }} / {{ LENGTH }}</span></label>
+				<textarea :id="props.id" v-model="model" rows="4" :placeholder="t('summary_popover.placeholder', 'Used in listings and feeds. Left empty, the opening words are used.')" />
 			</div>
 			<p class="summary__buttons">
-				<button type="submit" class="button button--small button--primary">Done</button>
+				<button type="submit" class="button button--small button--primary">{{ t('common.done', 'Done') }}</button>
 			</p>
 		</form>
 	</Teleport>

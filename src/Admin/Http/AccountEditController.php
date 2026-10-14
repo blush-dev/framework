@@ -31,6 +31,8 @@ use Blush\Auth\Roles;
 use Blush\Content\Type\ContentTypes;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Creates, changes, and removes accounts from the admin (D-312), within
@@ -74,15 +76,6 @@ use Blush\Http\Status;
  */
 final readonly class AccountEditController
 {
-	/**
-	 * What each capability lets an account do, for a refusal.
-	 */
-	private const array DOING = [
-		'accounts.roles'   => 'give or take roles',
-		'accounts.suspend' => 'suspend or reinstate accounts',
-		'accounts.edit'    => 'change accounts\' names or profiles'
-	];
-
 	public function __construct(
 		private Accounts $accounts,
 		private AccountProfiles $profiles,
@@ -92,7 +85,8 @@ final readonly class AccountEditController
 		private UserRules $rules,
 		private UsersJson $json,
 		private AdminLinks $links,
-		private TokensController $tokens
+		private TokensController $tokens,
+		private Messages $messages
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -100,7 +94,7 @@ final readonly class AccountEditController
 		$actor = $this->manager($request, Capability::AccountsCreate);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input    = self::input($request);
@@ -114,20 +108,20 @@ final readonly class AccountEditController
 		$first    = is_array($input['token'] ?? null) ? $input['token'] : null;
 
 		if (! Account::isValidUsername($username)) {
-			return self::error('Use lowercase letters, digits, ".", "_", and "-" for the username (up to 64), starting with a letter or digit.', field: 'username');
+			return self::error($this->messages->t('admin.account_edit_controller.username_invalid', 'Use lowercase letters, digits, ".", "_", and "-" for the username (up to 64), starting with a letter or digit.'), field: 'username');
 		}
 
 		// The admin's New Account screen is at `accounts/new`.
 		if ($username === 'new') {
-			return self::error('"new" can\'t be a username here; pick another.', field: 'username');
+			return self::error($this->messages->t('admin.account_edit_controller.username_new', '"new" can\'t be a username here; pick another.'), field: 'username');
 		}
 
 		if ($this->accounts->find($username) !== null) {
-			return self::error(sprintf('There\'s already an account named "%s".', $username), field: 'username');
+			return self::error($this->messages->t('admin.account_edit_controller.username_taken', 'There\'s already an account named "{username}".', username: $username), field: 'username');
 		}
 
 		if ($name !== null && ! Account::isValidName($name)) {
-			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
+			return self::error($this->messages->t('admin.account_edit_controller.name_too_long', 'A name is up to {length} characters on one line.', length: Account::NAME_LENGTH), field: 'name');
 		}
 
 		try {
@@ -140,7 +134,7 @@ final readonly class AccountEditController
 
 		// Without giving roles, a new account is a member (D-365).
 		if ($roles !== [BuiltInRole::Member->value] && ! $this->permissions->can($actor, Capability::AccountsRoles)) {
-			return self::error('You can\'t give roles, so a new account is a Member.', Status::Forbidden, 'roles');
+			return self::error($this->messages->t('admin.account_edit_controller.new_is_member', 'You can\'t give roles, so a new account is a Member.'), Status::Forbidden, 'roles');
 		}
 
 		$refusal = $this->checkRoles($actor, $roles);
@@ -173,7 +167,7 @@ final readonly class AccountEditController
 		$actor = $this->manager($request, Capability::AccountsView);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$input   = self::input($request);
@@ -206,12 +200,12 @@ final readonly class AccountEditController
 
 		foreach (array_keys($needs) as $capability) {
 			if (! $this->permissions->can($actor, $capability)) {
-				return self::error(sprintf('You aren\'t allowed to %s.', self::DOING[$capability]), Status::Forbidden);
+				return self::error($this->notAllowed($capability), Status::Forbidden);
 			}
 		}
 
 		if ($name !== null && ! Account::isValidName($name)) {
-			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
+			return self::error($this->messages->t('admin.account_edit_controller.name_too_long', 'A name is up to {length} characters on one line.', length: Account::NAME_LENGTH), field: 'name');
 		}
 
 		if ($email !== null && trim($email) !== ($account->email ?? '') && ! ($account->tokenOnly && trim($email) === '')) {
@@ -232,7 +226,7 @@ final readonly class AccountEditController
 		$after = $account->withRoles($roles)->withSuspended($suspended);
 
 		if (! $this->keepsManager($account, $after)) {
-			return self::error(sprintf('That would leave no account that can manage accounts and roles, so %s keeps what it has.', $account->username));
+			return self::error($this->messages->t('admin.account_edit_controller.keeps_manager', 'That would leave no account that can manage accounts and roles, so {username} keeps what it has.', username: $account->username));
 		}
 
 		try {
@@ -253,7 +247,7 @@ final readonly class AccountEditController
 		$actor = $this->manager($request, Capability::AccountsEdit);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$account = $this->target($actor, $username);
@@ -263,11 +257,11 @@ final readonly class AccountEditController
 		}
 
 		if ($account->suspended) {
-			return self::error(sprintf('%s is suspended. Reinstate it first.', $account->username));
+			return self::error($this->messages->t('admin.account_edit_controller.link_suspended', '{username} is suspended. Reinstate it first.', username: $account->username));
 		}
 
 		if ($account->tokenOnly) {
-			return self::error(sprintf('%s is token-only: it never signs in, so it has no password.', $account->username));
+			return self::error($this->messages->t('admin.account_edit_controller.link_token_only', '{username} is token-only: it never signs in, so it has no password.', username: $account->username));
 		}
 
 		[$account, $token] = $this->accounts->issuePasswordLink($account);
@@ -280,7 +274,7 @@ final readonly class AccountEditController
 		$actor = $this->manager($request, Capability::AccountsDelete);
 
 		if ($actor === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		$account = $this->target($actor, $username);
@@ -290,7 +284,7 @@ final readonly class AccountEditController
 		}
 
 		if (! $this->keepsManager($account, null)) {
-			return self::error(sprintf('%s is the only account left that can manage accounts and roles.', $account->username));
+			return self::error($this->messages->t('admin.account_edit_controller.last_manager', '{username} is the only account left that can manage accounts and roles.', username: $account->username));
 		}
 
 		$this->accounts->delete($account->username);
@@ -315,7 +309,7 @@ final readonly class AccountEditController
 
 		$problem = match (true) {
 			$first === null                              => null,
-			! $this->tokens->mayMake($actor, $account) => ['You aren\'t allowed to make tokens for other accounts, so it has none yet.', 'token'],
+			! $this->tokens->mayMake($actor, $account) => [$this->messages->t('admin.account_edit_controller.no_first_token', 'You aren\'t allowed to make tokens for other accounts, so it has none yet.'), 'token'],
 			default                                      => $this->tokens->problem($actor, $account, $first)
 		};
 
@@ -344,7 +338,7 @@ final readonly class AccountEditController
 		$type = $this->types->profiles()?->name;
 
 		return $this->profiles->wouldCreate($author) && ($type === null || ! $this->permissions->can($actor, ContentAction::Create, $type))
-			? self::error(sprintf('There\'s no "%s" profile, and you aren\'t allowed to create profiles.', $author), Status::Forbidden, 'author')
+			? self::error($this->messages->t('admin.account_edit_controller.no_profile', 'There\'s no "{slug}" profile, and you aren\'t allowed to create profiles.', slug: $author), Status::Forbidden, 'author')
 			: null;
 	}
 
@@ -398,10 +392,10 @@ final readonly class AccountEditController
 		$account = $this->accounts->find($username);
 
 		return match (true) {
-			$account === null                          => self::error(sprintf('There\'s no "%s" account.', $username), Status::NotFound),
-			$account->username === $actor->username    => self::error('You can\'t change your own account here. Your password is on Your profile; someone else who manages accounts can change the rest.', Status::Forbidden),
-			$account->isOwner() && ! $actor->isOwner() => self::error(sprintf('%s is an owner, and only an owner can change an owner\'s account.', $account->username), Status::Forbidden),
-			! $this->rules->manages($actor, $account)  => self::error(sprintf('%s can do things you can\'t, so you can\'t change it.', $account->username), Status::Forbidden),
+			$account === null                          => self::error($this->messages->t('admin.account_edit_controller.no_account', 'There\'s no "{username}" account.', username: $username), Status::NotFound),
+			$account->username === $actor->username    => self::error($this->messages->t('admin.account_edit_controller.own_account', 'You can\'t change your own account here. Your password is on Your profile; someone else who manages accounts can change the rest.'), Status::Forbidden),
+			$account->isOwner() && ! $actor->isOwner() => self::error($this->messages->t('admin.account_edit_controller.owner_account', '{username} is an owner, and only an owner can change an owner\'s account.', username: $account->username), Status::Forbidden),
+			! $this->rules->manages($actor, $account)  => self::error($this->messages->t('admin.account_edit_controller.does_more', '{username} can do things you can\'t, so you can\'t change it.', username: $account->username), Status::Forbidden),
 			default                                    => $account
 		};
 	}
@@ -426,8 +420,8 @@ final readonly class AccountEditController
 
 			if ($role !== null && ! $this->rules->mayGrant($actor, $role)) {
 				return self::error($name === BuiltInRole::Owner->value
-					? sprintf('Only an owner can give the %s role.', $role->label)
-					: sprintf('You can\'t give the %s role: it can do things you can\'t.', $role->label), Status::Forbidden, 'roles');
+					? $this->messages->t('admin.account_edit_controller.owner_role', 'Only an owner can give the {role} role.', role: $role->label)
+					: $this->messages->t('admin.account_edit_controller.role_does_more', 'You can\'t give the {role} role: it can do things you can\'t.', role: $role->label), Status::Forbidden, 'roles');
 			}
 		}
 
@@ -509,12 +503,24 @@ final readonly class AccountEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function forbidden(): ResponseInterface
+	/**
+	 * Says what a capability would let the actor do, for a refusal.
+	 */
+	private function notAllowed(string $capability): Text
 	{
-		return self::error('You aren\'t allowed to do that to accounts.', Status::Forbidden);
+		return match ($capability) {
+			Capability::AccountsRoles->value   => $this->messages->t('admin.account_edit_controller.not_allowed.roles', 'You aren\'t allowed to give or take roles.'),
+			Capability::AccountsSuspend->value => $this->messages->t('admin.account_edit_controller.not_allowed.suspend', 'You aren\'t allowed to suspend or reinstate accounts.'),
+			default                            => $this->messages->t('admin.account_edit_controller.not_allowed.edit', 'You aren\'t allowed to change accounts\' names or profiles.')
+		};
 	}
 
-	private static function error(string $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
+	private function forbidden(): ResponseInterface
+	{
+		return self::error($this->messages->t('admin.account_edit_controller.forbidden', 'You aren\'t allowed to do that to accounts.'), Status::Forbidden);
+	}
+
+	private static function error(string|Text $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface
 	{
 		return self::json(['error' => $message, ...($field === null ? [] : ['field' => $field])], $status);
 	}

@@ -23,6 +23,8 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\RenamedFiles;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Keeps a collection's and the profiles' files where their type keeps
@@ -57,17 +59,19 @@ final readonly class EntryFolders
 		private Indexer $indexer,
 		private ContentTypes $types,
 		private FilesystemWriter $writer,
-		private WrittenDates $dates
+		private WrittenDates $dates,
+		private Messages $messages
 	) {}
 
 	/**
 	 * Returns why a type's file isn't in a folder of the shape its type
-	 * keeps files in, finishing a sentence, or `null` when it is: a folder
+	 * keeps files in, as a sentence about its file that says how to move
+	 * it (the linter's violation, D-836), or `null` when it is: a folder
 	 * entry, or folders below the type's (other than `_` ones) its folder
 	 * pattern doesn't give. Whether a pattern's folders hold the right
 	 * date is the move's to check, not this.
 	 */
-	public static function misplaced(ContentType $type, string $path, bool $landing): ?string
+	public static function misplaced(ContentType $type, string $path, bool $landing, Messages $messages): ?Text
 	{
 		if ($type->keysByFolder() || $landing) {
 			return null;
@@ -78,7 +82,7 @@ final readonly class EntryFolders
 		$file     = (string) array_pop($segments);
 
 		if ($segments !== [] && str_starts_with($file, 'index.')) {
-			return 'is a folder entry; its type\'s entries are files';
+			return $messages->t('content.entry_folders.folder_entry', 'is a folder entry; its type\'s entries are files. Move it with content:folders, or on Site Health in the admin.');
 		}
 
 		// A hidden file stays where it is (D-629).
@@ -89,9 +93,9 @@ final readonly class EntryFolders
 		$kept = $segments;
 
 		return match (true) {
-			$type->folders === null && $kept !== []           => 'is in a folder below its type\'s, which keeps its files directly in its folder',
-			$type->folders !== null && ! $type->folders->explains($kept) => sprintf('is in a folder its type\'s folder pattern (%s) doesn\'t give', $type->folders->pattern),
-			default                                           => null
+			$type->folders === null && $kept !== []                      => $messages->t('content.entry_folders.below', 'is in a folder below its type\'s, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.'),
+			$type->folders !== null && ! $type->folders->explains($kept) => $messages->t('content.entry_folders.outside_pattern', 'is in a folder its type\'s folder pattern ({pattern}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', pattern: $type->folders->pattern),
+			default                                                      => null
 		};
 	}
 
@@ -148,7 +152,7 @@ final readonly class EntryFolders
 	 */
 	private function plans(Progress $progress = new Progress()): array
 	{
-		$this->indexer->index(progress: $progress->of('Checking the content index'));
+		$this->indexer->index(progress: $progress->of((string) $this->messages->t('content.entry_folders.checking_index', 'Checking the content index')));
 
 		$snapshot = $this->index->snapshot();
 		$plans    = [];

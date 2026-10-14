@@ -37,6 +37,7 @@ import DatePicker from './DatePicker.vue';
 import IconField from './IconField.vue';
 import ImagePreview from './ImagePreview.vue';
 import MediaChoice from './MediaChoice.vue';
+import MessageText from './MessageText.vue';
 import ReferencePicker from './ReferencePicker.vue';
 import ToggleSwitch from './ToggleSwitch.vue';
 import { choiceLabel, control, isMedia, isShownOnly, label, type FormValue } from '../fields';
@@ -118,7 +119,7 @@ const checked = computed({
 		<button v-for="option in choicesOf" :key="option" type="button" :aria-pressed="text === option" :disabled="disabled" @click="press(option)">{{ choice(option) }}</button>
 	</div>
 	<div v-else-if="kind === 'radios'" class="choices" :class="{ 'choices--detailed': field.details }" role="radiogroup" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
-		<label v-if="!field.required" class="checkbox"><input :id="id" v-model="text" type="radio" :name="id" value="" :disabled="disabled"> {{ field.caption ?? 'None' }}</label>
+		<label v-if="!field.required" class="checkbox"><input :id="id" v-model="text" type="radio" :name="id" value="" :disabled="disabled"> {{ field.caption ?? t('field_input.none', 'None') }}</label>
 		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
 			<input :id="index === 0 && field.required ? id : undefined" v-model="text" type="radio" :name="id" :value="option" :disabled="disabled">
 			<span v-if="detail(option)" class="choice">
@@ -146,7 +147,7 @@ const checked = computed({
 	<ReferencePicker v-else-if="kind === 'reference'" :id="id" v-model="text" :field="field" :described-by="describedBy" :invalid="invalid === 'true'" />
 	<div v-else-if="kind === 'date'" class="field-input__date">
 		<DatePicker :id="id" v-model="text" :day-only="field.time === false" :described-by="describedBy" :invalid="invalid === 'true'" />
-		<button v-if="text" type="button" class="button button--ghost button--small" :disabled="disabled" @click="text = ''">Clear<span class="visually-hidden"> {{ label(field).toLowerCase() }}</span></button>
+		<button v-if="text" type="button" class="button button--ghost button--small" :disabled="disabled" @click="text = ''"><MessageText :text="t('field_input.clear', 'Clear {name}')"><template #name><span class="visually-hidden">{{ label(field).toLowerCase() }}</span></template></MessageText></button>
 	</div>
 	<input v-else-if="kind === 'number'" :id="id" :value="text" type="number" :min="field.min" :max="field.max" :step="field.step ?? (field.integer ? 1 : 'any')" :placeholder="field.placeholder" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" @input="text = ($event.target as HTMLInputElement).value">
 	<pre v-else-if="isShownOnly(kind)" :id="id" class="field__readonly" tabindex="0" :aria-describedby="describedBy">{{ text || '—' }}</pre>

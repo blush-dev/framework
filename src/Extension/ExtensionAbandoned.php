@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * Reads an extension's `abandoned` (D-433), as Composer has it
  * (https://getcomposer.org/doc/04-schema.md#abandoned): `true` when it's
@@ -33,7 +36,7 @@ final readonly class ExtensionAbandoned
 	 *
 	 * @throws ExtensionException When it isn't a boolean or a package name.
 	 */
-	public static function fromManifest(mixed $abandoned): bool|string
+	public static function fromManifest(mixed $abandoned, Messages $messages = new Messages()): bool|string
 	{
 		if (is_bool($abandoned)) {
 			return $abandoned;
@@ -42,7 +45,7 @@ final readonly class ExtensionAbandoned
 		$abandoned = is_string($abandoned) ? trim($abandoned) : null;
 
 		if ($abandoned === null || ($abandoned !== '' && ! ExtensionName::isValid($abandoned))) {
-			throw new ExtensionException('"abandoned" must be true, false, or the name of the package to use instead (vendor/name).');
+			throw new ExtensionException((string) $messages->t('extension.extension_abandoned.invalid', '"abandoned" must be true, false, or the name of the package to use instead (vendor/name).'));
 		}
 
 		return $abandoned === '' ? false : $abandoned;
@@ -65,12 +68,12 @@ final readonly class ExtensionAbandoned
 	 * Returns the warning an abandoned extension gets, or `null` for one
 	 * that isn't.
 	 */
-	public static function warning(bool|string $abandoned): ?string
+	public static function warning(bool|string $abandoned, Messages $messages = new Messages()): ?Text
 	{
 		return match (true) {
 			$abandoned === false => null,
-			$abandoned === true  => 'It\'s abandoned, and no longer maintained.',
-			default              => sprintf('It\'s abandoned; use "%s" instead.', $abandoned)
+			$abandoned === true  => $messages->t('extension.extension_abandoned.abandoned', 'It\'s abandoned, and no longer maintained.'),
+			default              => $messages->t('extension.extension_abandoned.use_instead', 'It\'s abandoned; use "{name}" instead.', name: $abandoned)
 		};
 	}
 }

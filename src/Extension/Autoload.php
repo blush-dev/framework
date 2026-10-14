@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * A plugin's or theme's `autoload`, in Composer's shape (D-418): `psr-4`
  * maps namespace prefixes to folders, and `files` lists files loaded once
@@ -40,36 +42,36 @@ final readonly class Autoload
 	 *
 	 * @throws ExtensionException When it isn't Composer's shape, or a path leaves the extension.
 	 */
-	public static function fromArray(mixed $data): self
+	public static function fromArray(mixed $data, Messages $messages = new Messages()): self
 	{
 		if ($data === null) {
 			return new self();
 		}
 
 		if (! is_array($data) || ($data !== [] && array_is_list($data))) {
-			throw new ExtensionException('"autoload" must be an object, such as {"psr-4": {"Acme\\\\Hello\\\\": "src/"}, "files": ["src/helpers.php"]}.');
+			throw new ExtensionException((string) $messages->t('extension.autoload.not_object', '"autoload" must be an object, such as \'{"psr-4": {"Acme\\\\Hello\\\\": "src/"}, "files": ["src/helpers.php"]}\'.'));
 		}
 
 		$psr4  = $data['psr-4'] ?? [];
 		$files = $data['files'] ?? [];
 
 		if (! is_array($psr4) || ($psr4 !== [] && array_is_list($psr4))) {
-			throw new ExtensionException('"autoload.psr-4" must map namespace prefixes to folders.');
+			throw new ExtensionException((string) $messages->t('extension.autoload.psr4_not_map', '"autoload.psr-4" must map namespace prefixes to folders.'));
 		}
 
 		if (! is_array($files) || ! array_is_list($files)) {
-			throw new ExtensionException('"autoload.files" must be a list of files.');
+			throw new ExtensionException((string) $messages->t('extension.autoload.files_not_list', '"autoload.files" must be a list of files.'));
 		}
 
 		$map = [];
 
 		foreach ($psr4 as $prefix => $folder) {
 			if (! is_string($prefix) || ! str_ends_with($prefix, '\\')) {
-				throw new ExtensionException(sprintf('"autoload.psr-4" prefix "%s" must be a namespace ending in a backslash, as Composer\'s are.', $prefix));
+				throw new ExtensionException((string) $messages->t('extension.autoload.psr4_prefix', '"autoload.psr-4" prefix "{prefix}" must be a namespace ending in a backslash, as Composer\'s are.', prefix: $prefix));
 			}
 
 			if (! is_string($folder) || ! self::isInside($folder)) {
-				throw new ExtensionException('"autoload.psr-4" must map namespace prefixes to folders inside the extension.');
+				throw new ExtensionException((string) $messages->t('extension.autoload.psr4_outside', '"autoload.psr-4" must map namespace prefixes to folders inside the extension.'));
 			}
 
 			$map[$prefix] = trim($folder, '/') === '' ? '' : trim($folder, '/') . '/';
@@ -79,7 +81,7 @@ final readonly class Autoload
 
 		foreach ($files as $file) {
 			if (! is_string($file) || trim($file, '/') === '' || ! self::isInside($file)) {
-				throw new ExtensionException('"autoload.files" must list files inside the extension.');
+				throw new ExtensionException((string) $messages->t('extension.autoload.files_outside', '"autoload.files" must list files inside the extension.'));
 			}
 
 			$list[] = trim($file, '/');

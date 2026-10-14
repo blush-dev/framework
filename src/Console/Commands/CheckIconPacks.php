@@ -90,7 +90,7 @@ final readonly class CheckIconPacks
 
 			// An abandoned pack still loads, as in Composer (D-433).
 			if ($abandoned !== null) {
-				$lines[] = new StatusLine(Outcome::Warning, $pack->name, $abandoned);
+				$lines[] = new StatusLine(Outcome::Warning, $pack->name, (string) $abandoned);
 			}
 
 			// A version Composer can't read meets only `*` (D-429, D-430).

@@ -9,6 +9,7 @@
 import { ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import { copyText } from '../toast';
+import { t } from '../messages';
 import type { IconName } from '../icons';
 
 const props = defineProps<{
@@ -25,7 +26,7 @@ const props = defineProps<{
 const copied = ref('');
 
 async function copyValue(): Promise<void> {
-	copied.value = await copyText(props.value, props.noun) ? `Copied ${props.noun}.` : `Copying failed; select ${props.noun} and copy it instead.`;
+	copied.value = await copyText(props.value, props.noun) ? t('shown_once.copied', 'Copied {noun}.', { noun: props.noun }) : t('shown_once.copy_failed', 'Copying failed; select {noun} and copy it instead.', { noun: props.noun });
 }
 
 function selectAll(event: Event): void {

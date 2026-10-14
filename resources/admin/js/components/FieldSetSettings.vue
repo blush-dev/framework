@@ -14,7 +14,9 @@
 
 import { computed, ref, watch } from 'vue';
 import type { FieldSetTargetOption } from '../api';
+import { t } from '../messages';
 import { folderOf } from '../type-form';
+import MessageText from './MessageText.vue';
 import AdminModal from './AdminModal.vue';
 
 export interface FieldSetSettingsValue {
@@ -61,14 +63,14 @@ const keyError = computed(() => {
 	}
 
 	if (form.value.name === '') {
-		return 'Give the set a key.';
+		return t('field_set_settings.key_required', 'Give the set a key.');
 	}
 
 	if (!/^[a-z0-9][a-z0-9_-]*$/.test(form.value.name)) {
-		return 'A key uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.';
+		return t('field_set_settings.key_invalid', 'A key uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.');
 	}
 
-	return props.names.includes(form.value.name) ? `Another set already uses “${form.value.name}”.` : '';
+	return props.names.includes(form.value.name) ? t('field_set_settings.key_taken', 'Another set already uses “{name}”.', { name: form.value.name }) : '';
 });
 
 function toggle(key: string, on: boolean): void {
@@ -89,37 +91,37 @@ function submit(): void {
 </script>
 
 <template>
-	<AdminModal open :title="fresh ? 'New Field Set' : 'Field Set Settings'" @close="emit('close')">
+	<AdminModal open :title="fresh ? t('field_set_settings.new_title', 'New Field Set') : t('field_set_settings.settings_title', 'Field Set Settings')" @close="emit('close')">
 		<form id="field-set-settings" class="form-stack" novalidate @submit.prevent="submit">
-			<p v-if="!fresh" class="field__help">Saved with the fields when you press Update.</p>
+			<p v-if="!fresh" class="field__help">{{ t('field_set_settings.saved_with', 'Saved with the fields when you press Update.') }}</p>
 
 			<div class="field">
-				<label for="field-set-label">Label</label>
-				<input id="field-set-label" v-model="form.label" autocomplete="off" autofocus placeholder="Recipe Details" :aria-invalid="tried && form.label.trim() === '' ? 'true' : undefined" aria-describedby="field-set-label-help">
-				<p v-if="tried && form.label.trim() === ''" id="field-set-label-help" class="field__error">Give the set a label.</p>
-				<p v-else id="field-set-label-help" class="field__help">Heads its fields in the editor.</p>
+				<label for="field-set-label">{{ t('field_set_settings.label', 'Label') }}</label>
+				<input id="field-set-label" v-model="form.label" autocomplete="off" autofocus :placeholder="t('field_set_settings.label_placeholder', 'Recipe Details')" :aria-invalid="tried && form.label.trim() === '' ? 'true' : undefined" aria-describedby="field-set-label-help">
+				<p v-if="tried && form.label.trim() === ''" id="field-set-label-help" class="field__error">{{ t('field_set_settings.label_required', 'Give the set a label.') }}</p>
+				<p v-else id="field-set-label-help" class="field__help">{{ t('field_set_settings.label_help', 'Heads its fields in the editor.') }}</p>
 			</div>
 
 			<div class="field">
-				<label for="field-set-key">Key</label>
+				<label for="field-set-key">{{ t('field_set_settings.key', 'Key') }}</label>
 				<input v-if="fresh" id="field-set-key" v-model="form.name" class="mono" autocomplete="off" spellcheck="false" placeholder="recipe-details" :aria-invalid="tried && keyError !== '' ? 'true' : undefined" aria-describedby="field-set-key-help" @input="keyed = true">
 				<p v-else id="field-set-key" class="mono">{{ form.name }}</p>
 				<p v-if="tried && keyError" id="field-set-key-help" class="field__error">{{ keyError }}</p>
-				<p v-else id="field-set-key-help" class="field__help">Its file's name in <code>user/data/fields</code>{{ fresh ? '. Fixed once it\'s created.' : '.' }}</p>
+				<p v-else id="field-set-key-help" class="field__help"><MessageText :text="fresh ? t('field_set_settings.key_help_fresh', 'Its file\'s name in {folder}. Fixed once it\'s created.') : t('field_set_settings.key_help', 'Its file\'s name in {folder}.')"><template #folder><code>user/data/fields</code></template></MessageText></p>
 			</div>
 
 			<div class="field">
-				<label for="field-set-help">Help</label>
+				<label for="field-set-help">{{ t('field_set_settings.help', 'Help') }}</label>
 				<input id="field-set-help" v-model="form.description" autocomplete="off" aria-describedby="field-set-help-help">
-				<p id="field-set-help-help" class="field__help">Shown under the label in the editor.</p>
+				<p id="field-set-help-help" class="field__help">{{ t('field_set_settings.help_help', 'Shown under the label in the editor.') }}</p>
 			</div>
 
 			<fieldset class="fieldset">
-				<legend>Used on</legend>
+				<legend>{{ t('field_set_settings.used_on', 'Used on') }}</legend>
 				<div class="field-set-settings__types">
 					<label class="checkbox">
 						<input type="checkbox" :checked="every" @change="form.targets = ($event.target as HTMLInputElement).checked ? [EVERY] : []">
-						All content types
+						{{ t('field_set_settings.all_types', 'All content types') }}
 					</label>
 					<label v-for="option in types" :key="option.key" class="checkbox">
 						<input type="checkbox" :checked="every || form.targets.includes(option.key)" :disabled="every" @change="toggle(option.key, ($event.target as HTMLInputElement).checked)">
@@ -127,24 +129,24 @@ function submit(): void {
 					</label>
 					<label v-for="target in missing" :key="target" class="checkbox">
 						<input type="checkbox" checked @change="toggle(target, ($event.target as HTMLInputElement).checked)">
-						<span><span class="mono">{{ target }}</span> <span class="field__help">(not on this site)</span></span>
+						<span><span class="mono">{{ target }}</span> <span class="field__help">{{ t('field_set_settings.not_on_site', '(not on this site)') }}</span></span>
 					</label>
 				</div>
-				<p class="field__help">Its fields are added to every entry of these types. A set can't use a key one of them already has.</p>
+				<p class="field__help">{{ t('field_set_settings.used_on_help', 'Its fields are added to every entry of these types. A set can\'t use a key one of them already has.') }}</p>
 			</fieldset>
 
 			<div class="field">
-				<label for="field-set-position">Position</label>
+				<label for="field-set-position">{{ t('field_set_settings.position', 'Position') }}</label>
 				<input id="field-set-position" v-model.number="form.position" type="number" step="1" class="field-set-settings__position" aria-describedby="field-set-position-help">
-				<p id="field-set-position-help" class="field__help">Where it sits among a type's sets in the editor's panel: lowest first, then by label.</p>
+				<p id="field-set-position-help" class="field__help">{{ t('field_set_settings.position_help', 'Where it sits among a type\'s sets in the editor\'s panel: lowest first, then by label.') }}</p>
 			</div>
 
 			<p v-if="error" class="field__error" role="alert">{{ error }}</p>
 		</form>
 
 		<template #footer>
-			<button type="button" class="button" @click="emit('close')">Cancel</button>
-			<button type="submit" form="field-set-settings" class="button button--primary" :disabled="busy">{{ busy ? 'Creating…' : (fresh ? 'Create' : 'Done') }}</button>
+			<button type="button" class="button" @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
+			<button type="submit" form="field-set-settings" class="button button--primary" :disabled="busy">{{ busy ? t('field_set_settings.creating', 'Creating…') : (fresh ? t('field_set_settings.create', 'Create') : t('common.done', 'Done')) }}</button>
 		</template>
 	</AdminModal>
 </template>

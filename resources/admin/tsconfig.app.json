@@ -10,7 +10,8 @@
 		"isolatedModules": true,
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
-		"types": ["vite/client"]
+		"types": ["vite/client"],
+		"paths": { "blush/messages": ["../site/js/messages.ts"] }
 	},
-	"include": ["js/**/*.ts", "js/**/*.vue", "../player/**/*.ts"]
+	"include": ["js/**/*.ts", "js/**/*.vue", "../player/**/*.ts", "../site/js/messages.ts"]
 }

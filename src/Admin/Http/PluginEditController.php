@@ -47,6 +47,8 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Turns plugins on and off, and deletes them (D-385), for accounts with
@@ -83,13 +85,14 @@ final readonly class PluginEditController
 		private Permissions $permissions,
 		private Filesystem $filesystem,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Activate)) {
-			return self::error('You aren\'t allowed to turn plugins on and off.', Status::Forbidden);
+			return self::error($this->messages->t('admin.plugin_edit_controller.toggle_forbidden', 'You aren\'t allowed to turn plugins on and off.'), Status::Forbidden);
 		}
 
 		$enable = self::input($request)['enabled'] ?? null;
@@ -110,7 +113,7 @@ final readonly class PluginEditController
 		$broken    = array_find($discovered->broken, static fn (BrokenPlugin $broken): bool => $broken->name === $target);
 
 		if ($plugin === null && $broken === null) {
-			return self::error(sprintf('No plugin named %s is installed.', $target), Status::NotFound);
+			return self::error($this->messages->t('admin.plugin_edit_controller.not_installed', 'No plugin named {name} is installed.', name: $target), Status::NotFound);
 		}
 
 		$before = $this->extensions->with(discovered: [$discovered->manifests, $discovered->broken]);
@@ -118,13 +121,13 @@ final readonly class PluginEditController
 		if ($enable) {
 			// A broken one can only be turned off (D-394).
 			if ($plugin === null) {
-				return self::error(sprintf('%s can\'t be turned on. %s', $target, $broken->reason), Status::UnprocessableContent);
+				return self::error($this->messages->t('admin.plugin_edit_controller.unmet', '{label} can\'t be turned on. {reason}', label: $target, reason: $broken->reason), Status::UnprocessableContent);
 			}
 
 			$checked = $before->check($plugin);
 
 			if (! Requirements::met($checked)) {
-				return self::error(sprintf('%s can\'t be turned on. %s', $this->text->label($plugin), Requirements::reason($checked)), Status::UnprocessableContent);
+				return self::error($this->messages->t('admin.plugin_edit_controller.unmet', '{label} can\'t be turned on. {reason}', label: (string) $this->text->label($plugin), reason: Requirements::reason($checked, $this->messages)), Status::UnprocessableContent);
 			}
 		}
 
@@ -157,7 +160,7 @@ final readonly class PluginEditController
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete)) {
-			return self::error('You aren\'t allowed to delete plugins.', Status::Forbidden);
+			return self::error($this->messages->t('admin.plugin_edit_controller.delete_forbidden', 'You aren\'t allowed to delete plugins.'), Status::Forbidden);
 		}
 
 		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
@@ -173,7 +176,7 @@ final readonly class PluginEditController
 		$broken = array_find($discovered->broken, static fn (BrokenPlugin $broken): bool => $broken->source === PluginSource::Local && $broken->where === $where);
 
 		if (! is_dir($path) || ($plugin === null && $broken === null)) {
-			return self::error(sprintf('There\'s no plugin in %s.', $where), Status::NotFound);
+			return self::error($this->messages->t('admin.plugin_edit_controller.none_in', 'There\'s no plugin in {where}.', where: $where), Status::NotFound);
 		}
 
 		// A broken one never runs (D-394), but config may still name it.
@@ -181,17 +184,17 @@ final readonly class PluginEditController
 		$label = $plugin === null ? $where : (string) $this->text->label($plugin);
 
 		if ($this->plugins->has($named)) {
-			return self::error(sprintf('%s is on. Turn it off before deleting it.', $label), Status::Conflict);
+			return self::error($this->messages->t('admin.plugin_edit_controller.still_on', '{label} is on. Turn it off before deleting it.', label: $label), Status::Conflict);
 		}
 
 		if ($named !== '' && PluginsController::namedByConfig($this->config, $named)) {
-			return self::error(sprintf('config/plugins.php turns %s on by name. Take it out of that file\'s "enabled" list before deleting it.', $label), Status::Conflict);
+			return self::error($this->messages->t('admin.plugin_edit_controller.named_by_config', 'config/plugins.php turns {label} on by name. Take it out of that file\'s "enabled" list before deleting it.', label: $label), Status::Conflict);
 		}
 
 		try {
 			$this->filesystem->removeDirectory($path);
 		} catch (FilesystemException) {
-			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
+			return self::error($this->messages->t('admin.plugin_edit_controller.not_deleted', '{where} couldn\'t be deleted. Check that the web server may change it.', where: $where), Status::InternalServerError);
 		}
 
 		LocalExtensions::prune($this->paths, $path);
@@ -268,7 +271,7 @@ final readonly class PluginEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

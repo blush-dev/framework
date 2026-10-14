@@ -33,6 +33,7 @@ use Blush\Routing\RouteTable;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Tests\WritesThemeViews;
 use Blush\View\DocumentRenderer;
+use Blush\Translation\Messages;
 
 #[CoversClass(Feed::class)]
 #[CoversClass(FeedBuilder::class)]
@@ -207,7 +208,7 @@ final class FeedsTest extends TestCase
 	public function testConfigValidates(): void
 	{
 		$this->assertSame(['formats' => ['rss'], 'content' => false, 'limit' => 3], FeedConfig::fromArray(['formats' => ['rss'], 'content' => false, 'limit' => 3])->toArray());
-		$this->assertSame('RSS', FeedFormat::Rss->label());
+		$this->assertSame('RSS', (string) FeedFormat::Rss->label(new Messages()));
 
 		try {
 			FeedConfig::fromArray(['formats' => ['rdf']]);

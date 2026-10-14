@@ -10,6 +10,7 @@
 
 import { nextTick, ref, watch } from 'vue';
 import { errorMessage } from '../api';
+import { t } from '../messages';
 import { debounced, latest } from '../action';
 import { listMove } from '../grid';
 import { loadReferences, type ReferenceItem } from '../references';
@@ -52,7 +53,7 @@ async function find(): Promise<void> {
 	} catch (caught) {
 		if (still()) {
 			items.value = [];
-			error.value = errorMessage(caught, 'The profiles couldn\'t be loaded.');
+			error.value = errorMessage(caught, t('mention_form.errors.not_loaded', 'The profiles couldn\'t be loaded.'));
 		}
 	}
 }
@@ -90,15 +91,15 @@ function key(event: KeyboardEvent): void {
 </script>
 
 <template>
-	<form id="editor-mention" class="popover-form" role="dialog" aria-label="Mention" @submit.prevent="choose(items?.[index])" @keydown="key">
+	<form id="editor-mention" class="popover-form" role="dialog" :aria-label="t('mention_form.mention', 'Mention')" @submit.prevent="choose(items?.[index])" @keydown="key">
 		<div class="field">
-			<label for="editor-mention-search">Mention</label>
-			<input id="editor-mention-search" ref="field" v-model="query" type="search" autocomplete="off" spellcheck="false" placeholder="Find a profile" role="combobox" aria-autocomplete="list" aria-controls="editor-mention-list" :aria-expanded="(items?.length ?? 0) > 0" :aria-activedescendant="items?.length ? `editor-mention-${index}` : undefined" @input="search">
+			<label for="editor-mention-search">{{ t('mention_form.mention', 'Mention') }}</label>
+			<input id="editor-mention-search" ref="field" v-model="query" type="search" autocomplete="off" spellcheck="false" :placeholder="t('mention_form.placeholder', 'Find a profile')" role="combobox" aria-autocomplete="list" aria-controls="editor-mention-list" :aria-expanded="(items?.length ?? 0) > 0" :aria-activedescendant="items?.length ? `editor-mention-${index}` : undefined" @input="search">
 		</div>
 		<p v-if="error" class="mention-form__note" role="alert">{{ error }}</p>
-		<p v-else-if="items === null" class="mention-form__note">Finding profiles…</p>
-		<p v-else-if="items.length === 0" class="mention-form__note">No published profile matches.</p>
-		<ul v-else id="editor-mention-list" class="mention-form__list" role="listbox" aria-label="Profiles">
+		<p v-else-if="items === null" class="mention-form__note">{{ t('mention_form.finding', 'Finding profiles…') }}</p>
+		<p v-else-if="items.length === 0" class="mention-form__note">{{ t('mention_form.none', 'No published profile matches.') }}</p>
+		<ul v-else id="editor-mention-list" class="mention-form__list" role="listbox" :aria-label="t('mention_form.profiles', 'Profiles')">
 			<li v-for="(item, at) in items" :id="`editor-mention-${at}`" :key="item.slug" role="option" class="mention-form__item" :class="{ 'is-active': at === index }" :aria-selected="at === index" @mousedown.prevent @click="choose(item)" @mouseenter="index = at">
 				<span>{{ item.title }}</span>
 				<code class="mention-form__slug">@{{ item.slug }}</code>

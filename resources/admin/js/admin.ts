@@ -5,6 +5,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import './color-scheme';
+import { t } from './messages';
 import { router } from './router';
 import '../css/admin.css';
 
@@ -14,5 +15,9 @@ import '../css/admin.css';
 if (document.querySelector('#app[data-v-app]') !== null) {
 	window.location.reload();
 } else {
-	createApp(App).use(router).mount('#app');
+	const app = createApp(App);
+
+	// Text in templates, `{{ t('key', 'Text') }}` (D-831).
+	app.config.globalProperties.t = t;
+	app.use(router).mount('#app');
 }

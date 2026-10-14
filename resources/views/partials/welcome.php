@@ -48,7 +48,7 @@ $link = $welcome?->admin === null ? '' : raw('<a href="' . url($welcome->admin) 
 			<p class="<?= attr($bem->element('title')) ?>"><?= e($messages->t('welcome.problems.title')) ?></p>
 			<ul>
 				<?php foreach ($welcome->problems as $problem) : ?>
-					<li><?= $code($problem->label) ?>: <?= e(trim("{$problem->message} {$problem->hint}")) ?></li>
+					<li><?= $code((string) $problem->label) ?>: <?= e(trim("{$problem->message} {$problem->hint}")) ?></li>
 				<?php endforeach ?>
 			</ul>
 			<p><?= e($messages->t('welcome.problems.doctor', command: $code("{$welcome->binary} doctor"))) ?></p>

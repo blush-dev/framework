@@ -47,7 +47,7 @@ final readonly class CheckTheme
 
 		foreach ($report->violations as $violation) {
 			if ($violation->severity !== Severity::Notice || $strict) {
-				$lines[] = new StatusLine(Outcome::of($violation->severity), $violation->field, $violation->message);
+				$lines[] = new StatusLine(Outcome::of($violation->severity), $violation->field, (string) $violation->message);
 			}
 		}
 

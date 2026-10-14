@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 ?>
 <figure <?= $block->attributes() ?>>
-	<blush-video-player <?= $block->labelAttributes() ?>>
+	<blush-video-player>
 		<video <?= $block->playerAttributes() ?>>
 			<?php if ($block->track !== '') : ?>
 				<track <?= $block->trackAttributes() ?>>

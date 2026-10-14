@@ -53,15 +53,6 @@ use Blush\View\Escaper;
  */
 final class Audio extends Block
 {
-	use PlayerLabels;
-
-	/**
-	 * The player's labels (`PlayerLabels`).
-	 *
-	 * @var list<string>
-	 */
-	private const array LABELS = ['play', 'pause', 'seek', 'mute', 'unmute', 'volume'];
-
 	/**
 	 * @inheritDoc
 	 */

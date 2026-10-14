@@ -21,6 +21,8 @@ use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A map of named values with a schema of its own. Undeclared keys are kept
@@ -47,18 +49,18 @@ final class ObjectField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Group of fields';
+		return $messages->t('field.object_field.type_label', 'Group of fields');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'A group of fields.';
+		return $messages->t('field.object_field.type_description', 'A group of fields.');
 	}
 
 	/**
@@ -68,7 +70,7 @@ final class ObjectField extends Field
 	public function normalize(mixed $value, FieldContext $context): mixed
 	{
 		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
-			throw $this->invalid(sprintf('must be a map, not %s.', self::describe($value)));
+			throw $this->invalid($context->messages->t('field.object_field.invalid', 'must be a map, not {value}.', value: self::describe($value, $context->messages)));
 		}
 
 		$result = $this->schema->resolve($value, $context);

@@ -15,6 +15,7 @@ namespace Blush\Extension\Install;
 
 use RuntimeException;
 use Blush\Core\BlushException;
+use Blush\Translation\Messages;
 
 /**
  * An archive holds an extension that's already installed, and replacing
@@ -25,8 +26,9 @@ final class InstallClash extends RuntimeException implements BlushException
 {
 	public function __construct(
 		public readonly ExtensionPackage $installed,
-		public readonly ExtensionPackage $incoming
+		public readonly ExtensionPackage $incoming,
+		Messages $messages
 	) {
-		parent::__construct(sprintf('%s is already installed.', $installed->label));
+		parent::__construct((string) $messages->t('extension.install_clash.installed', '{label} is already installed.', label: $installed->label));
 	}
 }

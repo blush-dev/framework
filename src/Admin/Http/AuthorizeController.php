@@ -28,6 +28,8 @@ use Blush\Mcp\McpConfig;
 use Blush\Mcp\OAuth\AuthorizationRequest;
 use Blush\Mcp\OAuth\OAuthError;
 use Blush\Mcp\OAuth\OAuthServer;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The Connect an App screen's API (D-752), where a user approves an app
@@ -54,13 +56,14 @@ final readonly class AuthorizeController
 		private McpConfig $config,
 		private Permissions $permissions,
 		private UsersJson $json,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	public function show(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->config->enabled) {
-			return self::json(['error' => 'Apps can\'t connect to this site: its MCP server is off.', 'redirect' => null], Status::NotFound);
+			return self::json(['error' => $this->off(), 'redirect' => null], Status::NotFound);
 		}
 
 		$account = self::account($request);
@@ -80,9 +83,9 @@ final readonly class AuthorizeController
 			'account'      => ['username' => $account->username, 'name' => $account->name ?? $account->username],
 			'mayConnect'   => $this->oauth->mayConnect($account),
 			'asked'        => $asked->scope->value,
-			'scopes'       => array_map(static fn (TokenScope $scope): array => [
+			'scopes'       => array_map(fn (TokenScope $scope): array => [
 				'key'       => $scope->value,
-				'label'     => $scope->label(),
+				'label'     => $scope->label($this->messages),
 				'available' => $asked->scope->covers($scope)
 			], TokenScope::cases()),
 			'capabilities' => $this->json->capabilities($capabilities),
@@ -94,7 +97,7 @@ final readonly class AuthorizeController
 	public function decide(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->config->enabled) {
-			return self::json(['error' => 'Apps can\'t connect to this site: its MCP server is off.'], Status::NotFound);
+			return self::json(['error' => $this->off()], Status::NotFound);
 		}
 
 		$account = self::account($request);
@@ -139,12 +142,12 @@ final readonly class AuthorizeController
 		if ($scope === 'custom') {
 			$picked = $input['capabilities'] ?? null;
 
-			return is_array($picked) ? array_values(array_filter($picked, is_string(...))) : throw $asked->error('invalid_scope', 'Choose the capabilities to give it.');
+			return is_array($picked) ? array_values(array_filter($picked, is_string(...))) : throw $asked->error('invalid_scope', (string) $this->messages->t('admin.authorize_controller.choose_capabilities', 'Choose the capabilities to give it.'));
 		}
 
 		$preset = is_string($scope) ? TokenScope::tryFrom($scope) : null;
 
-		return $preset === null ? throw $asked->error('invalid_scope', 'Choose what it may do.') : $preset->capabilities();
+		return $preset === null ? throw $asked->error('invalid_scope', (string) $this->messages->t('admin.authorize_controller.choose_scope', 'Choose what it may do.')) : $preset->capabilities();
 	}
 
 	/**
@@ -177,6 +180,14 @@ final readonly class AuthorizeController
 		}
 
 		return self::json(['error' => $error->getMessage(), 'redirect' => $redirect], Status::BadRequest);
+	}
+
+	/**
+	 * Says the MCP server is off.
+	 */
+	private function off(): Text
+	{
+		return $this->messages->t('admin.authorize_controller.off', 'Apps can\'t connect to this site: its MCP server is off.');
 	}
 
 	private static function account(ServerRequestInterface $request): Account

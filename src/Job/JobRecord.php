@@ -15,6 +15,8 @@ namespace Blush\Job;
 
 use NoDiscard;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One job, as it's kept (D-621): a record keyed by its id, as every
@@ -28,7 +30,10 @@ use Blush\Support\Uuid;
  *   Unix times.
  * - `progress` (0 to 100), `message`, and `details` are what the job last
  *   said about itself; `error` is its last failure's message; `result` is
- *   plain data a finished job hands whoever follows it (D-624).
+ *   plain data a finished job hands whoever follows it (D-624). A
+ *   message, a detail, or an error written with `t()` is kept as its
+ *   message (`Text::toArray()`) and read back as a `Text`, shown in the
+ *   reader's language (D-836); one kept as text is shown as it is.
  * - `account` is the id of the account that queued it (D-668), or `null` for the
  *   system (the scheduler); `unique` keeps a second copy from being
  *   queued while one waits or runs.
@@ -37,7 +42,7 @@ final readonly class JobRecord
 {
 	/**
 	 * @param array<string, mixed> $data
-	 * @param list<string>         $details
+	 * @param list<string|Text>    $details
 	 * @param array<string, mixed> $result
 	 */
 	public function __construct(
@@ -51,9 +56,9 @@ final readonly class JobRecord
 		public ?int $started = null,
 		public ?int $finished = null,
 		public ?int $progress = null,
-		public string $message = '',
+		public string|Text $message = '',
 		public array $details = [],
-		public ?string $error = null,
+		public string|Text|null $error = null,
 		public ?string $account = null,
 		public ?string $unique = null,
 		public array $result = []
@@ -88,9 +93,9 @@ final readonly class JobRecord
 			'started'   => $this->started,
 			'finished'  => $this->finished,
 			'progress'  => $this->progress,
-			'message'   => $this->message,
-			'details'   => $this->details,
-			'error'     => $this->error,
+			'message'   => self::store($this->message),
+			'details'   => array_map(self::store(...), $this->details),
+			'error'     => $this->error === null ? null : self::store($this->error),
 			'account'   => $this->account,
 			'unique'    => $this->unique,
 			'result'    => $this->result
@@ -99,11 +104,11 @@ final readonly class JobRecord
 
 	/**
 	 * Builds a record from `toArray()`'s data, or returns `null` when it
-	 * isn't one.
+	 * isn't one. Its stored messages are read back with `$messages`.
 	 *
 	 * @param array<array-key, mixed> $data
 	 */
-	public static function fromArray(array $data): ?self
+	public static function fromArray(array $data, Messages $messages): ?self
 	{
 		$status = is_string($data['status'] ?? null) ? JobStatus::tryFrom($data['status']) : null;
 		$job    = $data['job'] ?? null;
@@ -115,7 +120,8 @@ final readonly class JobRecord
 
 		/** @var string $id */
 		$id      = $data['id'];
-		$details = is_array($data['details'] ?? null) ? array_values(array_filter($data['details'], is_string(...))) : [];
+		$read    = static fn (mixed $value): string|Text|null => is_string($value) ? $value : $messages->restore($value);
+		$details = is_array($data['details'] ?? null) ? array_values(array_filter(array_map($read, $data['details']), static fn (string|Text|null $detail): bool => $detail !== null)) : [];
 
 		$result = is_array($data['result'] ?? null) ? $data['result'] : [];
 
@@ -134,9 +140,9 @@ final readonly class JobRecord
 			started: self::optionalInt($data['started'] ?? null),
 			finished: self::optionalInt($data['finished'] ?? null),
 			progress: self::optionalInt($data['progress'] ?? null),
-			message: is_string($data['message'] ?? null) ? $data['message'] : '',
+			message: $read($data['message'] ?? null) ?? '',
 			details: $details,
-			error: is_string($data['error'] ?? null) ? $data['error'] : null,
+			error: $read($data['error'] ?? null),
 			account: is_string($data['account'] ?? null) ? $data['account'] : null,
 			unique: is_string($data['unique'] ?? null) ? $data['unique'] : null,
 			result: $result
@@ -152,6 +158,16 @@ final readonly class JobRecord
 	public static function isPlain(array $data): bool
 	{
 		return array_all($data, static fn (mixed $value): bool => $value === null || is_scalar($value) || (is_array($value) && self::isPlain($value)));
+	}
+
+	/**
+	 * Returns a message to keep: a `Text` as its message, text as it is.
+	 *
+	 * @return string|array<string, mixed>
+	 */
+	private static function store(string|Text $message): string|array
+	{
+		return $message instanceof Text ? $message->toArray() : $message;
 	}
 
 	/**

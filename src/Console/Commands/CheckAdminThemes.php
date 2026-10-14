@@ -32,6 +32,7 @@ use Blush\Field\Violation;
 use Blush\Translation\CatalogCheck;
 use Blush\Translation\SourceCatalog;
 use Blush\Translation\TranslationException;
+use Blush\Translation\Text;
 
 /**
  * Checks every installed admin theme (or one, by name), as
@@ -53,7 +54,8 @@ final readonly class CheckAdminThemes
 		private AdminThemes $themes,
 		private ExtensionState $extensions,
 		private CatalogCheck $catalogs,
-		private SourceCatalog $sourceCatalog
+		private SourceCatalog $sourceCatalog,
+		private AdminThemeContrast $contrast
 	) {}
 
 	public function __invoke(
@@ -61,7 +63,7 @@ final readonly class CheckAdminThemes
 		#[Argument('The theme\'s name (vendor/name); defaults to every admin theme.')] ?string $name = null
 	): ExitCode {
 		$themes = array_filter($this->themes->all(), static fn (AdminTheme $theme): bool => $name === null || $theme->name === $name);
-		$broken = array_filter($this->themes->invalid(), static fn (string $reason, string $where): bool => $name === null || $where === $name || str_ends_with($where, "/{$name}"), ARRAY_FILTER_USE_BOTH);
+		$broken = array_filter($this->themes->invalid(), static fn (string|Text $reason, string $where): bool => $name === null || $where === $name || str_ends_with($where, "/{$name}"), ARRAY_FILTER_USE_BOTH);
 
 		if ($name !== null && $themes === [] && $broken === []) {
 			$output->error(sprintf('No admin theme named "%s" is installed.', $name));
@@ -90,17 +92,17 @@ final readonly class CheckAdminThemes
 				$lines[] = new StatusLine(Outcome::of($violation->severity), $theme->name, "{$violation->field} {$violation->message}");
 			}
 
-			$contrast = AdminThemeContrast::check($this->themes->resolved($theme));
+			$contrast = $this->contrast->check($this->themes->resolved($theme));
 
 			foreach ($contrast as $warning) {
-				$lines[] = new StatusLine(Outcome::Warning, $theme->name, $warning);
+				$lines[] = new StatusLine(Outcome::Warning, $theme->name, (string) $warning);
 			}
 
 			$abandoned = ExtensionAbandoned::warning($theme->abandoned);
 
 			// An abandoned theme is still offered, as in Composer (D-433).
 			if ($abandoned !== null) {
-				$lines[] = new StatusLine(Outcome::Warning, $theme->name, $abandoned);
+				$lines[] = new StatusLine(Outcome::Warning, $theme->name, (string) $abandoned);
 			}
 
 			// A version Composer can't read meets only `*` (D-429, D-430).
@@ -119,7 +121,7 @@ final readonly class CheckAdminThemes
 		}
 
 		foreach ($broken as $where => $reason) {
-			$lines[] = new StatusLine(Outcome::Warning, $where, $reason);
+			$lines[] = new StatusLine(Outcome::Warning, $where, (string) $reason);
 		}
 
 		$output->status($lines);

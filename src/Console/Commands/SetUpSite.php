@@ -165,7 +165,7 @@ final readonly class SetUpSite
 		});
 
 		try {
-			$password = $prompt->newSecret('Password:', 'Password again:', $this->manager->passwordProblem(...));
+			$password = $prompt->newSecret('Password:', 'Password again:', fn (string $password): ?string => $this->manager->passwordProblem($password)?->__toString());
 			$account = $this->manager->create($username, $password, [BuiltInRole::Owner->value], email: $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());

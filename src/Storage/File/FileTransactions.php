@@ -18,6 +18,7 @@ use Throwable;
 use Blush\Core\Paths;
 use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
+use Blush\Translation\Messages;
 
 /**
  * Transactions over files, for the filesystem driver's records
@@ -51,7 +52,8 @@ final class FileTransactions
 
 	public function __construct(
 		private readonly Paths $paths,
-		private readonly Filesystem $filesystem
+		private readonly Filesystem $filesystem,
+		private readonly Messages $messages = new Messages()
 	) {}
 
 	/**
@@ -147,7 +149,7 @@ final class FileTransactions
 		$lock = @fopen("{$this->paths->cache}/data.lock", 'c');
 
 		if ($lock === false || ! flock($lock, LOCK_EX)) {
-			throw new StorageException('Unable to take the data lock.');
+			throw new StorageException((string) $this->messages->t('storage.file_transactions.no_lock', 'Unable to take the data lock.'));
 		}
 
 		$this->lock = $lock;

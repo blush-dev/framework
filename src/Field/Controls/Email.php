@@ -18,6 +18,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\TextField;
 use Blush\Field\TextFormat;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * An email address: a text field whose format is `email`.
@@ -37,18 +39,18 @@ final class Email extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Email';
+		return $messages->t('field.email.label', 'Email');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'An email address.';
+		return $messages->t('field.email.description', 'An email address.');
 	}
 
 	/**

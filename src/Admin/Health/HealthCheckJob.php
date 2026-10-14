@@ -27,6 +27,8 @@ use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
 use Blush\Media\MediaMetadataCheck;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Checks content and media files again for Site Health (Check Again,
@@ -61,16 +63,17 @@ final class HealthCheckJob extends Job
 		private readonly MediaMetadataCheck $media,
 		private readonly Indexer $indexer,
 		private readonly ContentIndex $index,
-		private readonly SiteHealth $health
+		private readonly SiteHealth $health,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Check content and media files';
+		return $this->messages->t('admin.health_check_job.label', 'Check content and media files');
 	}
 
 	/**
@@ -120,7 +123,7 @@ final class HealthCheckJob extends Job
 		return JobResult::more(
 			[...$data, 'stage' => $rest === [] ? 'media' : 'content', 'remaining' => $rest === [] ? null : $rest, 'total' => $rest === [] ? null : $total, 'checked' => $checked, 'found' => $found],
 			intdiv(($total - count($rest)) * 60, max(1, $total)),
-			sprintf('Checked %d of %d content files.', $total - count($rest), $total)
+			$this->messages->t('admin.health_check_job.content_progress', 'Checked {done} of {total} content files.', done: $total - count($rest), total: $total)
 		);
 	}
 
@@ -148,7 +151,7 @@ final class HealthCheckJob extends Job
 		return JobResult::more(
 			[...$data, 'stage' => $rest === [] ? 'finish' : 'media', 'remaining' => $rest, 'total' => $total, 'described' => $described + $checked, 'unreadable' => [...$unreadable, ...$bad], 'mediaFound' => $found],
 			60 + intdiv(($total - count($rest)) * 35, max(1, $total)),
-			sprintf('Checked %d of %d media details files.', $total - count($rest), $total)
+			$this->messages->t('admin.health_check_job.media_progress', 'Checked {done} of {total} media details files.', done: $total - count($rest), total: $total)
 		);
 	}
 
@@ -162,7 +165,7 @@ final class HealthCheckJob extends Job
 		$checked   = is_int($data['checked'] ?? null) ? $data['checked'] : 0;
 		$described = is_int($data['described'] ?? null) ? $data['described'] : 0;
 
-		$files = self::violations($data['found'] ?? null);
+		$files = $this->violations($data['found'] ?? null);
 
 		// What needs every file at once is checked over the filesystem
 		// index; a database has no files (D-667).
@@ -174,7 +177,7 @@ final class HealthCheckJob extends Job
 			}
 		}
 
-		$media = self::violations($data['mediaFound'] ?? null);
+		$media = $this->violations($data['mediaFound'] ?? null);
 
 		foreach ($this->media->checkLibrary(self::strings($data['unreadable'] ?? null) ?? []) as $path => $violations) {
 			$media[$path] = [...$media[$path] ?? [], ...$violations];
@@ -182,12 +185,11 @@ final class HealthCheckJob extends Job
 
 		$this->health->checkFiles(lint: new LintReport($checked, [...$files, ...$this->linter->lintFormats(), ...$media, ...$this->linter->lintFieldSets()], $described));
 
-		return JobResult::done(sprintf(
-			'Checked %d content %s and %d media details %s.',
-			$checked,
-			$checked === 1 ? 'file' : 'files',
-			$described,
-			$described === 1 ? 'file' : 'files'
+		return JobResult::done($this->messages->t(
+			'admin.health_check_job.done',
+			'Checked {checked, plural, one {# content file} other {# content files}} and {described, plural, one {# media details file} other {# media details files}}.',
+			checked: $checked,
+			described: $described
 		));
 	}
 
@@ -196,12 +198,12 @@ final class HealthCheckJob extends Job
 	 *
 	 * @return array<string, list<Violation>>
 	 */
-	private static function violations(mixed $kept): array
+	private function violations(mixed $kept): array
 	{
 		$violations = [];
 
 		foreach (is_array($kept) ? $kept : [] as $path => $list) {
-			$violations[(string) $path] = array_values(array_filter(array_map(self::fromArray(...), is_array($list) ? $list : [])));
+			$violations[(string) $path] = array_values(array_filter(array_map($this->fromArray(...), is_array($list) ? $list : [])));
 		}
 
 		return $violations;
@@ -219,15 +221,16 @@ final class HealthCheckJob extends Job
 	}
 
 	/**
-	 * Returns a violation as plain data, to keep between runs.
+	 * Returns a violation as plain data, to keep between runs: its
+	 * message as a message (D-836), when it's one.
 	 *
-	 * @return array{field: string, message: string, severity: string, kind: ?string}
+	 * @return array{field: string, message: string|array<string, mixed>, severity: string, kind: ?string}
 	 */
 	private static function toArray(Violation $violation): array
 	{
 		return [
 			'field'    => $violation->field,
-			'message'  => $violation->message,
+			'message'  => SiteHealth::kept($violation->message),
 			'severity' => $violation->severity->value,
 			'kind'     => $violation->kind?->value
 		];
@@ -237,15 +240,17 @@ final class HealthCheckJob extends Job
 	 * Returns a violation kept as plain data, or `null` for one that
 	 * isn't.
 	 */
-	private static function fromArray(mixed $data): ?Violation
+	private function fromArray(mixed $data): ?Violation
 	{
-		if (! is_array($data) || ! is_string($data['field'] ?? null) || ! is_string($data['message'] ?? null)) {
+		$message = is_array($data) ? ($this->messages->restore($data['message'] ?? null) ?? $data['message'] ?? null) : null;
+
+		if (! is_array($data) || ! is_string($data['field'] ?? null) || ! (is_string($message) || $message instanceof Text)) {
 			return null;
 		}
 
 		$severity = is_string($data['severity'] ?? null) ? Severity::tryFrom($data['severity']) : null;
 		$kind     = is_string($data['kind'] ?? null) ? ViolationKind::tryFrom($data['kind']) : null;
 
-		return new Violation($data['field'], $data['message'], $severity ?? Severity::Error, $kind);
+		return new Violation($data['field'], $message, $severity ?? Severity::Error, $kind);
 	}
 }

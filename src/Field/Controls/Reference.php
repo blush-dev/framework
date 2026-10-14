@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\Control;
 use Blush\Field\Field;
 use Blush\Field\Fields\ReferenceField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Entries of the type a reference holds, picked from a list: the field a relation adds to a schema, a collection's parent, or a translation's original (of the entry's own type, a reference to no type named). Not offered in the picker; entries are linked by relationships (D-767).
@@ -36,18 +38,18 @@ final class Reference extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Entry Picker';
+		return $messages->t('field.reference.label', 'Entry Picker');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Entries picked from a list.';
+		return $messages->t('field.reference.description', 'Entries picked from a list.');
 	}
 
 	/**

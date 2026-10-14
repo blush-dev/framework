@@ -28,6 +28,8 @@ use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionState;
 use Blush\Support\PhpArrayFile;
 use Blush\Tests\BootsScratchSite;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 #[CoversClass(AdminTheme::class)]
 #[CoversClass(AdminThemes::class)]
@@ -74,9 +76,9 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame(AdminThemeSource::Framework, $themes->find('blush/neutral')?->source);
 		$this->assertSame(AdminThemeSource::Composer, $themes->find('acme/dusk')?->source, 'A Composer theme takes its package\'s name.');
 		$this->assertSame('Editorial', $themes->find('blush/editorial')?->label, 'A local theme can\'t take a framework theme\'s name.');
-		$this->assertStringContainsString('"blush/editorial" is a framework admin theme\'s name.', $themes->invalid()['extensions/blush/editorial'] ?? '');
-		$this->assertStringContainsString('"color.accent" must be a color', $themes->invalid()['extensions/acme/broken'] ?? '');
-		$this->assertStringContainsString('it has no tokens.json', $themes->invalid()['extensions/acme/empty'] ?? '');
+		$this->assertStringContainsString('"blush/editorial" is a framework admin theme\'s name.', (string) ($themes->invalid()['extensions/blush/editorial'] ?? ''));
+		$this->assertStringContainsString('"color.accent" must be a color', (string) ($themes->invalid()['extensions/acme/broken'] ?? ''));
+		$this->assertStringContainsString('it has no tokens.json', (string) ($themes->invalid()['extensions/acme/empty'] ?? ''));
 	}
 
 	public function testWhichThemesAreOnAndOffered(): void
@@ -134,7 +136,8 @@ final class AdminThemesTest extends TestCase
 		$this->assertNotNull($read);
 		$this->assertSame(array_keys($themes->all()), array_keys($read->all()));
 		$this->assertSame($themes->find('blush/editorial')?->stylesheet(), $read->find('blush/editorial')?->stylesheet());
-		$this->assertSame($themes->invalid(), $read->invalid());
+		$this->assertSame(array_map(strval(...), $themes->invalid()), array_map(strval(...), $read->invalid()));
+		$this->assertInstanceOf(Text::class, $read->invalid()['extensions/acme/empty'] ?? null, 'A reason is kept as its message (D-836).');
 	}
 
 	public function testAnAdminThemeHasNoNamespace(): void
@@ -166,7 +169,7 @@ final class AdminThemesTest extends TestCase
 		$themes = $app->container()->make(AdminThemes::class);
 
 		$this->assertNull($themes->find('acme/twin'));
-		$this->assertStringContainsString('Its name, "acme/twin", is a plugin\'s too.', $themes->invalid()['acme/twin'] ?? '');
+		$this->assertStringContainsString('Its name, "acme/twin", is a plugin\'s too.', (string) ($themes->invalid()['acme/twin'] ?? ''));
 	}
 
 	public function testAThemeWhoseRequirementsArentMetIsntOffered(): void
@@ -190,7 +193,7 @@ final class AdminThemesTest extends TestCase
 		$themes = new AdminThemeDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover();
 
 		foreach ($themes->all() as $theme) {
-			$this->assertSame([], AdminThemeContrast::check($themes->resolved($theme)), "{$theme->label}'s colors are easy to read.");
+			$this->assertSame([], new AdminThemeContrast(new Messages())->check($themes->resolved($theme)), "{$theme->label}'s colors are easy to read.");
 		}
 
 		$this->assertSame([], $themes->invalid());
@@ -206,10 +209,10 @@ final class AdminThemesTest extends TestCase
 
 		$this->assertNotNull($faint);
 
-		$warnings = AdminThemeContrast::check($themes->resolved($faint));
+		$warnings = new AdminThemeContrast(new Messages())->check($themes->resolved($faint));
 
 		$this->assertCount(2, $warnings, 'On the background and the surface, in light only.');
-		$this->assertStringStartsWith('In the light scheme, color.text.default on color.background is 1.', $warnings[0]);
-		$this->assertStringEndsWith('under the 4.5:1 it needs.', $warnings[0]);
+		$this->assertStringStartsWith('In the light scheme, color.text.default on color.background is 1.', (string) $warnings[0]);
+		$this->assertStringEndsWith('under the 4.5:1 it needs.', (string) $warnings[0]);
 	}
 }

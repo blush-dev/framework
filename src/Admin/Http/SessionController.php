@@ -32,6 +32,7 @@ use Blush\Http\ClientIp;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
 
 /**
  * Signs accounts in and out of the admin, and tells the admin who's
@@ -47,7 +48,8 @@ final readonly class SessionController
 		private AccountProfiles $accounts,
 		private Roles $roles,
 		private AuthConfig $config,
-		private UsersJson $json
+		private UsersJson $json,
+		private Messages $messages
 	) {}
 
 	/**
@@ -90,7 +92,7 @@ final readonly class SessionController
 		}
 
 		if ($account === null) {
-			return self::json(['error' => 'The username or password is wrong.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.session_controller.wrong', 'The username or password is wrong.')], Status::Unauthorized);
 		}
 
 		$session = self::session($request);

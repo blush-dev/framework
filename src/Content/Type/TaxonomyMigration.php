@@ -18,6 +18,7 @@ use Throwable;
 use Blush\Container\Attributes\Defer;
 use Blush\Data\DataKeys;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Migrates the data types still written as taxonomies (D-591, D-593),
@@ -37,7 +38,8 @@ final readonly class TaxonomyMigration
 	 */
 	public function __construct(
 		private DefinitionTables $tables,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -66,9 +68,10 @@ final readonly class TaxonomyMigration
 		$names    = $this->report();
 		$steps    = new Progress($progress);
 		$done     = 0;
+		$step     = (string) $this->messages->t('content.taxonomy_migration.step', 'Migrating taxonomies');
 
 		foreach ($names as $name) {
-			$steps->step('Migrating taxonomies', $done++, count($names));
+			$steps->step($step, $done++, count($names));
 
 			try {
 				$migrated[$name] = $this->tables->types()->transaction(fn (): array => $this->migrateOne($name));
@@ -77,7 +80,7 @@ final readonly class TaxonomyMigration
 			}
 		}
 
-		$steps->step('Migrating taxonomies', $done, count($names));
+		$steps->step($step, $done, count($names));
 
 		return ['migrated' => $migrated, 'failed' => $failed];
 	}
@@ -92,10 +95,10 @@ final readonly class TaxonomyMigration
 	{
 		$types      = $this->tables->types();
 		$relations  = $this->tables->relations();
-		$definition = $types->find($name) ?? throw new InvalidContentType(sprintf('user/data/types has no "%s".', $name));
+		$definition = $types->find($name) ?? throw new InvalidContentType((string) $this->messages->t('content.taxonomy_migration.no_type', 'user/data/types has no "{name}".', name: $name));
 
 		if ($relations->has($name)) {
-			throw new InvalidContentType(sprintf('%s already exists; move it aside first.', $relations->location($name)));
+			throw new InvalidContentType((string) $this->messages->t('content.taxonomy_migration.relation_exists', '{location} already exists; move it aside first.', location: $relations->location($name)));
 		}
 
 		[$type, $relation] = LegacyTaxonomy::convert($name, $definition);

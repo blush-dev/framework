@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Translation\Text;
+
 /**
  * Supplies the places field sets can attach to, of one kind (D-337):
  * content types, kinds of media file. Each subsystem that takes sets
@@ -34,9 +36,9 @@ interface FieldTargetSource
 
 	/**
 	 * Returns the kind's name for people, heading its targets in the
-	 * admin ("Content types").
+	 * admin ("Content types"), written with `t()` (D-836).
 	 */
-	public function label(): string;
+	public function label(): string|Text;
 
 	/**
 	 * Returns the targets.
@@ -59,9 +61,9 @@ interface FieldTargetSource
 	 * name, beyond each target's own schema (`FieldSets::schemaFor()`):
 	 * for a kind whose places share one store, such as the settings
 	 * screens, two sets using one name on different targets. Most kinds
-	 * have none.
+	 * have none. Each is written with `t()` (D-836).
 	 *
-	 * @return array<string, string>
+	 * @return array<string, string|Text>
 	 */
 	public function conflicts(FieldSets $sets): array;
 }

@@ -19,6 +19,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\MediaField;
 use Blush\Media\MediaKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One video from the library: a media field of videos.
@@ -38,18 +40,18 @@ final class Video extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Video';
+		return $messages->t('field.video.label', 'Video');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'One video from the library.';
+		return $messages->t('field.video.description', 'One video from the library.');
 	}
 
 	/**

@@ -27,11 +27,13 @@ import DangerZone from '../components/DangerZone.vue';
 import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
+import MessageText from '../components/MessageText.vue';
 import PaletteLegend from '../components/PaletteLegend.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { config } from '../config';
 import { extensionRoute } from '../extensions';
+import { t } from '../messages';
 import { can } from '../session';
 import { screenTitle } from '../screen';
 import { useThemes } from '../themes';
@@ -62,7 +64,7 @@ const installedBy = computed(() => {
 		case 'composer':
 			return 'Composer';
 		default:
-			return 'A folder in extensions/';
+			return t('theme_view.installed_by_folder', 'A folder in extensions/');
 	}
 });
 
@@ -75,10 +77,7 @@ const missingParent = computed(() => parentName.value !== '' && !installed(paren
 
 // What deleting does, and how many themes fall back to this one.
 const deleteNote = computed(() => {
-	const count = deps.value.length;
-	const note  = count === 0 ? '' : ` ${count === 1 ? '1 theme falls' : `${count} themes fall`} back to this one.`;
-
-	return `Deleting removes the folder from the server.${note}`;
+	return t('theme_view.delete_note', 'Deleting removes the folder from the server.{count, plural, =0 {} one { # theme falls back to this one.} other { # themes fall back to this one.}}', { count: deps.value.length });
 });
 
 async function remove(): Promise<void> {
@@ -92,24 +91,24 @@ async function remove(): Promise<void> {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'themes' }"><AdminIcon name="chevron-left" />All themes</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'themes' }"><AdminIcon name="chevron-left" />{{ t('theme_view.all_themes', 'All themes') }}</RouterLink>
 		<div class="page-header__text">
 			<div class="page-header__title">
-				<h1 tabindex="-1">{{ theme?.label ?? 'Theme' }}</h1>
+				<h1 tabindex="-1">{{ theme?.label ?? t('theme_view.theme', 'Theme') }}</h1>
 				<template v-if="theme">
-					<span v-if="theme.active" class="pill pill--good">Active</span>
-					<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
-					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">Can't activate</span>
+					<span v-if="theme.active" class="pill pill--good">{{ t('theme_view.active', 'Active') }}</span>
+					<span v-if="fallbackMessage(theme)" class="pill pill--warn">{{ t('theme_view.not_running', 'Not running') }}</span>
+					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">{{ t('theme_view.cant_activate', 'Can\'t activate') }}</span>
 				</template>
 			</div>
-			<p v-if="theme" class="page-header__hint">{{ theme.description || 'This theme has no description.' }}</p>
+			<p v-if="theme" class="page-header__hint">{{ theme.description || t('theme_view.no_description', 'This theme has no description.') }}</p>
 		</div>
 		<div v-if="theme" class="page-header__actions">
-			<a v-if="theme.active" class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
-			<button v-else-if="theme.blocked" type="button" class="button" disabled>Activate</button>
-			<button v-else-if="busy === theme.name" type="button" class="button" disabled><span class="spin" aria-hidden="true" />Activating…</button>
+			<a v-if="theme.active" class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />{{ t('theme_view.view_site', 'View Site') }}<span class="visually-hidden"> {{ t('theme_view.new_tab', '(new tab)') }}</span></a>
+			<button v-else-if="theme.blocked" type="button" class="button" disabled>{{ t('theme_view.activate', 'Activate') }}</button>
+			<button v-else-if="busy === theme.name" type="button" class="button" disabled><span class="spin" aria-hidden="true" />{{ t('theme_view.activating', 'Activating…') }}</button>
 			<button v-else-if="canActivate" type="button" class="button" :class="failed?.name === theme.name ? 'button--danger' : 'button--primary'" :disabled="busy !== null" @click="activate(theme)">
-				{{ failed?.name === theme.name ? 'Try Again' : `Activate ${theme.label}` }}
+				{{ failed?.name === theme.name ? t('common.retry', 'Try Again') : t('theme_view.activate_named', 'Activate {label}', { label: theme.label }) }}
 			</button>
 		</div>
 	</header>
@@ -121,7 +120,7 @@ async function remove(): Promise<void> {
 			<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
 		</p>
 		<p v-if="failed?.name === theme.name" class="notice notice--small notice--error" role="alert">
-			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
+			<AdminIcon name="triangle-alert" /><span>{{ t('theme_view.still_showing', 'Your site is still showing {theme}; nothing changed. {reason}', { theme: active?.label ?? answer.active, reason: failed.reason }) }}</span>
 		</p>
 		<p v-else-if="theme.blocked && !theme.active" class="notice notice--small notice--warn">
 			<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
@@ -130,19 +129,19 @@ async function remove(): Promise<void> {
 
 		<section class="panel" aria-labelledby="appearance-heading">
 			<header class="panel__header">
-				<h2 id="appearance-heading">Appearance</h2>
-				<p class="panel__hint">{{ theme.preview?.palette ? 'The six colors it declares, drawn and listed' : 'No palette declared' }}</p>
+				<h2 id="appearance-heading">{{ t('theme_view.appearance', 'Appearance') }}</h2>
+				<p class="panel__hint">{{ theme.preview?.palette ? t('theme_view.palette_declared', 'The six colors it declares, drawn and listed') : t('theme_view.no_palette', 'No palette declared') }}</p>
 			</header>
 			<div class="panel__body">
 				<div class="extension-appearance">
 					<figure v-for="half in ([0, 1] as const)" :key="half">
 						<ThemeSketch :preview="theme.preview" :scheme="half === 0 ? 'light' : 'dark'" />
-						<figcaption class="eyebrow">{{ half === 0 ? 'Light' : 'Dark' }}</figcaption>
+						<figcaption class="eyebrow">{{ half === 0 ? t('theme_view.light', 'Light') : t('theme_view.dark', 'Dark') }}</figcaption>
 						<PaletteLegend v-if="theme.preview?.palette" :palette="theme.preview.palette" :half="half" />
 					</figure>
 				</div>
 				<p v-if="!theme.preview?.palette" class="field__help">
-					These use the admin's colors. A theme draws its own preview with a <code>preview</code> palette in its <code>theme.json</code>.
+					<MessageText :text="t('theme_view.palette_help', 'These use the admin\'s colors. A theme draws its own preview with a {preview} palette in its {file}.')"><template #preview><code>preview</code></template><template #file><code>theme.json</code></template></MessageText>
 				</p>
 			</div>
 		</section>
@@ -150,22 +149,22 @@ async function remove(): Promise<void> {
 		<div class="extension-detail__columns">
 			<ExtensionFacts :extension="theme" :installed-by="installedBy" :folder="theme.folder">
 				<template #kind>
-					<dt>Type</dt>
+					<dt>{{ t('theme_view.type', 'Type') }}</dt>
 					<dd>{{ theme.preview?.type || '—' }}</dd>
 				</template>
 			</ExtensionFacts>
 
-			<ExtensionDependencies :extension="theme" noun="theme" replaces-hint="It can't run" :as-if-active="!theme.active">
+			<ExtensionDependencies :extension="theme" noun="theme" :replaces-hint="t('theme_view.replaces_hint', 'It can\'t run')" :as-if-active="!theme.active">
 				<template v-if="parentName !== ''" #own>
 					<section class="panel__section" aria-labelledby="fallback-heading">
-						<div class="panel__section-head"><h3 id="fallback-heading" class="eyebrow">Falls back to</h3><span>Where what it doesn't define comes from</span></div>
+						<div class="panel__section-head"><h3 id="fallback-heading" class="eyebrow">{{ t('theme_view.falls_back_to', 'Falls back to') }}</h3><span>{{ t('theme_view.falls_back_hint', 'Where what it doesn\'t define comes from') }}</span></div>
 						<ul class="dependencies">
 							<li>
 								<AdminIcon :name="missingParent ? 'circle-x' : 'circle-check'" :class="missingParent ? 'is-unmet' : 'is-met'" />
 								<div class="dependencies__ref">
 									<template v-if="missingParent">
 										<span class="mono">{{ parentName }}</span>
-										<span class="dependencies__note is-unmet">isn't installed</span>
+										<span class="dependencies__note is-unmet">{{ t('theme_view.not_installed', 'isn\'t installed') }}</span>
 									</template>
 									<template v-else>
 										<RouterLink :to="extensionRoute('theme', parentName)">{{ label(parentName) }}</RouterLink>
@@ -178,7 +177,7 @@ async function remove(): Promise<void> {
 				</template>
 				<template v-if="deps.length" #others>
 					<section class="panel__section" aria-labelledby="fallback-by-heading">
-						<div class="panel__section-head"><h3 id="fallback-by-heading" class="eyebrow">Used as fallback by</h3></div>
+						<div class="panel__section-head"><h3 id="fallback-by-heading" class="eyebrow">{{ t('theme_view.fallback_by', 'Used as fallback by') }}</h3></div>
 						<ExtensionDependents :dependents="fallingBack" />
 					</section>
 				</template>
@@ -187,19 +186,19 @@ async function remove(): Promise<void> {
 
 		<PreviousVersion kind="theme" :extension="theme" :live="answer.chain.includes(theme.name)" @changed="load" />
 		<p v-if="theme.source === 'composer'" class="notice">
-			<span>Composer manages this theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
+			<span><MessageText :text="t('theme_view.composer_note', 'Composer manages this theme, so it can\'t be deleted here. Remove it from the project with {command}, and it leaves this list.')"><template #command><code>composer remove {{ theme.name }}</code></template></MessageText></span>
 		</p>
 		<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
-			<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? answer.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
+			<span>{{ t('theme_view.not_deletable', '{active, select, yes {This is the active theme, so it can\'t be deleted. Activate another theme first.} other {The active theme, {theme}, falls back to it, so it can\'t be deleted. Activate another theme first.} }', { active: theme.active ? 'yes' : 'no', theme: active?.label ?? answer.active }) }}</span>
 		</p>
 		<DangerZone v-else-if="canDelete && theme.deletable">
 			{{ deleteNote }}
-			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Theme</button></template>
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('theme_view.delete', 'Delete Theme') }}</button></template>
 		</DangerZone>
 	</div>
 
 	<p v-else-if="answer" class="notice notice--warn" role="alert">
-		<span>No theme named <span class="mono">{{ name }}</span> is installed.</span>
+		<span><MessageText :text="t('theme_view.not_found', 'No theme named {name} is installed.')"><template #name><span class="mono">{{ name }}</span></template></MessageText></span>
 	</p>
 
 	<div v-else-if="!error" class="extension-detail" aria-hidden="true">

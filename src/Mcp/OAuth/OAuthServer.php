@@ -24,6 +24,7 @@ use Blush\Auth\Permissions;
 use Blush\Auth\Tokens;
 use Blush\Auth\TokenScope;
 use Blush\Core\AppConfig;
+use Blush\Translation\Messages;
 
 /**
  * OAuth 2.1 for the MCP server (D-752): Blush is its own authorization
@@ -61,7 +62,8 @@ final readonly class OAuthServer
 		private AppConfig $app,
 		private ApiConfig $api,
 		private AdminConfig $admin,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -137,11 +139,11 @@ final readonly class OAuthServer
 		$client   = is_string($clientId) && $clientId !== '' ? $this->clients->find($clientId) : null;
 
 		if ($client === null) {
-			throw OAuthError::client('The app asking to connect isn\'t one this site knows. Start connecting again from the app.');
+			throw OAuthError::client((string) $this->messages->t('mcp.oauth_server.unknown_app', 'The app asking to connect isn\'t one this site knows. Start connecting again from the app.'));
 		}
 
 		if (! is_string($redirect) || ! $client->allowsRedirect($redirect)) {
-			throw new OAuthError('invalid_request', sprintf('%s asked to send you back to an address it didn\'t register, so it isn\'t sent there.', $client->name), redirectable: false);
+			throw new OAuthError('invalid_request', (string) $this->messages->t('mcp.oauth_server.unregistered_redirect', '{app} asked to send you back to an address it didn\'t register, so it isn\'t sent there.', app: $client->name), redirectable: false);
 		}
 
 		$state = is_string($params['state'] ?? null) ? $params['state'] : null;
@@ -206,11 +208,11 @@ final readonly class OAuthServer
 	public function approve(Account $account, AuthorizationRequest $request, ?array $capabilities): string
 	{
 		if (! $this->mayConnect($account)) {
-			throw $request->error('access_denied', 'This account may not connect apps.');
+			throw $request->error('access_denied', (string) $this->messages->t('mcp.oauth_server.may_not_connect', 'This account may not connect apps.'));
 		}
 
 		if (! $request->scope->covers(TokenScope::of($capabilities)) || ($request->scope !== TokenScope::Account && $capabilities === null)) {
-			throw $request->error('invalid_scope', 'The choice is wider than the app asked for.');
+			throw $request->error('invalid_scope', (string) $this->messages->t('mcp.oauth_server.too_wide', 'The choice is wider than the app asked for.'));
 		}
 
 		$asked = $request->scope->capabilities();
@@ -218,11 +220,11 @@ final readonly class OAuthServer
 
 		foreach ($capabilities ?? [] as $capability) {
 			if ($asked !== null && ! in_array($capability, $asked, true)) {
-				throw $request->error('invalid_scope', sprintf('"%s" is more than the app asked for.', $capability));
+				throw $request->error('invalid_scope', (string) $this->messages->t('mcp.oauth_server.more_than_asked', '"{capability}" is more than the app asked for.', capability: $capability));
 			}
 
 			if (! in_array($capability, $held, true) && ! in_array($capability, $asked ?? [], true)) {
-				throw $request->error('invalid_scope', sprintf('"%s" isn\'t a capability this account has.', $capability));
+				throw $request->error('invalid_scope', (string) $this->messages->t('mcp.oauth_server.not_held', '"{capability}" isn\'t a capability this account has.', capability: $capability));
 			}
 		}
 

@@ -18,6 +18,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
 use Blush\Support\FilesystemException;
 use Blush\Support\PhpArrayFile;
+use Blush\Translation\Messages;
 
 /**
  * The default index: `storage/index/content.php`, a PHP file returning the
@@ -44,7 +45,8 @@ final class PhpIndex implements ContentIndex
 
 	public function __construct(
 		Paths $paths,
-		private readonly ContentTypes $types
+		private readonly ContentTypes $types,
+		private readonly Messages $messages
 	) {
 		$this->file = new PhpArrayFile("{$paths->index}/" . self::FILE);
 	}
@@ -94,7 +96,7 @@ final class PhpIndex implements ContentIndex
 		try {
 			$this->file->write($snapshot->toArray());
 		} catch (FilesystemException $e) {
-			throw new IndexException(sprintf('Unable to write the content index: %s', $e->getMessage()), previous: $e);
+			throw new IndexException((string) $this->messages->t('content.php_index.unwritable', 'Unable to write the content index: {reason}', reason: $e->getMessage()), previous: $e);
 		}
 
 		$this->snapshot = $snapshot;

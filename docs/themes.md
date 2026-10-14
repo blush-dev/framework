@@ -930,6 +930,11 @@ needs what you change, and the rest still comes from the package. The
 language is checked first, so the package's own `fr.json` still beats
 your `en` folder on a French page.
 
+Text in scripts is in [named catalogs](extending.md#text-in-scripts),
+and so is yours: in a folder of the catalog's name under the language,
+such as `user/lang/fr/site/extensions/acme/notebook.json` for a theme's
+`site` catalog, or `user/lang/fr/admin/core.json` for the admin's.
+
 ```json
 {
 	"@@locale": "en",

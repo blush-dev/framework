@@ -20,6 +20,7 @@ use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
+use Blush\Translation\Messages;
 
 /**
  * Checks the field sets against the places they attach to (D-337, D-341):
@@ -46,7 +47,8 @@ final readonly class FieldSetCheck
 	public function __construct(
 		private FieldSets $sets,
 		private FieldTargets $targets,
-		private FieldSetLoader $loader
+		private FieldSetLoader $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -69,8 +71,8 @@ final readonly class FieldSetCheck
 				[$kind, $place] = explode(':', $target, 2);
 
 				$message = match (true) {
-					! $this->targets->hasKind($kind)                     => sprintf('"%s" names %s, but fields can\'t attach to a "%s" yet.', $name, $target, $kind),
-					$place !== FieldSet::EVERY && ! isset($targets[$target]) => sprintf('"%s" names %s, which the site doesn\'t have, so it isn\'t used there.', $name, $target),
+					! $this->targets->hasKind($kind)                     => $this->messages->t('content.field_set_check.unknown_kind', '"{set}" names {target}, but fields can\'t attach to a "{kind}" yet.', set: $name, target: $target, kind: $kind),
+					$place !== FieldSet::EVERY && ! isset($targets[$target]) => $this->messages->t('content.field_set_check.unknown_target', '"{set}" names {target}, which the site doesn\'t have, so it isn\'t used there.', set: $name, target: $target),
 					default                                              => null
 				};
 
@@ -83,7 +85,7 @@ final readonly class FieldSetCheck
 			$in   = $set->slot === null ? null : $this->targets->slotFor($set);
 
 			if ($in !== null && $in->name !== $set->slot) {
-				$violations[$this->key($name)][] = new Violation('slot', sprintf('"%s" has the slot "%s", which %s don\'t offer, so it\'s in "%s".', $name, $set->slot, mb_strtolower($this->targets->sources()[$kind]->label()), $in->name), Severity::Notice);
+				$violations[$this->key($name)][] = new Violation('slot', $this->messages->t('content.field_set_check.slot', '"{set}" has the slot "{slot}", which {kind} don\'t offer, so it\'s in "{in}".', set: $name, slot: $set->slot, kind: mb_strtolower((string) $this->targets->sources()[$kind]->label()), in: $in->name), Severity::Notice);
 			}
 		}
 
@@ -108,7 +110,7 @@ final readonly class FieldSetCheck
 	 */
 	private function key(string $name): string
 	{
-		return $this->sets->find($name) === null ? sprintf('the fields %s registers', $name) : $this->dataFile($name);
+		return $this->sets->find($name) === null ? (string) $this->messages->t('content.field_set_check.registered', 'the fields {extension} registers', extension: $name) : $this->dataFile($name);
 	}
 
 	/**

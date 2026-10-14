@@ -30,6 +30,7 @@ use Blush\Storage\Record\TableRegistry;
 use Blush\Storage\Sql\SqliteConnection;
 use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
 
 /**
  * Binds the storage drivers (D-486, D-642), and the record layer's
@@ -83,7 +84,7 @@ final class StorageServiceProvider extends ServiceProvider
 
 		$this->container->singleton(
 			SqliteRecordStore::class,
-			static fn (ServiceResolver $resolver): SqliteRecordStore => SqliteRecordStore::forSite($resolver->make(StorageConfig::class), $resolver->make(Paths::class)->root)
+			static fn (ServiceResolver $resolver): SqliteRecordStore => SqliteRecordStore::forSite($resolver->make(StorageConfig::class), $resolver->make(Paths::class)->root, $resolver->make(Messages::class))
 		);
 	}
 

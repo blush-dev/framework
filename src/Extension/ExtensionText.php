@@ -93,7 +93,12 @@ final readonly class ExtensionText
 	public static function extracted(ExtensionManifest $extension): array
 	{
 		$file  = $extension->kind()->manifest() . '.json';
-		$kind  = $extension->kind()->label();
+		$kind  = match ($extension->kind()) {
+			ExtensionKind::Plugin     => 'plugin',
+			ExtensionKind::Theme      => 'theme',
+			ExtensionKind::IconPack   => 'icon pack',
+			ExtensionKind::AdminTheme => 'admin theme'
+		};
 		$texts = [
 			self::PREFIX . 'label'       => [$extension->label, "The {$kind}'s name"],
 			self::PREFIX . 'description' => [$extension->description, "What the {$kind} is, in a sentence"]

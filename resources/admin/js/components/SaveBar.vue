@@ -6,7 +6,7 @@
  * there's a change or a failure to say.
  */
 
-import { plural } from '../format';
+import { t } from '../messages';
 
 // `ready` defaults to true: Vue reads a boolean prop left out as false.
 withDefaults(defineProps<{
@@ -22,10 +22,10 @@ const emit = defineEmits<{ revert: [] }>();
 </script>
 
 <template>
-	<div v-if="count > 0 || failure" class="save-bar" role="region" aria-label="Unsaved changes">
-		<span class="save-bar__count" aria-live="polite">{{ plural(count, 'unsaved change') }}</span>
+	<div v-if="count > 0 || failure" class="save-bar" role="region" :aria-label="t('save_bar.label', 'Unsaved changes')">
+		<span class="save-bar__count" aria-live="polite">{{ t('save_bar.count', '{count, plural, one {# unsaved change} other {# unsaved changes} }', { count }) }}</span>
 		<span v-if="failure" class="save-bar__error" role="alert">{{ failure }}</span>
-		<button type="button" class="button button--ghost button--small" :disabled="saving" @click="emit('revert')">Revert</button>
-		<button type="submit" class="button button--primary button--small" :disabled="saving || count === 0 || !ready">{{ saving ? 'Saving…' : 'Save Changes' }}</button>
+		<button type="button" class="button button--ghost button--small" :disabled="saving" @click="emit('revert')">{{ t('save_bar.revert', 'Revert') }}</button>
+		<button type="submit" class="button button--primary button--small" :disabled="saving || count === 0 || !ready">{{ saving ? t('save_bar.saving', 'Saving…') : t('save_bar.save', 'Save Changes') }}</button>
 	</div>
 </template>

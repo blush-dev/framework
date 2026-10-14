@@ -17,6 +17,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Settings\Setting;
+use Blush\Translation\Messages;
 
 /**
  * Which entry is the site's homepage (D-420): the root `index.md`
@@ -27,9 +28,10 @@ use Blush\Settings\Setting;
  */
 final readonly class Homepage
 {
-	public function __construct(private ContentTypes $types)
-	{
-	}
+	public function __construct(
+		private ContentTypes $types,
+		private Messages $messages
+	) {}
 
 	/**
 	 * Whether an entry is the root tree's landing page, `index.md` at the
@@ -74,6 +76,6 @@ final readonly class Homepage
 	{
 		$home = $this->types->homeType();
 
-		return $home === null ? null : (Setting::homeChoices($this->types)[$home->name] ?? $home->labels->plural);
+		return $home === null ? null : (string) (Setting::homeChoices($this->types, $this->messages)[$home->name] ?? $home->labels->plural);
 	}
 }

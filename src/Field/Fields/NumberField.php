@@ -18,6 +18,8 @@ use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A number, optionally a whole one and optionally within bounds. Numeric
@@ -59,18 +61,18 @@ final class NumberField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Number';
+		return $messages->t('field.number_field.type_label', 'Number');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'A number.';
+		return $messages->t('field.number_field.type_description', 'A number.');
 	}
 
 	/**
@@ -84,27 +86,27 @@ final class NumberField extends Field
 		}
 
 		if (! is_int($value) && ! is_float($value)) {
-			throw $this->invalid(sprintf('must be a number, not %s.', self::describe($value)));
+			throw $this->invalid($context->messages->t('field.number_field.invalid', 'must be a number, not {value}.', value: self::describe($value, $context->messages)));
 		}
 
 		if ($this->integer) {
 			if (is_float($value) && floor($value) !== $value) {
-				throw $this->invalid(sprintf('must be a whole number, not %s.', $value));
+				throw $this->invalid($context->messages->t('field.number_field.not_whole', 'must be a whole number, not {value}.', value: $value));
 			}
 
 			$value = (int) $value;
 		}
 
 		if ($this->min !== null && $value < $this->min) {
-			throw $this->invalid(sprintf('must be at least %s.', $this->min));
+			throw $this->invalid($context->messages->t('field.number_field.too_small', 'must be at least {min}.', min: $this->min));
 		}
 
 		if ($this->max !== null && $value > $this->max) {
-			throw $this->invalid(sprintf('must be at most %s.', $this->max));
+			throw $this->invalid($context->messages->t('field.number_field.too_large', 'must be at most {max}.', max: $this->max));
 		}
 
 		if ($this->step !== null && ! $this->inStep($value)) {
-			throw $this->invalid(sprintf('must go in steps of %s from %s.', $this->step, $this->min ?? 0));
+			throw $this->invalid($context->messages->t('field.number_field.step', 'must go in steps of {step} from {from}.', step: $this->step, from: $this->min ?? 0));
 		}
 
 		return $value;

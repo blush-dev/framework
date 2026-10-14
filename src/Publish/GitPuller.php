@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Publish;
 
 use Override;
+use Blush\Translation\Messages;
 
 /**
  * Runs `git pull --ff-only` in a folder (the site's `user/`, which may be
@@ -25,8 +26,10 @@ use Override;
  */
 final readonly class GitPuller implements Puller
 {
-	public function __construct(private PublishConfig $config)
-	{}
+	public function __construct(
+		private PublishConfig $config,
+		private Messages $messages
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -35,11 +38,11 @@ final readonly class GitPuller implements Puller
 	public function pull(string $directory): PullResult
 	{
 		if (! function_exists('proc_open')) {
-			return new PullResult(false, 'proc_open() is disabled on this host, so git can\'t run.');
+			return new PullResult(false, (string) $this->messages->t('publish.git_puller.no_proc_open', 'proc_open() is disabled on this host, so git can\'t run.'));
 		}
 
 		if (! is_dir($directory)) {
-			return new PullResult(false, sprintf('"%s" doesn\'t exist.', $directory));
+			return new PullResult(false, (string) $this->messages->t('publish.git_puller.missing', '"{folder}" doesn\'t exist.', folder: $directory));
 		}
 
 		$command = [$this->config->gitBinary, '-C', $directory, 'pull', '--ff-only'];
@@ -64,7 +67,7 @@ final readonly class GitPuller implements Puller
 		$log = tmpfile();
 
 		if ($log === false) {
-			return new PullResult(false, 'Unable to create a temp file for git\'s output.');
+			return new PullResult(false, (string) $this->messages->t('publish.git_puller.no_temp_file', 'Unable to create a temp file for git\'s output.'));
 		}
 
 		$process = @proc_open($command, [1 => $log, 2 => $log], $pipes, $directory, $environment);
@@ -72,7 +75,7 @@ final readonly class GitPuller implements Puller
 		if ($process === false) {
 			fclose($log);
 
-			return new PullResult(false, sprintf('Could not start "%s".', $this->config->gitBinary));
+			return new PullResult(false, (string) $this->messages->t('publish.git_puller.not_started', 'Could not start "{git}".', git: $this->config->gitBinary));
 		}
 
 		$code = proc_close($process);

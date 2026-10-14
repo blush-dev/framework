@@ -22,6 +22,7 @@ use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers `PATCH {path}/api/profile` (D-322, D-370): changes the
@@ -35,7 +36,8 @@ final readonly class ProfileController
 {
 	public function __construct(
 		private Accounts $accounts,
-		private AccountProfiles $profiles
+		private AccountProfiles $profiles,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -43,7 +45,7 @@ final readonly class ProfileController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		try {

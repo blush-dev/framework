@@ -323,7 +323,7 @@ final class ContentCommandsTest extends TestCase
 
 		[$changes] = $log->list(new ActivityFilter(via: Via::Cli));
 
-		$this->assertSame(['Created “From the Shell”', ''], [$changes[0]->summary ?? null, $changes[0]->account ?? null], 'Logged as the command line, with no account (D-758).');
+		$this->assertSame(['Created “From the Shell”', ''], [isset($changes[0]) ? (string) $changes[0]->summary : null, $changes[0]->account ?? null], 'Logged as the command line, with no account (D-758).');
 
 		$this->clock->advance('PT1M');
 

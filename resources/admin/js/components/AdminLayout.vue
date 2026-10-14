@@ -34,6 +34,8 @@ import { focusMode, lastVisits, screenCrumb, screenTitle, screenTrail } from '..
 import { loadCounts, navCounts } from '../counts';
 import { can, canAnyType, canType, savePreferences, session, signOut, usesMedia } from '../session';
 import { toast } from '../toast';
+import { formatNumber } from '../format';
+import { t } from '../messages';
 import { contentMenu, profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminAvatar from './AdminAvatar.vue';
 import AdminIcon from './AdminIcon.vue';
@@ -106,27 +108,27 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
-	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'gauge')];
+	const home: NavLink[] = [screen('dashboard', t('admin_layout.nav_dashboard', 'Dashboard'), 'gauge')];
 
 	// With what its last report found (D-545).
 	if (can('site.health')) {
-		home.push({ ...screen('health', 'Site Health', 'heart-pulse'), count: navCounts.value?.health || undefined });
+		home.push({ ...screen('health', t('admin_layout.nav_health', 'Site Health'), 'heart-pulse'), count: navCounts.value?.health || undefined });
 	}
 
 	// Tools, with an action the account may run, the jobs, or the log
 	// (D-540, D-621).
 	if ((navCounts.value?.tools ?? 0) > 0 || can('site.logs') || can('site.jobs')) {
-		home.push(screen('tools', 'Tools', 'wrench'));
+		home.push(screen('tools', t('admin_layout.nav_tools', 'Tools'), 'wrench'));
 	}
 
 	// Your Account is your own account's screen (D-371), so it's current
 	// there, and Accounts isn't.
 	const own       = session.account?.username ?? '';
 	const onOwn     = route.name === 'account' && route.params.username === own;
-	const yourLink: NavLink = { key: 'profile', label: 'Your Account', icon: 'circle-user-round', to: { name: 'account', params: { username: own } }, current: onOwn, pin: 'account' };
+	const yourLink: NavLink = { key: 'profile', label: t('admin_layout.nav_your_account', 'Your Account'), icon: 'circle-user-round', to: { name: 'account', params: { username: own } }, current: onOwn, pin: 'account' };
 
 	// A Settings screen (D-325).
-	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false, pin: `settings:${key}`, pinLabel: key === 'general' ? 'Settings' : `${label} Settings` });
+	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false, pin: `settings:${key}`, pinLabel: key === 'general' ? t('admin_layout.pin_settings', 'Settings') : t('admin_layout.pin_screen_settings', '{label} Settings', { label }) });
 
 	const inEntries = route.meta.section === 'entries';
 	const link = (type: ContentTypeSummary): NavLink => ({
@@ -142,24 +144,24 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// In the site's order (D-726); only the types the account edits
 	// entries of (D-359).
 	const content = contentMenu(types.value.filter((type) => canType(type.name, 'edit'))).map(({ type, under }) => ({ ...link(type), links: under.map(link) }));
-	const library = usesMedia() ? [screen('media', 'Media', 'image')] : [];
+	const library = usesMedia() ? [screen('media', t('admin_layout.nav_media', 'Media'), 'image')] : [];
 
 	const structure = [
-		...(can('site.settings') ? [screen('types', 'Content Types', 'layers'), screen('relations', 'Relationships', 'workflow'), screen('fields', 'Fields', 'group')] : []),
+		...(can('site.settings') ? [screen('types', t('admin_layout.nav_types', 'Content Types'), 'layers'), screen('relations', t('admin_layout.nav_relations', 'Relationships'), 'workflow'), screen('fields', t('admin_layout.nav_fields', 'Fields'), 'group')] : []),
 		// Menus, with their own capability.
-		...(can('menus.edit') ? [screen('menus', 'Menus', 'menu')] : [])
+		...(can('menus.edit') ? [screen('menus', t('admin_layout.nav_menus', 'Menus'), 'menu')] : [])
 	];
 	// Redirects (D-686) after Addresses and Search, with its own capability.
-	const redirects = can('site.redirects') ? [screen('redirects', 'Redirects', 'corner-down-right')] : [];
+	const redirects = can('site.redirects') ? [screen('redirects', t('admin_layout.nav_redirects', 'Redirects'), 'corner-down-right')] : [];
 	const settings  = can('site.settings')
-		? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('writing', 'Writing', 'pen-line'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), ...redirects, settingsScreen('ai', 'AI', 'bot'), settingsScreen('api', 'API', 'braces'), settingsScreen('system', 'System', 'settings')]
+		? [settingsScreen('general', t('admin_layout.settings_general', 'General'), 'settings-2'), settingsScreen('reading', t('admin_layout.settings_reading', 'Reading'), 'book-open'), settingsScreen('writing', t('admin_layout.settings_writing', 'Writing'), 'pen-line'), settingsScreen('media', t('admin_layout.settings_media', 'Media'), 'image'), settingsScreen('search', t('admin_layout.settings_search', 'Addresses and Search'), 'globe'), ...redirects, settingsScreen('ai', t('admin_layout.settings_ai', 'AI'), 'bot'), settingsScreen('api', t('admin_layout.settings_api', 'API'), 'braces'), settingsScreen('system', t('admin_layout.settings_system', 'System'), 'settings')]
 		: redirects;
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [
-		...(can('extensions.themes.view') ? [screen('themes', 'Themes', 'paintbrush')] : []),
-		...(can('extensions.plugins.view') ? [screen('plugins', 'Plugins', 'plug')] : []),
-		...(can('extensions.icon-packs.view') ? [screen('icon-packs', 'Icon Packs', 'shapes')] : []),
-		...(can('extensions.admin-themes.view') ? [screen('admin-themes', 'Admin Themes', 'swatch-book')] : [])
+		...(can('extensions.themes.view') ? [screen('themes', t('admin_layout.nav_themes', 'Themes'), 'paintbrush')] : []),
+		...(can('extensions.plugins.view') ? [screen('plugins', t('admin_layout.nav_plugins', 'Plugins'), 'plug')] : []),
+		...(can('extensions.icon-packs.view') ? [screen('icon-packs', t('admin_layout.nav_icon_packs', 'Icon Packs'), 'shapes')] : []),
+		...(can('extensions.admin-themes.view') ? [screen('admin-themes', t('admin_layout.nav_admin_themes', 'Admin Themes'), 'swatch-book')] : [])
 	];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
@@ -175,16 +177,16 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	}] : [];
 	const people    = [
 		yourLink,
-		...(can('accounts.view') ? [{ ...screen('accounts', 'Accounts', 'key-round'), current: route.meta.parent === 'accounts' && !onOwn }] : []),
+		...(can('accounts.view') ? [{ ...screen('accounts', t('admin_layout.nav_accounts', 'Accounts'), 'key-round'), current: route.meta.parent === 'accounts' && !onOwn }] : []),
 		...profileLink,
-		...(can('accounts.view') ? [screen('roles', 'Roles', 'shield')] : [])
+		...(can('accounts.view') ? [screen('roles', t('admin_layout.nav_roles', 'Roles'), 'shield')] : [])
 	];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
 	return {
 		home: groups([{ key: 'home', links: home }]),
-		content: groups([{ key: 'types', links: content }, { key: 'library', heading: 'Library', links: library }]),
+		content: groups([{ key: 'types', links: content }, { key: 'library', heading: t('admin_layout.group_library', 'Library'), links: library }]),
 		people: groups([{ key: 'people', links: people }]),
 		structure: groups([{ key: 'structure', links: structure }]),
 		extend: groups([{ key: 'extensions', links: extensions }]),
@@ -304,10 +306,10 @@ async function toggleShortcuts(): Promise<void> {
 	try {
 		if (ids.join('\n') !== saved.join('\n')) {
 			await savePreferences({ shortcuts: ids });
-			toast('Shortcuts updated');
+			toast(t('admin_layout.shortcuts_updated', 'Shortcuts updated'));
 		}
 	} catch (caught) {
-		toast(errorMessage(caught, 'The shortcuts couldn\'t be saved.'), { kind: 'danger' });
+		toast(errorMessage(caught, t('admin_layout.shortcuts_failed', 'The shortcuts couldn\'t be saved.')), { kind: 'danger' });
 	} finally {
 		draft.value = null;
 	}
@@ -333,12 +335,12 @@ function moveShortcut(index: number, by: -1 | 1): void {
 
 // The rail's sections; one with nothing in it for this account is left out.
 const areas = computed(() => ([
-	{ key: 'home', label: 'Home', icon: 'house' },
-	{ key: 'content', label: 'Content', icon: 'file-text' },
-	{ key: 'structure', label: 'Structure', icon: 'blocks' },
-	{ key: 'extend', label: 'Extend', icon: 'package' },
-	{ key: 'people', label: 'Users', icon: 'user' },
-	{ key: 'settings', label: 'Settings', icon: 'settings' }
+	{ key: 'home', label: t('admin_layout.area_home', 'Home'), icon: 'house' },
+	{ key: 'content', label: t('admin_layout.area_content', 'Content'), icon: 'file-text' },
+	{ key: 'structure', label: t('admin_layout.area_structure', 'Structure'), icon: 'blocks' },
+	{ key: 'extend', label: t('admin_layout.area_extend', 'Extend'), icon: 'package' },
+	{ key: 'people', label: t('admin_layout.area_people', 'Users'), icon: 'user' },
+	{ key: 'settings', label: t('admin_layout.area_settings', 'Settings'), icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
 
 const routeArea = computed<Area>(() => {
@@ -364,22 +366,22 @@ const panelSub = computed(() => {
 	if (area.value === 'content') {
 		const count = types.value.length;
 
-		return count === 0 ? 'Entries and media' : `${count} content ${count === 1 ? 'type' : 'types'}`;
+		return count === 0 ? t('admin_layout.sub_content_empty', 'Entries and media') : t('admin_layout.sub_content', '{count, plural, one {# content type} other {# content types}}', { count });
 	}
 
 	if (area.value === 'people') {
-		return 'Accounts, profiles, and roles';
+		return t('admin_layout.sub_people', 'Accounts, profiles, and roles');
 	}
 
 	if (area.value === 'structure') {
-		return 'Types, relationships, fields, and menus';
+		return t('admin_layout.sub_structure', 'Types, relationships, fields, and menus');
 	}
 
 	if (area.value === 'extend') {
-		return 'Themes, plugins, and icon packs';
+		return t('admin_layout.sub_extend', 'Themes, plugins, and icon packs');
 	}
 
-	return area.value === 'settings' ? 'How the site reads and runs' : config.site.name;
+	return area.value === 'settings' ? t('admin_layout.sub_settings', 'How the site reads and runs') : config.site.name;
 });
 
 /**
@@ -454,7 +456,7 @@ function returnTo(to: RouteLocationRaw): RouteLocationRaw {
 	return lastVisits.get(router.resolve(to).path) ?? to;
 }
 
-const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', structure: 'Structure', extend: 'Extend', people: 'Users', settings: 'Settings' })[routeArea.value]);
+const sectionLabel = computed(() => ({ home: t('admin_layout.area_home', 'Home'), content: t('admin_layout.area_content', 'Content'), structure: t('admin_layout.area_structure', 'Structure'), extend: t('admin_layout.area_extend', 'Extend'), people: t('admin_layout.area_people', 'Users'), settings: t('admin_layout.area_settings', 'Settings') })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
 // A screen read top to bottom, like the dashboard, keeps a narrower
@@ -563,7 +565,7 @@ onBeforeUnmount(() => {
 });
 
 async function leave(): Promise<void> {
-	await run('Signing out failed.', async () => {
+	await run(t('admin_layout.sign_out_failed', 'Signing out failed.'), async () => {
 		await signOut();
 		await router.push({ name: 'sign-in' });
 	});
@@ -572,13 +574,13 @@ async function leave(): Promise<void> {
 
 <template>
 	<div class="app" :class="{ 'is-collapsed': hidden && !narrow, 'is-narrow': narrow, 'is-open': open, 'is-focus': focusMode }">
-		<a class="skip-link" href="#main">Skip to content</a>
+		<a class="skip-link" href="#main">{{ t('admin_layout.skip', 'Skip to content') }}</a>
 
 		<div id="nav-drawer" ref="drawer" class="drawer" :inert="(narrow && !open) || focusMode">
-			<nav class="railbar" aria-label="Sections">
-				<a class="railbar__mark" :href="config.site.url" :title="`${config.site.name} (view the site)`">
+			<nav class="railbar" :aria-label="t('admin_layout.sections', 'Sections')">
+				<a class="railbar__mark" :href="config.site.url" :title="t('admin_layout.view_site_title', '{site} (view the site)', { site: config.site.name })">
 					<span aria-hidden="true">{{ config.site.name.charAt(0) }}</span>
-					<span class="visually-hidden">{{ config.site.name }} (view the site)</span>
+					<span class="visually-hidden">{{ t('admin_layout.view_site_title', '{site} (view the site)', { site: config.site.name }) }}</span>
 				</a>
 				<button
 					v-for="item in areas"
@@ -600,7 +602,7 @@ async function leave(): Promise<void> {
 					<h2>{{ current?.label }}<span class="panel-nav__sub">{{ panelSub }}</span></h2>
 					<button v-if="narrow" type="button" class="button button--ghost button--icon" @click="closeDrawer()">
 						<AdminIcon name="x" />
-						<span class="visually-hidden">Close menu</span>
+						<span class="visually-hidden">{{ t('admin_layout.close_menu', 'Close menu') }}</span>
 					</button>
 				</div>
 
@@ -613,7 +615,7 @@ async function leave(): Promise<void> {
 									<TypeIcon v-if="link.type" :type="link.type" />
 									<AdminIcon v-else :name="link.icon" />
 									<span class="panel-nav__label">{{ link.label }}</span>
-									<span v-if="link.count" class="panel-nav__count"><span class="visually-hidden">, </span>{{ link.count.toLocaleString() }}</span>
+									<span v-if="link.count" class="panel-nav__count"><span class="visually-hidden">, </span>{{ formatNumber(link.count) }}</span>
 								</RouterLink>
 								<template v-if="link.links?.length">
 									<button
@@ -621,7 +623,7 @@ async function leave(): Promise<void> {
 										class="twist panel-nav__twist"
 										:aria-expanded="isOpen(link)"
 										:aria-controls="`nav-under-${link.key}`"
-										:aria-label="`${isOpen(link) ? 'Hide' : 'Show'} the links under ${link.label}`"
+										:aria-label="isOpen(link) ? t('admin_layout.hide_links', 'Hide the links under {label}', { label: link.label }) : t('admin_layout.show_links', 'Show the links under {label}', { label: link.label })"
 										@click="toggleLinks(link)"
 									>
 										<AdminIcon name="chevron-right" />
@@ -642,8 +644,8 @@ async function leave(): Promise<void> {
 
 					<div v-if="area === 'home'" class="panel-nav__group">
 						<div class="panel-nav__heading-row">
-							<p id="nav-shortcuts" class="eyebrow panel-nav__heading">Shortcuts</p>
-							<button type="button" class="panel-nav__edit" :aria-pressed="editingShortcuts" @click="toggleShortcuts">{{ editingShortcuts ? 'Done' : 'Edit' }}<span class="visually-hidden"> shortcuts</span></button>
+							<p id="nav-shortcuts" class="eyebrow panel-nav__heading">{{ t('admin_layout.shortcuts', 'Shortcuts') }}</p>
+							<button type="button" class="panel-nav__edit" :aria-pressed="editingShortcuts" @click="toggleShortcuts">{{ editingShortcuts ? t('common.done', 'Done') : t('common.edit', 'Edit') }}<span class="visually-hidden">{{ t('admin_layout.shortcuts_hidden', ' shortcuts') }}</span></button>
 						</div>
 						<ul v-if="shortcuts.length" aria-labelledby="nav-shortcuts">
 							<li v-for="(link, index) in shortcuts" :key="link.key">
@@ -652,9 +654,9 @@ async function leave(): Promise<void> {
 									<AdminIcon v-else :name="link.icon" />
 									<span class="panel-nav__label">{{ link.label }}</span>
 									<span class="panel-nav__tools">
-										<button type="button" class="panel-nav__tool" :disabled="index === 0" :aria-label="`Move ${link.label} up`" @click="moveShortcut(index, -1)"><AdminIcon name="chevron-up" /></button>
-										<button type="button" class="panel-nav__tool" :disabled="index === shortcuts.length - 1" :aria-label="`Move ${link.label} down`" @click="moveShortcut(index, 1)"><AdminIcon name="chevron-down" /></button>
-										<button type="button" class="panel-nav__tool panel-nav__tool--remove" :aria-label="`Remove ${link.label}`" @click="unpinShortcut(link)"><AdminIcon name="x" /></button>
+										<button type="button" class="panel-nav__tool" :disabled="index === 0" :aria-label="t('admin_layout.move_up', 'Move {label} up', { label: link.label })" @click="moveShortcut(index, -1)"><AdminIcon name="chevron-up" /></button>
+										<button type="button" class="panel-nav__tool" :disabled="index === shortcuts.length - 1" :aria-label="t('admin_layout.move_down', 'Move {label} down', { label: link.label })" @click="moveShortcut(index, 1)"><AdminIcon name="chevron-down" /></button>
+										<button type="button" class="panel-nav__tool panel-nav__tool--remove" :aria-label="t('admin_layout.remove_shortcut', 'Remove {label}', { label: link.label })" @click="unpinShortcut(link)"><AdminIcon name="x" /></button>
 									</span>
 								</div>
 								<RouterLink v-else class="panel-nav__link" :to="link.to">
@@ -664,10 +666,10 @@ async function leave(): Promise<void> {
 								</RouterLink>
 							</li>
 						</ul>
-						<p v-else class="panel-nav__empty">Nothing pinned yet.</p>
+						<p v-else class="panel-nav__empty">{{ t('admin_layout.no_shortcuts', 'Nothing pinned yet.') }}</p>
 						<div v-if="editingShortcuts && unpinned.length" class="panel-nav__add">
 							<MenuButton button-class="panel-nav__add-button" align="start" floating>
-								<template #button><AdminIcon name="plus" /><span class="panel-nav__label">Add a Shortcut</span></template>
+								<template #button><AdminIcon name="plus" /><span class="panel-nav__label">{{ t('admin_layout.add_shortcut', 'Add a Shortcut') }}</span></template>
 								<button v-for="item in unpinned" :key="item.pin" type="button" class="menu-item" @click="pinShortcut(item)">
 									<TypeIcon v-if="item.type" :type="item.type" />
 									<AdminIcon v-else :name="item.icon" />
@@ -686,10 +688,10 @@ async function leave(): Promise<void> {
 			<header v-if="!focusMode" class="bar">
 				<button v-if="narrow" ref="menu" type="button" class="button button--ghost button--icon" aria-controls="nav-drawer" :aria-expanded="open" @click="openDrawer">
 					<AdminIcon name="menu" />
-					<span class="visually-hidden">Menu</span>
+					<span class="visually-hidden">{{ t('admin_layout.menu', 'Menu') }}</span>
 				</button>
-				<nav class="bar__crumbs" aria-label="Where you are">
-					<button type="button" class="bar__root" aria-controls="nav-panel" :aria-expanded="showing(routeArea)" :title="showing(routeArea) ? 'Hide the panel' : `Show ${sectionLabel} in the panel`" @click="showSection(routeArea)">{{ sectionLabel }}</button>
+				<nav class="bar__crumbs" :aria-label="t('admin_layout.crumbs', 'Where you are')">
+					<button type="button" class="bar__root" aria-controls="nav-panel" :aria-expanded="showing(routeArea)" :title="showing(routeArea) ? t('admin_layout.hide_panel', 'Hide the panel') : t('admin_layout.show_panel', 'Show {section} in the panel', { section: sectionLabel })" @click="showSection(routeArea)">{{ sectionLabel }}</button>
 					<template v-for="crumb in trail" :key="crumb.label">
 						<span class="bar__sep" aria-hidden="true">/</span>
 						<RouterLink class="bar__link" :to="returnTo(crumb.to)">{{ crumb.label }}</RouterLink>
@@ -701,15 +703,15 @@ async function leave(): Promise<void> {
 				</nav>
 				<button type="button" class="bar__search" aria-haspopup="dialog" @click="paletteOpen = true">
 					<AdminIcon name="search" />
-					<span class="bar__search-text">Search or jump to…</span>
+					<span class="bar__search-text">{{ t('admin_layout.search', 'Search or jump to…') }}</span>
 					<kbd>⌘K</kbd>
-					<span class="visually-hidden"> (search entries and commands)</span>
+					<span class="visually-hidden">{{ t('admin_layout.search_hidden', ' (search entries and commands)') }}</span>
 				</button>
 				<a class="button button--small bar__view" :href="config.site.url" target="_blank" rel="noopener">
 					<AdminIcon name="external-link" />
-					<span>View Site</span><span class="visually-hidden"> (new tab)</span>
+					<span>{{ t('admin_layout.view_site', 'View Site') }}</span><span class="visually-hidden">{{ t('admin_layout.new_tab', ' (new tab)') }}</span>
 				</a>
-				<MenuButton button-class="account" :label="`Account: ${session.account?.displayName ?? ''}`">
+				<MenuButton button-class="account" :label="t('admin_layout.account', 'Account: {name}', { name: session.account?.displayName ?? '' })">
 					<template #button>
 						<AdminAvatar :name="session.account?.displayName ?? ''" :image="session.account?.avatar" />
 					</template>
@@ -719,17 +721,17 @@ async function leave(): Promise<void> {
 						<span class="account__roles">{{ session.account?.roles.map((role) => role.label).join(', ') }}</span>
 					</p>
 					<RouterLink class="menu-item" :to="{ name: 'account', params: { username: session.account?.username ?? '' } }">
-						<AdminIcon name="circle-user-round" />Your Account
+						<AdminIcon name="circle-user-round" />{{ t('admin_layout.nav_your_account', 'Your Account') }}
 					</RouterLink>
 					<button type="button" class="menu-item" :disabled="leaving" @click="leave">
-						<AdminIcon name="log-out" />{{ leaving ? 'Signing out…' : 'Sign out' }}
+						<AdminIcon name="log-out" />{{ leaving ? t('admin_layout.signing_out', 'Signing out…') : t('admin_layout.sign_out', 'Sign out') }}
 					</button>
 				</MenuButton>
 			</header>
 
 			<p v-if="!online" class="offline" role="status">
 				<AdminIcon name="triangle-alert" />
-				You're offline. Changes you make stay in this browser, and you can save them once the connection is back.
+				{{ t('admin_layout.offline', 'You\'re offline. Changes you make stay in this browser, and you can save them once the connection is back.') }}
 			</p>
 
 			<p v-if="error" class="notice notice--error bar-error" role="alert">{{ error }}</p>

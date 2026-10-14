@@ -25,6 +25,7 @@ use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
+use Blush\Translation\Messages;
 
 /**
  * The site's saved settings, a group at a time (D-670, D-673): a record
@@ -71,7 +72,8 @@ final class SettingGroups
 
 	public function __construct(
 		private readonly RecordStores|RecordStore $stores,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Messages $messages
 	) {}
 
 	/**
@@ -160,7 +162,7 @@ final class SettingGroups
 		try {
 			$all = $this->records()->all();
 		} catch (RecordException $error) {
-			throw new InvalidSetting(sprintf('The settings can\'t be read: %s', $error->getMessage()), previous: $error);
+			throw new InvalidSetting((string) $this->messages->t('settings.setting_groups.unreadable', 'The settings can\'t be read: {reason}', reason: $error->getMessage()), previous: $error);
 		}
 
 		$groups = [];
@@ -189,7 +191,7 @@ final class SettingGroups
 				$this->records()->save($key, $values);
 			}
 		} catch (RecordException $error) {
-			throw new InvalidSetting(sprintf('The "%s" settings couldn\'t be saved in %s: %s', $group, $this->location($group), $error->getMessage()), previous: $error);
+			throw new InvalidSetting((string) $this->messages->t('settings.setting_groups.group_not_saved', 'The "{group}" settings couldn\'t be saved in {location}: {reason}', group: $group, location: $this->location($group), reason: $error->getMessage()), previous: $error);
 		}
 
 		$this->read[$group] = $values;
@@ -233,7 +235,7 @@ final class SettingGroups
 		} catch (RecordException $error) {
 			$this->read = [];
 
-			throw new InvalidSetting(sprintf('The settings couldn\'t be saved: %s', $error->getMessage()), previous: $error);
+			throw new InvalidSetting((string) $this->messages->t('settings.setting_groups.not_saved', 'The settings couldn\'t be saved: {reason}', reason: $error->getMessage()), previous: $error);
 		} catch (Throwable $error) {
 			// What was put back may differ from what was kept.
 			$this->read = [];
@@ -262,7 +264,7 @@ final class SettingGroups
 		try {
 			return $this->records()->find(self::key($group)) ?? [];
 		} catch (RecordException $error) {
-			throw new InvalidSetting(sprintf('The "%s" settings can\'t be read: %s', $group, $error->getMessage()), previous: $error);
+			throw new InvalidSetting((string) $this->messages->t('settings.setting_groups.group_unreadable', 'The "{group}" settings can\'t be read: {reason}', group: $group, reason: $error->getMessage()), previous: $error);
 		}
 	}
 

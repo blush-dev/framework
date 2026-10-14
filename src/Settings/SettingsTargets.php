@@ -19,6 +19,7 @@ use Blush\Field\Field;
 use Blush\Field\FieldSets;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
+use Blush\Translation\Messages;
 
 /**
  * The Settings screens as places field sets attach to (D-343),
@@ -28,8 +29,10 @@ use Blush\Field\FieldTargetSource;
  */
 final readonly class SettingsTargets implements FieldTargetSource
 {
-	public function __construct(private ContentTypes $types)
-	{}
+	public function __construct(
+		private ContentTypes $types,
+		private Messages $messages
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -46,7 +49,7 @@ final readonly class SettingsTargets implements FieldTargetSource
 	#[Override]
 	public function label(): string
 	{
-		return 'Settings screens';
+		return (string) $this->messages->t('settings.settings_targets.label', 'Settings screens');
 	}
 
 	/**
@@ -56,7 +59,7 @@ final readonly class SettingsTargets implements FieldTargetSource
 	public function fieldTargets(): iterable
 	{
 		foreach (SettingsScreen::cases() as $screen) {
-			yield new SettingsTarget($screen, $this->types);
+			yield new SettingsTarget($screen, $this->types, $this->messages);
 		}
 	}
 
@@ -66,7 +69,7 @@ final readonly class SettingsTargets implements FieldTargetSource
 	#[Override]
 	public function slots(): array
 	{
-		return [new FieldSlot('details', 'Details', 'Settings of the site\'s own, beside the screen\'s.')];
+		return [new FieldSlot('details', (string) $this->messages->t('settings.settings_targets.details.label', 'Details'), (string) $this->messages->t('settings.settings_targets.details.description', 'Settings of the site\'s own, beside the screen\'s.'))];
 	}
 
 	/**
@@ -88,7 +91,7 @@ final readonly class SettingsTargets implements FieldTargetSource
 						$owner = $owners[$key] ?? null;
 
 						if ($owner !== null && $owner !== $set->name) {
-							$conflicts[$set->name] ??= sprintf('Field sets "%s" and "%s" both add a "%s" setting; settings share one store, so rename one.', $owner, $set->name, $key);
+							$conflicts[$set->name] ??= (string) $this->messages->t('settings.settings_targets.conflict', 'Field sets "{first}" and "{second}" both add a "{setting}" setting; settings share one store, so rename one.', first: $owner, second: $set->name, setting: $key);
 						}
 
 						$owners[$key] ??= $set->name;

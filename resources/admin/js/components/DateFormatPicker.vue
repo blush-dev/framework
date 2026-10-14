@@ -12,6 +12,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
 import { debounced, latest } from '../action';
 import { errorMessage, request } from '../api';
+import { t } from '../messages';
 
 const props = defineProps<{
 	id: string;
@@ -61,7 +62,7 @@ const menu = computed({
 
 const choices = computed<SelectOption[]>(() => [
 	...props.options,
-	{ value: CUSTOM, label: 'Custom…', hint: 'An ICU pattern', pinned: true }
+	{ value: CUSTOM, label: t('date_format_picker.custom', 'Custom…'), hint: t('date_format_picker.custom_hint', 'An ICU pattern'), pinned: true }
 ]);
 
 const asked = latest();
@@ -79,7 +80,7 @@ const check = debounced((format: string, current: () => boolean) => {
 		.catch((caught: unknown) => {
 			if (current()) {
 				preview.value = '';
-				problem.value = errorMessage(caught, 'It couldn\'t be checked.');
+				problem.value = errorMessage(caught, t('date_format_picker.check_failed', 'It couldn\'t be checked.'));
 			}
 		});
 }, 250);
@@ -107,8 +108,8 @@ watch([model, custom, () => props.locale], ask, { immediate: true });
 				ref="input"
 				v-model="model"
 				class="mono"
-				:aria-label="kind === 'date' ? 'Date pattern' : 'Time pattern'"
-				:placeholder="kind === 'date' ? 'such as MMMM d, y' : 'such as h:mm a'"
+				:aria-label="kind === 'date' ? t('date_format_picker.date_pattern', 'Date pattern') : t('date_format_picker.time_pattern', 'Time pattern')"
+				:placeholder="t('date_format_picker.such_as', 'such as {pattern}', { pattern: kind === 'date' ? 'MMMM d, y' : 'h:mm a' })"
 				:aria-describedby="`${id}-preview`"
 				:aria-invalid="invalid || problem !== '' ? 'true' : undefined"
 				:disabled="disabled"
@@ -117,7 +118,7 @@ watch([model, custom, () => props.locale], ask, { immediate: true });
 			>
 			<p :id="`${id}-preview`" class="date-format-picker__preview" :class="{ 'is-invalid': problem !== '' }" aria-live="polite">
 				<template v-if="problem !== ''">{{ problem }}</template>
-				<template v-else-if="preview !== ''">Reads as {{ preview }}</template>
+				<template v-else-if="preview !== ''">{{ t('date_format_picker.reads_as', 'Reads as {preview}', { preview }) }}</template>
 			</p>
 		</template>
 	</div>

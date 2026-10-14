@@ -43,7 +43,7 @@ const emit = defineEmits<{
 				<span class="section__name">
 					<span class="section__title">{{ title }}</span>
 					<slot name="marks" />
-					<span v-if="changed" class="pill pill--warn section__pill">Changes</span>
+					<span v-if="changed" class="pill pill--warn section__pill">{{ t('capability_section.changes', 'Changes') }}</span>
 				</span>
 				<code v-if="keyText" class="section__key">{{ keyText }}</code>
 				<span class="section__sentence" :class="{ 'is-none': sentence.none }">{{ sentence.text }}</span>

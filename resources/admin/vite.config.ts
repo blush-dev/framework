@@ -129,6 +129,11 @@ export default defineConfig({
 	root: resources,
 	base: './',
 	publicDir: false,
+	// The players (`resources/player`) import `blush/messages` by name,
+	// as site scripts do (D-831); the admin bundles it from its source.
+	resolve: {
+		alias: { 'blush/messages': resolve(resources, '../site/js/messages.ts') }
+	},
 	// Elements named `blush-…` are custom elements, not Vue components:
 	// the audio player (`resources/player`, D-553).
 	plugins: [

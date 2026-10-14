@@ -131,7 +131,7 @@ final class TokensTest extends TestCase
 		$this->assertSame(1, $this->tokens()->revokeAll($agent));
 		$this->assertNull($this->tokens()->find($new->id));
 		$this->assertNotNull($this->tokens()->find($other->id), 'Only that account\'s.');
-		$this->assertSame('Removed 0 expired tokens, 0 expired codes and refresh tokens, and 0 apps nobody connected.', $this->app()->container()->make(PruneTokensJob::class)->handle(new JobRecord(id: '0199b6e2-0000-7000-8000-000000000001', job: 'core/prune-tokens'))->message);
+		$this->assertSame('Removed 0 expired tokens, 0 expired codes and refresh tokens, and 0 apps nobody connected.', (string) $this->app()->container()->make(PruneTokensJob::class)->handle(new JobRecord(id: '0199b6e2-0000-7000-8000-000000000001', job: 'core/prune-tokens'))->message);
 	}
 
 	public function testTokenOnlyAccountsNeverSignIn(): void

@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Asset;
 
 use Blush\Theme\ThemeChain;
+use Blush\Translation\Catalog;
+use Blush\Translation\Messages;
 
 /**
  * A named set of stylesheets and scripts that load together (D-569),
@@ -60,30 +62,30 @@ final readonly class Asset
 	 * theme's `assets` in `theme.json` (D-574): its `styles` and
 	 * `scripts`, each a path in the folder of what it's `from`, a full
 	 * URL (`https://`, or `//`), or an object with that `path` and its
-	 * `attributes` (and a script's `footer`), and the handles it
-	 * `requires`.
+	 * `attributes` (and a script's `footer` and `catalog`, D-831), and
+	 * the handles it `requires`.
 	 *
 	 *     "acme/nova-lightbox": {
 	 *         "styles": ["css/lightbox.css"],
-	 *         "scripts": [{"path": "js/lightbox.js", "footer": true, "attributes": {"type": "module"}}],
+	 *         "scripts": [{"path": "js/lightbox.js", "footer": true, "catalog": "site", "attributes": {"type": "module"}}],
 	 *         "requires": ["core/player"]
 	 *     }
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws AssetException When a value has the wrong shape.
 	 */
-	public static function fromArray(string $handle, array $data, string $from = ''): self
+	public static function fromArray(string $handle, array $data, string $from = '', Messages $messages = new Messages()): self
 	{
 		$unknown = array_diff(array_keys($data), ['styles', 'scripts', 'requires']);
 
 		if ($unknown !== []) {
-			throw new AssetException(sprintf('The "%s" asset has "%s", which isn\'t "styles", "scripts", or "requires".', $handle, implode('", "', $unknown)));
+			throw new AssetException((string) $messages->t('asset.asset.unknown_keys', 'The "{handle}" asset has "{keys}", which isn\'t "styles", "scripts", or "requires".', handle: $handle, keys: implode('", "', $unknown)));
 		}
 
 		$requires = $data['requires'] ?? [];
 
 		if (! is_array($requires) || ! array_is_list($requires) || ! array_all($requires, static fn (mixed $required): bool => is_string($required) && self::isHandle($required))) {
-			throw new AssetException(sprintf('The "%s" asset\'s "requires" must be a list of handles (vendor/name).', $handle));
+			throw new AssetException((string) $messages->t('asset.asset.requires', 'The "{handle}" asset\'s "requires" must be a list of handles (vendor/name).', handle: $handle));
 		}
 
 		/** @var list<string> $requires */
@@ -94,13 +96,13 @@ final readonly class Asset
 				$attributes = $file['attributes'];
 
 				return new Style($file['path'], $file['url'] ? '' : $from, $attributes);
-			}, self::files($handle, $data, 'styles')),
+			}, self::files($handle, $data, 'styles', $messages)),
 			array_map(static function (array $file) use ($from): Script {
 				/** @var array<string, string|bool> $attributes */
 				$attributes = $file['attributes'];
 
-				return new Script($file['path'], $file['url'] ? '' : $from, $attributes, $file['footer']);
-			}, self::files($handle, $data, 'scripts')),
+				return new Script($file['path'], $file['url'] ? '' : $from, $attributes, $file['footer'], $file['catalog']);
+			}, self::files($handle, $data, 'scripts', $messages)),
 			$requires
 		);
 	}
@@ -109,21 +111,18 @@ final readonly class Asset
 	 * Reads a list of files: paths, URLs, or objects.
 	 *
 	 * @param  array<array-key, mixed> $data
-	 * @return list<array{path: string, url: bool, attributes: array<array-key, mixed>, footer: bool}>
+	 * @return list<array{path: string, url: bool, attributes: array<array-key, mixed>, footer: bool, catalog: ?string}>
 	 * @throws AssetException
 	 */
-	private static function files(string $handle, array $data, string $key): array
+	private static function files(string $handle, array $data, string $key, Messages $messages): array
 	{
 		$value = $data[$key] ?? [];
-		$error = new AssetException(sprintf(
-			'The "%s" asset\'s "%s" must be a list of paths, full URLs, or objects with a "path" and its "attributes"%s.',
-			$handle,
-			$key,
-			$key === 'scripts' ? ' (and "footer")' : ''
-		));
+		$error = static fn (): AssetException => new AssetException((string) ($key === 'scripts'
+			? $messages->t('asset.asset.scripts', 'The "{handle}" asset\'s "scripts" must be a list of paths, full URLs, or objects with a "path" and its "attributes" (and "footer" and "catalog").', handle: $handle)
+			: $messages->t('asset.asset.styles', 'The "{handle}" asset\'s "styles" must be a list of paths, full URLs, or objects with a "path" and its "attributes".', handle: $handle)));
 
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw $error;
+			throw $error();
 		}
 
 		$files = [];
@@ -133,7 +132,8 @@ final readonly class Asset
 			$path       = is_array($file) ? ($file['path'] ?? null) : null;
 			$attributes = is_array($file) ? ($file['attributes'] ?? []) : null;
 			$footer     = is_array($file) ? ($file['footer'] ?? false) : null;
-			$allowed    = $key === 'scripts' ? ['path', 'attributes', 'footer'] : ['path', 'attributes'];
+			$catalog    = is_array($file) ? ($file['catalog'] ?? null) : null;
+			$allowed    = $key === 'scripts' ? ['path', 'attributes', 'footer', 'catalog'] : ['path', 'attributes'];
 
 			if (
 				! is_array($file)
@@ -143,17 +143,22 @@ final readonly class Asset
 				|| ($attributes !== [] && array_is_list($attributes))
 				|| ! array_all($attributes, static fn (mixed $attribute): bool => is_string($attribute) || is_bool($attribute))
 				|| ! is_bool($footer)
+				|| ($catalog !== null && (! is_string($catalog) || ! Catalog::isName($catalog)))
 			) {
-				throw $error;
+				throw $error();
 			}
 
 			$url = preg_match('#^(https?:)?//[^/]#i', $path) === 1;
 
 			if (! $url && ! ThemeChain::isValidAssetPath($path)) {
-				throw $error;
+				throw $error();
 			}
 
-			$files[] = ['path' => $path, 'url' => $url, 'attributes' => $attributes, 'footer' => $footer];
+			if ($url && $catalog !== null) {
+				throw $error();
+			}
+
+			$files[] = ['path' => $path, 'url' => $url, 'attributes' => $attributes, 'footer' => $footer, 'catalog' => $catalog];
 		}
 
 		return $files;

@@ -40,11 +40,13 @@ import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import DangerZone from '../components/DangerZone.vue';
 import FieldInput from '../components/FieldInput.vue';
+import MessageText from '../components/MessageText.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { errorMessage, request, type ContentTypeSummary, type FieldDescription, type RelationCheck, type RelationInfo } from '../api';
 import { useAction } from '../action';
 import { guardLeave } from '../confirm';
 import type { FormValue } from '../fields';
+import { t } from '../messages';
 import { article, confirmRelationChange, limitsSay, purposeOf, relationLabel, removeRelation, sayRelation, sourceOf, type RelationPurpose } from '../relations';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
@@ -98,7 +100,7 @@ const options = computed(() => choices.value.map((item) => ({ value: item.name, 
 
 // A new set of terms files under a type nothing files under yet.
 const termOptions = computed(() => creating.value
-	? [{ value: '', label: 'Choose a type' }, ...choices.value.filter((item) => !item.terms).map((item) => ({ value: item.name, label: item.labels.plural }))]
+	? [{ value: '', label: t('relation_view.choose_type', 'Choose a type') }, ...choices.value.filter((item) => !item.terms).map((item) => ({ value: item.name, label: item.labels.plural }))]
 	: options.value);
 const fileable = computed(() => choices.value.filter((item) => item.name !== terms.value));
 
@@ -118,8 +120,8 @@ const fileName   = computed(() => relation.value?.name ?? (purpose.value === 'cl
 const label      = computed(() => called.value.trim() || (pointsAt.value === '' ? '' : labelsOf(pointsAt.value).plural));
 const oneCalled  = computed(() => singular.value.trim() || (label.value === '' ? '' : (pointsAt.value !== '' && label.value === labelsOf(pointsAt.value).plural ? labelsOf(pointsAt.value).singular : label.value.replace(/s$/, ''))));
 const sentence   = computed(() => sayRelation(purpose.value, stores.value, pointsAt.value, called.value.trim()));
-const storedItem = computed(() => stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').item : 'entry');
-const storedName = computed(() => stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').singular : 'Entry');
+const storedItem = computed(() => stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').item : t('relation_view.entry', 'entry'));
+const storedName = computed(() => stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').singular : t('relation_view.entry_title', 'Entry'));
 
 const ready = computed(() => purpose.value === 'classify'
 	? terms.value !== ''
@@ -127,18 +129,18 @@ const ready = computed(() => purpose.value === 'classify'
 
 // A tree only for terms that nest; none for one value, always a select.
 const nests          = computed(() => purpose.value === 'classify' && types.value.find((item) => item.name === terms.value)?.hierarchical === true);
-const shapeControl   = computed(() => purpose.value === 'classify' ? (nests.value ? 'a tree of checkboxes' : 'chips') : (purpose.value === 'credit' ? 'people' : 'cards'));
+const shapeControl   = computed(() => purpose.value === 'classify' ? (nests.value ? t('relation_view.shape_tree', 'a tree of checkboxes') : t('relation_view.shape_chips', 'chips')) : (purpose.value === 'credit' ? t('relation_view.shape_people', 'people') : t('relation_view.shape_cards', 'cards')));
 const controlOptions = computed(() => [
-	{ value: '', label: `As its shape says (${shapeControl.value})` },
-	...(nests.value ? [{ value: 'tree', label: 'A tree of checkboxes' }] : []),
-	{ value: 'tokens', label: 'Chips, typed to search' },
-	{ value: 'cards', label: 'Chips, with results shown as cards' }
+	{ value: '', label: t('relation_view.control_shape', 'As its shape says ({shape})', { shape: shapeControl.value }) },
+	...(nests.value ? [{ value: 'tree', label: t('relation_view.control_tree', 'A tree of checkboxes') }] : []),
+	{ value: 'tokens', label: t('relation_view.control_tokens', 'Chips, typed to search') },
+	{ value: 'cards', label: t('relation_view.control_cards', 'Chips, with results shown as cards') }
 ]);
 
 const ruleOptions = [
-	{ value: 'fallback', label: 'Fall Back', help: 'A translation with none of its own uses its original\'s.' },
-	{ value: 'add', label: 'Add to the Original', help: 'A translation has its original\'s and its own, as a translator credited beside the author.' },
-	{ value: 'own', label: 'Keep Their Own', help: 'A translation has only its own.' }
+	{ value: 'fallback', label: t('relation_view.rule_fallback', 'Fall Back'), help: t('relation_view.rule_fallback_help', 'A translation with none of its own uses its original\'s.') },
+	{ value: 'add', label: t('relation_view.rule_add', 'Add to the Original'), help: t('relation_view.rule_add_help', 'A translation has its original\'s and its own, as a translator credited beside the author.') },
+	{ value: 'own', label: t('relation_view.rule_own', 'Keep Their Own'), help: t('relation_view.rule_own_help', 'A translation has only its own.') }
 ] as const;
 
 const canBeSymmetric = computed(() => purpose.value === 'reference' && source.value !== '' && source.value === target.value && multiple.value);
@@ -157,10 +159,10 @@ const limits = computed(() => {
 
 	return limitsSay({
 		item: storedItem.value,
-		items: stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').items : 'entries',
-		singular: oneCalled.value.toLowerCase() || 'one',
-		plural: label.value.toLowerCase() || 'of them',
-		target: target?.item ?? 'target',
+		items: stores.value.length === 1 ? labelsOf(stores.value[0] ?? '').items : t('relation_view.entries', 'entries'),
+		singular: oneCalled.value.toLowerCase() || t('relation_view.limits_one', 'one'),
+		plural: label.value.toLowerCase() || t('relation_view.limits_of_them', 'of them'),
+		target: target?.item ?? t('relation_view.target', 'target'),
 		multiple: multiple.value,
 		min: count(minimum.value) ?? 0,
 		max: multiple.value ? count(maximum.value) : 1,
@@ -237,7 +239,7 @@ async function load(): Promise<void> {
 			relation.value = answer.relations.find((item) => item.name === name.value) ?? null;
 
 			if (relation.value === null) {
-				failed.value = `There's no “${name.value}” relationship.`;
+				failed.value = t('relation_view.not_found', 'There\'s no “{name}” relationship.', { name: name.value });
 
 				return;
 			}
@@ -249,17 +251,17 @@ async function load(): Promise<void> {
 		initial.value = JSON.stringify(definition());
 		loaded.value  = true;
 	} catch (caught) {
-		failed.value = errorMessage(caught, 'The relationship couldn\'t be loaded.');
+		failed.value = errorMessage(caught, t('relation_view.load_failed', 'The relationship couldn\'t be loaded.'));
 	}
 }
 
 watch(name, () => void load(), { immediate: true });
 
 watch(() => [relation.value, creating.value] as const, ([found, isNew]) => {
-	screenTitle.value = isNew ? 'New Relationship' : (found ? relationLabel(found) : null);
+	screenTitle.value = isNew ? t('relation_view.new_relationship', 'New Relationship') : (found ? relationLabel(found) : null);
 }, { immediate: true });
 
-screenTrail.value = [{ label: 'Relationships', to: { name: 'relations' } }];
+screenTrail.value = [{ label: t('relation_view.relationships', 'Relationships'), to: { name: 'relations' } }];
 
 // A new link's terms have pages; a credit's people have their profile's
 // page and archives under each type; a new link to other entries has
@@ -281,11 +283,11 @@ const purposeField = computed<FieldDescription>(() => ({
 	control: 'radios',
 	required: true,
 	options: ['classify', 'reference', ...(profileType.value !== null ? ['credit'] : [])],
-	choices: { classify: 'Files Entries Under Terms', reference: 'Links Entries to Other Entries', credit: 'Credits People' },
+	choices: { classify: t('relation_view.purpose_classify', 'Files Entries Under Terms'), reference: t('relation_view.purpose_reference', 'Links Entries to Other Entries'), credit: t('relation_view.purpose_credit', 'Credits People') },
 	details: {
-		classify: { text: 'Courses, ingredients, cuisines.', code: '' },
-		reference: { text: 'Pairs with, a movie\'s cast.', code: '' },
-		credit: { text: 'Authors, cooks, photographers.', code: '' }
+		classify: { text: t('relation_view.purpose_classify_example', 'Courses, ingredients, cuisines.'), code: '' },
+		reference: { text: t('relation_view.purpose_reference_example', 'Pairs with, a movie\'s cast.'), code: '' },
+		credit: { text: t('relation_view.purpose_credit_example', 'Authors, cooks, photographers.'), code: '' }
 	}
 }));
 
@@ -365,7 +367,7 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	await run('The relationship couldn\'t be saved.', async () => {
+	await run(t('relation_view.save_failed', 'The relationship couldn\'t be saved.'), async () => {
 		let   sent    = definition();
 		const current = relation.value;
 		const sentName = String(sent.name);
@@ -411,7 +413,7 @@ async function save(): Promise<void> {
 
 		saved.value = true;
 		refreshTypes();
-		toast(current === null ? `Added ${label.value || 'the relationship'}` : `Saved ${label.value || 'the relationship'}`);
+		toast(current === null ? t('relation_view.added', 'Added {label}', { label: label.value || t('relation_view.the_relationship', 'the relationship') }) : t('relation_view.saved', 'Saved {label}', { label: label.value || t('relation_view.the_relationship', 'the relationship') }));
 		await router.push(back.value);
 	});
 }
@@ -423,7 +425,7 @@ async function remove(): Promise<void> {
 		return;
 	}
 
-	await runRemoval('The relationship couldn\'t be removed.', async () => {
+	await runRemoval(t('relation_view.remove_failed', 'The relationship couldn\'t be removed.'), async () => {
 		if (await removeRelation(current)) {
 			saved.value = true;
 			await router.push(back.value);
@@ -434,179 +436,179 @@ async function remove(): Promise<void> {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="back"><AdminIcon name="chevron-left" />{{ fromType ? labelsOf(fromType).plural : 'All Relationships' }}</RouterLink>
+		<RouterLink class="page-back" :to="back"><AdminIcon name="chevron-left" />{{ fromType ? labelsOf(fromType).plural : t('relation_view.all_relationships', 'All Relationships') }}</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ creating ? 'New Relationship' : (relation ? relationLabel(relation) : 'Relationship') }}</h1>
+			<h1 tabindex="-1">{{ creating ? t('relation_view.new_relationship', 'New Relationship') : (relation ? relationLabel(relation) : t('relation_view.relationship', 'Relationship')) }}</h1>
 			<p v-if="loaded" class="page-header__hint" aria-live="polite">{{ sentence }}</p>
 		</div>
 		<div v-if="loaded && !locked" class="page-header__actions">
-			<RouterLink class="button" :to="back">Cancel</RouterLink>
-			<button type="submit" form="relation-page" class="button button--primary" :disabled="busy || !ready">{{ creating ? 'Add Relationship' : 'Save Relationship' }}</button>
+			<RouterLink class="button" :to="back">{{ t('common.cancel', 'Cancel') }}</RouterLink>
+			<button type="submit" form="relation-page" class="button button--primary" :disabled="busy || !ready">{{ creating ? t('relation_view.add_relationship', 'Add Relationship') : t('relation_view.save_relationship', 'Save Relationship') }}</button>
 		</div>
 	</header>
 
 	<p v-if="failed" class="notice notice--error" role="alert">{{ failed }}</p>
 
 	<template v-else-if="loaded">
-		<p v-if="relation && !relation.editable" class="notice"><AdminIcon name="info" /><span>Defined in {{ sourceOf(relation).toLowerCase() }}, so it's changed there and shown here.</span></p>
-		<p v-else class="notice"><AdminIcon name="info" /><span>Saved in <code>user/data/relations{{ fileName ? `/${fileName}.json` : '' }}</code>. Changing it over entries that already use it asks first.</span></p>
+		<p v-if="relation && !relation.editable" class="notice"><AdminIcon name="info" /><span>{{ t('relation_view.defined_in', 'Defined in {source}, so it\'s changed there and shown here.', { source: sourceOf(relation).toLowerCase() }) }}</span></p>
+		<p v-else class="notice"><AdminIcon name="info" /><span><MessageText :text="t('relation_view.saved_in', 'Saved in {file}. Changing it over entries that already use it asks first.')"><template #file><code>user/data/relations{{ fileName ? `/${fileName}.json` : '' }}</code></template></MessageText></span></p>
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 		<form id="relation-page" @submit.prevent="save">
 			<fieldset class="setting-panels" :disabled="locked || busy">
 				<section class="panel" aria-labelledby="relation-purpose">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-purpose">Purpose</h2>
-						<p class="panel__hint">What the link means</p>
+						<h2 id="relation-purpose">{{ t('relation_view.purpose', 'Purpose') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.purpose_hint', 'What the link means') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div class="setting">
-							<div class="setting__label"><span id="relation-purpose-label">Purpose</span></div>
+							<div class="setting__label"><span id="relation-purpose-label">{{ t('relation_view.purpose', 'Purpose') }}</span></div>
 							<div class="field setting__control">
 								<FieldInput v-if="creating" id="relation-purpose-input" v-model="purposeValue" :field="purposeField" labelled-by="relation-purpose-label" described-by="relation-purpose-help" />
-								<p v-else class="setting__value">{{ { classify: 'Files entries under terms', reference: 'Links entries to other entries', credit: 'Credits people' }[purpose] }}</p>
+								<p v-else class="setting__value">{{ { classify: t('relation_view.purpose_classify_value', 'Files entries under terms'), reference: t('relation_view.purpose_reference_value', 'Links entries to other entries'), credit: t('relation_view.purpose_credit_value', 'Credits people') }[purpose] }}</p>
 							</div>
-							<div id="relation-purpose-help" class="setting__help"><p>{{ creating ? 'It decides the endpoints below and the suggested picker.' : 'Chosen when it was made. For another purpose, make a new relationship.' }}</p></div>
+							<div id="relation-purpose-help" class="setting__help"><p>{{ creating ? t('relation_view.purpose_help_new', 'It decides the endpoints below and the suggested picker.') : t('relation_view.purpose_help', 'Chosen when it was made. For another purpose, make a new relationship.') }}</p></div>
 						</div>
 					</div>
 				</section>
 
 				<section class="panel" aria-labelledby="relation-endpoints">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-endpoints">Endpoints</h2>
-						<p class="panel__hint">{{ { classify: 'Which types are filed, and under which terms', reference: 'Which type links, and to which', credit: 'Which types credit, and which profiles they credit' }[purpose] }}</p>
+						<h2 id="relation-endpoints">{{ t('relation_view.endpoints', 'Endpoints') }}</h2>
+						<p class="panel__hint">{{ { classify: t('relation_view.endpoints_classify', 'Which types are filed, and under which terms'), reference: t('relation_view.endpoints_reference', 'Which type links, and to which'), credit: t('relation_view.endpoints_credit', 'Which types credit, and which profiles they credit') }[purpose] }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div v-if="purpose === 'classify'" class="setting">
-							<div class="setting__label"><label for="relation-terms">Terms</label></div>
+							<div class="setting__label"><label for="relation-terms">{{ t('relation_view.terms', 'Terms') }}</label></div>
 							<div class="field setting__control"><AdminSelect id="relation-terms" v-model="terms" :options="termOptions" :disabled="!creating || locked" described-by="relation-terms-help" /></div>
-							<div id="relation-terms-help" class="setting__help"><p>The type whose entries are the terms{{ creating ? ': one nothing files under yet' : '' }}.</p></div>
+							<div id="relation-terms-help" class="setting__help"><p>{{ creating ? t('relation_view.terms_help_new', 'The type whose entries are the terms: one nothing files under yet.') : t('relation_view.terms_help', 'The type whose entries are the terms.') }}</p></div>
 						</div>
 
 						<div class="setting">
-							<div class="setting__label"><label v-if="purpose === 'reference'" for="relation-source">Stored On</label><span v-else id="relation-stored-label">Stored On</span></div>
+							<div class="setting__label"><label v-if="purpose === 'reference'" for="relation-source">{{ t('relation_view.stored_on', 'Stored On') }}</label><span v-else id="relation-stored-label">{{ t('relation_view.stored_on', 'Stored On') }}</span></div>
 							<div class="field setting__control">
-								<AdminSelect v-if="purpose === 'reference'" id="relation-source" v-model="source" :options="[{ value: '', label: 'Choose a type' }, ...options]" :disabled="!creating || locked" described-by="relation-source-help" />
+								<AdminSelect v-if="purpose === 'reference'" id="relation-source" v-model="source" :options="[{ value: '', label: t('relation_view.choose_type', 'Choose a type') }, ...options]" :disabled="!creating || locked" described-by="relation-source-help" />
 								<FieldInput v-else id="relation-stored" v-model="storedValue" :field="storedField" labelled-by="relation-stored-label" described-by="relation-source-help" />
 							</div>
 							<div id="relation-source-help" class="setting__help">
-								<p>The {{ purpose === 'reference' ? 'type' : 'types' }} whose files carry the key{{ creating ? ': the one being edited when the choice is made' : '' }}.</p>
-								<p v-if="purpose !== 'reference' && from.length === 0">None chosen, so every type {{ purpose === 'classify' ? 'can be filed under them' : 'credits them' }}.</p>
+								<p>{{ t('relation_view.stored_help', '{reference, select, yes {The type} other {The types} } whose files carry the key{creating, select, yes {: the one being edited when the choice is made} other {} }.', { reference: purpose === 'reference' ? 'yes' : 'no', creating: creating ? 'yes' : 'no' }) }}</p>
+								<p v-if="purpose !== 'reference' && from.length === 0">{{ purpose === 'classify' ? t('relation_view.none_chosen_classify', 'None chosen, so every type can be filed under them.') : t('relation_view.none_chosen_credit', 'None chosen, so every type credits them.') }}</p>
 							</div>
 						</div>
 
 						<div v-if="purpose === 'reference'" class="setting">
-							<div class="setting__label"><label for="relation-target">Points At</label></div>
-							<div class="field setting__control"><AdminSelect id="relation-target" v-model="target" :options="[{ value: '', label: 'Choose a type' }, ...options]" :disabled="locked" described-by="relation-target-help" /></div>
-							<div id="relation-target-help" class="setting__help"><p>The type its entries name. Once entries have values, it can't point at another type.</p></div>
+							<div class="setting__label"><label for="relation-target">{{ t('relation_view.points_at', 'Points At') }}</label></div>
+							<div class="field setting__control"><AdminSelect id="relation-target" v-model="target" :options="[{ value: '', label: t('relation_view.choose_type', 'Choose a type') }, ...options]" :disabled="locked" described-by="relation-target-help" /></div>
+							<div id="relation-target-help" class="setting__help"><p>{{ t('relation_view.target_help', 'The type its entries name. Once entries have values, it can\'t point at another type.') }}</p></div>
 						</div>
 						<div v-else-if="purpose === 'credit'" class="setting">
-							<div class="setting__label"><span>Points At</span></div>
-							<div class="field setting__control"><p class="setting__value">{{ profileType ? labelsOf(profileType).plural : 'No profiles type' }}</p></div>
-							<div class="setting__help"><p>Credits always name profiles, the public side of accounts.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.points_at', 'Points At') }}</span></div>
+							<div class="field setting__control"><p class="setting__value">{{ profileType ? labelsOf(profileType).plural : t('relation_view.no_profiles', 'No profiles type') }}</p></div>
+							<div class="setting__help"><p>{{ t('relation_view.credit_help', 'Credits always name profiles, the public side of accounts.') }}</p></div>
 						</div>
 					</div>
 				</section>
 
 				<section class="panel" aria-labelledby="relation-names">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-names">Names</h2>
-						<p class="panel__hint">What's written in each file, and what people read</p>
+						<h2 id="relation-names">{{ t('relation_view.names', 'Names') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.names_hint', 'What\'s written in each file, and what people read') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div class="setting">
-							<div class="setting__label"><label for="relation-key">Front Matter Key</label></div>
+							<div class="setting__label"><label for="relation-key">{{ t('relation_view.key', 'Front Matter Key') }}</label></div>
 							<div class="field setting__control">
 								<input v-if="purpose !== 'classify' || !creating" id="relation-key" v-model="key" class="mono" :placeholder="purpose === 'classify' ? terms : referenceKey" autocomplete="off" spellcheck="false" aria-describedby="relation-key-help">
 								<p v-else class="setting__value mono">{{ terms || '…' }}</p>
 							</div>
-							<div id="relation-key-help" class="setting__help"><p>Entries name {{ purpose === 'classify' ? 'their terms' : `their ${label.toLowerCase() || 'targets'}` }} under <code>{{ writtenKey || '…' }}</code>, by slug. Lowercase letters, digits, and underscores. Changing it later keeps an alias or rewrites the files; you choose when you save.</p></div>
+							<div id="relation-key-help" class="setting__help"><p><MessageText :text="purpose === 'classify' ? t('relation_view.key_help_terms', 'Entries name their terms under {key}, by slug. Lowercase letters, digits, and underscores. Changing it later keeps an alias or rewrites the files; you choose when you save.') : t('relation_view.key_help', 'Entries name their {targets} under {key}, by slug. Lowercase letters, digits, and underscores. Changing it later keeps an alias or rewrites the files; you choose when you save.', { targets: label.toLowerCase() || t('relation_view.targets', 'targets') })"><template #key><code>{{ writtenKey || '…' }}</code></template></MessageText></p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><label for="relation-called">Called</label></div>
+							<div class="setting__label"><label for="relation-called">{{ t('relation_view.called', 'Called') }}</label></div>
 							<div class="field setting__control"><input id="relation-called" v-model="called" :placeholder="pointsAt ? labelsOf(pointsAt).plural : ''" autocomplete="off" aria-describedby="relation-called-help"></div>
-							<div id="relation-called-help" class="setting__help"><p>The heading in the editor, and its name everywhere in the admin.</p></div>
+							<div id="relation-called-help" class="setting__help"><p>{{ t('relation_view.called_help', 'The heading in the editor, and its name everywhere in the admin.') }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><label for="relation-singular">One Is Called</label></div>
+							<div class="setting__label"><label for="relation-singular">{{ t('relation_view.singular', 'One Is Called') }}</label></div>
 							<div class="field setting__control"><input id="relation-singular" v-model="singular" :placeholder="oneCalled" autocomplete="off" aria-describedby="relation-singular-help"></div>
-							<div id="relation-singular-help" class="setting__help"><p>“Add {{ article(oneCalled) }} {{ oneCalled.toLowerCase() || '…' }}” in the picker, and “{{ oneCalled || '…' }}: Sam” on the site.</p></div>
+							<div id="relation-singular-help" class="setting__help"><p>{{ t('relation_view.singular_help', '“Add {article} {one}” in the picker, and “{name}: Sam” on the site.', { article: article(oneCalled), one: oneCalled.toLowerCase() || '…', name: oneCalled || '…' }) }}</p></div>
 						</div>
 					</div>
 				</section>
 
 				<section class="panel" aria-labelledby="relation-options">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-options">Options</h2>
-						<p class="panel__hint">How many, and in what order</p>
+						<h2 id="relation-options">{{ t('relation_view.options', 'Options') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.options_hint', 'How many, and in what order') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div class="setting">
-							<div class="setting__label"><span id="relation-takes-label">Each {{ storedName }} Takes</span></div>
+							<div class="setting__label"><span id="relation-takes-label">{{ t('relation_view.takes', 'Each {name} Takes', { name: storedName }) }}</span></div>
 							<div class="field setting__control">
 								<div class="segmented" role="group" aria-labelledby="relation-takes-label">
-									<button type="button" :aria-pressed="multiple" @click="multiple = true">Several</button>
-									<button type="button" :aria-pressed="!multiple" @click="multiple = false">Exactly One</button>
+									<button type="button" :aria-pressed="multiple" @click="multiple = true">{{ t('relation_view.several', 'Several') }}</button>
+									<button type="button" :aria-pressed="!multiple" @click="multiple = false">{{ t('relation_view.exactly_one', 'Exactly One') }}</button>
 								</div>
 							</div>
-							<div class="setting__help"><p>{{ multiple ? 'Picked from a list that grows with search.' : 'Picked from a select.' }}</p></div>
+							<div class="setting__help"><p>{{ multiple ? t('relation_view.takes_several_help', 'Picked from a list that grows with search.') : t('relation_view.takes_one_help', 'Picked from a select.') }}</p></div>
 						</div>
 						<div v-if="multiple" class="setting">
-							<div class="setting__label"><span>Order Matters</span></div>
-							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="ordered" label="Keep the order" described-by="relation-ordered-help" :locked="locked" @change="ordered = $event" /></div></div>
-							<div id="relation-ordered-help" class="setting__help"><p>Kept on the site, and the first is the lead.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.ordered', 'Order Matters') }}</span></div>
+							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="ordered" :label="t('relation_view.ordered_label', 'Keep the order')" described-by="relation-ordered-help" :locked="locked" @change="ordered = $event" /></div></div>
+							<div id="relation-ordered-help" class="setting__help"><p>{{ t('relation_view.ordered_help', 'Kept on the site, and the first is the lead.') }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><span>Created as Typed</span></div>
-							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="create" label="Allow new ones from the picker" described-by="relation-create-help" :locked="locked" @change="create = $event" /></div></div>
-							<div id="relation-create-help" class="setting__help"><p>A name that matches nothing becomes a new {{ pointsAt ? labelsOf(pointsAt).item : 'entry' }} on save.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.create', 'Created as Typed') }}</span></div>
+							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="create" :label="t('relation_view.create_label', 'Allow new ones from the picker')" described-by="relation-create-help" :locked="locked" @change="create = $event" /></div></div>
+							<div id="relation-create-help" class="setting__help"><p>{{ t('relation_view.create_help', 'A name that matches nothing becomes a new {item} on save.', { item: pointsAt ? labelsOf(pointsAt).item : t('relation_view.entry', 'entry') }) }}</p></div>
 						</div>
 						<div v-if="canBeSymmetric" class="setting">
-							<div class="setting__label"><span>Both Ways</span></div>
-							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="symmetric" label="A link counts both ways" described-by="relation-symmetric-help" :locked="locked" @change="symmetric = $event" /></div></div>
-							<div id="relation-symmetric-help" class="setting__help"><p>Linking one {{ storedItem }} to another links it back, so each names the other.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.symmetric', 'Both Ways') }}</span></div>
+							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="symmetric" :label="t('relation_view.symmetric_label', 'A link counts both ways')" described-by="relation-symmetric-help" :locked="locked" @change="symmetric = $event" /></div></div>
+							<div id="relation-symmetric-help" class="setting__help"><p>{{ t('relation_view.symmetric_help', 'Linking one {item} to another links it back, so each names the other.', { item: storedItem }) }}</p></div>
 						</div>
 					</div>
 				</section>
 
 				<section class="panel" aria-labelledby="relation-limits">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-limits">Limits</h2>
-						<p class="panel__hint">Gate publishing, never saving</p>
+						<h2 id="relation-limits">{{ t('relation_view.limits', 'Limits') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.limits_hint', 'Gate publishing, never saving') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div class="setting">
-							<div class="setting__label"><label for="relation-min">At Least</label></div>
+							<div class="setting__label"><label for="relation-min">{{ t('relation_view.min', 'At Least') }}</label></div>
 							<div class="field setting__control"><input id="relation-min" v-model="minimum" type="number" min="0" step="1" aria-describedby="relation-min-help"></div>
-							<div id="relation-min-help" class="setting__help"><p>How many a {{ storedItem }} needs to be published. 0 for none.</p></div>
+							<div id="relation-min-help" class="setting__help"><p>{{ t('relation_view.min_help', 'How many a {item} needs to be published. 0 for none.', { item: storedItem }) }}</p></div>
 						</div>
 						<div v-if="multiple" class="setting">
-							<div class="setting__label"><label for="relation-max">At Most</label></div>
-							<div class="field setting__control"><input id="relation-max" v-model="maximum" type="number" min="1" step="1" placeholder="No limit" aria-describedby="relation-max-help"></div>
-							<div id="relation-max-help" class="setting__help"><p>Empty for no limit.</p></div>
+							<div class="setting__label"><label for="relation-max">{{ t('relation_view.max', 'At Most') }}</label></div>
+							<div class="field setting__control"><input id="relation-max" v-model="maximum" type="number" min="1" step="1" :placeholder="t('relation_view.no_limit', 'No limit')" aria-describedby="relation-max-help"></div>
+							<div id="relation-max-help" class="setting__help"><p>{{ t('relation_view.max_help', 'Empty for no limit.') }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><label for="relation-side-max">Per {{ pointsAt ? labelsOf(pointsAt).singular : 'Target' }}, At Most</label></div>
-							<div class="field setting__control"><input id="relation-side-max" v-model="sideMax" type="number" min="1" step="1" placeholder="No limit" aria-describedby="relation-side-max-help"></div>
-							<div id="relation-side-max-help" class="setting__help"><p>How many {{ stores.length === 1 ? labelsOf(stores[0] ?? '').items : 'entries' }} can point at one of them, such as one season for an episode. Drafts count; the trash doesn't.</p></div>
+							<div class="setting__label"><label for="relation-side-max">{{ t('relation_view.side_max', 'Per {target}, At Most', { target: pointsAt ? labelsOf(pointsAt).singular : t('relation_view.target_title', 'Target') }) }}</label></div>
+							<div class="field setting__control"><input id="relation-side-max" v-model="sideMax" type="number" min="1" step="1" :placeholder="t('relation_view.no_limit', 'No limit')" aria-describedby="relation-side-max-help"></div>
+							<div id="relation-side-max-help" class="setting__help"><p>{{ t('relation_view.side_max_help', 'How many {items} can point at one of them, such as one season for an episode. Drafts count; the trash doesn\'t.', { items: stores.length === 1 ? labelsOf(stores[0] ?? '').items : t('relation_view.entries', 'entries') }) }}</p></div>
 						</div>
 					</div>
-					<p class="setting-panels__foot" aria-live="polite">{{ limits }} Limits are checked when an entry is published; a draft always saves.</p>
+					<p class="setting-panels__foot" aria-live="polite">{{ t('relation_view.limits_foot', '{limits} Limits are checked when an entry is published; a draft always saves.', { limits }) }}</p>
 				</section>
 
 				<section class="panel" aria-labelledby="relation-editing">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-editing">Editing</h2>
-						<p class="panel__hint">How it's picked, and what translations do</p>
+						<h2 id="relation-editing">{{ t('relation_view.editing', 'Editing') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.editing_hint', 'How it\'s picked, and what translations do') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div v-if="multiple" class="setting">
-							<div class="setting__label"><label for="relation-control">Picker</label></div>
+							<div class="setting__label"><label for="relation-control">{{ t('relation_view.picker', 'Picker') }}</label></div>
 							<div class="field setting__control"><AdminSelect id="relation-control" v-model="control" :options="controlOptions" :disabled="locked" described-by="relation-control-help" /></div>
-							<div id="relation-control-help" class="setting__help"><p>Only the pickers that fit these settings are offered.</p></div>
+							<div id="relation-control-help" class="setting__help"><p>{{ t('relation_view.picker_help', 'Only the pickers that fit these settings are offered.') }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><span id="relation-translations-label">Translations</span></div>
+							<div class="setting__label"><span id="relation-translations-label">{{ t('relation_view.translations', 'Translations') }}</span></div>
 							<div class="field setting__control">
 								<div class="segmented" role="group" aria-labelledby="relation-translations-label">
 									<button v-for="rule in ruleOptions" :key="rule.value" type="button" :aria-pressed="translations === rule.value" @click="translations = rule.value">{{ rule.label }}</button>
@@ -619,29 +621,29 @@ async function remove(): Promise<void> {
 
 				<section class="panel" aria-labelledby="relation-side">
 					<header class="panel__header setting-panels__header">
-						<h2 id="relation-side">What Links to It</h2>
-						<p class="panel__hint">How the other side shows it</p>
+						<h2 id="relation-side">{{ t('relation_view.side', 'What Links to It') }}</h2>
+						<p class="panel__hint">{{ t('relation_view.side_hint', 'How the other side shows it') }}</p>
 					</header>
 					<div class="setting-panels__rows">
 						<div class="setting">
-							<div class="setting__label"><label for="relation-side-label">The List Is Called</label></div>
-							<div class="field setting__control"><input id="relation-side-label" v-model="sideLabel" :placeholder="stores.length === 1 ? labelsOf(stores[0] ?? '').plural : 'Acted in'" autocomplete="off" aria-describedby="relation-side-label-help"></div>
-							<div id="relation-side-label-help" class="setting__help"><p>Its heading on the other side, such as “Acted in” for a person's movies.</p></div>
+							<div class="setting__label"><label for="relation-side-label">{{ t('relation_view.side_label', 'The List Is Called') }}</label></div>
+							<div class="field setting__control"><input id="relation-side-label" v-model="sideLabel" :placeholder="stores.length === 1 ? labelsOf(stores[0] ?? '').plural : t('relation_view.side_label_placeholder', 'Acted in')" autocomplete="off" aria-describedby="relation-side-label-help"></div>
+							<div id="relation-side-label-help" class="setting__help"><p>{{ t('relation_view.side_label_help', 'Its heading on the other side, such as “Acted in” for a person\'s movies.') }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><span>Own Page</span></div>
-							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="page" label="Show the list on its own page" described-by="relation-page-help" :locked="locked" @change="page = $event" /></div></div>
-							<div id="relation-page-help" class="setting__help"><p>Under the body of each {{ purpose === 'classify' ? 'term' : (pointsAt ? labelsOf(pointsAt).item : 'target') }}'s page.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.page', 'Own Page') }}</span></div>
+							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="page" :label="t('relation_view.page_label', 'Show the list on its own page')" described-by="relation-page-help" :locked="locked" @change="page = $event" /></div></div>
+							<div id="relation-page-help" class="setting__help"><p>{{ t('relation_view.page_help', 'Under the body of each {item}\'s page.', { item: purpose === 'classify' ? t('relation_view.term', 'term') : (pointsAt ? labelsOf(pointsAt).item : t('relation_view.target', 'target')) }) }}</p></div>
 						</div>
 						<div class="setting">
-							<div class="setting__label"><span>Archive</span></div>
-							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="archived" label="Give it an archive" described-by="relation-archive-help" :locked="locked" @change="archived = $event" /></div></div>
-							<div id="relation-archive-help" class="setting__help"><p>A page per {{ purpose === 'classify' ? 'term' : (pointsAt ? labelsOf(pointsAt).item : 'target') }} listing what links to it, under each storing type's address. Paged, with a feed when the type has feeds. Turning it off never deletes a page written for it.</p></div>
+							<div class="setting__label"><span>{{ t('relation_view.archive', 'Archive') }}</span></div>
+							<div class="field setting__control"><div class="setting__switch"><ToggleSwitch form :checked="archived" :label="t('relation_view.archive_label', 'Give it an archive')" described-by="relation-archive-help" :locked="locked" @change="archived = $event" /></div></div>
+							<div id="relation-archive-help" class="setting__help"><p>{{ t('relation_view.archive_help', 'A page per {item} listing what links to it, under each storing type\'s address. Paged, with a feed when the type has feeds. Turning it off never deletes a page written for it.', { item: purpose === 'classify' ? t('relation_view.term', 'term') : (pointsAt ? labelsOf(pointsAt).item : t('relation_view.target', 'target')) }) }}</p></div>
 						</div>
 						<div v-if="archived" class="setting">
-							<div class="setting__label"><label for="relation-word">Under the Word</label></div>
+							<div class="setting__label"><label for="relation-word">{{ t('relation_view.word', 'Under the Word') }}</label></div>
 							<div class="field setting__control"><input id="relation-word" v-model="word" class="mono" :placeholder="purpose === 'classify' ? terms : referenceKey" autocomplete="off" spellcheck="false" aria-describedby="relation-word-help"></div>
-							<div id="relation-word-help" class="setting__help"><p>Each archive is at <code>…/{{ keyOf(word) || writtenKey || '…' }}/its-slug</code>, introduced by <code>_{{ keyOf(word) || writtenKey || '…' }}.md</code> in that type's folder, when there is one.</p></div>
+							<div id="relation-word-help" class="setting__help"><p><MessageText :text="t('relation_view.word_help', 'Each archive is at {path}, introduced by {file} in that type\'s folder, when there is one.')"><template #path><code>…/{{ keyOf(word) || writtenKey || '…' }}/its-slug</code></template><template #file><code>_{{ keyOf(word) || writtenKey || '…' }}.md</code></template></MessageText></p></div>
 						</div>
 					</div>
 				</section>
@@ -649,8 +651,8 @@ async function remove(): Promise<void> {
 		</form>
 
 		<DangerZone v-if="relation && relation.editable && canCreateTypes" class="relation-remove" :error="removal">
-			The picker leaves the editor and its links stop showing on the site. Entries keep their values unless you strip them, so adding it again brings them back.
-			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Remove Relationship</button></template>
+			{{ t('relation_view.remove_body', 'The picker leaves the editor and its links stop showing on the site. Entries keep their values unless you strip them, so adding it again brings them back.') }}
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('relation_view.remove', 'Remove Relationship') }}</button></template>
 		</DangerZone>
 	</template>
 

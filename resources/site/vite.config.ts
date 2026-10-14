@@ -8,6 +8,10 @@
  * versions each URL with `?v={crc32}` (D-194). `licenses.txt` beside
  * them names the licenses of the third-party work in the build (D-694).
  *
+ * `js/messages.ts` builds to `js/messages.js`, `blush/messages`
+ * (D-831), which pages map in their import map; its exports are kept,
+ * and a script here that imports it by name leaves it out of its build.
+ *
  *     npm run site:build   # type-check, then build
  */
 
@@ -31,8 +35,11 @@ export default defineConfig({
 		emptyOutDir: true,
 		rolldownOptions: {
 			input: {
-				player: resolve(resources, 'js/player.ts')
+				player: resolve(resources, 'js/player.ts'),
+				messages: resolve(resources, 'js/messages.ts')
 			},
+			external: ['blush/messages'],
+			preserveEntrySignatures: 'strict',
 			output: {
 				entryFileNames: 'js/[name].js',
 				chunkFileNames: 'js/[name].js',

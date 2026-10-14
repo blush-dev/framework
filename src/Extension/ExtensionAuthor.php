@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+
 /**
  * Someone who made an extension (D-384), as a manifest's `authors` lists
  * them, in the shape of `composer.json`'s `authors`: a `name`, and an
@@ -39,27 +41,27 @@ final readonly class ExtensionAuthor
 	 * @throws ExtensionException When it isn't an object with a name, or
 	 *         a value doesn't fit.
 	 */
-	public static function fromArray(mixed $data): self
+	public static function fromArray(mixed $data, Messages $messages = new Messages()): self
 	{
 		if (! is_array($data) || (array_is_list($data) && $data !== [])) {
-			throw new ExtensionException('Each of "authors" must be an object with a "name".');
+			throw new ExtensionException((string) $messages->t('extension.extension_author.not_object', 'Each of "authors" must be an object with a "name".'));
 		}
 
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['name', 'email', 'homepage', 'role']);
 
 		if ($unknown !== []) {
-			throw new ExtensionException(sprintf('An author has "name", "email", "homepage", and "role"; "%s" isn\'t one.', reset($unknown)));
+			throw new ExtensionException((string) $messages->t('extension.extension_author.unknown_key', 'An author has "name", "email", "homepage", and "role"; "{field}" isn\'t one.', field: reset($unknown)));
 		}
 
 		$name = $data['name'] ?? null;
 
 		if (! is_string($name) || trim($name) === '') {
-			throw new ExtensionException('Each of "authors" needs a "name".');
+			throw new ExtensionException((string) $messages->t('extension.extension_author.no_name', 'Each of "authors" needs a "name".'));
 		}
 
 		foreach (['email', 'homepage', 'role'] as $key) {
 			if (isset($data[$key]) && ! is_string($data[$key])) {
-				throw new ExtensionException(sprintf('An author\'s "%s" must be a string.', $key));
+				throw new ExtensionException((string) $messages->t('extension.extension_author.not_string', 'An author\'s "{field}" must be a string.', field: $key));
 			}
 		}
 
@@ -67,11 +69,11 @@ final readonly class ExtensionAuthor
 		$homepage = trim(is_string($data['homepage'] ?? null) ? $data['homepage'] : '');
 
 		if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-			throw new ExtensionException(sprintf('"%s" isn\'t an email address.', $email));
+			throw new ExtensionException((string) $messages->t('extension.extension_author.bad_email', '"{email}" isn\'t an email address.', email: $email));
 		}
 
 		if ($homepage !== '' && (preg_match('#^https?://#i', $homepage) !== 1 || filter_var($homepage, FILTER_VALIDATE_URL) === false)) {
-			throw new ExtensionException(sprintf('An author\'s "homepage" must be an http or https URL; "%s" isn\'t.', $homepage));
+			throw new ExtensionException((string) $messages->t('extension.extension_author.bad_homepage', 'An author\'s "homepage" must be an http or https URL; "{homepage}" isn\'t.', homepage: $homepage));
 		}
 
 		return new self(trim($name), $email, $homepage, trim(is_string($data['role'] ?? null) ? $data['role'] : ''));
@@ -83,13 +85,13 @@ final readonly class ExtensionAuthor
 	 * @return list<self>
 	 * @throws ExtensionException
 	 */
-	public static function list(mixed $data): array
+	public static function list(mixed $data, Messages $messages = new Messages()): array
 	{
 		if (! is_array($data) || ! array_is_list($data)) {
-			throw new ExtensionException('"authors" must be a list of authors, each an object with a "name".');
+			throw new ExtensionException((string) $messages->t('extension.extension_author.not_list', '"authors" must be a list of authors, each an object with a "name".'));
 		}
 
-		return array_map(self::fromArray(...), $data);
+		return array_map(static fn (mixed $author): self => self::fromArray($author, $messages), $data);
 	}
 
 	/**

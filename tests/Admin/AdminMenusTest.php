@@ -213,7 +213,7 @@ final class AdminMenusTest extends TestCase
 		$bad   = self::json($this->write('POST', '/menus', ['was' => 'main', 'name' => 'main', 'items' => [['url' => 'javascript:alert(1)', 'label' => 'Bad']], 'locations' => []]));
 
 		$this->assertSame(['Item 2 needs a label or a link.', 'Item 2.1 needs a label or a link.'], $empty['problems'] ?? null);
-		$this->assertSame(['Item 1\'s link isn\'t a safe URL.'], $bad['problems'] ?? null);
+		$this->assertSame(['Item 1: "url" isn\'t a safe URL.'], $bad['problems'] ?? null);
 		$this->assertSame(422, $this->write('POST', '/menus', ['was' => null, 'name' => '-nope', 'items' => [], 'locations' => []])->getStatusCode());
 	}
 

@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Data\DataLoader;
 use Blush\Tests\TemporaryDirectory;
 use Blush\Translation\Catalog;
+use Blush\Translation\CurrentLocale;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
 use Blush\Translation\TranslationException;
@@ -99,5 +100,26 @@ final class InlineTextTest extends TestCase
 
 		$this->expectException(TranslationException::class);
 		new Messages('acme/hello')->t('hello', 'Hello', 3);
+	}
+
+	public function testAStoredMessageIsTranslatedWhenItsShown(): void
+	{
+		$this->writeTemporaryFile('core/lang/fr.json', '{"checked": "{count, plural, one {# fichier vérifié} other {# fichiers vérifiés}} dans {where}.", "media": "la médiathèque"}');
+
+		$translator = $this->translator();
+		$english    = new Messages(Translator::CORE, $translator, new CurrentLocale('en_US'));
+		$french     = new Messages(Translator::CORE, $translator, new CurrentLocale('fr'));
+		$stored     = json_decode((string) json_encode($english->t('checked', '{count, plural, one {# file checked} other {# files checked}} in {where}.', count: 3, where: $english->t('media', 'the library'))->toArray()), true);
+
+		$this->assertSame('3 files checked in the library.', (string) $english->restore($stored));
+		$this->assertSame('3 fichiers vérifiés dans la médiathèque.', (string) $french->restore($stored), 'In the reader\'s language, a message among its parameters too.');
+		$this->assertSame('Gone, 2.', (string) $french->restore(['key' => 'gone', 'text' => 'Gone, {n}.', 'params' => ['n' => 2]]), 'A key no catalog has shows its text.');
+		$this->assertNull($english->restore('A sentence stored before.'));
+	}
+
+	public function testAMessageWithHtmlCantBeStored(): void
+	{
+		$this->expectException(TranslationException::class);
+		new Messages()->t('by', 'By {names}', names: raw('<a href="/">Ada</a>'))->toArray();
 	}
 }

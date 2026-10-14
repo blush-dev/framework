@@ -22,6 +22,8 @@ use Blush\Http\Status;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
 use Blush\Routing\RoutePattern;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Follows addresses through the site's redirects the way the router
@@ -38,7 +40,7 @@ use Blush\Routing\RoutePattern;
  * @phpstan-type Target array{kind: 'entry'|'gone'|'path'|'url', entry?: ?Entry, id?: string, path?: string, url?: string}
  * @phpstan-type Hop array{t: 'page', path: string, answer: Entry|string}|array{t: 'redirect', path: string, code: bool, from: string, status: int, target: Target}|array{t: 'away', url: string}|array{t: 'gone', entry: ?Entry, id: string}|array{t: 'missing', path: string}|array{t: 'loop', path: string}
  * @phpstan-type Destination array{entry: string, title: string, url: string}|array{to: string}
- * @phpstan-type Problem array{kind: string, label: string, message: Message, final?: Destination}
+ * @phpstan-type Problem array{kind: string, label: string|Text, message: Message, final?: Destination}
  */
 final class RedirectReview
 {
@@ -46,19 +48,6 @@ final class RedirectReview
 	 * How many redirects a trace follows before calling it a loop.
 	 */
 	private const int HOPS = 8;
-
-	/**
-	 * Words for each kind of problem, for the chip on its row.
-	 *
-	 * @var array<string, string>
-	 */
-	public const array LABELS = [
-		'code'    => 'Overruled',
-		'live'    => 'Does nothing',
-		'gone'    => 'Leads nowhere',
-		'chain'   => 'Chained',
-		'missing' => 'Missing page'
-	];
 
 	/**
 	 * Exact redirects, by path: whether it's the code's, the redirect,
@@ -98,7 +87,8 @@ final class RedirectReview
 		public readonly array $code,
 		private readonly SiteAddresses $site,
 		private readonly Entries $content,
-		private readonly string $host
+		private readonly string $host,
+		private readonly Messages $messages
 	) {
 		foreach ($code as $redirect) {
 			$this->add($redirect, null);
@@ -117,7 +107,7 @@ final class RedirectReview
 	{
 		$rows = array_values(array_filter($this->rows, static fn (RedirectRow $item): bool => $item->from !== $was && $item->from !== $row->from));
 
-		return new self([$row, ...$rows], $this->code, $this->site, $this->content, $this->host);
+		return new self([$row, ...$rows], $this->code, $this->site, $this->content, $this->host, $this->messages);
 	}
 
 	/**
@@ -272,14 +262,14 @@ final class RedirectReview
 		$static = ! str_contains($row->from, '{');
 
 		if ($this->codeFor($row->from) !== null) {
-			return self::problemOf('code', Message::warn('Overruled by a redirect in the site\'s code.')->withFix('Show It', 'code'));
+			return $this->problemOf('code', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.code', 'Overruled by a redirect in the site\'s code.'))->withFix($this->messages->t('admin.redirect_review.fixes.show_it', 'Show It'), 'code'));
 		}
 
 		if ($static) {
 			$answer = $this->site->answer($row->from);
 
 			if ($answer !== null) {
-				return self::problemOf('live', new Message(MessageKind::Warn, ['Does nothing: ', ...self::answerWords($answer), ' answers this address.'])->withFix('Delete Redirect', 'delete'));
+				return $this->problemOf('live', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.live', 'Does nothing: {answer} answers this address.', answer: Message::slot(0)), $this->answerWords($answer))->withFix($this->messages->t('admin.redirect_review.fixes.delete_redirect', 'Delete Redirect'), 'delete'));
 			}
 		}
 
@@ -288,7 +278,7 @@ final class RedirectReview
 		if ($target['kind'] === 'gone') {
 			$entry = $target['entry'] ?? null;
 
-			return self::problemOf('gone', new Message(MessageKind::Warn, ['Leads nowhere: ', ...self::goneWords($entry), '.'])->withFix('Choose Another Page', 'repick'));
+			return $this->problemOf('gone', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.gone', 'Leads nowhere: {why}.', why: Message::slot(0)), $this->goneWords($entry))->withFix($this->messages->t('admin.redirect_review.fixes.choose_another_page', 'Choose Another Page'), 'repick'));
 		}
 
 		if ($target['kind'] !== 'path' || str_contains($target['path'] ?? '', '{')) {
@@ -302,7 +292,7 @@ final class RedirectReview
 		}
 
 		if ($this->match(SiteAddresses::lookup($path), $row) === null) {
-			return self::problemOf('missing', Message::warn('Leads to a missing page: nothing answers ', Message::code($path), '.')->withFix('Change Where It Goes', 'edit'));
+			return $this->problemOf('missing', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.missing', 'Leads to a missing page: nothing answers {path}.', path: Message::slot(0)), Message::code($path))->withFix($this->messages->t('admin.redirect_review.fixes.change_where_it_goes', 'Change Where It Goes'), 'edit'));
 		}
 
 		$hops  = $this->trace($path, $row);
@@ -310,12 +300,12 @@ final class RedirectReview
 
 		if ($final['t'] === 'page' || $final['t'] === 'away') {
 			$there = $final['t'] === 'away' ? $final['url'] : $final['path'];
-			$fix   = self::destination($final['answer'] ?? null, $there);
+			$fix   = $this->destination($final['answer'] ?? null, $there);
 
-			return [...self::problemOf('chain', Message::warn('Leads to another redirect: ', Message::code($path), ' goes on to ', Message::code($there), '.')->withFix('Point Straight There', 'straight', $fix)), 'final' => $fix];
+			return [...$this->problemOf('chain', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.chain', 'Leads to another redirect: {path} goes on to {there}.', path: Message::slot(0), there: Message::slot(1)), Message::code($path), Message::code($there))->withFix($this->messages->t('admin.redirect_review.fixes.point_straight_there', 'Point Straight There'), 'straight', $fix)), 'final' => $fix];
 		}
 
-		return self::problemOf('chain', Message::warn('Leads to another redirect, ', Message::code($path), ', which goes nowhere.')->withFix('Change Where It Goes', 'edit'));
+		return $this->problemOf('chain', Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.problems.chain_nowhere', 'Leads to another redirect, {path}, which goes nowhere.', path: Message::slot(0)), Message::code($path))->withFix($this->messages->t('admin.redirect_review.fixes.change_where_it_goes', 'Change Where It Goes'), 'edit'));
 	}
 
 	/**
@@ -335,7 +325,7 @@ final class RedirectReview
 		}
 
 		if (preg_match('/\s/', $text) === 1) {
-			return ['error' => Message::bad('An address can\'t contain spaces.')];
+			return ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.spaces', 'An address can\'t contain spaces.'))];
 		}
 
 		$stripped = false;
@@ -345,13 +335,13 @@ final class RedirectReview
 			$host = $uri?->getHost();
 
 			if ($uri === null || $host === null || $host === '') {
-				return ['error' => Message::bad('That isn\'t a whole address. It should look like ', Message::code('https://example.com/page'), '.')];
+				return ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.not_whole', 'That isn\'t a whole address. It should look like {example}.', example: Message::slot(0)), Message::code('https://example.com/page'))];
 			}
 
 			if (self::bareHost($host) !== self::bareHost($this->host)) {
 				return $mode === 'to'
 					? ['url' => $text]
-					: ['error' => Message::bad('An old address has to be on this site. This one is on ', Message::strong(self::bareHost($host)), '.'), 'other' => self::bareHost($host)];
+					: ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.other_site', 'An old address has to be on this site. This one is on {host}.', host: Message::slot(0)), Message::strong(self::bareHost($host))), 'other' => self::bareHost($host)];
 			}
 
 			$path     = $uri->getPath();
@@ -364,25 +354,25 @@ final class RedirectReview
 		}
 
 		if (! str_starts_with($text, '/')) {
-			return ['error' => Message::bad('Start with ', Message::code('/'), ', as in ', Message::code("/{$text}"), '.'), 'slash' => "/{$text}"];
+			return ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.slash', 'Start with {slash}, as in {example}.', slash: Message::slot(0), example: Message::slot(1)), Message::code('/'), Message::code("/{$text}")), 'slash' => "/{$text}"];
 		}
 
 		if (preg_match('/[?#]/', $text, $found) === 1) {
 			if ($mode !== 'test') {
-				return ['error' => Message::bad('Leave off the part from ', Message::code($found[0]), ' on. A redirect matches the path only.')];
+				return ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.query', 'Leave off the part from {mark} on. A redirect matches the path only.', mark: Message::slot(0)), Message::code($found[0]))];
 			}
 
 			$text = strpbrk($text, '?#') === false ? $text : substr($text, 0, strcspn($text, '?#'));
 		}
 
 		if (preg_match('/[{}]/', (string) preg_replace('/\{[A-Za-z_][A-Za-z0-9_]*\}/', '', $text)) === 1) {
-			return ['error' => Message::bad('A placeholder is a name in braces, like ', Message::code('{name}'), '.')];
+			return ['error' => Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.read.placeholder', 'A placeholder is a name in braces, like {example}.', example: Message::slot(0)), Message::code('{name}'))];
 		}
 
 		try {
 			RoutePattern::parse($text);
 		} catch (InvalidRoute $e) {
-			return ['error' => Message::bad($e->getMessage())];
+			return ['error' => Message::of(MessageKind::Bad, $e->getMessage())];
 		}
 
 		return ['path' => SiteAddresses::lookup($text), 'stripped' => $stripped];
@@ -406,34 +396,34 @@ final class RedirectReview
 		$status = Status::tryFrom($statusCode);
 
 		if ($status === null || ! in_array($status, [Status::MovedPermanently, Status::Found, Status::SeeOther, Status::TemporaryRedirect, Status::PermanentRedirect], true)) {
-			$out['status'][] = Message::bad('Choose a type of redirect.');
+			$out['status'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.status', 'Choose a type of redirect.'));
 		}
 
 		$read = $this->read($fromText, 'from');
 
 		if (isset($read['empty'])) {
-			$out['from'][] = Message::bad('Enter the old address, starting with ', Message::code('/'), '.');
+			$out['from'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.from_empty', 'Enter the old address, starting with {slash}.', slash: Message::slot(0)), Message::code('/'));
 		} elseif (isset($read['error'])) {
-			$out['from'][] = isset($read['slash']) ? $read['error']->withFix('Add the Slash', 'slash-from', $read['slash']) : $read['error'];
+			$out['from'][] = isset($read['slash']) ? $read['error']->withFix($this->messages->t('admin.redirect_review.fixes.add_the_slash', 'Add the Slash'), 'slash-from', $read['slash']) : $read['error'];
 		} else {
 			$from = $read['path'] ?? '/';
 
 			if ($read['stripped'] ?? false) {
-				$out['from'][] = Message::say('Saved as ', Message::code($from), ', without the site\'s address.');
+				$out['from'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.saved_as', 'Saved as {path}, without the site\'s address.', path: Message::slot(0)), Message::code($from));
 			}
 
 			$same = $this->sameAs($from, $was);
 			$code = $this->codeFor($from);
 
 			if ($same !== null) {
-				$out['from'][] = new Message(MessageKind::Bad, ['Another redirect already starts here and goes to ', ...$this->toWords($same), '.'])->withFix('Edit That One', 'edit-other', $same->from);
+				$out['from'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.same', 'Another redirect already starts here and goes to {to}.', to: Message::slot(0)), $this->toWords($same))->withFix($this->messages->t('admin.redirect_review.fixes.edit_that_one', 'Edit That One'), 'edit-other', $same->from);
 			} elseif ($code !== null) {
-				$out['from'][] = Message::warn('The site\'s code already redirects this address to ', Message::code($code->to), ', so this one would be overruled.');
+				$out['from'][] = Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.code', 'The site\'s code already redirects this address to {to}, so this one would be overruled.', to: Message::slot(0)), Message::code($code->to));
 			} elseif (! str_contains($from, '{')) {
 				$answer = $this->site->answer($from);
 
 				if ($answer !== null) {
-					$out['from'][] = new Message(MessageKind::Warn, ['Does nothing while ', ...self::answerWords($answer), ' answers this address.']);
+					$out['from'][] = Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.answered', 'Does nothing while {answer} answers this address.', answer: Message::slot(0)), $this->answerWords($answer));
 				}
 			}
 		}
@@ -442,29 +432,29 @@ final class RedirectReview
 			$entry = $this->entry($entryId);
 
 			if ($entry === null) {
-				$out['to'][] = Message::bad('That page isn\'t there anymore. Choose another.');
+				$out['to'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.entry_gone', 'That page isn\'t there anymore. Choose another.'));
 			} elseif ($this->site->urlOf($entry) === null) {
-				$out['to'][] = Message::warn(Message::strong(self::titleOf($entry)), ' isn\'t live, so visitors would see Not Found until it is.');
+				$out['to'][] = Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.not_live', '{title} isn\'t live, so visitors would see Not Found until it is.', title: Message::slot(0)), Message::strong($this->titleOf($entry)));
 			} else {
-				$out['to'][] = Message::say('Follows ', Message::strong(self::titleOf($entry)), ' if its address changes.');
+				$out['to'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.follows', 'Follows {title} if its address changes.', title: Message::slot(0)), Message::strong($this->titleOf($entry)));
 			}
 		} else {
 			$read = $this->read($toText, 'to');
 
 			if (isset($read['empty'])) {
-				$out['to'][] = Message::bad('Choose a page, or enter a path or a whole address.');
+				$out['to'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.to_empty', 'Choose a page, or enter a path or a whole address.'));
 			} elseif (isset($read['error'])) {
 				$out['to'][] = isset($read['slash'])
-					? Message::bad('Pick a page from the list, or start a path with ', Message::code('/'), '.')->withFix('Add the Slash', 'slash-to', $read['slash'])
+					? Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.to_slash', 'Pick a page from the list, or start a path with {slash}.', slash: Message::slot(0)), Message::code('/'))->withFix($this->messages->t('admin.redirect_review.fixes.add_the_slash', 'Add the Slash'), 'slash-to', $read['slash'])
 					: $read['error'];
 			} elseif (isset($read['url'])) {
 				$to = $read['url'];
-				$out['to'][] = Message::say('Leaves the site for ', Message::strong(self::bareHost((string) Uri::parse($to)?->getHost())), '.');
+				$out['to'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.leaves', 'Leaves the site for {host}.', host: Message::slot(0)), Message::strong(self::bareHost((string) Uri::parse($to)?->getHost())));
 			} else {
 				$to = $read['path'] ?? '/';
 
 				if ($read['stripped'] ?? false) {
-					$out['to'][] = Message::say('Saved as ', Message::code($to), ', without the site\'s address.');
+					$out['to'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.saved_as', 'Saved as {path}, without the site\'s address.', path: Message::slot(0)), Message::code($to));
 				}
 
 				$page = str_contains($to, '{') ? null : $this->site->entry($to);
@@ -472,7 +462,7 @@ final class RedirectReview
 				if ($page !== null && $page->id !== null) {
 					$entry = $page;
 					$to    = null;
-					$out['to'][] = Message::say('That\'s the address of ', Message::strong(self::titleOf($page)), ', so this will point at the page itself and follow it if it moves.');
+					$out['to'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.entry_address', 'That\'s the address of {title}, so this will point at the page itself and follow it if it moves.', title: Message::slot(0)), Message::strong($this->titleOf($page)));
 				}
 			}
 		}
@@ -481,7 +471,7 @@ final class RedirectReview
 			$missing = array_diff(self::params($to), self::params($from));
 
 			if ($missing !== []) {
-				$out['to'][] = Message::bad(Message::code('{' . reset($missing) . '}'), ' isn\'t in the old address, so nothing would fill it.');
+				$out['to'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.unfilled', '{placeholder} isn\'t in the old address, so nothing would fill it.', placeholder: Message::slot(0)), Message::code('{' . reset($missing) . '}'));
 			}
 		}
 
@@ -491,7 +481,7 @@ final class RedirectReview
 			$target = $entry !== null ? $this->site->urlOf($entry) : $to;
 
 			if ($target !== null && ! self::isUrl($target) && SiteAddresses::lookup($target) === $from) {
-				$out['to'][] = Message::bad('This sends the address to itself.');
+				$out['to'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.itself', 'This sends the address to itself.'));
 			} else {
 				$draft = new RedirectRow($from, $entry === null ? $to : null, $entry?->id, $status);
 
@@ -502,7 +492,7 @@ final class RedirectReview
 
 					if ($last['t'] === 'loop') {
 						$path = array_map(static fn (array $hop): array => Message::code($hop['path']), array_values(array_filter($hops, static fn (array $hop): bool => $hop['t'] === 'redirect')));
-						$out['to'][] = new Message(MessageKind::Bad, ['This would loop: ', ...self::joined([...$path, Message::code($from)], ' → '), '. Change where one of them goes.']);
+						$out['to'][] = Message::of(MessageKind::Bad, $this->messages->t('admin.redirect_review.check.loop', 'This would loop: {paths}. Change where one of them goes.', paths: Message::slot(0)), self::joined([...$path, Message::code($from)], ' → '));
 					} elseif ($entry === null && ! self::isUrl((string) $to) && ! str_contains($to, '{') && $this->site->answer($from) === null) {
 						$next = $hops[1] ?? null;
 
@@ -513,18 +503,18 @@ final class RedirectReview
 								default => null
 							};
 
-							$fix = self::destination($last['answer'] ?? null, (string) $there);
+							$fix = $this->destination($last['answer'] ?? null, (string) $there);
 
 							$out['to'][] = $there === null
-								? Message::warn(Message::code($to), ' redirects again, and that one goes nowhere.')
-								: Message::warn(Message::code($to), ' redirects again, to ', Message::code($there), '.')->withFix('Go Straight There', 'straight', $fix);
+								? Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.again_nowhere', '{path} redirects again, and that one goes nowhere.', path: Message::slot(0)), Message::code($to))
+								: Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.again', '{path} redirects again, to {there}.', path: Message::slot(0), there: Message::slot(1)), Message::code($to), Message::code($there))->withFix($this->messages->t('admin.redirect_review.fixes.go_straight_there', 'Go Straight There'), 'straight', $fix);
 						} elseif ($next !== null && $next['t'] === 'missing') {
-							$out['to'][] = Message::warn('Nothing answers ', Message::code($to), ' yet, so visitors would see Not Found.');
+							$out['to'][] = Message::of(MessageKind::Warn, $this->messages->t('admin.redirect_review.check.nothing_answers', 'Nothing answers {path} yet, so visitors would see Not Found.', path: Message::slot(0)), Message::code($to));
 						}
 					}
 				} elseif ($to !== null && ! self::isUrl($to)) {
 					$example = self::example($from);
-					$out['to'][] = Message::say('Filled from the old address: ', Message::code($example), ' goes to ', Message::code(self::example($to)), '.');
+					$out['to'][] = Message::of(MessageKind::Say, $this->messages->t('admin.redirect_review.check.filled', 'Filled from the old address: {example} goes to {filled}.', example: Message::slot(0), filled: Message::slot(1)), Message::code($example), Message::code(self::example($to)));
 				}
 			}
 		}
@@ -541,9 +531,9 @@ final class RedirectReview
 	/**
 	 * Words for a title, or "Untitled".
 	 */
-	public static function titleOf(Entry $entry): string
+	public function titleOf(Entry $entry): string
 	{
-		return $entry->title === '' ? 'Untitled' : $entry->title;
+		return $entry->title === '' ? (string) $this->messages->t('admin.redirect_review.untitled', 'Untitled') : $entry->title;
 	}
 
 	/**
@@ -582,7 +572,7 @@ final class RedirectReview
 		if ($row->entry !== null) {
 			$entry = $this->entry($row->entry);
 
-			return [Message::strong($entry === null ? 'a page that was deleted' : self::titleOf($entry))];
+			return [Message::strong($entry === null ? (string) $this->messages->t('admin.redirect_review.deleted_page', 'a page that was deleted') : $this->titleOf($entry))];
 		}
 
 		return [Message::code($row->to ?? '')];
@@ -675,10 +665,10 @@ final class RedirectReview
 	 *
 	 * @return Destination
 	 */
-	private static function destination(Entry|string|null $answer, string $there): array
+	private function destination(Entry|string|null $answer, string $there): array
 	{
 		return $answer instanceof Entry && $answer->id !== null
-			? ['entry' => $answer->id, 'title' => self::titleOf($answer), 'url' => $there]
+			? ['entry' => $answer->id, 'title' => $this->titleOf($answer), 'url' => $there]
 			: ['to' => $there];
 	}
 
@@ -687,40 +677,57 @@ final class RedirectReview
 	 *
 	 * @return Problem
 	 */
-	private static function problemOf(string $kind, Message $message): array
+	private function problemOf(string $kind, Message $message): array
 	{
-		return ['kind' => $kind, 'label' => self::LABELS[$kind] ?? $kind, 'message' => $message];
+		return ['kind' => $kind, 'label' => $this->label($kind), 'message' => $message];
+	}
+
+	/**
+	 * Words for a kind of problem, for the chip on its row.
+	 */
+	private function label(string $kind): string|Text
+	{
+		return match ($kind) {
+			'code'    => $this->messages->t('admin.redirect_review.labels.code', 'Overruled'),
+			'live'    => $this->messages->t('admin.redirect_review.labels.live', 'Does nothing'),
+			'gone'    => $this->messages->t('admin.redirect_review.labels.gone', 'Leads nowhere'),
+			'chain'   => $this->messages->t('admin.redirect_review.labels.chain', 'Chained'),
+			'missing' => $this->messages->t('admin.redirect_review.labels.missing', 'Missing page'),
+			default   => $kind
+		};
 	}
 
 	/**
 	 * Words naming what answers an address.
 	 *
-	 * @return list<string|array{strong: string}>
+	 * @return list<string|array{code: string}|array{strong: string}>
 	 */
-	private static function answerWords(Entry|string $answer): array
+	private function answerWords(Entry|string $answer): array
 	{
 		return $answer instanceof Entry
-			? ['the ' . strtolower($answer->type->labels->singular) . ' ', Message::strong(self::titleOf($answer))]
-			: ['the site\'s own page'];
+			? Message::split($this->messages->t('admin.redirect_review.answer.entry', 'the {type} {title}', type: strtolower($answer->type->labels->singular), title: Message::slot(0), context: 'What answers an address, mid-sentence: "the post Hello World".'), Message::strong($this->titleOf($answer)))
+			: Message::split($this->messages->t('admin.redirect_review.answer.site', 'the site\'s own page'));
 	}
 
 	/**
 	 * Words for an entry a row leads to that isn't live.
 	 *
-	 * @return list<string|array{strong: string}>
+	 * @return list<string|array{code: string}|array{strong: string}>
 	 */
-	private static function goneWords(?Entry $entry): array
+	private function goneWords(?Entry $entry): array
 	{
 		if ($entry === null) {
-			return ['the page it led to was deleted'];
+			return Message::split($this->messages->t('admin.redirect_review.gone.deleted', 'the page it led to was deleted'));
 		}
 
-		return [Message::strong(self::titleOf($entry)), match (true) {
-			$entry->status === EntryStatus::Trash     => ' is in the trash',
-			$entry->status === EntryStatus::Draft     => ' is a draft',
-			$entry->status === EntryStatus::Scheduled => ' isn\'t published yet',
-			default                                   => ' isn\'t on the site'
-		}];
+		$text = match (true) {
+			$entry->status === EntryStatus::Trash     => $this->messages->t('admin.redirect_review.gone.trash', '{title} is in the trash', title: Message::slot(0)),
+			$entry->status === EntryStatus::Draft     => $this->messages->t('admin.redirect_review.gone.draft', '{title} is a draft', title: Message::slot(0)),
+			$entry->status === EntryStatus::Scheduled => $this->messages->t('admin.redirect_review.gone.scheduled', '{title} isn\'t published yet', title: Message::slot(0)),
+			default                                   => $this->messages->t('admin.redirect_review.gone.hidden', '{title} isn\'t on the site', title: Message::slot(0))
+		};
+
+		return Message::split($text, Message::strong($this->titleOf($entry)));
 	}
 
 	/**

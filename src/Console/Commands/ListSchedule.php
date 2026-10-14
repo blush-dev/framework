@@ -23,6 +23,7 @@ use Blush\Job\JobRunner;
 use Blush\Job\RunnerKind;
 use Blush\Job\Schedule;
 use Blush\Job\Scheduler;
+use Blush\Translation\Messages;
 
 /**
  * Lists the scheduled tasks (D-621): each job, how often it runs, and
@@ -37,7 +38,8 @@ final readonly class ListSchedule
 		private Scheduler $scheduler,
 		private JobRunner $runner,
 		private JobFactory $jobs,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	public function __invoke(Output $output): ExitCode
@@ -48,7 +50,7 @@ final readonly class ListSchedule
 			$rows[] = [
 				$key,
 				$this->jobs->label($key),
-				$task->frequency->describe(),
+				(string) $task->frequency->describe($this->messages),
 				$this->scheduler->lastRun($key)?->format('Y-m-d H:i') ?? 'never',
 				$this->scheduler->nextRun($task)?->format('Y-m-d H:i') ?? 'never'
 			];

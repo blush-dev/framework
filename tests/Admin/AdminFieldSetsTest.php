@@ -136,7 +136,7 @@ final class AdminFieldSetsTest extends TestCase
 
 		$checks = $this->app->container()->make(SiteChecks::class)->extensions();
 
-		$this->assertSame('Field sets left off', ($checks['field-sets'] ?? null)?->label, 'The site keeps running, and says so (D-786).');
+		$this->assertSame('Field sets left off', (string) ($checks['field-sets'] ?? null)?->label, 'The site keeps running, and says so (D-786).');
 	}
 
 	public function testDescribesOneSet(): void

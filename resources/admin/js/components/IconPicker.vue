@@ -18,6 +18,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import EmptyState from './EmptyState.vue';
 import { useModalDialog } from '../dialog';
+import { t } from '../messages';
 import { gridColumns, gridMove, numbered, type Section } from '../grid';
 import { iconGroups, iconMask, iconMatches, loadIcons, type SiteIcon } from '../site-icons';
 
@@ -60,7 +61,7 @@ const sections = computed<Section<SiteIcon>[]>(() => {
 	if (query.value.trim() !== '' || group.value !== 'all') {
 		const results = pool.filter((icon) => iconMatches(icon, query.value));
 
-		return numbered([{ heading: results.length === 1 ? '1 icon' : `${results.length} icons`, items: results }]);
+		return numbered([{ heading: t('icon_picker.count', '{count, plural, one {# icon} other {# icons}}', { count: results.length }), items: results }]);
 	}
 
 	return numbered(groups.value.map((item) => ({ heading: item.label, items: item.icons })));
@@ -113,11 +114,11 @@ function use(icon: SiteIcon | undefined): void {
 <template>
 	<dialog ref="dialog" class="modal icon-picker" aria-labelledby="icon-picker-heading" @close="emit('close')" @keydown.esc.prevent.stop="close()">
 		<div class="panel__header">
-			<h2 id="icon-picker-heading">Insert an Icon</h2>
+			<h2 id="icon-picker-heading">{{ t('icon_picker.title', 'Insert an Icon') }}</h2>
 			<div class="panel__actions">
 				<button type="button" class="button button--ghost button--small button--icon" @click="close()">
 					<AdminIcon name="x" />
-					<span class="visually-hidden">Close</span>
+					<span class="visually-hidden">{{ t('common.close', 'Close') }}</span>
 				</button>
 			</div>
 		</div>
@@ -129,11 +130,11 @@ function use(icon: SiteIcon | undefined): void {
 					ref="input"
 					v-model="query"
 					type="search"
-					placeholder="Search icons…"
+					:placeholder="t('icon_picker.search_placeholder', 'Search icons…')"
 					autocomplete="off"
 					spellcheck="false"
 					role="combobox"
-					aria-label="Search icons"
+					:aria-label="t('icon_picker.search_label', 'Search icons')"
 					aria-expanded="true"
 					aria-controls="icon-picker-pane"
 					:aria-activedescendant="current ? `icon-${active}` : undefined"
@@ -143,24 +144,24 @@ function use(icon: SiteIcon | undefined): void {
 		</div>
 
 		<div class="icon-picker__split">
-			<nav class="icon-picker__groups" aria-label="Icon groups">
+			<nav class="icon-picker__groups" :aria-label="t('icon_picker.groups', 'Icon groups')">
 				<button type="button" :aria-current="group === 'all'" @click="pick('all')">
-					<AdminIcon name="layout-grid" />All Icons<span class="icon-picker__n mono">{{ icons.length }}</span>
+					<AdminIcon name="layout-grid" />{{ t('icon_picker.all', 'All Icons') }}<span class="icon-picker__n mono">{{ icons.length }}</span>
 				</button>
 				<button v-for="item in groups" :key="item.key" type="button" :aria-current="group === item.key" @click="pick(item.key)">
 					<AdminIcon :name="item.icon" />{{ item.label }}<span class="icon-picker__n mono">{{ item.icons.length }}</span>
 				</button>
 			</nav>
 
-			<div id="icon-picker-pane" ref="pane" class="icon-picker__pane" role="listbox" aria-label="Icons">
+			<div id="icon-picker-pane" ref="pane" class="icon-picker__pane" role="listbox" :aria-label="t('icon_picker.icons', 'Icons')">
 				<div v-if="!loaded" class="icon-picker__grid" aria-hidden="true">
 					<span v-for="cell in 24" :key="cell" class="skeleton icon-picker__skeleton" />
 				</div>
 				<EmptyState
 					v-else-if="!cells.length"
 					icon="search"
-					:heading="failed ? 'The Icons Couldn\'t Be Loaded' : (query ? 'No Icon Called That' : 'This Site Has No Icons')"
-					:text="query && !failed ? 'Try a broader word, or pick a group on the left.' : undefined"
+					:heading="failed ? t('icon_picker.load_failed', 'The Icons Couldn\'t Be Loaded') : (query ? t('icon_picker.no_match', 'No Icon Called That') : t('icon_picker.none', 'This Site Has No Icons'))"
+					:text="query && !failed ? t('icon_picker.no_match_text', 'Try a broader word, or pick a group on the left.') : undefined"
 				/>
 				<div v-for="section in sections" :key="section.heading" role="group" :aria-label="section.heading">
 					<p class="eyebrow icon-picker__heading" aria-hidden="true">{{ section.heading }}</p>
@@ -188,10 +189,10 @@ function use(icon: SiteIcon | undefined): void {
 		<div class="modal__foot">
 			<p class="modal__selected" aria-live="polite">
 				<template v-if="current"><b>{{ current.label }}</b> · <code>{{ preview(current) }}</code></template>
-				<template v-else>Choose an icon.</template>
+				<template v-else>{{ t('icon_picker.choose', 'Choose an icon.') }}</template>
 			</p>
-			<button type="button" class="button" @click="close()">Cancel</button>
-			<button type="button" class="button button--primary" :disabled="current === undefined" @click="use(current)">Insert</button>
+			<button type="button" class="button" @click="close()">{{ t('common.cancel', 'Cancel') }}</button>
+			<button type="button" class="button button--primary" :disabled="current === undefined" @click="use(current)">{{ t('icon_picker.insert', 'Insert') }}</button>
 		</div>
 	</dialog>
 </template>

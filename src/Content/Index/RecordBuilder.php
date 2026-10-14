@@ -31,6 +31,7 @@ use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Turns one content file into an index record, applying 1.x's file
@@ -77,7 +78,8 @@ final readonly class RecordBuilder
 		private ContentTypes $types,
 		private DocumentParser $parser,
 		private FieldContext $context,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -155,7 +157,7 @@ final readonly class RecordBuilder
 			id: is_string($id) && Uuid::isValid($id) ? strtolower($id) : null
 		);
 
-		return new ParsedEntry($record, [...self::checkId($id), ...self::checkTranslationOf($values, $suffixed), ...$result->violations], $document->frontMatter);
+		return new ParsedEntry($record, [...$this->checkId($id), ...$this->checkTranslationOf($values, $suffixed), ...$result->violations], $document->frontMatter);
 	}
 
 	/**
@@ -163,12 +165,16 @@ final readonly class RecordBuilder
 	 *
 	 * @return list<Violation>
 	 */
-	private static function checkId(mixed $id): array
+	private function checkId(mixed $id): array
 	{
 		return match (true) {
 			Uuid::isValid($id)          => [],
-			$id === null || $id === '' => [new Violation(EntryFields::ID, 'is missing; every entry needs one. Add it with content:ids --write, or on Site Health in the admin.', kind: ViolationKind::Id)],
-			default                    => [new Violation(EntryFields::ID, sprintf('"%s" isn\'t a UUID; give the entry a new one with content:ids --write, or on Site Health in the admin.', is_scalar($id) ? (string) $id : get_debug_type($id)), kind: ViolationKind::Id)]
+			$id === null || $id === '' => [new Violation(EntryFields::ID, $this->messages->t('content.record_builder.no_id', 'is missing; every entry needs one. Add it with content:ids --write, or on Site Health in the admin.'), kind: ViolationKind::Id)],
+			default                    => [new Violation(
+				EntryFields::ID,
+				$this->messages->t('content.record_builder.bad_id', '"{id}" isn\'t a UUID; give the entry a new one with content:ids --write, or on Site Health in the admin.', id: is_scalar($id) ? (string) $id : get_debug_type($id)),
+				kind: ViolationKind::Id
+			)]
 		};
 	}
 
@@ -179,14 +185,18 @@ final readonly class RecordBuilder
 	 * @param  array<string, mixed> $values
 	 * @return list<Violation>
 	 */
-	private static function checkTranslationOf(array $values, bool $suffixed): array
+	private function checkTranslationOf(array $values, bool $suffixed): array
 	{
 		$id = $values[EntryFields::TRANSLATION_OF] ?? null;
 
 		return match (true) {
 			$id === null        => [],
-			! Uuid::isValid($id) => [new Violation(EntryFields::TRANSLATION_OF, sprintf('"%s" isn\'t a UUID; it names the id of the entry this translates.', is_scalar($id) ? (string) $id : get_debug_type($id)), kind: ViolationKind::Translation)],
-			! $suffixed         => [new Violation(EntryFields::TRANSLATION_OF, 'names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).', kind: ViolationKind::Translation)],
+			! Uuid::isValid($id) => [new Violation(
+				EntryFields::TRANSLATION_OF,
+				$this->messages->t('content.record_builder.bad_translation_of', '"{id}" isn\'t a UUID; it names the id of the entry this translates.', id: is_scalar($id) ? (string) $id : get_debug_type($id)),
+				kind: ViolationKind::Translation
+			)],
+			! $suffixed         => [new Violation(EntryFields::TRANSLATION_OF, $this->messages->t('content.record_builder.not_translation', 'names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).'), kind: ViolationKind::Translation)],
 			default             => []
 		};
 	}

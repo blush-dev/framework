@@ -39,6 +39,8 @@ use Blush\Http\Status;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaEditor;
 use Blush\Media\MediaException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The activity log in the admin (D-758):
@@ -68,7 +70,8 @@ final readonly class ActivityController
 		private Entries $content,
 		private MediaLibrary $library,
 		private EntryEditor $entries,
-		private MediaEditor $media
+		private MediaEditor $media,
+		private Messages $messages
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -78,7 +81,7 @@ final readonly class ActivityController
 		$subject = is_string($params['subject'] ?? null) ? $params['subject'] : null;
 
 		if (! $this->permissions->can($account, Capability::SiteActivity) && ($subject === null || ! $this->mayChange($account, $subject))) {
-			return self::json(['error' => 'You aren\'t allowed to see the activity log.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.activity_controller.not_allowed', 'You aren\'t allowed to see the activity log.')], Status::Forbidden);
 		}
 
 		$username = is_string($params['account'] ?? null) ? $params['account'] : null;
@@ -107,8 +110,8 @@ final readonly class ActivityController
 			'pages'    => max(1, (int) ceil($total / self::PER_PAGE)),
 			'accounts' => $this->accountChoices(),
 			'clients'  => $this->clients(),
-			'actions'  => array_map(static fn (ActivityAction $action): array => ['value' => $action->value, 'label' => $action->label()], ActivityAction::cases()),
-			'via'      => array_map(static fn (Via $via): array => ['value' => $via->value, 'label' => $via->label()], Via::cases())
+			'actions'  => array_map(fn (ActivityAction $action): array => ['value' => $action->value, 'label' => $action->label($this->messages)], ActivityAction::cases()),
+			'via'      => array_map(fn (Via $via): array => ['value' => $via->value, 'label' => $via->label($this->messages)], Via::cases())
 		]);
 	}
 
@@ -120,7 +123,7 @@ final readonly class ActivityController
 			$activity = $this->log->find($id);
 
 			if ($activity === null) {
-				return self::json(['error' => 'That change isn\'t in the log.'], Status::NotFound);
+				return self::json(['error' => $this->messages->t('admin.activity_controller.not_found', 'That change isn\'t in the log.')], Status::NotFound);
 			}
 
 			if ($activity->action->isEntry()) {
@@ -178,8 +181,8 @@ final readonly class ActivityController
 			'link'    => $link,
 			'account' => ['username' => $by->username ?? null, 'name' => match (true) {
 				$by !== null                 => $by->name ?? $by->username,
-				$activity->account === ''    => 'Someone on the command line',
-				default                      => 'A removed account'
+				$activity->account === ''    => $this->messages->t('admin.activity_controller.command_line', 'Someone on the command line'),
+				default                      => $this->messages->t('admin.activity_controller.removed_account', 'A removed account')
 			}],
 			'via'     => $activity->via->value,
 			'client'  => $activity->client,
@@ -193,17 +196,17 @@ final readonly class ActivityController
 	 * Whether a change can be undone now by the viewer, and why not.
 	 *
 	 * @param  array<string, ?string> $versions
-	 * @return array{available: bool, reason: ?string}
+	 * @return array{available: bool, reason: ?Text}
 	 */
 	private function undoable(Account $viewer, Activity $activity, array &$versions): array
 	{
 		$reason = match (true) {
-			$activity->undone !== null                                      => 'Undone.',
-			$activity->action === ActivityAction::EntryCreate               => 'A new entry; move it to the trash to undo it.',
-			$activity->action === ActivityAction::MediaUpload               => 'A new file; delete it to undo it.',
-			$activity->before === null                                      => 'What it replaced is kept for 30 days, and that\'s passed.',
-			! $this->mayChange($viewer, $activity->subject)                 => 'You aren\'t allowed to change it.',
-			$activity->action->isEntry() && $this->changedSince($activity, $versions) => 'Changed since; open it to edit.',
+			$activity->undone !== null                                      => $this->messages->t('admin.activity_controller.undo.undone', 'Undone.'),
+			$activity->action === ActivityAction::EntryCreate               => $this->messages->t('admin.activity_controller.undo.new_entry', 'A new entry; move it to the trash to undo it.'),
+			$activity->action === ActivityAction::MediaUpload               => $this->messages->t('admin.activity_controller.undo.new_file', 'A new file; delete it to undo it.'),
+			$activity->before === null                                      => $this->messages->t('admin.activity_controller.undo.expired', 'What it replaced is kept for 30 days, and that\'s passed.'),
+			! $this->mayChange($viewer, $activity->subject)                 => $this->messages->t('admin.activity_controller.undo.not_allowed', 'You aren\'t allowed to change it.'),
+			$activity->action->isEntry() && $this->changedSince($activity, $versions) => $this->messages->t('admin.activity_controller.undo.changed', 'Changed since; open it to edit.'),
 			default                                                         => null
 		};
 

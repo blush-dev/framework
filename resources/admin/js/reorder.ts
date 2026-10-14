@@ -7,6 +7,7 @@
  */
 
 import { ref } from 'vue';
+import { t } from './messages';
 
 /**
  * Returns a list with an item moved from one place to another.
@@ -34,7 +35,7 @@ export function useReorder(count: () => number, move: (from: number, to: number)
 	function item(index: number): Record<string, unknown> {
 		return {
 			draggable: 'true',
-			'aria-roledescription': 'movable item',
+			'aria-roledescription': t('reorder.movable_item', 'movable item'),
 			'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown',
 			class: { 'is-dragging': dragging.value === index, 'is-drop': over.value === index && dragging.value !== index },
 			onDragstart: (event: DragEvent) => {

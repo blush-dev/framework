@@ -32,6 +32,8 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Storage\Record\RecordException;
 use Blush\Storage\Record\RecordStores;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/fields/sets` (D-337): the site's field sets, for
@@ -70,7 +72,8 @@ final readonly class FieldSetsController
 		private DataFieldSetWriter $writer,
 		private FieldTargets $targets,
 		private RecordStores $stores,
-		private ControlDefaults $defaults
+		private ControlDefaults $defaults,
+		private Messages $messages
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -91,7 +94,7 @@ final readonly class FieldSetsController
 		$set = $this->types->sets->find($name);
 
 		if ($set === null) {
-			return Response::json(['error' => sprintf('There\'s no "%s" field set.', $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.field_sets_controller.not_found', 'There\'s no "{name}" field set.', name: $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
 		}
 
 		return Response::json($this->detail($this->types, $set), headers: ['Cache-Control' => 'no-store']);
@@ -179,7 +182,7 @@ final readonly class FieldSetsController
 	/**
 	 * Every place a set can attach to, kind by kind.
 	 *
-	 * @return list<array{key: string, label: string, group: string}>
+	 * @return list<array{key: string, label: string|Text, group: string|Text, kind: string}>
 	 */
 	private function targets(): array
 	{
@@ -201,7 +204,7 @@ final readonly class FieldSetsController
 	/**
 	 * Every kind of place, with its slots (the first is its default).
 	 *
-	 * @return list<array{kind: string, label: string, slots: list<array{name: string, label: string, description: string}>}>
+	 * @return list<array{kind: string, label: string|Text, slots: list<array{name: string, label: string|Text, description: string|Text}>}>
 	 */
 	private function kinds(): array
 	{
@@ -234,7 +237,7 @@ final readonly class FieldSetsController
 	/**
 	 * The name for every place of a kind, such as "All content types".
 	 */
-	private function every(string $kind): string
+	private function every(string $kind): Text
 	{
 		try {
 			$source = $this->targets->sources()[$kind] ?? null;
@@ -242,14 +245,14 @@ final readonly class FieldSetsController
 			$source = null;
 		}
 
-		return 'All ' . ($source === null ? $kind : mb_strtolower($source->label()));
+		return $this->messages->t('admin.field_sets_controller.every', 'All {places}', places: $source === null ? $kind : mb_strtolower((string) $source->label()), context: 'Every place of a kind, such as "All content types".');
 	}
 
 	/**
 	 * Why sets are left off places they're attached to (D-786), by set
 	 * name.
 	 *
-	 * @return array<string, list<string>>
+	 * @return array<string, list<string|Text>>
 	 */
 	private function problems(ContentTypes $types): array
 	{
@@ -263,7 +266,7 @@ final readonly class FieldSetsController
 	/**
 	 * A set as the list describes it, with why it's left off places.
 	 *
-	 * @param  array<string, list<string>> $problems
+	 * @param  array<string, list<string|Text>> $problems
 	 * @return array<string, mixed>
 	 */
 	private function summary(ContentTypes $types, FieldSet $set, array $problems): array

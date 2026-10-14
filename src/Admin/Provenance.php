@@ -17,6 +17,7 @@ use Blush\Extension\ExtensionText;
 use Blush\Icon\IconPacks;
 use Blush\Plugin\Plugins;
 use Blush\Theme\ThemeChain;
+use Blush\Translation\Messages;
 
 /**
  * Names where a block or icon that isn't core comes from, for the
@@ -30,7 +31,8 @@ final readonly class Provenance
 	public function __construct(
 		private Plugins $plugins,
 		private IconPacks $packs,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	/**
@@ -79,11 +81,11 @@ final readonly class Provenance
 		}
 
 		if (str_starts_with($class, 'App\\')) {
-			return ['kind' => 'site', 'label' => 'This site'];
+			return ['kind' => 'site', 'label' => (string) $this->messages->t('admin.provenance.site', 'This site')];
 		}
 
 		$plugin = $this->plugins->owning($class);
 
-		return $plugin === null ? ['kind' => 'other', 'label' => 'Elsewhere'] : ['kind' => 'plugin', 'label' => (string) $this->text->label($plugin)];
+		return $plugin === null ? ['kind' => 'other', 'label' => (string) $this->messages->t('admin.provenance.elsewhere', 'Elsewhere')] : ['kind' => 'plugin', 'label' => (string) $this->text->label($plugin)];
 	}
 }

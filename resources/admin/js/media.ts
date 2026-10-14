@@ -12,6 +12,7 @@ import { config } from './config';
 import { formatSize } from './format';
 import { finish } from './jobs';
 import type { IconName } from './icons';
+import { locale, t } from './messages';
 
 const library = new Map<string, Promise<MediaItem | null>>();
 
@@ -98,13 +99,13 @@ export function formatDuration(seconds: number): string {
  */
 export function mediaFacts(file: Pick<MediaItem, 'width' | 'height' | 'duration' | 'size'>): string {
 	return [
-		file.width !== null && file.height !== null ? `${file.width} × ${file.height}` : '',
+		file.width !== null && file.height !== null ? t('media.dimensions', '{width} × {height}', { width: String(file.width), height: String(file.height) }) : '',
 		file.duration !== null ? formatDuration(file.duration) : '',
 		formatSize(file.size)
 	].filter((part) => part !== '').join(' · ');
 }
 
-const numbers = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+const numbers = new Intl.NumberFormat(locale(), { maximumFractionDigits: 2 });
 
 /**
  * A value a file says about itself (D-289, D-551), as people read it: a
@@ -122,13 +123,13 @@ export function embeddedText(key: string, value: string | number | string[]): st
 
 	switch (key) {
 		case 'bitrate':
-			return `${Math.round(value / 1000)} kbps`;
+			return t('media.bitrate', '{rate} kbps', { rate: String(Math.round(value / 1000)) });
 		case 'sampleRate':
-			return `${numbers.format(value / 1000)} kHz`;
+			return t('media.sample_rate', '{rate} kHz', { rate: numbers.format(value / 1000) });
 		case 'channels':
-			return value === 1 ? 'mono' : (value === 2 ? 'stereo' : `${value} channels`);
+			return value === 1 ? t('media.mono', 'mono') : (value === 2 ? t('media.stereo', 'stereo') : t('media.channels', '{count, plural, one {# channel} other {# channels}}', { count: value }));
 		case 'frameRate':
-			return `${numbers.format(value)} fps`;
+			return t('media.frame_rate', '{rate} fps', { rate: numbers.format(value) });
 		default:
 			return String(value);
 	}
@@ -192,7 +193,7 @@ export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () =>
 			}
 		} catch (caught) {
 			if (current()) {
-				error.value = errorMessage(caught, 'The media couldn\'t be loaded.');
+				error.value = errorMessage(caught, t('media.load_failed', 'The media couldn\'t be loaded.'));
 			}
 		} finally {
 			if (current()) {

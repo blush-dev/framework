@@ -32,6 +32,7 @@ use Blush\Storage\File\FileRecordStore;
 use Blush\Storage\File\FileTransactions;
 use Blush\Support\Filesystem;
 use Blush\Tests\BootsScratchSite;
+use Blush\Translation\Messages;
 
 #[CoversClass(Setting::class)]
 #[CoversClass(Settings::class)]
@@ -54,13 +55,14 @@ final class SettingsTest extends TestCase
 
 		return new SettingGroups(
 			new FileRecordStore($paths, $layouts, new FileTransactions($paths, new Filesystem()), new Filesystem(), static fn (): never => throw new LogicException('Settings keep no content.')),
-			new FrozenClock('2026-10-09')
+			new FrozenClock('2026-10-09'),
+			new Messages()
 		);
 	}
 
 	private function file(): SettingsStore
 	{
-		return new SettingsStore($this->settingGroups());
+		return new SettingsStore($this->settingGroups(), new Messages());
 	}
 
 	private function path(string $group): string

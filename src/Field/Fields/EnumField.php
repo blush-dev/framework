@@ -18,6 +18,8 @@ use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * One value from a fixed set of options. Matching ignores case, and the
@@ -63,18 +65,18 @@ final class EnumField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Choice';
+		return $messages->t('field.enum_field.type_label', 'Choice');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'One of a set of values.';
+		return $messages->t('field.enum_field.type_description', 'One of a set of values.');
 	}
 
 	/**
@@ -91,10 +93,11 @@ final class EnumField extends Field
 			}
 		}
 
-		throw $this->invalid(sprintf(
-			'must be one of %s, not %s.',
-			implode(', ', $this->options),
-			is_string($value) ? "\"{$value}\"" : self::describe($value)
+		throw $this->invalid($context->messages->t(
+			'field.enum_field.invalid',
+			'must be one of {options}, not {value}.',
+			options: implode(', ', $this->options),
+			value: is_string($value) ? "\"{$value}\"" : self::describe($value, $context->messages)
 		));
 	}
 

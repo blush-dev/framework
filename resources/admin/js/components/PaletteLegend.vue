@@ -7,6 +7,7 @@
  */
 
 import { PALETTE_ROLES, type PaletteRole } from '../api';
+import { t } from '../messages';
 
 const props = defineProps<{
 	palette: Record<PaletteRole, [string, string]>;
@@ -15,12 +16,12 @@ const props = defineProps<{
 }>();
 
 const LABELS: Record<PaletteRole, string> = {
-	background: 'Background',
-	surface: 'Surface',
-	text: 'Text',
-	muted: 'Muted',
-	accent: 'Accent',
-	border: 'Border'
+	background: t('palette_legend.background', 'Background'),
+	surface: t('palette_legend.surface', 'Surface'),
+	text: t('palette_legend.text', 'Text'),
+	muted: t('palette_legend.muted', 'Muted'),
+	accent: t('palette_legend.accent', 'Accent'),
+	border: t('palette_legend.border', 'Border')
 };
 
 const swatches = () => PALETTE_ROLES.map((role) => ({ role, fill: props.palette[role][props.half] }));

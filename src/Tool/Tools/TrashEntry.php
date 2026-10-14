@@ -24,6 +24,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `trash_entry` (D-756): moves an entry to the trash, a status (D-484),
@@ -35,19 +37,20 @@ final class TrashEntry extends Tool
 {
 	public function __construct(
 		private readonly ToolEntries $entries,
-		private readonly Referrers $referrers
+		private readonly Referrers $referrers,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Move an Entry to the Trash';
+		return $this->messages->t('tool.trash_entry.title', 'Move an Entry to the Trash');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Moves an entry to the trash, off the site; restore_entry brings it back. When live entries link to it, it names them and does nothing until it\'s sent again with confirm: true. Needs the revision get_entry answered.';
+		return $this->messages->t('tool.trash_entry.description', 'Moves an entry to the trash, off the site; restore_entry brings it back. When live entries link to it, it names them and does nothing until it\'s sent again with confirm: true. Needs the revision get_entry answered.');
 	}
 
 	#[Override]
@@ -89,12 +92,13 @@ final class TrashEntry extends Tool
 			));
 
 			if ($live !== []) {
-				throw new ToolError(sprintf(
-					'%d live entr%s link to “%s”: %s. Trashing it takes it off the site, and those links stop working. Send confirm: true to trash it anyway.',
-					count($live),
-					count($live) === 1 ? 'y' : 'ies',
-					$entry->title,
-					implode(', ', array_map(static fn (Entry $source): string => "“{$source->title}”", array_slice($live, 0, 8))) . (count($live) > 8 ? ', and more' : '')
+				throw new ToolError((string) $this->messages->t(
+					'tool.trash_entry.linked',
+					'{count, plural, one {# live entry links} other {# live entries link}} to “{title}”: {entries}{more, select, yes {, and more} other {}}. Trashing it takes it off the site, and those links stop working. Send confirm: true to trash it anyway.',
+					count: count($live),
+					title: $entry->title,
+					entries: implode(', ', array_map(static fn (Entry $source): string => "“{$source->title}”", array_slice($live, 0, 8))),
+					more: count($live) > 8 ? 'yes' : 'no'
 				));
 			}
 		}
@@ -102,9 +106,9 @@ final class TrashEntry extends Tool
 		try {
 			[$trashed] = $context->entries->trash($context->actor, $entry, self::text($input, 'revision'));
 		} catch (EditRefused $refused) {
-			throw Fields::refused($refused);
+			throw Fields::refused($refused, $this->messages);
 		}
 
-		return new ToolResult($this->entries->stub($trashed), sprintf('Moved “%s” to the trash; restore_entry brings it back.', $entry->title));
+		return new ToolResult($this->entries->stub($trashed), $this->messages->t('tool.trash_entry.trashed', 'Moved “{title}” to the trash; restore_entry brings it back.', title: $entry->title));
 	}
 }

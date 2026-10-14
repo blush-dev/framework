@@ -24,6 +24,7 @@ use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Support\Filesystem;
 use Blush\Tests\TemporaryDirectory;
+use Blush\Translation\Messages;
 
 #[CoversClass(MediaFiles::class)]
 final class MediaFilesTest extends TestCase
@@ -43,7 +44,7 @@ final class MediaFilesTest extends TestCase
 	{
 		$paths = Paths::fromRoot($this->temporaryDirectory());
 
-		return new MediaFiles($paths, new FileTransactions($paths, new Filesystem()));
+		return new MediaFiles($paths, new FileTransactions($paths, new Filesystem()), new Messages());
 	}
 
 	/**

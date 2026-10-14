@@ -14,11 +14,14 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use NoDiscard;
+use Blush\Translation\Text;
 
 /**
  * A named set of capabilities (D-216). `*` grants every capability,
  * including ones extensions add later. The description says in a line
- * what the role is for, as the admin shows it (D-312).
+ * what the role is for, as the admin shows it (D-312). A built-in
+ * role's label and description are messages (D-836), translated where
+ * they're shown; those of a role made in the admin or config are text.
  */
 final readonly class Role
 {
@@ -33,9 +36,9 @@ final readonly class Role
 	 */
 	public function __construct(
 		public string $name,
-		public string $label,
+		public string|Text $label,
 		public array $capabilities = [],
-		public string $description = ''
+		public string|Text $description = ''
 	) {
 		if (preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
 			throw new AuthException(sprintf('"%s" can\'t be a role name; use lowercase letters, digits, "_", and "-".', $name));
@@ -121,9 +124,9 @@ final readonly class Role
 	{
 		return [
 			'name'         => $this->name,
-			'label'        => $this->label,
+			'label'        => (string) $this->label,
 			'capabilities' => $this->capabilities,
-			...($this->description === '' ? [] : ['description' => $this->description])
+			...((string) $this->description === '' ? [] : ['description' => (string) $this->description])
 		];
 	}
 }

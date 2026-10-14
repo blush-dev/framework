@@ -20,6 +20,7 @@ use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Parser\SymfonyYamlParser;
+use Blush\Translation\Messages;
 
 #[CoversClass(DocumentParser::class)]
 #[CoversClass(Document::class)]
@@ -27,7 +28,7 @@ final class DocumentParserTest extends TestCase
 {
 	private function parser(): DocumentParser
 	{
-		return new DocumentParser(new FrontMatter(new SymfonyYamlParser()));
+		return new DocumentParser(new FrontMatter(new SymfonyYamlParser(new Messages()), new Messages()));
 	}
 
 	public function testParsesFrontMatterAndAMarkdownBody(): void

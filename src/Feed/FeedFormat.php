@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Feed;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * The feed formats Blush writes (D-029).
  */
@@ -49,12 +52,12 @@ enum FeedFormat: string
 	/**
 	 * Returns a human-readable name, for `<link title>`.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Rss  => 'RSS',
-			self::Atom => 'Atom',
-			self::Json => 'JSON Feed'
+			self::Rss  => $messages->t('feed.feed_format.rss', 'RSS'),
+			self::Atom => $messages->t('feed.feed_format.atom', 'Atom'),
+			self::Json => $messages->t('feed.feed_format.json', 'JSON Feed')
 		};
 	}
 }

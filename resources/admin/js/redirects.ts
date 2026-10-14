@@ -4,6 +4,7 @@
  */
 
 import { request } from './api';
+import { t } from './messages';
 
 export type RedirectStatus = 301 | 302 | 303 | 307 | 308;
 
@@ -84,11 +85,11 @@ export interface RedirectCheck {
  * does, in a sentence, for the form.
  */
 export const TYPES: Record<RedirectStatus, { name: string; short: string; say: string }> = {
-	301: { name: 'Permanent', short: 'Permanent', say: 'The new address replaces the old one for good. Search engines move the old address\'s standing to it, and browsers may remember the move.' },
-	302: { name: 'Temporary', short: 'Temporary', say: 'For a while. Search engines keep the old address, and nothing is remembered.' },
-	303: { name: 'See Other', short: 'See Other', say: 'For a form or a program, sending it to another address to read the result.' },
-	307: { name: 'Temporary, Same Method', short: 'Temporary', say: 'Temporary, and a form sent here is sent on as it was. For programs more than people.' },
-	308: { name: 'Permanent, Same Method', short: 'Permanent', say: 'Permanent, and a form sent here is sent on as it was. For programs more than people.' }
+	301: { name: t('redirects.types.permanent', 'Permanent'), short: t('redirects.types.permanent_short', 'Permanent'), say: t('redirects.types.permanent_say', 'The new address replaces the old one for good. Search engines move the old address\'s standing to it, and browsers may remember the move.') },
+	302: { name: t('redirects.types.temporary', 'Temporary'), short: t('redirects.types.temporary_short', 'Temporary'), say: t('redirects.types.temporary_say', 'For a while. Search engines keep the old address, and nothing is remembered.') },
+	303: { name: t('redirects.types.see_other', 'See Other'), short: t('redirects.types.see_other_short', 'See Other'), say: t('redirects.types.see_other_say', 'For a form or a program, sending it to another address to read the result.') },
+	307: { name: t('redirects.types.temporary_same_method', 'Temporary, Same Method'), short: t('redirects.types.temporary_same_method_short', 'Temporary'), say: t('redirects.types.temporary_same_method_say', 'Temporary, and a form sent here is sent on as it was. For programs more than people.') },
+	308: { name: t('redirects.types.permanent_same_method', 'Permanent, Same Method'), short: t('redirects.types.permanent_same_method_short', 'Permanent'), say: t('redirects.types.permanent_same_method_say', 'Permanent, and a form sent here is sent on as it was. For programs more than people.') }
 };
 
 export const isPermanent = (status: number): boolean => status === 301 || status === 308;
@@ -121,18 +122,3 @@ export function restoreRedirects(rows: StoredRedirect[], remove: string[] = []):
 	return request('POST', '/redirects/restore', { rows, remove });
 }
 
-/**
- * What was done to add a row, for "{verb} by {account}".
- */
-export function addedVerb(row: RedirectRow): string {
-	switch (row.via) {
-		case 'rename':
-			return 'Renamed';
-		case 'move':
-			return 'Moved';
-		case 'import':
-			return 'Imported';
-		default:
-			return 'Added';
-	}
-}

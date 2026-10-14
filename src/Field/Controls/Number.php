@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\NumberField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A number typed into a box.
@@ -36,18 +38,18 @@ final class Number extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Number';
+		return $messages->t('field.number.label', 'Number');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'A number typed into a box.';
+		return $messages->t('field.number.description', 'A number typed into a box.');
 	}
 
 	/**

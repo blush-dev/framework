@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Job;
 
+use Blush\Translation\Text;
+
 /**
  * What one run of a job came to (D-621): it's done, it failed in a way
  * trying again won't fix, or there's more, a chunk at a time, since no
@@ -22,17 +24,22 @@ namespace Blush\Job;
  *
  * A failure that trying again may fix (a timeout, a service that's down)
  * is thrown instead, and the job is retried.
+ *
+ * Its message and details are kept with the job and shown later, so
+ * they're best written with `t()` (D-836): a `Text` is stored as its
+ * message and shown in the reader's language. Plain text is shown as it
+ * is.
  */
 final readonly class JobResult
 {
 	/**
-	 * @param list<string>         $details
+	 * @param list<string|Text>    $details
 	 * @param array<string, mixed> $data
 	 * @param array<string, mixed> $result
 	 */
 	private function __construct(
 		public JobStatus $status,
-		public string $message,
+		public string|Text $message,
 		public array $details = [],
 		public array $data = [],
 		public ?int $progress = null,
@@ -44,10 +51,10 @@ final readonly class JobResult
 	 * message, and `$result` is plain data for whoever follows the job
 	 * (the admin), such as what it changed.
 	 *
-	 * @param list<string>         $details
+	 * @param list<string|Text>    $details
 	 * @param array<string, mixed> $result
 	 */
-	public static function done(string $message = '', array $details = [], array $result = []): self
+	public static function done(string|Text $message = '', array $details = [], array $result = []): self
 	{
 		return new self(JobStatus::Done, $message, $details, progress: 100, result: $result);
 	}
@@ -56,10 +63,10 @@ final readonly class JobResult
 	 * The job ran but didn't work, and running it again as it is won't
 	 * help, so it isn't retried.
 	 *
-	 * @param list<string>         $details
+	 * @param list<string|Text>    $details
 	 * @param array<string, mixed> $result
 	 */
-	public static function failed(string $message, array $details = [], array $result = []): self
+	public static function failed(string|Text $message, array $details = [], array $result = []): self
 	{
 		return new self(JobStatus::Failed, $message, $details, result: $result);
 	}
@@ -70,7 +77,7 @@ final readonly class JobResult
 	 *
 	 * @param array<string, mixed> $data
 	 */
-	public static function more(array $data, ?int $progress = null, string $message = ''): self
+	public static function more(array $data, ?int $progress = null, string|Text $message = ''): self
 	{
 		return new self(JobStatus::Queued, $message, data: $data, progress: $progress === null ? null : max(0, min(99, $progress)));
 	}

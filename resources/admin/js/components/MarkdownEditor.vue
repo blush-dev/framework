@@ -1085,7 +1085,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 				:class="{ 'is-above': suggestAt.above }"
 				:style="{ left: `${suggestAt.left}px`, top: `${suggestAt.top}px` }"
 				role="listbox"
-				aria-label="Profiles to mention"
+				:aria-label="t('markdown_editor.people', 'Profiles to mention')"
 			>
 				<li
 					v-for="(person, index) in suggestions"
@@ -1101,7 +1101,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 					<span class="md__person-name">{{ person.title }}</span>
 					<span class="md__person-slug">@{{ person.slug }}</span>
 				</li>
-				<li v-if="suggestions.length === 0" class="md__people-note" role="presentation">{{ searching ? 'Finding profiles…' : 'No profile matches' }}</li>
+				<li v-if="suggestions.length === 0" class="md__people-note" role="presentation">{{ searching ? t('markdown_editor.finding', 'Finding profiles…') : t('markdown_editor.no_match', 'No profile matches') }}</li>
 			</ul>
 		</div>
 	</div>

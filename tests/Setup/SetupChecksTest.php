@@ -42,7 +42,7 @@ final class SetupChecksTest extends TestCase
 	 */
 	private function find(array $results, string $label): ?CheckResult
 	{
-		return array_find($results, static fn (CheckResult $result): bool => $result->label === $label);
+		return array_find($results, static fn (CheckResult $result): bool => (string) $result->label === $label);
 	}
 
 	public function testMissingStorageFoldersPassWhenTheyCanBeCreated(): void
@@ -51,14 +51,14 @@ final class SetupChecksTest extends TestCase
 
 		$this->assertCount(count(SetupChecks::STORAGE), $results);
 		$this->assertSame([], SetupChecks::failures($results));
-		$this->assertSame('Created when it\'s needed.', $this->find($results, 'storage/cache/')?->message);
+		$this->assertSame('Created when it\'s needed.', (string) ($this->find($results, 'storage/cache/')?->message));
 	}
 
 	public function testExistingWritableStoragePasses(): void
 	{
 		mkdir($this->temporaryDirectory() . '/storage/logs', 0775, true);
 
-		$this->assertSame('Writable.', $this->find($this->checks()->storage(), 'storage/logs/')?->message);
+		$this->assertSame('Writable.', (string) ($this->find($this->checks()->storage(), 'storage/logs/')?->message));
 	}
 
 	public function testAFileInPlaceOfStorageFails(): void
@@ -67,8 +67,8 @@ final class SetupChecksTest extends TestCase
 
 		$failures = SetupChecks::failures($this->checks()->storage());
 
-		$this->assertSame('storage/', $failures[0]->label ?? null);
-		$this->assertSame('This is a file, not a folder.', $failures[0]->message);
+		$this->assertSame('storage/', (string) ($failures[0]->label ?? ''));
+		$this->assertSame('This is a file, not a folder.', (string) $failures[0]->message);
 		// Folders under it can't be created either.
 		$this->assertGreaterThan(1, count($failures));
 	}
@@ -87,7 +87,7 @@ final class SetupChecksTest extends TestCase
 			$result = $this->find($this->checks()->storage(), 'storage/');
 
 			$this->assertSame(CheckStatus::Failure, $result?->status);
-			$this->assertStringContainsString('init', $result->hint);
+			$this->assertStringContainsString('init', (string) $result->hint);
 			$this->assertSame(CheckStatus::Failure, $this->find($this->checks()->storage(), 'storage/cache/')?->status);
 		} finally {
 			chmod($storage, 0775);
@@ -98,8 +98,8 @@ final class SetupChecksTest extends TestCase
 	{
 		$files = $this->checks()->driver();
 
-		$this->assertSame('Storage', $files[0]->label);
-		$this->assertSame('Files.', $files[0]->message);
+		$this->assertSame('Storage', (string) $files[0]->label);
+		$this->assertSame('Files.', (string) $files[0]->message);
 
 		if (! \Blush\Storage\Sql\SqliteConnection::available()) {
 			return;
@@ -107,7 +107,7 @@ final class SetupChecksTest extends TestCase
 
 		$sqlite = new SetupChecks(Paths::fromRoot($this->temporaryDirectory()), new \Blush\Storage\StorageConfig('sqlite'))->driver();
 
-		$this->assertSame('SQLite, in storage/database/site.sqlite.', $sqlite[0]->message);
+		$this->assertSame('SQLite, in storage/database/site.sqlite.', (string) $sqlite[0]->message);
 		$this->assertFalse($sqlite[1]->isFailure(), 'Its folder can be written to.');
 	}
 
@@ -124,7 +124,7 @@ final class SetupChecksTest extends TestCase
 		$results = $this->checks()->site(new AppConfig(environment: Environment::Development, debug: true));
 
 		$this->assertSame(CheckStatus::Warning, $this->find($results, '.env')?->status);
-		$this->assertSame('development, with debugging on', $this->find($results, 'Environment')?->message);
+		$this->assertSame('development, with debugging on', (string) ($this->find($results, 'Environment')?->message));
 		$this->assertNull($this->find($results, 'APP_DEBUG'));
 		$this->assertNull($this->find($results, 'APP_URL'));
 		$this->assertSame(CheckStatus::Failure, $this->find($results, 'public/index.php')?->status);

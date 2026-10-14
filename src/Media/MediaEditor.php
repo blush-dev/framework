@@ -35,6 +35,8 @@ use Blush\Field\InvalidField;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Support\Uuid;
 use Blush\Support\UrlPath;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The one write path for the media library (D-756): uploads and changes
@@ -70,7 +72,8 @@ final readonly class MediaEditor
 		private MediaArtwork $artwork,
 		private AppConfig $app,
 		private ActivityLog $activity,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
+		private Messages $messages
 	) {}
 
 	/**
@@ -97,13 +100,13 @@ final readonly class MediaEditor
 		$account = $actor->account;
 
 		if (! array_any(MediaKind::cases(), fn (MediaKind $kind): bool => $this->permissions->mayUpload($account, $kind))) {
-			throw EditRefused::forbidden('You aren\'t allowed to upload media.');
+			throw EditRefused::forbidden($this->messages->t('media.media_editor.no_uploads', 'You aren\'t allowed to upload media.'));
 		}
 
 		$uploads = $this->config->uploads;
 
 		if (! $uploads->enabled) {
-			throw EditRefused::forbidden('Uploads are turned off on the Media settings screen.');
+			throw EditRefused::forbidden($this->messages->t('media.media_editor.uploads_off', 'Uploads are turned off on the Media settings screen.'));
 		}
 
 		$name      = self::safeName($name);
@@ -112,29 +115,29 @@ final readonly class MediaEditor
 
 		if ($mime !== null && MediaUploads::refuses($mime)) {
 			throw EditRefused::unprocessable(match ($mime) {
-				'image/svg+xml' => sprintf('%s can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', $name),
-				default         => sprintf('%s can\'t be uploaded: files of this type can carry script.', $name)
+				'image/svg+xml' => $this->messages->t('media.media_editor.svg', '{name} can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', name: $name),
+				default         => $this->messages->t('media.media_editor.script', '{name} can\'t be uploaded: files of this type can carry script.', name: $name)
 			});
 		}
 
 		if ($mime === null || ! $this->config->allows($mime)) {
-			throw EditRefused::unprocessable(sprintf('%s isn\'t a type the library takes: %s.', $name, implode(', ', $this->extensions())));
+			throw EditRefused::unprocessable($this->messages->t('media.media_editor.type_refused', '{name} isn\'t a type the library takes: {extensions}.', name: $name, extensions: implode(', ', $this->extensions())));
 		}
 
 		$kind = MediaKind::fromMime($mime);
 
 		if (! $this->permissions->mayUpload($account, $kind)) {
-			throw EditRefused::forbidden(sprintf('%s can\'t be uploaded: you aren\'t allowed to upload %s.', $name, mb_strtolower($kind->label())));
+			throw EditRefused::forbidden($this->messages->t('media.media_editor.kind_forbidden', '{name} can\'t be uploaded: you aren\'t allowed to upload {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}}.', name: $name, kind: $kind->value));
 		}
 
 		if (! $uploads->allows($kind)) {
-			throw EditRefused::unprocessable(sprintf('%s can\'t be uploaded: uploads of %s are turned off on the Media settings screen.', $name, mb_strtolower($kind->label())));
+			throw EditRefused::unprocessable($this->messages->t('media.media_editor.kind_off', '{name} can\'t be uploaded: uploads of {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}} are turned off on the Media settings screen.', name: $name, kind: $kind->value));
 		}
 
 		$most = $uploads->maxBytes($kind);
 
 		if ($most !== null && ($size ?? 0) > $most) {
-			throw EditRefused::tooLarge(sprintf('%s is larger than %s may be (up to %s).', $name, mb_strtolower($kind->label()), self::size($most)));
+			throw EditRefused::tooLarge($this->messages->t('media.media_editor.too_large', '{name} is larger than {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}} may be (up to {size}).', name: $name, kind: $kind->value, size: $this->size($most)));
 		}
 
 		$folder = rtrim($this->paths->media . '/' . $uploads->folder($kind, $this->clock->now()), '/');
@@ -142,7 +145,7 @@ final readonly class MediaEditor
 
 		try {
 			if (! is_dir($folder) && ! @mkdir($folder, 0775, true) && ! is_dir($folder)) {
-				throw EditRefused::failed('The media folder can\'t be written to.');
+				throw EditRefused::failed($this->messages->t('media.media_editor.folder_unwritable', 'The media folder can\'t be written to.'));
 			}
 
 			$place($hidden);
@@ -151,7 +154,7 @@ final readonly class MediaEditor
 		} catch (Throwable $e) {
 			@unlink($hidden);
 
-			throw EditRefused::failed('The file couldn\'t be saved to the media folder.', $e);
+			throw EditRefused::failed($this->messages->t('media.media_editor.not_saved', 'The file couldn\'t be saved to the media folder.'), $e);
 		}
 
 		$actual = MediaResolver::mimeOf($hidden);
@@ -159,7 +162,7 @@ final readonly class MediaEditor
 		if (MediaUploads::refuses($actual) || ! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
 			@unlink($hidden);
 
-			throw EditRefused::unprocessable(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name));
+			throw EditRefused::unprocessable($this->messages->t('media.media_editor.mismatch', '{name} isn\'t what its name says it is, or isn\'t a type the library takes.', name: $name));
 		}
 
 		$target = $this->metadata->freePath($folder, $name);
@@ -167,7 +170,7 @@ final readonly class MediaEditor
 		if (! @rename($hidden, $target)) {
 			@unlink($hidden);
 
-			throw EditRefused::failed('The file couldn\'t be saved to the media folder.');
+			throw EditRefused::failed($this->messages->t('media.media_editor.not_saved', 'The file couldn\'t be saved to the media folder.'));
 		}
 
 		$relative  = substr($target, strlen($this->paths->media) + 1);
@@ -177,7 +180,7 @@ final readonly class MediaEditor
 		if ($file === null) {
 			@unlink($target);
 
-			throw EditRefused::unprocessable(sprintf('%s couldn\'t be added to the library.', $name));
+			throw EditRefused::unprocessable($this->messages->t('media.media_editor.not_added', '{name} couldn\'t be added to the library.', name: $name));
 		}
 
 		// Who uploaded it decides who may change it (D-407), when orders
@@ -215,7 +218,7 @@ final readonly class MediaEditor
 		}
 
 		if ($id !== null) {
-			$this->log($actor, ActivityAction::MediaUpload, $id, basename($relative), sprintf('Uploaded %s', basename($relative)));
+			$this->log($actor, ActivityAction::MediaUpload, $id, basename($relative), $this->messages->t('media.media_editor.summary.uploaded', 'Uploaded {name}', name: basename($relative)));
 		}
 
 		return new UploadedMedia($file, $reference, $relative, $id);
@@ -250,26 +253,26 @@ final readonly class MediaEditor
 		$file     = $this->libraryFile($relative);
 
 		if ($file === null) {
-			throw EditRefused::notFound(sprintf('There\'s no "%s" in the media library.', $relative));
+			throw EditRefused::notFound($this->messages->t('media.media_editor.not_found', 'There\'s no "{file}" in the media library.', file: $relative));
 		}
 
 		if (! $this->permissions->mayChangeMedia($actor->account, Capability::MediaEdit, $this->describedBy($file, $relative)->owner)) {
-			throw EditRefused::forbidden('You aren\'t allowed to change this file\'s details.');
+			throw EditRefused::forbidden($this->messages->t('media.media_editor.no_change', 'You aren\'t allowed to change this file\'s details.'));
 		}
 
 		$original = $this->originalOf($relative);
 
 		if ($original !== null) {
-			throw EditRefused::unprocessable(sprintf('%s is a size of %s, whose details it goes by; change them there.', basename($relative), $original));
+			throw EditRefused::unprocessable($this->messages->t('media.media_editor.size_of', '{file} is a size of {original}, whose details it goes by; change them there.', file: basename($relative), original: $original));
 		}
 
 		$schema  = $this->schemas->forFile($file);
-		$context = new FieldContext($this->app->timezone());
+		$context = new FieldContext($this->app->timezone(), $this->messages);
 		$values  = [];
 
 		foreach ([...array_map(strval(...), array_keys($set)), ...$remove] as $key) {
 			if ($schema->field($key) === null) {
-				throw EditRefused::unprocessable(sprintf('"%s" isn\'t a field of %s files.', $key, MediaKind::fromMime($file->mime)->value), $key);
+				throw EditRefused::unprocessable($this->messages->t('media.media_editor.not_a_field', '"{field}" isn\'t a field of {kind, select, image {image} video {video} audio {audio} document {document} other {file}} files.', field: $key, kind: MediaKind::fromMime($file->mime)->value), $key);
 			}
 		}
 
@@ -283,7 +286,7 @@ final readonly class MediaEditor
 			try {
 				$values[$field->name] = self::stored($field, $value, $context);
 			} catch (InvalidField $error) {
-				throw EditRefused::unprocessable(sprintf('%s %s', $field->label !== '' ? $field->label : ucfirst($field->name), $error->getMessage()), $field->name);
+				throw EditRefused::unprocessable($this->messages->t('media.media_editor.invalid_field', '{field} {problem}', field: $field->label !== '' ? $field->label : ucfirst($field->name), problem: $error->text, context: 'A field\'s name, then why its value doesn\'t fit, such as "Date must be a date."'), $field->name);
 			}
 		}
 
@@ -306,7 +309,7 @@ final readonly class MediaEditor
 		if ($id !== '' && $before !== []) {
 			$changed = array_keys($before);
 
-			$this->log($actor, ActivityAction::MediaUpdate, $id, basename($relative), sprintf('Changed %s on %s', self::fieldNames($changed), basename($relative)), ['key' => $relative, 'values' => $before]);
+			$this->log($actor, ActivityAction::MediaUpdate, $id, basename($relative), $this->messages->t('media.media_editor.summary.changed', 'Changed {fields} on {name}', fields: self::fieldNames($changed), name: basename($relative)), ['key' => $relative, 'values' => $before]);
 		}
 
 		return $file;
@@ -325,7 +328,9 @@ final readonly class MediaEditor
 		$values = is_array($before['values'] ?? null) ? $before['values'] : null;
 
 		if (! $activity->canUndo() || $key === null || $values === null) {
-			throw EditRefused::unprocessable($activity->undone !== null ? 'That change was already undone.' : 'That change can\'t be undone.');
+			throw EditRefused::unprocessable($activity->undone !== null
+				? $this->messages->t('media.media_editor.already_undone', 'That change was already undone.')
+				: $this->messages->t('media.media_editor.cannot_undo', 'That change can\'t be undone.'));
 		}
 
 		$set    = [];
@@ -411,11 +416,13 @@ final readonly class MediaEditor
 	}
 
 	/**
-	 * Says a size in bytes as people read it.
+	 * Says a size in bytes as people read it: "2 MB", "1.5 MB", "300 KB".
 	 */
-	public static function size(int $bytes): string
+	public function size(int $bytes): Text
 	{
-		return $bytes >= 1024 ** 2 ? round($bytes / 1024 ** 2, 1) . ' MB' : max(1, (int) round($bytes / 1024)) . ' KB';
+		return $bytes >= 1024 ** 2
+			? $this->messages->t('media.media_editor.megabytes', '{size, number} MB', size: round($bytes / 1024 ** 2, 1))
+			: $this->messages->t('media.media_editor.kilobytes', '{size, number} KB', size: max(1, (int) round($bytes / 1024)));
 	}
 
 	/**
@@ -436,7 +443,7 @@ final readonly class MediaEditor
 	 *
 	 * @param ?array<string, mixed> $before
 	 */
-	private function log(Actor $actor, ActivityAction $action, string $id, string $title, string $summary, ?array $before = null): void
+	private function log(Actor $actor, ActivityAction $action, string $id, string $title, Text $summary, ?array $before = null): void
 	{
 		try {
 			$this->activity->record($actor, $action, $id, $title, $summary, $before);

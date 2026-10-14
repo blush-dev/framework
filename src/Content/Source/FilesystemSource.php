@@ -23,6 +23,7 @@ use Override;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
 
 /**
  * Reads content documents from `user/content` (the default source). A
@@ -43,6 +44,7 @@ final readonly class FilesystemSource implements ContentSource
 
 	public function __construct(
 		private Paths $paths,
+		private Messages $messages,
 		private Filesystem $filesystem = new Filesystem()
 	) {
 		$this->root = $paths->content;
@@ -64,7 +66,7 @@ final readonly class FilesystemSource implements ContentSource
 				static fn (SplFileInfo $file): bool => ! str_starts_with($file->getFilename(), '.')
 			));
 		} catch (UnexpectedValueException $e) {
-			throw new UnreadableSource(sprintf('Unable to read the content folder "%s".', $this->root), previous: $e);
+			throw new UnreadableSource((string) $this->messages->t('content.filesystem_source.unreadable_folder', 'Unable to read the content folder "{path}".', path: $this->root), previous: $e);
 		}
 
 		$files = [];
@@ -111,7 +113,7 @@ final readonly class FilesystemSource implements ContentSource
 		$contents = is_file($absolute = $this->absolute($path)) ? @file_get_contents($absolute) : false;
 
 		return $contents === false
-			? throw new UnreadableSource(sprintf('Unable to read content file "%s".', $path))
+			? throw new UnreadableSource((string) $this->messages->t('content.filesystem_source.unreadable_file', 'Unable to read content file "{path}".', path: $path))
 			: $contents;
 	}
 

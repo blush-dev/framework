@@ -28,7 +28,7 @@ const id = useId();
 </script>
 
 <template>
-	<div class="embed-chips" role="group" aria-label="Embeds">
+	<div class="embed-chips" role="group" :aria-label="t('embed_chips.label', 'Embeds')">
 		<button
 			v-for="provider in providers"
 			:key="provider.name"
@@ -46,7 +46,7 @@ const id = useId();
 			</span>
 			{{ provider.label }}
 			<AdminIcon :name="on.includes(provider.name) ? 'check' : 'minus'" />
-			<span :id="`${id}-${provider.name}`" class="visually-hidden">Embeds links to {{ series(provider.hosts) }}.</span>
+			<span :id="`${id}-${provider.name}`" class="visually-hidden">{{ t('embed_chips.embeds_links', 'Embeds links to {hosts}.', { hosts: series(provider.hosts) }) }}</span>
 		</button>
 	</div>
 </template>

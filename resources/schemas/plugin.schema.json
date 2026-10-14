@@ -143,6 +143,21 @@
 				}
 			]
 		},
+		"catalogs": {
+			"type": "object",
+			"description": "Which of the plugin's folders hold scripts that write to which named catalog (lang/{catalog}/{locale}.json), such as {\"site\": [\"resources/site\"]}; lang:extract reads their t() calls. Without it, each folder under resources/ is a catalog of its name.",
+			"propertyNames": {
+				"pattern": "^[a-z][a-z0-9_-]*$"
+			},
+			"additionalProperties": {
+				"type": "array",
+				"minItems": 1,
+				"items": {
+					"type": "string",
+					"pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$"
+				}
+			}
+		},
 		"homepage": {
 			"type": "string",
 			"format": "uri",

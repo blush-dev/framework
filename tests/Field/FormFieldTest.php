@@ -28,6 +28,7 @@ use Blush\Field\Fields\TextField;
 use Blush\Field\FormField;
 use Blush\Field\Schema;
 use Blush\Tests\Fixtures\Field\RatingField;
+use Blush\Translation\Messages;
 
 #[CoversClass(FormField::class)]
 #[CoversClass(FieldControls::class)]
@@ -36,7 +37,7 @@ final class FormFieldTest extends TestCase
 {
 	public function testDrawsCoresEntryFieldsWithTheirControls(): void
 	{
-		$forms = array_map(static fn (FormField $field): array => $field->toArray(), FormField::all(EntryFields::schema(), EntryFields::controls(), new ControlDefaults()));
+		$forms = array_map(static fn (FormField $field): array => $field->toArray(), FormField::all(EntryFields::schema(new Messages()), EntryFields::controls(), new ControlDefaults()));
 
 		$this->assertSame(
 			['text', 'text', 'text', 'date', 'date', 'select', 'date', 'select', 'markdown', 'image', 'text', 'text', 'text', 'reference', 'group'],

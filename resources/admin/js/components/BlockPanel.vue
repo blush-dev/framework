@@ -22,8 +22,10 @@
 
 import { computed, nextTick, ref, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
+import MessageText from './MessageText.vue';
 import { blockIcon, groupOf, groupsOf, matches, rank, type BlockDescription } from '../blocks';
 import { gridColumns, gridMove, numbered, type Section } from '../grid';
+import { t } from '../messages';
 
 const props = defineProps<{
 	blocks: BlockDescription[];
@@ -52,7 +54,7 @@ const sections = computed<Section<BlockDescription>[]>(() => {
 	if (query.value.trim() !== '') {
 		const results = rank(props.blocks.filter((block) => matches(block, query.value)), query.value);
 
-		return numbered([{ heading: results.length === 1 ? '1 match' : `${results.length} matches`, items: results }]);
+		return numbered([{ heading: t('block_panel.matches', '{count, plural, one {# match} other {# matches}}', { count: results.length }), items: results }]);
 	}
 
 	return numbered(groups.value.map((item) => ({
@@ -124,12 +126,12 @@ defineExpose({ move, choose, focus });
 <template>
 	<div class="inserter">
 		<div class="panel__header">
-			<h2 id="block-panel-heading">Insert</h2>
-			<span class="inserter__count">{{ query.trim() === '' ? blocks.length : `${shown} of ${blocks.length}` }}</span>
+			<h2 id="block-panel-heading">{{ t('block_panel.heading', 'Insert') }}</h2>
+			<span class="inserter__count">{{ query.trim() === '' ? blocks.length : t('block_panel.shown', '{shown} of {total}', { shown, total: blocks.length }) }}</span>
 			<div class="panel__actions">
 				<button type="button" class="button button--ghost button--small button--icon" @click="emit('close')">
 					<AdminIcon name="x" />
-					<span class="visually-hidden">Close the blocks</span>
+					<span class="visually-hidden">{{ t('block_panel.close', 'Close the blocks') }}</span>
 				</button>
 			</div>
 		</div>
@@ -140,11 +142,11 @@ defineExpose({ move, choose, focus });
 				ref="input"
 				v-model="query"
 				type="text"
-				placeholder="Search blocks…"
+				:placeholder="t('block_panel.search_placeholder', 'Search blocks…')"
 				autocomplete="off"
 				spellcheck="false"
 				role="combobox"
-				aria-label="Search blocks"
+				:aria-label="t('block_panel.search_label', 'Search blocks')"
 				aria-expanded="true"
 				aria-controls="block-panel-grid"
 				:aria-activedescendant="current ? `block-tile-${active}` : undefined"
@@ -156,9 +158,9 @@ defineExpose({ move, choose, focus });
 		<p v-if="note" class="inserter__note">{{ note }}</p>
 
 		<div id="block-panel-grid" ref="grid" class="inserter__grid" role="listbox" aria-labelledby="block-panel-heading">
-			<p v-if="failed" class="inserter__empty">The blocks couldn't be loaded.</p>
-			<p v-else-if="!blocks.length" class="inserter__empty">No blocks are registered.</p>
-			<p v-else-if="!tiles.length" class="inserter__empty">Nothing matches <strong>{{ query }}</strong>.<br>Try a broader word.</p>
+			<p v-if="failed" class="inserter__empty">{{ t('block_panel.failed', "The blocks couldn't be loaded.") }}</p>
+			<p v-else-if="!blocks.length" class="inserter__empty">{{ t('block_panel.none', 'No blocks are registered.') }}</p>
+			<p v-else-if="!tiles.length" class="inserter__empty"><MessageText :text="t('block_panel.no_match', 'Nothing matches {query}.')"><template #query><strong>{{ query }}</strong></template></MessageText><br>{{ t('block_panel.no_match_hint', 'Try a broader word.') }}</p>
 			<div v-for="section in sections" :key="section.heading" role="group" :aria-label="section.heading">
 				<p class="eyebrow inserter__group" aria-hidden="true">{{ section.heading }}</p>
 				<div class="inserter__tiles">
@@ -189,10 +191,10 @@ defineExpose({ move, choose, focus });
 				</p>
 				<p class="inserter__preview-text">{{ current.description || current.name }}</p>
 			</template>
-			<p v-else class="inserter__preview-text">Search, or scroll the {{ blocks.length }} blocks by category.</p>
+			<p v-else class="inserter__preview-text">{{ t('block_panel.preview_empty', 'Search, or scroll the {count} blocks by category.', { count: blocks.length }) }}</p>
 			<p class="inserter__preview-hint">
-				<template v-if="slash">Typing after <kbd>/</kbd></template>
-				<template v-else>Type <kbd>/</kbd> on an empty line to open this at the cursor</template>
+				<template v-if="slash"><MessageText :text="t('block_panel.hint_slash', 'Typing after {key}')"><template #key><kbd>/</kbd></template></MessageText></template>
+				<template v-else><MessageText :text="t('block_panel.hint', 'Type {key} on an empty line to open this at the cursor')"><template #key><kbd>/</kbd></template></MessageText></template>
 			</p>
 		</div>
 	</div>

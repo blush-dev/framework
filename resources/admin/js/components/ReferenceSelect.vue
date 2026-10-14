@@ -15,7 +15,7 @@
  */
 
 import { computed } from 'vue';
-import { capitalized, withArticle } from '../format';
+import { t } from '../messages';
 import { initials } from '../people';
 import { CAP, moreLine, slugOf, type ReferenceItem } from '../references';
 import { usePicker, type PickerProps } from '../picker';
@@ -51,7 +51,7 @@ function counted(item: ReferenceItem): string | null {
 		return null;
 	}
 
-	return item.taken >= max && item.slug !== current.value ? `Full · ${item.taken} of ${max}` : `${item.taken} of ${max}`;
+	return item.taken >= max && item.slug !== current.value ? t('reference_select.full', 'Full · {taken} of {max}', { taken: item.taken, max }) : t('reference_select.taken', '{taken} of {max}', { taken: item.taken, max });
 }
 
 function option(item: ReferenceItem, group: string | null = null, depth = 0): SelectOption {
@@ -70,7 +70,7 @@ function option(item: ReferenceItem, group: string | null = null, depth = 0): Se
 const options = computed<SelectOption[]>(() => {
 	const fallback = props.inherited !== undefined && props.inherited.rule === 'fallback' && current.value === '' ? itemOf(inheritedShown.value[0] ?? '') : null;
 	const none: SelectOption = fallback === null || inheritedShown.value.length === 0
-		? { value: '', label: 'None' }
+		? { value: '', label: t('reference_select.none', 'None') }
 		: { value: '', label: fallback.title, hint: props.inherited?.language ?? null };
 	const list: SelectOption[] = [];
 
@@ -83,12 +83,12 @@ const options = computed<SelectOption[]>(() => {
 			list.push(option(itemOf(current.value)));
 		}
 
-		list.push(...before.value.filter((item) => item.slug !== current.value).map((item) => option(item, 'Recently Used')));
+		list.push(...before.value.filter((item) => item.slug !== current.value).map((item) => option(item, t('reference_select.recently_used', 'Recently Used'))));
 	}
 
 	// A value that names nothing, as written.
 	if (current.value !== '' && !list.some((each) => each.value === current.value)) {
-		list.push({ value: current.value, label: isMissing(current.value) ? slugs.value[0] ?? '' : itemOf(current.value).title, hint: isMissing(current.value) ? 'not found' : null });
+		list.push({ value: current.value, label: isMissing(current.value) ? slugs.value[0] ?? '' : itemOf(current.value).title, hint: isMissing(current.value) ? t('reference_select.not_found', 'not found') : null });
 	}
 
 	// A value that must stay can be changed, not cleared; a search lists
@@ -100,11 +100,11 @@ const searchable = computed(() => whole.value === null || whole.value.length > 1
 
 const note = computed(() => {
 	if (excluded.value > 0) {
-		return `This ${names.value.item} and the ${excluded.value} ${excluded.value === 1 ? names.value.item : names.value.items} inside it aren't listed. ${capitalized(withArticle(names.value.item))} can't sit inside itself.`;
+		return t('reference_select.excluded', 'This {item} and the {count, plural, one {# {item}} other {# {items}}} inside it aren\'t listed. No {item} can sit inside itself.', { item: names.value.item, items: names.value.items, count: excluded.value });
 	}
 
 	if (whole.value === null) {
-		return query.value.trim() === '' ? `${total.value.toLocaleString()} ${names.value.items}. Type to find the rest.` : (matched.value > 0 ? moreLine(results.value.length, matched.value) : '');
+		return query.value.trim() === '' ? t('reference_select.total', '{total, plural, one {# {item}} other {# {items}}}. Type to find the rest.', { total: total.value, item: names.value.item, items: names.value.items }) : (matched.value > 0 ? moreLine(results.value.length, matched.value) : '');
 	}
 
 	return '';
@@ -132,7 +132,7 @@ function pick(value: string): void {
 			@update:model-value="pick($event === '' ? '' : slugOf($event))"
 			@search="query = $event"
 		/>
-		<p v-if="current === '' && inheritedShown.length && inherited" class="field__help">Shown from {{ inherited.title }} ({{ inherited.language }}) until this translation sets its own.</p>
+		<p v-if="current === '' && inheritedShown.length && inherited" class="field__help">{{ t('reference_select.inherited', 'Shown from {title} ({language}) until this translation sets its own.', { title: inherited.title, language: inherited.language }) }}</p>
 		<ReferenceMissing :missing="missing" :noun="names.item" @replace="picker.replace" />
 		<p v-if="error" class="field__error">{{ error }}</p>
 	</div>

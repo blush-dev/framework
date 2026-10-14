@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Theme;
 
 use Blush\Extension\Requirement;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The installed themes, as `ThemeDiscovery` (or the theme cache) found
@@ -164,21 +166,17 @@ final readonly class Themes
 	 * @throws ThemeException When a theme in the chain is missing or
 	 *         broken, or the chain loops.
 	 */
-	public function chain(string $name): ThemeChain
+	public function chain(string $name, Messages $messages = new Messages()): ThemeChain
 	{
 		$themes = [];
 		$next   = $name;
 
 		while ($next !== null) {
 			if (isset($themes[$next])) {
-				throw new ThemeException(sprintf('The "%s" theme\'s parents loop back to "%s".', $name, $next));
+				throw new ThemeException((string) $messages->t('theme.themes.loop', 'The "{theme}" theme\'s parents loop back to "{parent}".', theme: $name, parent: $next));
 			}
 
-			$theme = $this->find($next) ?? throw new ThemeException(
-				$next === $name
-					? sprintf('The "%s" theme is not installed%s.', $name, $this->brokenNote($next))
-					: sprintf('The "%s" theme\'s ancestor "%s" is not installed%s.', $name, $next, $this->brokenNote($next))
-			);
+			$theme = $this->find($next) ?? throw new ThemeException((string) $this->missing($name, $next, $messages));
 
 			$themes[$next] = $theme;
 			$next          = $theme->parent;
@@ -188,15 +186,21 @@ final readonly class Themes
 	}
 
 	/**
-	 * Returns a note naming the broken themes whose folder matches a
-	 * theme's name, when one may be the theme meant (its manifest is
-	 * broken, so its name isn't known).
+	 * Returns why a theme in a chain can't be found: it isn't installed,
+	 * naming the broken theme whose folder matches its name, when one may
+	 * be the theme meant (its manifest is broken, so its name isn't known).
 	 */
-	private function brokenNote(string $name): string
+	private function missing(string $theme, string $name, Messages $messages): Text
 	{
-		$short = substr((string) strrchr("/{$name}", '/'), 1);
-		$where = array_find_key($this->invalid, static fn (string $reason, string $where): bool => $where === $name || basename($where) === $short);
+		$short  = substr((string) strrchr("/{$name}", '/'), 1);
+		$where  = array_find_key($this->invalid, static fn (string $reason, string $where): bool => $where === $name || basename($where) === $short);
+		$reason = $where === null ? null : $this->invalid[$where];
 
-		return $where === null ? '' : sprintf(' (%s is broken: %s)', $where, $this->invalid[$where]);
+		return match (true) {
+			$theme === $name && $where === null => $messages->t('theme.themes.not_installed', 'The "{theme}" theme is not installed.', theme: $theme),
+			$theme === $name                    => $messages->t('theme.themes.not_installed_broken', 'The "{theme}" theme is not installed ({where} is broken: {reason}).', theme: $theme, where: $where, reason: $reason),
+			$where === null                     => $messages->t('theme.themes.ancestor_not_installed', 'The "{theme}" theme\'s ancestor "{ancestor}" is not installed.', theme: $theme, ancestor: $name),
+			default                             => $messages->t('theme.themes.ancestor_not_installed_broken', 'The "{theme}" theme\'s ancestor "{ancestor}" is not installed ({where} is broken: {reason}).', theme: $theme, ancestor: $name, where: $where, reason: $reason)
+		};
 	}
 }

@@ -25,6 +25,8 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The activity log (D-758): every change to entries and media, made in
@@ -56,7 +58,8 @@ final readonly class ActivityLog
 
 	public function __construct(
 		private RecordStores|RecordStore $stores,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -69,12 +72,13 @@ final readonly class ActivityLog
 
 	/**
 	 * Records a change, and returns it. A change that undoes another
-	 * (`Actor::$undoes`) marks it undone.
+	 * (`Actor::$undoes`) marks it undone. A summary written with `t()` is
+	 * kept as its message, and shown in the reader's language (D-836).
 	 *
 	 * @param  ?array<string, mixed> $before What it replaced, for Undo.
 	 * @throws ActivityException When it can't be written.
 	 */
-	public function record(Actor $actor, ActivityAction $action, string $subject, string $title, string $summary, ?array $before = null, ?string $revision = null): Activity
+	public function record(Actor $actor, ActivityAction $action, string $subject, string $title, string|Text $summary, ?array $before = null, ?string $revision = null): Activity
 	{
 		$now    = $this->clock->now();
 		$record = Record::create($now);
@@ -115,7 +119,7 @@ final readonly class ActivityLog
 	{
 		$record = $this->read(fn (RecordStore $store): ?Record => Uuid::isValid($id) ? $store->find(self::table(), $id) : null);
 
-		return $record === null ? null : self::activity($record);
+		return $record === null ? null : $this->activity($record);
 	}
 
 	/**
@@ -129,7 +133,7 @@ final readonly class ActivityLog
 		$query = self::query($filter);
 
 		return $this->read(fn (RecordStore $store): array => [
-			array_map(self::activity(...), $store->select(self::table(), $query->orderBy('time', Order::Desc)->orderBy('id', Order::Desc)->paginate($perPage, $page))->records),
+			array_map($this->activity(...), $store->select(self::table(), $query->orderBy('time', Order::Desc)->orderBy('id', Order::Desc)->paginate($perPage, $page))->records),
 			$store->count(self::table(), $query)
 		]);
 	}
@@ -175,7 +179,7 @@ final readonly class ActivityLog
 
 		$old = $this->read(fn (RecordStore $store): array => $store->select(self::table(), new RecordQuery()->where('time', '<', $now - self::KEEP_BEFORE))->records);
 
-		foreach (array_map(self::activity(...), $old) as $activity) {
+		foreach (array_map($this->activity(...), $old) as $activity) {
 			if ($activity->time < $now - self::KEEP) {
 				$this->write(fn (RecordStore $store): null => $store->delete(self::table(), $activity->id));
 				$removed++;
@@ -234,7 +238,7 @@ final readonly class ActivityLog
 		try {
 			return $read($this->store());
 		} catch (RecordException | StorageException $e) {
-			throw new ActivityException(sprintf('The activity log can\'t be read: %s', $e->getMessage()), previous: $e);
+			throw new ActivityException((string) $this->messages->t('activity.activity_log.unreadable', 'The activity log can\'t be read: {problem}', problem: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -249,7 +253,7 @@ final readonly class ActivityLog
 		try {
 			$write($this->store());
 		} catch (RecordException | StorageException $e) {
-			throw new ActivityException(sprintf('The activity log couldn\'t be written: %s', $e->getMessage()), previous: $e);
+			throw new ActivityException((string) $this->messages->t('activity.activity_log.unwritable', 'The activity log couldn\'t be written: {problem}', problem: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -268,8 +272,8 @@ final readonly class ActivityLog
 	 *
 	 * @throws ActivityException When it isn't one.
 	 */
-	private static function activity(Record $record): Activity
+	private function activity(Record $record): Activity
 	{
-		return Activity::fromArray($record->fields, $record->id);
+		return Activity::fromArray($record->fields, $record->id, $this->messages);
 	}
 }

@@ -13,16 +13,29 @@ declare(strict_types=1);
 
 namespace Blush\Console;
 
+use Stringable;
+
 /**
  * One row of `Output::status()`: an outcome, what was checked, what was
- * found, and, when there's something to do about it, a hint.
+ * found, and, when there's something to do about it, a hint. Each may be
+ * a message (`t()`, D-836), printed as it's made.
  */
 final readonly class StatusLine
 {
+	public string $label;
+
+	public string $detail;
+
+	public string $hint;
+
 	public function __construct(
 		public Outcome $outcome,
-		public string $label,
-		public string $detail = '',
-		public string $hint = ''
-	) {}
+		string|Stringable $label,
+		string|Stringable $detail = '',
+		string|Stringable $hint = ''
+	) {
+		$this->label  = (string) $label;
+		$this->detail = (string) $detail;
+		$this->hint   = (string) $hint;
+	}
 }

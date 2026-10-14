@@ -44,6 +44,8 @@ use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 use Blush\Translation\LocaleMap;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The Menus screens' API (from the menus sketch), for accounts with
@@ -112,13 +114,14 @@ final readonly class MenusController
 		private ContentUrls $urls,
 		private RouteTable $routes,
 		private AppConfig $app,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		try {
@@ -131,7 +134,7 @@ final readonly class MenusController
 	public function show(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		try {
@@ -139,7 +142,7 @@ final readonly class MenusController
 			$menu  = $this->menus->menus()[$name] ?? null;
 
 			if ($menu === null) {
-				return self::error(sprintf('There\'s no "%s" menu.', $name), Status::NotFound);
+				return $this->notFound($name);
 			}
 
 			return self::json($this->detail($chain, $menu));
@@ -151,7 +154,7 @@ final readonly class MenusController
 	public function save(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$input     = self::input($request);
@@ -170,7 +173,7 @@ final readonly class MenusController
 		}
 
 		if (preg_match(MenuLoader::NAME, $name) !== 1) {
-			return self::error('A menu\'s name uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.', Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.menus_controller.bad_name', 'A menu\'s name uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.'), Status::UnprocessableContent);
 		}
 
 		$problems = [];
@@ -186,7 +189,7 @@ final readonly class MenusController
 			$current  = $this->menus->assignments($chain);
 
 			if ($was !== $name && isset($this->menus->menus()[$name])) {
-				return self::error(sprintf('There\'s already a menu named "%s". Pick another name.', $name), Status::Conflict);
+				return self::error($this->messages->t('admin.menus_controller.name_taken', 'There\'s already a menu named "{name}". Pick another name.', name: $name), Status::Conflict);
 			}
 
 			$this->loader->save($name, is_string($label) ? trim($label) : $label, $items, $was);
@@ -216,7 +219,7 @@ final readonly class MenusController
 				$this->menus->assignAll($chain, $assign);
 			}
 
-			$menu = $this->menus->menus()[$name] ?? throw new MenuException(sprintf('The menu "%s" wasn\'t saved.', $name));
+			$menu = $this->menus->menus()[$name] ?? throw new MenuException((string) $this->messages->t('admin.menus_controller.not_saved', 'The menu "{name}" wasn\'t saved.', name: $name));
 
 			return self::json($this->detail($chain, $menu));
 		} catch (MenuException | ThemeException $error) {
@@ -227,7 +230,7 @@ final readonly class MenusController
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		try {
@@ -235,7 +238,7 @@ final readonly class MenusController
 			$menu  = $this->menus->menus()[$name] ?? null;
 
 			if ($menu === null) {
-				return self::error(sprintf('There\'s no "%s" menu.', $name), Status::NotFound);
+				return $this->notFound($name);
 			}
 
 			$showing = array_keys(array_filter($this->menus->assignments($chain), static fn (string $menu): bool => $menu === $name));
@@ -258,7 +261,7 @@ final readonly class MenusController
 	public function assign(ServerRequestInterface $request, string $location): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$menu = self::input($request)['menu'] ?? null;
@@ -271,11 +274,11 @@ final readonly class MenusController
 			$chain = $this->themes->active();
 
 			if (! isset($this->menus->locations($chain)[$location])) {
-				return self::error(sprintf('The active theme has no "%s" location.', $location), Status::NotFound);
+				return self::error($this->messages->t('admin.menus_controller.no_location', 'The active theme has no "{location}" location.', location: $location), Status::NotFound);
 			}
 
 			if ($menu !== null && ! isset($this->menus->menus()[$menu])) {
-				return self::error(sprintf('There\'s no "%s" menu.', $menu), Status::NotFound);
+				return $this->notFound($menu);
 			}
 
 			$this->menus->assign($chain, $location, $menu);
@@ -289,7 +292,7 @@ final readonly class MenusController
 	public function links(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return self::error('You aren\'t allowed to edit menus.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$search = $request->getQueryParams()['search'] ?? '';
@@ -412,11 +415,11 @@ final readonly class MenusController
 	private function detail(ThemeChain $chain, MenuRecord $menu): array
 	{
 		$assigned = $this->menus->assignments($chain);
-		$problems = $menu->problems;
+		$problems = array_map(strval(...), $menu->problems);
 		$nodes    = $this->nodes($menu->items, '', $problems);
 
 		if ($menu->label !== null && LocaleMap::text($menu->label, $this->app->locale, $this->app->locale) === null) {
-			$problems[] = '"label" must be text or a map of locales to text.';
+			$problems[] = (string) $this->messages->t('admin.menus_controller.problems.label', '"label" must be text or a map of locales to text.');
 		}
 
 		return [
@@ -488,7 +491,7 @@ final readonly class MenusController
 			$position = ltrim("{$trail}." . ($index + 1), '.');
 
 			if (! is_array($item) || ($item !== [] && array_is_list($item))) {
-				$problems[] = "Item {$position} isn't a map of keys to values.";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.not_map', 'Item {position} isn\'t a map of keys to values.', position: $position);
 				continue;
 			}
 
@@ -497,14 +500,14 @@ final readonly class MenusController
 			unset($item['children']);
 
 			if (! is_array($children) || ! array_is_list($children)) {
-				$problems[] = "Item {$position} has \"children\" that aren't a list.";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.children', 'Item {position} has "children" that aren\'t a list.', position: $position);
 				$children = [];
 			}
 
 			$linkKeys = array_values(array_intersect(array_keys($item), $this->links->keys()));
 
 			if (count($linkKeys) > 1) {
-				$problems[] = sprintf('Item %s has more than one link (%s).', $position, implode(', ', $linkKeys));
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.links', 'Item {position} has more than one link ({keys}).', position: $position, keys: implode(', ', $linkKeys));
 			}
 
 			$nodes[] = [
@@ -530,17 +533,17 @@ final readonly class MenusController
 		$text  = is_scalar($value) ? trim((string) $value) : '';
 		$found = ['kind' => $key, 'value' => $text, 'ref' => null, 'title' => '', 'address' => '', 'state' => 'live', 'message' => null];
 
-		$invalid = $link->validate($value, $item);
+		$invalid = $link->validate($key, $value, $item);
 
 		if ($invalid !== null) {
-			return [...$found, 'state' => 'missing', 'message' => "\"{$key}\" {$invalid}"];
+			return [...$found, 'state' => 'missing', 'message' => $invalid];
 		}
 
 		if ($link instanceof LinksEntry) {
 			$entry = $link->entry($text, $item);
 
 			if ($entry === null) {
-				return [...$found, 'state' => 'missing', 'message' => sprintf('Nothing on the site is "%s" anymore.', $text)];
+				return [...$found, 'state' => 'missing', 'message' => $this->messages->t('admin.menus_controller.link_gone', 'Nothing on the site is "{value}" anymore.', value: $text)];
 			}
 
 			$found = [...$found, 'ref' => $entry->id, 'title' => $entry->title, 'state' => self::state($entry)];
@@ -576,7 +579,7 @@ final readonly class MenusController
 			$position = ltrim("{$trail}." . ($index + 1), '.');
 
 			if (! is_array($item) || ($item !== [] && array_is_list($item))) {
-				$problems[] = "Item {$position} isn't a map of keys to values.";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.not_map', 'Item {position} isn\'t a map of keys to values.', position: $position);
 				continue;
 			}
 
@@ -585,17 +588,17 @@ final readonly class MenusController
 			$label    = LocaleMap::text($item['label'] ?? '', $this->app->locale, $this->app->locale);
 
 			if (count($linkKeys) > 1) {
-				$problems[] = sprintf('Item %s has more than one link (%s).', $position, implode(', ', $linkKeys));
-			} elseif ($linkKeys !== [] && ($invalid = $this->links->make($linkKeys[0])->validate($item[$linkKeys[0]], $item)) !== null) {
-				$problems[] = "Item {$position}'s link {$invalid}";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.links', 'Item {position} has more than one link ({keys}).', position: $position, keys: implode(', ', $linkKeys));
+			} elseif ($linkKeys !== [] && ($invalid = $this->links->make($linkKeys[0])->validate($linkKeys[0], $item[$linkKeys[0]], $item)) !== null) {
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.item_link', 'Item {position}: {problem}', position: $position, problem: $invalid);
 			} elseif ($linkKeys === [] && trim($label ?? '') === '') {
-				$problems[] = "Item {$position} needs a label or a link.";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.no_label', 'Item {position} needs a label or a link.', position: $position);
 			}
 
 			$children = $item['children'] ?? [];
 
 			if (! is_array($children) || ! array_is_list($children)) {
-				$problems[] = "Item {$position} has \"children\" that aren't a list.";
+				$problems[] = (string) $this->messages->t('admin.menus_controller.problems.children', 'Item {position} has "children" that aren\'t a list.', position: $position);
 			} else {
 				$this->check($children, $position, $problems);
 			}
@@ -713,7 +716,17 @@ final readonly class MenusController
 		return Response::json($data, $status, ['Cache-Control' => 'no-store']);
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private function forbidden(): ResponseInterface
+	{
+		return self::error($this->messages->t('admin.menus_controller.forbidden', 'You aren\'t allowed to edit menus.'), Status::Forbidden);
+	}
+
+	private function notFound(string $name): ResponseInterface
+	{
+		return self::error($this->messages->t('admin.menus_controller.not_found', 'There\'s no "{name}" menu.', name: $name), Status::NotFound);
+	}
+
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return self::json(['error' => $message], $status);
 	}

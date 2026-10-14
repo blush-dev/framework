@@ -320,6 +320,11 @@
 											"type": "boolean",
 											"default": false,
 											"description": "Print it just before </body> instead of in the <head>."
+										},
+										"catalog": {
+											"type": "string",
+											"pattern": "^[a-z][a-z0-9_-]*$",
+											"description": "The named catalog of the extension's text it reads, such as \"site\" (lang/site/{locale}.json), which the page prints before it in its language for blush/messages. A module script only."
 										}
 									}
 								}
@@ -334,6 +339,21 @@
 							"pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*$"
 						}
 					}
+				}
+			}
+		},
+		"catalogs": {
+			"type": "object",
+			"description": "Which of the theme's folders hold scripts that write to which named catalog (lang/{catalog}/{locale}.json), such as {\"site\": [\"resources/site\"]}; lang:extract reads their t() calls. Without it, each folder under resources/ is a catalog of its name.",
+			"propertyNames": {
+				"pattern": "^[a-z][a-z0-9_-]*$"
+			},
+			"additionalProperties": {
+				"type": "array",
+				"minItems": 1,
+				"items": {
+					"type": "string",
+					"pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$"
 				}
 			}
 		},

@@ -14,6 +14,7 @@
 import { ref } from 'vue';
 import { request } from './api';
 import type { IconName } from './icons';
+import { t } from './messages';
 import type { LinkOption } from './components/LinkPicker.vue';
 import type { Placed as TreePlaced, TreeNode } from './tree';
 
@@ -199,7 +200,7 @@ export function withText(value: unknown, text: string, locale: string): unknown 
  * What an item is called: its label, else its link's title.
  */
 export function shown(node: MenuNode, locale: string): string {
-	return textOf(node.item.label, locale).trim() || node.link?.title || 'Untitled';
+	return textOf(node.item.label, locale).trim() || node.link?.title || t('menus.untitled', 'Untitled');
 }
 
 /**
@@ -222,10 +223,10 @@ export function kindIcon(kind: string | null): IconName {
 
 export function kindLabel(kind: string | null): string {
 	if (kind === null) {
-		return 'Plain Text';
+		return t('menus.kinds.plain_text', 'Plain Text');
 	}
 
-	return ({ entry: 'Entry', term: 'Term', collection: 'Collection', route: 'Route', url: 'URL' } as Record<string, string>)[kind] ?? kind.charAt(0).toUpperCase() + kind.slice(1);
+	return ({ entry: t('menus.kinds.entry', 'Entry'), term: t('menus.kinds.term', 'Term'), collection: t('menus.kinds.collection', 'Collection'), route: t('menus.kinds.route', 'Route'), url: t('menus.kinds.url', 'URL') } as Record<string, string>)[kind] ?? kind.charAt(0).toUpperCase() + kind.slice(1);
 }
 
 /**
@@ -234,13 +235,13 @@ export function kindLabel(kind: string | null): string {
 export function linkPill(link: MenuLink | null): LinkOption['pill'] {
 	switch (link?.state) {
 		case 'draft':
-			return { label: 'Draft', kind: 'warn' };
+			return { label: t('menus.pills.draft', 'Draft'), kind: 'warn' };
 		case 'scheduled':
-			return { label: 'Scheduled', kind: 'warn' };
+			return { label: t('menus.pills.scheduled', 'Scheduled'), kind: 'warn' };
 		case 'hidden':
 		case 'trash':
 		case 'missing':
-			return { label: 'Not on the Site', kind: 'danger' };
+			return { label: t('menus.pills.not_on_site', 'Not on the Site'), kind: 'danger' };
 		default:
 			return null;
 	}

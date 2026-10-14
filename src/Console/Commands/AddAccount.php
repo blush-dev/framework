@@ -77,7 +77,7 @@ final readonly class AddAccount
 		}
 
 		try {
-			$username ??= $prompt->ask('Username', null, $this->accounts->usernameProblem(...), 'jane');
+			$username ??= $prompt->ask('Username', null, fn (string $username): ?string => $this->accounts->usernameProblem($username)?->__toString(), 'jane');
 			$name     ??= trim($prompt->ask('Name', '', placeholder: 'What the admin calls them (optional)'));
 			$email      = $this->accounts->checkEmail($email ?? $prompt->ask('Email address', null, $this->emailProblem(...), 'jane@example.com'));
 			$roles      = $role !== [] ? $role : $this->askRoles($prompt);
@@ -93,7 +93,7 @@ final readonly class AddAccount
 
 			[$account, $token] = $link
 				? $this->accounts->invite($username, $roles, $profile(), $name, $email)
-				: [$this->accounts->create($username, $prompt->newSecret('Password:', 'Password again:', $this->accounts->passwordProblem(...)), $roles, $profile(), $name, $email), null];
+				: [$this->accounts->create($username, $prompt->newSecret('Password:', 'Password again:', fn (string $password): ?string => $this->accounts->passwordProblem($password)?->__toString()), $roles, $profile(), $name, $email), null];
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
@@ -105,7 +105,7 @@ final readonly class AddAccount
 		$output->success(sprintf(
 			'Created "%s" (%s)%s.',
 			$account->username,
-			implode(', ', array_map(fn (string $role): string => $this->roles->get($role)->label ?? $role, $account->roles)),
+			implode(', ', array_map(fn (string $role): string => (string) ($this->roles->get($role)->label ?? $role), $account->roles)),
 			$writes === null ? '' : ", writing as {$writes->title}"
 		));
 
@@ -130,7 +130,7 @@ final readonly class AddAccount
 	private function tokenOnly(Output $output, Prompt $prompt, ?string $username, array $roles, ?string $name, ?string $email): ExitCode
 	{
 		try {
-			$username ??= $prompt->ask('Username', null, $this->accounts->usernameProblem(...), 'agent');
+			$username ??= $prompt->ask('Username', null, fn (string $username): ?string => $this->accounts->usernameProblem($username)?->__toString(), 'agent');
 			$name     ??= trim($prompt->ask('Name', '', placeholder: 'What the admin calls it (optional)'));
 			$email    ??= trim($prompt->ask('Email address', '', placeholder: 'Optional for a token-only account'));
 			$roles      = $roles !== [] ? $roles : $this->askRoles($prompt);
@@ -145,7 +145,7 @@ final readonly class AddAccount
 		$output->success(sprintf(
 			'Created the token-only account "%s" (%s).',
 			$account->username,
-			implode(', ', array_map(fn (string $role): string => $this->roles->get($role)->label ?? $role, $account->roles))
+			implode(', ', array_map(fn (string $role): string => (string) ($this->roles->get($role)->label ?? $role), $account->roles))
 		));
 		$output->comment(sprintf('Make its tokens with "token:add %s".', $account->username));
 
@@ -161,7 +161,7 @@ final readonly class AddAccount
 	private function askRoles(Prompt $prompt): array
 	{
 		$default = ($this->accounts->hasOwner() ? BuiltInRole::Administrator : BuiltInRole::Owner)->value;
-		$labels  = array_map(static fn (Role $role): string => $role->label, $this->roles->all());
+		$labels  = array_map(static fn (Role $role): string => (string) $role->label, $this->roles->all());
 
 		return $prompt->multiselect('Roles', $labels, [$default]) ?: [$default];
 	}

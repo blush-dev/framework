@@ -22,6 +22,7 @@ use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Shows an entry, whatever its status but the trash, to anyone with a genuine,
@@ -47,7 +48,8 @@ final readonly class PreviewController
 	public function __construct(
 		private PreviewLinks $links,
 		private Entries $content,
-		private PageRenderer $renderer
+		private PageRenderer $renderer,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -67,7 +69,7 @@ final readonly class PreviewController
 
 		if ($entry === null) {
 			return Response::text(
-				'This preview link has expired or isn\'t valid. Ask for a new one.',
+				(string) $this->messages->t('preview.preview_controller.invalid', 'This preview link has expired or isn\'t valid. Ask for a new one.'),
 				$valid ? Status::NotFound : Status::Forbidden,
 				self::HEADERS
 			);

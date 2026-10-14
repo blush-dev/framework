@@ -18,6 +18,8 @@ use Blush\Field\Control;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\ObjectField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A few fields kept together under one heading: an object field, whose
@@ -38,18 +40,18 @@ final class Group extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Group';
+		return $messages->t('field.group.label', 'Group');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'A few fields kept together, their values under its key.';
+		return $messages->t('field.group.description', 'A few fields kept together, their values under its key.');
 	}
 
 	/**

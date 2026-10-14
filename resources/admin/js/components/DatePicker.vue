@@ -13,9 +13,10 @@
  */
 
 import { computed, nextTick, ref } from 'vue';
-import { hour12, monthDays, WEEKDAYS } from '../month';
+import { hour12, monthDays, MONTHS, SHORT_MONTHS, WEEKDAYS } from '../month';
 import { usePopover } from '../popover';
 import AdminIcon from './AdminIcon.vue';
+import { t } from '../messages';
 
 const props = defineProps<{
 	id: string;
@@ -25,8 +26,6 @@ const props = defineProps<{
 }>();
 
 const model = defineModel<string>({ required: true });
-
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function pad(value: number): string {
 	return String(value).padStart(2, '0');
@@ -49,8 +48,10 @@ const shown = computed(() => {
 	const date = value.value;
 
 	return date === null ? null : {
-		day: `${WEEKDAYS[(date.getDay() + 6) % 7]} ${date.getDate()} ${MONTHS[date.getMonth()]?.slice(0, 3)} ${date.getFullYear()}`,
-		time: `${pad(hour12(date.getHours()))}:${pad(date.getMinutes())} ${date.getHours() < 12 ? 'am' : 'pm'}`
+		day: t('date_picker.shown_day', '{weekday} {day} {month} {year}', { weekday: WEEKDAYS[(date.getDay() + 6) % 7], day: String(date.getDate()), month: SHORT_MONTHS[date.getMonth()], year: String(date.getFullYear()) }),
+		time: date.getHours() < 12
+			? t('date_picker.shown_time_am', '{hour}:{minute} am', { hour: pad(hour12(date.getHours())), minute: pad(date.getMinutes()) })
+			: t('date_picker.shown_time_pm', '{hour}:{minute} pm', { hour: pad(hour12(date.getHours())), minute: pad(date.getMinutes()) })
 	};
 });
 
@@ -73,7 +74,7 @@ const days = computed(() => {
 		...day,
 		today: sameDay(day.date, today),
 		chosen: value.value !== null && sameDay(day.date, value.value),
-		label: `${WEEKDAYS[(day.date.getDay() + 6) % 7]} ${day.date.getDate()} ${MONTHS[day.date.getMonth()]}`
+		label: t('date_picker.day_label', '{weekday} {day} {month}', { weekday: WEEKDAYS[(day.date.getDay() + 6) % 7], day: String(day.date.getDate()), month: MONTHS[day.date.getMonth()] })
 	}));
 });
 
@@ -194,19 +195,19 @@ defineExpose({ show });
 			<span class="date__day-text">{{ shown.day }}</span>
 			<span v-if="!dayOnly" class="date__time-text">{{ shown.time }}</span>
 		</template>
-		<span v-else class="date__day-text">Not set</span>
+		<span v-else class="date__day-text">{{ t('date_picker.not_set', 'Not set') }}</span>
 		<AdminIcon name="chevron-down" class="date__caret" />
 	</button>
 
 	<Teleport :to="layer">
-		<div v-if="open" ref="panel" class="date-panel" role="dialog" :aria-label="dayOnly ? 'Choose a date' : 'Choose a date and time'" :style="place ?? { visibility: 'hidden' }" @keydown="keydown">
+		<div v-if="open" ref="panel" class="date-panel" role="dialog" :aria-label="dayOnly ? t('date_picker.choose_date', 'Choose a date') : t('date_picker.choose_date_time', 'Choose a date and time')" :style="place ?? { visibility: 'hidden' }" @keydown="keydown">
 			<div class="date-panel__head">
 				<button type="button" class="button button--ghost button--icon" @click="move(-1)">
-					<AdminIcon name="chevron-left" /><span class="visually-hidden">Previous month</span>
+					<AdminIcon name="chevron-left" /><span class="visually-hidden">{{ t('date_picker.previous_month', 'Previous month') }}</span>
 				</button>
-				<p class="date-panel__month" aria-live="polite">{{ MONTHS[month.getMonth()] }} {{ month.getFullYear() }}</p>
+				<p class="date-panel__month" aria-live="polite">{{ t('date_picker.month_year', '{month} {year}', { month: MONTHS[month.getMonth()], year: String(month.getFullYear()) }) }}</p>
 				<button type="button" class="button button--ghost button--icon" @click="move(1)">
-					<AdminIcon name="chevron-right" /><span class="visually-hidden">Next month</span>
+					<AdminIcon name="chevron-right" /><span class="visually-hidden">{{ t('date_picker.next_month', 'Next month') }}</span>
 				</button>
 			</div>
 			<div class="date-panel__week" aria-hidden="true">
@@ -225,19 +226,19 @@ defineExpose({ show });
 				>{{ day.date.getDate() }}</button>
 			</div>
 			<div v-if="!dayOnly" class="date-panel__time">
-				<span class="date-panel__label">Time</span>
-				<input v-model="hourText" class="date-panel__field mono" type="text" inputmode="numeric" maxlength="2" aria-label="Hour" @change="commitTime" @keydown="timeKey" @focus="($event.target as HTMLInputElement).select()">
+				<span class="date-panel__label">{{ t('date_picker.time', 'Time') }}</span>
+				<input v-model="hourText" class="date-panel__field mono" type="text" inputmode="numeric" maxlength="2" :aria-label="t('date_picker.hour', 'Hour')" @change="commitTime" @keydown="timeKey" @focus="($event.target as HTMLInputElement).select()">
 				<span aria-hidden="true">:</span>
-				<input v-model="minuteText" class="date-panel__field mono" type="text" inputmode="numeric" maxlength="2" aria-label="Minute" @change="commitTime" @keydown="timeKey" @focus="($event.target as HTMLInputElement).select()">
-				<span class="date-panel__meridiem" role="group" aria-label="Morning or afternoon">
-					<button type="button" :aria-pressed="!afternoon" @click="setMeridiem(false)">AM</button>
-					<button type="button" :aria-pressed="afternoon" @click="setMeridiem(true)">PM</button>
+				<input v-model="minuteText" class="date-panel__field mono" type="text" inputmode="numeric" maxlength="2" :aria-label="t('date_picker.minute', 'Minute')" @change="commitTime" @keydown="timeKey" @focus="($event.target as HTMLInputElement).select()">
+				<span class="date-panel__meridiem" role="group" :aria-label="t('date_picker.meridiem', 'Morning or afternoon')">
+					<button type="button" :aria-pressed="!afternoon" @click="setMeridiem(false)">{{ t('date_picker.am', 'AM') }}</button>
+					<button type="button" :aria-pressed="afternoon" @click="setMeridiem(true)">{{ t('date_picker.pm', 'PM') }}</button>
 				</span>
 			</div>
 			<div class="date-panel__quick">
-				<button type="button" class="button button--small" @click="quick('now')">{{ dayOnly ? 'Today' : 'Now' }}</button>
-				<button type="button" class="button button--small" @click="quick('tomorrow')">{{ dayOnly ? 'Tomorrow' : 'Tomorrow, 9 am' }}</button>
-				<button type="button" class="button button--small" @click="quick('monday')">Next Monday</button>
+				<button type="button" class="button button--small" @click="quick('now')">{{ dayOnly ? t('date_picker.today', 'Today') : t('date_picker.now', 'Now') }}</button>
+				<button type="button" class="button button--small" @click="quick('tomorrow')">{{ dayOnly ? t('date_picker.tomorrow', 'Tomorrow') : t('date_picker.tomorrow_nine', 'Tomorrow, 9 am') }}</button>
+				<button type="button" class="button button--small" @click="quick('monday')">{{ t('date_picker.next_monday', 'Next Monday') }}</button>
 			</div>
 		</div>
 	</Teleport>

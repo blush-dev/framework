@@ -29,7 +29,7 @@ import type { FieldDescription } from '../api';
 import { confirmChecked } from '../confirm';
 import { catalogControl, controlIcon, controlLabel, holdsFields, isChoice, isManyChoice, optionsOf, takesPlaceholder, withControl, withOptions } from '../controls';
 import { fromForm, label as labelOf, toForm, type FormValue } from '../fields';
-import { plural } from '../format';
+import { t } from '../messages';
 import { copy, keyOf } from '../type-form';
 import AdminIcon from './AdminIcon.vue';
 import AdminSelect from './AdminSelect.vue';
@@ -111,16 +111,16 @@ const keyError = computed(() => {
 	const name = draft.value.name;
 
 	if (name === '') {
-		return 'Give the field a key.';
+		return t('field_form.key_empty', 'Give the field a key.');
 	}
 
 	if (!/^[a-z_][a-z0-9_]*$/.test(name)) {
-		return 'A key uses lowercase letters, digits, and underscores, and doesn\'t start with a digit.';
+		return t('field_form.key_invalid', 'A key uses lowercase letters, digits, and underscores, and doesn\'t start with a digit.');
 	}
 
 	const where = props.taken[name];
 
-	return where === undefined ? '' : `${where} already has a field called “${name}”.`;
+	return where === undefined ? '' : t('field_form.key_taken', '{where} already has a field called “{name}”.', { where, name });
 });
 
 const optionsError = computed(() => {
@@ -131,10 +131,10 @@ const optionsError = computed(() => {
 	const values = options.value.map((option) => option.value);
 
 	if (values.length === 0 || values.some((value) => value === '')) {
-		return 'Give every option a key, and add at least one.';
+		return t('field_form.options_empty', 'Give every option a key, and add at least one.');
 	}
 
-	return new Set(values).size === values.length ? '' : 'Two options can\'t share a key.';
+	return new Set(values).size === values.length ? '' : t('field_form.options_shared', 'Two options can\'t share a key.');
 });
 
 // The default's own control: the field as forms draw it, with plain
@@ -297,10 +297,10 @@ async function finish(): Promise<void> {
 
 	if (saved !== null && saved !== draft.value.name && props.count > 0) {
 		const keep = await confirmChecked({
-			title: 'Change the Key?',
-			body: `${plural(props.count, 'entry has', 'entries have')} a value under ${saved}. Their files keep it; the field reads it there only while the old key is kept.`,
-			check: `Keep reading their values from ${saved}`,
-			confirm: 'Change Key'
+			title: t('field_form.change_key_title', 'Change the Key?'),
+			body: t('field_form.change_key_body', '{count, plural, one {# entry has} other {# entries have}} a value under {key}. Their files keep it; the field reads it there only while the old key is kept.', { count: props.count, key: saved }),
+			check: t('field_form.change_key_check', 'Keep reading their values from {key}', { key: saved }),
+			confirm: t('field_form.change_key_confirm', 'Change Key')
 		});
 
 		if (keep === null) {
@@ -323,58 +323,58 @@ async function finish(): Promise<void> {
 	<div class="field-form">
 		<div class="field-form__ident">
 			<div class="field">
-				<label :for="id('label')">Label</label>
-				<input :id="id('label')" v-model="label" autocomplete="off" placeholder="Prep time" :readonly="locked">
+				<label :for="id('label')">{{ t('field_form.label', 'Label') }}</label>
+				<input :id="id('label')" v-model="label" autocomplete="off" :placeholder="t('field_form.label_placeholder', 'Prep time')" :readonly="locked">
 			</div>
 			<div class="field">
-				<label :for="id('key')">Key</label>
+				<label :for="id('key')">{{ t('field_form.key', 'Key') }}</label>
 				<input :id="id('key')" v-model="draft.name" class="mono" autocomplete="off" spellcheck="false" placeholder="prep_time" :readonly="locked" :aria-invalid="tried && keyError !== '' ? 'true' : undefined" :aria-describedby="id('key-help')" @input="keyed = true">
 				<p v-if="(tried || keyed) && keyError" :id="id('key-help')" class="field__error">{{ keyError }}</p>
-				<p v-else :id="id('key-help')" class="field__help">{{ holds ? 'How it\'s saved in each entry. Follows the label until you change it.' : 'The group\'s name in this set. Its fields are saved under their own keys.' }}</p>
+				<p v-else :id="id('key-help')" class="field__help">{{ holds ? t('field_form.key_help', 'How it\'s saved in each entry. Follows the label until you change it.') : t('field_form.key_help_group', 'The group\'s name in this set. Its fields are saved under their own keys.') }}</p>
 			</div>
 			<div class="field">
-				<span :id="id('control-label')" class="field__label">Control</span>
+				<span :id="id('control-label')" class="field__label">{{ t('field_form.control', 'Control') }}</span>
 				<button type="button" class="field-form__control" :aria-labelledby="`${id('control-label')} ${id('control')}`" aria-haspopup="dialog" :disabled="locked" @click="picking = true">
 					<AdminIcon :name="controlIcon(control)" />
 					<strong :id="id('control')">{{ controlLabel(control) }}</strong>
-					<span v-if="!locked" class="field-form__change">Change</span>
+					<span v-if="!locked" class="field-form__change">{{ t('field_form.change', 'Change') }}</span>
 				</button>
 			</div>
 		</div>
 
 		<div class="field-form__row">
 			<div v-if="takesDefault" class="field">
-				<span :id="id('default-label')" class="field__label">Default</span>
+				<span :id="id('default-label')" class="field__label">{{ t('field_form.default', 'Default') }}</span>
 				<div v-if="isManyChoice(control)" class="chip-toggles" role="group" :aria-labelledby="id('default-label')">
 					<button v-for="option in options" :key="option.value" type="button" :aria-pressed="defaultMany.includes(option.value)" :disabled="locked || option.value === ''" @click="toggleDefault(option.value)"><AdminIcon name="check" />{{ option.label || option.value }}</button>
-					<span v-if="!options.length" class="field__help">No options to pick from.</span>
+					<span v-if="!options.length" class="field__help">{{ t('field_form.no_options', 'No options to pick from.') }}</span>
 				</div>
-				<AdminSelect v-else-if="isChoice(control)" :id="id('default')" v-model="defaultChoice" :options="[{ value: '', label: 'None' }, ...options.filter((option) => option.value !== '').map((option) => ({ value: option.value, label: option.label || option.value }))]" :disabled="locked" />
-				<ToggleSwitch v-else-if="control === 'toggle'" :checked="draft.default === true" label="On by default" form :locked="locked" @change="setDefaultOn">On by default</ToggleSwitch>
+				<AdminSelect v-else-if="isChoice(control)" :id="id('default')" v-model="defaultChoice" :options="[{ value: '', label: t('field_form.none', 'None') }, ...options.filter((option) => option.value !== '').map((option) => ({ value: option.value, label: option.label || option.value }))]" :disabled="locked" />
+				<ToggleSwitch v-else-if="control === 'toggle'" :checked="draft.default === true" :label="t('field_form.on_by_default', 'On by default')" form :locked="locked" @change="setDefaultOn">{{ t('field_form.on_by_default', 'On by default') }}</ToggleSwitch>
 				<FieldInput v-else :id="id('default')" v-model="defaultState" :field="defaultField" :labelled-by="id('default-label')" :disabled="locked" />
 			</div>
 			<div v-if="takesPlaceholder(control)" class="field">
-				<label :for="id('placeholder')">Placeholder</label>
-				<input :id="id('placeholder')" :value="draft.placeholder ?? ''" autocomplete="off" placeholder="None" :readonly="locked" :aria-describedby="id('placeholder-help')" @input="setText('placeholder', ($event.target as HTMLInputElement).value)">
-				<p :id="id('placeholder-help')" class="field__help">A prompt in the empty box. Never saved.</p>
+				<label :for="id('placeholder')">{{ t('field_form.placeholder', 'Placeholder') }}</label>
+				<input :id="id('placeholder')" :value="draft.placeholder ?? ''" autocomplete="off" :placeholder="t('field_form.none', 'None')" :readonly="locked" :aria-describedby="id('placeholder-help')" @input="setText('placeholder', ($event.target as HTMLInputElement).value)">
+				<p :id="id('placeholder-help')" class="field__help">{{ t('field_form.placeholder_help', 'A prompt in the empty box. Never saved.') }}</p>
 			</div>
 			<div class="field field-form__help">
-				<label :for="id('help')">Help</label>
+				<label :for="id('help')">{{ t('field_form.help', 'Help') }}</label>
 				<textarea :id="id('help')" :value="draft.description ?? ''" rows="2" :readonly="locked" :aria-describedby="id('help-help')" @input="setText('description', ($event.target as HTMLTextAreaElement).value)" />
-				<p :id="id('help-help')" class="field__help">Shown under the field in the editor.</p>
+				<p :id="id('help-help')" class="field__help">{{ t('field_form.help_help', 'Shown under the field in the editor.') }}</p>
 			</div>
 		</div>
 
 		<div v-if="holdsFields(control) && $slots.inside" class="field">
-			<span :id="`${idPrefix}inside-label`" class="field__label">{{ control === 'repeater' ? 'Each item has' : 'Its fields' }}</span>
+			<span :id="`${idPrefix}inside-label`" class="field__label">{{ control === 'repeater' ? t('field_form.each_item_has', 'Each item has') : t('field_form.its_fields', 'Its fields') }}</span>
 			<slot name="inside" />
-			<p class="field__help">{{ control === 'repeater' ? 'Every item in the list has these, in this order.' : 'These are saved under their own keys, next to the set\'s other fields.' }}</p>
+			<p class="field__help">{{ control === 'repeater' ? t('field_form.inside_help_repeater', 'Every item in the list has these, in this order.') : t('field_form.inside_help_group', 'These are saved under their own keys, next to the set\'s other fields.') }}</p>
 		</div>
 
-		<p v-if="control === 'group'" class="field-form__note"><AdminIcon name="info" /><span>A group holds no value of its own. Defaults, Required to publish, and older keys belong to the fields inside it.</span></p>
-		<ToggleSwitch v-else :checked="required" label="Required to publish" form :locked="locked" @change="required = $event">
-			Required to publish
-			<small>{{ control === 'repeater' ? 'A draft still saves. Publishing needs at least one item.' : 'A draft still saves. Publishing names the field.' }}</small>
+		<p v-if="control === 'group'" class="field-form__note"><AdminIcon name="info" /><span>{{ t('field_form.group_note', 'A group holds no value of its own. Defaults, Required to publish, and older keys belong to the fields inside it.') }}</span></p>
+		<ToggleSwitch v-else :checked="required" :label="t('field_form.required', 'Required to publish')" form :locked="locked" @change="required = $event">
+			{{ t('field_form.required', 'Required to publish') }}
+			<small>{{ control === 'repeater' ? t('field_form.required_help_repeater', 'A draft still saves. Publishing needs at least one item.') : t('field_form.required_help', 'A draft still saves. Publishing names the field.') }}</small>
 		</ToggleSwitch>
 
 		<section v-if="isChoice(control) || ['number', 'date', 'repeater'].includes(control)" class="field-form__section" :aria-labelledby="id('section')">
@@ -388,67 +388,67 @@ async function finish(): Promise<void> {
 			<template v-if="control === 'number'">
 				<div class="field-form__row field-form__row--three">
 					<div class="field">
-						<label :for="id('min')">Lowest</label>
+						<label :for="id('min')">{{ t('field_form.lowest', 'Lowest') }}</label>
 						<input :id="id('min')" :value="numberText('min')" type="number" step="any" :readonly="locked" @input="setNumber('min', ($event.target as HTMLInputElement).value)">
 					</div>
 					<div class="field">
-						<label :for="id('max')">Highest</label>
+						<label :for="id('max')">{{ t('field_form.highest', 'Highest') }}</label>
 						<input :id="id('max')" :value="numberText('max')" type="number" step="any" :readonly="locked" @input="setNumber('max', ($event.target as HTMLInputElement).value)">
 					</div>
 					<div class="field">
-						<label :for="id('step')">Step</label>
+						<label :for="id('step')">{{ t('field_form.step', 'Step') }}</label>
 						<input :id="id('step')" :value="numberText('step')" type="number" step="any" min="0" :readonly="locked" :aria-describedby="id('step-help')" @input="setNumber('step', ($event.target as HTMLInputElement).value)">
-						<p :id="id('step-help')" class="field__help">How far apart values are.</p>
+						<p :id="id('step-help')" class="field__help">{{ t('field_form.step_help', 'How far apart values are.') }}</p>
 					</div>
 				</div>
-				<ToggleSwitch :checked="draft.integer === true" label="Whole numbers only" form :locked="locked" @change="setFlag('integer', $event)">Whole numbers only</ToggleSwitch>
+				<ToggleSwitch :checked="draft.integer === true" :label="t('field_form.integer', 'Whole numbers only')" form :locked="locked" @change="setFlag('integer', $event)">{{ t('field_form.integer', 'Whole numbers only') }}</ToggleSwitch>
 			</template>
 
-			<ToggleSwitch v-if="control === 'date'" :checked="draft.time !== false" label="Includes a time" form :locked="locked" @change="setTime">
-				Includes a time
-				<small>Without one, only the day is kept.</small>
+			<ToggleSwitch v-if="control === 'date'" :checked="draft.time !== false" :label="t('field_form.time', 'Includes a time')" form :locked="locked" @change="setTime">
+				{{ t('field_form.time', 'Includes a time') }}
+				<small>{{ t('field_form.time_help', 'Without one, only the day is kept.') }}</small>
 			</ToggleSwitch>
 
 			<template v-if="control === 'repeater'">
 				<div class="field-form__row field-form__row--three">
 					<div class="field">
-						<label :for="id('item')">Call each item</label>
-						<input :id="id('item')" :value="draft.itemLabel ?? ''" autocomplete="off" placeholder="Item" :readonly="locked" :aria-describedby="id('item-help')" @input="setText('itemLabel', ($event.target as HTMLInputElement).value)">
-						<p :id="id('item-help')" class="field__help">“Add {{ draft.itemLabel || 'Item' }}” in the editor.</p>
+						<label :for="id('item')">{{ t('field_form.item_label', 'Call each item') }}</label>
+						<input :id="id('item')" :value="draft.itemLabel ?? ''" autocomplete="off" :placeholder="t('field_form.item', 'Item')" :readonly="locked" :aria-describedby="id('item-help')" @input="setText('itemLabel', ($event.target as HTMLInputElement).value)">
+						<p :id="id('item-help')" class="field__help">{{ t('field_form.item_help', '“Add {item}” in the editor.', { item: draft.itemLabel || t('field_form.item', 'Item') }) }}</p>
 					</div>
 					<div class="field">
-						<label :for="id('min')">Fewest</label>
+						<label :for="id('min')">{{ t('field_form.fewest', 'Fewest') }}</label>
 						<input :id="id('min')" :value="numberText('min')" type="number" min="0" step="1" :readonly="locked" @input="setNumber('min', ($event.target as HTMLInputElement).value)">
 					</div>
 					<div class="field">
-						<label :for="id('max')">Most</label>
+						<label :for="id('max')">{{ t('field_form.most', 'Most') }}</label>
 						<input :id="id('max')" :value="numberText('max')" type="number" min="0" step="1" :readonly="locked" @input="setNumber('max', ($event.target as HTMLInputElement).value)">
 					</div>
 				</div>
 				<div v-if="inside.length" class="field">
-					<span :id="id('summary-label')" class="field__label">Sum up each item with</span>
+					<span :id="id('summary-label')" class="field__label">{{ t('field_form.summary', 'Sum up each item with') }}</span>
 					<div class="chip-toggles" role="group" :aria-labelledby="id('summary-label')" :aria-describedby="id('summary-help')">
 						<button v-for="child in inside" :key="child.name" type="button" :aria-pressed="(draft.summary ?? []).includes(child.name)" :disabled="locked || child.name === ''" @click="toggleSummary(child.name)"><AdminIcon name="check" />{{ child.label }}</button>
 					</div>
-					<p :id="id('summary-help')" class="field__help">What each item's line says while it's closed.</p>
+					<p :id="id('summary-help')" class="field__help">{{ t('field_form.summary_help', "What each item's line says while it's closed.") }}</p>
 				</div>
 			</template>
 		</section>
 
 		<details v-if="control !== 'group'" class="field-form__more">
-			<summary><AdminIcon name="chevron-right" />Advanced</summary>
+			<summary><AdminIcon name="chevron-right" />{{ t('field_form.advanced', 'Advanced') }}</summary>
 			<div class="field">
-				<label :for="id('aliases')">Older keys</label>
-				<input :id="id('aliases')" v-model.lazy="aliases" class="mono" autocomplete="off" spellcheck="false" placeholder="none" :readonly="locked" :aria-describedby="id('aliases-help')">
-				<p :id="id('aliases-help')" class="field__help">Other names this field still reads, so a renamed field keeps its values.</p>
+				<label :for="id('aliases')">{{ t('field_form.aliases', 'Older keys') }}</label>
+				<input :id="id('aliases')" v-model.lazy="aliases" class="mono" autocomplete="off" spellcheck="false" :placeholder="t('field_form.aliases_none', 'none')" :readonly="locked" :aria-describedby="id('aliases-help')">
+				<p :id="id('aliases-help')" class="field__help">{{ t('field_form.aliases_help', 'Other names this field still reads, so a renamed field keeps its values.') }}</p>
 			</div>
 		</details>
 
 		<div class="field-form__actions">
-			<button v-if="!locked" type="button" class="button button--ghost button--danger button--small" @click="emit('remove')">Remove Field</button>
-			<span class="field__help">{{ locked ? 'From code, so it\'s shown here.' : 'Nothing is written until you save.' }}</span>
-			<button type="button" class="button button--small" @click="locked ? emit('done') : cancel()">{{ locked ? 'Close' : 'Cancel' }}</button>
-			<button v-if="!locked" type="button" class="button button--primary button--small" @click="finish">Done</button>
+			<button v-if="!locked" type="button" class="button button--ghost button--danger button--small" @click="emit('remove')">{{ t('field_form.remove', 'Remove Field') }}</button>
+			<span class="field__help">{{ locked ? t('field_form.locked', 'From code, so it\'s shown here.') : t('field_form.unsaved', 'Nothing is written until you save.') }}</span>
+			<button type="button" class="button button--small" @click="locked ? emit('done') : cancel()">{{ locked ? t('common.close', 'Close') : t('common.cancel', 'Cancel') }}</button>
+			<button v-if="!locked" type="button" class="button button--primary button--small" @click="finish">{{ t('common.done', 'Done') }}</button>
 		</div>
 
 		<ControlPicker v-if="picking" :current="saved === null ? undefined : (field.control ?? undefined)" :flat="nested" @choose="choose" @close="picking = false" />

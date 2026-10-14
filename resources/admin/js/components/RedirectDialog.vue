@@ -22,12 +22,14 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { ApiError, errorMessage, request, type EntryList } from '../api';
 import { debounced, latest } from '../action';
 import { siteDateTime } from '../dates';
+import { t } from '../messages';
 import { checkRedirect, saveRedirect, TYPES, type RedirectCheck, type RedirectMessage as Message, type RedirectRow, type RedirectStatus } from '../redirects';
 import { toast } from '../toast';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
 import LinkPicker, { type LinkOption } from './LinkPicker.vue';
+import MessageText from './MessageText.vue';
 import RedirectAdded from './RedirectAdded.vue';
 import RedirectMessage from './RedirectMessage.vue';
 
@@ -50,7 +52,7 @@ const emit = defineEmits<{
 
 const from   = ref(props.row?.from ?? props.from ?? '');
 const to     = ref(props.repick ? '' : props.row?.to ?? '');
-const entry  = ref<{ id: string; title: string; url: string | null } | null>(props.repick || !props.row?.entry ? null : { id: props.row.entry.id, title: props.row.entry.title || 'Untitled', url: props.row.entry.url });
+const entry  = ref<{ id: string; title: string; url: string | null } | null>(props.repick || !props.row?.entry ? null : { id: props.row.entry.id, title: props.row.entry.title || t('redirect_dialog.untitled', 'Untitled'), url: props.row.entry.url });
 const status = ref(String(props.row?.status ?? 301));
 
 const touched = ref({ from: props.from !== undefined, to: false });
@@ -64,7 +66,7 @@ const fromField = ref<HTMLInputElement | null>(null);
 const STATUS_OPTIONS: SelectOption[] = ([301, 302, 303, 307, 308] as RedirectStatus[]).map((code) => ({
 	value: String(code),
 	label: `${TYPES[code].name} · ${code}`,
-	group: code === 301 || code === 302 ? null : 'For Programs'
+	group: code === 301 || code === 302 ? null : t('redirect_dialog.for_programs', 'For Programs')
 }));
 
 const draft = computed(() => ({
@@ -104,8 +106,8 @@ const warned = computed(() => notes.value.some((message) => message.kind === 'wa
 const errors = computed(() => [...(checked.value?.from ?? []), ...(checked.value?.to ?? []), ...(checked.value?.status ?? [])].filter((message) => message.kind === 'bad').length);
 
 const lead = computed(() => props.row === null
-	? 'Visitors to the old address are sent to the new one, unless a page answers the old address first.'
-	: 'Changes apply as soon as you save.');
+	? t('redirect_dialog.lead_new', 'Visitors to the old address are sent to the new one, unless a page answers the old address first.')
+	: t('redirect_dialog.lead_edit', 'Changes apply as soon as you save.'));
 
 /*
  * The pages To offers: published entries matching what's typed, unless
@@ -124,7 +126,7 @@ async function findPages(text: string): Promise<LinkOption[]> {
 
 	const answer = await request<EntryList>('GET', `/entries?${params.toString()}`);
 
-	return answer.entries.flatMap((item) => item.id !== null && item.url !== null ? [{ key: item.id, icon: 'file-text' as const, title: item.title || 'Untitled', hint: item.url }] : []);
+	return answer.entries.flatMap((item) => item.id !== null && item.url !== null ? [{ key: item.id, icon: 'file-text' as const, title: item.title || t('redirect_dialog.untitled', 'Untitled'), hint: item.url }] : []);
 }
 
 const chosen = computed<LinkOption | null>(() => entry.value === null ? null : { key: entry.value.id, icon: 'file-text', title: entry.value.title, hint: entry.value.url ?? '' });
@@ -186,7 +188,7 @@ async function save(): Promise<void> {
 		if (caught instanceof ApiError && caught.status === 422 && typeof caught.data === 'object' && caught.data !== null && 'from' in caught.data) {
 			checked.value = caught.data as RedirectCheck;
 		} else {
-			failed.value = errorMessage(caught, 'The redirect couldn\'t be saved.');
+			failed.value = errorMessage(caught, t('redirect_dialog.save_failed', 'The redirect couldn\'t be saved.'));
 			toast(failed.value, { kind: 'warn' });
 		}
 	} finally {
@@ -196,25 +198,25 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<AdminModal open :title="row ? 'Edit Redirect' : 'New Redirect'" @close="emit('close')">
+	<AdminModal open :title="row ? t('redirect_dialog.edit_title', 'Edit Redirect') : t('redirect_dialog.new_title', 'New Redirect')" @close="emit('close')">
 		<form id="redirect-form" class="redirect-form" novalidate @submit.prevent="save">
-			<p class="redirect-form__lead"><template v-if="row?.added">Added {{ siteDateTime(row.added) }}<template v-if="row.by || row.via"> · <RedirectAdded :row="row" /></template>. </template>{{ lead }}</p>
+			<p class="redirect-form__lead"><template v-if="row?.added"><MessageText v-if="row.by || row.via" :text="t('redirect_dialog.added_by', 'Added {date} · {by}.', { date: siteDateTime(row.added) })"><template #by><RedirectAdded :row="row" /></template></MessageText><template v-else>{{ t('redirect_dialog.added', 'Added {date}.', { date: siteDateTime(row.added) }) }}</template> </template>{{ lead }}</p>
 
 			<div class="field">
-				<label for="redirect-from">From</label>
+				<label for="redirect-from">{{ t('redirect_dialog.from', 'From') }}</label>
 				<input id="redirect-from" ref="fromField" v-model="from" class="mono" type="text" placeholder="/old-address" autocomplete="off" autocapitalize="none" spellcheck="false" :autofocus="!props.from && !repick" :aria-invalid="bad('from').length > 0" aria-describedby="redirect-from-help" @blur="touched.from = true">
 				<p v-for="(message, index) in bad('from')" :key="index" class="field__error"><RedirectMessage :message="message" @fix="fix" /></p>
-				<p id="redirect-from-help" class="field__help">A path on this site. <code class="mono">{name}</code> matches one part of it, and can be used again in To.</p>
+				<p id="redirect-from-help" class="field__help"><MessageText :text="t('redirect_dialog.from_help', 'A path on this site. {placeholder} matches one part of it, and can be used again in To.')"><template #placeholder><code class="mono">{name}</code></template></MessageText></p>
 			</div>
 
 			<div class="field">
-				<label for="redirect-to">To</label>
+				<label for="redirect-to">{{ t('redirect_dialog.to', 'To') }}</label>
 				<LinkPicker
 					id="redirect-to"
 					v-model="to"
 					:chosen="chosen"
 					:search="findPages"
-					label="To"
+					:label="t('redirect_dialog.to', 'To')"
 					:autofocus="props.from !== undefined || repick"
 					:invalid="bad('to').length > 0"
 					@choose="choose"
@@ -225,7 +227,7 @@ async function save(): Promise<void> {
 			</div>
 
 			<div class="field">
-				<label for="redirect-status">Type</label>
+				<label for="redirect-status">{{ t('redirect_dialog.type', 'Type') }}</label>
 				<AdminSelect id="redirect-status" v-model="status" :options="STATUS_OPTIONS" describedBy="redirect-status-help" />
 				<p id="redirect-status-help" class="field__help">{{ TYPES[Number(status) as RedirectStatus]?.say }}</p>
 			</div>
@@ -239,10 +241,10 @@ async function save(): Promise<void> {
 		</form>
 
 		<template #footer>
-			<button v-if="row" type="button" class="button button--ghost button--danger redirect-form__delete" @click="emit('delete', row)"><AdminIcon name="trash-2" />Delete</button>
-			<span v-if="tried && errors" class="redirect-form__say">{{ errors === 1 ? 'One thing to fix' : `${errors} things to fix` }} first.</span>
-			<button type="button" class="button" @click="emit('close')">Cancel</button>
-			<button type="submit" form="redirect-form" class="button button--primary" :disabled="saving">{{ row ? 'Save' : 'Add Redirect' }}</button>
+			<button v-if="row" type="button" class="button button--ghost button--danger redirect-form__delete" @click="emit('delete', row)"><AdminIcon name="trash-2" />{{ t('common.delete', 'Delete') }}</button>
+			<span v-if="tried && errors" class="redirect-form__say">{{ t('redirect_dialog.to_fix', '{count, plural, =1 {One thing to fix} other {# things to fix} } first.', { count: errors }) }}</span>
+			<button type="button" class="button" @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
+			<button type="submit" form="redirect-form" class="button button--primary" :disabled="saving">{{ row ? t('common.save', 'Save') : t('redirect_dialog.add_redirect', 'Add Redirect') }}</button>
 		</template>
 	</AdminModal>
 </template>

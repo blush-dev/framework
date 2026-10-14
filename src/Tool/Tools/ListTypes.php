@@ -19,6 +19,8 @@ use Blush\Tool\ToolContext;
 use Blush\Tool\ToolEntries;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `list_types` (D-755): each content type the connection sees, briefly,
@@ -26,19 +28,21 @@ use Blush\Tool\ToolResult;
  */
 final class ListTypes extends Tool
 {
-	public function __construct(private readonly ToolEntries $entries)
-	{}
+	public function __construct(
+		private readonly ToolEntries $entries,
+		private readonly Messages $messages
+	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'List Content Types';
+		return $this->messages->t('tool.list_types.title', 'List Content Types');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Lists the site\'s content types (posts, pages, and the site\'s own): each one\'s name, label, kind (a dated collection, or a tree of pages), a line about it, and how many entries this connection can see. Call it first to learn what the site has; call get_type before writing an entry of a type.';
+		return $this->messages->t('tool.list_types.description', 'Lists the site\'s content types (posts, pages, and the site\'s own): each one\'s name, label, kind (a dated collection, or a tree of pages), a line about it, and how many entries this connection can see. Call it first to learn what the site has; call get_type before writing an entry of a type.');
 	}
 
 	#[Override]

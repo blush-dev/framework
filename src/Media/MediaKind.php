@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What kind of file a media file is (D-287), from its MIME type: an
  * image, a video, audio, a document (a PDF, an office file, plain text;
@@ -55,14 +58,14 @@ enum MediaKind: string
 	/**
 	 * Returns the kind's name for people, as the admin offers it.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Image    => 'Images',
-			self::Video    => 'Videos',
-			self::Audio    => 'Audio',
-			self::Document => 'Documents',
-			self::File     => 'Other Files'
+			self::Image    => $messages->t('media.media_kind.image', 'Images'),
+			self::Video    => $messages->t('media.media_kind.video', 'Videos'),
+			self::Audio    => $messages->t('media.media_kind.audio', 'Audio'),
+			self::Document => $messages->t('media.media_kind.document', 'Documents'),
+			self::File     => $messages->t('media.media_kind.file', 'Other Files')
 		};
 	}
 

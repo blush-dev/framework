@@ -13,19 +13,20 @@
 import AdminIcon from './AdminIcon.vue';
 import type { ExtensionSuggestion } from '../api';
 import { extensionRoute } from '../extensions';
+import { t } from '../messages';
 
 defineProps<{ suggestions: ExtensionSuggestion[] }>();
 
 function status(suggestion: ExtensionSuggestion): string {
 	if (suggestion.extension) {
-		return 'Installed:';
+		return t('extension_suggestions.installed', 'Installed:');
 	}
 
 	if (suggestion.loaded !== null) {
-		return suggestion.loaded ? 'Loaded:' : 'Not loaded:';
+		return suggestion.loaded ? t('extension_suggestions.loaded', 'Loaded:') : t('extension_suggestions.not_loaded', 'Not loaded:');
 	}
 
-	return 'Suggested:';
+	return t('extension_suggestions.suggested', 'Suggested:');
 }
 </script>
 
@@ -40,9 +41,9 @@ function status(suggestion: ExtensionSuggestion): string {
 						<RouterLink :to="extensionRoute(suggestion.extension.kind, suggestion.extension.name)">{{ suggestion.extension.label }}</RouterLink>
 						<span class="mono dependencies__name">{{ suggestion.name }}</span>
 					</template>
-					<span v-else-if="suggestion.name.startsWith('ext-')">PHP Extension: {{ suggestion.name.slice(4) }}</span>
+					<span v-else-if="suggestion.name.startsWith('ext-')">{{ t('extension_suggestions.php_extension', 'PHP Extension: {name}', { name: suggestion.name.slice(4) }) }}</span>
 					<span v-else class="mono">{{ suggestion.name }}</span>
-					<span v-if="suggestion.loaded === false" class="dependencies__note">isn't loaded</span>
+					<span v-if="suggestion.loaded === false" class="dependencies__note">{{ t('extension_suggestions.not_loaded_note', "isn't loaded") }}</span>
 				</div>
 				<p v-if="suggestion.reason" class="dependencies__why">{{ suggestion.reason }}</p>
 			</div>

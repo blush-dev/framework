@@ -18,6 +18,7 @@ use Override;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 use Blush\Data\InvalidData;
+use Blush\Translation\Messages;
 
 /**
  * The temporary `YamlParser` adapter over symfony/yaml (D-045, D-080).
@@ -30,6 +31,10 @@ use Blush\Data\InvalidData;
  */
 final readonly class SymfonyYamlParser implements YamlParser
 {
+	public function __construct(
+		private Messages $messages
+	) {}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -39,7 +44,7 @@ final readonly class SymfonyYamlParser implements YamlParser
 		try {
 			$data = Yaml::parse($yaml, Yaml::PARSE_DATETIME | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE);
 		} catch (ParseException $e) {
-			throw new InvalidData(sprintf('Invalid YAML: %s', $e->getMessage()), previous: $e);
+			throw new InvalidData((string) $this->messages->t('content.symfony_yaml_parser.invalid', 'Invalid YAML: {problem}', problem: $e->getMessage()), previous: $e);
 		}
 
 		return $this->plain($data);
@@ -61,7 +66,7 @@ final readonly class SymfonyYamlParser implements YamlParser
 		}
 
 		if (is_object($value)) {
-			throw new InvalidData(sprintf('YAML may not contain objects; found %s.', $value::class));
+			throw new InvalidData((string) $this->messages->t('content.symfony_yaml_parser.object', 'YAML may not contain objects; found {class}.', class: $value::class));
 		}
 
 		return $value;

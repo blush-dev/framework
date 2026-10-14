@@ -35,6 +35,7 @@ use Blush\Extension\ExtensionKind;
 use Blush\Media\MediaKind;
 use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Tests\BootsScratchSite;
+use Blush\Translation\Messages;
 
 #[CoversClass(Permissions::class)]
 #[CoversClass(Capabilities::class)]
@@ -175,7 +176,7 @@ final class PermissionsTest extends TestCase
 			new Roles(new AuthConfig(roles: [
 				new Role('blind', 'Blind', ['extensions.plugins.delete']),
 				new Role('stylist', 'Stylist', ['extensions.*.view', 'extensions.themes.activate'])
-			]), new ArrayRecordStore(), new SystemClock()),
+			]), new ArrayRecordStore(), new SystemClock(), new Messages()),
 			$this->app->container()->make(Capabilities::class),
 			$this->app->container()->make(ContentTypes::class),
 			$this->app->container()->make(AccountProfiles::class)
@@ -218,7 +219,7 @@ final class PermissionsTest extends TestCase
 				new Role('reviewer', 'Reviewer', ['content.*.edit', 'content.*.edit.others', 'content.*.publish', 'content.*.delete']),
 				new Role('proofreader', 'Proofreader', ['content.*.edit.others', 'content.*.publish.others']),
 				new Role('pager', 'Pager', ['content.page.edit', 'content.page.edit.others', 'content.page.publish', 'content.profile.edit'])
-			]), new ArrayRecordStore(), new SystemClock()),
+			]), new ArrayRecordStore(), new SystemClock(), new Messages()),
 			$this->app->container()->make(Capabilities::class),
 			$this->app->container()->make(ContentTypes::class),
 			$this->app->container()->make(AccountProfiles::class)

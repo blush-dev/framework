@@ -22,6 +22,7 @@ use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * A tree's page is under its parent page by what its record says
@@ -43,7 +44,8 @@ final readonly class MissingParents
 		private Indexer $indexer,
 		private ContentTypes $types,
 		private Entries $content,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -56,7 +58,7 @@ final readonly class MissingParents
 	 */
 	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
+		$this->indexer->index(progress: new Progress($progress)->of((string) $this->messages->t('content.missing_parents.checking_index', 'Checking the content index')));
 
 		$snapshot = $this->index->snapshot();
 		$language = $this->app->languages->default->code;
@@ -125,7 +127,7 @@ final readonly class MissingParents
 		}
 
 		foreach ($pages as $done => [$type, $key, $title]) {
-			$steps->step('Writing parent pages', $done, count($pages));
+			$steps->step((string) $this->messages->t('content.missing_parents.writing', 'Writing parent pages'), $done, count($pages));
 
 			// A parent's own missing parents are written with it.
 			if ($this->content->named($type->name, $key) !== null) {
@@ -142,7 +144,7 @@ final readonly class MissingParents
 			}
 		}
 
-		$steps->step('Writing parent pages', count($pages), count($pages));
+		$steps->step((string) $this->messages->t('content.missing_parents.writing', 'Writing parent pages'), count($pages), count($pages));
 
 		return new CreatedEntries($created, $failed);
 	}

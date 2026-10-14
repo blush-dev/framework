@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * One of an extension's `require`, checked against the site (D-385,
  * D-431): what it names, its constraint, its kind, whether it's met, and
@@ -34,7 +37,7 @@ final readonly class Requirement
 		public string $constraint,
 		public RequirementKind $kind,
 		public bool $met,
-		public string $note = '',
+		public string|Text $note = '',
 		public string $label = '',
 		public bool $conflict = false,
 		public bool $replace = false,
@@ -46,7 +49,7 @@ final readonly class Requirement
 	 * `Blush ^3.0 (this site runs 2.0.0)`, `Shop ^2.0 (is turned off)`,
 	 * `acme/crm (isn't installed)`.
 	 */
-	public function describe(): string
+	public function describe(Messages $messages = new Messages()): string
 	{
 		$constraint = $this->constraint === '*' || $this->replace ? '' : " {$this->constraint}";
 		$extension  = $this->label !== '' ? $this->label : $this->name;
@@ -54,7 +57,7 @@ final readonly class Requirement
 		$what = match ($this->kind) {
 			RequirementKind::Blush      => "Blush {$this->constraint}",
 			RequirementKind::Php        => "PHP {$this->constraint}",
-			RequirementKind::Extension  => 'the PHP extension ' . substr($this->name, 4) . $constraint,
+			RequirementKind::Extension  => (string) $messages->t('extension.requirement.php_extension', 'the PHP extension {extension}', extension: substr($this->name, 4)) . $constraint,
 			RequirementKind::Plugin,
 			RequirementKind::Theme,
 			RequirementKind::IconPack,
@@ -65,13 +68,13 @@ final readonly class Requirement
 			RequirementKind::Unknown    => "{$this->name} {$this->constraint}"
 		};
 
-		return trim($what) . ($this->note === '' ? '' : " ({$this->note})");
+		return $this->note === '' ? trim($what) : (string) $messages->t('extension.requirement.with_note', '{requirement} ({note})', requirement: trim($what), note: $this->note);
 	}
 
 	/**
 	 * The requirement as the admin shows it.
 	 *
-	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}
+	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string|Text, label: string, metBy: string}
 	 */
 	public function toArray(): array
 	{

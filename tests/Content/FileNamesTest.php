@@ -73,7 +73,7 @@ final class FileNamesTest extends TestCase
 		$this->assertArrayNotHasKey('_post/index.md', $moves, 'Not a landing page.');
 		$this->assertArrayNotHasKey('_post/_hidden.md', $moves, 'Not a hidden name, which a pattern would unhide.');
 		$this->assertArrayNotHasKey('about/biography.md', $moves, 'Not a type without a pattern of its own.');
-		$this->assertSame(['_post/hello/index.md' => 'it\'s kept as a folder, which a pattern never names'], $report->skipped['post'] ?? null, 'Never a folder (D-513).');
+		$this->assertSame(['_post/hello/index.md' => 'it\'s kept as a folder, which a pattern never names'], array_map(strval(...), $report->skipped['post'] ?? []), 'Never a folder (D-513).');
 
 		$renamed = $this->names($app)->rename('post');
 
@@ -106,7 +106,7 @@ final class FileNamesTest extends TestCase
 
 		$report = $this->names($this->site())->report();
 
-		$this->assertSame('its date, 2007-00-00, isn\'t a real date; fix it first', $report->skipped['post']['_post/2007-03-05.weird.md'] ?? null, 'Not the day PHP rolls it to.');
+		$this->assertSame('its date, 2007-00-00, isn\'t a real date; fix it first', (string) ($report->skipped['post']['_post/2007-03-05.weird.md'] ?? ''), 'Not the day PHP rolls it to.');
 	}
 
 	public function testTranslationsLinkedByNameMoveWithTheirOriginal(): void
@@ -127,7 +127,7 @@ final class FileNamesTest extends TestCase
 		$report   = $this->names($app)->report();
 
 		$this->assertEquals(['en' => '_post/2008.spring.md', 'fr' => '_post/2008.spring.fr.md', 'pt-br' => '_post/primavera.pt-br.md'], $snapshot->translations('_post/2008.spring.md'), 'Linked by name, it moves; by id, it stays.');
-		$this->assertSame('a translation of it is kept as a folder, so renaming it would break their link', $report->skipped['post']['_post/2003-04-15.welcome.md'] ?? null);
+		$this->assertSame('a translation of it is kept as a folder, so renaming it would break their link', (string) ($report->skipped['post']['_post/2003-04-15.welcome.md'] ?? ''));
 		$this->assertTrue($report->isClean());
 	}
 

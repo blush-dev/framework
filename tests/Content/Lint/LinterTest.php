@@ -96,7 +96,7 @@ final class LinterTest extends TestCase
 		$this->assertContains('warning date: "2019-02-30" isn\'t a real date, so it\'s read as 2019-03-02.', $messages['alias.md'] ?? [], 'An alias is checked under the name it\'s written with.');
 		$this->assertSame(['warning updated: "2023-02-29" isn\'t a real date, so it\'s read as 2023-03-01.'], $messages['leap.md'] ?? null, 'A leap day is fine in a leap year.');
 		$this->assertArrayNotHasKey('text.md', $messages, 'Only date fields are checked.');
-		$this->assertSame('"2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.', $linter->lintFile('zeros.md')[0]->message ?? null);
+		$this->assertSame('"2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.', (string) ($linter->lintFile('zeros.md')[0]->message ?? ''));
 	}
 
 	public function testChecksTermParents(): void
@@ -117,7 +117,7 @@ final class LinterTest extends TestCase
 		$this->assertSame(['error parent: makes a loop: b → a → b.'], $messages['_topic/b.md']);
 		$this->assertSame(['warning parent: "missing" has no topic entry; the entry is shown at the top level.'], $messages['_topic/orphan.md']);
 		$this->assertSame(['error parent: names the entry itself; an entry can\'t be its own parent.'], $messages['_topic/self.md']);
-		$this->assertSame('names the entry itself; an entry can\'t be its own parent.', $linter->lintFile('_topic/self.md')[0]->message ?? null);
+		$this->assertSame('names the entry itself; an entry can\'t be its own parent.', (string) ($linter->lintFile('_topic/self.md')[0]->message ?? ''));
 	}
 
 	public function testWarnsOfPlaceholderDatesUnderAlignedKeys(): void
@@ -162,7 +162,7 @@ final class LinterTest extends TestCase
 		$this->assertArrayNotHasKey('_post/2003-04-15.welcome.md', $errors, 'So may a collection.');
 		$this->assertArrayNotHasKey('__drafts/2023-08-01.the-last-one.md', $errors, 'A hidden folder isn\'t checked.');
 		$this->assertArrayNotHasKey('_05.secret.md', $errors, 'Nor a hidden file.');
-		$this->assertStringStartsWith('has an order prefix', $linter->lintFile('01.services.md')[0]->message ?? '');
+		$this->assertStringStartsWith('has an order prefix', (string) ($linter->lintFile('01.services.md')[0]->message ?? ''));
 	}
 
 	public function testWarnsOfPagesAnotherRouteAnswers(): void

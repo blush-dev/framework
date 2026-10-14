@@ -27,6 +27,7 @@ use Blush\Field\FieldSetLoader;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\RecordException;
 use Blush\Support\RequestMemo;
+use Blush\Translation\Messages;
 
 /**
  * Gathers the content types from every source and checks that they fit
@@ -73,6 +74,7 @@ final readonly class ContentTypeLoader
 		private Container $container,
 		private FieldSetLoader $sets,
 		private RelationLoader $relations,
+		private Messages $messages,
 		private RequestMemo $memo = new RequestMemo()
 	) {}
 
@@ -122,17 +124,17 @@ final readonly class ContentTypeLoader
 			// any type from code, built-in ones too, without changing it
 			// otherwise (D-726).
 			if ($origin !== null && ContentType::onlyPlaces($definition)) {
-				$types[$name] = $types[$name]->placedBy($definition, $this->fields);
+				$types[$name] = $types[$name]->placedBy($definition, $this->fields, $this->messages);
 				continue;
 			}
 
 			if ($origin === TypeOrigin::Extension) {
-				$types[$name] = $types[$name]->overriddenBy($definition, $this->fields);
+				$types[$name] = $types[$name]->overriddenBy($definition, $this->fields, $this->messages);
 				$overrides[]  = $name;
 				continue;
 			}
 
-			$types[$name]   = ContentType::fromArray(['name' => $name, ...$definition], $this->fields);
+			$types[$name]   = ContentType::fromArray(['name' => $name, ...$definition], $this->fields, $this->messages);
 			$origins[$name] = TypeOrigin::Data;
 		}
 
@@ -147,7 +149,7 @@ final readonly class ContentTypeLoader
 
 			foreach ($converted as $name => $definition) {
 				if (! isset($relations[$name])) {
-					$relations[$name]       = Relation::fromArray(['name' => $name, ...$definition]);
+					$relations[$name]       = Relation::fromArray(['name' => $name, ...$definition], $this->messages);
 					$relationOrigins[$name] = RelationOrigin::Data;
 				}
 			}
@@ -155,7 +157,7 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named, $this->messages);
 		$this->check($resolved);
 
 		return $resolved;
@@ -250,10 +252,11 @@ final readonly class ContentTypeLoader
 			$urls = array_find(['urls', 'routing', 'prefix'], static fn (string $key): bool => array_key_exists($key, $definition));
 
 			if (! $this->config->dataTypeUrls && $urls !== null) {
-				throw new InvalidContentType(sprintf(
-					'The "%s" data type sets "%s", which ContentConfig "dataTypeUrls" doesn\'t allow.',
-					$name,
-					$urls
+				throw new InvalidContentType((string) $this->messages->t(
+					'content.content_type_loader.data_type_urls',
+					'The "{name}" data type sets "{option}", which ContentConfig "dataTypeUrls" doesn\'t allow.',
+					name: $name,
+					option: $urls
 				));
 			}
 
@@ -274,47 +277,59 @@ final readonly class ContentTypeLoader
 		$profiles = array_keys(array_filter($types->all(), static fn (ContentType $type): bool => $type instanceof Profiles));
 
 		if (count($profiles) > 1) {
-			throw new InvalidContentType(sprintf('A site has one profiles type, but "%s" are all profiles types.', implode('", "', $profiles)));
+			throw new InvalidContentType((string) $this->messages->t('content.content_type_loader.profiles_types', 'A site has one profiles type, but {types} are all profiles types.', types: '"' . implode('", "', $profiles) . '"'));
 		}
 
 		foreach ($types->relations() as $relation) {
 			if ($relation->kind === RelationKind::Credit && $relation->to !== $profiles) {
-				throw new InvalidContentType($profiles === []
-					? sprintf('Relation "%s" credits people, but the site has no profiles type.', $relation->name)
-					: sprintf('Relation "%s" credits people, so it points at the profiles type: "to" must be ["%s"].', $relation->name, $profiles[0]));
+				throw new InvalidContentType((string) ($profiles === []
+					? $this->messages->t('content.content_type_loader.credit_no_profiles', 'Relation "{name}" credits people, but the site has no profiles type.', name: $relation->name)
+					: $this->messages->t('content.content_type_loader.credit_to', 'Relation "{name}" credits people, so it points at the profiles type: "to" must be ["{profiles}"].', name: $relation->name, profiles: $profiles[0])));
 			}
 		}
 
 		foreach ($types as $name => $type) {
 			if ($type->byline !== null && ! isset($types->credits($name)[$type->byline])) {
-				throw new InvalidContentType(sprintf('Content type "%s" names "%s" as its byline, which isn\'t a credit relation from it.', $name, $type->byline));
+				throw new InvalidContentType((string) $this->messages->t('content.content_type_loader.bad_byline', 'Content type "{name}" names "{byline}" as its byline, which isn\'t a credit relation from it.', name: $name, byline: $type->byline));
 			}
 
 			if (isset($folders[$type->folder])) {
-				throw new InvalidContentType(sprintf(
-					'The "%s" and "%s" content types share the folder "%s".',
-					$folders[$type->folder],
-					$name,
-					$type->folder
+				throw new InvalidContentType((string) $this->messages->t(
+					'content.content_type_loader.shared_folder',
+					'The "{first}" and "{second}" content types share the folder "{folder}".',
+					first: $folders[$type->folder],
+					second: $name,
+					folder: $type->folder
 				));
 			}
 
 			$folders[$type->folder] = $name;
 
 			$references = [
-				['listing type', $type->listing->type],
-				['feed categories', $type->feed === false ? null : $type->feed->categories],
-				['feed listing type', $type->feed === false ? null : $type->feed->listing?->type]
+				['listing', $type->listing->type],
+				['categories', $type->feed === false ? null : $type->feed->categories],
+				['feed_listing', $type->feed === false ? null : $type->feed->listing?->type]
 			];
 
 			foreach ($references as [$option, $reference]) {
 				if ($reference !== null && ! $types->has($reference)) {
-					throw new InvalidContentType(sprintf('Content type "%s" %s names "%s", which doesn\'t exist.', $name, $option, $reference));
+					throw new InvalidContentType((string) $this->messages->t(
+						'content.content_type_loader.missing_reference',
+						'Content type "{name}" {option, select, listing {listing type} categories {feed categories} other {feed listing type}} names "{reference}", which doesn\'t exist.',
+						name: $name,
+						option: $option,
+						reference: $reference
+					));
 				}
 			}
 
 			if ($type->feed !== false && $type->feed->categories !== null && $types->classification($type->feed->categories) === null) {
-				throw new InvalidContentType(sprintf('Content type "%s" feed categories "%s" isn\'t a type a classify relation files entries under.', $name, $type->feed->categories));
+				throw new InvalidContentType((string) $this->messages->t(
+					'content.content_type_loader.bad_categories',
+					'Content type "{name}" feed categories "{categories}" isn\'t a type a classify relation files entries under.',
+					name: $name,
+					categories: $type->feed->categories
+				));
 			}
 
 			$types->schema($name);
@@ -325,14 +340,19 @@ final readonly class ContentTypeLoader
 		}
 
 		try {
-			new RelationCompiler()->compile($types);
+			new RelationCompiler($this->messages)->compile($types);
 		} catch (InvalidRelation $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
 		foreach ($types->relations() as $relation) {
 			if ($relation->inverse !== false && $relation->inverse->listing->type !== null && ! $types->has($relation->inverse->listing->type)) {
-				throw new InvalidContentType(sprintf('Relation "%s" inverse listing type names "%s", which doesn\'t exist.', $relation->name, $relation->inverse->listing->type));
+				throw new InvalidContentType((string) $this->messages->t(
+					'content.content_type_loader.missing_inverse_type',
+					'Relation "{name}" inverse listing type names "{type}", which doesn\'t exist.',
+					name: $relation->name,
+					type: $relation->inverse->listing->type
+				));
 			}
 		}
 

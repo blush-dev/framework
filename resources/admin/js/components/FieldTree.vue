@@ -17,7 +17,7 @@
 import { computed, ref, watch } from 'vue';
 import type { FieldDescription } from '../api';
 import { toDefinitions, toFieldNodes, type FieldNode } from '../field-tree';
-import { plural } from '../format';
+import { t } from '../messages';
 import { flatten } from '../tree';
 import AdminIcon from './AdminIcon.vue';
 import EmptyState from './EmptyState.vue';
@@ -36,7 +36,7 @@ const props = withDefaults(defineProps<{
 	// Keys the top level can't take, with where each is used.
 	taken?: Record<string, string>;
 	bare?: boolean;
-}>(), { heading: 'Fields', hint: '', noun: 'entries', locked: false, counts: () => ({}), taken: () => ({}) });
+}>(), { heading: t('field_tree.heading', 'Fields'), hint: '', noun: t('field_tree.noun', 'entries'), locked: false, counts: () => ({}), taken: () => ({}) });
 
 const definitions = defineModel<FieldDescription[]>({ required: true });
 
@@ -73,17 +73,17 @@ defineExpose({ add });
 	<component :is="bare ? 'div' : 'section'" :class="bare ? 'field-tree field-tree--bare' : 'panel field-tree'" :aria-labelledby="bare ? undefined : headingId">
 		<header :class="bare ? 'field-tree__bar' : 'panel__header'">
 			<h2 v-if="!bare" :id="headingId">{{ heading }}</h2>
-			<p v-if="!bare" class="panel__hint">{{ hint || plural(total, 'field') }}</p>
+			<p v-if="!bare" class="panel__hint">{{ hint || t('field_tree.count', '{count, plural, one {# field} other {# fields} }', { count: total }) }}</p>
 			<div class="panel__actions">
-				<button v-if="!locked" type="button" class="button button--small" @click="add"><AdminIcon name="plus" />Add Field</button>
+				<button v-if="!locked" type="button" class="button button--small" @click="add"><AdminIcon name="plus" />{{ t('field_tree.add', 'Add Field') }}</button>
 			</div>
 		</header>
 
 		<slot name="notice" />
 
-		<EmptyState v-if="!nodes.length" icon="group" heading="No Fields Yet" :text="locked ? 'It has no fields.' : `Add the first field, and every one of the ${noun} gets it.`">
+		<EmptyState v-if="!nodes.length" icon="group" :heading="t('field_tree.empty', 'No Fields Yet')" :text="locked ? t('field_tree.empty_locked', 'It has no fields.') : t('field_tree.empty_text', 'Add the first field, and every one of the {noun} gets it.', { noun })">
 			<template v-if="!locked" #actions>
-				<button type="button" class="button button--primary" @click="add"><AdminIcon name="plus" />Add Field</button>
+				<button type="button" class="button button--primary" @click="add"><AdminIcon name="plus" />{{ t('field_tree.add', 'Add Field') }}</button>
 			</template>
 		</EmptyState>
 

@@ -40,6 +40,7 @@ use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
 use Blush\Field\Fields\TextField;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
+use Blush\Translation\Messages;
 
 #[CoversClass(ContentType::class)]
 #[CoversClass(Collection::class)]
@@ -94,7 +95,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('_doc', new Tree('doc')->folder);
 		$this->assertSame('doc', new Tree('doc')->pagePath());
 		$this->assertSame('docs/guide', new Tree('doc', prefix: '/docs/guide/')->pagePath());
-		$this->assertSame('docs', ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'prefix' => 'docs'], $this->fields)->toArray()['prefix'] ?? null);
+		$this->assertSame('docs', ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'prefix' => 'docs'], $this->fields, new Messages())->toArray()['prefix'] ?? null);
 		$this->assertSame('', new Tree()->folder);
 		$this->assertSame('', new Tree()->pagePath());
 	}
@@ -103,7 +104,7 @@ final class ContentTypeTest extends TestCase
 	{
 		foreach (['folder' => 'recipes', 'path' => 'recipes'] as $key => $folder) {
 			try {
-				ContentType::fromArray(['name' => 'recipe', $key => $folder], $this->fields);
+				ContentType::fromArray(['name' => 'recipe', $key => $folder], $this->fields, new Messages());
 				$this->fail("\"{$key}\" is refused.");
 			} catch (InvalidContentType $e) {
 				$this->assertStringContainsString('every type is kept in _recipe now', $e->getMessage());
@@ -140,11 +141,11 @@ final class ContentTypeTest extends TestCase
 
 	public function testATypeIsPlacedInTheMenu(): void
 	{
-		$cast = ContentType::fromArray(['name' => 'cast', 'position' => 2, 'under' => 'movie'], $this->fields);
+		$cast = ContentType::fromArray(['name' => 'cast', 'position' => 2, 'under' => 'movie'], $this->fields, new Messages());
 		$this->assertSame([2, 'movie'], [$cast->position, $cast->under]);
 		$this->assertSame(['position' => 2, 'under' => 'movie'], array_intersect_key($cast->toArray(), array_flip(ContentType::PLACEMENT)));
 
-		$page = BuiltInType::Page->type()->placedBy(['position' => 0], $this->fields);
+		$page = BuiltInType::Page->type()->placedBy(['position' => 0], $this->fields, new Messages());
 		$this->assertInstanceOf(Tree::class, $page);
 		$this->assertSame([0, true], [$page->position, $page->atRoot()], 'Placing the site\'s pages keeps them as they are (D-726).');
 
@@ -153,12 +154,12 @@ final class ContentTypeTest extends TestCase
 		$this->assertFalse(ContentType::onlyPlaces([]));
 
 		$refused = [
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => -1], $this->fields), '0 or more'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 1.5], $this->fields), 'whole number'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'under' => 'cast'], $this->fields), 'under itself'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'under' => 'movie'], $this->fields), 'unknown options: under'],
-			[fn (): ContentType => BuiltInType::Profile->type()->placedBy(['position' => 1], $this->fields), 'listed with people'],
-			[fn (): ContentType => BuiltInType::Page->type()->placedBy(['icon' => 'file'], $this->fields), 'only be placed']
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => -1], $this->fields, new Messages()), '0 or more'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 1.5], $this->fields, new Messages()), 'whole number'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'under' => 'cast'], $this->fields, new Messages()), 'under itself'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'under' => 'movie'], $this->fields, new Messages()), 'unknown options: under'],
+			[fn (): ContentType => BuiltInType::Profile->type()->placedBy(['position' => 1], $this->fields, new Messages()), 'listed with people'],
+			[fn (): ContentType => BuiltInType::Page->type()->placedBy(['icon' => 'file'], $this->fields, new Messages()), 'only be placed']
 		];
 
 		foreach ($refused as [$build, $message]) {
@@ -181,7 +182,7 @@ final class ContentTypeTest extends TestCase
 
 	public function testDescriptionIconAndHierarchyRoundTrip(): void
 	{
-		$type = ContentType::fromArray(['name' => 'topic', 'hierarchical' => true, 'order' => 'position', 'description' => ' What posts are about. ', 'icon' => 'folder'], $this->fields);
+		$type = ContentType::fromArray(['name' => 'topic', 'hierarchical' => true, 'order' => 'position', 'description' => ' What posts are about. ', 'icon' => 'folder'], $this->fields, new Messages());
 
 		$this->assertInstanceOf(Collection::class, $type);
 		$this->assertTrue($type->hierarchical);
@@ -189,11 +190,11 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('What posts are about.', $type->description);
 		$this->assertSame('folder', $type->icon);
 		$this->assertSame(['name' => 'topic', 'kind' => 'collection', 'description' => 'What posts are about.', 'icon' => 'folder', 'hierarchical' => true, 'order' => 'position'], $type->toArray());
-		$this->assertSame('parent', $type->parentField()?->name);
-		$this->assertFalse($type->parentField()->multiple);
+		$this->assertSame('parent', $type->parentField(new Messages())?->name);
+		$this->assertFalse($type->parentField(new Messages())->multiple);
 		$this->assertSame('web', $type->parentKey('css', ['parent' => 'web']), 'A hierarchical collection nests by `parent` (D-593).');
 		$this->assertNull($type->parentKey('css', ['parent' => 'css']), 'Never its own.');
-		$this->assertNull(new Collection('tag')->parentField());
+		$this->assertNull(new Collection('tag')->parentField(new Messages()));
 		$this->assertNull(new Collection('tag')->parentKey('css', ['parent' => 'web']));
 	}
 
@@ -203,7 +204,7 @@ final class ContentTypeTest extends TestCase
 
 		// A 1.x folder is read away (D-683).
 		foreach (JtcomTypes::definitions() as $name => $definition) {
-			$types[$name] = ContentType::fromArray(['name' => $name, ...LegacyFolder::convert($name, $definition, TypeKind::Collection)], $this->fields);
+			$types[$name] = ContentType::fromArray(['name' => $name, ...LegacyFolder::convert($name, $definition, TypeKind::Collection)], $this->fields, new Messages());
 		}
 
 		$post = $types['post'];
@@ -225,7 +226,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['_literary_form', 'writing/forms'], [$form->folder, $form->prefix()]);
 		$this->assertSame(['position', Order::Asc], $form->order());
 
-		$relation = Relation::fromArray(['name' => 'literary_form', ...JtcomTypes::relations()['literary_form']]);
+		$relation = Relation::fromArray(['name' => 'literary_form', ...JtcomTypes::relations()['literary_form']], new Messages());
 
 		$this->assertSame(['literature'], $relation->from);
 		$this->assertEquals(new Listing(order: Order::Desc, perPage: 9999), $relation->inverse === false ? null : $relation->inverse->listing);
@@ -261,30 +262,30 @@ final class ContentTypeTest extends TestCase
 			'fields'       => [['name' => 'subtitle', 'type' => 'text']],
 			'closed'       => true
 		], $type->toArray());
-		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields, new Messages()));
 
 		// Each kind writes `llms` only when it isn't the kind's default (D-401).
-		$this->assertTrue(ContentType::fromArray(['name' => 'tag'], $this->fields)->llms);
-		$this->assertSame(false, ContentType::fromArray(['name' => 'tag', 'llms' => false], $this->fields)->toArray()['llms'] ?? null);
-		$this->assertArrayNotHasKey('llms', ContentType::fromArray(['name' => 'tag', 'llms' => true], $this->fields)->toArray());
-		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields)->llms);
-		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->llms);
+		$this->assertTrue(ContentType::fromArray(['name' => 'tag'], $this->fields, new Messages())->llms);
+		$this->assertSame(false, ContentType::fromArray(['name' => 'tag', 'llms' => false], $this->fields, new Messages())->toArray()['llms'] ?? null);
+		$this->assertArrayNotHasKey('llms', ContentType::fromArray(['name' => 'tag', 'llms' => true], $this->fields, new Messages())->toArray());
+		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields, new Messages())->llms);
+		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields, new Messages())->llms);
 
 		$terms = new Collection('topic', urls: false, feed: new TypeFeed(), hierarchical: true, order: TypeOrder::Position);
 
-		$this->assertEquals($terms, ContentType::fromArray($terms->toArray(), $this->fields));
+		$this->assertEquals($terms, ContentType::fromArray($terms->toArray(), $this->fields, new Messages()));
 		$this->assertSame(true, $terms->toArray()['feed']);
 		$this->assertSame(['hierarchical' => true, 'order' => 'position'], array_intersect_key($terms->toArray(), ['hierarchical' => true, 'order' => true]));
 
 		$pages = new Tree(fields: [new TextField('subtitle')]);
 
 		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
-		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields));
+		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields, new Messages()));
 
 		$profiles = new Profiles(folders: '{initial}', urls: new TypeUrls('team'), feed: new TypeFeed(), public: false);
 
 		$this->assertSame(['name' => 'profile', 'kind' => 'profiles', 'folders' => '{initial}', 'urls' => ['prefix' => 'team'], 'feed' => true, 'public' => false], $profiles->toArray());
-		$this->assertEquals($profiles, ContentType::fromArray($profiles->toArray(), $this->fields));
+		$this->assertEquals($profiles, ContentType::fromArray($profiles->toArray(), $this->fields, new Messages()));
 	}
 
 	public function testATypeNamesItsBylineAndRefusesPeopleFields(): void
@@ -293,13 +294,13 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertSame('cooks', $type->byline);
 		$this->assertSame('cooks', $type->toArray()['byline'] ?? null);
-		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields, new Messages()));
 		$this->assertNull(new Collection('post')->byline, 'None named: its only credit relation (D-602).');
 		$this->assertArrayNotHasKey('byline', new Collection('post')->toArray());
 
 		foreach (['people' => ['cooks' => true], 'authors' => true] as $key => $value) {
 			try {
-				ContentType::fromArray(['name' => 'post', $key => $value], $this->fields);
+				ContentType::fromArray(['name' => 'post', $key => $value], $this->fields, new Messages());
 				$this->fail($key);
 			} catch (InvalidContentType $e) {
 				$this->assertStringContainsString('credits people through a credit relation', $e->getMessage(), 'Credits are relations (D-602).');
@@ -318,16 +319,16 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['Essays', 'Essay'], $names(new Collection('essay')), 'A vowel before the y keeps it.');
 		$this->assertSame(['Pages', 'Page'], $names(new Tree()));
 
-		$type = ContentType::fromArray(['name' => 'person', 'labels' => ['plural' => 'People']], $this->fields);
+		$type = ContentType::fromArray(['name' => 'person', 'labels' => ['plural' => 'People']], $this->fields, new Messages());
 
 		$this->assertSame(['People', 'Person'], $names($type));
 		$this->assertSame(['plural' => 'People'], $type->toArray()['labels'] ?? null, 'Defaults are left out.');
-		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields, new Messages()));
 		$this->assertArrayNotHasKey('labels', new Collection('post')->toArray());
 
 		$era = new Collection('era', labels: new TypeLabels('Era of life', plural: 'Eras of life'));
 
-		$this->assertEquals($era, ContentType::fromArray($era->toArray(), $this->fields));
+		$this->assertEquals($era, ContentType::fromArray($era->toArray(), $this->fields, new Messages()));
 	}
 
 	public function testLabelsDefaultFromTheOnesBefore(): void
@@ -351,7 +352,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('Edit person', new TypeLabels('Person', editItem: '  ')->editItem, 'A blank label is its default.');
 		$this->assertSame('New Book of the Month', new TypeLabels('Book of the month')->newItem, 'The new label is in Title Case.');
 
-		$forms = TypeLabels::fromArray(['menu' => 'Forms'], 'literary_form');
+		$forms = TypeLabels::fromArray(['menu' => 'Forms'], 'literary_form', new Messages());
 
 		$this->assertSame(['Forms', 'Literary forms', 'literary forms'], [$forms->menu, $forms->plural, $forms->items], 'The menu label changes only the menu.');
 		$this->assertSame(['menu' => 'Forms'], $forms->toArray('literary_form'));
@@ -374,7 +375,7 @@ final class ContentTypeTest extends TestCase
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('Content type "post" labels has unknown options: label.');
 
-		ContentType::fromArray(['name' => 'post', 'labels' => ['label' => 'Posts']], $this->fields);
+		ContentType::fromArray(['name' => 'post', 'labels' => ['label' => 'Posts']], $this->fields, new Messages());
 	}
 
 	public function testRejectsTheOldLabelOptions(): void
@@ -382,17 +383,17 @@ final class ContentTypeTest extends TestCase
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('unknown options: label, singular.');
 
-		ContentType::fromArray(['name' => 'post', 'label' => 'Posts', 'singular' => 'Post'], $this->fields);
+		ContentType::fromArray(['name' => 'post', 'label' => 'Posts', 'singular' => 'Post'], $this->fields, new Messages());
 	}
 
 	public function testReadsKinds(): void
 	{
-		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note'], $this->fields));
-		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note', 'taxonomy' => false], $this->fields));
+		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note'], $this->fields, new Messages()));
+		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note', 'taxonomy' => false], $this->fields, new Messages()));
 
-		$this->assertInstanceOf(Profiles::class, ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields));
+		$this->assertInstanceOf(Profiles::class, ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields, new Messages()));
 
-		$pages = ContentType::fromArray(['name' => 'page', 'kind' => 'tree'], $this->fields);
+		$pages = ContentType::fromArray(['name' => 'page', 'kind' => 'tree'], $this->fields, new Messages());
 
 		$this->assertInstanceOf(Tree::class, $pages);
 		$this->assertSame('', $pages->folder);
@@ -409,7 +410,7 @@ final class ContentTypeTest extends TestCase
 			'dateArchives' => 'hour',
 			'fields'       => [['name' => 'venue', 'type' => 'text', 'required' => true]],
 			'feed'         => ['categories' => 'topic', 'listing' => ['perPage' => 50]]
-		], $this->fields);
+		], $this->fields, new Messages());
 
 		$this->assertSame(['_event', '{year}'], [$type->folder, $type->folders?->pattern]);
 		$this->assertSame('/on/{year}/{name}', $type->routePattern('single'));
@@ -427,20 +428,20 @@ final class ContentTypeTest extends TestCase
 			'collect'    => 'post',
 			'collection' => ['orderby' => 'date', 'number' => 0, 'meta_key' => 'mood'],
 			'feed'       => ['taxonomy' => 'topic', 'collection' => ['number' => 50]]
-		], $this->fields);
+		], $this->fields, new Messages());
 
 		$this->assertEquals(new Listing(type: 'post', orderBy: 'published', perPage: Listing::ALL, query: ['meta_key' => 'mood']), $type->listing);
 		$this->assertEquals(new TypeFeed('topic', new Listing(perPage: 50)), $type->feed);
-		$this->assertSame(DateArchives::Second, ContentType::fromArray(['name' => 'log', 'time_archives' => true], $this->fields)->dateArchives);
-		$this->assertSame(DateArchives::Day, ContentType::fromArray(['name' => 'log', 'date_archives' => true], $this->fields)->dateArchives);
-		$this->assertSame('page', ContentType::fromArray(['name' => 'page', 'collect' => false], $this->fields)->listedType());
+		$this->assertSame(DateArchives::Second, ContentType::fromArray(['name' => 'log', 'time_archives' => true], $this->fields, new Messages())->dateArchives);
+		$this->assertSame(DateArchives::Day, ContentType::fromArray(['name' => 'log', 'date_archives' => true], $this->fields, new Messages())->dateArchives);
+		$this->assertSame('page', ContentType::fromArray(['name' => 'page', 'collect' => false], $this->fields, new Messages())->listedType());
 	}
 
 	public function testTaxonomiesAreRefusedSayingWhatReplacedThem(): void
 	{
 		foreach ([['name' => 'tag', 'kind' => 'taxonomy'], ['name' => 'tag', 'taxonomy' => true]] as $definition) {
 			try {
-				ContentType::fromArray($definition, $this->fields);
+				ContentType::fromArray($definition, $this->fields, new Messages());
 				$this->fail('A taxonomy is refused (D-591).');
 			} catch (InvalidContentType $e) {
 				$this->assertStringStartsWith('Content type "tag" is a taxonomy, which Blush no longer has: make it a collection', $e->getMessage());
@@ -466,7 +467,7 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertSame(['path' => 'tags', 'hierarchical' => true, 'order' => 'position', 'llms' => false], $type);
 		$this->assertSame(['kind' => 'classify', 'from' => ['post'], 'to' => ['tag'], 'aliases' => ['tags'], 'create' => true, 'inverse' => ['listing' => ['order' => 'desc']]], $relation);
-		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...LegacyFolder::convert('tag', $type, TypeKind::Collection)], $this->fields));
+		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...LegacyFolder::convert('tag', $type, TypeKind::Collection)], $this->fields, new Messages()));
 
 		[$type, $relation] = LegacyTaxonomy::convert('category', ['kind' => 'taxonomy', 'field' => 'categories', 'urls' => false, 'llms' => true, 'people' => true]);
 
@@ -512,7 +513,7 @@ final class ContentTypeTest extends TestCase
 
 		foreach ($cases as [$definition, $message]) {
 			try {
-				ContentType::fromArray($definition, $this->fields);
+				ContentType::fromArray($definition, $this->fields, new Messages());
 				$this->fail($message);
 			} catch (InvalidContentType $e) {
 				$this->assertStringStartsWith($message, $e->getMessage());
@@ -522,27 +523,27 @@ final class ContentTypeTest extends TestCase
 
 	public function testEachKindHasAnOrderNeverByFile(): void
 	{
-		$this->assertSame(['published', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields)->order(), 'D-516');
-		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->order());
-		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'order' => 'position'], $this->fields)->order());
-		$this->assertSame(['title', Order::Asc], ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields)->order());
+		$this->assertSame(['published', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields, new Messages())->order(), 'D-516');
+		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields, new Messages())->order());
+		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'order' => 'position'], $this->fields, new Messages())->order());
+		$this->assertSame(['title', Order::Asc], ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields, new Messages())->order());
 
-		$tag = ContentType::fromArray(['name' => 'tag', 'order' => 'position', 'listing' => ['order' => 'desc']], $this->fields);
+		$tag = ContentType::fromArray(['name' => 'tag', 'order' => 'position', 'listing' => ['order' => 'desc']], $this->fields, new Messages());
 
 		$this->assertSame(['position', 'desc'], [$tag->listingArguments()['orderby'] ?? null, $tag->listingArguments()['order'] ?? null], 'Terms list in their order, the listing\'s way.');
-		$this->assertSame('published', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields)->listing->orderBy, '1.x\'s file order is published.');
+		$this->assertSame('published', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields, new Messages())->listing->orderBy, '1.x\'s file order is published.');
 	}
 
 	public function testCollectionsNameFilesByAPattern(): void
 	{
-		$dated = ContentType::fromArray(['name' => 'post', 'dateArchives' => 'day'], $this->fields);
-		$plain = ContentType::fromArray(['name' => 'note'], $this->fields);
-		$own   = ContentType::fromArray(['name' => 'log', 'filename' => '{year}.{slug}'], $this->fields);
+		$dated = ContentType::fromArray(['name' => 'post', 'dateArchives' => 'day'], $this->fields, new Messages());
+		$plain = ContentType::fromArray(['name' => 'note'], $this->fields, new Messages());
+		$own   = ContentType::fromArray(['name' => 'log', 'filename' => '{year}.{slug}'], $this->fields, new Messages());
 
 		$this->assertSame(['{slug}', '{slug}', '{year}.{slug}'], [$dated->naming()->pattern, $plain->naming()->pattern, $own->naming()->pattern], 'The slug alone by default, date archives or not (D-515).');
 		$this->assertArrayNotHasKey('filename', $dated->toArray(), 'The default isn\'t written.');
 		$this->assertSame('{year}.{slug}', $own->toArray()['filename'] ?? null);
-		$this->assertEquals($own, ContentType::fromArray($own->toArray(), $this->fields));
+		$this->assertEquals($own, ContentType::fromArray($own->toArray(), $this->fields, new Messages()));
 	}
 
 	public function testListingRejectsTypedArgumentsInItsQuery(): void

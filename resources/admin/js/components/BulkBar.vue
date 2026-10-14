@@ -16,9 +16,9 @@ defineEmits<{ clear: [] }>();
 
 <template>
 	<div class="bulk-bar" role="region" :aria-label="label">
-		<span class="bulk-bar__count" aria-live="polite">{{ count }} selected</span>
+		<span class="bulk-bar__count" aria-live="polite">{{ t('bulk_bar.selected', '{count} selected', { count }) }}</span>
 		<span class="bulk-bar__divider" aria-hidden="true" />
 		<slot />
-		<button type="button" class="button button--ghost button--small" @click="$emit('clear')">Clear</button>
+		<button type="button" class="button button--ghost button--small" @click="$emit('clear')">{{ t('bulk_bar.clear', 'Clear') }}</button>
 	</div>
 </template>

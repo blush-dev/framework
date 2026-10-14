@@ -31,6 +31,7 @@ use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\MediaField;
 use Blush\Llms\MarkdownLinks;
 use Blush\Media\MediaException;
+use Blush\Translation\Messages;
 
 /**
  * Entries as the API sends them (D-737 to D-739):
@@ -157,7 +158,7 @@ final readonly class EntryResource
 	 */
 	public function declared(ContentType $type): array
 	{
-		$skip = [EntryFields::ID => true, Refs::FIELD => true, ...array_fill_keys(array_keys(EntryFields::schema()->fields), true)];
+		$skip = [EntryFields::ID => true, Refs::FIELD => true, ...array_fill_keys(array_keys(EntryFields::schema(new Messages())->fields), true)];
 
 		foreach ($this->relations->for($type->name) as $relation) {
 			foreach ([$relation->field, ...$relation->aliases] as $key) {

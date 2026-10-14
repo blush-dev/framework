@@ -21,6 +21,7 @@ use Blush\Clock\DateFormat;
 use Blush\Clock\DateStyle;
 use Blush\Config\InvalidConfig;
 use Blush\Core\AppConfig;
+use Blush\Translation\Messages;
 
 #[CoversClass(DateFormat::class)]
 #[CoversClass(DateStyle::class)]
@@ -74,17 +75,17 @@ final class DateFormatTest extends TestCase
 	public function testPatternsAreCheckedMoreCloselyThanIcuChecksThem(): void
 	{
 		foreach (['long', 'short', 'MMMM d, y', "d 'de' MMMM 'de' y", "h 'o''clock'", 'EEEE'] as $format) {
-			$this->assertNull(DateFormat::problem($format), $format);
+			$this->assertNull(DateFormat::problem($format, new Messages()), $format);
 		}
 
 		foreach (['', '   ', 'MMMM d, y at h:mm', "d 'de MMMM", 'jj:mm', '---', "MMMM\ny", str_repeat('d', 101)] as $format) {
-			$this->assertNotNull(DateFormat::problem($format), $format);
+			$this->assertNotNull(DateFormat::problem($format, new Messages()), $format);
 		}
 	}
 
 	public function testTheMenuShowsEachFormatAsItReadsWithoutRepeats(): void
 	{
-		$options = DateFormat::options('date', self::when(), 'en_US', 'America/Chicago');
+		$options = DateFormat::options('date', self::when(), 'en_US', 'America/Chicago', new Messages());
 		$labels  = array_column($options, 'label', 'value');
 
 		$this->assertSame(['full', 'long', 'medium', 'short'], array_slice(array_column($options, 'value'), 0, 4));
@@ -92,8 +93,8 @@ final class DateFormatTest extends TestCase
 		$this->assertSame('2026-10-04', $labels['y-MM-dd'] ?? null);
 		$this->assertArrayNotHasKey('MMMM d, y', $labels, 'Long already reads that way in English.');
 		$this->assertSame(array_unique($labels), $labels);
-		$this->assertSame(['From the language', 'Fixed'], array_values(array_unique(array_column($options, 'group'))));
-		$this->assertContains('HH:mm', array_column(DateFormat::options('time', self::when(), 'en_US', 'America/Chicago'), 'value'));
+		$this->assertSame(['From the language', 'Fixed'], array_values(array_unique(array_map(strval(...), array_column($options, 'group')))));
+		$this->assertContains('HH:mm', array_column(DateFormat::options('time', self::when(), 'en_US', 'America/Chicago', new Messages()), 'value'));
 	}
 
 	public function testTheAppConfigTakesOnlyFormatsThatHold(): void

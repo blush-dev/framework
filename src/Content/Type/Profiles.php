@@ -17,6 +17,7 @@ use Override;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
+use Blush\Translation\Messages;
 
 /**
  * The type whose entries are the people other entries credit (D-351):
@@ -60,6 +61,7 @@ final readonly class Profiles extends ContentType
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $llms        Whether profiles are listed in `llms.txt` (D-401).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
+	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -77,9 +79,10 @@ final readonly class Profiles extends ContentType
 		?string $icon = null,
 		bool $llms = false,
 		?FileName $filename = null,
-		FieldControls $controls = new FieldControls()
+		FieldControls $controls = new FieldControls(),
+		Messages $messages = new Messages()
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $messages);
 	}
 
 	/**
@@ -124,7 +127,7 @@ final readonly class Profiles extends ContentType
 	#[Override]
 	public function role(): string
 	{
-		return 'the site\'s profiles type';
+		return 'profiles';
 	}
 
 	/**

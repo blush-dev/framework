@@ -18,6 +18,8 @@ use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Links to a type's collection: `collection: post`. Its landing page's
@@ -30,8 +32,11 @@ final class CollectionLink extends MenuLink
 		private readonly Entries $content,
 		private readonly ContentTypes $types,
 		private readonly ContentUrls $urls,
-		private readonly AppConfig $app
-	) {}
+		private readonly AppConfig $app,
+		Messages $messages
+	) {
+		parent::__construct($messages);
+	}
 
 	/**
 	 * @inheritDoc
@@ -50,11 +55,11 @@ final class CollectionLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function validate(mixed $value, array $item): ?string
+	public function validate(string $key, mixed $value, array $item): ?Text
 	{
 		return is_string($value) && preg_match('/^[a-z][a-z0-9_]*$/', trim($value)) === 1
 			? null
-			: 'must be a content type name, such as "post".';
+			: $this->messages->t('menu.collection_link.invalid', '"{link}" must be a content type name, such as "post".', link: $key);
 	}
 
 	/**
@@ -67,7 +72,7 @@ final class CollectionLink extends MenuLink
 		$type = $this->types->find($name);
 
 		if ($type === null || ! $type->public) {
-			throw new UnresolvedLink(sprintf('No public content type "%s".', $name));
+			throw new UnresolvedLink((string) $this->messages->t('menu.collection_link.missing', 'No public content type "{type}".', type: $name));
 		}
 
 		// On a translated page, the language's listing when it has a
@@ -76,7 +81,7 @@ final class CollectionLink extends MenuLink
 		$landing  = $language === null ? null : $this->content->named($name, '', $language);
 		$listed   = $language !== null && ($landing?->isPublished() === true || $this->content->query()->type($type->listedType())->language($language)->count() > 0);
 		$landing  = $listed ? $landing : $this->content->named($name, '');
-		$url      = $this->urls->collection($type, 1, $listed ? $language : null) ?? throw new UnresolvedLink(sprintf('The "%s" type has no collection URL.', $name));
+		$url      = $this->urls->collection($type, 1, $listed ? $language : null) ?? throw new UnresolvedLink((string) $this->messages->t('menu.collection_link.no_url', 'The "{type}" type has no collection URL.', type: $name));
 
 		return new LinkTarget($url, $landing !== null && $landing->isPublished() ? $landing->title : '');
 	}

@@ -24,9 +24,10 @@ import { errorMessage, request, type ContentTypeDetail } from '../api';
 import { useAction } from '../action';
 import { guardLeave } from '../confirm';
 import { humanize, label } from '../fields';
-import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 import { changesOf, formOf, type TypeForm } from '../type-form';
 import { findType, loadTypes, refreshTypes } from '../types';
 
@@ -46,7 +47,7 @@ async function load(name: string): Promise<void> {
 	try {
 		type.value = await request<ContentTypeDetail>('GET', `/types/${encodeURIComponent(name)}`);
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The content type couldn\'t be loaded.');
+		error.value = errorMessage(caught, t('type_view.load_failed', 'The content type couldn\'t be loaded.'));
 	}
 }
 
@@ -73,10 +74,10 @@ async function place(): Promise<void> {
 		return;
 	}
 
-	await runPlace('Its place in the menu couldn\'t be saved.', async () => {
+	await runPlace(t('type_view.place_failed', 'Its place in the menu couldn\'t be saved.'), async () => {
 		type.value = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(current.name)}`, { set: placeChanges.value });
 		refreshTypes();
-		toast(`Saved ${current.labels.plural}`);
+		toast(t('type_view.saved', 'Saved {label}', { label: current.labels.plural }));
 	});
 }
 
@@ -90,8 +91,8 @@ guardLeave(() => !type.value?.editable && placeCount.value > 0);
 const people   = computed(() => type.value?.kind === 'profiles');
 
 const origin = computed(() => ({
-	'built-in': 'Built in',
-	extension: 'A plugin',
+	'built-in': t('type_view.origin_built_in', 'Built in'),
+	extension: t('type_view.origin_plugin', 'A plugin'),
 	data: 'user/data/types'
 })[type.value?.origin ?? 'extension']);
 
@@ -101,16 +102,16 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'types' }"><AdminIcon name="chevron-left" />All types</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'types' }"><AdminIcon name="chevron-left" />{{ t('type_view.all_types', 'All types') }}</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ type?.labels.plural ?? 'Content Type' }}</h1>
+			<h1 tabindex="-1">{{ type?.labels.plural ?? t('type_view.title', 'Content Type') }}</h1>
 			<p v-if="type" class="page-header__hint">
-				{{ type.terms ? 'Terms' : humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}<template v-if="type.overridden"> · changed in <span class="mono">{{ type.file }}</span></template>
+				{{ type.terms ? t('type_view.terms', 'Terms') : humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · {{ t('type_view.from_origin', 'from {origin}', { origin }) }}<template v-if="type.overridden"> · <MessageText :text="t('type_view.changed_in', 'changed in {file}')"><template #file><span class="mono">{{ type.file }}</span></template></MessageText></template>
 			</p>
 			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink v-if="type" class="button button--primary" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon name="files" />View {{ type.labels.items }}</RouterLink>
+			<RouterLink v-if="type" class="button button--primary" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon name="files" />{{ t('type_view.view_items', 'View {items}', { items: type.labels.items }) }}</RouterLink>
 		</div>
 	</header>
 
@@ -122,35 +123,35 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 		<div class="detail__side">
 			<section class="panel" aria-labelledby="general-heading">
 				<header class="panel__header">
-					<h2 id="general-heading">General</h2>
-					<p class="panel__hint">Defined in {{ origin }}, so it's shown here</p>
+					<h2 id="general-heading">{{ t('type_view.general', 'General') }}</h2>
+					<p class="panel__hint">{{ t('type_view.defined_in', 'Defined in {origin}, so it\'s shown here', { origin }) }}</p>
 				</header>
 				<dl class="panel__body facts">
-					<div><dt>Name (plural)</dt><dd>{{ type.labels.plural }}</dd></div>
-					<div><dt>Name (singular)</dt><dd>{{ type.labels.singular }}</dd></div>
-					<div v-if="type.labels.menu !== type.labels.plural"><dt>In the menu</dt><dd>{{ type.labels.menu }}</dd></div>
-					<div><dt>Mid-sentence</dt><dd>{{ type.labels.item }}, {{ type.labels.items }}</dd></div>
-					<div><dt>Actions</dt><dd>{{ type.labels.newItem }} · {{ type.labels.editItem }} · {{ type.labels.searchItems }}</dd></div>
-					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
-					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind} icon` }}</span></dd></div>
-					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
-					<div><dt>Address</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? 'No pages of its own' }}</dd></div>
-					<div v-if="type.kind === 'collection'"><dt>Nests</dt><dd>{{ type.hierarchical ? 'Yes: an entry can name a parent' : 'No' }}</dd></div>
-					<div v-if="type.kind === 'collection'"><dt>Order</dt><dd>{{ type.order === 'position' ? 'By position, then title' : 'Newest published first' }}</dd></div>
-					<div v-if="!people"><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
-					<div v-if="!people"><dt>Credits authors</dt><dd>{{ type.authors ? 'Yes' : 'No' }}</dd></div>
-					<div v-for="archive in type.archivePages" :key="archive.relation"><dt>{{ archive.label }} archives</dt><dd class="mono">{{ `${(type.prefix ?? '').replace(/\/+$/, '')}/${archive.word}` }}</dd></div>
-					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
-					<div><dt>Feed</dt><dd>{{ type.feed ? 'Yes' : 'No' }}</dd></div>
-					<div><dt>In the sitemap</dt><dd>{{ type.sitemap ? 'Yes' : 'No' }}</dd></div>
-					<div><dt>In <code>llms.txt</code></dt><dd>{{ type.llms ? 'Yes' : 'No' }}</dd></div>
+					<div><dt>{{ t('type_view.name_plural', 'Name (plural)') }}</dt><dd>{{ type.labels.plural }}</dd></div>
+					<div><dt>{{ t('type_view.name_singular', 'Name (singular)') }}</dt><dd>{{ type.labels.singular }}</dd></div>
+					<div v-if="type.labels.menu !== type.labels.plural"><dt>{{ t('type_view.in_the_menu', 'In the menu') }}</dt><dd>{{ type.labels.menu }}</dd></div>
+					<div><dt>{{ t('type_view.mid_sentence', 'Mid-sentence') }}</dt><dd>{{ type.labels.item }}, {{ type.labels.items }}</dd></div>
+					<div><dt>{{ t('type_view.actions', 'Actions') }}</dt><dd>{{ type.labels.newItem }} · {{ type.labels.editItem }} · {{ type.labels.searchItems }}</dd></div>
+					<div><dt>{{ t('type_view.key', 'Key') }}</dt><dd class="mono">{{ type.name }}</dd></div>
+					<div><dt>{{ t('type_view.icon', 'Icon') }}</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? t('type_view.kind_icon', 'The {kind} icon', { kind: type.kind }) }}</span></dd></div>
+					<div><dt>{{ t('type_view.folder', 'Folder') }}</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
+					<div><dt>{{ t('type_view.address', 'Address') }}</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? t('type_view.no_pages', 'No pages of its own') }}</dd></div>
+					<div v-if="type.kind === 'collection'"><dt>{{ t('type_view.nests', 'Nests') }}</dt><dd>{{ type.hierarchical ? t('type_view.nests_yes', 'Yes: an entry can name a parent') : t('common.no', 'No') }}</dd></div>
+					<div v-if="type.kind === 'collection'"><dt>{{ t('type_view.order', 'Order') }}</dt><dd>{{ type.order === 'position' ? t('type_view.order_position', 'By position, then title') : t('type_view.order_newest', 'Newest published first') }}</dd></div>
+					<div v-if="!people"><dt>{{ t('type_view.dated', 'Dated') }}</dt><dd>{{ type.dated ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+					<div v-if="!people"><dt>{{ t('type_view.credits_authors', 'Credits authors') }}</dt><dd>{{ type.authors ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+					<div v-for="archive in type.archivePages" :key="archive.relation"><dt>{{ t('type_view.archives', '{label} archives', { label: archive.label }) }}</dt><dd class="mono">{{ `${(type.prefix ?? '').replace(/\/+$/, '')}/${archive.word}` }}</dd></div>
+					<div><dt>{{ t('type_view.public', 'Public') }}</dt><dd>{{ type.public ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+					<div><dt>{{ t('type_view.feed', 'Feed') }}</dt><dd>{{ type.feed ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+					<div><dt>{{ t('type_view.in_sitemap', 'In the sitemap') }}</dt><dd>{{ type.sitemap ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
+					<div><dt><MessageText :text="t('type_view.in_llms', 'In {file}')"><template #file><code>llms.txt</code></template></MessageText></dt><dd>{{ type.llms ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
 				</dl>
 			</section>
 
 			<form v-if="type.placeable && menu" class="panel" aria-labelledby="menu-heading" @submit.prevent="place">
 				<header class="panel__header">
-					<h2 id="menu-heading">In the Menu</h2>
-					<p class="panel__hint">Where it sits in the Content menu, for everyone</p>
+					<h2 id="menu-heading">{{ t('type_view.menu_heading', 'In the Menu') }}</h2>
+					<p class="panel__hint">{{ t('type_view.menu_hint', 'Where it sits in the Content menu, for everyone') }}</p>
 				</header>
 				<div class="panel__body">
 					<TypeMenuFields v-model="menu" id-prefix="type-" :name="type.name" />
@@ -160,7 +161,7 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 
 			<section v-if="people" class="panel" aria-labelledby="related-heading">
 				<header class="panel__header">
-					<h2 id="related-heading">Credited By</h2>
+					<h2 id="related-heading">{{ t('type_view.credited_by', 'Credited By') }}</h2>
 				</header>
 				<div class="panel__body">
 					<ul v-if="related.length" class="chips">
@@ -168,8 +169,8 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 							<RouterLink :to="{ name: 'content-type', params: { name: item.name } }">{{ item.label }}</RouterLink>
 						</li>
 					</ul>
-					<p v-else class="field__help">No type credits authors yet.</p>
-					<p class="field__help">Profiles are the public side of accounts, so they're under Users in the navigation.</p>
+					<p v-else class="field__help">{{ t('type_view.no_credits', 'No type credits authors yet.') }}</p>
+					<p class="field__help">{{ t('type_view.profiles_note', 'Profiles are the public side of accounts, so they\'re under Users in the navigation.') }}</p>
 				</div>
 			</section>
 
@@ -178,16 +179,16 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 
 		<section class="panel" aria-labelledby="fields-heading">
 			<header class="panel__header">
-				<h2 id="fields-heading">Fields</h2>
-				<p class="panel__hint">{{ plural(type.fields.length, 'field') }} of its own</p>
+				<h2 id="fields-heading">{{ t('type_view.fields', 'Fields') }}</h2>
+				<p class="panel__hint">{{ t('type_view.field_count', '{count, plural, one {# field} other {# fields} } of its own', { count: type.fields.length }) }}</p>
 			</header>
 			<div v-if="type.fields.length" class="table-wrap">
 				<table class="table" aria-labelledby="fields-heading">
 					<thead>
 						<tr>
-							<th scope="col">Field</th>
-							<th scope="col">Type</th>
-							<th scope="col">Required</th>
+							<th scope="col">{{ t('type_view.col_field', 'Field') }}</th>
+							<th scope="col">{{ t('type_view.col_type', 'Type') }}</th>
+							<th scope="col">{{ t('type_view.col_required', 'Required') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -198,14 +199,14 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 									<span class="entry-title__path">{{ field.name }}</span>
 								</span>
 							</th>
-							<td class="mono">{{ field.type }}{{ field.type === 'list' && field.item ? ` of ${field.item.type}` : '' }}{{ field.to ? ` → ${field.to}` : '' }}</td>
-							<td>{{ field.required ? 'Yes' : '' }}</td>
+							<td class="mono">{{ field.type }}{{ field.type === 'list' && field.item ? ` ${t('type_view.list_of', 'of {type}', { type: field.item.type })}` : '' }}{{ field.to ? ` → ${field.to}` : '' }}</td>
+							<td>{{ field.required ? t('common.yes', 'Yes') : '' }}</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
-			<p v-else class="panel__body field__help">None of its own.</p>
-			<p class="panel__body field__help">Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships.</p>
+			<p v-else class="panel__body field__help">{{ t('type_view.no_fields', 'None of its own.') }}</p>
+			<p class="panel__body field__help">{{ t('type_view.every_entry', 'Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships.') }}</p>
 		</section>
 	</div>
 

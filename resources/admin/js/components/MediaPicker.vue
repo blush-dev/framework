@@ -48,6 +48,8 @@ import { hasFiles, useFileDrop } from '../drop';
 import { formatSize } from '../format';
 import type { IconName } from '../icons';
 import { canUpload } from '../session';
+import { t } from '../messages';
+import MessageText from './MessageText.vue';
 
 type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
 
@@ -85,17 +87,17 @@ const tab      = ref<'library' | 'upload'>(uploads ? (props.uploadOnly ? 'upload
 const added    = ref<{ key: number; name: string; state: 'sending' | 'done' | 'failed'; file?: MediaItem; message?: string }[]>([]);
 
 const TABS: { key: 'library' | 'upload'; label: string; icon: IconName }[] = [
-	{ key: 'library', label: 'Library', icon: 'image' },
-	{ key: 'upload', label: 'Upload', icon: 'upload' }
+	{ key: 'library', label: t('media_picker.library', 'Library'), icon: 'image' },
+	{ key: 'upload', label: t('media_picker.upload', 'Upload'), icon: 'upload' }
 ];
 
 const KINDS = [
-	{ key: 'any', label: 'All' },
-	{ key: 'image', label: 'Images' },
-	{ key: 'video', label: 'Video' },
-	{ key: 'audio', label: 'Audio' },
-	{ key: 'document', label: 'Documents' },
-	{ key: 'file', label: 'Files' }
+	{ key: 'any', label: t('media_picker.kinds.any', 'All') },
+	{ key: 'image', label: t('media_picker.kinds.image', 'Images') },
+	{ key: 'video', label: t('media_picker.kinds.video', 'Video') },
+	{ key: 'audio', label: t('media_picker.kinds.audio', 'Audio') },
+	{ key: 'document', label: t('media_picker.kinds.document', 'Documents') },
+	{ key: 'file', label: t('media_picker.kinds.file', 'Files') }
 ] as const;
 
 // What a file that isn't an image, video, or audio is.
@@ -114,7 +116,14 @@ function kindOfName(name: string): Exclude<Kind, 'any'> {
 	return (Object.keys(EXTENSIONS) as (keyof typeof EXTENSIONS)[]).find((key) => EXTENSIONS[key].includes(extension)) ?? 'file';
 }
 
-const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'an audio file', document: 'a document', file: 'a file' };
+// Why a file of another kind is refused, by the kind the picker takes.
+const KIND_REFUSED: Record<Exclude<Kind, 'any'>, string> = {
+	image: t('media_picker.refused.image', 'It isn\'t an image, and only image files go here.'),
+	video: t('media_picker.refused.video', 'It isn\'t a video, and only video files go here.'),
+	audio: t('media_picker.refused.audio', 'It isn\'t an audio file, and only audio file files go here.'),
+	document: t('media_picker.refused.document', 'It isn\'t a document, and only document files go here.'),
+	file: t('media_picker.refused.file', 'It isn\'t a file, and only file files go here.')
+};
 
 function isKind(file: MediaItem, key: string): boolean {
 	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio', 'document'].includes(file.kind) : file.kind === key);
@@ -146,7 +155,7 @@ const limits = computed(() => {
 
 	const types = info.extensions.filter((extension) => !['jpeg', 'oga', 'm4v'].includes(extension)).map((extension) => extension.toUpperCase());
 
-	return [info.limit === null ? '' : `Up to ${formatSize(info.limit)} each`, types.join(', ')].filter((part) => part !== '').join(' · ');
+	return [info.limit === null ? '' : t('media_picker.limit', 'Up to {size} each', { size: formatSize(info.limit) }), types.join(', ')].filter((part) => part !== '').join(' · ');
 });
 
 const accept = computed(() => accepts.value?.extensions.filter((extension) => !props.locked || kind.value === 'any' || kindOfName(`x.${extension}`) === kind.value).map((extension) => `.${extension}`).join(',') ?? '');
@@ -172,7 +181,7 @@ async function send(list: FileList | File[] | null | undefined): Promise<void> {
 		added.value = [row, ...added.value];
 
 		if (props.locked && kind.value !== 'any' && kindOfName(file.name) !== kind.value) {
-			replace(row.key, { ...row, state: 'failed', message: `It isn't ${KIND_NAMES[kind.value]}, and only ${KIND_NAMES[kind.value].replace(/^an? /, '')} files go here.` });
+			replace(row.key, { ...row, state: 'failed', message: KIND_REFUSED[kind.value] });
 
 			continue;
 		}
@@ -189,7 +198,7 @@ async function send(list: FileList | File[] | null | undefined): Promise<void> {
 
 			selected.value = props.multiple ? [...selected.value.filter((other) => other.reference !== item.reference), item] : [item];
 		} catch (caught) {
-			replace(row.key, { ...row, state: 'failed', message: errorMessage(caught, 'It couldn\'t be uploaded.') });
+			replace(row.key, { ...row, state: 'failed', message: errorMessage(caught, t('media_picker.errors.upload', 'It couldn\'t be uploaded.')) });
 		}
 	}
 }
@@ -250,10 +259,14 @@ const actionLabel = computed(() => {
 	const count = selected.value.length;
 
 	if (count < 2) {
-		return props.action ?? 'Insert';
+		return props.action ?? t('media_picker.insert', 'Insert');
 	}
 
-	return `${props.action ?? 'Insert'} ${count} ${props.locked && kind.value === 'image' ? 'Images' : 'Files'}`;
+	const action = props.action ?? t('media_picker.insert', 'Insert');
+
+	return props.locked && kind.value === 'image'
+		? t('media_picker.action_images', '{action} {count} Images', { action, count })
+		: t('media_picker.action_files', '{action} {count} Files', { action, count });
 });
 
 // The dialog closes first: while it's open and modal, nothing outside it
@@ -280,23 +293,23 @@ function use(chosen: MediaItem[]): void {
 		@drop="drop"
 	>
 		<div class="panel__header" :class="{ 'picker__head--tabbed': tabbed }">
-			<h2 id="media-picker-heading">{{ title ?? 'Insert Media' }}</h2>
+			<h2 id="media-picker-heading">{{ title ?? t('media_picker.title', 'Insert Media') }}</h2>
 			<div class="panel__actions">
 				<button type="button" class="button button--ghost button--small button--icon" @click="close()">
 					<AdminIcon name="x" />
-					<span class="visually-hidden">Close</span>
+					<span class="visually-hidden">{{ t('common.close', 'Close') }}</span>
 				</button>
 			</div>
-			<TabBar v-if="tabbed" v-model="tab" class="picker__tabs" :tabs="TABS" label="Source" prefix="media" />
+			<TabBar v-if="tabbed" v-model="tab" class="picker__tabs" :tabs="TABS" :label="t('media_picker.source', 'Source')" prefix="media" />
 		</div>
 
 		<div v-if="!uploadOnly" v-show="tab === 'library'" id="media-panel-library" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-library' : undefined">
 			<div class="modal__bar">
 				<label class="search-field">
 					<AdminIcon name="search" />
-					<input ref="searchEl" v-model="search" type="search" placeholder="Search file names…" aria-label="Search media" autocomplete="off">
+					<input ref="searchEl" v-model="search" type="search" :placeholder="t('media_picker.search_placeholder', 'Search file names…')" :aria-label="t('media_picker.search', 'Search media')" autocomplete="off">
 				</label>
-				<div v-if="!locked" class="segmented" role="group" aria-label="Kind">
+				<div v-if="!locked" class="segmented" role="group" :aria-label="t('media_picker.kind', 'Kind')">
 					<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
 				</div>
 			</div>
@@ -306,8 +319,8 @@ function use(chosen: MediaItem[]): void {
 
 				<section aria-labelledby="media-library">
 					<h3 id="media-library" class="modal__count">
-						<span>Library</span>
-						<span aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</span>
+						<span>{{ t('media_picker.library', 'Library') }}</span>
+						<span aria-live="polite">{{ loading && !files.length ? t('common.loading', 'Loading…') : t('media_picker.count', '{count, plural, one {# file} other {# files} }', { count: total }) }}</span>
 					</h3>
 					<div v-if="files.length" class="picker__grid">
 						<MediaCard v-for="file in files" :key="file.reference" :file="file" :details="details(file)" :selected="order(file) > 0" :order="multiple ? order(file) : undefined" @click="choose(file)" @dblclick="chooseNow(file)" />
@@ -318,17 +331,17 @@ function use(chosen: MediaItem[]): void {
 					<EmptyState
 						v-else-if="!error"
 						:icon="search || kind !== 'any' ? 'search' : 'image'"
-						:heading="search || kind !== 'any' ? 'Nothing Matches' : 'The Library Is Empty'"
-						:text="search || kind !== 'any' ? 'No file in the library matches that name or kind.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.'"
+						:heading="search || kind !== 'any' ? t('media_picker.no_matches', 'Nothing Matches') : t('media_picker.empty', 'The Library Is Empty')"
+						:text="search || kind !== 'any' ? t('media_picker.no_matches_text', 'No file in the library matches that name or kind.') : t('media_picker.empty_text', 'Images, video, audio, and documents you upload land here, and any entry can use them.')"
 					>
 						<template #actions>
 							<button v-if="uploads" type="button" class="button" @click="showTab('upload')">
-								<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload One Instead' : 'Upload a File' }}
+								<AdminIcon name="upload" />{{ search || kind !== 'any' ? t('media_picker.upload_instead', 'Upload One Instead') : t('media_picker.upload_file', 'Upload a File') }}
 							</button>
 						</template>
 					</EmptyState>
 					<p v-if="page < pages" class="picker__more">
-						<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show More' }}</button>
+						<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? t('common.loading', 'Loading…') : t('media_picker.show_more', 'Show More') }}</button>
 					</p>
 				</section>
 			</div>
@@ -338,24 +351,24 @@ function use(chosen: MediaItem[]): void {
 			<div class="modal__body picker__body picker__upload">
 				<div class="picker__drop">
 					<AdminIcon name="upload" />
-					<p class="picker__drop-heading">Drag Files Here</p>
-					<p class="picker__drop-text">Images, video, audio, and documents. They land in the library, so any entry can use them afterwards.</p>
-					<button type="button" class="button button--primary" @click="input?.click()">Choose Files</button>
+					<p class="picker__drop-heading">{{ t('media_picker.drag_here', 'Drag Files Here') }}</p>
+					<p class="picker__drop-text">{{ t('media_picker.drop_text', 'Images, video, audio, and documents. They land in the library, so any entry can use them afterwards.') }}</p>
+					<button type="button" class="button button--primary" @click="input?.click()">{{ t('media_picker.choose_files', 'Choose Files') }}</button>
 					<p v-if="limits" class="picker__drop-hint">{{ limits }}</p>
 				</div>
 				<input ref="input" type="file" multiple hidden :accept="accept" @change="browse">
 
 				<section v-if="added.length" class="picker__added" aria-labelledby="media-added">
 					<h3 id="media-added" class="modal__count">
-						<span>Added to the Library</span>
-						<button v-if="tabbed" type="button" class="lnk picker__show" @click="showTab('library')">Show in library</button>
+						<span>{{ t('media_picker.added', 'Added to the Library') }}</span>
+						<button v-if="tabbed" type="button" class="lnk picker__show" @click="showTab('library')">{{ t('media_picker.show_in_library', 'Show in library') }}</button>
 					</h3>
 					<ul class="picker__receipt" aria-live="polite">
 						<li v-for="row in added" :key="row.key" class="picker__row" :class="`picker__row--${row.state}`">
 							<AdminIcon :name="row.state === 'done' ? 'circle-check' : (row.state === 'failed' ? 'triangle-alert' : 'upload')" />
 							<span class="picker__row-name">{{ row.name }}</span>
 							<span class="picker__row-sub mono">
-								<template v-if="row.state === 'sending'">Uploading…</template>
+								<template v-if="row.state === 'sending'">{{ t('media_picker.uploading', 'Uploading…') }}</template>
 								<template v-else-if="row.file">{{ details(row.file) }}</template>
 								<template v-else>{{ row.message }}</template>
 							</span>
@@ -368,13 +381,13 @@ function use(chosen: MediaItem[]): void {
 		<div class="modal__foot">
 			<p class="modal__selected" aria-live="polite">
 				<template v-if="selected.length > 1">
-					<b>{{ selected.length }} files chosen</b> · in the order they go in ·
-					<button type="button" class="lnk" @click="selected = []">Clear</button>
+					<MessageText :text="t('media_picker.chosen', '{chosen} · in the order they go in ·')"><template #chosen><b>{{ t('media_picker.files_chosen', '{count, plural, one {# file chosen} other {# files chosen} }', { count: selected.length }) }}</b></template></MessageText>
+					<button type="button" class="lnk" @click="selected = []">{{ t('media_picker.clear', 'Clear') }}</button>
 				</template>
 				<template v-else-if="selected[0]"><b>{{ mediaName(selected[0]) }}</b> · {{ details(selected[0]) }}</template>
-				<template v-else>{{ uploadOnly ? 'Upload a file.' : (multiple ? 'Choose one or more files.' : 'Choose a file.') }}</template>
+				<template v-else>{{ uploadOnly ? t('media_picker.prompt_upload', 'Upload a file.') : (multiple ? t('media_picker.prompt_multiple', 'Choose one or more files.') : t('media_picker.prompt_one', 'Choose a file.')) }}</template>
 			</p>
-			<button type="button" class="button" @click="close()">Cancel</button>
+			<button type="button" class="button" @click="close()">{{ t('common.cancel', 'Cancel') }}</button>
 			<button type="button" class="button button--primary" :disabled="selected.length === 0" @click="use(selected)">{{ actionLabel }}</button>
 		</div>
 	</dialog>

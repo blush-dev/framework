@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\FieldSets;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The site's content types as places field sets attach to (D-337),
@@ -24,8 +26,10 @@ use Blush\Field\FieldTargetSource;
  */
 final readonly class ContentTypeTargets implements FieldTargetSource
 {
-	public function __construct(private ContentTypes $types)
-	{}
+	public function __construct(
+		private ContentTypes $types,
+		private Messages $messages
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -40,9 +44,9 @@ final readonly class ContentTypeTargets implements FieldTargetSource
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Content types';
+		return $this->messages->t('content.content_type_targets.label', 'Content types');
 	}
 
 	/**
@@ -69,7 +73,11 @@ final readonly class ContentTypeTargets implements FieldTargetSource
 	#[Override]
 	public function slots(): array
 	{
-		return [new FieldSlot('details', 'Details', 'Facts about each entry, such as notes or search engine settings.')];
+		return [new FieldSlot(
+			'details',
+			$this->messages->t('content.content_type_targets.details', 'Details'),
+			$this->messages->t('content.content_type_targets.details_description', 'Facts about each entry, such as notes or search engine settings.')
+		)];
 	}
 
 	/**

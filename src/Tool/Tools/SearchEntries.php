@@ -31,6 +31,8 @@ use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
 use Blush\Storage\Record\Order;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `search_entries` (D-755): the API's filters (D-740) as typed input,
@@ -49,19 +51,20 @@ final class SearchEntries extends Tool
 		private readonly Entries $content,
 		private readonly Relations $relations,
 		private readonly ContentTypes $types,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Search Entries';
+		return $this->messages->t('tool.search_entries.title', 'Search Entries');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Finds entries (posts, pages, and the site\'s other types) by words, type, status, relationship (such as a tag or an author), parent page, and dates. Answers short summaries (id, type, title, status, address, dates, excerpt) without bodies; read one in full with get_entry. Finds drafts and scheduled entries this connection may see as well as published ones, but not the trash unless status asks for it.';
+		return $this->messages->t('tool.search_entries.description', 'Finds entries (posts, pages, and the site\'s other types) by words, type, status, relationship (such as a tag or an author), parent page, and dates. Answers short summaries (id, type, title, status, address, dates, excerpt) without bodies; read one in full with get_entry. Finds drafts and scheduled entries this connection may see as well as published ones, but not the trash unless status asks for it.');
 	}
 
 	#[Override]
@@ -151,7 +154,7 @@ final class SearchEntries extends Tool
 			'entries'     => array_map($this->entries->stub(...), $found),
 			'total'       => $total,
 			'next_cursor' => $page * $limit < $total ? (string) ($page + 1) : null
-		], sprintf('Found %d entr%s.', $total, $total === 1 ? 'y' : 'ies'));
+		], $this->messages->t('tool.search_entries.found', 'Found {count, plural, one {# entry} other {# entries}}.', count: $total));
 	}
 
 	/**
@@ -172,7 +175,7 @@ final class SearchEntries extends Tool
 		}
 
 		if ($keys === []) {
-			throw new ToolError(sprintf('There\'s no "%s" relationship to filter by; get_type lists a type\'s relationships.', $name));
+			throw new ToolError((string) $this->messages->t('tool.search_entries.no_relationship', 'There\'s no "{name}" relationship to filter by; get_type lists a type\'s relationships.', name: $name));
 		}
 
 		$slugs = array_map(fn (string $value): string => Uuid::isValid($value) ? ($this->content->find($value)->slug ?? "\0") : $value, $values);
@@ -218,7 +221,7 @@ final class SearchEntries extends Tool
 		try {
 			return new DateTimeImmutable($value, $this->app->timezone());
 		} catch (Exception) {
-			throw new ToolError(sprintf('"%s" must be a date, such as 2026-01-31; "%s" isn\'t one.', $key, $value));
+			throw new ToolError((string) $this->messages->t('tool.search_entries.not_a_date', '"{field}" must be a date, such as 2026-01-31; "{value}" isn\'t one.', field: $key, value: $value));
 		}
 	}
 
@@ -235,6 +238,6 @@ final class SearchEntries extends Tool
 
 		return is_string($cursor) && ctype_digit($cursor) && (int) $cursor >= 1
 			? (int) $cursor
-			: throw new ToolError('"cursor" must be the next_cursor a search answered.');
+			: throw new ToolError((string) $this->messages->t('tool.search_entries.cursor', '"cursor" must be the next_cursor a search answered.'));
 	}
 }

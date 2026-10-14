@@ -20,6 +20,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
+use Blush\Translation\Messages;
 
 /**
  * An account's profile (D-351): the entry of the site's profiles type an
@@ -38,7 +39,8 @@ final readonly class AccountProfiles
 		private Accounts $accounts,
 		private Entries $content,
 		private ContentTypes $types,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -125,7 +127,7 @@ final readonly class AccountProfiles
 			return null;
 		}
 
-		$type    = $this->types->profiles() ?? throw new AuthException('The site has no profiles type.');
+		$type    = $this->types->profiles() ?? throw new AuthException((string) $this->messages->t('auth.account_profiles.no_type', 'The site has no profiles type.'));
 		$profile = $this->content->named($type->name, $slug);
 
 		if ($profile === null) {
@@ -139,14 +141,14 @@ final readonly class AccountProfiles
 		$other = $profile->id === null ? null : $this->accounts->linkedTo($profile->id, $username);
 
 		if ($other !== null) {
-			throw new AuthException(sprintf('The "%s" profile is %s\'s already; a profile belongs to one account.', $slug, $this->displayName($other)));
+			throw new AuthException((string) $this->messages->t('auth.account_profiles.taken', 'The "{slug}" profile is {name}\'s already; a profile belongs to one account.', slug: $slug, name: $this->displayName($other)));
 		}
 
 		if ($profile->field('linkable') === false && ($username === null || $this->accounts->find($username)?->profile !== $profile->id)) {
-			throw new AuthException(sprintf('The "%s" profile is locked, so no account can be linked to it. Unlock it on its screen first.', $slug));
+			throw new AuthException((string) $this->messages->t('auth.account_profiles.locked', 'The "{slug}" profile is locked, so no account can be linked to it. Unlock it on its screen first.', slug: $slug));
 		}
 
-		return $profile->id ?? throw new AuthException(sprintf('The "%s" profile has no id yet; run `content:ids` first.', $slug));
+		return $profile->id ?? throw new AuthException((string) $this->messages->t('auth.account_profiles.no_id', 'The "{slug}" profile has no id yet; run {command} first.', slug: $slug, command: '`content:ids`'));
 	}
 
 	/**

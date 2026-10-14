@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a token may do, as its presets say it (D-750, D-752): read what
  * anyone may, write drafts and upload media, or everything its account
@@ -45,12 +48,12 @@ enum TokenScope: string
 	/**
 	 * Returns the scope's name, as the admin shows it.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Read    => 'Read',
-			self::Drafts  => 'Write drafts',
-			self::Account => 'Same as your account'
+			self::Read    => $messages->t('auth.token_scope.read', 'Read'),
+			self::Drafts  => $messages->t('auth.token_scope.drafts', 'Write drafts'),
+			self::Account => $messages->t('auth.token_scope.account', 'Same as your account')
 		};
 	}
 

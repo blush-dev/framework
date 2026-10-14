@@ -39,6 +39,7 @@ use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers `GET {path}/api/types` (D-233, D-234): the site's content types, so
@@ -105,7 +106,8 @@ final readonly class TypesController
 		private Entries $content,
 		private FeedConfig $feeds,
 		private ContentFiles $files,
-		private ControlDefaults $defaults
+		private ControlDefaults $defaults,
+		private Messages $messages
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -130,7 +132,7 @@ final readonly class TypesController
 		$type = $this->types->find($name);
 
 		if ($type === null) {
-			return Response::json(['error' => sprintf('There\'s no "%s" content type.', $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.types_controller.not_found', 'There\'s no "{name}" content type.', name: $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
 		}
 
 		return Response::json($this->detail($this->types, $type), headers: ['Cache-Control' => 'no-store']);

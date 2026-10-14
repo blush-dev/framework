@@ -19,6 +19,8 @@ use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidField;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A list of values of one field type:
@@ -60,18 +62,18 @@ final class ListField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'List';
+		return $messages->t('field.list_field.type_label', 'List');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'Several values.';
+		return $messages->t('field.list_field.type_description', 'Several values.');
 	}
 
 	/**
@@ -83,7 +85,7 @@ final class ListField extends Field
 		if (! is_array($value)) {
 			$value = [$value];
 		} elseif (! array_is_list($value)) {
-			throw $this->invalid('must be a list, not a map.');
+			throw $this->invalid($context->messages->t('field.list_field.map', 'must be a list, not a map.'));
 		}
 
 		$items = [];
@@ -96,16 +98,16 @@ final class ListField extends Field
 			try {
 				$items[] = $this->item->normalize($item, $context);
 			} catch (InvalidField $e) {
-				throw $this->invalid(sprintf('item %d %s', $index + 1, $e->getMessage()));
+				throw $this->invalid($context->messages->t('field.list_field.item', 'item {number} {problem}', number: $index + 1, problem: $e->text, context: 'The problem is the rest of the sentence, such as "must be text, not a list."'));
 			}
 		}
 
 		if ($this->min !== null && count($items) < $this->min) {
-			throw $this->invalid(sprintf('must have at least %d %s.', $this->min, $this->min === 1 ? 'item' : 'items'));
+			throw $this->invalid($context->messages->t('field.list_field.too_few', 'must have at least {min, plural, one {# item} other {# items}}.', min: $this->min));
 		}
 
 		if ($this->max !== null && count($items) > $this->max) {
-			throw $this->invalid(sprintf('must have at most %d %s.', $this->max, $this->max === 1 ? 'item' : 'items'));
+			throw $this->invalid($context->messages->t('field.list_field.too_many', 'must have at most {max, plural, one {# item} other {# items}}.', max: $this->max));
 		}
 
 		return $items;

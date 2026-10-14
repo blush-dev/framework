@@ -28,11 +28,11 @@ import MenuButton from '../components/MenuButton.vue';
 import SaveBar from '../components/SaveBar.vue';
 import { useAction } from '../action';
 import { errorMessage } from '../api';
-import { plural } from '../format';
 import { deleteRole, loadRoles, MEMBER, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can } from '../session';
 import { toast } from '../toast';
+import { t } from '../messages';
 
 const route  = useRoute();
 const router = useRouter();
@@ -42,7 +42,7 @@ const error  = ref('');
 loadRoles().then((answer) => {
 	list.value = answer;
 }, (caught: unknown) => {
-	error.value = errorMessage(caught, 'The role couldn\'t be loaded.');
+	error.value = errorMessage(caught, t('role_view.errors.load', 'The role couldn\'t be loaded.'));
 });
 
 const role       = computed(() => list.value?.roles.find((item) => item.name === route.params.name));
@@ -65,8 +65,8 @@ const lockedBecause = computed(() => {
 	}
 
 	return value.origin === 'config'
-		? 'This role is defined in config/auth.php, so it\'s changed there.'
-		: 'This role can do things you can\'t, so you can\'t change it.';
+		? t('role_view.locked_config', 'This role is defined in config/auth.php, so it\'s changed there.')
+		: t('role_view.locked_beyond', 'This role can do things you can\'t, so you can\'t change it.');
 });
 
 // Who holds it: a face for each of the first few, and where to see them.
@@ -139,11 +139,11 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	await run('The role couldn\'t be saved.', async () => {
+	await run(t('role_view.errors.save', 'The role couldn\'t be saved.'), async () => {
 		const saved = await updateRole(value.name, changes.value);
 
 		replace(saved);
-		toast(`Saved ${saved.label}`);
+		toast(t('role_view.saved', 'Saved {role}', { role: saved.label }));
 	});
 }
 
@@ -158,8 +158,8 @@ async function remove(): Promise<void> {
 	}
 
 	const question = custom.value
-		? { title: `Delete the ${value.label} Role?`, body: 'This can\'t be undone.', confirm: 'Delete the Role', danger: true }
-		: { title: `Reset ${value.label}?`, body: 'It goes back to the capabilities it\'s built with, and your changes to it are lost.', confirm: 'Reset the Role', danger: true };
+		? { title: t('role_view.delete_title', 'Delete the {role} Role?', { role: value.label }), body: t('role_view.delete_body', 'This can\'t be undone.'), confirm: t('role_view.delete_confirm', 'Delete the Role'), danger: true }
+		: { title: t('role_view.reset_title', 'Reset {role}?', { role: value.label }), body: t('role_view.reset_body', 'It goes back to the capabilities it\'s built with, and your changes to it are lost.'), confirm: t('role_view.reset_confirm', 'Reset the Role'), danger: true };
 
 	if (!await confirmAction(question)) {
 		return;
@@ -176,14 +176,14 @@ async function remove(): Promise<void> {
 				list.value = { ...list.value, roles: list.value.roles.filter((item) => item.name !== value.name) };
 			}
 
-			toast(`Deleted the ${value.label} role`, { kind: 'danger' });
+			toast(t('role_view.deleted', 'Deleted the {role} role', { role: value.label }), { kind: 'danger' });
 			await router.push({ name: 'roles' });
 		} else {
 			replace(after);
-			toast(`Reset ${after.label}`);
+			toast(t('role_view.reset', 'Reset {role}', { role: after.label }));
 		}
 	} catch (caught) {
-		removal.value = errorMessage(caught, 'The role couldn\'t be changed.');
+		removal.value = errorMessage(caught, t('role_view.errors.change', 'The role couldn\'t be changed.'));
 	}
 }
 
@@ -199,9 +199,9 @@ async function copyJson(): Promise<void> {
 
 	try {
 		await navigator.clipboard.writeText(JSON.stringify(json, null, '\t'));
-		toast(`Copied ${value.label} as JSON`);
+		toast(t('role_view.copied', 'Copied {role} as JSON', { role: value.label }));
 	} catch {
-		removal.value = 'The role couldn\'t be copied.';
+		removal.value = t('role_view.errors.copy', 'The role couldn\'t be copied.');
 	}
 }
 
@@ -211,7 +211,7 @@ guardLeave(() => changed.value);
 <template>
 	<form v-if="role" class="role form-stack" @submit.prevent="save">
 		<header class="page-header">
-			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />All roles</RouterLink>
+			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />{{ t('role_view.all_roles', 'All roles') }}</RouterLink>
 			<div class="page-header__text role__head">
 				<h1 tabindex="-1">{{ role.label }}</h1>
 				<p v-if="role.description" class="page-header__hint">{{ role.description }}</p>
@@ -225,26 +225,26 @@ guardLeave(() => changed.value);
 							<span class="role__faces" aria-hidden="true">
 								<AdminAvatar v-for="holder in holders.slice(0, 3)" :key="holder.username" class="role__face" :name="holder.displayName" :image="holder.avatar" />
 							</span>
-							<RouterLink :to="holdersLink">{{ holders.length === 1 ? holders[0]?.displayName : plural(holders.length, 'account') }}</RouterLink>
+							<RouterLink :to="holdersLink">{{ holders.length === 1 ? holders[0]?.displayName : t('role_view.accounts', '{count, plural, one {# account} other {# accounts} }', { count: holders.length }) }}</RouterLink>
 						</template>
-						<template v-else>Nobody holds it</template>
+						<template v-else>{{ t('role_view.nobody', 'Nobody holds it') }}</template>
 					</span>
 				</div>
 			</div>
 			<div class="page-header__actions">
-				<RouterLink v-if="!everything && !nothing && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
-				<MenuButton button-class="button button--icon" label="More actions">
+				<RouterLink v-if="!everything && !nothing && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />{{ t('role_view.duplicate', 'Duplicate') }}</RouterLink>
+				<MenuButton button-class="button button--icon" :label="t('role_view.more_actions', 'More actions')">
 					<template #button><AdminIcon name="ellipsis" /></template>
-					<button v-if="role.editable && custom" type="button" class="menu-item" @click="renaming = true"><AdminIcon name="pen-line" />Rename this role</button>
-					<button type="button" class="menu-item" @click="copyJson"><AdminIcon name="copy" />Copy as JSON</button>
+					<button v-if="role.editable && custom" type="button" class="menu-item" @click="renaming = true"><AdminIcon name="pen-line" />{{ t('role_view.rename', 'Rename this role') }}</button>
+					<button type="button" class="menu-item" @click="copyJson"><AdminIcon name="copy" />{{ t('role_view.copy_json', 'Copy as JSON') }}</button>
 					<template v-if="role.editable && role.origin !== 'built-in'">
 						<div class="menu-divider" />
-						<button v-if="custom" type="button" class="menu-item menu-item--danger" @click="remove"><AdminIcon name="trash-2" />Delete this role</button>
+						<button v-if="custom" type="button" class="menu-item menu-item--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('role_view.delete', 'Delete this role') }}</button>
 						<button v-else type="button" class="menu-item menu-item--described" @click="remove">
 							<AdminIcon name="refresh-cw" />
 							<span>
-								<span class="menu-item__name">Reset to built-in capabilities</span>
-								<span class="menu-item__text">Puts back the capabilities {{ role.label }} ships with.</span>
+								<span class="menu-item__name">{{ t('role_view.reset_name', 'Reset to built-in capabilities') }}</span>
+								<span class="menu-item__text">{{ t('role_view.reset_text', 'Puts back the capabilities {role} ships with.', { role: role.label }) }}</span>
 							</span>
 						</button>
 					</template>
@@ -257,53 +257,53 @@ guardLeave(() => changed.value);
 
 		<section v-if="renaming" class="panel" aria-labelledby="rename-heading">
 			<header class="panel__header">
-				<h2 id="rename-heading">Name and Description</h2>
+				<h2 id="rename-heading">{{ t('role_view.rename_heading', 'Name and Description') }}</h2>
 			</header>
 			<div class="panel__body field-pair role__rename">
 				<div class="field">
-					<label for="role-label">Name</label>
+					<label for="role-label">{{ t('role_view.name', 'Name') }}</label>
 					<input id="role-label" v-model="label" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<label for="role-key">Key</label>
+					<label for="role-key">{{ t('role_view.key', 'Key') }}</label>
 					<input id="role-key" :value="role.name" class="mono" disabled aria-describedby="role-key-help">
-					<p id="role-key-help" class="field__help">Names the role in account files. Fixed once it's made.</p>
+					<p id="role-key-help" class="field__help">{{ t('role_view.key_help', 'Names the role in account files. Fixed once it\'s made.') }}</p>
 				</div>
 				<div class="field role__description">
-					<label for="role-description">Description</label>
+					<label for="role-description">{{ t('role_view.description', 'Description') }}</label>
 					<input id="role-description" v-model="description" autocomplete="off" aria-describedby="role-description-help">
-					<p id="role-description-help" class="field__help">What it's for, in a line. Shown where roles are given.</p>
+					<p id="role-description-help" class="field__help">{{ t('role_view.description_help', 'What it\'s for, in a line. Shown where roles are given.') }}</p>
 				</div>
 			</div>
 		</section>
 
 		<section v-if="everything" class="panel" aria-labelledby="capabilities-heading">
 			<header class="panel__header">
-				<h2 id="capabilities-heading">Capabilities</h2>
-				<p class="panel__hint">Not editable on this role</p>
+				<h2 id="capabilities-heading">{{ t('role_view.capabilities', 'Capabilities') }}</h2>
+				<p class="panel__hint">{{ t('role_view.not_editable', 'Not editable on this role') }}</p>
 			</header>
 			<div class="role__everything">
 				<AdminIcon name="shield" />
 				<div>
-					<h3>Everything, Including What Doesn't Exist Yet</h3>
-					<p>{{ role.label }} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There's nothing to grant here, so there's nothing to draw.</p>
-					<p>Only an owner can give this role, or change an owner's account, so whoever holds it can't be locked out. Administrator is the role to give anyone else who runs the site; an owner can change what it allows.</p>
-					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the Account That Holds It' : 'See the Accounts That Hold It' }}</RouterLink>
+					<h3>{{ t('role_view.everything', 'Everything, Including What Doesn\'t Exist Yet') }}</h3>
+					<p>{{ t('role_view.everything_text', '{role} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There\'s nothing to grant here, so there\'s nothing to draw.', { role: role.label }) }}</p>
+					<p>{{ t('role_view.owner_text', 'Only an owner can give this role, or change an owner\'s account, so whoever holds it can\'t be locked out. Administrator is the role to give anyone else who runs the site; an owner can change what it allows.') }}</p>
+					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? t('role_view.see_account', 'See the Account That Holds It') : t('role_view.see_accounts', 'See the Accounts That Hold It') }}</RouterLink>
 				</div>
 			</div>
 		</section>
 
 		<section v-else-if="nothing" class="panel" aria-labelledby="capabilities-heading">
 			<header class="panel__header">
-				<h2 id="capabilities-heading">Capabilities</h2>
-				<p class="panel__hint">Not editable on this role</p>
+				<h2 id="capabilities-heading">{{ t('role_view.capabilities', 'Capabilities') }}</h2>
+				<p class="panel__hint">{{ t('role_view.not_editable', 'Not editable on this role') }}</p>
 			</header>
 			<div class="role__everything">
 				<AdminIcon name="user-round" />
 				<div>
-					<h3>Nothing but Their Own Account</h3>
-					<p>{{ role.label }} can sign in and look after their own account (their name, password, and preferences), and nothing else. It's what an account holds when it holds no other role: a new account starts with it, and taking someone's last role leaves them with it.</p>
-					<p>It never gets a capability, so whoever can make accounts but not give roles hands out nothing. To let someone do more, give them another role.</p>
+					<h3>{{ t('role_view.nothing', 'Nothing but Their Own Account') }}</h3>
+					<p>{{ t('role_view.nothing_text', '{role} can sign in and look after their own account (their name, password, and preferences), and nothing else. It\'s what an account holds when it holds no other role: a new account starts with it, and taking someone\'s last role leaves them with it.', { role: role.label }) }}</p>
+					<p>{{ t('role_view.nothing_more', 'It never gets a capability, so whoever can make accounts but not give roles hands out nothing. To let someone do more, give them another role.') }}</p>
 				</div>
 			</div>
 		</section>
@@ -315,13 +315,13 @@ guardLeave(() => changed.value);
 
 	<template v-else>
 		<header class="page-header">
-			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />All roles</RouterLink>
+			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />{{ t('role_view.all_roles', 'All roles') }}</RouterLink>
 			<div class="page-header__text">
-				<h1 tabindex="-1">Role</h1>
+				<h1 tabindex="-1">{{ t('role_view.role', 'Role') }}</h1>
 			</div>
 		</header>
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-		<p v-else-if="list" class="notice notice--error" role="alert">There's no “{{ route.params.name }}” role.</p>
+		<p v-else-if="list" class="notice notice--error" role="alert">{{ t('role_view.missing', 'There\'s no “{name}” role.', { name: route.params.name }) }}</p>
 	</template>
 </template>
 

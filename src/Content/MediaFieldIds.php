@@ -25,6 +25,7 @@ use Blush\Media\MediaException;
 use Blush\Media\MediaValues;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
+use Blush\Translation\Messages;
 
 /**
  * Finds media fields still written as paths (D-773), and rewrites each to
@@ -43,7 +44,8 @@ final readonly class MediaFieldIds
 		private RecordStores $stores,
 		private Entries $content,
 		private ContentTypes $types,
-		private MediaValues $media
+		private MediaValues $media,
+		private Messages $messages
 	) {}
 
 	/**
@@ -114,7 +116,7 @@ final readonly class MediaFieldIds
 			$found = $this->content->find($id);
 
 			if ($found === null || ! $this->types->has($found->type->name)) {
-				$failed[$id] = 'No entry has this id.';
+				$failed[$id] = (string) $this->messages->t('content.media_field_ids.no_entry', 'No entry has this id.');
 				continue;
 			}
 

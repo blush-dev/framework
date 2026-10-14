@@ -9,6 +9,7 @@ import { request, type ContentTypeSummary, type EntryStatus } from './api';
 import type { ContentAction } from './session';
 import { siteDateTime } from './dates';
 import { formatDate } from './format';
+import { t } from './messages';
 
 export interface CapabilityInfo {
 	name: string;
@@ -150,9 +151,9 @@ export interface TokenRequest {
 export type TokenPreset = 'read' | 'drafts' | 'all';
 
 export const TOKEN_PRESETS: { key: TokenPreset; label: string; text: string; capabilities: string[] | null }[] = [
-	{ key: 'read', label: 'Read', text: 'What anyone can read. For an API only tokens may read.', capabilities: [] },
-	{ key: 'drafts', label: 'Write drafts', text: 'Read and write drafts of any type, and upload media, but never publish.', capabilities: ['content.*.create', 'content.*.edit', 'content.*.edit.others', 'media.*.upload', 'media.edit'] },
-	{ key: 'all', label: 'Same as the account', text: 'Whatever the account may do, now and as its roles change.', capabilities: null }
+	{ key: 'read', label: t('people.preset_read', 'Read'), text: t('people.preset_read_text', 'What anyone can read. For an API only tokens may read.'), capabilities: [] },
+	{ key: 'drafts', label: t('people.preset_drafts', 'Write drafts'), text: t('people.preset_drafts_text', 'Read and write drafts of any type, and upload media, but never publish.'), capabilities: ['content.*.create', 'content.*.edit', 'content.*.edit.others', 'media.*.upload', 'media.edit'] },
+	{ key: 'all', label: t('people.preset_all', 'Same as the account'), text: t('people.preset_all_text', 'Whatever the account may do, now and as its roles change.'), capabilities: null }
 ];
 
 /**
@@ -171,7 +172,7 @@ export function tokenScope(capabilities: string[] | null): string {
 		? capabilities === null
 		: capabilities !== null && [...item.capabilities].sort().join() === [...capabilities].sort().join());
 
-	return preset?.label ?? `Chosen (${capabilities?.length ?? 0})`;
+	return preset?.label ?? t('people.chosen_count', 'Chosen ({count})', { count: capabilities?.length ?? 0 });
 }
 
 export function loadTokens(username: string): Promise<TokenList> {
@@ -407,9 +408,9 @@ export function roleKeyOf(label: string): string {
  */
 export function originOf(role: RoleInfo): string {
 	return {
-		'built-in': 'Built in',
-		changed: 'Built in, changed here',
-		custom: 'Made here',
+		'built-in': t('people.origin_built_in', 'Built in'),
+		changed: t('people.origin_changed', 'Built in, changed here'),
+		custom: t('people.origin_custom', 'Made here'),
 		config: 'config/auth.php'
 	}[role.origin];
 }
@@ -426,9 +427,9 @@ export function initials(name: string): string {
  */
 export function statusPill(status: AccountStatus): { label: string; kind: string } {
 	return {
-		active: { label: 'Active', kind: 'pill--good' },
-		invited: { label: 'Invited', kind: 'pill--warn' },
-		suspended: { label: 'Suspended', kind: 'pill--danger' }
+		active: { label: t('people.status_active', 'Active'), kind: 'pill--good' },
+		invited: { label: t('people.status_invited', 'Invited'), kind: 'pill--warn' },
+		suspended: { label: t('people.status_suspended', 'Suspended'), kind: 'pill--danger' }
 	}[status];
 }
 
@@ -439,7 +440,7 @@ export function statusPill(status: AccountStatus): { label: string; kind: string
  */
 export function when(time: number | null, compact = false): string {
 	if (time === null || time === 0) {
-		return 'Never';
+		return t('people.never', 'Never');
 	}
 
 	return compact ? formatDate(new Date(time * 1000).toISOString()) : siteDateTime(time);

@@ -17,6 +17,8 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use Override;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The site's field sets (`FieldSetLoader`), by name, with the fields
@@ -83,7 +85,7 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	 */
 	public function schemaFor(FieldTarget $target): Schema
 	{
-		return $this->resolve($target)[0];
+		return $this->resolve($target, new Messages())[0];
 	}
 
 	/**
@@ -101,26 +103,26 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns why what's attached to a target is left off it: by set
-	 * name, or by the owner of a registered field (for `content:lint`,
-	 * the site's checks, and the admin).
+	 * Returns why what's attached to a target is left off it, written with
+	 * `$messages` (D-836): by set name, or by the owner of a registered
+	 * field (for `content:lint`, the site's checks, and the admin).
 	 *
-	 * @return array<string, list<string>>
+	 * @return array<string, list<Text>>
 	 * @throws InvalidSchema When the target's own fields don't fit.
 	 */
-	public function clashes(FieldTarget $target): array
+	public function clashes(FieldTarget $target, Messages $messages): array
 	{
-		return $this->resolve($target)[1];
+		return $this->resolve($target, $messages)[1];
 	}
 
 	/**
 	 * Attaches a target's registered fields and sets one at a time,
 	 * leaving off each that doesn't fit what's before it.
 	 *
-	 * @return array{Schema, array<string, list<string>>}
+	 * @return array{Schema, array<string, list<Text>>}
 	 * @throws InvalidSchema When the target's own fields don't fit.
 	 */
-	private function resolve(FieldTarget $target): array
+	private function resolve(FieldTarget $target, Messages $messages): array
 	{
 		$schema  = $target->schema();
 		$owners  = [];
@@ -128,23 +130,25 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 
 		foreach ($this->registered->core($target->key()) as $field) {
 			foreach ([$field->name, ...$field->aliases] as $key) {
-				$owners[$key] = RegisteredField::CORE;
+				$owners[$key] = null;
 			}
 		}
 
 		$attachments = [
-			...array_map(static fn (RegisteredField $field): array => [$field->owner, sprintf('%s\'s field "%s"', $field->owner, $field->field->name), [$field->field]], $this->registered->for($target->key())),
-			...array_map(static fn (FieldSet $set): array => [$set->name, sprintf('field set "%s"', $set->name), array_values($set->schema->fields)], $this->for($target->key()))
+			...array_map(static fn (RegisteredField $field): array => [$field->owner, $messages->t('field.field_sets.registered_field', '{owner}\'s field "{field}"', owner: $field->owner, field: $field->field->name), [$field->field]], $this->registered->for($target->key())),
+			...array_map(static fn (FieldSet $set): array => [$set->name, $messages->t('field.field_sets.field_set', 'field set "{set}"', set: $set->name), array_values($set->schema->fields)], $this->for($target->key()))
 		];
 
 		foreach ($attachments as [$name, $what, $fields]) {
-			try {
-				$schema = $this->attach($schema, $target, $what, $fields, $owners);
-			} catch (InvalidSchema $e) {
-				$clashes[$name][] = $e->getMessage();
+			$attached = $this->attach($schema, $target, $what, $fields, $owners, $messages);
+
+			if ($attached instanceof Text) {
+				$clashes[$name][] = $attached;
 
 				continue;
 			}
+
+			$schema = $attached;
 
 			foreach ($fields as $field) {
 				foreach ([$field->name, ...$field->aliases] as $key) {
@@ -157,17 +161,18 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Adds fields to a target's schema.
+	 * Adds fields to a target's schema, or returns why they can't be
+	 * added, naming the target, what's attached, and what declared the
+	 * key first.
 	 *
-	 * @param  list<Field>           $fields
-	 * @param  array<string, string> $owners What declared keys before, by key.
-	 * @throws InvalidSchema Naming the target, what's attached, and what declared the key first.
+	 * @param list<Field>          $fields
+	 * @param array<string, ?Text> $owners What declared keys before, by key; `null` for core.
 	 */
-	private function attach(Schema $schema, FieldTarget $target, string $what, array $fields, array $owners): Schema
+	private function attach(Schema $schema, FieldTarget $target, Text $what, array $fields, array $owners, Messages $messages): Schema|Text
 	{
 		foreach ($fields as $field) {
 			if (! $target->accepts($field)) {
-				throw new InvalidSchema(sprintf('%s can\'t take %s: it takes no field named "%s".', $target->key(), $what, $field->name));
+				return $messages->t('field.field_sets.not_taken', '{target} can\'t take {what}: it takes no field named "{field}".', target: $target->key(), what: $what, field: $field->name);
 			}
 
 			foreach ([$field->name, ...$field->aliases] as $key) {
@@ -175,20 +180,18 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 					continue;
 				}
 
-				$owner = $owners[$key] ?? null;
-
-				throw new InvalidSchema(match ($owner) {
-					RegisteredField::CORE => sprintf('%s can\'t take %s: "%s" is Blush\'s own key, so nothing else can declare it.', $target->key(), $what, $key),
-					null                  => sprintf('%s can\'t take %s: "%s" is already one of its own fields.', $target->key(), $what, $key),
-					default               => sprintf('%s can\'t take %s: %s declares "%s" there already, and a key is declared once.', $target->key(), $what, $owner, $key)
-				});
+				return match (true) {
+					! array_key_exists($key, $owners) => $messages->t('field.field_sets.own_field', '{target} can\'t take {what}: "{name}" is already one of its own fields.', target: $target->key(), what: $what, name: $key),
+					$owners[$key] === null            => $messages->t('field.field_sets.core_key', '{target} can\'t take {what}: "{name}" is Blush\'s own key, so nothing else can declare it.', target: $target->key(), what: $what, name: $key),
+					default                           => $messages->t('field.field_sets.declared', '{target} can\'t take {what}: {owner} declares "{name}" there already, and a key is declared once.', target: $target->key(), what: $what, owner: $owners[$key], name: $key)
+				};
 			}
 		}
 
 		try {
 			return new Schema([...array_values($schema->fields), ...$fields], $schema->closed);
 		} catch (InvalidSchema $e) {
-			throw new InvalidSchema(sprintf('%s can\'t take %s: %s', $target->key(), $what, $e->getMessage()), previous: $e);
+			return $messages->t('field.field_sets.invalid', '{target} can\'t take {what}: {problem}', target: $target->key(), what: $what, problem: $e->getMessage());
 		}
 	}
 

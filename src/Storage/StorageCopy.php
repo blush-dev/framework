@@ -36,6 +36,7 @@ use Blush\Storage\Record\SchemaStore;
 use Blush\Storage\Record\Table;
 use Blush\Storage\Record\TableRegistry;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Copies a site's stored data from one driver to another (D-644, D-662),
@@ -68,7 +69,8 @@ final readonly class StorageCopy
 		private ContentTypes $types,
 		private Relations $relations,
 		private ClockInterface $clock,
-		private Paths $paths
+		private Paths $paths,
+		private Messages $messages
 	) {}
 
 	/**
@@ -91,7 +93,14 @@ final readonly class StorageCopy
 	public function copy(string $from, string $to, bool $replace = false, ?Closure $progress = null): array
 	{
 		if (! self::supports($from, $to)) {
-			throw new StorageException(sprintf('Copying from "%s" to "%s" isn\'t supported yet; only from "%s" to "%s".', $from, $to, StorageConfig::FILESYSTEM, StorageConfig::SQLITE));
+			throw new StorageException((string) $this->messages->t(
+				'storage.storage_copy.unsupported',
+				'Copying from "{from}" to "{to}" isn\'t supported yet; only from "{supported_from}" to "{supported_to}".',
+				from: $from,
+				to: $to,
+				supported_from: StorageConfig::FILESYSTEM,
+				supported_to: StorageConfig::SQLITE
+			));
 		}
 
 		$source  = $this->stores($from);
@@ -107,7 +116,12 @@ final readonly class StorageCopy
 		$filled = array_values(array_filter($tables, static fn (Table $table): bool => $table->area !== StorageArea::Sessions && $target->store($table)->count($table, new RecordQuery()) > 0));
 
 		if ($filled !== [] && ! $replace) {
-			throw new StorageException(sprintf('The database already holds records (in %s). Copy with --replace to replace them.', implode(', ', array_map(static fn (Table $table): string => $table->name, $filled))));
+			throw new StorageException((string) $this->messages->t(
+				'storage.storage_copy.filled',
+				'The database already holds records (in {tables}). Copy with {option} to replace them.',
+				tables: implode(', ', array_map(static fn (Table $table): string => $table->name, $filled)),
+				option: '--replace'
+			));
 		}
 
 		$this->container->make(Indexer::class)->index(progress: $steps->of('Checking the content index'));
@@ -212,7 +226,7 @@ final readonly class StorageCopy
 	 */
 	private function jobs(RecordStores $target, Progress $steps): int
 	{
-		$to   = new RecordJobStore($target, $this->clock, $this->paths);
+		$to   = new RecordJobStore($target, $this->clock, $this->paths, $this->container->make(Messages::class));
 		$jobs = $this->container->make(FileJobStore::class)->all();
 		$done = 0;
 

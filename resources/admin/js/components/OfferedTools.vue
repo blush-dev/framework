@@ -13,6 +13,7 @@ import AdminIcon from './AdminIcon.vue';
 import type { IconName } from '../icons';
 import type { ToolSource } from '../api';
 import { titleCase } from '../format';
+import { t } from '../messages';
 
 const props = defineProps<{
 	sources: ToolSource[];
@@ -25,10 +26,10 @@ const emit = defineEmits<{
 }>();
 
 const KINDS: Record<ToolSource['kind'], { label: string; icon: IconName }> = {
-	core: { label: 'Built-in', icon: 'package' },
-	site: { label: 'This site', icon: 'globe' },
-	plugin: { label: 'Plugin', icon: 'plug' },
-	other: { label: 'Elsewhere', icon: 'package' }
+	core: { label: t('offered_tools.kinds.core', 'Built-in'), icon: 'package' },
+	site: { label: t('offered_tools.kinds.site', 'This site'), icon: 'globe' },
+	plugin: { label: t('offered_tools.kinds.plugin', 'Plugin'), icon: 'plug' },
+	other: { label: t('offered_tools.kinds.other', 'Elsewhere'), icon: 'package' }
 };
 
 const names = computed(() => new Set(props.sources.flatMap((source) => source.tools.map((tool) => tool.name))));
@@ -41,23 +42,23 @@ function parts(text: string): { text: string; code: boolean }[] {
 
 <template>
 	<div class="offered-tools">
-		<div class="offered-tools__columns" aria-hidden="true"><span>Tool</span><span>Needs</span></div>
+		<div class="offered-tools__columns" aria-hidden="true"><span>{{ t('offered_tools.tool', 'Tool') }}</span><span>{{ t('offered_tools.needs', 'Needs') }}</span></div>
 		<div v-for="source in sources" :key="`${source.kind}:${source.label}`" class="offered-tools__group">
 			<p class="offered-tools__source">
-				<strong>{{ source.kind === 'core' ? 'Core' : source.label }}</strong>
+				<strong>{{ source.kind === 'core' ? t('offered_tools.core', 'Core') : source.label }}</strong>
 				<span class="tag"><AdminIcon :name="KINDS[source.kind].icon" />{{ KINDS[source.kind].label }}</span>
-				<span class="offered-tools__count">{{ source.tools.length }} {{ source.tools.length === 1 ? 'tool' : 'tools' }}</span>
+				<span class="offered-tools__count">{{ t('offered_tools.count', '{count, plural, one {# tool} other {# tools} }', { count: source.tools.length }) }}</span>
 			</p>
 			<ul class="offered-tools__list">
 				<li v-for="tool in source.tools" :key="tool.name">
 					<button type="button" class="offered-tools__row" :aria-expanded="open.includes(tool.name)" :aria-controls="`tool-${tool.name}`" @click="emit('toggle', tool.name)">
 						<AdminIcon name="chevron-right" class="offered-tools__twisty" />
 						<span class="offered-tools__name"><span class="offered-tools__title">{{ titleCase(tool.title) }}</span><code>{{ tool.name }}</code></span>
-						<span class="offered-tools__needs" :class="{ 'is-anyone': tool.needs === null }">{{ tool.needs ?? 'Anyone connected' }}</span>
+						<span class="offered-tools__needs" :class="{ 'is-anyone': tool.needs === null }">{{ tool.needs ?? t('offered_tools.anyone_connected', 'Anyone connected') }}</span>
 					</button>
 					<p v-show="open.includes(tool.name)" :id="`tool-${tool.name}`" class="offered-tools__description">
 						<template v-for="(part, index) in parts(tool.description)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
-						<template v-if="tool.needs === null"> Anyone who connects an app may use it, for what they may see.</template>
+						<template v-if="tool.needs === null">{{ ' ' }}{{ t('offered_tools.anyone', 'Anyone who connects an app may use it, for what they may see.') }}</template>
 					</p>
 				</li>
 			</ul>

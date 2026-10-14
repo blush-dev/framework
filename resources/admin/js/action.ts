@@ -6,6 +6,7 @@
 
 import { getCurrentScope, onScopeDispose, ref, type Ref } from 'vue';
 import { errorMessage } from './api';
+import { t } from './messages';
 import { toast, type ToastKind } from './toast';
 
 /**
@@ -103,7 +104,7 @@ export function useListAction(reload: () => Promise<void>, options: { error?: Re
 			toast(said.message, { kind: said.kind ?? kind, undo: said.undo });
 			await reload();
 		} catch (caught) {
-			error.value = errorMessage(caught, 'That didn\'t work. Reload the page and try again.');
+			error.value = errorMessage(caught, t('action.failed', 'That didn\'t work. Reload the page and try again.'));
 		} finally {
 			busy.value = null;
 		}

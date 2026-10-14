@@ -29,6 +29,7 @@ use Blush\Core\Application;
 use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Support\RequestMemo;
 use Blush\Tests\BootsScratchSite;
+use Blush\Translation\Messages;
 
 #[CoversClass(Account::class)]
 #[CoversClass(AccountProfiles::class)]
@@ -340,7 +341,7 @@ final class AccountsTest extends TestCase
 			new Role('reviewer', 'Reviewer', ['content.*.edit']),
 			new Role('member', 'Member', ['site.settings']),
 			new Role('owner', 'Owner', ['site.settings'])
-		])->toArray()), new ArrayRecordStore(), new SystemClock());
+		])->toArray()), new ArrayRecordStore(), new SystemClock(), new Messages());
 
 		$this->assertSame(['owner', 'administrator', 'editor', 'author', 'contributor', 'member', 'reviewer'], array_keys($roles->all()));
 		$this->assertSame('Copy editor', $roles->get('editor')?->label);

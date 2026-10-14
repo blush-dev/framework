@@ -49,6 +49,7 @@ use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
+use Blush\Translation\Messages;
 
 /**
  * The filesystem driver's content tables (D-653): `entries` and `refs`
@@ -107,6 +108,7 @@ final readonly class IndexStore implements RecordStore
 		private FileTransactions $transactions,
 		#[Defer(ContentWriter::class)] private Closure $writer,
 		#[Defer(FilesystemWriter::class)] private Closure $files,
+		private Messages $messages,
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
 
@@ -226,7 +228,7 @@ final readonly class IndexStore implements RecordStore
 				throw new RecordStoreFailure($error->getMessage(), previous: $error);
 			}
 
-			return $this->find($table, $record->id) ?? throw new RecordStoreFailure(sprintf('The entry %s was written, but the index doesn\'t have it.', $record->id));
+			return $this->find($table, $record->id) ?? throw new RecordStoreFailure((string) $this->messages->t('content.index_store.not_indexed', 'The entry {id} was written, but the index doesn\'t have it.', id: $record->id));
 		});
 	}
 
@@ -390,11 +392,11 @@ final readonly class IndexStore implements RecordStore
 	private function create(Record $record): void
 	{
 		$fields = $record->fields;
-		$type   = $this->types->find(is_string($fields['type'] ?? null) ? $fields['type'] : '') ?? throw new InvalidRecord(sprintf('The entry %s needs a "type" the site has.', $record->id));
-		$slug   = is_string($fields['slug'] ?? null) ? $fields['slug'] : throw new InvalidRecord(sprintf('The entry %s needs a "slug".', $record->id));
+		$type   = $this->types->find(is_string($fields['type'] ?? null) ? $fields['type'] : '') ?? throw new InvalidRecord((string) $this->messages->t('content.index_store.no_type', 'The entry {id} needs a "type" the site has.', id: $record->id));
+		$slug   = is_string($fields['slug'] ?? null) ? $fields['slug'] : throw new InvalidRecord((string) $this->messages->t('content.index_store.no_slug', 'The entry {id} needs a "slug".', id: $record->id));
 
 		if (($fields['original_id'] ?? null) !== null) {
-			throw new InvalidRecord('On files, a translation is a file named for its language; it can\'t be written here yet.');
+			throw new InvalidRecord((string) $this->messages->t('content.index_store.translation', 'On files, a translation is a file named for its language; it can\'t be written here yet.'));
 		}
 
 		$front   = [];
@@ -410,7 +412,7 @@ final readonly class IndexStore implements RecordStore
 
 		$id = match (true) {
 			$parent !== null && $type instanceof Tree => $writer->create($type, $slug, $changes, $parent),
-			$parent !== null                          => throw new InvalidRecord(sprintf('On files, only a tree\'s pages have a parent by place; %s name theirs in front matter.', $type->labels->plural)),
+			$parent !== null                          => throw new InvalidRecord((string) $this->messages->t('content.index_store.parent_by_place', 'On files, only a tree\'s pages have a parent by place; {types} name theirs in front matter.', types: $type->labels->plural)),
 			$slug === ''                              => $writer->createAt($type, 'index', $changes),
 			default                                   => $writer->create($type, $slug, $changes, null, self::date($fields['published'] ?? null))
 		};
@@ -439,7 +441,11 @@ final readonly class IndexStore implements RecordStore
 
 		foreach (['type', 'original_id'] as $key) {
 			if (($new[$key] ?? null) !== ($old[$key] ?? null)) {
-				throw new InvalidRecord(sprintf('On files, an entry\'s %s can\'t change; it\'s where the file is.', str_replace('_id', '', $key)));
+				throw new InvalidRecord((string) $this->messages->t(
+					'content.index_store.fixed',
+					'On files, an entry\'s {field, select, type {type} other {original}} can\'t change; it\'s where the file is.',
+					field: $key
+				));
 			}
 		}
 
@@ -465,7 +471,7 @@ final readonly class IndexStore implements RecordStore
 
 		if (($new['slug'] ?? null) !== ($old['slug'] ?? null)) {
 			if (! is_string($new['slug'] ?? null) || $new['slug'] === '' || $old['slug'] === '') {
-				throw new InvalidRecord('On files, a landing page\'s slug doesn\'t change, and an entry keeps a slug.');
+				throw new InvalidRecord((string) $this->messages->t('content.index_store.slug_fixed', 'On files, a landing page\'s slug doesn\'t change, and an entry keeps a slug.'));
 			}
 
 			$id      = $writer->rename($id, $new['slug'], $version);
@@ -476,7 +482,7 @@ final readonly class IndexStore implements RecordStore
 			$type = $this->types->find(is_string($old['type'] ?? null) ? $old['type'] : '');
 
 			if (! $type instanceof Tree) {
-				throw new InvalidRecord('On files, only a tree\'s pages move to another parent here; others name theirs in front matter.');
+				throw new InvalidRecord((string) $this->messages->t('content.index_store.parent_fixed', 'On files, only a tree\'s pages move to another parent here; others name theirs in front matter.'));
 			}
 
 			$id      = $writer->move($id, is_string($new['parent_id'] ?? null) ? $new['parent_id'] : null, $version);

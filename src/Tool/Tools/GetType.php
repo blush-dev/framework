@@ -25,6 +25,8 @@ use Blush\Tool\ToolContext;
 use Blush\Tool\ToolEntries;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `get_type` (D-755): one content type in full, for writing an entry of
@@ -38,19 +40,20 @@ final class GetType extends Tool
 		private readonly ToolEntries $entries,
 		private readonly ContentTypes $types,
 		private readonly Relations $relations,
-		private readonly ContentUrls $urls
+		private readonly ContentUrls $urls,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Get a Content Type';
+		return $this->messages->t('tool.get_type.title', 'Get a Content Type');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry\'s fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries\' slugs), and what this connection may do with it. Call it before create_entry or update_entry.';
+		return $this->messages->t('tool.get_type.description', 'Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry\'s fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries\' slugs), and what this connection may do with it. Call it before create_entry or update_entry.');
 	}
 
 	#[Override]

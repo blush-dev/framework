@@ -15,16 +15,27 @@ namespace Blush\Admin\Theme;
 
 use Blush\Extension\ExtensionException;
 use Blush\Support\PhpArrayFile;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The compiled list of installed admin themes, with their tokens
  * (`storage/cache/admin-themes.php`), read everywhere but development,
- * like the icon pack cache.
+ * like the icon pack cache. A broken theme's reason written with `t()` is
+ * kept as its message and read back as one (D-836), so it's shown in the
+ * language of whoever reads it, not whoever compiled the cache.
  */
 final readonly class AdminThemeCache
 {
-	public function __construct(private PhpArrayFile $file)
-	{}
+	/**
+	 * @param Messages $messages What reads the reasons back: one without a
+	 *                           translator during boot, since they're
+	 *                           translated where they're shown.
+	 */
+	public function __construct(
+		private PhpArrayFile $file,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * Returns the cached themes, or `null` when there's no usable cache.
@@ -56,8 +67,15 @@ final readonly class AdminThemeCache
 			return null;
 		}
 
-		/** @var array<string, string> $invalid */
-		$invalid = array_filter($data['invalid'], is_string(...));
+		$invalid = [];
+
+		foreach ($data['invalid'] as $where => $reason) {
+			$reason = is_string($reason) ? $reason : $this->messages->restore($reason);
+
+			if ($reason !== null) {
+				$invalid[(string) $where] = $reason;
+			}
+		}
 
 		return new AdminThemes($themes, $invalid);
 	}
@@ -69,7 +87,7 @@ final readonly class AdminThemeCache
 	{
 		$this->file->write([
 			'themes'  => array_map(static fn (AdminTheme $theme): array => $theme->toArray(), $themes->all()),
-			'invalid' => $themes->invalid()
+			'invalid' => array_map(static fn (string|Text $reason): string|array => $reason instanceof Text ? $reason->toArray() : $reason, $themes->invalid())
 		]);
 	}
 }

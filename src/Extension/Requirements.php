@@ -15,6 +15,7 @@ namespace Blush\Extension;
 
 use Closure;
 use Blush\Core\Framework;
+use Blush\Translation\Messages;
 
 /**
  * Checks extensions' `require` against the site, the same for every
@@ -71,18 +72,18 @@ final readonly class Requirements
 	 * @param array<string, ExtensionManifest> $installed
 	 * @param array<string, true>              $on
 	 */
-	private static function replaces(ExtensionManifest $extension, string $name, string $constraint, array $installed, array $on): Requirement
+	private function replaces(ExtensionManifest $extension, string $name, string $constraint, array $installed, array $on): Requirement
 	{
 		$other      = $installed[$name] ?? null;
 		$kind       = RequirementKind::of($name, $other);
 		$constraint = self::provided($extension, $name) ?? $constraint;
 
 		$note = match (true) {
-			$other === null                                       => 'isn\'t installed',
-			isset($on[$name]) && $kind === RequirementKind::Theme => 'is active',
-			isset($on[$name])                                     => 'is on',
-			$kind === RequirementKind::Theme                      => 'isn\'t active',
-			default                                               => 'is turned off'
+			$other === null                                       => $this->messages->t('extension.requirements.not_installed', 'isn\'t installed'),
+			isset($on[$name]) && $kind === RequirementKind::Theme => $this->messages->t('extension.requirements.active', 'is active'),
+			isset($on[$name])                                     => $this->messages->t('extension.requirements.on', 'is on'),
+			$kind === RequirementKind::Theme                      => $this->messages->t('extension.requirements.not_active', 'isn\'t active'),
+			default                                               => $this->messages->t('extension.requirements.turned_off', 'is turned off')
 		};
 
 		return new Requirement($name, $constraint, $kind, ! ($other !== null && isset($on[$name])), $note, $other->label ?? '', true, true);
@@ -103,7 +104,8 @@ final readonly class Requirements
 		public string $blush = Framework::VERSION,
 		public string $php = PHP_VERSION,
 		?Closure $extension = null,
-		private ComposerInstalled $composer = new ComposerInstalled()
+		private ComposerInstalled $composer = new ComposerInstalled(),
+		private Messages $messages = new Messages()
 	) {
 		$this->extension = $extension ?? static fn (string $name): string|false => extension_loaded($name) ? (phpversion($name) ?: '0.0.0') : false;
 	}
@@ -134,7 +136,7 @@ final readonly class Requirements
 
 		foreach ($extension->replace as $name => $constraint) {
 			if ($name !== $extension->name) {
-				$requirements[] = self::replaces($extension, $name, $constraint, $installed, $on);
+				$requirements[] = $this->replaces($extension, $name, $constraint, $installed, $on);
 			}
 		}
 
@@ -282,28 +284,39 @@ final readonly class Requirements
 	 *
 	 * @param list<Requirement> $requirements
 	 */
-	public static function reason(array $requirements): string
+	public static function reason(array $requirements, Messages $messages = new Messages()): string
 	{
 		$unmet     = array_filter($requirements, static fn (Requirement $requirement): bool => ! $requirement->met);
-		$describe  = static fn (Requirement $requirement): string => $requirement->describe();
+		$describe  = static fn (Requirement $requirement): string => $requirement->describe($messages);
 		$needs     = array_filter($unmet, static fn (Requirement $requirement): bool => ! $requirement->conflict);
 		$conflicts = array_filter($unmet, self::isConflict(...));
 		$replaces  = array_filter($unmet, self::isReplace(...));
 		$sentences = [];
 
 		if ($needs !== []) {
-			$sentences[] = 'Needs ' . implode(', and ', array_map($describe, $needs)) . '.';
+			$sentences[] = (string) $messages->t('extension.requirements.needs', 'Needs {requirements}.', requirements: implode(', and ', array_map($describe, $needs)));
 		}
 
 		if ($conflicts !== []) {
-			$sentences[] = 'Conflicts with ' . implode(', and ', array_map($describe, $conflicts)) . '.';
+			$sentences[] = (string) $messages->t('extension.requirements.conflicts', 'Conflicts with {requirements}.', requirements: implode(', and ', array_map($describe, $conflicts)));
 		}
 
 		if ($replaces !== []) {
-			$sentences[] = 'Replaces ' . implode(', and ', array_map($describe, $replaces)) . '.';
+			$sentences[] = (string) $messages->t('extension.requirements.replaces', 'Replaces {requirements}.', requirements: implode(', and ', array_map($describe, $replaces)));
 		}
 
 		return implode(' ', $sentences);
+	}
+
+	/**
+	 * Says why requirements aren't met, as `reason()` does, in this
+	 * checker's messages.
+	 *
+	 * @param list<Requirement> $requirements
+	 */
+	public function explain(array $requirements): string
+	{
+		return self::reason($requirements, $this->messages);
 	}
 
 	/**
@@ -340,7 +353,7 @@ final readonly class Requirements
 
 		[$other, $verb] = $standIn;
 
-		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), true, sprintf('%s %s %s it', $other->label, self::version($other), $verb), $requirement->label, metBy: $other->name);
+		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), true, $this->messages->t('extension.requirements.stand_in', '{label} {version} {verb, select, replaces {replaces it} other {provides it}}', label: $other->label, version: self::version($other), verb: $verb), $requirement->label, metBy: $other->name);
 	}
 
 	/**
@@ -357,7 +370,7 @@ final readonly class Requirements
 		$label = $other->label ?? '';
 
 		if (! VersionConstraint::isValid($constraint)) {
-			return new Requirement($name, $constraint, $kind, false, 'isn\'t a version constraint Blush understands', $label);
+			return new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.bad_constraint', 'isn\'t a version constraint Blush understands'), $label);
 		}
 
 		if ($other !== null && $kind !== RequirementKind::Blush && $kind !== RequirementKind::Php && $kind !== RequirementKind::Extension) {
@@ -369,27 +382,27 @@ final readonly class Requirements
 			case RequirementKind::Php:
 				$version = $kind === RequirementKind::Blush ? $this->blush : $this->php;
 
-				return new Requirement($name, $constraint, $kind, VersionConstraint::satisfies($version, $constraint), "this site runs {$version}");
+				return new Requirement($name, $constraint, $kind, VersionConstraint::satisfies($version, $constraint), $this->messages->t('extension.requirements.site_runs', 'this site runs {version}', version: $version));
 
 			case RequirementKind::Extension:
 				$version = $this->loaded($name);
 
 				if ($version === false) {
-					return new Requirement($name, $constraint, $kind, false, 'isn\'t loaded');
+					return new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.not_loaded', 'isn\'t loaded'));
 				}
 
 				$met = VersionConstraint::satisfies($version, $constraint);
 
-				return new Requirement($name, $constraint, $kind, $met, $met ? '' : "version {$version} is loaded");
+				return new Requirement($name, $constraint, $kind, $met, $met ? '' : $this->messages->t('extension.requirements.loaded', 'version {version} is loaded', version: $version));
 
 			case RequirementKind::Composer:
-				return new Requirement($name, $constraint, $kind, true, 'Composer checks it');
+				return new Requirement($name, $constraint, $kind, true, $this->messages->t('extension.requirements.composer_checks', 'Composer checks it'));
 
 			case RequirementKind::Missing:
-				return $this->library($name, $constraint) ?? new Requirement($name, $constraint, $kind, false, 'isn\'t installed');
+				return $this->library($name, $constraint) ?? new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.not_installed', 'isn\'t installed'));
 
 			default:
-				return new Requirement($name, $constraint, $kind, false, 'isn\'t something Blush can check');
+				return new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.unknown', 'isn\'t something Blush can check'));
 		}
 	}
 
@@ -409,7 +422,7 @@ final readonly class Requirements
 		$met     = VersionConstraint::matches($ranges, $constraint);
 		$version = $this->composer->version($name);
 
-		return new Requirement($name, $constraint, RequirementKind::Library, $met, $met ? '' : ($version !== null ? "version {$version} is installed" : "only {$ranges} is provided"));
+		return new Requirement($name, $constraint, RequirementKind::Library, $met, $met ? '' : ($version !== null ? $this->messages->t('extension.requirements.installed', 'version {version} is installed', version: $version) : $this->messages->t('extension.requirements.only_provided', 'only {ranges} is provided', ranges: $ranges)));
 	}
 
 	/**
@@ -438,7 +451,7 @@ final readonly class Requirements
 
 		[$other, $verb] = $standIn;
 
-		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), false, sprintf('%s %s %s it, and is %s', $other->label, self::version($other), $verb, $other->kind() === ExtensionKind::Theme ? 'active' : 'on'), $conflict->label, true, metBy: $other->name);
+		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), false, $this->messages->t('extension.requirements.stand_in_on', '{label} {version} {verb, select, replaces {replaces it} other {provides it}}, and is {theme, select, yes {active} other {on}}', label: $other->label, version: self::version($other), verb: $verb, theme: $other->kind() === ExtensionKind::Theme ? 'yes' : 'no'), $conflict->label, true, metBy: $other->name);
 	}
 
 	/**
@@ -454,19 +467,19 @@ final readonly class Requirements
 		$label = $other->label ?? '';
 
 		if (! VersionConstraint::isValid($constraint)) {
-			return new Requirement($name, $constraint, $kind, false, 'isn\'t a version constraint Blush understands', $label, true);
+			return new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.bad_constraint', 'isn\'t a version constraint Blush understands'), $label, true);
 		}
 
 		if ($other !== null && $kind !== RequirementKind::Blush && $kind !== RequirementKind::Php && $kind !== RequirementKind::Extension) {
 			$version = self::version($other);
 
 			if (! isset($on[$name])) {
-				return new Requirement($name, $constraint, $kind, true, $kind === RequirementKind::Theme ? 'isn\'t active' : 'is turned off', $label, true);
+				return new Requirement($name, $constraint, $kind, true, $kind === RequirementKind::Theme ? $this->messages->t('extension.requirements.not_active', 'isn\'t active') : $this->messages->t('extension.requirements.turned_off', 'is turned off'), $label, true);
 			}
 
 			$hit = VersionConstraint::satisfies($version, $constraint);
 
-			return new Requirement($name, $constraint, $kind, ! $hit, $hit ? sprintf('version %s is %s', $version, $kind === RequirementKind::Theme ? 'active' : 'on') : "version {$version} is installed", $label, true);
+			return new Requirement($name, $constraint, $kind, ! $hit, $hit ? $this->messages->t('extension.requirements.version_on', 'version {version} is {theme, select, yes {active} other {on}}', version: $version, theme: $kind === RequirementKind::Theme ? 'yes' : 'no') : $this->messages->t('extension.requirements.installed', 'version {version} is installed', version: $version), $label, true);
 		}
 
 		switch ($kind) {
@@ -474,33 +487,33 @@ final readonly class Requirements
 			case RequirementKind::Php:
 				$version = $kind === RequirementKind::Blush ? $this->blush : $this->php;
 
-				return new Requirement($name, $constraint, $kind, ! VersionConstraint::satisfies($version, $constraint), "this site runs {$version}", conflict: true);
+				return new Requirement($name, $constraint, $kind, ! VersionConstraint::satisfies($version, $constraint), $this->messages->t('extension.requirements.site_runs', 'this site runs {version}', version: $version), conflict: true);
 
 			case RequirementKind::Extension:
 				$version = $this->loaded($name);
 
 				if ($version === false) {
-					return new Requirement($name, $constraint, $kind, true, 'isn\'t loaded', conflict: true);
+					return new Requirement($name, $constraint, $kind, true, $this->messages->t('extension.requirements.not_loaded', 'isn\'t loaded'), conflict: true);
 				}
 
-				return new Requirement($name, $constraint, $kind, ! VersionConstraint::satisfies($version, $constraint), "version {$version} is loaded", conflict: true);
+				return new Requirement($name, $constraint, $kind, ! VersionConstraint::satisfies($version, $constraint), $this->messages->t('extension.requirements.loaded', 'version {version} is loaded', version: $version), conflict: true);
 
 			case RequirementKind::Composer:
-				return new Requirement($name, $constraint, $kind, true, 'Composer checks it', conflict: true);
+				return new Requirement($name, $constraint, $kind, true, $this->messages->t('extension.requirements.composer_checks', 'Composer checks it'), conflict: true);
 
 			case RequirementKind::Missing:
 				$ranges = $this->composer->ranges($name);
 
 				if ($ranges === null) {
-					return new Requirement($name, $constraint, $kind, true, 'isn\'t installed', conflict: true);
+					return new Requirement($name, $constraint, $kind, true, $this->messages->t('extension.requirements.not_installed', 'isn\'t installed'), conflict: true);
 				}
 
 				$version = $this->composer->version($name);
 
-				return new Requirement($name, $constraint, RequirementKind::Library, ! VersionConstraint::matches($ranges, $constraint), $version !== null ? "version {$version} is installed" : "{$ranges} is provided", conflict: true);
+				return new Requirement($name, $constraint, RequirementKind::Library, ! VersionConstraint::matches($ranges, $constraint), $version !== null ? $this->messages->t('extension.requirements.installed', 'version {version} is installed', version: $version) : $this->messages->t('extension.requirements.provided', '{ranges} is provided', ranges: $ranges), conflict: true);
 
 			default:
-				return new Requirement($name, $constraint, $kind, true, 'isn\'t something Blush can check', conflict: true);
+				return new Requirement($name, $constraint, $kind, true, $this->messages->t('extension.requirements.unknown', 'isn\'t something Blush can check'), conflict: true);
 		}
 	}
 
@@ -532,7 +545,7 @@ final readonly class Requirements
 		$version = self::version($other);
 
 		if (! VersionConstraint::satisfies($version, $constraint)) {
-			return new Requirement($name, $constraint, $kind, false, "version {$version} is installed", $other->label);
+			return new Requirement($name, $constraint, $kind, false, $this->messages->t('extension.requirements.installed', 'version {version} is installed', version: $version), $other->label);
 		}
 
 		if (isset($running[$name])) {
@@ -540,9 +553,9 @@ final readonly class Requirements
 		}
 
 		return new Requirement($name, $constraint, $kind, false, match (true) {
-			isset($blocked[$name])            => 'can\'t run',
-			$kind === RequirementKind::Theme => 'isn\'t active',
-			default                          => 'is turned off'
+			isset($blocked[$name])            => $this->messages->t('extension.requirements.cannot_run', 'can\'t run'),
+			$kind === RequirementKind::Theme => $this->messages->t('extension.requirements.not_active', 'isn\'t active'),
+			default                          => $this->messages->t('extension.requirements.turned_off', 'is turned off')
 		}, $other->label);
 	}
 }

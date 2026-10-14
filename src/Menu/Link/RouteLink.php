@@ -16,6 +16,8 @@ namespace Blush\Menu\Link;
 use Override;
 use Blush\Routing\UrlGenerationException;
 use Blush\Routing\UrlGenerator;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Links to a named route, with any `params` it takes:
@@ -28,8 +30,12 @@ use Blush\Routing\UrlGenerator;
  */
 final class RouteLink extends MenuLink
 {
-	public function __construct(private readonly UrlGenerator $router)
-	{}
+	public function __construct(
+		private readonly UrlGenerator $router,
+		Messages $messages
+	) {
+		parent::__construct($messages);
+	}
 
 	/**
 	 * @inheritDoc
@@ -64,15 +70,15 @@ final class RouteLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function validate(mixed $value, array $item): ?string
+	public function validate(string $key, mixed $value, array $item): ?Text
 	{
 		$params = $item['params'] ?? [];
 
 		if (! is_array($params) || ($params !== [] && array_is_list($params)) || ! array_all($params, static fn (mixed $param): bool => is_scalar($param))) {
-			return 'has "params" that aren\'t a map of names to values.';
+			return $this->messages->t('menu.route_link.params', '"{link}" has "params" that aren\'t a map of names to values.', link: $key);
 		}
 
-		return parent::validate($value, $item);
+		return parent::validate($key, $value, $item);
 	}
 
 	/**
@@ -84,7 +90,7 @@ final class RouteLink extends MenuLink
 		$name = trim($value);
 
 		if (! $this->router->has($name)) {
-			throw new UnresolvedLink(sprintf('No route "%s".', $name));
+			throw new UnresolvedLink((string) $this->messages->t('menu.route_link.missing', 'No route "{route}".', route: $name));
 		}
 
 		/** @var array<string, scalar> $params Checked by `validate()`. */
@@ -93,7 +99,7 @@ final class RouteLink extends MenuLink
 		try {
 			return new LinkTarget($this->router->to($name, $params));
 		} catch (UrlGenerationException $error) {
-			throw new UnresolvedLink(sprintf('The "%s" route: %s', $name, $error->getMessage()), 0, $error);
+			throw new UnresolvedLink((string) $this->messages->t('menu.route_link.unbuilt', 'The "{route}" route: {problem}', route: $name, problem: $error->getMessage()), 0, $error);
 		}
 	}
 }

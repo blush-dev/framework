@@ -33,6 +33,7 @@ use Blush\Publish\Events\ContentPublished;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteCache;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Puts the site's current files live (D-013): the one thing `publish`,
@@ -68,7 +69,8 @@ final readonly class Publisher
 		private Caches $caches,
 		private ContentVersion $version,
 		private Dispatcher $events,
-		private JobQueue $jobs
+		private JobQueue $jobs,
+		private Messages $messages
 	) {}
 
 	/**
@@ -91,7 +93,7 @@ final readonly class Publisher
 
 		try {
 			if ($pull ?? $this->config->git) {
-				$steps->step('Pulling content');
+				$steps->step($this->messages->t('publish.publisher.pulling', 'Pulling content'));
 			}
 
 			$pulled = ($pull ?? $this->config->git) ? $this->puller->pull($this->paths->user) : null;
@@ -104,20 +106,20 @@ final readonly class Publisher
 			$types    = $compiled && is_file($this->types->path());
 
 			if ($types) {
-				$steps->step('Compiling content types');
+				$steps->step($this->messages->t('publish.publisher.compiling_types', 'Compiling content types'));
 				$this->types->write();
 			}
 
-			$index  = $this->indexer->index(progress: $steps->of('Updating the content index'));
-			$media  = $this->media->index(progress: $steps->of('Updating the media index'), limit: $mediaLimit);
+			$index  = $this->indexer->index(progress: $steps->of($this->messages->t('publish.publisher.indexing_content', 'Updating the content index')));
+			$media  = $this->media->index(progress: $steps->of($this->messages->t('publish.publisher.indexing_media', 'Updating the media index')), limit: $mediaLimit);
 			$routes = $compiled && is_file($this->routes->path());
 
 			if ($routes) {
-				$steps->step('Compiling routes');
+				$steps->step($this->messages->t('publish.publisher.compiling_routes', 'Compiling routes'));
 				$this->routes->write();
 			}
 
-			$steps->step('Clearing the cache');
+			$steps->step($this->messages->t('publish.publisher.clearing_cache', 'Clearing the cache'));
 			$cleared = $this->caches->clear();
 			$this->caches->prune();
 
@@ -164,13 +166,13 @@ final readonly class Publisher
 		$lock = @fopen("{$this->paths->cache}/publish.lock", 'c');
 
 		if ($lock === false) {
-			throw new PublishInProgress(sprintf('Unable to open the publish lock in "%s".', $this->paths->cache));
+			throw new PublishInProgress((string) $this->messages->t('publish.publisher.no_lock', 'Unable to open the publish lock in "{folder}".', folder: $this->paths->cache));
 		}
 
 		if (! flock($lock, LOCK_EX | LOCK_NB)) {
 			fclose($lock);
 
-			throw new PublishInProgress('Another publish is running.');
+			throw new PublishInProgress((string) $this->messages->t('publish.publisher.running', 'Another publish is running.'));
 		}
 
 		return $lock;

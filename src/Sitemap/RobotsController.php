@@ -16,6 +16,7 @@ namespace Blush\Sitemap;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
+use Blush\Translation\Messages;
 
 /**
  * Serves `robots.txt`: `SitemapConfig::$robots` as written, or else one
@@ -28,7 +29,8 @@ final readonly class RobotsController
 {
 	public function __construct(
 		private SitemapConfig $config,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -50,7 +52,7 @@ final readonly class RobotsController
 		foreach (AiCrawlerGroup::cases() as $group) {
 			if (in_array($group, $this->config->blockAi, true)) {
 				$lines[] = '';
-				$lines[] = "# {$group->label()}";
+				$lines[] = "# {$group->label($this->messages)}";
 
 				foreach ($group->agents() as $agent) {
 					$lines[] = "User-agent: {$agent}";

@@ -31,6 +31,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandResult;
 use Blush\Console\Testing\CommandTester;
 use Blush\Core\Application;
+use Blush\Data\DataLoader;
 use Blush\Job\FileJobStore;
 use Blush\Job\Frequency;
 use Blush\Job\JobConfig;
@@ -57,6 +58,9 @@ use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\Job\ChunkedJob;
 use Blush\Tests\Fixtures\Job\RefusingJob;
 use Blush\Tests\Fixtures\Job\ThrowingJob;
+use Blush\Translation\CurrentLocale;
+use Blush\Translation\Messages;
+use Blush\Translation\Translator;
 
 #[CoversClass(FileJobStore::class)]
 #[CoversClass(JobConfig::class)]
@@ -283,7 +287,7 @@ final class JobTest extends TestCase
 
 		$this->assertSame(JobStatus::Queued, $recovered?->status);
 		$this->assertSame(1, $recovered->attempts);
-		$this->assertStringContainsString('stopped without finishing', $recovered->error ?? '');
+		$this->assertStringContainsString('stopped without finishing', (string) ($recovered->error ?? ''));
 	}
 
 	public function testPrunesFinishedJobsPastTheirKeep(): void
@@ -475,5 +479,24 @@ final class JobTest extends TestCase
 		$this->clock->advance('P8D');
 
 		$this->assertStringContainsString('Removed 2 finished jobs.', $this->command('jobs:prune')->output);
+	}
+
+	public function testAKeptMessageIsShownInTheReadersLanguage(): void
+	{
+		$this->writeTemporaryFile('lang/fr.json', '{"job": {"prune_jobs_job": {"removed": "{count, plural, one {# tâche terminée supprimée} other {# tâches terminées supprimées}}."}}}');
+
+		$translator = new Translator(new DataLoader(), 'en_US', [Translator::CORE => [$this->temporaryDirectory() . '/lang']]);
+		$english    = new Messages(Translator::CORE, $translator, new CurrentLocale('en_US'));
+		$french     = new Messages(Translator::CORE, $translator, new CurrentLocale('fr'));
+		$result     = JobResult::done($english->t('job.prune_jobs_job.removed', 'Removed {count, plural, one {# finished job} other {# finished jobs}}.', count: 3), ['A line kept as text.']);
+		$record     = new JobRecord(id: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b', job: 'core/prune-jobs', message: $result->message, details: $result->details);
+		$stored     = json_decode((string) json_encode($record->toArray()), true);
+
+		$this->assertIsArray($stored);
+		$this->assertIsArray($stored['message'] ?? null);
+		$this->assertSame('job.prune_jobs_job.removed', $stored['message']['key'] ?? null, 'It\'s kept as its message, not its sentence (D-836).');
+		$this->assertSame('Removed 3 finished jobs.', (string) JobRecord::fromArray($stored, $english)?->message);
+		$this->assertSame('3 tâches terminées supprimées.', (string) JobRecord::fromArray($stored, $french)?->message, 'In the reader\'s language.');
+		$this->assertSame(['A line kept as text.'], JobRecord::fromArray($stored, $french)?->details, 'Text kept as text is shown as it is.');
 	}
 }

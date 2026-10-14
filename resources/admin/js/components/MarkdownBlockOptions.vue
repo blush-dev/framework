@@ -20,6 +20,8 @@ import { computed } from 'vue';
 import AttributeFields from './AttributeFields.vue';
 import OptionSelect from './OptionSelect.vue';
 import OptionsGroup from './OptionsGroup.vue';
+import MessageText from './MessageText.vue';
+import { t } from '../messages';
 import { MARKDOWN_BLOCK_KINDS, LIST_STYLES } from '../markdown-blocks';
 import {
 	attributeParts,
@@ -57,7 +59,7 @@ const task     = computed(() => taskState(props.markdown, props.markdownBlock));
 const style    = computed(() => listStyle(props.markdown, props.markdownBlocks, props.markdownBlock));
 
 
-const levels = computed(() => Array.from({ length: 6 }, (_, index) => ({ value: String(index + 1), label: `Heading ${index + 1}` })));
+const levels = computed(() => Array.from({ length: 6 }, (_, index) => ({ value: String(index + 1), label: t('markdown_block_options.heading_level', 'Heading {level}', { level: index + 1 }) })));
 const styles = computed(() => (Object.keys(LIST_STYLES) as ListStyle[]).map((key) => ({ value: key, label: LIST_STYLES[key].label })));
 
 // The block's first line, as a reminder of which one this is.
@@ -80,41 +82,41 @@ function changeParts(classes: string[], id: string): void {
 			<p class="options__note">{{ kind.description }}</p>
 		</OptionsGroup>
 
-		<OptionsGroup v-if="markdownBlock.kind === 'heading'" heading="Level">
-			<OptionSelect id="markdown-block-level" label="Level" :model-value="String(level)" :options="levels" help="The entry's title is the page's heading 1, so a body usually starts at 2." @update:model-value="send(withHeadingLevel(markdown, markdownBlock, Number($event)))" />
+		<OptionsGroup v-if="markdownBlock.kind === 'heading'" :heading="t('markdown_block_options.level', 'Level')">
+			<OptionSelect id="markdown-block-level" :label="t('markdown_block_options.level', 'Level')" :model-value="String(level)" :options="levels" :help="t('markdown_block_options.level_help', 'The entry\'s title is the page\'s heading 1, so a body usually starts at 2.')" @update:model-value="send(withHeadingLevel(markdown, markdownBlock, Number($event)))" />
 		</OptionsGroup>
 
-		<OptionsGroup v-else-if="markdownBlock.kind === 'code'" heading="Language">
+		<OptionsGroup v-else-if="markdownBlock.kind === 'code'" :heading="t('markdown_block_options.language', 'Language')">
 			<div class="field">
-				<label class="visually-hidden" for="markdown-block-language">Language</label>
+				<label class="visually-hidden" for="markdown-block-language">{{ t('markdown_block_options.language', 'Language') }}</label>
 				<input id="markdown-block-language" class="mono" :value="language" placeholder="php" autocomplete="off" spellcheck="false" aria-describedby="markdown-block-language-help" @input="send(withCodeLanguage(markdown, markdownBlock, ($event.target as HTMLInputElement).value))">
-				<p id="markdown-block-language-help" class="field__help">Sets the highlighting on the site. Leave it empty for none.</p>
+				<p id="markdown-block-language-help" class="field__help">{{ t('markdown_block_options.language_help', 'Sets the highlighting on the site. Leave it empty for none.') }}</p>
 			</div>
 		</OptionsGroup>
 
-		<OptionsGroup v-else-if="markdownBlock.kind === 'item'" heading="Item">
+		<OptionsGroup v-else-if="markdownBlock.kind === 'item'" :heading="t('markdown_block_options.item', 'Item')">
 			<label class="checkbox">
 				<input type="checkbox" :checked="task.task" @change="send(withTask(markdown, markdownBlock, ($event.target as HTMLInputElement).checked))">
-				A task, with a checkbox
+				{{ t('markdown_block_options.task', 'A task, with a checkbox') }}
 			</label>
 			<label v-if="task.task" class="checkbox">
 				<input type="checkbox" :checked="task.done" @change="send(withTask(markdown, markdownBlock, true, ($event.target as HTMLInputElement).checked))">
-				Done
+				{{ t('common.done', 'Done') }}
 			</label>
 		</OptionsGroup>
 
-		<OptionsGroup v-else-if="markdownBlock.kind === 'list'" heading="List Type">
-			<OptionSelect id="markdown-block-list-style" label="List type" :model-value="style" :options="styles" :help="LIST_STYLES[style].description" @update:model-value="send(withListStyle(source, markdown, markdownBlocks, markdownBlock, $event as ListStyle))" />
+		<OptionsGroup v-else-if="markdownBlock.kind === 'list'" :heading="t('markdown_block_options.list_type_heading', 'List Type')">
+			<OptionSelect id="markdown-block-list-style" :label="t('markdown_block_options.list_type', 'List type')" :model-value="style" :options="styles" :help="LIST_STYLES[style].description" @update:model-value="send(withListStyle(source, markdown, markdownBlocks, markdownBlock, $event as ListStyle))" />
 		</OptionsGroup>
 
-		<OptionsGroup heading="Attributes">
+		<OptionsGroup :heading="t('markdown_block_options.attributes', 'Attributes')">
 			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="markdown-block-" @change="changeParts" />
-			<p v-if="markdownBlock.kind === 'list' || markdownBlock.kind === 'definitions'" class="field__help">Written on a line of their own above the list, <code>{.wide}</code>, which is where a list carries them.</p>
+			<p v-if="markdownBlock.kind === 'list' || markdownBlock.kind === 'definitions'" class="field__help"><MessageText :text="t('markdown_block_options.list_attributes', 'Written on a line of their own above the list, {example}, which is where a list carries them.')"><template #example><code>{.wide}</code></template></MessageText></p>
 		</OptionsGroup>
 
 		<slot />
 
-		<OptionsGroup v-if="markdownBlock.kind !== 'list' && markdownBlock.kind !== 'definitions'" heading="Source">
+		<OptionsGroup v-if="markdownBlock.kind !== 'list' && markdownBlock.kind !== 'definitions'" :heading="t('markdown_block_options.source', 'Source')">
 			<pre class="options__source">{{ firstLine }}</pre>
 		</OptionsGroup>
 	</div>

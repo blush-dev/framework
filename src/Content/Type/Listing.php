@@ -18,6 +18,8 @@ use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * How a listing page lists entries: a type's collection, a taxonomy's term
@@ -56,6 +58,7 @@ final readonly class Listing
 	 * @param  ?Order               $order   The sort direction.
 	 * @param  ?int                 $perPage Entries per page; `Listing::ALL` for every entry.
 	 * @param  array<string, mixed> $query   Other query arguments, with their 1.x names.
+	 * @param  Messages             $messages Writes why it's refused; English without a translator, for a listing in code.
 	 * @throws InvalidContentType When the arguments aren't a valid query.
 	 */
 	public function __construct(
@@ -63,18 +66,19 @@ final readonly class Listing
 		public ?string $orderBy = null,
 		public ?Order $order = null,
 		public ?int $perPage = null,
-		public array $query = []
+		public array $query = [],
+		Messages $messages = new Messages()
 	) {
 		$typed = array_intersect(array_keys($query), self::ARGUMENTS);
 
 		if ($typed !== []) {
-			throw new InvalidContentType(sprintf('Listing "query" can\'t set %s; use the Listing options instead.', implode(', ', $typed)));
+			throw new InvalidContentType((string) $messages->t('content.listing.typed_query', 'Listing "query" can\'t set {arguments}; use the Listing options instead.', arguments: implode(', ', $typed)));
 		}
 
 		try {
 			Query::fromArray($this->arguments());
 		} catch (InvalidQuery $e) {
-			throw new InvalidContentType(sprintf('Listing is invalid: %s', $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $messages->t('content.listing.invalid', 'Listing is invalid: {reason}', reason: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -101,9 +105,10 @@ final readonly class Listing
 	 * Builds a listing from its option names or a 1.x `collection` array.
 	 *
 	 * @param  array<array-key, mixed> $data
+	 * @param  string|Text             $label    What the listing is, to start the messages about it: "Content type "post" listing".
 	 * @throws InvalidContentType
 	 */
-	public static function fromArray(array $data, string $label): self
+	public static function fromArray(array $data, string|Text $label, Messages $messages): self
 	{
 		foreach (self::ARGUMENTS as $name => $argument) {
 			if ($name !== $argument && array_key_exists($argument, $data)) {
@@ -112,7 +117,7 @@ final readonly class Listing
 			}
 		}
 
-		$listing = new Definition($data, $label);
+		$listing = new Definition($data, (string) $label);
 
 		try {
 			$type    = $listing->nullableString('type');
@@ -125,15 +130,15 @@ final readonly class Listing
 		}
 
 		if ($order !== null && Order::tryFrom(strtolower($order)) === null) {
-			throw new InvalidContentType(sprintf('%s "order" must be "asc" or "desc".', $label));
+			throw new InvalidContentType((string) $messages->t('content.listing.bad_order', '{subject} "order" must be "asc" or "desc".', subject: $label));
 		}
 
 		if ($perPage !== null && ! is_int($perPage)) {
-			throw new InvalidContentType(sprintf('%s "perPage" must be a whole number.', $label));
+			throw new InvalidContentType((string) $messages->t('content.listing.per_page_not_whole', '{subject} "perPage" must be a whole number.', subject: $label));
 		}
 
 		if (! array_all($query, static fn (mixed $value, mixed $key): bool => is_string($key))) {
-			throw new InvalidContentType(sprintf('%s "query" must map query argument names to values.', $label));
+			throw new InvalidContentType((string) $messages->t('content.listing.bad_query', '{subject} "query" must map query argument names to values.', subject: $label));
 		}
 
 		/** @var array<string, mixed> $query */
@@ -142,7 +147,8 @@ final readonly class Listing
 			orderBy: $orderBy === null ? null : Query::orderKey($orderBy),
 			order: $order === null ? null : Order::from(strtolower($order)),
 			perPage: $perPage === null ? null : max(self::ALL, $perPage),
-			query: $query
+			query: $query,
+			messages: $messages
 		);
 	}
 

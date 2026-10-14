@@ -22,6 +22,7 @@ use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\RecordException;
+use Blush\Translation\Messages;
 
 /**
  * Writes the types the site defines in data, `user/data/types/{name}`
@@ -94,7 +95,8 @@ final readonly class DataTypeWriter
 		private ContentConfig $config,
 		private DefinitionTables $tables,
 		private FieldFactory $fields,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -105,7 +107,7 @@ final readonly class DataTypeWriter
 	 */
 	public function location(string $name): ?string
 	{
-		self::assertName($name);
+		$this->assertName($name);
 
 		try {
 			return $this->table()->has($name) ? $this->table()->location($name) : null;
@@ -123,12 +125,12 @@ final readonly class DataTypeWriter
 	 */
 	public function data(string $name): array
 	{
-		self::assertName($name);
+		$this->assertName($name);
 
 		try {
 			return $this->table()->find($name) ?? [];
 		} catch (RecordException $error) {
-			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.fix_by_hand', '{reason} Fix it by hand first.', reason: $error->getMessage()), previous: $error);
 		}
 	}
 
@@ -143,15 +145,15 @@ final readonly class DataTypeWriter
 		$this->assertEnabled();
 
 		if ($kind === TypeKind::Profiles) {
-			throw new InvalidContentType('The site has one profiles type; create a collection or a tree.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.one_profiles', 'The site has one profiles type; create a collection or a tree.'));
 		}
 
 		if ($this->location($name) !== null) {
-			throw new InvalidContentType(sprintf('user/data/types already defines "%s".', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.already_data', 'user/data/types already defines "{name}".', name: $name));
 		}
 
 		if ($this->codeType($name) !== null) {
-			throw new InvalidContentType(sprintf('"%s" is already defined in code.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.already_code', '"{name}" is already defined in code.', name: $name));
 		}
 
 		$base = $kind === TypeKind::Collection ? [] : ['kind' => $kind->value];
@@ -185,17 +187,17 @@ final readonly class DataTypeWriter
 		$code = $this->codeType($name);
 
 		if ($this->location($name) === null && $code === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be changed here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.not_data_change', '"{name}" isn\'t defined in user/data/types, so it can\'t be changed here.', name: $name));
 		}
 
 		$data = $this->data($name);
 
 		if (LegacyTaxonomy::is($data)) {
-			throw new InvalidContentType(sprintf('"%s" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.still_taxonomy', '"{name}" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', name: $name));
 		}
 
 		if (LegacyFolder::is($data)) {
-			throw new InvalidContentType(sprintf('"%s" still names its folder; move it first, on Site Health or with content:type-folders --write.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.still_folder', '"{name}" still names its folder; move it first, on Site Health or with content:type-folders --write.', name: $name));
 		}
 
 		return $this->write($name, $data, $changes, code: $code);
@@ -212,11 +214,11 @@ final readonly class DataTypeWriter
 		$this->assertEnabled();
 
 		if ($this->codeType($name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in code, so there\'s nothing to reset it to.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.not_code', '"{name}" isn\'t defined in code, so there\'s nothing to reset it to.', name: $name));
 		}
 
 		if ($this->location($name) === null) {
-			throw new InvalidContentType(sprintf('Nothing in user/data/types changes "%s".', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.nothing_changes', 'Nothing in user/data/types changes "{name}".', name: $name));
 		}
 
 		// Its place in the menu isn't one of the code's options, so it stays.
@@ -241,7 +243,7 @@ final readonly class DataTypeWriter
 	private function checkPlacement(ContentTypes $types, ContentType $type, mixed $under): void
 	{
 		if ($under !== null && ! is_string($under)) {
-			throw new InvalidContentType('"under" must be a type\'s name, or null for the top level.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_under', '"under" must be a type\'s name, or null for the top level.'));
 		}
 
 		$under = trim($under ?? '');
@@ -253,21 +255,26 @@ final readonly class DataTypeWriter
 		$parent = $types->find($under);
 
 		if ($type instanceof Profiles) {
-			throw new InvalidContentType(sprintf('%s are listed with people, so they aren\'t placed in the content menu.', $type->labels->plural));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.profiles_not_placed', '{types} are listed with people, so they aren\'t placed in the content menu.', types: $type->labels->plural));
 		}
 
 		if ($parent === null || $parent instanceof Profiles || $parent->name === $type->name) {
-			throw new InvalidContentType(sprintf('%s can\'t sit under "%s": it isn\'t a type in the content menu.', $type->labels->plural, $under));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_parent', '{types} can\'t sit under "{under}": it isn\'t a type in the content menu.', types: $type->labels->plural, under: $under));
 		}
 
 		if ($parent->under !== null) {
-			throw new InvalidContentType(sprintf('%s can\'t sit under %s, which sits under another type; the menu nests one level.', $type->labels->plural, $parent->labels->plural));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.parent_nested', '{types} can\'t sit under {parent}, which sits under another type; the menu nests one level.', types: $type->labels->plural, parent: $parent->labels->plural));
 		}
 
 		$children = array_filter($types->all(), static fn (ContentType $child): bool => $child->under === $type->name);
 
 		if ($children !== []) {
-			throw new InvalidContentType(sprintf('%s can\'t sit under another type while %s sit under it; the menu nests one level.', $type->labels->plural, implode(' and ', array_map(static fn (ContentType $child): string => $child->labels->plural, $children))));
+			throw new InvalidContentType((string) $this->messages->t(
+				'content.data_type_writer.has_children',
+				'{types} can\'t sit under another type while {children} sit under it; the menu nests one level.',
+				types: $type->labels->plural,
+				children: implode(' and ', array_map(static fn (ContentType $child): string => $child->labels->plural, $children))
+			));
 		}
 	}
 
@@ -281,14 +288,14 @@ final readonly class DataTypeWriter
 	private function placeOnly(ContentTypes $types, ContentType $type, array $changes): ContentTypes
 	{
 		if ($type instanceof Profiles) {
-			throw new InvalidContentType(sprintf('%s are listed with people, so they aren\'t placed in the content menu.', $type->labels->plural));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.profiles_not_placed', '{types} are listed with people, so they aren\'t placed in the content menu.', types: $type->labels->plural));
 		}
 
 		$position = array_key_exists('position', $changes) ? $changes['position'] : $type->position;
 		$under    = array_key_exists('under', $changes) ? $changes['under'] : $type->under;
 
 		if ($position !== null && (! is_int($position) || $position < 0)) {
-			throw new InvalidContentType('"position" must be a whole number, 0 or more, or null.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_position', '"position" must be a whole number, 0 or more, or null.'));
 		}
 
 		$under  = is_string($under) && trim($under) !== '' ? trim($under) : null;
@@ -351,7 +358,12 @@ final readonly class DataTypeWriter
 		$type = $types[$name];
 
 		if (! $type->isOverridable()) {
-			throw new InvalidContentType(sprintf('%s are %s, defined in code, so they can\'t be changed here.', $type->labels->plural, $type->role()));
+			throw new InvalidContentType((string) $this->messages->t(
+				'content.data_type_writer.code_fixed',
+				'{types} are {role, select, pages {the site\'s pages} profiles {the site\'s profiles type} collection {a collection type} other {a tree type}}, defined in code, so they can\'t be changed here.',
+				types: $type->labels->plural,
+				role: $type->role()
+			));
 		}
 
 		return $type;
@@ -391,23 +403,23 @@ final readonly class DataTypeWriter
 		$this->assertEnabled();
 
 		if ($this->codeType($name) !== null) {
-			throw new InvalidContentType(sprintf('"%s" is defined in code, so it can\'t be deleted here; reset it to undo the changes made here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.delete_code', '"{name}" is defined in code, so it can\'t be deleted here; reset it to undo the changes made here.', name: $name));
 		}
 
 		if ($this->location($name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be deleted here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.not_data_delete', '"{name}" isn\'t defined in user/data/types, so it can\'t be deleted here.', name: $name));
 		}
 
 		// The relations that name it say why it can't go yet (D-593).
 		$naming = array_filter(($this->loader)()->load()->relations(), static fn (Relation $relation): bool => in_array($name, [...$relation->from, ...$relation->to], true));
 
 		if ($naming !== []) {
-			throw new InvalidContentType(sprintf(
-				'The %s %s %s; remove %s first.',
-				implode(' and ', array_map(static fn (Relation $relation): string => "\"{$relation->name}\"", $naming)),
-				count($naming) === 1 ? 'relation names' : 'relations name',
-				$name,
-				count($naming) === 1 ? 'it' : 'them'
+			throw new InvalidContentType((string) $this->messages->t(
+				'content.data_type_writer.named_by_relations',
+				'The {relations} {count, plural, one {relation names} other {relations name}} {name}; remove {count, plural, one {it} other {them}} first.',
+				relations: implode(' and ', array_map(static fn (Relation $relation): string => "\"{$relation->name}\"", $naming)),
+				count: count($naming),
+				name: $name
 			));
 		}
 
@@ -428,18 +440,18 @@ final readonly class DataTypeWriter
 	 */
 	private function write(string $name, array $data, array $changes, array $also = [], ?ContentType $code = null): ContentTypes
 	{
-		$merged  = $code === null ? $data : $code->overriddenBy($data, $this->fields)->toArray();
+		$merged  = $code === null ? $data : $code->overriddenBy($data, $this->fields, $this->messages)->toArray();
 		$written = [];
 		$paths   = [];
 		$tree    = ($code?->kind() ?? TypeKind::tryFrom(is_string($merged['kind'] ?? null) ? $merged['kind'] : '')) === TypeKind::Tree;
 
 		if ($code !== null && array_key_exists('fields', $changes) && ! $this->fieldsEditable($code)) {
-			throw new InvalidContentType('Its fields include field classes from code, so they\'re changed in code.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.code_fields', 'Its fields include field classes from code, so they\'re changed in code.'));
 		}
 
 		foreach ($changes as $key => $value) {
 			if ($key === 'folders' && $value !== null && ! is_string($value)) {
-				throw new InvalidContentType('"folders" must be a folder pattern, such as {year}, or null.');
+				throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_folders', '"folders" must be a folder pattern, such as \'{year}\', or null.'));
 			}
 
 			if ($key === 'prefix' && $tree) {
@@ -466,7 +478,7 @@ final readonly class DataTypeWriter
 			}
 
 			if (! array_key_exists($key, self::OPTIONS)) {
-				throw new InvalidContentType(sprintf('"%s" isn\'t an option the admin changes.', $key));
+				throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.unknown_option', '"{option}" isn\'t an option the admin changes.', option: $key));
 			}
 
 			foreach (self::OPTIONS[$key] as $old) {
@@ -482,7 +494,7 @@ final readonly class DataTypeWriter
 			$written[] = $key;
 		}
 
-		$type      = ContentType::fromArray(['name' => $name, ...$merged], $this->fields);
+		$type      = ContentType::fromArray(['name' => $name, ...$merged], $this->fields, $this->messages);
 		$canonical = self::canonical($type);
 		$original  = $code === null ? [] : self::canonical($code);
 
@@ -608,7 +620,7 @@ final readonly class DataTypeWriter
 			$path = $type->urls->path($key);
 
 			if ($path !== null) {
-				TypeRouteKeys::check($type, $key, $path, $taxonomies, "\"{$key}\"", $relations);
+				TypeRouteKeys::check($type, $key, $path, $taxonomies, "\"{$key}\"", $this->messages, $relations);
 			}
 		}
 	}
@@ -646,7 +658,7 @@ final readonly class DataTypeWriter
 		$urls = $data['urls'] ?? $data['routing'] ?? [];
 
 		if ($urls === false) {
-			throw new InvalidContentType('The type has no URLs of its own, so it has no prefix to change.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.no_urls_prefix', 'The type has no URLs of its own, so it has no prefix to change.'));
 		}
 
 		$urls = is_array($urls) ? $urls : [];
@@ -675,11 +687,11 @@ final readonly class DataTypeWriter
 		$urls = $data['urls'] ?? $data['routing'] ?? [];
 
 		if ($urls === false) {
-			throw new InvalidContentType('The type has no URLs of its own, so it has no paths to change.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.no_urls_paths', 'The type has no URLs of its own, so it has no paths to change.'));
 		}
 
 		if (! is_array($paths) || ($paths !== [] && array_is_list($paths))) {
-			throw new InvalidContentType('"paths" must map route keys to paths.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_paths', '"paths" must map route keys to paths.'));
 		}
 
 		$urls  = is_array($urls) ? $urls : [];
@@ -701,11 +713,11 @@ final readonly class DataTypeWriter
 
 		foreach ($paths as $key => $path) {
 			if (! in_array($key, $known, true)) {
-				throw new InvalidContentType(sprintf('"%s" isn\'t a route key.', $key));
+				throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.unknown_route_key', '"{route}" isn\'t a route key.', route: $key));
 			}
 
 			if ($path !== null && ! is_string($path)) {
-				throw new InvalidContentType(sprintf('The "%s" path must be text.', $key));
+				throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.path_not_text', 'The "{route}" path must be text.', route: $key));
 			}
 
 			if ($path === null || trim($path, '/ ') === '') {
@@ -737,7 +749,7 @@ final readonly class DataTypeWriter
 	private function labels(array $data, mixed $labels): ?array
 	{
 		if ($labels !== null && ! is_array($labels)) {
-			throw new InvalidContentType('"labels" must map label names to text.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_labels', '"labels" must map label names to text.'));
 		}
 
 		$merged = [...(is_array($data['labels'] ?? null) ? $data['labels'] : []), ...($labels ?? [])];
@@ -794,17 +806,17 @@ final readonly class DataTypeWriter
 	private function assertEnabled(): void
 	{
 		if (! $this->config->dataTypes) {
-			throw new InvalidContentType('ContentConfig "dataTypes" is off, so types in user/data/types aren\'t read.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.data_types_off', 'ContentConfig "dataTypes" is off, so types in user/data/types aren\'t read.'));
 		}
 	}
 
 	/**
 	 * @throws InvalidContentType
 	 */
-	private static function assertName(string $name): void
+	private function assertName(string $name): void
 	{
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t a type name: start with a lowercase letter and use lowercase letters, digits, and underscores.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_name', '"{name}" isn\'t a type name: start with a lowercase letter and use lowercase letters, digits, and underscores.', name: $name));
 		}
 	}
 }

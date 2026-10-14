@@ -21,8 +21,10 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
+import MessageText from './MessageText.vue';
 import { type ContentTypeDetail, type RelationInfo } from '../api';
 import { useAction } from '../action';
+import { t } from '../messages';
 import { purposeIcon, relationLabel, removeRelation, sentenceFrom, sourceOf, storedOn, takes } from '../relations';
 import { canCreateTypes, labelsOf } from '../types';
 
@@ -49,7 +51,7 @@ const rows = computed(() => {
 			relation,
 			here: stored,
 			say: sentenceFrom(relation, here),
-			takes: takes(relation, stored ? undefined : (owner ? labelsOf(owner).item : 'entry')),
+			takes: takes(relation, stored ? undefined : (owner ? labelsOf(owner).item : t('type_relations.entry', 'entry'))),
 			owner
 		};
 	});
@@ -61,7 +63,7 @@ const rows = computed(() => {
 });
 
 async function remove(relation: RelationInfo): Promise<void> {
-	await run('The relationship couldn\'t be removed.', async () => {
+	await run(t('type_relations.remove_failed', 'The relationship couldn\'t be removed.'), async () => {
 		if (await removeRelation(relation)) {
 			emit('changed');
 		}
@@ -72,11 +74,11 @@ async function remove(relation: RelationInfo): Promise<void> {
 <template>
 	<section class="panel" aria-labelledby="relations-heading">
 		<header class="panel__header">
-			<h2 id="relations-heading">Relationships</h2>
-			<p class="panel__hint">Every one {{ type.labels.plural }} takes part in, from either side</p>
+			<h2 id="relations-heading">{{ t('type_relations.heading', 'Relationships') }}</h2>
+			<p class="panel__hint">{{ t('type_relations.hint', 'Every one {types} takes part in, from either side', { types: type.labels.plural }) }}</p>
 			<div class="panel__actions">
-				<RouterLink class="button button--ghost button--small" :to="{ name: 'relations', query: { type: type.name } }">View in Relationships</RouterLink>
-				<RouterLink v-if="canCreateTypes" class="button button--small" :to="{ name: 'relation-new', query: { type: type.name } }"><AdminIcon name="plus" />Add Relationship</RouterLink>
+				<RouterLink class="button button--ghost button--small" :to="{ name: 'relations', query: { type: type.name } }">{{ t('type_relations.view_all', 'View in Relationships') }}</RouterLink>
+				<RouterLink v-if="canCreateTypes" class="button button--small" :to="{ name: 'relation-new', query: { type: type.name } }"><AdminIcon name="plus" />{{ t('type_relations.add', 'Add Relationship') }}</RouterLink>
 			</div>
 		</header>
 		<div v-if="type.relations.length" class="table-wrap">
@@ -84,32 +86,32 @@ async function remove(relation: RelationInfo): Promise<void> {
 				<colgroup><col><col class="type-relations__key"><col class="type-relations__takes"><col class="type-relations__actions"></colgroup>
 				<thead>
 					<tr>
-						<th scope="col">Relationship</th>
-						<th scope="col">Key</th>
-						<th scope="col">Takes</th>
-						<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
+						<th scope="col">{{ t('type_relations.col_relationship', 'Relationship') }}</th>
+						<th scope="col">{{ t('type_relations.col_key', 'Key') }}</th>
+						<th scope="col">{{ t('type_relations.col_takes', 'Takes') }}</th>
+						<th scope="col" class="table__actions"><span class="visually-hidden">{{ t('type_relations.col_actions', 'Actions') }}</span></th>
 					</tr>
 				</thead>
-				<tbody v-for="group in ([['here', `Stored on ${type.labels.plural}`], ['elsewhere', 'Stored on other types']] as const)" :key="group[0]">
+				<tbody v-for="group in ([['here', t('type_relations.stored_here', 'Stored on {types}', { types: type.labels.plural })], ['elsewhere', t('type_relations.stored_elsewhere', 'Stored on other types')]] as const)" :key="group[0]">
 					<template v-if="rows[group[0]].length">
 						<tr class="table__group"><th scope="rowgroup" colspan="4">{{ group[1] }}</th></tr>
 						<tr v-for="row in rows[group[0]]" :key="row.relation.name">
 							<th scope="row">
-								<span class="type-relations__say">{{ row.say.before }} <strong>{{ row.say.type }}</strong> {{ row.say.after }}</span>
-								<span v-if="!row.relation.editable" class="type-relations__sub">{{ row.relation.origin === 'extension' ? 'Defined by a plugin' : 'Written as a taxonomy until it\'s migrated' }}</span>
+								<span class="type-relations__say"><MessageText :text="row.say.text"><template #type><strong>{{ row.say.type }}</strong></template></MessageText></span>
+								<span v-if="!row.relation.editable" class="type-relations__sub">{{ row.relation.origin === 'extension' ? t('type_relations.by_plugin', 'Defined by a plugin') : t('type_relations.taxonomy', 'Written as a taxonomy until it\'s migrated') }}</span>
 							</th>
 							<td><span class="type-relations__key-text">{{ row.relation.field }}</span></td>
 							<td><span class="type-relations__takes-text"><AdminIcon :name="purposeIcon(row.relation)" />{{ row.takes }}</span></td>
 							<td class="table__actions">
 								<template v-if="group[0] === 'elsewhere'">
-									<RouterLink v-if="row.owner" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.owner } }">Edit on {{ labelsOf(row.owner).plural }}</RouterLink>
-									<RouterLink v-else-if="row.relation.editable && canCreateTypes" class="button button--ghost button--small" :to="{ name: 'relation', params: { name: row.relation.name } }">Edit</RouterLink>
+									<RouterLink v-if="row.owner" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.owner } }">{{ t('type_relations.edit_on', 'Edit on {types}', { types: labelsOf(row.owner).plural }) }}</RouterLink>
+									<RouterLink v-else-if="row.relation.editable && canCreateTypes" class="button button--ghost button--small" :to="{ name: 'relation', params: { name: row.relation.name } }">{{ t('common.edit', 'Edit') }}</RouterLink>
 								</template>
 								<template v-else-if="row.relation.editable && canCreateTypes">
-									<RouterLink class="button button--small" :to="{ name: 'relation', params: { name: row.relation.name }, query: { type: type.name } }">Edit</RouterLink>
-									<button type="button" class="button button--ghost button--small" :aria-label="`Remove ${relationLabel(row.relation)}`" @click="remove(row.relation)">Remove</button>
+									<RouterLink class="button button--small" :to="{ name: 'relation', params: { name: row.relation.name }, query: { type: type.name } }">{{ t('common.edit', 'Edit') }}</RouterLink>
+									<button type="button" class="button button--ghost button--small" :aria-label="t('type_relations.remove_label', 'Remove {label}', { label: relationLabel(row.relation) })" @click="remove(row.relation)">{{ t('common.remove', 'Remove') }}</button>
 								</template>
-								<span v-else-if="!row.relation.editable" class="type-relations__code" :title="sourceOf(row.relation)"><AdminIcon name="code" />In code</span>
+								<span v-else-if="!row.relation.editable" class="type-relations__code" :title="sourceOf(row.relation)"><AdminIcon name="code" />{{ t('type_relations.in_code', 'In code') }}</span>
 							</td>
 						</tr>
 					</template>
@@ -117,9 +119,9 @@ async function remove(relation: RelationInfo): Promise<void> {
 			</table>
 		</div>
 		<div v-else class="panel__body">
-			<p class="field__help">Nothing links {{ type.labels.items }} to other entries yet.</p>
+			<p class="field__help">{{ t('type_relations.empty', 'Nothing links {items} to other entries yet.', { items: type.labels.items }) }}</p>
 		</div>
-		<p v-if="rows.here.some((row) => row.relation.to.includes(type.name))" class="panel__note">A relationship is edited on the type that stores it. One stored on {{ type.labels.plural }} that points back at {{ type.labels.plural }} appears once.</p>
+		<p v-if="rows.here.some((row) => row.relation.to.includes(type.name))" class="panel__note">{{ t('type_relations.note', 'A relationship is edited on the type that stores it. One stored on {types} that points back at {types} appears once.', { types: type.labels.plural }) }}</p>
 		<p v-if="error" class="panel__body notice notice--error" role="alert">{{ error }}</p>
 	</section>
 </template>

@@ -50,6 +50,7 @@ use Blush\Storage\Record\Refs;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Translation\Messages;
 
 /**
  * What every store that keeps content must answer, and answer alike
@@ -138,9 +139,11 @@ abstract class EntryStoreConformance extends TestCase
 					$container->make(FieldContext::class),
 					$container->make(ContentVersion::class),
 					$clock,
-					$config
+					$config,
+					$container->make(Messages::class)
 				);
-			}
+			},
+			$container->make(Messages::class)
 		);
 
 		return $entries;

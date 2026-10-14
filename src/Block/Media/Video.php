@@ -45,15 +45,6 @@ use Blush\Block\BlockKind;
  */
 final class Video extends Block
 {
-	use PlayerLabels;
-
-	/**
-	 * The player's labels (`PlayerLabels`).
-	 *
-	 * @var list<string>
-	 */
-	private const array LABELS = ['play', 'pause', 'seek', 'mute', 'unmute', 'volume', 'captions', 'fullscreen', 'exit-fullscreen'];
-
 	/**
 	 * @inheritDoc
 	 */

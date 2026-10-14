@@ -18,22 +18,24 @@ use Blush\Cache\Caches;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Removes expired entries from the cache store.
  */
 final class PruneCacheJob extends Job
 {
-	public function __construct(private readonly Caches $caches)
+	public function __construct(private readonly Caches $caches, private readonly Messages $messages)
 	{}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Remove expired cache entries';
+		return $this->messages->t('job.prune_cache_job.label', 'Remove expired cache entries');
 	}
 
 	/**
@@ -44,6 +46,6 @@ final class PruneCacheJob extends Job
 	{
 		$pruned = $this->caches->prune();
 
-		return JobResult::done(sprintf('Removed %d expired cache entr%s.', $pruned, $pruned === 1 ? 'y' : 'ies'));
+		return JobResult::done($this->messages->t('job.prune_cache_job.removed', 'Removed {count, plural, one {# expired cache entry} other {# expired cache entries}}.', count: $pruned));
 	}
 }

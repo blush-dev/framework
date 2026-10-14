@@ -17,6 +17,8 @@ use Override;
 use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\TextField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Several lines of plain text.
@@ -36,18 +38,18 @@ final class Textarea extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Textarea';
+		return $messages->t('field.textarea.label', 'Textarea');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'Several lines of plain text.';
+		return $messages->t('field.textarea.description', 'Several lines of plain text.');
 	}
 
 	/**

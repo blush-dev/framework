@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin\Theme;
 
 use Blush\Extension\ExtensionException;
+use Blush\Translation\Messages;
 
 /**
  * A font an admin theme ships (D-827), as `@font-face` has it: a woff2
@@ -53,20 +54,21 @@ final readonly class FontFace
 
 	/**
 	 * Reads a font face from `typography.fontFace`, checking its file is
-	 * in the theme's folder.
+	 * in the theme's folder. What's wrong is written with `$messages`, and
+	 * kept with the exception (`ExtensionException::$text`).
 	 *
 	 * @throws ExtensionException
 	 */
-	public static function fromArray(mixed $data, string $path): self
+	public static function fromArray(mixed $data, string $path, Messages $messages = new Messages()): self
 	{
 		if (! is_array($data) || array_is_list($data) && $data !== []) {
-			throw new ExtensionException('each of "typography.fontFace" must be an object.');
+			throw new ExtensionException($messages->t('admin.font_face.not_object', 'each of "typography.fontFace" must be an object.'));
 		}
 
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['fontFamily', 'src', 'fontWeight', 'fontStyle', 'unicodeRange']);
 
 		if ($unknown !== []) {
-			throw new ExtensionException(sprintf('a "typography.fontFace" has "%s", which isn\'t one of fontFamily, src, fontWeight, fontStyle, and unicodeRange.', implode('", "', $unknown)));
+			throw new ExtensionException($messages->t('admin.font_face.unknown_keys', 'a "typography.fontFace" has "{keys}", which isn\'t one of fontFamily, src, fontWeight, fontStyle, and unicodeRange.', keys: implode('", "', $unknown)));
 		}
 
 		$family = $data['fontFamily'] ?? null;
@@ -76,35 +78,35 @@ final readonly class FontFace
 		$range  = $data['unicodeRange'] ?? '';
 
 		if (! is_string($family) || FontFamily::name($family) === null) {
-			throw new ExtensionException('a "typography.fontFace" needs a "fontFamily": a family name of letters, digits, spaces, hyphens, and underscores.');
+			throw new ExtensionException($messages->t('admin.font_face.no_family', 'a "typography.fontFace" needs a "fontFamily": a family name of letters, digits, spaces, hyphens, and underscores.'));
 		}
 
 		if (! is_string($src) || preg_match(self::SRC, $src) !== 1) {
-			throw new ExtensionException(sprintf('the "%s" font face needs a "src": a .woff2 file inside the theme, such as "fonts/%s.woff2".', $family, strtolower(str_replace(' ', '-', $family))));
+			throw new ExtensionException($messages->t('admin.font_face.no_src', 'the "{family}" font face needs a "src": a .woff2 file inside the theme, such as "fonts/{file}.woff2".', family: $family, file: strtolower(str_replace(' ', '-', $family))));
 		}
 
 		$file = "{$path}/{$src}";
 
 		if (! is_file($file)) {
-			throw new ExtensionException(sprintf('the "%s" font face\'s file, %s, isn\'t in the theme.', $family, $src));
+			throw new ExtensionException($messages->t('admin.font_face.missing_file', 'the "{family}" font face\'s file, {src}, isn\'t in the theme.', family: $family, src: $src));
 		}
 
 		if ((int) filesize($file) > self::MAX_BYTES) {
-			throw new ExtensionException(sprintf('the "%s" font face\'s file, %s, is over %d KB.', $family, $src, self::MAX_BYTES / 1024));
+			throw new ExtensionException($messages->t('admin.font_face.too_big', 'the "{family}" font face\'s file, {src}, is over {size} KB.', family: $family, src: $src, size: intdiv(self::MAX_BYTES, 1024)));
 		}
 
 		$weight = is_int($weight) ? (string) $weight : $weight;
 
 		if (! is_string($weight) || ! self::isWeight($weight)) {
-			throw new ExtensionException(sprintf('the "%s" font face\'s "fontWeight" must be a weight from 1 to 1000, or two (such as "200 800").', $family));
+			throw new ExtensionException($messages->t('admin.font_face.bad_weight', 'the "{family}" font face\'s "fontWeight" must be a weight from 1 to 1000, or two (such as "200 800").', family: $family));
 		}
 
 		if (! in_array($style, ['normal', 'italic', 'oblique'], true)) {
-			throw new ExtensionException(sprintf('the "%s" font face\'s "fontStyle" must be normal, italic, or oblique.', $family));
+			throw new ExtensionException($messages->t('admin.font_face.bad_style', 'the "{family}" font face\'s "fontStyle" must be normal, italic, or oblique.', family: $family));
 		}
 
 		if (! is_string($range) || $range !== '' && preg_match(self::RANGE, $range) !== 1) {
-			throw new ExtensionException(sprintf('the "%s" font face\'s "unicodeRange" must be code points or ranges, such as "U+0000-00FF, U+0131".', $family));
+			throw new ExtensionException($messages->t('admin.font_face.bad_range', 'the "{family}" font face\'s "unicodeRange" must be code points or ranges, such as "U+0000-00FF, U+0131".', family: $family));
 		}
 
 		return new self($family, $src, preg_replace('/\s+/', ' ', trim($weight)) ?? $weight, $style, strtoupper(str_replace('u+', 'U+', $range)));

@@ -20,6 +20,8 @@ use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Media\MediaKind;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A media file, by the id of its original (D-487, D-773), kept in lower
@@ -52,18 +54,18 @@ final class MediaField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Media file';
+		return $messages->t('field.media_field.type_label', 'Media file');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'A media file.';
+		return $messages->t('field.media_field.type_description', 'A media file.');
 	}
 
 	/**
@@ -73,7 +75,7 @@ final class MediaField extends Field
 	public function normalize(mixed $value, FieldContext $context): mixed
 	{
 		if (! is_string($value) || trim($value) === '') {
-			throw $this->invalid(sprintf('must be a media file\'s id, not %s.', self::describe($value)));
+			throw $this->invalid($context->messages->t('field.media_field.invalid', 'must be a media file\'s id, not {value}.', value: self::describe($value, $context->messages)));
 		}
 
 		return Uuid::isValid(trim($value)) ? strtolower(trim($value)) : trim($value);

@@ -22,6 +22,7 @@ use Blush\Media\MediaKind;
 use Blush\Media\MediaResolver;
 use Blush\Media\MediaUploadRule;
 use Blush\Media\MediaUploads;
+use Blush\Translation\Messages;
 
 #[CoversClass(MediaUploads::class)]
 #[CoversClass(MediaUploadRule::class)]
@@ -104,7 +105,7 @@ final class MediaUploadsTest extends TestCase
 			[MediaKind::Document, MediaKind::Document, MediaKind::Document, MediaKind::File],
 			array_map(MediaKind::fromMime(...), ['application/pdf', 'text/plain', 'application/vnd.oasis.opendocument.text', 'text/vtt'])
 		);
-		$this->assertSame(['documents', 'Documents'], [MediaKind::Document->folder(), MediaKind::Document->label()]);
+		$this->assertSame(['documents', 'Documents'], [MediaKind::Document->folder(), (string) MediaKind::Document->label(new Messages())]);
 		$this->assertContains('application/pdf', MediaConfig::DEFAULT_TYPES, 'PDFs are allowed by default; other documents once listed.');
 
 		$directory = sys_get_temp_dir() . '/blush-docs-' . bin2hex(random_bytes(4));

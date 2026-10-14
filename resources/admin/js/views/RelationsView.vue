@@ -30,7 +30,9 @@ import AdminSelect from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { errorMessage, request, type RelationListed } from '../api';
-import { plural } from '../format';
+import MessageText from '../components/MessageText.vue';
+import { formatNumber } from '../format';
+import { locale, t } from '../messages';
 import { purposeIcon, purposeOf, purposes, relationLabel, sourceOf, type RelationPurpose } from '../relations';
 import { can } from '../session';
 import { canCreateTypes, labelsOf, loadTypes, types } from '../types';
@@ -47,7 +49,7 @@ loadTypes().catch(() => undefined);
 request<{ relations: RelationListed[] }>('GET', '/relations').then((answer) => {
 	relations.value = answer.relations;
 }, (caught: unknown) => {
-	error.value = errorMessage(caught, 'The relationships couldn\'t be loaded.');
+	error.value = errorMessage(caught, t('relations_view.errors.not_loaded', 'The relationships couldn\'t be loaded.'));
 });
 
 const text = (key: string): string => typeof route.query[key] === 'string' ? route.query[key] : '';
@@ -64,14 +66,14 @@ const typeValue   = computed({ get: () => type.value, set: (value: string) => go
 const sourceValue = computed({ get: () => source.value, set: (value: string) => go({ source: value || undefined }) });
 
 const typeOptions = computed(() => [
-	{ value: '', label: 'Any type' },
-	...[...types.value].sort((a, b) => a.labels.plural.localeCompare(b.labels.plural)).map((item) => ({ value: item.name, label: item.labels.plural }))
+	{ value: '', label: t('relations_view.any_type', 'Any type') },
+	...[...types.value].sort((a, b) => a.labels.plural.localeCompare(b.labels.plural, locale())).map((item) => ({ value: item.name, label: item.labels.plural }))
 ]);
 
 const sourceOptions = [
-	{ value: '', label: 'Any source' },
-	{ value: 'data', label: 'Made here' },
-	{ value: 'extension', label: 'Plugins' }
+	{ value: '', label: t('relations_view.any_source', 'Any source') },
+	{ value: 'data', label: t('relations_view.made_here', 'Made here') },
+	{ value: 'extension', label: t('relations_view.plugins', 'Plugins') }
 ];
 
 // Every relationship but the filtered tab, so each tab counts what the
@@ -85,13 +87,13 @@ const filteredAll = computed(() => {
 });
 
 const tabs = computed(() => [
-	{ key: '' as const, label: 'All', count: filteredAll.value.length },
+	{ key: '' as const, label: t('relations_view.all', 'All'), count: filteredAll.value.length },
 	...purposes.map((item) => ({ key: item.key, label: item.label, count: filteredAll.value.filter((relation) => purposeOf(relation) === item.key).length }))
 ]);
 
 const shown = computed(() => filteredAll.value
 	.filter((relation) => kind.value === '' || purposeOf(relation) === kind.value)
-	.sort((a, b) => relationLabel(a).localeCompare(relationLabel(b))));
+	.sort((a, b) => relationLabel(a).localeCompare(relationLabel(b), locale())));
 
 // How many the tab holds before the filters, for "3 relationships of 13".
 const total = computed(() => (relations.value ?? []).filter((relation) => kind.value === '' || purposeOf(relation) === kind.value).length);
@@ -103,26 +105,26 @@ function clear(): void {
 	go({ type: undefined, source: undefined });
 }
 
-const stores = (relation: RelationListed): string => relation.from.length === 0 ? 'Every type' : relation.from.map((name) => labelsOf(name).plural).join(', ');
+const stores = (relation: RelationListed): string => relation.from.length === 0 ? t('relations_view.every_type', 'Every type') : relation.from.map((name) => labelsOf(name).plural).join(', ');
 const target = (relation: RelationListed): string => relation.to.map((name) => labelsOf(name).plural).join(', ');
 </script>
 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Relationships</h1>
-			<p class="page-header__hint">How entries of one type point at entries of another.</p>
+			<h1 tabindex="-1">{{ t('relations_view.title', 'Relationships') }}</h1>
+			<p class="page-header__hint">{{ t('relations_view.hint', 'How entries of one type point at entries of another.') }}</p>
 		</div>
 		<div v-if="canCreateTypes" class="page-header__actions">
-			<RouterLink class="button button--primary" :to="{ name: 'relation-new' }"><AdminIcon name="plus" />New Relationship</RouterLink>
+			<RouterLink class="button button--primary" :to="{ name: 'relation-new' }"><AdminIcon name="plus" />{{ t('relations_view.new', 'New Relationship') }}</RouterLink>
 		</div>
 	</header>
 
-	<p class="notice"><AdminIcon name="info" /><span>Relationships made here live in <code>user/data/relations</code>. Ones from plugins are shown with their source and edited where they're defined.</span></p>
+	<p class="notice"><AdminIcon name="info" /><span><MessageText :text="t('relations_view.notice', 'Relationships made here live in {folder}. Ones from plugins are shown with their source and edited where they\'re defined.')"><template #folder><code>user/data/relations</code></template></MessageText></span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="!error">
-		<nav class="status-tabs" aria-label="Purpose">
+		<nav class="status-tabs" :aria-label="t('relations_view.purpose', 'Purpose')">
 			<RouterLink v-for="tab in tabs" :key="tab.key" class="status-tabs__tab" :to="{ query: { ...route.query, kind: tab.key || undefined } }" :aria-current="kind === tab.key ? 'page' : undefined">
 				{{ tab.label }}
 				<span v-if="relations" class="status-tabs__count">{{ tab.count }}</span>
@@ -132,15 +134,15 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 		<div class="toolbar" role="search">
 			<label class="search-field toolbar__search">
 				<AdminIcon name="search" />
-				<span class="visually-hidden">Search relationships</span>
-				<input v-model="search" type="search" placeholder="Search names and keys" autocomplete="off">
+				<span class="visually-hidden">{{ t('relations_view.search', 'Search relationships') }}</span>
+				<input v-model="search" type="search" :placeholder="t('relations_view.search_placeholder', 'Search names and keys')" autocomplete="off">
 			</label>
 			<div class="toolbar__filter">
-				<label class="visually-hidden" for="relations-type">Type</label>
+				<label class="visually-hidden" for="relations-type">{{ t('relations_view.type', 'Type') }}</label>
 				<AdminSelect id="relations-type" v-model="typeValue" :options="typeOptions" searchable />
 			</div>
 			<div class="toolbar__filter">
-				<label class="visually-hidden" for="relations-source">Source</label>
+				<label class="visually-hidden" for="relations-source">{{ t('relations_view.source', 'Source') }}</label>
 				<AdminSelect id="relations-source" v-model="sourceValue" :options="sourceOptions" />
 			</div>
 		</div>
@@ -149,18 +151,18 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 			<header class="panel__header">
 				<h2 id="relations-heading">{{ tabs.find((tab) => tab.key === kind)?.label }}</h2>
 				<p class="panel__hint" aria-live="polite">
-					<template v-if="relations">{{ plural(shown.length, 'relationship') }}<template v-if="filtered"> of {{ total }}</template></template>
+					<template v-if="relations">{{ filtered ? t('relations_view.count_of', '{count, plural, one {# relationship} other {# relationships} } of {total}', { count: shown.length, total }) : t('relations_view.count', '{count, plural, one {# relationship} other {# relationships} }', { count: shown.length }) }}</template>
 					<template v-else>&nbsp;</template>
 				</p>
 				<div v-if="filtered" class="panel__actions">
-					<button type="button" class="button button--ghost button--small" @click="clear">Clear Filters</button>
+					<button type="button" class="button button--ghost button--small" @click="clear">{{ t('relations_view.clear_filters', 'Clear Filters') }}</button>
 				</div>
 			</header>
-			<SkeletonTable v-if="relations === null" :columns="['Name', 'Connects', 'Kind', 'Source', 'Entries']" :rows="4" label="Loading the relationships…" />
-			<EmptyState v-else-if="shown.length === 0" :icon="filtered ? 'search' : 'workflow'" :heading="filtered ? 'No Relationship Matches' : 'No Relationships Yet'" :text="filtered ? 'Nothing here fits the filters in force.' : 'A relationship lets entries of one type name entries of another: a recipe its cooks, a post its categories.'">
+			<SkeletonTable v-if="relations === null" :columns="[t('relations_view.columns.name', 'Name'), t('relations_view.columns.connects', 'Connects'), t('relations_view.columns.kind', 'Kind'), t('relations_view.columns.source', 'Source'), t('relations_view.columns.entries', 'Entries')]" :rows="4" :label="t('relations_view.loading', 'Loading the relationships…')" />
+			<EmptyState v-else-if="shown.length === 0" :icon="filtered ? 'search' : 'workflow'" :heading="filtered ? t('relations_view.empty.no_match', 'No Relationship Matches') : t('relations_view.empty.none_yet', 'No Relationships Yet')" :text="filtered ? t('relations_view.empty.no_match_text', 'Nothing here fits the filters in force.') : t('relations_view.empty.none_yet_text', 'A relationship lets entries of one type name entries of another: a recipe its cooks, a post its categories.')">
 				<template #actions>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
-					<RouterLink v-else-if="canCreateTypes" class="button button--primary" :to="{ name: 'relation-new' }">New Relationship</RouterLink>
+					<button v-if="filtered" type="button" class="button" @click="clear">{{ t('relations_view.clear_filters', 'Clear Filters') }}</button>
+					<RouterLink v-else-if="canCreateTypes" class="button button--primary" :to="{ name: 'relation-new' }">{{ t('relations_view.new', 'New Relationship') }}</RouterLink>
 				</template>
 			</EmptyState>
 			<div v-else class="table-wrap">
@@ -168,11 +170,11 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 					<colgroup><col class="relations-table__name"><col><col class="relations-table__kind"><col class="relations-table__source"><col class="relations-table__count"></colgroup>
 					<thead>
 						<tr>
-							<th scope="col">Name</th>
-							<th scope="col">Connects</th>
-							<th scope="col">Kind</th>
-							<th scope="col">Source</th>
-							<th scope="col" class="table__count">Entries</th>
+							<th scope="col">{{ t('relations_view.columns.name', 'Name') }}</th>
+							<th scope="col">{{ t('relations_view.columns.connects', 'Connects') }}</th>
+							<th scope="col">{{ t('relations_view.columns.kind', 'Kind') }}</th>
+							<th scope="col">{{ t('relations_view.columns.source', 'Source') }}</th>
+							<th scope="col" class="table__count">{{ t('relations_view.columns.entries', 'Entries') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -187,8 +189,8 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 										</span>
 										<span class="entry-title__path">{{ relation.field }}</span>
 										<span v-if="relation.legacy" class="relation-name__legacy">
-											<AdminIcon name="triangle-alert" />Written the old way, as a taxonomy.
-											<RouterLink v-if="can('site.health')" class="lnk" :to="{ name: 'health-check', params: { area: 'content', check: 'taxonomies' } }">Migrate</RouterLink>
+											<AdminIcon name="triangle-alert" />{{ t('relations_view.legacy', 'Written the old way, as a taxonomy.') }}
+											<RouterLink v-if="can('site.health')" class="lnk" :to="{ name: 'health-check', params: { area: 'content', check: 'taxonomies' } }">{{ t('relations_view.migrate', 'Migrate') }}</RouterLink>
 										</span>
 									</span>
 								</span>
@@ -196,7 +198,7 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 							<td>{{ stores(relation) }} <AdminIcon class="relations-table__arrow" name="arrow-right" /> {{ target(relation) }}</td>
 							<td>{{ purposes.find((item) => item.key === purposeOf(relation))?.label }}</td>
 							<td :class="{ mono: relation.origin !== 'extension' }">{{ sourceOf(relation) }}</td>
-							<td class="table__count mono">{{ relation.entries.toLocaleString() }}</td>
+							<td class="table__count mono">{{ formatNumber(relation.entries) }}</td>
 						</tr>
 					</tbody>
 				</table>

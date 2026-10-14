@@ -38,6 +38,7 @@ use Blush\Content\Type\InvalidContentType;
 use Blush\Core\Application;
 use Blush\Field\Violation;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Translation\Messages;
 
 #[CoversClass(RelationCompiler::class)]
 #[CoversClass(LinkBuilder::class)]
@@ -114,7 +115,7 @@ final class SiteRelationsTest extends TestCase
 		$types   = $this->app->container()->make(ContentTypes::class);
 
 		// As a relation source would add it.
-		$this->relations = new RelationCompiler()->compile($types, [$related]);
+		$this->relations = new RelationCompiler(new Messages())->compile($types, [$related]);
 		$this->app->container()->instance(Relations::class, $this->relations);
 		$this->app->container()->make(Indexer::class)->index(full: true);
 

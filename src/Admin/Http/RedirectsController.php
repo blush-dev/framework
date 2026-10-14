@@ -42,6 +42,8 @@ use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
 use Blush\Routing\RedirectSource;
 use Blush\Storage\Record\RecordException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The Redirects screen's API (D-686), for accounts with
@@ -89,6 +91,7 @@ final readonly class RedirectsController
 		private AccountProfiles $names,
 		private AppConfig $app,
 		private ClockInterface $clock,
+		private Messages $messages,
 		#[Tagged(RedirectSource::TAG)] private array $sources = []
 	) {}
 
@@ -97,13 +100,13 @@ final readonly class RedirectsController
 		$account = $this->allowed($request);
 
 		if ($account === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$review = $this->review();
 
 		if ($review === null) {
-			return self::error('The redirects can\'t be read. Check user/data/redirects.json.', Status::InternalServerError);
+			return $this->unreadable();
 		}
 
 		$query  = $request->getQueryParams();
@@ -173,13 +176,13 @@ final readonly class RedirectsController
 	public function check(ServerRequestInterface $request): ResponseInterface
 	{
 		if ($this->allowed($request) === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$review = $this->review();
 
 		if ($review === null) {
-			return self::error('The redirects can\'t be read. Check user/data/redirects.json.', Status::InternalServerError);
+			return $this->unreadable();
 		}
 
 		$checked = $this->checked($review, self::input($request));
@@ -192,13 +195,13 @@ final readonly class RedirectsController
 		$account = $this->allowed($request);
 
 		if ($account === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$review = $this->review();
 
 		if ($review === null) {
-			return self::error('The redirects can\'t be read. Check user/data/redirects.json.', Status::InternalServerError);
+			return $this->unreadable();
 		}
 
 		$input   = self::input($request);
@@ -208,11 +211,11 @@ final readonly class RedirectsController
 		$draft   = $checked['row'];
 
 		if ($was !== null && $before === null) {
-			return self::error('That redirect isn\'t there anymore. Reload the list.', Status::NotFound);
+			return self::error($this->messages->t('admin.redirects_controller.gone', 'That redirect isn\'t there anymore. Reload the list.'), Status::NotFound);
 		}
 
 		if ($draft === null) {
-			return self::json(['error' => 'Something needs fixing first.', ...$checked, 'row' => null], Status::UnprocessableContent);
+			return self::json(['error' => $this->messages->t('admin.redirects_controller.needs_fixing', 'Something needs fixing first.'), ...$checked, 'row' => null], Status::UnprocessableContent);
 		}
 
 		$row = new RedirectRow(
@@ -234,7 +237,7 @@ final readonly class RedirectsController
 				$this->redirects->save($row);
 			});
 		} catch (RecordException | InvalidRoute $e) {
-			return self::error(sprintf('The redirect couldn\'t be saved: %s', $e->getMessage()), Status::InternalServerError);
+			return self::error($this->messages->t('admin.redirects_controller.not_saved', 'The redirect couldn\'t be saved: {reason}', reason: $e->getMessage()), Status::InternalServerError);
 		}
 
 		$after = $review->with($row, $was);
@@ -245,7 +248,7 @@ final readonly class RedirectsController
 	public function delete(ServerRequestInterface $request): ResponseInterface
 	{
 		if ($this->allowed($request) === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$froms = self::froms(self::input($request));
@@ -270,7 +273,7 @@ final readonly class RedirectsController
 				return $gone;
 			});
 		} catch (RecordException | InvalidRoute $e) {
-			return self::error(sprintf('The redirects couldn\'t be deleted: %s', $e->getMessage()), Status::InternalServerError);
+			return self::error($this->messages->t('admin.redirects_controller.not_deleted', 'The redirects couldn\'t be deleted: {reason}', reason: $e->getMessage()), Status::InternalServerError);
 		}
 
 		return self::json(['deleted' => $deleted]);
@@ -279,7 +282,7 @@ final readonly class RedirectsController
 	public function status(ServerRequestInterface $request): ResponseInterface
 	{
 		if ($this->allowed($request) === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$input  = self::input($request);
@@ -306,7 +309,7 @@ final readonly class RedirectsController
 				return $was;
 			});
 		} catch (RecordException | InvalidRoute $e) {
-			return self::error(sprintf('The redirects couldn\'t be changed: %s', $e->getMessage()), Status::InternalServerError);
+			return self::error($this->messages->t('admin.redirects_controller.not_changed', 'The redirects couldn\'t be changed: {reason}', reason: $e->getMessage()), Status::InternalServerError);
 		}
 
 		return self::json(['changed' => $changed]);
@@ -315,7 +318,7 @@ final readonly class RedirectsController
 	public function restore(ServerRequestInterface $request): ResponseInterface
 	{
 		if ($this->allowed($request) === null) {
-			return self::error('You aren\'t allowed to manage redirects.', Status::Forbidden);
+			return $this->forbidden();
 		}
 
 		$input  = self::input($request);
@@ -345,7 +348,7 @@ final readonly class RedirectsController
 				}
 			});
 		} catch (RecordException | InvalidRoute $e) {
-			return self::error(sprintf('The redirects couldn\'t be put back: %s', $e->getMessage()), Status::InternalServerError);
+			return self::error($this->messages->t('admin.redirects_controller.not_restored', 'The redirects couldn\'t be put back: {reason}', reason: $e->getMessage()), Status::InternalServerError);
 		}
 
 		return self::json(['restored' => count($rows)]);
@@ -375,7 +378,7 @@ final readonly class RedirectsController
 			}
 		}
 
-		return new RedirectReview($rows, $code, $this->site, $this->content, $this->host());
+		return new RedirectReview($rows, $code, $this->site, $this->content, $this->host(), $this->messages);
 	}
 
 	/**
@@ -401,7 +404,7 @@ final readonly class RedirectsController
 	/**
 	 * A row as the list shows it.
 	 *
-	 * @param  ?array{kind: string, label: string, message: Message, final?: array{entry: string, title: string, url: string}|array{to: string}} $problem
+	 * @param  ?array{kind: string, label: string|Text, message: Message, final?: array{entry: string, title: string, url: string}|array{to: string}} $problem
 	 * @return array<string, mixed>
 	 */
 	private function describe(RedirectRow $row, RedirectReview $review, ?array $problem, Account $viewer): array
@@ -442,12 +445,12 @@ final readonly class RedirectsController
 			return ['path' => null, 'other' => $address['other'] ?? null, 'hops' => []];
 		}
 
-		$hops = array_map(function (array $hop): array {
+		$hops = array_map(function (array $hop) use ($review): array {
 			return match ($hop['t']) {
-				'page'     => ['t' => 'page', 'path' => $hop['path'], 'title' => $hop['answer'] instanceof Entry ? RedirectReview::titleOf($hop['answer']) : null],
-				'redirect' => ['t' => 'redirect', 'path' => $hop['path'], 'code' => $hop['code'], 'from' => $hop['from'], 'status' => $hop['status'], 'target' => $this->targetJson($hop['target'])],
+				'page'     => ['t' => 'page', 'path' => $hop['path'], 'title' => $hop['answer'] instanceof Entry ? $review->titleOf($hop['answer']) : null],
+				'redirect' => ['t' => 'redirect', 'path' => $hop['path'], 'code' => $hop['code'], 'from' => $hop['from'], 'status' => $hop['status'], 'target' => $this->targetJson($review, $hop['target'])],
 				'away'     => ['t' => 'away', 'url' => $hop['url'], 'host' => (string) Uri::parse($hop['url'])?->getHost()],
-				'gone'     => ['t' => 'gone', 'title' => $hop['entry'] === null ? null : RedirectReview::titleOf($hop['entry'])],
+				'gone'     => ['t' => 'gone', 'title' => $hop['entry'] === null ? null : $review->titleOf($hop['entry'])],
 				'missing'  => ['t' => 'missing', 'path' => $hop['path']],
 				default    => ['t' => 'loop', 'path' => $hop['path']]
 			};
@@ -470,13 +473,13 @@ final readonly class RedirectsController
 	 * @param  array{kind: string, entry?: ?Entry, id?: string, path?: string, url?: string} $target
 	 * @return array<string, mixed>
 	 */
-	private function targetJson(array $target): array
+	private function targetJson(RedirectReview $review, array $target): array
 	{
 		$entry = $target['entry'] ?? null;
 
 		return [
 			'kind'  => $target['kind'],
-			'title' => $entry === null ? null : RedirectReview::titleOf($entry),
+			'title' => $entry === null ? null : $review->titleOf($entry),
 			'path'  => $target['path'] ?? null,
 			'url'   => $target['url'] ?? null
 		];
@@ -596,7 +599,17 @@ final readonly class RedirectsController
 		return Response::json($data, $status, ['Cache-Control' => 'no-store']);
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private function forbidden(): ResponseInterface
+	{
+		return self::error($this->messages->t('admin.redirects_controller.forbidden', 'You aren\'t allowed to manage redirects.'), Status::Forbidden);
+	}
+
+	private function unreadable(): ResponseInterface
+	{
+		return self::error($this->messages->t('admin.redirects_controller.unreadable', 'The redirects can\'t be read. Check user/data/redirects.json.'), Status::InternalServerError);
+	}
+
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return self::json(['error' => $message], $status);
 	}

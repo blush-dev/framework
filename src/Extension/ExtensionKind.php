@@ -33,19 +33,6 @@ enum ExtensionKind: string
 	case AdminTheme = 'admin-theme';
 
 	/**
-	 * Returns the kind's name, for messages.
-	 */
-	public function label(): string
-	{
-		return match ($this) {
-			self::Plugin     => 'plugin',
-			self::Theme      => 'theme',
-			self::IconPack   => 'icon pack',
-			self::AdminTheme => 'admin theme'
-		};
-	}
-
-	/**
 	 * Returns the manifest's file name, without its format
 	 * (`plugin.json`, `theme.json`, `icons.json`, `admin-theme.json`).
 	 */

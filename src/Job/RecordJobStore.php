@@ -25,6 +25,7 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * Keeps jobs as records inside a database driver (D-645, D-662): the
@@ -53,7 +54,8 @@ final readonly class RecordJobStore implements JobStore
 	public function __construct(
 		private RecordStores $stores,
 		private ClockInterface $clock,
-		private Paths $paths
+		private Paths $paths,
+		private Messages $messages
 	) {}
 
 	/**
@@ -97,7 +99,7 @@ final readonly class RecordJobStore implements JobStore
 
 		$record = $this->stores->store(self::table())->find(self::table(), strtolower($id));
 
-		return $record === null ? null : self::job($record);
+		return $record === null ? null : $this->job($record);
 	}
 
 	/**
@@ -115,7 +117,7 @@ final readonly class RecordJobStore implements JobStore
 		$jobs = [];
 
 		foreach ($this->stores->store(self::table())->select(self::table(), $query)->records as $record) {
-			$job = self::job($record);
+			$job = $this->job($record);
 
 			if ($job !== null) {
 				$jobs[$record->id] = $job;
@@ -219,9 +221,9 @@ final readonly class RecordJobStore implements JobStore
 	/**
 	 * Returns a record's job, or `null` when it isn't one.
 	 */
-	private static function job(Record $record): ?JobRecord
+	private function job(Record $record): ?JobRecord
 	{
-		return JobRecord::fromArray(['id' => $record->id, ...$record->fields]);
+		return JobRecord::fromArray(['id' => $record->id, ...$record->fields], $this->messages);
 	}
 
 	/**

@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a role may do to the entries of a content type (D-359). Each
  * content type has a capability for each action, named
@@ -82,16 +85,16 @@ enum ContentAction: string
 	/**
 	 * Returns the action's label, within its type.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Create        => 'Create entries',
-			self::Edit          => 'Edit their own',
-			self::EditOthers    => 'Edit anyone\'s',
-			self::Publish       => 'Publish their own',
-			self::PublishOthers => 'Publish anyone\'s',
-			self::Delete        => 'Delete their own',
-			self::DeleteOthers  => 'Delete anyone\'s'
+			self::Create        => $messages->t('auth.content_action.create', 'Create entries'),
+			self::Edit          => $messages->t('auth.content_action.edit', 'Edit their own'),
+			self::EditOthers    => $messages->t('auth.content_action.edit_others', 'Edit anyone\'s'),
+			self::Publish       => $messages->t('auth.content_action.publish', 'Publish their own'),
+			self::PublishOthers => $messages->t('auth.content_action.publish_others', 'Publish anyone\'s'),
+			self::Delete        => $messages->t('auth.content_action.delete', 'Delete their own'),
+			self::DeleteOthers  => $messages->t('auth.content_action.delete_others', 'Delete anyone\'s')
 		};
 	}
 

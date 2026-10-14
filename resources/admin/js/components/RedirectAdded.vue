@@ -8,8 +8,10 @@
  */
 
 import { RouterLink } from 'vue-router';
-import { addedVerb, type RedirectRow } from '../redirects';
+import { t } from '../messages';
+import type { RedirectRow } from '../redirects';
 import { can } from '../session';
+import MessageText from './MessageText.vue';
 
 const props = defineProps<{
 	row: RedirectRow;
@@ -17,9 +19,9 @@ const props = defineProps<{
 }>();
 
 const ALONE: Record<string, string> = {
-	rename: 'When the entry was renamed',
-	move: 'When the entry moved',
-	import: 'Imported'
+	rename: t('redirect_added.when_renamed', 'When the entry was renamed'),
+	move: t('redirect_added.when_moved', 'When the entry moved'),
+	import: t('redirect_added.imported', 'Imported')
 };
 
 const opens = (): boolean => props.linked === true && props.row.by?.username !== null && (props.row.by?.you === true || can('accounts.view'));
@@ -27,10 +29,13 @@ const opens = (): boolean => props.linked === true && props.row.by?.username !==
 
 <template>
 	<span v-if="row.by">
-		{{ addedVerb(row) }} by
-		<template v-if="row.by.name === null">a removed account</template>
-		<RouterLink v-else-if="opens()" class="lnk" :to="{ name: 'account', params: { username: row.by.username } }">{{ row.by.name }}</RouterLink>
-		<template v-else>{{ row.by.name }}</template>
+		<MessageText :text="t('redirect_added.by', '{via, select, rename {Renamed by {account} } move {Moved by {account} } import {Imported by {account} } other {Added by {account} } }', { via: row.via ?? 'other' })">
+			<template #account>
+				<template v-if="row.by.name === null">{{ t('redirect_added.removed_account', 'a removed account') }}</template>
+				<RouterLink v-else-if="opens()" class="lnk" :to="{ name: 'account', params: { username: row.by.username } }">{{ row.by.name }}</RouterLink>
+				<template v-else>{{ row.by.name }}</template>
+			</template>
+		</MessageText>
 	</span>
 	<span v-else-if="row.via">{{ ALONE[row.via] }}</span>
 </template>

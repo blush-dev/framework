@@ -64,7 +64,7 @@ function changed(event: Event): void {
 		<span class="switch__track" aria-hidden="true"><span class="switch__knob" /></span>
 		<span v-if="$slots.default" class="switch__text"><slot /></span>
 		<span v-else-if="words" class="switch__word switch__word--long" aria-hidden="true"><span v-for="word in [words.on, words.off]" :key="word" :class="{ 'is-shown': word === (checked ? words.on : words.off) }">{{ word }}</span></span>
-		<span v-else class="switch__word" aria-hidden="true">{{ checked ? 'On' : 'Off' }}</span>
+		<span v-else class="switch__word" aria-hidden="true">{{ checked ? t('toggle_switch.on', 'On') : t('toggle_switch.off', 'Off') }}</span>
 		<span v-if="reason" :id="reasonId" class="visually-hidden">{{ reason }}</span>
 	</label>
 </template>

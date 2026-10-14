@@ -41,6 +41,8 @@ use Blush\Job\JobType;
 use Blush\Media\AssignedMediaIds;
 use Blush\Media\MediaException;
 use Blush\Media\MediaIds;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/health`: the content and media files' problems
@@ -148,13 +150,14 @@ final readonly class HealthController
 		private JobQueue $jobs,
 		private IgnoredProblems $ignored,
 		private Accounts $accounts,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_see', 'You aren\'t allowed to see site health.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		return Response::json([...$this->siteHealth->files($request->getServerParams()), 'ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
@@ -167,7 +170,7 @@ final readonly class HealthController
 	public function check(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_see', 'You aren\'t allowed to see site health.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$account = $request->getAttribute(Account::class);
@@ -207,7 +210,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to change site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_change', 'You aren\'t allowed to change site health.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$key = self::input($request, 'key');
@@ -230,7 +233,7 @@ final readonly class HealthController
 	/**
 	 * The problems ignored, by key, with who ignored each, by name.
 	 *
-	 * @return array<string, array{by: string, name: string, at: string}>|object
+	 * @return array<string, array{by: string, name: string|Text, at: string}>|object
 	 */
 	private function ignoredList(): array|object
 	{
@@ -238,7 +241,7 @@ final readonly class HealthController
 
 		foreach ($this->ignored->all() as $key => $record) {
 			$account    = $this->accounts->findById($record['by']);
-			$list[$key] = [...$record, 'name' => $account === null ? 'a removed account' : $account->name ?? $account->username];
+			$list[$key] = [...$record, 'name' => $account === null ? $this->messages->t('admin.health_controller.removed_account', 'a removed account') : $account->name ?? $account->username];
 		}
 
 		return $list === [] ? (object) [] : $list;
@@ -262,7 +265,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_fix_content', 'You aren\'t allowed to fix content.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$path = self::path($request);
@@ -296,7 +299,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_fix_media', 'You aren\'t allowed to fix media.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$path = self::path($request);
@@ -328,7 +331,7 @@ final readonly class HealthController
 	public function renameFiles(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix files.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_fix_files', 'You aren\'t allowed to fix files.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$type = self::input($request, 'type');
@@ -404,7 +407,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth) || ! $this->permissions->can($account, Capability::SiteSettings)) {
-			return Response::json(['error' => 'You aren\'t allowed to change content types.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_types', 'You aren\'t allowed to change content types.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		try {
@@ -425,7 +428,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth) || ! $this->permissions->can($account, Capability::SiteSettings)) {
-			return Response::json(['error' => 'You aren\'t allowed to change content types.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_types', 'You aren\'t allowed to change content types.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		try {
@@ -447,7 +450,7 @@ final readonly class HealthController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix files.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+			return Response::json(['error' => $this->messages->t('admin.health_controller.not_allowed_fix_files', 'You aren\'t allowed to fix files.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$paths = self::list($request, match ($fix) {

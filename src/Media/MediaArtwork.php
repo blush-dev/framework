@@ -23,6 +23,7 @@ use Blush\Media\Index\MediaRecord;
 use Blush\Support\Filesystem;
 use Blush\Support\UrlPath;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * A sound's or video's artwork (D-581): an image in the media library,
@@ -60,7 +61,8 @@ final readonly class MediaArtwork
 		private MediaLibrary $library,
 		private MediaMetadataStore $metadata,
 		private EmbeddedMetadataReader $embedded,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -145,13 +147,13 @@ final readonly class MediaArtwork
 	public function link(MediaRecord $record, string $id): MediaRecord
 	{
 		if (! self::has($record->kind())) {
-			throw new MediaException(sprintf('Only sounds and videos have artwork; %s is neither.', basename($record->key)));
+			throw new MediaException((string) $this->messages->t('media.media_artwork.no_artwork', 'Only sounds and videos have artwork; {file} is neither.', file: basename($record->key)));
 		}
 
 		$image = Uuid::isValid($id) ? $this->library->findId($id) : null;
 
 		if ($image === null || $image->kind() !== MediaKind::Image || $image->isVariant()) {
-			throw new MediaException('The artwork must be an image in the media library.');
+			throw new MediaException((string) $this->messages->t('media.media_artwork.not_an_image', 'The artwork must be an image in the media library.'));
 		}
 
 		$this->metadata->save($record->file($this->paths), [MediaMetadata::ARTWORK => (string) $image->id()]);
@@ -206,10 +208,10 @@ final readonly class MediaArtwork
 	public function adopt(MediaRecord $record, string $owner): MediaRecord
 	{
 		if (! self::has($record->kind())) {
-			throw new MediaException(sprintf('Only sounds and videos have artwork; %s is neither.', basename($record->key)));
+			throw new MediaException((string) $this->messages->t('media.media_artwork.no_artwork', 'Only sounds and videos have artwork; {file} is neither.', file: basename($record->key)));
 		}
 
-		$picture = $this->picture($record) ?? throw new MediaException(sprintf('%s carries no artwork the library takes as an image.', basename($record->key)));
+		$picture = $this->picture($record) ?? throw new MediaException((string) $this->messages->t('media.media_artwork.none_carried', '{file} carries no artwork the library takes as an image.', file: basename($record->key)));
 		$image   = $this->same($picture->bytes) ?? $this->write($record, $picture->bytes, self::EXTENSIONS[$picture->mime], $owner);
 
 		$this->metadata->save($record->file($this->paths), [MediaMetadata::ARTWORK => (string) $image->id()]);
@@ -276,7 +278,7 @@ final readonly class MediaArtwork
 		try {
 			new Filesystem()->writeAtomic($target, $bytes);
 		} catch (Throwable $error) {
-			throw new MediaException('The artwork couldn\'t be saved to the media folder.', previous: $error);
+			throw new MediaException((string) $this->messages->t('media.media_artwork.not_saved', 'The artwork couldn\'t be saved to the media folder.'), previous: $error);
 		}
 
 		$key   = substr($target, strlen($this->paths->media) + 1);
@@ -285,13 +287,13 @@ final readonly class MediaArtwork
 		if ($image === null) {
 			@unlink($target);
 
-			throw new MediaException('The artwork couldn\'t be added to the library.');
+			throw new MediaException((string) $this->messages->t('media.media_artwork.not_added', 'The artwork couldn\'t be added to the library.'));
 		}
 
 		$now = $this->clock->now();
 
 		$this->metadata->save($image, array_filter([
-			'title'                 => sprintf('Artwork for %s', $this->title($record)),
+			'title'                 => (string) $this->messages->t('media.media_artwork.title', 'Artwork for {title}', title: $this->title($record)),
 			MediaMetadata::OWNER    => $owner,
 			MediaMetadata::UPLOADED => MediaMetadata::utc($now),
 			MediaMetadata::ID       => Uuid::v7($now)
@@ -299,7 +301,7 @@ final readonly class MediaArtwork
 
 		$this->library->refresh([$key]);
 
-		return $this->library->find($key) ?? throw new MediaException('The artwork couldn\'t be added to the library.');
+		return $this->library->find($key) ?? throw new MediaException((string) $this->messages->t('media.media_artwork.not_added', 'The artwork couldn\'t be added to the library.'));
 	}
 
 	/**

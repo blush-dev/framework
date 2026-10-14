@@ -131,7 +131,7 @@ import { drawerOpen, keepDrawer } from '../drawer';
 import { OPEN_LEVEL, type FieldLevel } from '../field-levels';
 import { childrenOf as fieldsInside, fromForm, humanize, inSentence, label, splitDate, stateAt, toForm, withStateAt, type FieldStep, type FormValue } from '../fields';
 import { siteDateTime } from '../dates';
-import { formatDay, formatWhen, formatWhenInline, plural, series, titleCase } from '../format';
+import { formatDay, formatWhen, formatWhenInline, series, titleCase } from '../format';
 import { loadActivity, type ActivityChange } from '../activity';
 import ActivityRows from '../components/ActivityRows.vue';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
@@ -144,6 +144,8 @@ import { pickerMeta } from '../picker';
 import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
+import { locale, t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { config } from '../config';
 import { copyText, toast } from '../toast';
@@ -161,7 +163,7 @@ const UNSHOWN = ['updated', 'collection', 'template'];
 const ADVANCED = ['stylesheet', 'class'];
 
 // Why a required field stops publishing.
-const REQUIRED = 'Required to publish.';
+const REQUIRED = t('editor_view.required', 'Required to publish.');
 
 const route  = useRoute();
 const router = useRouter();
@@ -262,12 +264,12 @@ const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 const peopleNoun = computed(() => {
 	const page = entry.value?.archive;
 
-	return page ? (page.target === null ? `${page.label.toLowerCase()} page` : 'archive page') : null;
+	return page ? (page.target === null ? t('editor_view.nouns.list_page', '{label} page', { label: page.label.toLowerCase() }) : t('editor_view.nouns.archive_page', 'archive page')) : null;
 });
-const noun      = computed(() => entry.value?.index ? 'index page' : (peopleNoun.value ?? labels.value.item));
+const noun      = computed(() => entry.value?.index ? t('editor_view.nouns.index_page', 'index page') : (peopleNoun.value ?? labels.value.item));
 const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
 const fresh     = computed(() => entry.value !== null && entry.value.id === null);
-const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (peopleNoun.value ? `Edit ${peopleNoun.value}` : (fresh.value ? labels.value.newItem : labels.value.editItem))));
+const editTitle = computed(() => titleCase(entry.value?.index ? t('editor_view.edit_index_page', 'Edit index page') : (peopleNoun.value ? t('editor_view.edit_noun', 'Edit {noun}', { noun: peopleNoun.value }) : (fresh.value ? labels.value.newItem : labels.value.editItem))));
 
 // A tree's page goes under the page chosen here, or at the top: a new
 // one when it's first saved (D-408), one that exists by moving (D-410).
@@ -289,10 +291,10 @@ const parentOptions = computed<SelectOption[]>(() => {
 
 	// A folder with no page of its own is still where the page is.
 	if (current !== '' && !options.some((option) => option.value === current)) {
-		options.unshift({ value: current, label: `${current} (no page)`, depth: 0 });
+		options.unshift({ value: current, label: t('editor_view.parent.no_page', '{name} (no page)', { name: current }), depth: 0 });
 	}
 
-	return [{ value: '', label: 'None, at the top level' }, ...options];
+	return [{ value: '', label: t('editor_view.parent.top_level', 'None, at the top level') }, ...options];
 });
 
 watch(parent, () => {
@@ -330,13 +332,13 @@ const templateNames = computed(() => {
 });
 
 const templateOptions = computed<EntryTemplateOption[]>(() => [
-	{ name: '', label: 'Default', description: 'The theme chooses, by the entry\'s type.' },
+	{ name: '', label: t('editor_view.template.default', 'Default'), description: t('editor_view.template.default_description', "The theme chooses, by the entry's type.") },
 	...(entry.value?.templates ?? [])
 ]);
 
 const templateLabel = computed(() => template.value === KEPT_TEMPLATE
-	? `Not in this theme (${templateNames.value.join(', ')})`
-	: templateOptions.value.find((option) => option.name === template.value)?.label ?? 'Default');
+	? t('editor_view.template.not_in_theme', 'Not in this theme ({names})', { names: templateNames.value.join(', ') })
+	: templateOptions.value.find((option) => option.name === template.value)?.label ?? t('editor_view.template.default', 'Default'));
 
 function templateOf(detail: EntryDetail | NewEntryDetail): string {
 	const value = detail.values.template;
@@ -389,7 +391,7 @@ watch([entry, labels], () => {
 	const name = entry.value?.type.name;
 
 	screenTrail.value = name === undefined ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
-	screenCrumb.value = fresh.value ? 'New' : 'Editing';
+	screenCrumb.value = fresh.value ? t('editor_view.crumb.new', 'New') : t('editor_view.crumb.editing', 'Editing');
 }, { immediate: true });
 
 /**
@@ -565,7 +567,7 @@ async function load(): Promise<void> {
 			titleField.value?.focus();
 		}
 	} catch (caught) {
-		error.value = errorMessage(caught, `The ${noun.value} couldn't be loaded.`);
+		error.value = errorMessage(caught, t('editor_view.errors.not_loaded', "The {noun} couldn't be loaded.", { noun: noun.value }));
 	}
 }
 
@@ -637,14 +639,14 @@ const missing = computed(() => {
 		}
 
 		if (field.name === 'title' && empty(title.value)) {
-			found.push({ name: field.name, label: 'Title', control: 'editor-title' });
+			found.push({ name: field.name, label: t('editor_view.title', 'Title'), control: 'editor-title' });
 		} else if (field.name === 'published' && empty(date.value)) {
-			found.push({ name: field.name, label: 'Publish date', control: 'editor-date' });
+			found.push({ name: field.name, label: t('editor_view.publish_date', 'Publish date'), control: 'editor-date' });
 		} else if (!PLACED.includes(field.name) && typeof form.value[field.name] !== 'boolean' && empty(form.value[field.name])) {
 			found.push({ name: field.name, label: label(field), control: `field-${field.name}` });
 		} else if ((field.relation?.min ?? 0) > 1 && referenceValues(String(form.value[field.name] ?? '')).length < (field.relation?.min ?? 0)) {
 			// A relation's `min` above one (D-599).
-			found.push({ name: field.name, label: `${label(field)} (at least ${field.relation?.min ?? 0})`, control: `field-${field.name}` });
+			found.push({ name: field.name, label: t('editor_view.at_least', '{label} (at least {min})', { label: label(field), min: field.relation?.min ?? 0 }), control: `field-${field.name}` });
 		}
 	}
 
@@ -682,7 +684,7 @@ function errorFor(name: string): string | undefined {
 	const refused = fullNow.value;
 
 	return refused?.field === name
-		? `${refused.target.title} is full.${refused.target.room ? ` ${refused.target.room.title} has room for ${refused.target.room.left} more.` : ''}`
+		? (refused.target.room ? t('editor_view.full_with_room', '{full} is full. {room} has room for {left} more.', { full: refused.target.title, room: refused.target.room.title, left: refused.target.room.left }) : t('editor_view.full', '{full} is full.', { full: refused.target.title }))
 		: undefined;
 }
 
@@ -731,7 +733,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	}
 
 	// Live entries linking to it stop showing it (D-598).
-	if (detail.id !== null && detail.status === 'published' && (status === 'draft' || status === 'scheduled') && !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'draft')) {
+	if (detail.id !== null && detail.status === 'published' && (status === 'draft' || status === 'scheduled') && !await confirmLeaving(detail.id, t('editor_view.quoted', '“{title}”', { title: detail.title || t('editor_view.untitled', 'Untitled') }), 'draft')) {
 		return;
 	}
 
@@ -746,7 +748,7 @@ async function save(status?: EntryStatus): Promise<void> {
 
 	// A new entry is named for its title, so it needs one to be written.
 	if (detail.id === null && title.value.trim() === '') {
-		failure.value = { message: `Give the ${noun.value} a title to save it.`, status };
+		failure.value = { message: t('editor_view.errors.needs_title', 'Give the {noun} a title to save it.', { noun: noun.value }), status };
 		titleField.value?.focus();
 
 		return;
@@ -834,9 +836,9 @@ async function save(status?: EntryStatus): Promise<void> {
 		// A plain save shows on its button; a change of status says
 		// so, and so does a new entry's first.
 		if (detail.id === null && saved.status === 'draft') {
-			toast('Saved as a draft');
+			toast(t('editor_view.toasts.saved_draft', 'Saved as a draft'));
 		} else if (status !== undefined && status !== detail.status) {
-			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
+			toast(status === 'published' ? t('editor_view.toasts.published', 'Published') : (status === 'scheduled' ? t('editor_view.toasts.scheduled', 'Scheduled') : t('editor_view.toasts.switched_to_draft', 'Switched to draft')));
 		}
 	} catch (caught) {
 		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent' || caught.field === 'language' || caught.field === 'template')) {
@@ -862,7 +864,7 @@ async function save(status?: EntryStatus): Promise<void> {
 		} else if (caught instanceof ApiError && caught.status === 0 && !online.value) {
 			waiting.value = { status };
 		} else {
-			failure.value = { message: errorMessage(caught, `The ${noun.value} couldn't be saved.`), status };
+			failure.value = { message: errorMessage(caught, t('editor_view.errors.not_saved', "The {noun} couldn't be saved.", { noun: noun.value })), status };
 		}
 	} finally {
 		saving.value = null;
@@ -982,15 +984,15 @@ function differences(): Differences | null {
 
 	const their   = stateOf(theirs);
 	const mine    = current();
-	const display = (value: FormValue | undefined): string => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value === undefined || value === '' ? '—' : value);
+	const display = (value: FormValue | undefined): string => typeof value === 'boolean' ? (value ? t('common.yes', 'Yes') : t('common.no', 'No')) : (value === undefined || value === '' ? '—' : value);
 	const rows: { label: string; theirs: string; mine: string }[] = [];
 
 	if (their.title !== mine.title) {
-		rows.push({ label: 'Title', theirs: display(their.title), mine: display(mine.title) });
+		rows.push({ label: t('editor_view.title', 'Title'), theirs: display(their.title), mine: display(mine.title) });
 	}
 
 	if (their.date !== mine.date) {
-		rows.push({ label: 'Publish date', theirs: display(their.date), mine: display(mine.date) });
+		rows.push({ label: t('editor_view.publish_date', 'Publish date'), theirs: display(their.date), mine: display(mine.date) });
 	}
 
 	for (const field of fields.value) {
@@ -1005,12 +1007,12 @@ function differences(): Differences | null {
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.id === null || !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'trash')) {
+	if (detail === null || detail.id === null || !await confirmLeaving(detail.id, t('editor_view.quoted', '“{title}”', { title: detail.title || t('editor_view.untitled', 'Untitled') }), 'trash')) {
 		return;
 	}
 
 	const back = route.fullPath;
-	const name = `“${detail.title || 'Untitled'}”`;
+	const name = t('editor_view.quoted', '“{title}”', { title: detail.title || t('editor_view.untitled', 'Untitled') });
 
 	try {
 		const undo = await trashEntry(detail.id, detail.revision);
@@ -1020,15 +1022,15 @@ async function trash(): Promise<void> {
 		await router.push({ name: 'type', params: { type: detail.type.name } });
 
 		// Its Undo puts it back and opens it again (D-525).
-		toast(`Moved ${name} to the trash`, {
+		toast(t('editor_view.toasts.trashed', 'Moved {name} to the trash', { name }), {
 			kind: 'danger',
 			undo: () => void undo().then(
 				() => router.push(back),
-				(caught: unknown) => toast(errorMessage(caught, `${name} couldn't be restored.`), { kind: 'warn' })
+				(caught: unknown) => toast(errorMessage(caught, t('editor_view.errors.not_restored', "{name} couldn't be restored.", { name })), { kind: 'warn' })
 			)
 		});
 	} catch (caught) {
-		error.value = errorMessage(caught, `The ${noun.value} couldn't be moved to the trash.`);
+		error.value = errorMessage(caught, t('editor_view.errors.not_trashed', "The {noun} couldn't be moved to the trash.", { noun: noun.value }));
 	}
 }
 
@@ -1041,14 +1043,14 @@ const primary = computed<{ label: string; status?: EntryStatus } | null>(() => {
 	}
 
 	if (!detail.can.publish) {
-		return detail.status === 'draft' ? { label: 'Save Draft' } : { label: 'Update' };
+		return detail.status === 'draft' ? { label: t('editor_view.save_draft', 'Save Draft') } : { label: t('editor_view.update', 'Update') };
 	}
 
 	if (future.value) {
-		return detail.status === 'scheduled' && date.value === initial.value?.date ? { label: 'Update' } : { label: 'Schedule', status: 'scheduled' };
+		return detail.status === 'scheduled' && date.value === initial.value?.date ? { label: t('editor_view.update', 'Update') } : { label: t('editor_view.schedule', 'Schedule'), status: 'scheduled' };
 	}
 
-	return detail.status === 'published' ? { label: 'Update' } : { label: 'Publish', status: 'published' };
+	return detail.status === 'published' ? { label: t('editor_view.update', 'Update') } : { label: t('editor_view.publish', 'Publish'), status: 'published' };
 });
 
 const secondary = computed<{ label: string; status?: EntryStatus } | null>(() => {
@@ -1058,17 +1060,17 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 		return null;
 	}
 
-	return detail.status === 'draft' ? { label: 'Save Draft' } : { label: 'Switch to draft', status: 'draft' };
+	return detail.status === 'draft' ? { label: t('editor_view.save_draft', 'Save Draft') } : { label: t('editor_view.switch_to_draft', 'Switch to draft'), status: 'draft' };
 });
 
 // The Status value's menu: what each status does, in a sentence, and
 // only the ones this account can move it to. Choosing one saves. The
 // trash is never offered (D-484): Move to Trash sets it.
 const statusNames: Record<EntryStatus, { label: string; icon: IconName }> = {
-	published: { label: 'Published', icon: 'circle-check' },
-	scheduled: { label: 'Scheduled', icon: 'calendar-clock' },
-	draft: { label: 'Draft', icon: 'file-pen-line' },
-	trash: { label: 'Trash', icon: 'trash-2' }
+	published: { label: t('editor_view.statuses.published', 'Published'), icon: 'circle-check' },
+	scheduled: { label: t('editor_view.statuses.scheduled', 'Scheduled'), icon: 'calendar-clock' },
+	draft: { label: t('editor_view.statuses.draft', 'Draft'), icon: 'file-pen-line' },
+	trash: { label: t('editor_view.statuses.trash', 'Trash'), icon: 'trash-2' }
 };
 
 const statusOptions = computed(() => {
@@ -1079,17 +1081,17 @@ const statusOptions = computed(() => {
 	}
 
 	const options: { status: EntryStatus; label: string; text: string; icon: IconName }[] = [
-		{ status: 'draft', label: 'Draft', text: 'Not on the site. Only people who can edit it see it.', icon: 'file-pen-line' }
+		{ status: 'draft', label: t('editor_view.statuses.draft', 'Draft'), text: t('editor_view.statuses.draft_text', 'Not on the site. Only people who can edit it see it.'), icon: 'file-pen-line' }
 	];
 
 	if (detail.can.publish && future.value) {
-		options.push({ status: 'scheduled', label: 'Scheduled', text: 'Goes live on its date, on its own.', icon: 'calendar-clock' });
+		options.push({ status: 'scheduled', label: t('editor_view.statuses.scheduled', 'Scheduled'), text: t('editor_view.statuses.scheduled_text', 'Goes live on its date, on its own.'), icon: 'calendar-clock' });
 	} else if (detail.can.publish) {
-		options.push({ status: 'published', label: 'Published', text: 'On the site, for anyone to read.', icon: 'circle-check' });
+		options.push({ status: 'published', label: t('editor_view.statuses.published', 'Published'), text: t('editor_view.statuses.published_text', 'On the site, for anyone to read.'), icon: 'circle-check' });
 	}
 
 	if (detail.status !== 'trash' && !options.some((option) => option.status === detail.status)) {
-		options.push({ status: detail.status, ...statusNames[detail.status], text: detail.status === 'scheduled' ? 'Its date has passed, so it goes live the next time it is published.' : 'On the site, for anyone to read.' });
+		options.push({ status: detail.status, ...statusNames[detail.status], text: detail.status === 'scheduled' ? t('editor_view.statuses.overdue_text', 'Its date has passed, so it goes live the next time it is published.') : t('editor_view.statuses.published_text', 'On the site, for anyone to read.') });
 	}
 
 	return options;
@@ -1101,19 +1103,19 @@ const dateMeaning = computed(() => {
 	const when   = date.value === '' ? Number.NaN : Date.parse(`${date.value}:00${offset === '' ? '' : offset.replace(/^([+-]\d{2})(\d{2})$/, '$1:$2')}`);
 
 	if (Number.isNaN(when)) {
-		return 'No date yet. It\'s dated when it\'s published.';
+		return t('editor_view.date.none', "No date yet. It's dated when it's published.");
 	}
 
 	const difference = when - Date.now();
 	const days       = Math.round(Math.abs(difference) / 86400000);
-	const near       = Math.abs(difference) < 3600000 ? 'within the hour'
-		: (days === 0 ? 'today' : (days === 1 ? (difference > 0 ? 'tomorrow' : 'yesterday') : `${days.toLocaleString()} days ${difference > 0 ? 'from now' : 'ago'}`));
+	const near       = Math.abs(difference) < 3600000 ? t('editor_view.date.within_hour', 'within the hour')
+		: (days === 0 ? t('editor_view.date.today', 'today') : (days === 1 ? (difference > 0 ? t('editor_view.date.tomorrow', 'tomorrow') : t('editor_view.date.yesterday', 'yesterday')) : (difference > 0 ? t('editor_view.date.days_from_now', '{count, plural, one {# day from now} other {# days from now}}', { count: days }) : t('editor_view.date.days_ago', '{count, plural, one {# day ago} other {# days ago}}', { count: days }))));
 
 	if (difference > 0) {
-		return entry.value?.status === 'scheduled' ? `Goes live ${near}.` : `Goes live ${near}, once it's scheduled.`;
+		return entry.value?.status === 'scheduled' ? t('editor_view.date.goes_live', 'Goes live {when}.', { when: near }) : t('editor_view.date.goes_live_once_scheduled', "Goes live {when}, once it's scheduled.", { when: near });
 	}
 
-	return entry.value?.status === 'published' ? `Published ${near}.` : `Dated ${near}.`;
+	return entry.value?.status === 'published' ? t('editor_view.date.published', 'Published {when}.', { when: near }) : t('editor_view.date.dated', 'Dated {when}.', { when: near });
 });
 
 // The line under Publish: what the date means, and when the file was
@@ -1128,22 +1130,22 @@ function ago(iso: string | null): string {
 	const minutes = Math.round((Date.now() - when) / 60000);
 
 	if (minutes < 1) {
-		return 'just now';
+		return t('editor_view.ago.just_now', 'just now');
 	}
 
 	if (minutes < 60) {
-		return `${plural(minutes, 'minute')} ago`;
+		return t('editor_view.ago.minutes', '{count, plural, one {# minute ago} other {# minutes ago}}', { count: minutes });
 	}
 
 	const hours = Math.round(minutes / 60);
 
-	return hours < 24 ? `${plural(hours, 'hour')} ago` : `${plural(Math.round(hours / 24), 'day')} ago`;
+	return hours < 24 ? t('editor_view.ago.hours', '{count, plural, one {# hour ago} other {# hours ago}}', { count: hours }) : t('editor_view.ago.days', '{count, plural, one {# day ago} other {# days ago}}', { count: Math.round(hours / 24) });
 }
 
 const publishNote = computed(() => {
 	const edited = ago(entry.value?.modified ?? null);
 
-	return [dateField.value === undefined ? '' : dateMeaning.value.replace(/\.$/, ''), edited === '' ? '' : `Last edited ${edited}`].filter((part) => part !== '').join(' · ') + '.';
+	return [dateField.value === undefined ? '' : dateMeaning.value.replace(/\.$/, ''), edited === '' ? '' : t('editor_view.last_edited', 'Last edited {when}', { when: edited })].filter((part) => part !== '').join(' · ') + '.';
 });
 
 /**
@@ -1172,11 +1174,11 @@ async function preview(): Promise<void> {
 		}
 
 		if (dirty.value) {
-			toast('The preview shows the last saved version', { kind: 'info' });
+			toast(t('editor_view.toasts.preview_last_saved', 'The preview shows the last saved version'), { kind: 'info' });
 		}
 	} catch (caught) {
 		tab?.close();
-		error.value = errorMessage(caught, 'The preview couldn\'t be opened.');
+		error.value = errorMessage(caught, t('editor_view.errors.preview', "The preview couldn't be opened."));
 	}
 }
 
@@ -1245,9 +1247,9 @@ function referenceMeta(field: FieldDescription, people = false) {
 type VisibilityName = 'public' | 'unlisted' | 'hidden';
 
 const visibilityNames: Record<VisibilityName, { label: string; icon: IconName; text: string }> = {
-	public: { label: 'Public', icon: 'eye', text: 'Anyone can read it once it\'s live, and it\'s listed with the others.' },
-	unlisted: { label: 'Unlisted', icon: 'link', text: 'It has an address, but isn\'t in lists, feeds, or the sitemap.' },
-	hidden: { label: 'Hidden', icon: 'eye-off', text: 'No address and not listed. The site\'s templates can still show it.' }
+	public: { label: t('editor_view.visibility.public', 'Public'), icon: 'eye', text: t('editor_view.visibility.public_text', "Anyone can read it once it's live, and it's listed with the others.") },
+	unlisted: { label: t('editor_view.visibility.unlisted', 'Unlisted'), icon: 'link', text: t('editor_view.visibility.unlisted_text', "It has an address, but isn't in lists, feeds, or the sitemap.") },
+	hidden: { label: t('editor_view.visibility.hidden', 'Hidden'), icon: 'eye-off', text: t('editor_view.visibility.hidden_text', "No address and not listed. The site's templates can still show it.") }
 };
 
 const visibility = computed<VisibilityName>(() => {
@@ -1278,43 +1280,43 @@ function idle(action: { status?: EntryStatus }): boolean {
  */
 function buttonLabel(action: { label: string; status?: EntryStatus }): string {
 	if (saving.value !== null && saving.value.status === action.status) {
-		return 'Saving…';
+		return t('editor_view.saving', 'Saving…');
 	}
 
 	if (waiting.value !== null && waiting.value.status === action.status) {
-		return 'Waiting…';
+		return t('editor_view.waiting', 'Waiting…');
 	}
 
-	return idle(action) && savedAt.value !== null ? 'Saved' : action.label;
+	return idle(action) && savedAt.value !== null ? t('editor_view.saved', 'Saved') : action.label;
 }
 
 // The save state, read out only: the buttons show it (D-520).
 const saveState = computed<string>(() => {
 	if (conflict.value !== null) {
-		return 'Not saved: changed elsewhere';
+		return t('editor_view.save_state.conflict', 'Not saved: changed elsewhere');
 	}
 
 	if (saving.value !== null) {
-		return 'Saving…';
+		return t('editor_view.saving', 'Saving…');
 	}
 
 	if (waiting.value !== null) {
-		return 'Waiting for a connection';
+		return t('editor_view.save_state.offline', 'Waiting for a connection');
 	}
 
 	if (failure.value !== null) {
-		return 'Not saved';
+		return t('editor_view.save_state.not_saved', 'Not saved');
 	}
 
 	if (dirty.value) {
-		return 'Unsaved changes';
+		return t('editor_view.save_state.unsaved', 'Unsaved changes');
 	}
 
-	return savedAt.value === null ? '' : `Saved ${savedAt.value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+	return savedAt.value === null ? '' : t('editor_view.save_state.saved_at', 'Saved {time}', { time: savedAt.value.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) });
 });
 
 // Where the changes are while they aren't saved.
-const safe = computed(() => keptHere.value ? 'Your changes are kept in this browser' : 'Your changes are still here');
+const safe = computed(() => keptHere.value ? t('editor_view.safe.kept', 'Your changes are kept in this browser') : t('editor_view.safe.here', 'Your changes are still here'));
 
 /**
  * Focuses the first required field left empty, opening the settings when
@@ -1443,12 +1445,12 @@ const panelNote = computed(() => {
 		return undefined;
 	}
 
-	return `${titleCase(holder.value.label)} holds only ${onlyNames(only)}.`;
+	return t('editor_view.holds_only', '{holder} holds only {names}.', { holder: titleCase(holder.value.label), names: onlyNames(only) });
 });
 
 // "images", "images, buttons".
 function onlyNames(only: string[]): string {
-	return only.map((name) => name === 'image' ? 'images' : `${inSentence(blockFor(name)?.label ?? name)}s`).join(', ');
+	return only.map((name) => name === 'image' ? t('editor_view.only.images', 'images') : t('editor_view.only.plural', '{label}s', { label: inSentence(blockFor(name)?.label ?? name) })).join(', ');
 }
 
 const panelNoteNames = computed(() => onlyNames(selected.value?.only ?? []));
@@ -1524,8 +1526,8 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
 
 	closeOverlays();
 	picking.value = {
-		title: only === 'image' ? 'Insert Images' : (only === 'audio' ? 'Insert Audio' : 'Insert Media'),
-		action: 'Insert',
+		title: only === 'image' ? t('editor_view.media.insert_images', 'Insert Images') : (only === 'audio' ? t('editor_view.media.insert_audio', 'Insert Audio') : t('editor_view.media.insert_media', 'Insert Media')),
+		action: t('editor_view.media.insert', 'Insert'),
 		tab: start,
 		kind: only,
 		locked: only !== undefined,
@@ -1613,7 +1615,7 @@ function insertFiles(files: MediaItem[]): void {
 	});
 
 	tab.value = 'element';
-	toast(`Inserted ${files.length} files`);
+	toast(t('editor_view.toasts.inserted_files', '{count, plural, one {Inserted # file} other {Inserted # files}}', { count: files.length }));
 }
 
 /**
@@ -1623,7 +1625,7 @@ function insertFiles(files: MediaItem[]): void {
  */
 async function uploadFiles(files: File[]): Promise<void> {
 	if (!uploads.value) {
-		toast('Your account can\'t upload files', { kind: 'warn' });
+		toast(t('editor_view.toasts.cant_upload', "Your account can't upload files"), { kind: 'warn' });
 
 		return;
 	}
@@ -1631,12 +1633,12 @@ async function uploadFiles(files: File[]): Promise<void> {
 	const added: MediaItem[] = [];
 
 	for (const file of files) {
-		toast(`Uploading ${file.name}…`, { kind: 'info' });
+		toast(t('editor_view.toasts.uploading', 'Uploading {name}…', { name: file.name }), { kind: 'info' });
 
 		try {
 			added.push(await upload<MediaItem>('/media', file));
 		} catch (caught) {
-			error.value = `${file.name} wasn't uploaded. ${errorMessage(caught, 'Check your connection, then try again.')}`;
+			error.value = t('editor_view.errors.not_uploaded', "{name} wasn't uploaded. {reason}", { name: file.name, reason: errorMessage(caught, t('editor_view.errors.check_connection', 'Check your connection, then try again.')) });
 		}
 	}
 
@@ -1650,8 +1652,8 @@ function pickForField(field: FieldDescription, root = field.name, steps: FieldSt
 	const kind = field.kind ?? (field === imageField.value ? 'image' : undefined);
 
 	picking.value = {
-		title: titleCase(`Choose ${inSentence(label(field))}`),
-		action: 'Choose',
+		title: titleCase(t('editor_view.media.choose_field', 'Choose {label}', { label: inSentence(label(field)) })),
+		action: t('editor_view.media.choose', 'Choose'),
 		kind,
 		locked: kind !== undefined,
 		use: (file) => {
@@ -1669,8 +1671,8 @@ function pickForOption(prop: BlockProp): void {
 	}
 
 	picking.value = {
-		title: titleCase(`Choose ${inSentence(label(prop))}`),
-		action: 'Choose',
+		title: titleCase(t('editor_view.media.choose_field', 'Choose {label}', { label: inSentence(label(prop)) })),
+		action: t('editor_view.media.choose', 'Choose'),
 		kind: prop.kind,
 		locked: prop.kind !== undefined,
 		use: (file) => {
@@ -1693,8 +1695,8 @@ function pickForImage(): void {
 	}
 
 	picking.value = {
-		title: item.src === '' ? 'Choose an Image' : 'Replace the Image',
-		action: 'Choose',
+		title: item.src === '' ? t('editor_view.media.choose_image', 'Choose an Image') : t('editor_view.media.replace_image', 'Replace the Image'),
+		action: t('editor_view.media.choose', 'Choose'),
 		kind: 'image',
 		locked: true,
 		use: (file) => {
@@ -1704,7 +1706,7 @@ function pickForImage(): void {
 				...(item.alt === '' && file.alt !== '' ? { alt: file.alt } : {}),
 				...((item.title ?? '') === '' && file.caption !== '' ? { title: file.caption } : {})
 			}));
-			toast(`Chose ${mediaName(file)}`);
+			toast(t('editor_view.toasts.chose', 'Chose {name}', { name: mediaName(file) }));
 		}
 	};
 }
@@ -1731,26 +1733,26 @@ useCommands(() => {
 	}
 
 	const found: Command[] = [
-		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
-		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
-		{ id: 'editor-outline', label: 'Outline', icon: 'list', keywords: 'elements structure contents blocks', run: () => void showOutline() },
-		{ id: 'editor-block', label: 'Insert a block', icon: 'plus', keywords: 'callout figure block component', shortcut: '/', run: () => void togglePanel() },
-		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
-		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
-		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
-		{ id: 'editor-bold', label: 'Bold', icon: 'bold', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.emphasis('strong') },
-		{ id: 'editor-italic', label: 'Italic', icon: 'italic', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.emphasis('em') },
-		{ id: 'editor-strike', label: 'Strikethrough', icon: 'strikethrough', keywords: 'format delete struck', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
-		{ id: 'editor-mark', label: 'Highlight', icon: 'highlighter', keywords: 'format mark', shortcut: '⌘⇧H', run: () => bodyEditor.value?.emphasis('marked') },
-		{ id: 'editor-code', label: 'Inline code', icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.code() },
-		...(canMention.value ? [{ id: 'editor-mention', label: 'Mention', icon: 'at-sign' as const, keywords: 'profile person author @', run: openMention }] : []),
-		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: openLink },
-		{ id: 'editor-unlink', label: 'Remove link', icon: 'link', keywords: 'url address unlink', shortcut: '⌘⇧K', run: () => bodyEditor.value?.unlink() },
-		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: `Heading ${level}`, icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
-		{ id: 'editor-paragraph', label: 'Paragraph', icon: 'pilcrow', keywords: 'text body format heading', shortcut: '⌘⌥0', run: () => bodyEditor.value?.heading(0) },
-		{ id: 'editor-move-up', label: 'Move element up', icon: 'chevron-up', keywords: 'reorder swap block', shortcut: '⌥↑', run: () => moveElement(true) },
-		{ id: 'editor-move-down', label: 'Move element down', icon: 'chevron-down', keywords: 'reorder swap block', shortcut: '⌥↓', run: () => moveElement(false) },
-		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
+		{ id: 'editor-focus', label: focusMode.value ? t('editor_view.commands.leave_focus', 'Leave focus mode') : t('editor_view.commands.focus', 'Focus mode'), icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
+		{ id: 'editor-settings', label: sideOpen.value ? t('editor_view.commands.hide_settings', 'Hide the settings') : t('editor_view.commands.show_settings', 'Show the settings'), icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
+		{ id: 'editor-outline', label: t('editor_view.commands.outline', 'Outline'), icon: 'list', keywords: 'elements structure contents blocks', run: () => void showOutline() },
+		{ id: 'editor-block', label: t('editor_view.commands.block', 'Insert a block'), icon: 'plus', keywords: 'callout figure block component', shortcut: '/', run: () => void togglePanel() },
+		{ id: 'editor-media', label: t('editor_view.commands.media', 'Insert media'), icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
+		...(uploads.value ? [{ id: 'editor-upload', label: t('editor_view.commands.upload', 'Upload a file'), icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
+		{ id: 'editor-icon', label: t('editor_view.commands.icon', 'Insert an icon'), icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
+		{ id: 'editor-bold', label: t('editor_view.commands.bold', 'Bold'), icon: 'bold', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.emphasis('strong') },
+		{ id: 'editor-italic', label: t('editor_view.commands.italic', 'Italic'), icon: 'italic', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.emphasis('em') },
+		{ id: 'editor-strike', label: t('editor_view.commands.strike', 'Strikethrough'), icon: 'strikethrough', keywords: 'format delete struck', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
+		{ id: 'editor-mark', label: t('editor_view.commands.mark', 'Highlight'), icon: 'highlighter', keywords: 'format mark', shortcut: '⌘⇧H', run: () => bodyEditor.value?.emphasis('marked') },
+		{ id: 'editor-code', label: t('editor_view.commands.code', 'Inline code'), icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.code() },
+		...(canMention.value ? [{ id: 'editor-mention', label: t('editor_view.commands.mention', 'Mention'), icon: 'at-sign' as const, keywords: 'profile person author @', run: openMention }] : []),
+		{ id: 'editor-link', label: t('editor_view.commands.link', 'Link'), icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: openLink },
+		{ id: 'editor-unlink', label: t('editor_view.commands.unlink', 'Remove link'), icon: 'link', keywords: 'url address unlink', shortcut: '⌘⇧K', run: () => bodyEditor.value?.unlink() },
+		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: t('editor_view.commands.heading', 'Heading {level}', { level }), icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
+		{ id: 'editor-paragraph', label: t('editor_view.commands.paragraph', 'Paragraph'), icon: 'pilcrow', keywords: 'text body format heading', shortcut: '⌘⌥0', run: () => bodyEditor.value?.heading(0) },
+		{ id: 'editor-move-up', label: t('editor_view.commands.move_up', 'Move element up'), icon: 'chevron-up', keywords: 'reorder swap block', shortcut: '⌥↑', run: () => moveElement(true) },
+		{ id: 'editor-move-down', label: t('editor_view.commands.move_down', 'Move element down'), icon: 'chevron-down', keywords: 'reorder swap block', shortcut: '⌥↓', run: () => moveElement(false) },
+		{ id: 'editor-save', label: t('common.save', 'Save'), icon: 'file-text', shortcut: '⌘S', run: () => void save() }
 	];
 
 	if (primary.value !== null && primary.value.status !== undefined) {
@@ -1766,7 +1768,7 @@ useCommands(() => {
 	}
 
 	if (detail.can.delete) {
-		found.push({ id: 'editor-trash', label: 'Move to trash', icon: 'trash-2', keywords: 'delete remove', run: () => void trash() });
+		found.push({ id: 'editor-trash', label: t('editor_view.commands.trash', 'Move to trash'), icon: 'trash-2', keywords: 'delete remove', run: () => void trash() });
 	}
 
 	return found;
@@ -1851,8 +1853,8 @@ function placed(element: ElementRef): boolean {
 
 // The tabs are named for what they hold: the entry's type ("Post"), and
 // the element the caret is in ("Callout", "Heading 2"), else "Elements".
-const typeName = computed(() => titleCase(entry.value?.index ? 'Index page' : (peopleNoun.value ?? labels.value.singular)));
-const tabName  = computed(() => selection.value === null ? 'Elements' : nameOf(selection.value));
+const typeName = computed(() => titleCase(entry.value?.index ? t('editor_view.index_page', 'Index page') : (peopleNoun.value ?? labels.value.singular)));
+const tabName  = computed(() => selection.value === null ? t('editor_view.elements', 'Elements') : nameOf(selection.value));
 const tabIcon  = computed<IconName>(() => selection.value === null ? 'list' : iconOf(selection.value));
 
 // Where the caret is, from the entry down (the breadcrumb): every element
@@ -1927,7 +1929,7 @@ const strayItems = computed(() => {
 		const held = item.kind === 'image' ? only.includes('image') : (name !== undefined && only.includes(name));
 
 		if (!held) {
-			found.set(`${item.kind}-${item.index}`, `${titleCase(holder.label)} holds only ${onlyNames(only)}, so the site leaves out the rest of this.`);
+			found.set(`${item.kind}-${item.index}`, t('editor_view.holds_only_stray', '{holder} holds only {names}, so the site leaves out the rest of this.', { holder: titleCase(holder.label), names: onlyNames(only) }));
 		}
 	}
 
@@ -1949,12 +1951,12 @@ const strayItems = computed(() => {
 function misplacedNote(described: BlockDescription): string {
 	const name = shortName(described.name);
 	const how  = {
-		container: `wraps other content, written “:::${name}” … “:::”`,
-		leaf: `goes on a line of its own, written “::${name}”`,
-		inline: `goes inside a sentence, written “:${name}[…]”`
+		container: t('editor_view.misplaced.container', 'wraps other content, written “:::{name}” … “:::”', { name }),
+		leaf: t('editor_view.misplaced.leaf', 'goes on a line of its own, written “::{name}”', { name }),
+		inline: t('editor_view.misplaced.inline', 'goes inside a sentence, written “:{name}[…]”', { name })
 	}[described.kind];
 
-	return `${titleCase(described.label)} ${how}, so the site doesn't show it as it's written here.`;
+	return t('editor_view.misplaced.note', "{block} {how}, so the site doesn't show it as it's written here.", { block: titleCase(described.label), how });
 }
 
 const strayNote = computed(() => selection.value === null ? undefined : strayItems.value.get(`${selection.value.kind}-${selection.value.index}`));
@@ -2057,7 +2059,7 @@ async function loadChanges(): Promise<void> {
 	try {
 		changes.value = entry.value?.id ? (await loadActivity({ subject: entry.value.id })).changes : [];
 	} catch (caught) {
-		changesError.value = errorMessage(caught, 'Its changes couldn\'t be loaded.');
+		changesError.value = errorMessage(caught, t('editor_view.errors.changes_not_loaded', "Its changes couldn't be loaded."));
 	}
 }
 
@@ -2075,7 +2077,7 @@ async function changedHere(): Promise<void> {
 const activityLine = computed(() => {
 	const by = entry.value?.changedBy;
 
-	return by ? `Changed by ${by.client} (${by.account}) ${formatWhenInline(by.time)}` : 'Who changed it, and Undo';
+	return by ? t('editor_view.activity.changed_by', 'Changed by {client} ({account}) {when}', { client: by.client, account: by.account, when: formatWhenInline(by.time) }) : t('editor_view.activity.line', 'Who changed it, and Undo');
 });
 
 async function openDrill(which: Drill): Promise<void> {
@@ -2116,23 +2118,30 @@ function leaveDrill(event: KeyboardEvent): void {
 	}
 }
 
-const quotedTitle = computed(() => `“${entry.value?.title || 'Untitled'}”`);
+const quotedTitle = computed(() => t('editor_view.quoted', '“{title}”', { title: entry.value?.title || t('editor_view.untitled', 'Untitled') }));
 
 // What links here, in all, and the row's line: up to three named, else
 // counted by relationship, so it stays one line whatever the numbers.
+// How many entries an archive page lists, with the listed type's noun.
+const listedCount = computed(() => {
+	const introduces = entry.value?.introduces;
+
+	return introduces ? t('editor_view.facts.listed', '{count, plural, one {# {item}} other {# {items}}}', { count: introduces.listed, item: introduces.item, items: introduces.items }) : '';
+});
+
 const linkedGroups = computed(() => entry.value?.linkedFrom ?? []);
 const linkedTotal  = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.count, 0));
 const linkedDrafts = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.drafts, 0));
 const linkedLine   = computed(() => {
 	if (linkedTotal.value === 0) {
-		return 'Nothing links here.';
+		return t('editor_view.linked.nothing', 'Nothing links here.');
 	}
 
-	const titles = [...new Set(linkedGroups.value.flatMap((group) => group.entries.map((item) => item.title || 'Untitled')))];
+	const titles = [...new Set(linkedGroups.value.flatMap((group) => group.entries.map((item) => item.title || t('editor_view.untitled', 'Untitled'))))];
 
 	return linkedTotal.value <= 3 && titles.length <= 3
 		? series(titles)
-		: linkedGroups.value.map((group) => `${titleCase(group.relation)} ${group.count}`).join(' · ');
+		: linkedGroups.value.map((group) => t('editor_view.linked.group_count', '{relation} {count}', { relation: titleCase(group.relation), count: group.count })).join(' · ');
 });
 
 // A Linked From group past 8 shows the rest in place up to 50 (D-608);
@@ -2173,13 +2182,22 @@ const archiveNote = computed(() => {
 
 	const page   = detail.archive;
 	const what   = page === null
-		? `This page introduces the archive of every ${labels.value.item}.${detail.homepage ? ' It\'s also the site\'s homepage, at /.' : ''}`
+		? (detail.homepage
+			? t('editor_view.archive.introduces_homepage', "This page introduces the archive of every {item}. It's also the site's homepage, at /.", { item: labels.value.item })
+			: t('editor_view.archive.introduces', 'This page introduces the archive of every {item}.', { item: labels.value.item }))
 		: (page.target === null
-			? `This page introduces the list of ${page.label.toLowerCase()} on ${labels.value.plural}.`
-			: `This page introduces one ${labelsOf(page.targetType ?? '').item}'s archive.`);
-	const cannot = [detail.can.duplicate ? null : 'duplicated', detail.can.delete ? null : 'moved to the trash'].filter((part) => part !== null);
+			? t('editor_view.archive.introduces_list', 'This page introduces the list of {label} on {plural}.', { label: page.label.toLowerCase(), plural: labels.value.plural })
+			: t('editor_view.archive.introduces_one', "This page introduces one {item}'s archive.", { item: labelsOf(page.targetType ?? '').item }));
 
-	return cannot.length === 0 ? what : `${what} It can't be ${cannot.join(' or ')}.`;
+	if (!detail.can.duplicate && !detail.can.delete) {
+		return t('editor_view.archive.cant_duplicate_or_trash', "{what} It can't be duplicated or moved to the trash.", { what });
+	}
+
+	if (!detail.can.duplicate) {
+		return t('editor_view.archive.cant_duplicate', "{what} It can't be duplicated.", { what });
+	}
+
+	return detail.can.delete ? what : t('editor_view.archive.cant_trash', "{what} It can't be moved to the trash.", { what });
 });
 
 // What the archive shows when the page isn't there.
@@ -2187,16 +2205,16 @@ const archiveWithout = computed(() => {
 	const page = entry.value?.archive;
 
 	if (page === null || page === undefined) {
-		return `The archive lists its ${labels.value.items} with no title or text of its own.`;
+		return t('editor_view.archive.without_page', 'The archive lists its {items} with no title or text of its own.', { items: labels.value.items });
 	}
 
 	if (page.target === null) {
-		return `The list is headed “${titleCase(page.label)}”, with nothing before it.`;
+		return t('editor_view.archive.without_list_page', 'The list is headed “{label}”, with nothing before it.', { label: titleCase(page.label) });
 	}
 
 	return page.targetType === profileType.value
-		? `The archive shows ${page.targetTitle ?? page.target}'s profile instead.`
-		: `The archive shows ${page.targetTitle ?? page.target}'s own text instead.`;
+		? t('editor_view.archive.shows_profile', "The archive shows {name}'s profile instead.", { name: page.targetTitle ?? page.target })
+		: t('editor_view.archive.shows_own_text', "The archive shows {name}'s own text instead.", { name: page.targetTitle ?? page.target });
 });
 
 /**
@@ -2284,7 +2302,7 @@ function removeBlock(): void {
 
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutBlock(body.value, item));
-		toast(`Removed the ${inSentence(blockLabel(item))}`, { kind: 'danger' });
+		toast(t('editor_view.toasts.removed_block', 'Removed the {block}', { block: inSentence(blockLabel(item)) }), { kind: 'danger' });
 	}
 }
 
@@ -2293,7 +2311,7 @@ function removeImage(): void {
 
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutImage(body.value, item));
-		toast('Removed the image', { kind: 'danger' });
+		toast(t('editor_view.toasts.removed_image', 'Removed the image'), { kind: 'danger' });
 	}
 }
 
@@ -2555,9 +2573,9 @@ function closeOverlays(): void {
 type BleedName = 'base' | 'wide' | 'full';
 
 const BLEEDS: Record<BleedName, { label: string; icon: IconName; text: string }> = {
-	base: { label: 'Base', icon: 'bleed-base', text: 'At the width of the text column. It writes no class at all.' },
-	wide: { label: 'Wide', icon: 'bleed-wide', text: 'Wider than the text, as much of the margin as the theme gives.' },
-	full: { label: 'Full', icon: 'bleed-full', text: 'Edge to edge, ignoring the text\'s width.' }
+	base: { label: t('editor_view.bleed.base', 'Base'), icon: 'bleed-base', text: t('editor_view.bleed.base_text', 'At the width of the text column. It writes no class at all.') },
+	wide: { label: t('editor_view.bleed.wide', 'Wide'), icon: 'bleed-wide', text: t('editor_view.bleed.wide_text', 'Wider than the text, as much of the margin as the theme gives.') },
+	full: { label: t('editor_view.bleed.full', 'Full'), icon: 'bleed-full', text: t('editor_view.bleed.full_text', "Edge to edge, ignoring the text's width.") }
 };
 
 // The element bleed acts on: a top-level element, not an inline one.
@@ -2651,7 +2669,7 @@ async function copyLink(): Promise<void> {
 		return;
 	}
 
-	await copyText(new URL(url, config.site.url).href, 'the link');
+	await copyText(new URL(url, config.site.url).href, t('editor_view.the_link', 'the link'));
 }
 
 /**
@@ -2667,9 +2685,9 @@ async function duplicate(): Promise<void> {
 	try {
 		const copy = await request<EntryDetail>('POST', `${entryPath(detail.id)}/duplicate`);
 
-		toast(`Duplicated as a draft: “${copy.title || 'Untitled'}”`);
+		toast(t('editor_view.toasts.duplicated', 'Duplicated as a draft: “{title}”', { title: copy.title || t('editor_view.untitled', 'Untitled') }));
 	} catch (caught) {
-		error.value = errorMessage(caught, `The ${noun.value} couldn't be duplicated.`);
+		error.value = errorMessage(caught, t('editor_view.errors.not_duplicated', "The {noun} couldn't be duplicated.", { noun: noun.value }));
 	}
 }
 
@@ -2773,10 +2791,10 @@ async function reloadKey(event: KeyboardEvent): Promise<void> {
 	keepNow();
 
 	if (await confirmAction({
-		title: 'Reload Without Saving?',
-		body: [`Your unsaved changes to this ${noun.value} stay in this browser only, and are offered back when the editor opens again.`],
-		confirm: 'Reload',
-		cancel: 'Stay'
+		title: t('editor_view.reload.title', 'Reload Without Saving?'),
+		body: [t('editor_view.reload.body', 'Your unsaved changes to this {noun} stay in this browser only, and are offered back when the editor opens again.', { noun: noun.value })],
+		confirm: t('editor_view.reload.confirm', 'Reload'),
+		cancel: t('editor_view.stay', 'Stay')
 	})) {
 		window.location.reload();
 	}
@@ -2792,10 +2810,10 @@ onBeforeRouteLeave(async () => {
 	keepNow();
 
 	return confirmAction({
-		title: 'Leave Without Saving?',
-		body: [`Your unsaved changes to this ${noun.value} stay in this browser only, and are offered back when you open it here again.`],
-		confirm: 'Leave',
-		cancel: 'Stay'
+		title: t('editor_view.leave.title', 'Leave Without Saving?'),
+		body: [t('editor_view.leave.body', 'Your unsaved changes to this {noun} stay in this browser only, and are offered back when you open it here again.', { noun: noun.value })],
+		confirm: t('editor_view.leave.confirm', 'Leave'),
+		cancel: t('editor_view.stay', 'Stay')
 	});
 });
 
@@ -2822,11 +2840,6 @@ watch(address, () => {
 	}
 }, { immediate: true });
 
-// Counts are exact, with the locale's digit grouping: "1,204 words".
-function count(value: number, one: string): string {
-	return `${value.toLocaleString()} ${value === 1 ? one : `${one}s`}`;
-}
-
 function fieldKey(field: FieldDescription): string {
 	return `${entry.value?.revision ?? ''}-${field.name}`;
 }
@@ -2838,81 +2851,81 @@ function fieldKey(field: FieldDescription): string {
 
 		<header class="editor__head">
 			<template v-if="entry">
-				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Blocks ( / )" aria-controls="editor-blocks" :aria-expanded="panelOpen" @click="togglePanel">
+				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" :title="t('editor_view.toolbar.blocks_title', 'Blocks ( / )')" aria-controls="editor-blocks" :aria-expanded="panelOpen" @click="togglePanel">
 					<AdminIcon name="plus" />
-					<span class="visually-hidden">Insert a block</span>
+					<span class="visually-hidden">{{ t('editor_view.commands.block', 'Insert a block') }}</span>
 				</button>
-				<MenuButton v-if="uploads" button-class="button button--ghost editor__tool editor__wide" label="Insert media" align="start" floating @open="closeOverlays">
+				<MenuButton v-if="uploads" button-class="button button--ghost editor__tool editor__wide" :label="t('editor_view.commands.media', 'Insert media')" align="start" floating @open="closeOverlays">
 					<template #button>
 						<AdminIcon name="image" /><AdminIcon name="chevron-down" class="editor__caret" />
 					</template>
 					<button type="button" class="menu-item menu-item--described" @click="pickMedia('library')">
 						<AdminIcon name="image" />
 						<span>
-							<span class="menu-item__name">Media Library</span>
-							<span class="menu-item__text">Choose a file already in the library.</span>
+							<span class="menu-item__name">{{ t('editor_view.toolbar.media_library', 'Media Library') }}</span>
+							<span class="menu-item__text">{{ t('editor_view.toolbar.media_library_text', 'Choose a file already in the library.') }}</span>
 						</span>
 					</button>
 					<button type="button" class="menu-item menu-item--described" @click="pickMedia('upload')">
 						<AdminIcon name="upload" />
 						<span>
-							<span class="menu-item__name">Upload a File</span>
-							<span class="menu-item__text">Add one from this computer, then place it.</span>
+							<span class="menu-item__name">{{ t('editor_view.toolbar.upload', 'Upload a File') }}</span>
+							<span class="menu-item__text">{{ t('editor_view.toolbar.upload_text', 'Add one from this computer, then place it.') }}</span>
 						</span>
 					</button>
 				</MenuButton>
-				<button v-else type="button" class="button button--ghost button--icon editor__tool" title="Media" aria-haspopup="dialog" @click="pickMedia()">
+				<button v-else type="button" class="button button--ghost button--icon editor__tool" :title="t('editor_view.toolbar.media_title', 'Media')" aria-haspopup="dialog" @click="pickMedia()">
 					<AdminIcon name="image" />
-					<span class="visually-hidden">Insert media</span>
+					<span class="visually-hidden">{{ t('editor_view.commands.media', 'Insert media') }}</span>
 				</button>
 
 				<template v-if="moveIndex !== -1">
 					<span class="editor__divider" aria-hidden="true" />
-					<span class="editor__spin" role="group" :aria-label="`Move the ${moveName.toLowerCase()}`">
-						<button type="button" class="editor__spin-button" :disabled="moveIndex === 0" :title="`Move the ${moveName.toLowerCase()} up  ⌥↑`" @mousedown.prevent @click="moveElement(true)">
+					<span class="editor__spin" role="group" :aria-label="t('editor_view.toolbar.move', 'Move the {name}', { name: moveName.toLowerCase() })">
+						<button type="button" class="editor__spin-button" :disabled="moveIndex === 0" :title="t('editor_view.toolbar.move_up_title', 'Move the {name} up  ⌥↑', { name: moveName.toLowerCase() })" @mousedown.prevent @click="moveElement(true)">
 							<AdminIcon name="chevron-up" />
-							<span class="visually-hidden">Move up</span>
+							<span class="visually-hidden">{{ t('editor_view.toolbar.move_up', 'Move up') }}</span>
 						</button>
-						<button type="button" class="editor__spin-button" :disabled="moveIndex === runs.length - 1" :title="`Move the ${moveName.toLowerCase()} down  ⌥↓`" @mousedown.prevent @click="moveElement(false)">
+						<button type="button" class="editor__spin-button" :disabled="moveIndex === runs.length - 1" :title="t('editor_view.toolbar.move_down_title', 'Move the {name} down  ⌥↓', { name: moveName.toLowerCase() })" @mousedown.prevent @click="moveElement(false)">
 							<AdminIcon name="chevron-down" />
-							<span class="visually-hidden">Move down</span>
+							<span class="visually-hidden">{{ t('editor_view.toolbar.move_down', 'Move down') }}</span>
 						</button>
 					</span>
 				</template>
 
 				<template v-if="sentence">
 					<span class="editor__divider" aria-hidden="true" />
-					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.strong }" :aria-pressed="emphasis.strong" title="Bold  ⌘B" @mousedown.prevent @click="bodyEditor?.emphasis('strong')">
+					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.strong }" :aria-pressed="emphasis.strong" :title="t('editor_view.toolbar.bold_title', 'Bold  ⌘B')" @mousedown.prevent @click="bodyEditor?.emphasis('strong')">
 						<AdminIcon name="bold" />
-						<span class="visually-hidden">Bold</span>
+						<span class="visually-hidden">{{ t('editor_view.commands.bold', 'Bold') }}</span>
 					</button>
-					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.em }" :aria-pressed="emphasis.em" title="Italic  ⌘I" @mousedown.prevent @click="bodyEditor?.emphasis('em')">
+					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.em }" :aria-pressed="emphasis.em" :title="t('editor_view.toolbar.italic_title', 'Italic  ⌘I')" @mousedown.prevent @click="bodyEditor?.emphasis('em')">
 						<AdminIcon name="italic" />
-						<span class="visually-hidden">Italic</span>
+						<span class="visually-hidden">{{ t('editor_view.commands.italic', 'Italic') }}</span>
 					</button>
 					<span ref="linkWrap" class="editor__pop">
-						<button type="button" class="button button--ghost editor__tool editor__wide" :class="{ 'is-on': linkOpen }" title="Link  ⌘K" aria-haspopup="dialog" :aria-expanded="linkOpen" aria-controls="editor-link" @click="toggleLink">
+						<button type="button" class="button button--ghost editor__tool editor__wide" :class="{ 'is-on': linkOpen }" :title="t('editor_view.toolbar.link_title', 'Link  ⌘K')" aria-haspopup="dialog" :aria-expanded="linkOpen" aria-controls="editor-link" @click="toggleLink">
 							<AdminIcon name="link" /><AdminIcon name="chevron-down" class="editor__caret" />
-							<span class="visually-hidden">Link</span>
+							<span class="visually-hidden">{{ t('editor_view.commands.link', 'Link') }}</span>
 						</button>
 						<LinkForm v-if="linkOpen && linkTarget" :start="linkTarget" :editing="linkTarget.link !== null" @apply="applyLink" @remove="removeLink" @close="closeLink()" />
 					</span>
 					<span ref="mentionWrap" class="editor__pop">
-					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${emphasis.strike || emphasis.marked ? ' is-on' : ''}`" label="More inline elements" align="start" floating @open="closeOverlays">
+					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${emphasis.strike || emphasis.marked ? ' is-on' : ''}`" :label="t('editor_view.toolbar.more_inline', 'More inline elements')" align="start" floating @open="closeOverlays">
 						<template #button>
 							<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
 						</template>
 						<button type="button" class="menu-item" :aria-pressed="emphasis.strike" @mousedown.prevent @click="bodyEditor?.emphasis('strike')">
-							<AdminIcon name="strikethrough" /><span class="menu-item__name">Strikethrough</span><kbd class="menu-item__shortcut">⌘⇧X</kbd>
+							<AdminIcon name="strikethrough" /><span class="menu-item__name">{{ t('editor_view.commands.strike', 'Strikethrough') }}</span><kbd class="menu-item__shortcut">⌘⇧X</kbd>
 						</button>
 						<button type="button" class="menu-item" :aria-pressed="emphasis.marked" @mousedown.prevent @click="bodyEditor?.emphasis('marked')">
-							<AdminIcon name="highlighter" /><span class="menu-item__name">Highlight</span><kbd class="menu-item__shortcut">⌘⇧H</kbd>
+							<AdminIcon name="highlighter" /><span class="menu-item__name">{{ t('editor_view.commands.mark', 'Highlight') }}</span><kbd class="menu-item__shortcut">⌘⇧H</kbd>
 						</button>
 						<button type="button" class="menu-item" @mousedown.prevent @click="bodyEditor?.code()">
-							<AdminIcon name="code" /><span class="menu-item__name">Inline code</span><kbd class="menu-item__shortcut">⌘E</kbd>
+							<AdminIcon name="code" /><span class="menu-item__name">{{ t('editor_view.commands.code', 'Inline code') }}</span><kbd class="menu-item__shortcut">⌘E</kbd>
 						</button>
 						<button v-if="canMention" type="button" class="menu-item" aria-haspopup="dialog" @mousedown.prevent @click="openMention">
-							<AdminIcon name="at-sign" /><span class="menu-item__name">Mention</span>
+							<AdminIcon name="at-sign" /><span class="menu-item__name">{{ t('editor_view.commands.mention', 'Mention') }}</span>
 						</button>
 						<template v-if="inlineBlocks.length">
 							<div class="menu-divider" />
@@ -2927,15 +2940,15 @@ function fieldKey(field: FieldDescription): string {
 					</MenuButton>
 					<MentionForm v-if="mentionOpen && mentionSpot" :start="mentionSpot" @choose="chooseMention" @close="closeMention()" />
 					</span>
-					<button type="button" class="button button--ghost button--icon editor__tool" title="Icon" aria-haspopup="dialog" @click="openIcons">
+					<button type="button" class="button button--ghost button--icon editor__tool" :title="t('editor_view.toolbar.icon_title', 'Icon')" aria-haspopup="dialog" @click="openIcons">
 						<AdminIcon name="shapes" />
-						<span class="visually-hidden">Insert an icon</span>
+						<span class="visually-hidden">{{ t('editor_view.commands.icon', 'Insert an icon') }}</span>
 					</button>
 				</template>
 
 				<template v-if="bleedTarget">
 					<span class="editor__divider" aria-hidden="true" />
-					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${bleed === 'base' ? '' : ' is-on'}`" :label="`Bleed: ${BLEEDS[bleed].label}`" align="start" floating @open="closeOverlays">
+					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${bleed === 'base' ? '' : ' is-on'}`" :label="t('editor_view.toolbar.bleed', 'Bleed: {name}', { name: BLEEDS[bleed].label })" align="start" floating @open="closeOverlays">
 						<template #button>
 							<AdminIcon :name="BLEEDS[bleed].icon" /><AdminIcon name="chevron-down" class="editor__caret" />
 						</template>
@@ -2953,46 +2966,46 @@ function fieldKey(field: FieldDescription): string {
 			<span class="editor__grow" />
 			<span class="visually-hidden" aria-live="polite">{{ saveState }}</span>
 			<template v-if="entry">
-				<button v-if="secondary && !secondary.status" type="button" class="button button--ghost button--small" :disabled="blocked || idle(secondary)" :title="waiting ? 'Waiting for a connection' : 'Save (⌘S)'" @click="save()">{{ buttonLabel(secondary) }}</button>
-				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': sideOpen }" title="Settings (⌘/)" aria-controls="editor-settings" :aria-expanded="sideOpen" @click="toggleSide">
+				<button v-if="secondary && !secondary.status" type="button" class="button button--ghost button--small" :disabled="blocked || idle(secondary)" :title="waiting ? t('editor_view.save_state.offline', 'Waiting for a connection') : t('editor_view.toolbar.save_title', 'Save (⌘S)')" @click="save()">{{ buttonLabel(secondary) }}</button>
+				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': sideOpen }" :title="t('editor_view.toolbar.settings_title', 'Settings (⌘/)')" aria-controls="editor-settings" :aria-expanded="sideOpen" @click="toggleSide">
 					<AdminIcon name="panel-right" />
-					<span class="visually-hidden">Settings</span>
+					<span class="visually-hidden">{{ t('editor_view.toolbar.settings', 'Settings') }}</span>
 				</button>
-				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" :title="waiting ? 'Waiting for a connection' : undefined" @click="save(primary.status)">{{ buttonLabel(primary) }}</button>
-				<MenuButton button-class="button button--ghost button--icon" label="More actions">
+				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" :title="waiting ? t('editor_view.save_state.offline', 'Waiting for a connection') : undefined" @click="save(primary.status)">{{ buttonLabel(primary) }}</button>
+				<MenuButton button-class="button button--ghost button--icon" :label="t('editor_view.toolbar.more_actions', 'More actions')">
 					<template #button>
 						<AdminIcon name="ellipsis-vertical" />
 					</template>
-					<p class="menu-heading">View</p>
+					<p class="menu-heading">{{ t('editor_view.menu.view_heading', 'View') }}</p>
 					<button type="button" class="menu-item" @click="toggleSide">
-						<AdminIcon name="panel-right" />{{ sideOpen ? 'Hide the settings panel' : 'Settings panel' }}<kbd class="menu-kbd">⌘/</kbd>
+						<AdminIcon name="panel-right" />{{ sideOpen ? t('editor_view.menu.hide_settings_panel', 'Hide the settings panel') : t('editor_view.menu.settings_panel', 'Settings panel') }}<kbd class="menu-kbd">⌘/</kbd>
 					</button>
 					<button type="button" class="menu-item" @click="showOutline">
-						<AdminIcon name="list" />Outline
+						<AdminIcon name="list" />{{ t('editor_view.commands.outline', 'Outline') }}
 					</button>
 					<button type="button" class="menu-item" @click="toggleFocus">
-						<AdminIcon name="maximize-2" />{{ focusMode ? 'Leave focus mode' : 'Focus mode' }}<kbd class="menu-kbd">⌘⇧F</kbd>
+						<AdminIcon name="maximize-2" />{{ focusMode ? t('editor_view.commands.leave_focus', 'Leave focus mode') : t('editor_view.commands.focus', 'Focus mode') }}<kbd class="menu-kbd">⌘⇧F</kbd>
 					</button>
 					<button v-if="entry.id !== null && !(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
-						<AdminIcon name="eye" />Preview
+						<AdminIcon name="eye" />{{ t('editor_view.menu.preview', 'Preview') }}
 					</button>
 					<a v-if="entry.url && entry.status === 'published'" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
-						<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
+						<AdminIcon name="external-link" />{{ t('editor_view.menu.view', 'View') }}<span class="visually-hidden"> {{ t('editor_view.menu.view_hidden', 'the live {noun} (new tab)', { noun }) }}</span>
 					</a>
-					<p class="menu-heading">Entry</p>
+					<p class="menu-heading">{{ t('editor_view.menu.entry_heading', 'Entry') }}</p>
 					<button v-if="secondary && secondary.status" type="button" class="menu-item" :disabled="blocked" @click="save(secondary.status)">
 						<AdminIcon name="file-text" />{{ secondary.label }}
 					</button>
 					<button v-if="entry.url && entry.status === 'published'" type="button" class="menu-item" @click="copyLink">
-						<AdminIcon name="link" />Copy link
+						<AdminIcon name="link" />{{ t('editor_view.menu.copy_link', 'Copy link') }}
 					</button>
 					<button v-if="entry.can.duplicate && !entry.type.terms" type="button" class="menu-item" @click="duplicate">
-						<AdminIcon name="copy" />Duplicate
+						<AdminIcon name="copy" />{{ t('editor_view.menu.duplicate', 'Duplicate') }}
 					</button>
 					<template v-if="entry.can.delete">
 						<div class="menu-divider" />
 						<button type="button" class="menu-item menu-item--danger" @click="trash">
-							<AdminIcon name="trash-2" />Move to trash
+							<AdminIcon name="trash-2" />{{ t('editor_view.commands.trash', 'Move to trash') }}
 						</button>
 					</template>
 				</MenuButton>
@@ -3005,18 +3018,18 @@ function fieldKey(field: FieldDescription): string {
 
 		<div v-if="offer" class="editor__notice" role="status">
 			<AdminIcon name="triangle-alert" />
-			<p>Your unsaved changes to this {{ noun }} from {{ siteDateTime(offer.kept) }} were kept in this browser when you left. Restore them to carry on where you were.</p>
+			<p>{{ t('editor_view.offer.text', 'Your unsaved changes to this {noun} from {when} were kept in this browser when you left. Restore them to carry on where you were.', { noun, when: siteDateTime(offer.kept) }) }}</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="discard">Throw Them Away</button>
-				<button type="button" class="button button--small button--primary" @click="restore">Restore Them</button>
+				<button type="button" class="button button--small" @click="discard">{{ t('editor_view.offer.discard', 'Throw Them Away') }}</button>
+				<button type="button" class="button button--small button--primary" @click="restore">{{ t('editor_view.offer.restore', 'Restore Them') }}</button>
 			</p>
 		</div>
 
 		<div v-if="failure" class="editor__notice editor__notice--danger" role="alert">
 			<AdminIcon name="triangle-alert" />
-			<p>{{ safe }}, but they weren't saved. {{ failure.message }}</p>
+			<p>{{ t('editor_view.failure', "{safe}, but they weren't saved. {message}", { safe, message: failure.message }) }}</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="retry">Try Again</button>
+				<button type="button" class="button button--small" @click="retry">{{ t('common.retry', 'Try Again') }}</button>
 			</p>
 		</div>
 
@@ -3024,17 +3037,17 @@ function fieldKey(field: FieldDescription): string {
 		     so the bar names it and offers it, in a new tab. -->
 		<div v-if="fullNow" class="editor__notice editor__notice--danger" role="alert">
 			<AdminIcon name="triangle-alert" />
-			<p>{{ safe }}, but they weren't saved: <strong>{{ fullNow.target.title }}</strong> already has {{ plural(fullNow.target.max, labels.item, labels.items) }}, the most it takes. Choose another, or take one out of {{ fullNow.target.title }} first.</p>
+			<p><MessageText :text="t('editor_view.full_notice', '{safe}, but they weren\'t saved: {target} already has {count, plural, one {# {item}} other {# {items}}}, the most it takes. Choose another, or take one out of {title} first.', { safe, count: fullNow.target.max, item: labels.item, items: labels.items, title: fullNow.target.title })"><template #target><strong>{{ fullNow.target.title }}</strong></template></MessageText></p>
 			<p v-if="fullNow.target.id" class="editor__notice-buttons">
-				<a class="button button--small" :href="router.resolve(entryRoute({ id: fullNow.target.id, type: fullNow.target.type })).href" target="_blank" rel="noopener">Open {{ fullNow.target.title }}</a>
+				<a class="button button--small" :href="router.resolve(entryRoute({ id: fullNow.target.id, type: fullNow.target.type })).href" target="_blank" rel="noopener">{{ t('editor_view.open_target', 'Open {title}', { title: fullNow.target.title }) }}</a>
 			</p>
 		</div>
 
 		<div v-if="attempted && missing.length" class="editor__notice editor__notice--danger" role="alert">
 			<AdminIcon name="triangle-alert" />
-			<p>{{ plural(missing.length, 'required field is', 'required fields are') }} empty, so it wasn't published: {{ missing.map((item) => item.label).join(', ') }}. Fill {{ missing.length === 1 ? 'it' : 'them' }} in, or save it as a draft.</p>
+			<p>{{ t('editor_view.missing', '{count, plural, one {# required field is empty, so it wasn\'t published: {fields}. Fill it in, or save it as a draft.} other {# required fields are empty, so it wasn\'t published: {fields}. Fill them in, or save it as a draft.} }', { count: missing.length, fields: missing.map((item) => item.label).join(', ') }) }}</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="showMissing">Show Me</button>
+				<button type="button" class="button button--small" @click="showMissing">{{ t('editor_view.show_me', 'Show Me') }}</button>
 			</p>
 		</div>
 
@@ -3057,14 +3070,14 @@ function fieldKey(field: FieldDescription): string {
 			<div class="editor__main">
 				<div class="editor__scroll" data-scroller>
 					<div v-if="entry" class="editor__doc">
-						<label class="visually-hidden" for="editor-title">Title</label>
+						<label class="visually-hidden" for="editor-title">{{ t('editor_view.title', 'Title') }}</label>
 						<textarea
 							id="editor-title"
 							ref="titleField"
 							v-model="title"
 							class="editor__title"
 							rows="1"
-							placeholder="Untitled"
+							:placeholder="t('editor_view.untitled', 'Untitled')"
 							autocomplete="off"
 							spellcheck="true"
 							:aria-invalid="errorFor('title') ? 'true' : undefined"
@@ -3080,8 +3093,8 @@ function fieldKey(field: FieldDescription): string {
 							v-model="body"
 							v-model:caret="caret"
 							:people="canMention ? findPeople : undefined"
-							label="Body (Markdown)"
-							placeholder="Write in Markdown. Type / on an empty line, or use +, to add a block."
+							:label="t('editor_view.body_label', 'Body (Markdown)')"
+							:placeholder="t('editor_view.body_placeholder', 'Write in Markdown. Type / on an empty line, or use +, to add a block.')"
 							v-model:extent="extent"
 							:parsed="markdown"
 							:markdown-blocks="allMarkdownBlocks"
@@ -3103,12 +3116,12 @@ function fieldKey(field: FieldDescription): string {
 						<div class="editor__body-skeleton">
 							<span v-for="line in 8" :key="line" class="skeleton" :style="{ width: `${55 + (line * 23) % 40}%` }" />
 						</div>
-						<p class="visually-hidden" role="status">Loading the {{ noun }}…</p>
+						<p class="visually-hidden" role="status">{{ t('editor_view.loading_noun', 'Loading the {noun}…', { noun }) }}</p>
 					</div>
 				</div>
 
 				<footer v-if="entry" class="editor__foot">
-					<nav class="editor__crumbs" aria-label="Where the cursor is">
+					<nav class="editor__crumbs" :aria-label="t('editor_view.crumbs_label', 'Where the cursor is')">
 						<ol>
 							<li>
 								<button type="button" class="editor__crumb editor__crumb--root" :aria-current="path.length === 0 ? 'true' : undefined" @click="openCrumb(null)">
@@ -3123,19 +3136,19 @@ function fieldKey(field: FieldDescription): string {
 					</nav>
 					<span class="editor__foot-end">
 						<button v-if="focusMode" type="button" class="editor__chip" @click="focusMode = false">
-							<AdminIcon name="x" />Leave Focus Mode
+							<AdminIcon name="x" />{{ t('editor_view.leave_focus_mode', 'Leave Focus Mode') }}
 						</button>
-						<span>{{ count(words, 'word') }}</span>
+						<span>{{ t('editor_view.words', '{count, plural, one {# word} other {# words} }', { count: words }) }}</span>
 						<span class="editor__sep" aria-hidden="true">·</span>
-						<span>{{ Math.max(1, Math.round(words / 220)) }} min read</span>
+						<span>{{ t('editor_view.min_read', '{count} min read', { count: Math.max(1, Math.round(words / 220)) }) }}</span>
 					</span>
 				</footer>
 			</div>
 
-			<aside id="editor-settings" class="editor__side" aria-label="Settings" :inert="!sideOpen">
+			<aside id="editor-settings" class="editor__side" :aria-label="t('editor_view.toolbar.settings', 'Settings')" :inert="!sideOpen">
 				<div class="editor__side-inner">
 					<div class="editor__tabs">
-						<TabBar v-model="tab" class="editor__tablist" :tabs="[{ key: 'document', label: typeName }, { key: 'element', label: tabName }]" label="Settings" prefix="editor">
+						<TabBar v-model="tab" class="editor__tablist" :tabs="[{ key: 'document', label: typeName }, { key: 'element', label: tabName }]" :label="t('editor_view.toolbar.settings', 'Settings')" prefix="editor">
 							<template #tab="{ tab: item }">
 								<template v-if="item.key === 'document'"><TypeIcon v-if="entryType" :type="entryType" /><AdminIcon v-else name="file-text" />{{ typeName }}</template>
 								<template v-else><AdminIcon :name="tabIcon" /><span class="editor__tab-name">{{ tabName }}</span></template>
@@ -3143,20 +3156,20 @@ function fieldKey(field: FieldDescription): string {
 						</TabBar>
 						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
 							<AdminIcon name="x" />
-							<span class="visually-hidden">Close the settings</span>
+							<span class="visually-hidden">{{ t('editor_view.close_settings', 'Close the settings') }}</span>
 						</button>
 					</div>
 
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" class="editor__panel" role="tabpanel" aria-labelledby="editor-tab-document" @keydown.esc="leaveDrill">
 						<template v-if="drill === null && level === null">
-							<OptionsGroup heading="Publish">
-								<ImagePreview v-if="imageField && (!term || form[imageField.name])" :src="String(form[imageField.name] ?? '')" wide bare noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
+							<OptionsGroup :heading="t('editor_view.groups.publish', 'Publish')">
+								<ImagePreview v-if="imageField && (!term || form[imageField.name])" :src="String(form[imageField.name] ?? '')" wide bare :noun="t('editor_view.featured_image', 'the featured image')" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
 								<SummaryPopover v-if="summaryField" :id="`field-${summaryField.name}`" :model-value="String(form[summaryField.name] ?? '')" :error="errorFor(summaryField.name)" @update:model-value="form[summaryField.name] = $event" />
 								<dl class="settings">
 									<div class="settings__row">
-										<dt>Status</dt>
+										<dt>{{ t('editor_view.settings.status', 'Status') }}</dt>
 										<dd>
-											<MenuButton v-if="statusOptions.length > 1" :button-class="`settings__value settings__value--${entry.status}`" :label="`Status: ${statusNames[entry.status].label}`" align="start" floating>
+											<MenuButton v-if="statusOptions.length > 1" :button-class="`settings__value settings__value--${entry.status}`" :label="t('editor_view.settings.status_value', 'Status: {value}', { value: statusNames[entry.status].label })" align="start" floating>
 												<template #button>
 													<AdminIcon :name="statusNames[entry.status].icon" /><span class="settings__text">{{ statusNames[entry.status].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
@@ -3172,9 +3185,9 @@ function fieldKey(field: FieldDescription): string {
 										</dd>
 									</div>
 									<div v-if="visibilityField" class="settings__row">
-										<dt>Visibility</dt>
+										<dt>{{ t('editor_view.settings.visibility', 'Visibility') }}</dt>
 										<dd>
-											<MenuButton button-class="settings__value" :label="`Visibility: ${visibilityNames[visibility].label}`" align="start" floating>
+											<MenuButton button-class="settings__value" :label="t('editor_view.settings.visibility_value', 'Visibility: {value}', { value: visibilityNames[visibility].label })" align="start" floating>
 												<template #button>
 													<AdminIcon :name="visibilityNames[visibility].icon" /><span class="settings__text">{{ visibilityNames[visibility].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
@@ -3189,45 +3202,45 @@ function fieldKey(field: FieldDescription): string {
 										</dd>
 									</div>
 									<div v-if="dateField" class="settings__row">
-										<dt><label for="editor-date">{{ future ? 'Goes live' : 'Date' }}</label></dt>
+										<dt><label for="editor-date">{{ future ? t('editor_view.settings.goes_live', 'Goes live') : t('editor_view.settings.date', 'Date') }}</label></dt>
 										<dd>
 											<DatePicker id="editor-date" v-model="date" :invalid="Boolean(errorFor('published'))" :described-by="errorFor('published') ? 'editor-publish-help editor-date-error' : 'editor-publish-help'" />
 										</dd>
 									</div>
 									<div v-if="entry.can.rename" class="settings__row">
-										<dt><label for="editor-slug">Slug</label></dt>
+										<dt><label for="editor-slug">{{ t('editor_view.settings.slug', 'Slug') }}</label></dt>
 										<dd>
-											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
+											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" :title="t('editor_view.settings.slug_title', 'Lowercase letters, numbers, and hyphens')" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
 										</dd>
 									</div>
 									<div v-if="subtitleField" class="settings__row">
-										<dt><label :for="`field-${subtitleField.name}`">Subtitle</label></dt>
+										<dt><label :for="`field-${subtitleField.name}`">{{ t('editor_view.settings.subtitle', 'Subtitle') }}</label></dt>
 										<dd>
 											<input :id="`field-${subtitleField.name}`" class="settings__input" autocomplete="off" :value="String(form[subtitleField.name] ?? '')" :aria-invalid="errorFor(subtitleField.name) ? 'true' : undefined" @input="form[subtitleField.name] = ($event.target as HTMLInputElement).value">
 										</dd>
 									</div>
 									<div v-if="entry.can.language" class="settings__row">
-										<dt><label for="editor-language">Language</label></dt>
+										<dt><label for="editor-language">{{ t('editor_view.settings.language', 'Language') }}</label></dt>
 										<dd>
 											<AdminSelect id="editor-language" v-model="language" :options="languageOptions" :invalid="Boolean(languageError)" :described-by="languageError ? 'editor-language-error' : undefined" plain />
 										</dd>
 									</div>
 									<div v-if="treeParent" class="settings__row">
-										<dt><label for="editor-parent">Parent</label></dt>
+										<dt><label for="editor-parent">{{ t('editor_view.settings.parent', 'Parent') }}</label></dt>
 										<dd>
 											<AdminSelect id="editor-parent" v-model="parent" :options="parentOptions" :disabled="parentItems === null" :invalid="Boolean(parentError)" :described-by="parentError ? 'editor-parent-error' : undefined" plain />
 										</dd>
 									</div>
 									<div v-if="parentField" class="settings__row">
-										<dt><label :for="`field-${parentField.name}`">Parent</label></dt>
+										<dt><label :for="`field-${parentField.name}`">{{ t('editor_view.settings.parent', 'Parent') }}</label></dt>
 										<dd>
 											<ReferencePicker :id="`field-${parentField.name}`" :key="fieldKey(parentField)" :field="parentField" :self="entry.slug" branch plain :model-value="String(form[parentField.name] ?? '')" @update:model-value="form[parentField.name] = $event" />
 										</dd>
 									</div>
 									<div v-if="positionField" class="settings__row">
-										<dt><label for="editor-position">Position</label></dt>
+										<dt><label for="editor-position">{{ t('editor_view.settings.position', 'Position') }}</label></dt>
 										<dd>
-											<input id="editor-position" class="settings__input mono" type="number" step="1" inputmode="numeric" placeholder="By title" :value="String(form[positionField.name] ?? '')" aria-describedby="editor-position-help" @input="form[positionField.name] = ($event.target as HTMLInputElement).value">
+											<input id="editor-position" class="settings__input mono" type="number" step="1" inputmode="numeric" :placeholder="t('editor_view.settings.position_placeholder', 'By title')" :value="String(form[positionField.name] ?? '')" aria-describedby="editor-position-help" @input="form[positionField.name] = ($event.target as HTMLInputElement).value">
 										</dd>
 									</div>
 									<div v-for="single in singleFields" :key="fieldKey(single)" class="settings__row">
@@ -3237,9 +3250,9 @@ function fieldKey(field: FieldDescription): string {
 										</dd>
 									</div>
 									<div v-if="entry.templates.length > 0" class="settings__row">
-										<dt>Template</dt>
+										<dt>{{ t('editor_view.settings.template', 'Template') }}</dt>
 										<dd>
-											<MenuButton button-class="settings__value" :label="`Template: ${templateLabel}`" align="start" floating>
+											<MenuButton button-class="settings__value" :label="t('editor_view.settings.template_value', 'Template: {value}', { value: templateLabel })" align="start" floating>
 												<template #button>
 													<AdminIcon name="layout-template" /><span class="settings__text">{{ templateLabel }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
@@ -3264,25 +3277,25 @@ function fieldKey(field: FieldDescription): string {
 								<template v-for="single in singleFields" :key="`error-${fieldKey(single)}`">
 									<p v-if="errorFor(single.name)" class="field__error">{{ errorFor(single.name) }}</p>
 								</template>
-								<p v-if="positionField" id="editor-position-help" class="visually-hidden">Its place among the {{ labels.plural.toLowerCase() }} beside it, lowest first. Without one, it follows those with one, by title.</p>
+								<p v-if="positionField" id="editor-position-help" class="visually-hidden">{{ t('editor_view.settings.position_help', 'Its place among the {items} beside it, lowest first. Without one, it follows those with one, by title.', { items: labels.plural.toLowerCase() }) }}</p>
 								<template v-if="entry.status === 'published' && ((entry.can.rename && slug.trim() !== entry.slug) || moving)">
-									<p id="editor-slug-help" class="editor__group-note">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</p>
+									<p id="editor-slug-help" class="editor__group-note"><MessageText :text="redirect ? t('editor_view.settings.moves_to', 'Saving moves it to {address}.') : t('editor_view.settings.moves_to_broken', 'Saving moves it to {address}, and links to the old address will stop working.')"><template #address><span class="mono">{{ slugAddress ?? t('editor_view.settings.new_address', 'a new address') }}</span></template></MessageText></p>
 									<label class="checkbox">
 										<input v-model="redirect" type="checkbox">
-										Redirect the old address here
+										{{ t('editor_view.settings.redirect', 'Redirect the old address here') }}
 									</label>
 								</template>
-								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
-								<p v-if="entry.errorPage !== null" class="editor__group-note">The page the site shows for error {{ entry.errorPage }}{{ entry.errorPage === 404 ? ', when an address doesn\'t exist' : '' }}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.</p>
-								<p v-if="entry.rootPage && entry.homepage" class="editor__group-note">The site's homepage, at /. It's the top of the page tree, so it has no parent, slug, or position. Without it, the site shows a welcome page.</p>
+								<p v-else id="editor-slug-help" class="visually-hidden">{{ t('editor_view.settings.slug_help', 'The slug is lowercase letters, numbers, and hyphens, and the address ends in it.') }}</p>
+								<p v-if="entry.errorPage !== null" class="editor__group-note">{{ entry.errorPage === 404 ? t('editor_view.error_page_404', "The page the site shows for error {code}, when an address doesn't exist: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.", { code: entry.errorPage }) : t('editor_view.error_page', "The page the site shows for error {code}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.", { code: entry.errorPage }) }}</p>
+								<p v-if="entry.rootPage && entry.homepage" class="editor__group-note">{{ t('editor_view.root_homepage', "The site's homepage, at /. It's the top of the page tree, so it has no parent, slug, or position. Without it, the site shows a welcome page.") }}</p>
 								<p v-else-if="entry.rootPage" class="editor__group-note">
-									The page at <code>user/content/index.md</code>. The homepage shows {{ entry.homeInstead?.toLowerCase() ?? 'something else' }} instead, so this page isn't on the site.
-									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk editor__note-action" @click="toHomepage">Make homepage</button></template>
+									<MessageText :text="t('editor_view.root_not_home', 'The page at {file}. The homepage shows {instead} instead, so this page isn\'t on the site.', { instead: entry.homeInstead?.toLowerCase() ?? t('editor_view.something_else', 'something else') })"><template #file><code>user/content/index.md</code></template></MessageText>
+									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk editor__note-action" @click="toHomepage">{{ t('editor_view.make_homepage', 'Make homepage') }}</button></template>
 								</p>
 							</OptionsGroup>
 
 							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
-								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.relation?.label || peopleField.label || (peopleField.multiple === false ? 'Author' : 'Authors'))">
+								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.relation?.label || peopleField.label || (peopleField.multiple === false ? t('editor_view.author', 'Author') : t('editor_view.authors', 'Authors')))">
 									<template v-if="referenceMeta(peopleField, true).text" #hint><span :class="`is-${referenceMeta(peopleField, true).tone}`">{{ referenceMeta(peopleField, true).text }}</span></template>
 									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" :inherited="entry.inherited?.[peopleField.name]" people :self="entry.slug" :attempted="Boolean(errorFor(peopleField.name))" :keep-last="entry.type.byline === peopleField.name || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
 									<p v-if="errorFor(peopleField.name)" class="field__error">{{ errorFor(peopleField.name) }}</p>
@@ -3296,7 +3309,7 @@ function fieldKey(field: FieldDescription): string {
 								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
 							</OptionsGroup>
 
-							<OptionsGroup v-if="otherFields.length" :heading="`${labels.singular} Fields`">
+							<OptionsGroup v-if="otherFields.length" :heading="t('editor_view.groups.type_fields', '{type} Fields', { type: labels.singular })">
 								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
 									<template v-if="misfit(field) !== undefined" #help="{ id }"><FieldMisfit :id="id" :label="label(field)" :message="misfit(field) ?? ''" /></template>
 								</FieldControl>
@@ -3304,8 +3317,8 @@ function fieldKey(field: FieldDescription): string {
 
 							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label" collapsible :open="setOpen(set)">
 								<template #hint>
-									<span v-if="setMissing(set)" class="pill pill--danger">{{ setMissing(set) }}<span class="visually-hidden"> required {{ setMissing(set) === 1 ? 'field' : 'fields' }} left empty</span></span>
-									<span class="mono">{{ set.fields.length }}<span class="visually-hidden"> {{ set.fields.length === 1 ? 'field' : 'fields' }}</span></span>
+									<span v-if="setMissing(set)" class="pill pill--danger">{{ setMissing(set) }}<span class="visually-hidden"> {{ t('editor_view.sets.required_left', '{count, plural, one {required field left empty} other {required fields left empty} }', { count: setMissing(set) }) }}</span></span>
+									<span class="mono">{{ set.fields.length }}<span class="visually-hidden"> {{ t('editor_view.sets.fields', '{count, plural, one {field} other {fields} }', { count: set.fields.length }) }}</span></span>
 								</template>
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
 								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
@@ -3313,13 +3326,13 @@ function fieldKey(field: FieldDescription): string {
 								</FieldControl>
 							</OptionsGroup>
 
-							<OptionsGroup v-if="advancedFields.length" heading="Advanced" collapsible :open="advancedSet">
+							<OptionsGroup v-if="advancedFields.length" :heading="t('editor_view.groups.advanced', 'Advanced')" collapsible :open="advancedSet">
 								<FieldControl v-for="field in advancedFields" :key="fieldKey(field)" :field="field.type === 'list' ? { ...field, control: 'code' } : field" :model-value="inline(field)" :error="errorFor(field.name)" @update:model-value="setInline(field, $event)" />
 							</OptionsGroup>
 
 
-							<OptionsGroup v-if="entry.violations.length" heading="Problems">
-								<template #hint>As last saved</template>
+							<OptionsGroup v-if="entry.violations.length" :heading="t('editor_view.groups.problems', 'Problems')">
+								<template #hint>{{ t('editor_view.groups.problems_hint', 'As last saved') }}</template>
 								<ul v-if="shown.length" class="editor__problems">
 									<li v-for="(violation, index) in shown" :key="index">
 										<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
@@ -3328,7 +3341,7 @@ function fieldKey(field: FieldDescription): string {
 								</ul>
 								<label v-if="noticeCount" class="checkbox">
 									<input v-model="notices" type="checkbox">
-									Show {{ plural(noticeCount, 'notice') }}
+									{{ t('editor_view.show_notices', '{count, plural, one {Show # notice} other {Show # notices} }', { count: noticeCount }) }}
 								</label>
 							</OptionsGroup>
 
@@ -3337,24 +3350,24 @@ function fieldKey(field: FieldDescription): string {
 						<div class="editor__pinned">
 							<button v-if="entry.introduces" id="editor-row-archive" type="button" class="level-link" @click="openDrill('archive')">
 								<AdminIcon name="layers" />
-								<span class="level-link__text"><strong>Archive Page</strong><span>{{ archiveLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.archive', 'Archive Page') }}</strong><span>{{ archiveLine }}</span></span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="level-link" :class="{ 'is-quiet': linkedTotal === 0 }" @click="openDrill('linked')">
 								<AdminIcon name="link" />
-								<span class="level-link__text"><strong>Linked From</strong><span>{{ linkedLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.linked', 'Linked From') }}</strong><span>{{ linkedLine }}</span></span>
 								<span class="level-link__count mono">{{ linkedTotal }}</span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 							<button id="editor-row-outline" type="button" class="level-link" @click="showOutline">
 								<AdminIcon name="list" />
-								<span class="level-link__text"><strong>Outline</strong></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.commands.outline', 'Outline') }}</strong></span>
 								<span class="level-link__count mono">{{ items.length }}</span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="level-link" :class="{ 'is-quiet': !entry.changedBy }" @click="openDrill('activity')">
 								<AdminIcon :name="entry.changedBy ? 'bot' : 'clock'" />
-								<span class="level-link__text"><strong>Activity</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.activity', 'Activity') }}</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 						</div>
@@ -3384,22 +3397,22 @@ function fieldKey(field: FieldDescription): string {
 					<template v-else-if="drill !== null">
 						<button id="editor-drill-back" type="button" class="level-link level-link--back" @click="closeDrill">
 							<AdminIcon name="arrow-left" />
-							<span class="level-link__path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page', activity: 'Activity' }[drill] }}</strong></span>
+							<span class="level-link__path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: t('editor_view.commands.outline', 'Outline'), linked: t('editor_view.drill.linked', 'Linked From'), archive: t('editor_view.drill.archive', 'Archive Page'), activity: t('editor_view.drill.activity', 'Activity') }[drill] }}</strong></span>
 							<span v-if="drill === 'outline' || drill === 'linked'" class="level-link__count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
 						</button>
 
 						<OptionsGroup v-if="drill === 'outline'">
-							<OutlineList :items="items" :describe="rowOf" :current="selection" indent empty="Nothing yet. Start writing, or use the insert buttons in the header." @select="select" />
+							<OutlineList :items="items" :describe="rowOf" :current="selection" indent :empty="t('editor_view.drill.outline_empty', 'Nothing yet. Start writing, or use the insert buttons in the header.')" @select="select" />
 						</OptionsGroup>
 
 						<template v-else-if="drill === 'activity'">
 							<p class="editor__drill-note">
 								<AdminIcon name="info" />
-								<span>Every change to {{ quotedTitle }}, here and by connected apps, newest first. What a change replaced is kept for 30 days, for Undo.</span>
+								<span>{{ t('editor_view.drill.activity_note', 'Every change to {title}, here and by connected apps, newest first. What a change replaced is kept for 30 days, for Undo.', { title: quotedTitle }) }}</span>
 							</p>
 							<p v-if="changesError" class="notice notice--error" role="alert">{{ changesError }}</p>
-							<p v-else-if="changes === null" class="loading">Loading its changes…</p>
-							<p v-else-if="!changes.length" class="editor__drill-note"><span>No changes are listed yet.</span></p>
+							<p v-else-if="changes === null" class="loading">{{ t('editor_view.drill.loading_changes', 'Loading its changes…') }}</p>
+							<p v-else-if="!changes.length" class="editor__drill-note"><span>{{ t('editor_view.drill.no_changes', 'No changes are listed yet.') }}</span></p>
 							<OptionsGroup v-else>
 								<ActivityRows :changes="changes" @changed="changedHere" />
 							</OptionsGroup>
@@ -3408,8 +3421,8 @@ function fieldKey(field: FieldDescription): string {
 						<template v-else-if="drill === 'linked'">
 							<p class="editor__drill-note">
 								<AdminIcon name="info" />
-								<span v-if="linkedTotal === 0">Nothing links here. When another entry names {{ quotedTitle }} in one of its fields, it's listed here.</span>
-								<span v-else>Change these on the entries that link here; {{ quotedTitle }} doesn't store them.<template v-if="linkedDrafts"> {{ linkedDrafts === 1 ? '1 of them is a draft' : `${linkedDrafts} of them are drafts` }}, linking here once published.</template></span>
+								<span v-if="linkedTotal === 0">{{ t('editor_view.drill.linked_none', "Nothing links here. When another entry names {title} in one of its fields, it's listed here.", { title: quotedTitle }) }}</span>
+								<span v-else>{{ t('editor_view.drill.linked_note', "Change these on the entries that link here; {title} doesn't store them.", { title: quotedTitle }) }}<template v-if="linkedDrafts"> {{ t('editor_view.drill.linked_drafts', '{count, plural, one {# of them is a draft, linking here once published.} other {# of them are drafts, linking here once published.} }', { count: linkedDrafts }) }}</template></span>
 							</p>
 							<OptionsGroup v-for="group in linkedGroups" :key="group.key">
 								<template #heading>{{ titleCase(group.relation) }} <span class="editor__group-type">{{ group.type }}</span></template>
@@ -3422,7 +3435,7 @@ function fieldKey(field: FieldDescription): string {
 												<TypeIcon v-else-if="typeNamed(group.typeName)" :type="typeNamed(group.typeName)!" />
 											</span>
 											<span class="reference__who">
-												<span class="reference__name"><span>{{ item.title || 'Untitled' }}</span><StatusPill v-if="item.status !== 'published'" :status="item.status" /></span>
+												<span class="reference__name"><span>{{ item.title || t('editor_view.untitled', 'Untitled') }}</span><StatusPill v-if="item.status !== 'published'" :status="item.status" /></span>
 												<span class="reference__meta">{{ [item.type, item.date ? formatDay(item.date) : null].filter(Boolean).join(' · ') }}</span>
 											</span>
 											<AdminIcon v-if="item.id" name="arrow-right" class="reference__go" />
@@ -3430,10 +3443,10 @@ function fieldKey(field: FieldDescription): string {
 									</li>
 								</ul>
 								<button v-if="group.entries.length > LINKED_SHOWN && !expanded.has(group.key)" type="button" class="lnk editor__more" @click="expanded = new Set([...expanded, group.key])">
-									<AdminIcon name="chevron-down" />Show {{ group.entries.length - LINKED_SHOWN }} More
+									<AdminIcon name="chevron-down" />{{ t('editor_view.drill.show_more', 'Show {count} More', { count: group.entries.length - LINKED_SHOWN }) }}
 								</button>
 								<RouterLink v-else-if="group.count > group.entries.length" class="lnk editor__more" :to="{ name: 'type', params: { type: group.typeName }, query: { linking: entry.id ?? undefined, via: group.key } }">
-									View All {{ group.count }} in {{ group.type }}<AdminIcon name="arrow-right" />
+									{{ t('editor_view.drill.view_all', 'View All {count} in {type}', { count: group.count, type: group.type }) }}<AdminIcon name="arrow-right" />
 								</RouterLink>
 							</OptionsGroup>
 						</template>
@@ -3443,11 +3456,11 @@ function fieldKey(field: FieldDescription): string {
 							<OptionsGroup>
 								<dl class="editor__facts">
 									<div>
-										<dt>Archive</dt>
-										<dd>{{ entry.archive ? `${titleCase(entry.archive.label)} on ${labels.plural}` : labels.plural }}</dd>
+										<dt>{{ t('editor_view.facts.archive', 'Archive') }}</dt>
+										<dd>{{ entry.archive ? t('editor_view.facts.archive_on', '{label} on {plural}', { label: titleCase(entry.archive.label), plural: labels.plural }) : labels.plural }}</dd>
 									</div>
 									<div v-if="entry.archive?.target">
-										<dt>For</dt>
+										<dt>{{ t('editor_view.facts.for', 'For') }}</dt>
 										<dd>
 											<RouterLink v-if="entry.archive.targetType === profileType && entry.archive.target" :to="{ name: 'profile-detail', params: { slug: entry.archive.target } }">{{ entry.archive.targetTitle }}</RouterLink>
 											<RouterLink v-else-if="entry.archive.targetId && entry.archive.targetType" :to="entryRoute({ id: entry.archive.targetId, type: entry.archive.targetType })">{{ entry.archive.targetTitle }}</RouterLink>
@@ -3455,18 +3468,18 @@ function fieldKey(field: FieldDescription): string {
 										</dd>
 									</div>
 									<div>
-										<dt>Address</dt>
+										<dt>{{ t('editor_view.facts.address', 'Address') }}</dt>
 										<dd>
 											<a v-if="entry.introduces.url" class="mono" :href="entry.introduces.url" target="_blank" rel="noopener">{{ entry.introduces.url }}</a>
-											<span v-else class="editor__dim">None; its archive is off.</span>
+											<span v-else class="editor__dim">{{ t('editor_view.facts.address_none', 'None; its archive is off.') }}</span>
 										</dd>
 									</div>
 									<div>
-										<dt>Lists</dt>
-										<dd>{{ plural(entry.introduces.listed, entry.introduces.item, entry.introduces.items) }}<span v-if="entry.introduces.drafts" class="editor__dim"> · {{ plural(entry.introduces.drafts, 'draft') }} not shown</span></dd>
+										<dt>{{ t('editor_view.facts.lists', 'Lists') }}</dt>
+										<dd>{{ listedCount }}<span v-if="entry.introduces.drafts" class="editor__dim"> · {{ t('editor_view.facts.drafts_not_shown', '{count, plural, one {# draft not shown} other {# drafts not shown} }', { count: entry.introduces.drafts }) }}</span></dd>
 									</div>
 									<div>
-										<dt>Without it</dt>
+										<dt>{{ t('editor_view.facts.without', 'Without it') }}</dt>
 										<dd>{{ archiveWithout }}</dd>
 									</div>
 								</dl>
@@ -3492,11 +3505,11 @@ function fieldKey(field: FieldDescription): string {
 								@remove="removeBlock"
 								@pick="pickForOption"
 							>
-								<OptionsGroup v-if="content" heading="Content">
-									<template v-if="selected?.only?.includes('image')" #hint>{{ plural(held, 'image') }}</template>
-									<template v-else-if="selected?.only?.includes(`${CORE}/audio`)" #hint>{{ plural(held, 'track') }}</template>
-									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
-									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
+								<OptionsGroup v-if="content" :heading="t('editor_view.groups.content', 'Content')">
+									<template v-if="selected?.only?.includes('image')" #hint>{{ t('editor_view.held_images', '{count, plural, one {# image} other {# images} }', { count: held }) }}</template>
+									<template v-else-if="selected?.only?.includes(`${CORE}/audio`)" #hint>{{ t('editor_view.held_tracks', '{count, plural, one {# track} other {# tracks} }', { count: held }) }}</template>
+									<OutlineList :items="content" :describe="rowOf" :empty="t('editor_view.content_empty', 'Nothing inside it yet.')" @select="select" />
+									<p v-if="strays.length" class="field__error">{{ t('editor_view.strays', "{count, plural, one {{holder} holds only {names}, so the site won't show this line: {lines}.} other {{holder} holds only {names}, so the site won't show these lines: {lines}.} }", { count: strays.length, holder: titleCase(selected?.label ?? ''), names: panelNoteNames, lines: strays.map((text) => t('editor_view.quoted', '“{title}”', { title: text.length > 40 ? `${text.slice(0, 40)}…` : text })).join(', ') }) }}</p>
 								</OptionsGroup>
 							</BlockOptions>
 							<ImageOptions
@@ -3518,17 +3531,17 @@ function fieldKey(field: FieldDescription): string {
 								:markdown-block="markdownBlock"
 								@edit="applyOption"
 							>
-								<OptionsGroup v-if="content" heading="Content">
-									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
-									<p v-if="content.length" class="field__help">{{ plural(content.length, 'element') }} directly inside. What's nested deeper is listed under the one holding it.</p>
+								<OptionsGroup v-if="content" :heading="t('editor_view.groups.content', 'Content')">
+									<OutlineList :items="content" :describe="rowOf" :empty="t('editor_view.content_empty', 'Nothing inside it yet.')" @select="select" />
+									<p v-if="content.length" class="field__help">{{ t('editor_view.content_inside', "{count, plural, one {# element directly inside.} other {# elements directly inside.} } What's nested deeper is listed under the one holding it.", { count: content.length }) }}</p>
 								</OptionsGroup>
 							</MarkdownBlockOptions>
 						</template>
 
 						<div v-else class="editor__none">
 							<AdminIcon name="list" />
-							<p class="editor__none-heading">Nothing Selected</p>
-							<p class="editor__none-text">The cursor isn't in the text. Click anywhere in it, and this panel follows what it's in.</p>
+							<p class="editor__none-heading">{{ t('editor_view.none.heading', 'Nothing Selected') }}</p>
+							<p class="editor__none-text">{{ t('editor_view.none.text', "The cursor isn't in the text. Click anywhere in it, and this panel follows what it's in.") }}</p>
 						</div>
 					</div>
 				</div>

@@ -17,6 +17,7 @@ import ExtensionProvides from './ExtensionProvides.vue';
 import ExtensionRequirements from './ExtensionRequirements.vue';
 import ExtensionSuggestions from './ExtensionSuggestions.vue';
 import type { ExtensionSummary } from '../api';
+import { t } from '../messages';
 
 const props = defineProps<{
 	extension: ExtensionSummary;
@@ -30,10 +31,10 @@ const props = defineProps<{
 const slots = useSlots();
 
 const others = computed(() => [
-	{ key: 'required', label: 'Required by', list: props.extension.requiredBy },
-	{ key: 'conflicted', label: 'Conflicts with it', list: props.extension.conflictedBy },
-	{ key: 'replaced', label: 'Replaced by', list: props.extension.replacedBy },
-	{ key: 'provided', label: 'Also provided by', list: props.extension.providedBy }
+	{ key: 'required', label: t('extension_dependencies.required_by', 'Required by'), list: props.extension.requiredBy },
+	{ key: 'conflicted', label: t('extension_dependencies.conflicted_by', 'Conflicts with it'), list: props.extension.conflictedBy },
+	{ key: 'replaced', label: t('extension_dependencies.replaced_by', 'Replaced by'), list: props.extension.replacedBy },
+	{ key: 'provided', label: t('extension_dependencies.provided_by', 'Also provided by'), list: props.extension.providedBy }
 ].filter((group) => group.list.length > 0));
 
 const hasOwn = computed(() => Boolean(slots.own) || [props.extension.requirements, props.extension.conflicts, props.extension.replaces, props.extension.provides, props.extension.suggests].some((list) => list.length > 0));
@@ -43,37 +44,37 @@ const hasOthers = computed(() => Boolean(slots.others) || others.value.length > 
 <template>
 	<section class="panel" aria-labelledby="dependencies-heading">
 		<header class="panel__header">
-			<h2 id="dependencies-heading">Dependencies</h2>
-			<p class="panel__hint">Checked against this site{{ asIfActive ? ', as if it were active' : '' }}</p>
+			<h2 id="dependencies-heading">{{ t('extension_dependencies.heading', 'Dependencies') }}</h2>
+			<p class="panel__hint">{{ asIfActive ? t('extension_dependencies.checked_as_if_active', 'Checked against this site, as if it were active') : t('extension_dependencies.checked', 'Checked against this site') }}</p>
 		</header>
 
-		<p v-if="!hasOwn && !hasOthers" class="panel__section field__help">This {{ noun }} declares none, and nothing depends on it.</p>
+		<p v-if="!hasOwn && !hasOthers" class="panel__section field__help">{{ t('extension_dependencies.none', 'This {noun} declares none, and nothing depends on it.', { noun }) }}</p>
 
 		<slot name="own" />
 		<section v-if="extension.requirements.length" class="panel__section" aria-labelledby="requires-heading">
-			<div class="panel__section-head"><h3 id="requires-heading" class="eyebrow">Requires</h3><span>Must be installed and on</span></div>
+			<div class="panel__section-head"><h3 id="requires-heading" class="eyebrow">{{ t('extension_dependencies.requires', 'Requires') }}</h3><span>{{ t('extension_dependencies.requires_hint', 'Must be installed and on') }}</span></div>
 			<ExtensionRequirements :requirements="extension.requirements" />
 		</section>
 		<section v-if="extension.conflicts.length" class="panel__section" aria-labelledby="conflicts-heading">
-			<div class="panel__section-head"><h3 id="conflicts-heading" class="eyebrow">Conflicts</h3><span>Can't be on at the same time</span></div>
+			<div class="panel__section-head"><h3 id="conflicts-heading" class="eyebrow">{{ t('extension_dependencies.conflicts', 'Conflicts') }}</h3><span>{{ t('extension_dependencies.conflicts_hint', "Can't be on at the same time") }}</span></div>
 			<ExtensionRequirements :requirements="extension.conflicts" list="conflicts" />
 		</section>
 		<section v-if="extension.replaces.length" class="panel__section" aria-labelledby="replaces-heading">
-			<div class="panel__section-head"><h3 id="replaces-heading" class="eyebrow">Replaces</h3><span>{{ replacesHint }} while one of these is on</span></div>
+			<div class="panel__section-head"><h3 id="replaces-heading" class="eyebrow">{{ t('extension_dependencies.replaces', 'Replaces') }}</h3><span>{{ t('extension_dependencies.replaces_hint', '{hint} while one of these is on', { hint: replacesHint }) }}</span></div>
 			<ExtensionRequirements :requirements="extension.replaces" list="replaces" />
 		</section>
 		<section v-if="extension.provides.length" class="panel__section" aria-labelledby="provides-heading">
-			<div class="panel__section-head"><h3 id="provides-heading" class="eyebrow">Provides</h3><span>Meets these requirements for others while it runs</span></div>
+			<div class="panel__section-head"><h3 id="provides-heading" class="eyebrow">{{ t('extension_dependencies.provides', 'Provides') }}</h3><span>{{ t('extension_dependencies.provides_hint', 'Meets these requirements for others while it runs') }}</span></div>
 			<ExtensionProvides :provides="extension.provides" />
 		</section>
 		<section v-if="extension.suggests.length" class="panel__section" aria-labelledby="suggests-heading">
-			<div class="panel__section-head"><h3 id="suggests-heading" class="eyebrow">Suggests</h3><span>Works well with these; none is needed</span></div>
+			<div class="panel__section-head"><h3 id="suggests-heading" class="eyebrow">{{ t('extension_dependencies.suggests', 'Suggests') }}</h3><span>{{ t('extension_dependencies.suggests_hint', 'Works well with these; none is needed') }}</span></div>
 			<ExtensionSuggestions :suggestions="extension.suggests" />
 		</section>
 
 		<template v-if="hasOthers">
 			<div class="panel__section panel__section--turn">
-				<div class="panel__section-head"><h3 class="eyebrow">What others say about it</h3></div>
+				<div class="panel__section-head"><h3 class="eyebrow">{{ t('extension_dependencies.others', 'What others say about it') }}</h3></div>
 			</div>
 			<slot name="others" />
 			<section v-for="group in others" :key="group.key" class="panel__section" :aria-labelledby="`${group.key}-heading`">

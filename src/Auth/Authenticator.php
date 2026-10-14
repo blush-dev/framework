@@ -16,6 +16,7 @@ namespace Blush\Auth;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\CacheException;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
 
 /**
  * Signs accounts in and out of sessions (D-219).
@@ -58,7 +59,8 @@ final readonly class Authenticator
 		private Accounts $accounts,
 		private Passwords $passwords,
 		private LoginThrottle $throttle,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -74,7 +76,7 @@ final readonly class Authenticator
 		$username = strtolower(trim($username));
 
 		if ($this->throttle->isLockedOut($ip, $username)) {
-			throw new LockedOut('Too many failed sign-ins. Try again later.');
+			throw new LockedOut((string) $this->messages->t('auth.authenticator.locked_out', 'Too many failed sign-ins. Try again later.'));
 		}
 
 		$account = $this->accounts->find($username);
@@ -90,7 +92,7 @@ final readonly class Authenticator
 		$this->throttle->clear($ip, $username);
 
 		if ($account->suspended) {
-			throw new AccountSuspended('This account is suspended. Ask an administrator to reinstate it.');
+			throw new AccountSuspended((string) $this->messages->t('auth.authenticator.suspended', 'This account is suspended. Ask an administrator to reinstate it.'));
 		}
 
 		if ($this->passwords->needsRehash($account->passwordHash)) {
@@ -111,7 +113,7 @@ final readonly class Authenticator
 	public function confirm(Account $account, string $password, string $ip): bool
 	{
 		if ($this->throttle->isLockedOut($ip, $account->username)) {
-			throw new LockedOut('Too many wrong passwords. Try again later.');
+			throw new LockedOut((string) $this->messages->t('auth.authenticator.wrong_passwords', 'Too many wrong passwords. Try again later.'));
 		}
 
 		if (! $this->passwords->verify($password, $account->passwordHash)) {

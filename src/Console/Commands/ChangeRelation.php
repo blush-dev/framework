@@ -25,6 +25,7 @@ use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Writer\WriteException;
+use Blush\Translation\Messages;
 
 /**
  * Changes a relation that entries use (D-600), as the admin's
@@ -41,7 +42,8 @@ final readonly class ChangeRelation
 	public function __construct(
 		private ContentTypeLoader $loader,
 		private DataRelationWriter $relations,
-		private RelationChanges $changes
+		private RelationChanges $changes,
+		private Messages $messages
 	) {}
 
 	public function __invoke(
@@ -89,7 +91,7 @@ final readonly class ChangeRelation
 			}
 
 			if ($key !== null) {
-				$changed = $this->changes->apply($relation, Relation::fromArray([...$relation->toArray(), 'field' => $key]), $rewrite);
+				$changed = $this->changes->apply($relation, Relation::fromArray([...$relation->toArray(), 'field' => $key], $this->messages), $rewrite);
 
 				$this->relations->update($changed);
 				$output->success($rewrite

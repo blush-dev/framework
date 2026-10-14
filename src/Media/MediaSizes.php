@@ -18,6 +18,7 @@ use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Media\Index\MediaRecord;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Records each image's sizes in its metadata file (D-488), for
@@ -41,7 +42,8 @@ final readonly class MediaSizes
 		private MediaIndexer $indexer,
 		private MediaIndex $index,
 		private MediaMetadataStore $store,
-		private MediaResolver $resolver
+		private MediaResolver $resolver,
+		private Messages $messages
 	) {}
 
 	/**
@@ -102,12 +104,12 @@ final readonly class MediaSizes
 			$file = $this->resolver->fromKey($key);
 
 			if ($file === null) {
-				$failed[$key] = 'isn\'t in the media library.';
+				$failed[$key] = (string) $this->messages->t('media.common.not_in_library', 'isn\'t in the media library.', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 
 			if (! $this->store->isWritable($file)) {
-				$failed[$key] = 'its metadata file can\'t be read; fix it first (content:lint says why).';
+				$failed[$key] = (string) $this->messages->t('media.common.metadata_unreadable', 'its metadata file can\'t be read; fix it first (content:lint says why).', context: 'After a media file\'s path, as why it couldn\'t be fixed.');
 				continue;
 			}
 

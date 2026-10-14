@@ -42,6 +42,8 @@ use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Installs an extension from a `.zip` of its folder into
@@ -86,22 +88,23 @@ final readonly class ExtensionInstaller
 	public function __construct(
 		private Paths $paths,
 		private Filesystem $filesystem,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	/**
 	 * Why nothing of a kind can be installed here, or `null`.
 	 */
-	public function problem(ExtensionKind $kind): ?string
+	public function problem(ExtensionKind $kind): ?Text
 	{
 		if (! class_exists(ZipArchive::class)) {
-			return 'This server\'s PHP can\'t read .zip files (it has no zip extension).';
+			return $this->messages->t('extension.extension_installer.no_zip', 'This server\'s PHP can\'t read .zip files (it has no zip extension).');
 		}
 
 		$folder   = $this->paths->extensions;
 		$writable = is_dir($folder) ? is_writable($folder) : is_writable(dirname($folder));
 
-		return $writable ? null : sprintf('The web server can\'t write to %s.', $this->paths->relative($folder));
+		return $writable ? null : $this->messages->t('extension.extension_installer.not_writable', 'The web server can\'t write to {folder}.', folder: $this->paths->relative($folder));
 	}
 
 	/**
@@ -118,32 +121,32 @@ final readonly class ExtensionInstaller
 		$problem = $this->problem($kind);
 
 		if ($problem !== null) {
-			throw new InstallException($problem);
+			throw new InstallException((string) $problem);
 		}
 
 		$folder = $this->paths->extensions;
 
 		if (! is_dir($folder) && ! @mkdir($folder, 0775, true) && ! is_dir($folder)) {
-			throw new InstallException(sprintf('%s couldn\'t be made.', $this->paths->relative($folder)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.folder_not_made', '{folder} couldn\'t be made.', folder: $this->paths->relative($folder)));
 		}
 
-		$archive = ExtensionArchive::open($file, $name);
+		$archive = ExtensionArchive::open($file, $name, $this->messages);
 		$staging = sprintf('%s/.install-%s', $folder, bin2hex(random_bytes(6)));
 
 		try {
 			if (! @mkdir($staging, 0775)) {
-				throw new InstallException(sprintf('%s couldn\'t be unpacked into %s.', $name, $this->paths->relative($folder)));
+				throw new InstallException((string) $this->messages->t('extension.extension_installer.not_unpacked', '{name} couldn\'t be unpacked into {folder}.', name: $name, folder: $this->paths->relative($folder)));
 			}
 
 			$archive->extractTo($staging);
 
-			self::expect($staging, $kind, $name);
+			$this->expect($staging, $kind, $name);
 
 			$incoming = $this->read($kind, $staging, $name);
 			$existing = $this->check($incoming, $name);
 
 			if ($existing !== null && ! $replace) {
-				throw new InstallClash($existing, $incoming);
+				throw new InstallClash($existing, $incoming, $this->messages);
 			}
 
 			return $existing === null
@@ -202,18 +205,18 @@ final readonly class ExtensionInstaller
 		$existing = array_find($this->installed(), static fn (ExtensionPackage $package): bool => $package->kind === $kind && $package->name === $name && $package->local);
 
 		if ($existing === null) {
-			throw new InstallException(sprintf('No %s named %s is installed in %s.', $kind->label(), $name, $this->paths->relative($this->paths->extensions)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.not_installed', 'No {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} named {name} is installed in {folder}.', kind: $kind->name, name: $name, folder: $this->paths->relative($this->paths->extensions)));
 		}
 
 		$backup = $this->backupPath($existing->path);
 		$older  = $this->backupOf($kind, $existing->path, $name);
 
 		if ($older === null) {
-			throw new InstallException(sprintf('There\'s no earlier version of %s to roll back to.', $existing->label));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.no_backup', 'There\'s no earlier version of {label} to roll back to.', label: $existing->label));
 		}
 
 		if (file_exists("{$existing->path}/.git")) {
-			throw new InstallException(sprintf('%s is a git checkout, so git changes its version, not a rollback.', $this->paths->relative($existing->path)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.git_rollback', '{folder} is a git checkout, so git changes its version, not a rollback.', folder: $this->paths->relative($existing->path)));
 		}
 
 		$this->check($older, $existing->label);
@@ -221,13 +224,13 @@ final readonly class ExtensionInstaller
 		$aside = sprintf('%s/.rollback-%s', $this->paths->extensions, bin2hex(random_bytes(6)));
 
 		if (! @rename($existing->path, $aside)) {
-			throw new InstallException(sprintf('%s couldn\'t be moved aside to roll it back.', $this->paths->relative($existing->path)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.rollback_aside', '{folder} couldn\'t be moved aside to roll it back.', folder: $this->paths->relative($existing->path)));
 		}
 
 		if (! @rename($backup, $existing->path)) {
 			@rename($aside, $existing->path);
 
-			throw new InstallException(sprintf('%s couldn\'t be rolled back.', $existing->label));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.not_rolled_back', '{label} couldn\'t be rolled back.', label: $existing->label));
 		}
 
 		if (! @rename($aside, $backup)) {
@@ -252,7 +255,7 @@ final readonly class ExtensionInstaller
 		try {
 			$this->filesystem->removeDirectory($backup);
 		} catch (FilesystemException $error) {
-			throw new InstallException(sprintf('The backup of %s couldn\'t be removed.', $this->paths->relative($path)), previous: $error);
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.backup_not_removed', 'The backup of {folder} couldn\'t be removed.', folder: $this->paths->relative($path)), previous: $error);
 		}
 
 		// Its vendor's folder goes once it's empty.
@@ -268,12 +271,12 @@ final readonly class ExtensionInstaller
 	 *
 	 * @throws InstallException
 	 */
-	private static function expect(string $folder, ExtensionKind $kind, string $name): void
+	private function expect(string $folder, ExtensionKind $kind, string $name): void
 	{
 		$claims = LocalExtensions::claims($folder);
 
 		if (count($claims) > 1) {
-			throw new InstallException(sprintf('%s holds %s, but an extension is one kind.', $name, LocalExtensions::describe($claims)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.several_kinds', '{name} holds {claims}, but an extension is one kind.', name: $name, claims: LocalExtensions::describe($claims, $this->messages)));
 		}
 
 		if (array_key_exists($kind->value, $claims)) {
@@ -283,10 +286,10 @@ final readonly class ExtensionInstaller
 		if ($claims !== []) {
 			$other = ExtensionKind::from((string) array_key_first($claims));
 
-			throw new InstallException(sprintf('%s is %s, not %s.', $name, self::a($other), self::a($kind)), $other);
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.wrong_kind', '{name} is {other, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}, not {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.', name: $name, other: $other->name, kind: $kind->name), $other);
 		}
 
-		throw new InstallException(sprintf('%s has no %s.json in it, and no composer.json of type "%s", so it isn\'t %s.', $name, $kind->manifest(), $kind->packageType(), self::a($kind)));
+		throw new InstallException((string) $this->messages->t('extension.extension_installer.no_manifest', '{name} has no {manifest}.json in it, and no composer.json of type "{type}", so it isn\'t {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.', name: $name, manifest: $kind->manifest(), type: $kind->packageType(), kind: $kind->name));
 	}
 
 	/**
@@ -306,7 +309,7 @@ final readonly class ExtensionInstaller
 		} catch (ExtensionException | ThemeException $error) {
 			$reason = str_replace($folder, $kind->manifest(), $error->getMessage());
 
-			throw new InstallException(sprintf('%s can\'t be installed: %s', $name, $reason), previous: $error);
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.invalid', '{name} can\'t be installed: {reason}', name: $name, reason: $reason), previous: $error);
 		}
 	}
 
@@ -315,7 +318,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function plugin(string $folder): ExtensionPackage
 	{
-		$plugin = LocalPluginFinder::manifest($folder);
+		$plugin = LocalPluginFinder::manifest($folder, $this->messages);
 
 		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, (string) $this->text->label($plugin), $plugin->namespace, $plugin->version, $folder, true, $plugin->abandoned, $plugin->suggest);
 	}
@@ -325,10 +328,10 @@ final readonly class ExtensionInstaller
 	 */
 	private function theme(string $folder): ExtensionPackage
 	{
-		$theme = ThemeManifest::fromArray($folder, ManifestFile::load($folder, ExtensionKind::Theme));
+		$theme = ThemeManifest::fromArray($folder, ManifestFile::load($folder, ExtensionKind::Theme, $this->messages), messages: $this->messages);
 
 		if ($theme->name === Themes::DEFAULT) {
-			throw new ThemeException(sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT));
+			throw new ThemeException((string) $this->messages->t('extension.extension_installer.default_theme_name', '"{name}" is the framework default theme\'s name.', name: Themes::DEFAULT));
 		}
 
 		return new ExtensionPackage(ExtensionKind::Theme, $theme->name, (string) $this->text->label($theme), $theme->namespace, $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
@@ -339,7 +342,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function pack(string $folder): ExtensionPackage
 	{
-		$pack = IconPack::fromArray($folder, ManifestFile::load($folder, ExtensionKind::IconPack));
+		$pack = IconPack::fromArray($folder, ManifestFile::load($folder, ExtensionKind::IconPack, $this->messages), messages: $this->messages);
 
 		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, (string) $this->text->label($pack), $pack->namespace, $pack->version, $folder, true, $pack->abandoned, $pack->suggest);
 	}
@@ -352,10 +355,10 @@ final readonly class ExtensionInstaller
 	 */
 	private function adminTheme(string $folder): ExtensionPackage
 	{
-		$theme = AdminTheme::fromArray($folder, ManifestFile::load($folder, ExtensionKind::AdminTheme));
+		$theme = AdminTheme::fromArray($folder, ManifestFile::load($folder, ExtensionKind::AdminTheme, $this->messages));
 
 		if (new AdminThemeDiscovery($this->paths)->discover()->find($theme->name)?->source === AdminThemeSource::Framework) {
-			throw new ExtensionException(sprintf('"%s" is a framework admin theme\'s name.', $theme->name));
+			throw new ExtensionException((string) $this->messages->t('extension.extension_installer.admin_theme_name', '"{name}" is a framework admin theme\'s name.', name: $theme->name));
 		}
 
 		return new ExtensionPackage(ExtensionKind::AdminTheme, $theme->name, (string) $this->text->label($theme), '', $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
@@ -370,24 +373,24 @@ final readonly class ExtensionInstaller
 	private function check(ExtensionPackage $incoming, string $name): ?ExtensionPackage
 	{
 		if (ExtensionNamespace::isReserved($incoming->namespace)) {
-			throw new InstallException(sprintf('%s can\'t be installed: its namespace, "%s", is reserved.', $name, $incoming->namespace));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.reserved_namespace', '{name} can\'t be installed: its namespace, "{namespace}", is reserved.', name: $name, namespace: $incoming->namespace));
 		}
 
 		$existing = null;
 
 		foreach ($this->installed() as $package) {
 			if ($package->name === $incoming->name && $package->kind !== $incoming->kind) {
-				throw new InstallException(sprintf('%s can\'t be installed: %s is installed as %s.', $name, $package->name, self::a($package->kind)));
+				throw new InstallException((string) $this->messages->t('extension.extension_installer.installed_as', '{name} can\'t be installed: {installed} is installed as {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.', name: $name, installed: $package->name, kind: $package->kind->name));
 			}
 
 			if ($package->name === $incoming->name) {
 				if (! $package->local) {
-					throw new InstallException(sprintf('%s is installed with Composer, so Composer updates it.', $package->name));
+					throw new InstallException((string) $this->messages->t('extension.extension_installer.composer', '{name} is installed with Composer, so Composer updates it.', name: $package->name));
 				}
 
 				$existing = $package;
 			} elseif ($incoming->namespace !== '' && $package->namespace === $incoming->namespace) {
-				throw new InstallException(sprintf('%s can\'t be installed: its namespace, "%s", is the %s %s\'s.', $name, $incoming->namespace, $package->kind->label(), $package->name));
+				throw new InstallException((string) $this->messages->t('extension.extension_installer.namespace_taken', '{name} can\'t be installed: its namespace, "{namespace}", is the {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} {installed}\'s.', name: $name, namespace: $incoming->namespace, kind: $package->kind->name, installed: $package->name));
 			}
 		}
 
@@ -415,12 +418,13 @@ final readonly class ExtensionInstaller
 			try {
 				token_get_all((string) file_get_contents($file->getPathname()), TOKEN_PARSE);
 			} catch (ParseError $error) {
-				throw new InstallException(sprintf(
-					'%s can\'t be installed: %s has a PHP error on line %d (%s).',
-					$name,
-					substr($file->getPathname(), strlen($folder) + 1),
-					$error->getLine(),
-					$error->getMessage()
+				throw new InstallException((string) $this->messages->t(
+					'extension.extension_installer.php_error',
+					'{name} can\'t be installed: {file} has a PHP error on line {line} ({error}).',
+					name: $name,
+					file: substr($file->getPathname(), strlen($folder) + 1),
+					line: $error->getLine(),
+					error: $error->getMessage()
 				), previous: $error);
 			}
 		}
@@ -435,7 +439,7 @@ final readonly class ExtensionInstaller
 	private function installed(): array
 	{
 		try {
-			$plugins = PluginDiscovery::forPaths($this->paths)->discover()->manifests;
+			$plugins = PluginDiscovery::forPaths($this->paths, $this->messages)->discover()->manifests;
 		} catch (ExtensionException $error) {
 			throw new InstallException($error->getMessage(), previous: $error);
 		}
@@ -446,11 +450,11 @@ final readonly class ExtensionInstaller
 			$packages[] = new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, (string) $this->text->label($plugin), $plugin->namespace, $plugin->version, $plugin->path, $plugin->source === PluginSource::Local && LocalExtensions::contains($this->paths, $plugin->path));
 		}
 
-		foreach (new ThemeDiscovery($this->paths)->discover()->all() as $theme) {
+		foreach (new ThemeDiscovery($this->paths, $this->messages)->discover()->all() as $theme) {
 			$packages[] = new ExtensionPackage(ExtensionKind::Theme, $theme->name, (string) $this->text->label($theme), $theme->namespace, $theme->version, $theme->path, $theme->source === ThemeSource::Local && LocalExtensions::contains($this->paths, $theme->path));
 		}
 
-		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
+		foreach (new IconPackDiscovery($this->paths, $this->messages)->discover()->all() as $pack) {
 			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, (string) $this->text->label($pack), $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path));
 		}
 
@@ -471,15 +475,15 @@ final readonly class ExtensionInstaller
 		$target = LocalExtensions::path($this->paths, $incoming->name);
 
 		if (file_exists($target)) {
-			throw new InstallException(sprintf('%s already exists, so %s wasn\'t installed there. Delete or rename that folder first.', $this->paths->relative($target), $incoming->label));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.target_exists', '{folder} already exists, so {label} wasn\'t installed there. Delete or rename that folder first.', folder: $this->paths->relative($target), label: $incoming->label));
 		}
 
 		if (! is_dir(dirname($target)) && ! @mkdir(dirname($target), 0775) && ! is_dir(dirname($target))) {
-			throw new InstallException(sprintf('%s couldn\'t be made.', $this->paths->relative(dirname($target))));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.folder_not_made', '{folder} couldn\'t be made.', folder: $this->paths->relative(dirname($target))));
 		}
 
 		if (! @rename($incoming->path, $target)) {
-			throw new InstallException(sprintf('%s couldn\'t be moved into %s.', $incoming->label, $this->paths->relative($folder)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.not_moved', '{label} couldn\'t be moved into {folder}.', label: $incoming->label, folder: $this->paths->relative($folder)));
 		}
 
 		return new InstallResult(self::at($incoming, $target));
@@ -494,19 +498,19 @@ final readonly class ExtensionInstaller
 	private function swap(ExtensionPackage $existing, ExtensionPackage $incoming, string $folder): InstallResult
 	{
 		if (file_exists("{$existing->path}/.git")) {
-			throw new InstallException(sprintf('%s is a git checkout, so git updates it, not an upload.', $this->paths->relative($existing->path)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.git_replace', '{folder} is a git checkout, so git updates it, not an upload.', folder: $this->paths->relative($existing->path)));
 		}
 
 		$aside = sprintf('%s/.replaced-%s', $folder, bin2hex(random_bytes(6)));
 
 		if (! @rename($existing->path, $aside)) {
-			throw new InstallException(sprintf('%s couldn\'t be moved aside to replace it.', $this->paths->relative($existing->path)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.replace_aside', '{folder} couldn\'t be moved aside to replace it.', folder: $this->paths->relative($existing->path)));
 		}
 
 		if (! @rename($incoming->path, $existing->path)) {
 			@rename($aside, $existing->path);
 
-			throw new InstallException(sprintf('%s couldn\'t be replaced.', $this->paths->relative($existing->path)));
+			throw new InstallException((string) $this->messages->t('extension.extension_installer.not_replaced', '{folder} couldn\'t be replaced.', folder: $this->paths->relative($existing->path)));
 		}
 
 		$backup = $this->backupPath($existing->path);
@@ -543,13 +547,5 @@ final readonly class ExtensionInstaller
 	private static function at(ExtensionPackage $package, string $path): ExtensionPackage
 	{
 		return new ExtensionPackage($package->kind, $package->name, $package->label, $package->namespace, $package->version, $path, true, $package->abandoned, $package->suggest);
-	}
-
-	/**
-	 * "a plugin", "a theme", "an icon pack", "an admin theme".
-	 */
-	private static function a(ExtensionKind $kind): string
-	{
-		return ($kind === ExtensionKind::IconPack || $kind === ExtensionKind::AdminTheme ? 'an ' : 'a ') . $kind->label();
 	}
 }

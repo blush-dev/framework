@@ -18,6 +18,8 @@ use Blush\Field\ControlSection;
 use Blush\Field\Field;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text as Message;
 
 /**
  * One line of plain text.
@@ -37,18 +39,18 @@ final class Text extends TextBox
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Message
 	{
-		return 'Text';
+		return $messages->t('field.text.label', 'Text');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Message
 	{
-		return 'One line of plain text.';
+		return $messages->t('field.text.description', 'One line of plain text.');
 	}
 
 	/**

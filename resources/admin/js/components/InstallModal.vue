@@ -20,9 +20,11 @@
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
+import MessageText from './MessageText.vue';
 import { ApiError, errorMessage, uploadWithProgress, type ExtensionUpload, type InstallAnswer, type InstallClash } from '../api';
 import { useFileDrop } from '../drop';
 import type { ExtensionKind } from '../extensions';
+import { t } from '../messages';
 import { can } from '../session';
 
 export type InstallKind = ExtensionKind;
@@ -50,10 +52,10 @@ const emit = defineEmits<{
 }>();
 
 const KINDS: Record<InstallKind, { title: string; noun: string; plural: string; path: string; capability: string; drag: string; next: string; after: string }> = {
-	'theme': { title: 'Install Theme', noun: 'theme', plural: 'Themes', path: '/themes', capability: 'extensions.themes', drag: 'Drag a Theme Here', next: 'Activate', after: 'and nothing is activated' },
-	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn On', after: 'and arrives turned off' },
-	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn On', after: 'and arrives turned off' },
-	'admin-theme': { title: 'Install Admin Theme', noun: 'admin theme', plural: 'Admin Themes', path: '/admin-themes', capability: 'extensions.admin-themes', drag: 'Drag an Admin Theme Here', next: 'Turn On', after: 'and arrives turned off' }
+	'theme': { title: t('install_modal.theme.title', 'Install Theme'), noun: t('install_modal.theme.noun', 'theme'), plural: t('install_modal.theme.plural', 'Themes'), path: '/themes', capability: 'extensions.themes', drag: t('install_modal.theme.drag', 'Drag a Theme Here'), next: t('install_modal.theme.next', 'Activate'), after: t('install_modal.theme.after', 'and nothing is activated') },
+	'plugin': { title: t('install_modal.plugin.title', 'Install Plugin'), noun: t('install_modal.plugin.noun', 'plugin'), plural: t('install_modal.plugin.plural', 'Plugins'), path: '/plugins', capability: 'extensions.plugins', drag: t('install_modal.plugin.drag', 'Drag a Plugin Here'), next: t('install_modal.plugin.next', 'Turn On'), after: t('install_modal.plugin.after', 'and arrives turned off') },
+	'icon-pack': { title: t('install_modal.icon_pack.title', 'Install Icon Pack'), noun: t('install_modal.icon_pack.noun', 'icon pack'), plural: t('install_modal.icon_pack.plural', 'Icon Packs'), path: '/icon-packs', capability: 'extensions.icon-packs', drag: t('install_modal.icon_pack.drag', 'Drag an Icon Pack Here'), next: t('install_modal.icon_pack.next', 'Turn On'), after: t('install_modal.icon_pack.after', 'and arrives turned off') },
+	'admin-theme': { title: t('install_modal.admin_theme.title', 'Install Admin Theme'), noun: t('install_modal.admin_theme.noun', 'admin theme'), plural: t('install_modal.admin_theme.plural', 'Admin Themes'), path: '/admin-themes', capability: 'extensions.admin-themes', drag: t('install_modal.admin_theme.drag', 'Drag an Admin Theme Here'), next: t('install_modal.admin_theme.next', 'Turn On'), after: t('install_modal.admin_theme.after', 'and arrives turned off') }
 };
 
 type Phase = 'idle' | 'working' | 'done' | 'clash' | 'error';
@@ -85,7 +87,7 @@ watch(() => props.open, (open) => {
 });
 
 function size(bytes: number): string {
-	return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1).replace(/\.0$/, '')} MB`;
+	return bytes < 1024 * 1024 ? t('install_modal.kb', '{size} KB', { size: Math.max(1, Math.round(bytes / 1024)) }) : t('install_modal.mb', '{size} MB', { size: (bytes / 1024 / 1024).toFixed(1).replace(/\.0$/, '') });
 }
 
 function pick(): void {
@@ -106,9 +108,9 @@ function choose(chosen: File | undefined): void {
 	clash.value   = null;
 
 	if (!chosen.name.toLowerCase().endsWith('.zip')) {
-		fail(`${chosen.name} isn't a .zip file.`);
+		fail(t('install_modal.errors.not_zip', '{name} isn\'t a .zip file.', { name: chosen.name }));
 	} else if (limit.value > 0 && chosen.size > limit.value) {
-		fail(`${chosen.name} is ${size(chosen.size)}, larger than the ${size(limit.value)} the site takes.`);
+		fail(t('install_modal.errors.too_large', '{name} is {size}, larger than the {limit} the site takes.', { name: chosen.name, size: size(chosen.size), limit: size(limit.value) }));
 	} else {
 		phase.value = 'idle';
 	}
@@ -146,7 +148,7 @@ async function install(replace = false): Promise<void> {
 			clash.value = data.clash as InstallClash;
 			phase.value = 'clash';
 		} else {
-			fail(errorMessage(caught, 'The file couldn\'t be sent.'), typeof data.kind === 'string' && data.kind in KINDS ? data.kind as InstallKind : null);
+			fail(errorMessage(caught, t('install_modal.errors.not_sent', 'The file couldn\'t be sent.')), typeof data.kind === 'string' && data.kind in KINDS ? data.kind as InstallKind : null);
 		}
 	}
 }
@@ -154,84 +156,82 @@ async function install(replace = false): Promise<void> {
 // What a replaced extension keeps, when it runs.
 const keeps = computed(() => {
 	if (clashState.value === null || !clashState.value.live) {
-		return '';
+		return 'none';
 	}
 
-	return props.kind === 'theme'
-		? ': it stays the active theme, and the site serves the new files at once'
-		: ', and it stays turned on, so the new version runs at once';
+	return props.kind === 'theme' ? 'theme' : 'other';
 });
 
 const replaceLabel = computed(() => {
 	const from = clash.value?.installed.version ?? '';
 	const to   = clash.value?.incoming.version ?? '';
 
-	return from !== '' && to !== '' ? `Replace ${from} with ${to}` : 'Replace It';
+	return from !== '' && to !== '' ? t('install_modal.replace_versions', 'Replace {from} with {to}', { from, to }) : t('install_modal.replace_it', 'Replace It');
 });
 </script>
 
 <template>
 	<AdminModal :open="open" :title="k.title" @close="phase !== 'working' && emit('close')" @dragover="dragOver" @dragleave="dragLeave" @drop="dropped">
 		<p v-if="phase !== 'done'">
-			{{ k.plural }} are folders in <code>extensions/</code>, each at its name (<code>extensions/vendor/name</code>). One published as a package is installed with <code>composer require vendor/name</code> instead, and Composer owns it from then on.
+			<MessageText :text="t('install_modal.intro', '{plural} are folders in {folder}, each at its name ({path}). One published as a package is installed with {command} instead, and Composer owns it from then on.', { plural: k.plural })"><template #folder><code>extensions/</code></template><template #path><code>extensions/vendor/name</code></template><template #command><code>composer require vendor/name</code></template></MessageText>
 		</p>
 
 		<template v-if="phase === 'idle'">
-			<p v-if="problem" class="notice notice--warn"><span>{{ problem }} Nothing can be installed here until that's fixed.</span></p>
+			<p v-if="problem" class="notice notice--warn"><span>{{ t('install_modal.problem', '{problem} Nothing can be installed here until that\'s fixed.', { problem }) }}</span></p>
 			<div class="drop" :class="{ 'is-over': dragging }">
 				<AdminIcon name="upload" />
 				<p class="drop__heading">{{ k.drag }}</p>
-				<p class="drop__text">A .zip of the {{ k.noun }} folder. It's unpacked into <code>extensions/</code> at the name in its manifest, {{ k.after }}.</p>
-				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">Choose File</button>
-				<p v-if="limit > 0" class="drop__hint">Up to {{ size(limit) }} · ZIP</p>
+				<p class="drop__text"><MessageText :text="t('install_modal.drop_text', 'A .zip of the {noun} folder. It\'s unpacked into {folder} at the name in its manifest, {after}.', { noun: k.noun, after: k.after })"><template #folder><code>extensions/</code></template></MessageText></p>
+				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">{{ t('install_modal.choose_file', 'Choose File') }}</button>
+				<p v-if="limit > 0" class="drop__hint">{{ t('install_modal.limit', 'Up to {size} · ZIP', { size: size(limit) }) }}</p>
 			</div>
 		</template>
 
 		<div v-else-if="phase === 'working' && file" class="slab" role="status">
-			<p class="slab__head"><span class="spin" aria-hidden="true" />{{ sent < 1 ? `Uploading ${file.name}` : 'Unpacking and checking it' }}…</p>
+			<p class="slab__head"><span class="spin" aria-hidden="true" />{{ sent < 1 ? t('install_modal.uploading', 'Uploading {name}…', { name: file.name }) : t('install_modal.unpacking', 'Unpacking and checking it…') }}</p>
 			<div class="bar"><i :style="{ width: `${Math.round(sent * 100)}%` }" /></div>
 			<p><b>{{ file.name }}</b> · {{ size(file.size) }}</p>
 		</div>
 
 		<div v-else-if="phase === 'done' && answer && file" class="slab slab--good" role="status">
-			<p class="slab__head"><AdminIcon name="circle-check" />{{ answer.replaced === null ? 'Installed' : 'Updated' }} {{ answer.installed.label }} {{ answer.installed.version }}</p>
-			<p v-if="answer.replaced === null">It's in the list, {{ done?.words }}, until you say otherwise.</p>
-			<p v-else>The folder was replaced. Nothing else changed: it's still {{ done?.words }}.</p>
+			<p class="slab__head"><AdminIcon name="circle-check" />{{ answer.replaced === null ? t('install_modal.installed_named', 'Installed {label} {version}', { label: answer.installed.label, version: answer.installed.version }) : t('install_modal.updated_named', 'Updated {label} {version}', { label: answer.installed.label, version: answer.installed.version }) }}</p>
+			<p v-if="answer.replaced === null">{{ t('install_modal.in_list', 'It\'s in the list, {words}, until you say otherwise.', { words: done?.words }) }}</p>
+			<p v-else>{{ t('install_modal.replaced', 'The folder was replaced. Nothing else changed: it\'s still {words}.', { words: done?.words }) }}</p>
 			<dl>
-				<dt>Folder</dt>
+				<dt>{{ t('install_modal.folder', 'Folder') }}</dt>
 				<dd class="mono">{{ answer.installed.folder }}</dd>
-				<dt>From</dt>
+				<dt>{{ t('install_modal.from', 'From') }}</dt>
 				<dd>{{ file.name }} · {{ size(file.size) }}</dd>
 			</dl>
 		</div>
 
 		<div v-else-if="phase === 'clash' && clash" class="slab slab--warn">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ clash.installed.label }} is already installed</p>
-			<p>Replacing overwrites <span class="mono">{{ clash.installed.folder }}</span>. Nothing else changes{{ keeps }}.</p>
+			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.already_installed', '{label} is already installed', { label: clash.installed.label }) }}</p>
+			<p><MessageText :text="t('install_modal.overwrites', '{keeps, select, theme {Replacing overwrites {folder}. Nothing else changes: it stays the active theme, and the site serves the new files at once.} other {Replacing overwrites {folder}. Nothing else changes, and it stays turned on, so the new version runs at once.} none {Replacing overwrites {folder}. Nothing else changes.} }', { keeps })"><template #folder><span class="mono">{{ clash.installed.folder }}</span></template></MessageText></p>
 			<dl>
-				<dt>Installed</dt>
-				<dd class="mono">{{ clash.installed.version || 'No version' }}</dd>
-				<dt>This file</dt>
-				<dd class="mono">{{ clash.incoming.version || 'No version' }}</dd>
+				<dt>{{ t('install_modal.installed', 'Installed') }}</dt>
+				<dd class="mono">{{ clash.installed.version || t('install_modal.no_version', 'No version') }}</dd>
+				<dt>{{ t('install_modal.this_file', 'This file') }}</dt>
+				<dd class="mono">{{ clash.incoming.version || t('install_modal.no_version', 'No version') }}</dd>
 			</dl>
 		</div>
 
 		<div v-else-if="phase === 'error' && failure" class="slab slab--bad" role="alert">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />Nothing was installed</p>
+			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.nothing_installed', 'Nothing was installed') }}</p>
 			<p>{{ failure.message }}</p>
-			<p v-if="failure.kind">Install it on the {{ KINDS[failure.kind].plural }} screen instead.</p>
+			<p v-if="failure.kind">{{ t('install_modal.other_screen', 'Install it on the {plural} screen instead.', { plural: KINDS[failure.kind].plural }) }}</p>
 		</div>
 
 		<!-- Abandoned only warns, as in Composer (D-433). -->
 		<div v-if="phase === 'done' && answer && answer.installed.abandoned !== false" class="slab slab--warn">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ answer.installed.label }} is abandoned</p>
-			<p>Its author no longer maintains it. It works, but won't get fixes or updates.<template v-if="typeof answer.installed.abandoned === 'string'"> Its author suggests <span class="mono">{{ answer.installed.abandoned }}</span> instead.</template></p>
+			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.abandoned', '{label} is abandoned', { label: answer.installed.label }) }}</p>
+			<p>{{ t('install_modal.abandoned_text', 'Its author no longer maintains it. It works, but won\'t get fixes or updates.') }}<template v-if="typeof answer.installed.abandoned === 'string'">{{ ' ' }}<MessageText :text="t('install_modal.abandoned_suggests', 'Its author suggests {name} instead.')"><template #name><span class="mono">{{ answer.installed.abandoned }}</span></template></MessageText></template></p>
 		</div>
 
 		<!-- Suggestions are only shown, as Composer prints them after installing (D-434). -->
 		<div v-if="phase === 'done' && answer && answer.installed.suggests.length" class="slab">
-			<p class="slab__head"><AdminIcon name="lightbulb" />{{ answer.installed.label }} suggests</p>
-			<p>It works without these; each may add to it.</p>
+			<p class="slab__head"><AdminIcon name="lightbulb" />{{ t('install_modal.suggests', '{label} suggests', { label: answer.installed.label }) }}</p>
+			<p>{{ t('install_modal.suggests_text', 'It works without these; each may add to it.') }}</p>
 			<dl>
 				<template v-for="suggestion in answer.installed.suggests" :key="suggestion.name">
 					<dt class="mono">{{ suggestion.name }}</dt>
@@ -244,29 +244,29 @@ const replaceLabel = computed(() => {
 
 		<template #footer>
 			<span class="install-status">
-				<template v-if="phase === 'working'">Installing…</template>
-				<template v-else-if="phase === 'clash' && !canReplace">Your role can't replace {{ k.plural.toLowerCase() }}.</template>
+				<template v-if="phase === 'working'">{{ t('install_modal.installing', 'Installing…') }}</template>
+				<template v-else-if="phase === 'clash' && !canReplace">{{ t('install_modal.cant_replace', 'Your role can\'t replace {plural}.', { plural: k.plural.toLowerCase() }) }}</template>
 				<template v-else-if="(phase === 'idle' || phase === 'clash') && file"><b>{{ file.name }}</b> · {{ size(file.size) }}</template>
-				<template v-else-if="phase === 'idle'">Choose a file.</template>
+				<template v-else-if="phase === 'idle'">{{ t('install_modal.choose_a_file', 'Choose a file.') }}</template>
 			</span>
 
 			<template v-if="phase === 'done' && answer">
-				<button type="button" class="button" :autofocus="!done?.next" @click="emit('close')">Done</button>
-				<button v-if="done?.next" type="button" class="button button--primary" autofocus @click="emit('next', answer.installed.name)">{{ k.next }} {{ answer.installed.label }}</button>
+				<button type="button" class="button" :autofocus="!done?.next" @click="emit('close')">{{ t('common.done', 'Done') }}</button>
+				<button v-if="done?.next" type="button" class="button button--primary" autofocus @click="emit('next', answer.installed.name)">{{ t('install_modal.next', '{action} {label}', { action: k.next, label: answer.installed.label }) }}</button>
 			</template>
 			<template v-else-if="phase === 'error' && failure">
-				<button type="button" class="button" @click="emit('close')">Cancel</button>
-				<button v-if="failure.kind && can(`${KINDS[failure.kind].capability}.view`)" type="button" class="button" @click="emit('hop', failure.kind)">Go to {{ KINDS[failure.kind].plural }}</button>
-				<button type="button" class="button button--primary" autofocus @click="pick">Choose Another File</button>
+				<button type="button" class="button" @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
+				<button v-if="failure.kind && can(`${KINDS[failure.kind].capability}.view`)" type="button" class="button" @click="emit('hop', failure.kind)">{{ t('install_modal.go_to', 'Go to {plural}', { plural: KINDS[failure.kind].plural }) }}</button>
+				<button type="button" class="button button--primary" autofocus @click="pick">{{ t('install_modal.choose_another', 'Choose Another File') }}</button>
 			</template>
 			<template v-else-if="phase === 'clash'">
-				<button type="button" class="button" autofocus @click="emit('close')">Cancel</button>
+				<button type="button" class="button" autofocus @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
 				<button type="button" class="button button--primary" :disabled="!canReplace" @click="install(true)">{{ replaceLabel }}</button>
 			</template>
 			<template v-else>
-				<button type="button" class="button" :disabled="phase === 'working'" autofocus @click="emit('close')">Cancel</button>
+				<button type="button" class="button" :disabled="phase === 'working'" autofocus @click="emit('close')">{{ t('common.cancel', 'Cancel') }}</button>
 				<button type="button" class="button button--primary" :disabled="file === null || phase === 'working' || problem !== null" @click="install()">
-					<span v-if="phase === 'working'" class="spin" aria-hidden="true" />Install
+					<span v-if="phase === 'working'" class="spin" aria-hidden="true" />{{ t('install_modal.install', 'Install') }}
 				</button>
 			</template>
 		</template>

@@ -21,11 +21,13 @@ import AdminThemeSketch from '../components/AdminThemeSketch.vue';
 import DangerZone from '../components/DangerZone.vue';
 import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
+import MessageText from '../components/MessageText.vue';
 import PaletteLegend from '../components/PaletteLegend.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, errorMessage, request, type AdminThemeSummary } from '../api';
 import { useAdminThemes } from '../admin-themes';
+import { t } from '../messages';
 import { screenTitle } from '../screen';
 import { can } from '../session';
 
@@ -55,7 +57,7 @@ async function load(): Promise<void> {
 		if (caught instanceof ApiError && caught.status === 404) {
 			missing.value = true;
 		} else {
-			error.value = errorMessage(caught, 'The admin theme couldn\'t be loaded.');
+			error.value = errorMessage(caught, t('admin_theme_view.errors.not_loaded', 'The admin theme couldn\'t be loaded.'));
 		}
 	}
 }
@@ -100,9 +102,9 @@ const blocked = computed(() => theme.value && !theme.value.running ? theme.value
 
 // Why its switch is locked, or `null`.
 const locked = computed(() => blocked.value
-	?? (theme.value?.base ? 'Neutral is the admin\'s own look, so it\'s always on.' : null)
-	?? (theme.value?.default ? 'It\'s the site\'s default. Make another theme the default to turn it off.' : null)
-	?? (canActivate ? null : 'Your role can\'t turn admin themes on and off.'));
+	?? (theme.value?.base ? t('admin_theme_view.locked.base', 'Neutral is the admin\'s own look, so it\'s always on.') : null)
+	?? (theme.value?.default ? t('admin_theme_view.locked.default', 'It\'s the site\'s default. Make another theme the default to turn it off.') : null)
+	?? (canActivate ? null : t('admin_theme_view.locked.role', 'Your role can\'t turn admin themes on and off.')));
 
 async function remove(): Promise<void> {
 	const value = theme.value;
@@ -115,18 +117,18 @@ async function remove(): Promise<void> {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'admin-themes' }"><AdminIcon name="chevron-left" />All admin themes</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'admin-themes' }"><AdminIcon name="chevron-left" />{{ t('admin_theme_view.all', 'All admin themes') }}</RouterLink>
 		<div class="page-header__text">
 			<div class="page-header__title">
-				<h1 tabindex="-1">{{ theme?.label ?? 'Admin Theme' }}</h1>
-				<span v-if="theme?.default" class="pill pill--good">Site default</span>
-				<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
-				<span v-else-if="theme?.source === 'framework'" class="pill">Built in</span>
+				<h1 tabindex="-1">{{ theme?.label ?? t('admin_theme_view.title', 'Admin Theme') }}</h1>
+				<span v-if="theme?.default" class="pill pill--good">{{ t('admin_theme_view.site_default', 'Site default') }}</span>
+				<span v-if="blocked" class="pill pill--warn">{{ t('admin_theme_view.cant_turn_on', 'Can\'t turn on') }}</span>
+				<span v-else-if="theme?.source === 'framework'" class="pill">{{ t('admin_theme_view.built_in', 'Built in') }}</span>
 			</div>
-			<p v-if="theme" class="page-header__hint">{{ theme.description || 'This admin theme has no description.' }}</p>
+			<p v-if="theme" class="page-header__hint">{{ theme.description || t('admin_theme_view.no_description', 'This admin theme has no description.') }}</p>
 		</div>
 		<div v-if="theme" class="page-header__actions">
-			<button v-if="canActivate && theme.offered && !theme.default" type="button" class="button" :disabled="busy !== null" @click="choose">Make Default</button>
+			<button v-if="canActivate && theme.offered && !theme.default" type="button" class="button" :disabled="busy !== null" @click="choose">{{ t('admin_theme_view.make_default', 'Make Default') }}</button>
 			<ToggleSwitch :checked="theme.running" :label="theme.label" :locked="locked !== null" :busy="busy === theme.name" :reason="locked" @change="toggle" />
 		</div>
 	</header>
@@ -136,30 +138,30 @@ async function remove(): Promise<void> {
 	<div v-if="theme" class="extension-detail">
 		<AbandonedNotice noun="admin theme" :abandoned="theme.abandoned" :replacement="theme.replacement" />
 		<p v-if="blocked" class="notice notice--warn">
-			<span>{{ blocked }} {{ theme.enabled ? 'It\'s turned on, but no one can choose it until that\'s fixed, and anyone who chose it sees the site\'s default.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+			<span>{{ blocked }} {{ theme.enabled ? t('admin_theme_view.blocked_on', 'It\'s turned on, but no one can choose it until that\'s fixed, and anyone who chose it sees the site\'s default.') : t('admin_theme_view.blocked_off', 'It can\'t be turned on until that\'s fixed.') }}</span>
 		</p>
 		<p v-else-if="!theme.enabled" class="notice notice--warn">
-			<span>This admin theme is off, so no one can choose it.</span>
+			<span>{{ t('admin_theme_view.off', 'This admin theme is off, so no one can choose it.') }}</span>
 		</p>
 
 		<section class="panel" aria-labelledby="appearance-heading">
 			<header class="panel__header">
-				<h2 id="appearance-heading">Appearance</h2>
-				<p class="panel__hint">The six colors it shows, drawn and listed</p>
+				<h2 id="appearance-heading">{{ t('admin_theme_view.appearance', 'Appearance') }}</h2>
+				<p class="panel__hint">{{ t('admin_theme_view.appearance_hint', 'The six colors it shows, drawn and listed') }}</p>
 			</header>
 			<div class="panel__body">
 				<div class="extension-appearance">
 					<figure v-for="half in ([0, 1] as const)" :key="half">
 						<AdminThemeSketch class="theme-sketch" :style="{ colorScheme: half === 0 ? 'light' : 'dark' }" :preview="theme.preview" />
-						<figcaption class="eyebrow">{{ half === 0 ? 'Light' : 'Dark' }}</figcaption>
+						<figcaption class="eyebrow">{{ half === 0 ? t('admin_theme_view.light', 'Light') : t('admin_theme_view.dark', 'Dark') }}</figcaption>
 						<PaletteLegend :palette="theme.palette" :half="half" />
 					</figure>
 				</div>
 			</div>
 			<div class="panel__section">
-				<p v-if="theme.contrast.length === 0" class="notice notice--small notice--success"><AdminIcon name="check" /><span>Its text is easy to read, in both color schemes.</span></p>
+				<p v-if="theme.contrast.length === 0" class="notice notice--small notice--success"><AdminIcon name="check" /><span>{{ t('admin_theme_view.contrast_good', 'Its text is easy to read, in both color schemes.') }}</span></p>
 				<template v-else>
-					<p class="notice notice--small notice--warn"><AdminIcon name="triangle-alert" /><span>Some of its text may be hard to read. It still works, but the colors could use more contrast:</span></p>
+					<p class="notice notice--small notice--warn"><AdminIcon name="triangle-alert" /><span>{{ t('admin_theme_view.contrast_warn', 'Some of its text may be hard to read. It still works, but the colors could use more contrast:') }}</span></p>
 					<ul class="contrast">
 						<li v-for="warning in theme.contrast" :key="warning">{{ warning }}</li>
 					</ul>
@@ -168,25 +170,25 @@ async function remove(): Promise<void> {
 		</section>
 
 		<div class="extension-detail__columns">
-			<ExtensionFacts :extension="theme" :installed-by="theme.source === 'composer' ? 'Composer' : (theme.source === 'framework' ? 'Blush' : 'A folder in extensions/')" :folder="theme.source === 'framework' ? null : theme.path" />
-			<ExtensionDependencies :extension="theme" noun="admin theme" replaces-hint="No one can choose it" />
+			<ExtensionFacts :extension="theme" :installed-by="theme.source === 'composer' ? 'Composer' : (theme.source === 'framework' ? 'Blush' : t('admin_theme_view.installed_by_folder', 'A folder in extensions/'))" :folder="theme.source === 'framework' ? null : theme.path" />
+			<ExtensionDependencies :extension="theme" noun="admin theme" :replaces-hint="t('admin_theme_view.replaces_hint', 'No one can choose it')" />
 		</div>
 
 		<PreviousVersion kind="admin-theme" :extension="theme" :live="theme.enabled" @changed="load" />
 		<p v-if="theme.source === 'composer'" class="notice">
-			<span>Composer manages this admin theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
+			<span><MessageText :text="t('admin_theme_view.composer_note', 'Composer manages this admin theme, so it can\'t be deleted here. Remove it from the project with {command}, and it leaves this list.')"><template #command><code>composer remove {{ theme.name }}</code></template></MessageText></span>
 		</p>
 		<p v-else-if="theme.deletable && theme.default" class="notice">
-			<span>It's the site's default, so it can't be deleted. Make another theme the default first.</span>
+			<span>{{ t('admin_theme_view.default_not_deletable', 'It\'s the site\'s default, so it can\'t be deleted. Make another theme the default first.') }}</span>
 		</p>
 		<DangerZone v-else-if="canDelete && theme.deletable">
-			Deleting removes the folder from the server, and anyone who chose it sees the site's default.
-			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Admin Theme</button></template>
+			{{ t('admin_theme_view.delete_note', 'Deleting removes the folder from the server, and anyone who chose it sees the site\'s default.') }}
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />{{ t('admin_theme_view.delete', 'Delete Admin Theme') }}</button></template>
 		</DangerZone>
 	</div>
 
 	<p v-else-if="missing" class="notice notice--warn" role="alert">
-		<span>No admin theme named <span class="mono">{{ name }}</span> is installed.</span>
+		<span><MessageText :text="t('admin_theme_view.not_found', 'No admin theme named {name} is installed.')"><template #name><span class="mono">{{ name }}</span></template></MessageText></span>
 	</p>
 
 	<div v-else-if="!error" class="extension-detail" aria-hidden="true">

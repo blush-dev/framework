@@ -1190,8 +1190,11 @@ admin changed, and `docs/`.
   Paused there by the author (2026-10-04). When it's picked up again, in the author's order (D-465): sitemaps and
   then feeds and `llms.txt` per language; translations in the admin
   (uploads, a strings editor) once there's a design; text in the
-  browser, the admin's included, planned (D-831), before its strings
-  are converted; a language
+  browser, the admin's included, built (D-831, D-833), with the
+  admin's strings and the players' labels in catalogs (D-834), and
+  the admin API's own PHP text (D-835), and every service's text
+  people see, with stored reports kept as messages (D-836, D-837;
+  what's left in `open-questions.md`, **Translation, what's left**); a language
   switcher is on hold.
 - **The site's email address (D-723):** `app.email`, on General,
   required there. Later: changing it asks the new address to confirm

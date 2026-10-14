@@ -41,7 +41,8 @@ import RedirectMessage from '../components/RedirectMessage.vue';
 import RedirectPath from '../components/RedirectPath.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { compact } from '../density';
-import { formatDate, plural } from '../format';
+import { formatDate, formatNumber } from '../format';
+import { t } from '../messages';
 import { useQueryState } from '../query';
 import { deleteRedirects, isPermanent, loadRedirects, restoreRedirects, retypeRedirects, saveRedirect, TYPES, type RedirectList, type RedirectMessage as Message, type RedirectRow, type RedirectStatus, type StoredRedirect, type TraceHop } from '../redirects';
 import { useSearchKey } from '../search-key';
@@ -53,10 +54,10 @@ import { useSelectAll } from '../select';
 type Tab = 'all' | 'permanent' | 'temporary' | 'problems';
 
 const TABS: { key: Tab; label: string }[] = [
-	{ key: 'all', label: 'All' },
-	{ key: 'permanent', label: 'Permanent' },
-	{ key: 'temporary', label: 'Temporary' },
-	{ key: 'problems', label: 'Problems' }
+	{ key: 'all', label: t('redirects_view.tabs.all', 'All') },
+	{ key: 'permanent', label: t('redirects_view.tabs.permanent', 'Permanent') },
+	{ key: 'temporary', label: t('redirects_view.tabs.temporary', 'Temporary') },
+	{ key: 'problems', label: t('redirects_view.tabs.problems', 'Problems') }
 ];
 
 const PER_PAGE    = 20;
@@ -96,9 +97,9 @@ const nothingYet = computed(() => list.value !== null && list.value.counts.all =
 const tabs = computed(() => TABS.filter((item) => item.key === 'all' || item.key === tab.value || list.value === null || list.value.counts[item.key] > 0));
 
 const goesOptions: SelectOption[] = [
-	{ value: '', label: 'Goes anywhere' },
-	{ value: 'here', label: 'Goes to this site' },
-	{ value: 'away', label: 'Goes to another site' }
+	{ value: '', label: t('redirects_view.goes_anywhere', 'Goes anywhere') },
+	{ value: 'here', label: t('redirects_view.goes_here', 'Goes to this site') },
+	{ value: 'away', label: t('redirects_view.goes_away', 'Goes to another site') }
 ];
 
 const goesValue = computed({
@@ -167,7 +168,7 @@ async function load(): Promise<void> {
 		}
 	} catch (caught) {
 		if (current()) {
-			error.value = errorMessage(caught, 'The redirects couldn\'t be loaded.');
+			error.value = errorMessage(caught, t('redirects_view.load_failed', 'The redirects couldn\'t be loaded.'));
 		}
 	} finally {
 		if (current()) {
@@ -190,7 +191,7 @@ const caption = computed(() => {
 
 	const all = list.value.counts[tab.value];
 
-	return filtered.value ? `${list.value.total.toLocaleString()} of ${plural(all, 'redirect')} match` : plural(list.value.total, 'redirect');
+	return filtered.value ? t('redirects_view.caption_filtered', '{shown} of {count, plural, one {# redirect} other {# redirects}} match', { shown: list.value.total, count: all }) : t('redirects_view.caption', '{count, plural, one {# redirect} other {# redirects}}', { count: list.value.total });
 });
 
 /*
@@ -216,7 +217,7 @@ function undoing(task: () => Promise<unknown>): () => void {
 	return () => void act('undo', async () => {
 		await task();
 
-		return 'Put back as it was';
+		return t('redirects_view.undone', 'Put back as it was');
 	});
 }
 
@@ -227,7 +228,7 @@ function remove(froms: string[]): void {
 		selected.value = selected.value.filter((from) => !froms.includes(from));
 
 		return {
-			message: answer.deleted.length === 1 ? `Deleted the redirect from ${answer.deleted[0]?.from}` : `Deleted ${plural(answer.deleted.length, 'redirect')}`,
+			message: answer.deleted.length === 1 ? t('redirects_view.deleted_one', 'Deleted the redirect from {from}', { from: answer.deleted[0]?.from }) : t('redirects_view.deleted_many', 'Deleted {count, plural, one {# redirect} other {# redirects}}', { count: answer.deleted.length }),
 			kind: 'danger' as const,
 			undo: undoing(() => restoreRedirects(answer.deleted))
 		};
@@ -235,13 +236,13 @@ function remove(froms: string[]): void {
 }
 
 function retype(froms: string[], status: RedirectStatus): void {
-	const word = isPermanent(status) ? 'permanent' : 'temporary';
+	const kind = isPermanent(status) ? 'permanent' : 'temporary';
 
 	// Already the kind asked for (a 308 made permanent) stays as it is.
 	const change = rows.value.filter((row) => froms.includes(row.from) && isPermanent(row.status) !== isPermanent(status)).map((row) => row.from);
 
 	if (change.length === 0) {
-		toast(`Every selected redirect was already ${word}`, { kind: 'info' });
+		toast(t('redirects_view.already', 'Every selected redirect was already {kind, select, permanent {permanent} other {temporary}}', { kind }), { kind: 'info' });
 
 		return;
 	}
@@ -250,7 +251,7 @@ function retype(froms: string[], status: RedirectStatus): void {
 		const answer = await retypeRedirects(change, status);
 
 		return {
-			message: answer.changed.length === 1 ? `Made the redirect from ${answer.changed[0]?.from} ${word}` : `Made ${plural(answer.changed.length, 'redirect')} ${word}`,
+			message: answer.changed.length === 1 ? t('redirects_view.made_one', 'Made the redirect from {from} {kind, select, permanent {permanent} other {temporary}}', { from: answer.changed[0]?.from, kind }) : t('redirects_view.made_many', 'Made {count, plural, one {# redirect} other {# redirects}} {kind, select, permanent {permanent} other {temporary}}', { count: answer.changed.length, kind }),
 			undo: undoing(() => restoreRedirects(answer.changed))
 		};
 	});
@@ -259,7 +260,7 @@ function retype(froms: string[], status: RedirectStatus): void {
 async function confirmBulkDelete(): Promise<void> {
 	const froms = [...selected.value];
 
-	if (froms.length > 1 && !await confirmAction({ title: `Delete ${plural(froms.length, 'Redirect')}?`, body: 'Their old addresses stop redirecting. Undo puts them back for a moment after.', confirm: 'Delete', danger: true })) {
+	if (froms.length > 1 && !await confirmAction({ title: t('redirects_view.confirm_delete', '{count, plural, one {Delete # Redirect?} other {Delete # Redirects?}}', { count: froms.length }), body: t('redirects_view.confirm_delete_body', 'Their old addresses stop redirecting. Undo puts them back for a moment after.'), confirm: t('common.delete', 'Delete'), danger: true })) {
 		return;
 	}
 
@@ -273,7 +274,7 @@ function saved(row: RedirectRow, was: StoredRedirect | null): void {
 	editing.value = null;
 
 	void act('save', async () => ({
-		message: isNew ? `Added a redirect from ${row.from}` : `Saved the redirect from ${row.from}`,
+		message: isNew ? t('redirects_view.added', 'Added a redirect from {from}', { from: row.from }) : t('redirects_view.saved', 'Saved the redirect from {from}', { from: row.from }),
 		undo: undoing(() => restoreRedirects(was === null ? [] : [was], [row.from]))
 	}));
 }
@@ -311,7 +312,7 @@ function straight(row: RedirectRow): void {
 		const answer = await saveRedirect({ from: row.from, to: final.to ?? '', entry: final.entry ?? null, status: row.status, was: row.from });
 
 		return {
-			message: `Pointed ${row.from} straight at ${answer.redirect.entry?.title || answer.redirect.to || 'its page'}`,
+			message: t('redirects_view.pointed', 'Pointed {from} straight at {to}', { from: row.from, to: answer.redirect.entry?.title || answer.redirect.to || t('redirects_view.its_page', 'its page') }),
 			undo: undoing(() => restoreRedirects([row.stored], [row.from]))
 		};
 	});
@@ -360,11 +361,11 @@ function host(url: string): { scheme: string; host: string; rest: string } {
 const isUrl = (to: string | null): boolean => to !== null && /^https?:\/\//i.test(to);
 
 const STATE_WORDS: Record<string, string> = {
-	trash: 'In the trash',
-	draft: 'A draft',
-	scheduled: 'Not published yet',
-	hidden: 'Not on the site',
-	deleted: 'Deleted'
+	trash: t('redirects_view.states.trash', 'In the trash'),
+	draft: t('redirects_view.states.draft', 'A draft'),
+	scheduled: t('redirects_view.states.scheduled', 'Not published yet'),
+	hidden: t('redirects_view.states.hidden', 'Not on the site'),
+	deleted: t('redirects_view.states.deleted', 'Deleted')
 };
 
 function entryLink(row: RedirectRow): RouteLocationRaw | null {
@@ -399,10 +400,10 @@ const steps = computed<Step[]>(() => {
 
 	found.hops.forEach((hop: TraceHop, index: number) => {
 		if (hop.t === 'redirect') {
-			out.push({ kind: 'arrow', text: String(hop.status), status: hop.status, title: `${TYPES[hop.status].name} ${hop.status}, by ${hop.code ? 'the site\'s code' : `the redirect from ${hop.from}`}` });
+			out.push({ kind: 'arrow', text: String(hop.status), status: hop.status, title: hop.code ? t('redirects_view.hop_code', '{type} {status}, by the site\'s code', { type: TYPES[hop.status].name, status: String(hop.status) }) : t('redirects_view.hop_redirect', '{type} {status}, by the redirect from {from}', { type: TYPES[hop.status].name, status: String(hop.status), from: hop.from }) });
 
 			if (hop.target.kind === 'entry') {
-				out.push({ kind: 'page', text: hop.target.title ?? 'A page' });
+				out.push({ kind: 'page', text: hop.target.title ?? t('redirects_view.a_page', 'A page') });
 				shownEntry = true;
 			} else if (hop.target.kind === 'url') {
 				out.push({ kind: 'away', text: host(hop.target.url ?? '').host });
@@ -413,19 +414,19 @@ const steps = computed<Step[]>(() => {
 		}
 
 		if (hop.t === 'page' && !(shownEntry && index > 0)) {
-			out.push({ kind: 'is', text: 'is' }, { kind: 'page', text: hop.title ?? 'The site\'s own page' });
+			out.push({ kind: 'is', text: t('redirects_view.is', 'is') }, { kind: 'page', text: hop.title ?? t('redirects_view.own_page', 'The site\'s own page') });
 		}
 
 		if (hop.t === 'missing') {
-			out.push({ kind: 'nf', text: 'Not Found' });
+			out.push({ kind: 'nf', text: t('redirects_view.not_found', 'Not Found') });
 		}
 
 		if (hop.t === 'gone') {
-			out.push({ kind: 'gone', text: hop.title ? `${hop.title}, not live` : 'Not Found' });
+			out.push({ kind: 'gone', text: hop.title ? t('redirects_view.not_live', '{title}, not live', { title: hop.title }) : t('redirects_view.not_found', 'Not Found') });
 		}
 
 		if (hop.t === 'loop') {
-			out.push({ kind: 'nf', text: 'Loops' });
+			out.push({ kind: 'nf', text: t('redirects_view.loops', 'Loops') });
 		}
 	});
 
@@ -439,7 +440,7 @@ const siteHost = computed(() => {
 	try {
 		return new URL(config.site.url).host;
 	} catch {
-		return 'this site';
+		return t('redirects_view.this_site', 'this site');
 	}
 });
 </script>
@@ -448,44 +449,44 @@ const siteHost = computed(() => {
 	<div class="redirects">
 		<header class="page-header">
 			<div class="page-header__text">
-				<h1 tabindex="-1">Redirects</h1>
-				<p class="page-header__hint">Old addresses that send visitors somewhere new</p>
+				<h1 tabindex="-1">{{ t('redirects_view.heading', 'Redirects') }}</h1>
+				<p class="page-header__hint">{{ t('redirects_view.hint', 'Old addresses that send visitors somewhere new') }}</p>
 			</div>
 			<div v-if="!nothingYet" class="page-header__actions">
-				<button type="button" class="button button--primary" @click="editing = { row: null }"><AdminIcon name="plus" />Add Redirect</button>
+				<button type="button" class="button button--primary" @click="editing = { row: null }"><AdminIcon name="plus" />{{ t('redirects_view.add', 'Add Redirect') }}</button>
 			</div>
 		</header>
 
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 		<section v-if="nothingYet" class="panel">
-			<EmptyState icon="corner-down-right" heading="No Redirects Yet" tag="h2" text="A redirect keeps an old address working by sending visitors to a new one. The admin adds one by itself whenever a published entry's address changes, so most sites only come here to add a short link or fix an old one.">
+			<EmptyState icon="corner-down-right" :heading="t('redirects_view.empty', 'No Redirects Yet')" tag="h2" :text="t('redirects_view.empty_text', 'A redirect keeps an old address working by sending visitors to a new one. The admin adds one by itself whenever a published entry\'s address changes, so most sites only come here to add a short link or fix an old one.')">
 				<template #actions>
-					<button type="button" class="button button--primary" @click="editing = { row: null }"><AdminIcon name="plus" />Add Redirect</button>
+					<button type="button" class="button button--primary" @click="editing = { row: null }"><AdminIcon name="plus" />{{ t('redirects_view.add', 'Add Redirect') }}</button>
 				</template>
 			</EmptyState>
 		</section>
 
 		<template v-else>
-			<nav class="status-tabs" aria-label="Kinds of redirect">
+			<nav class="status-tabs" :aria-label="t('redirects_view.tabs_label', 'Kinds of redirect')">
 				<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: tabQuery(item.key) }" :aria-current="tab === item.key ? 'page' : undefined">
 					{{ item.label }}
-					<span v-if="list" class="status-tabs__count">{{ list.counts[item.key].toLocaleString() }}</span>
+					<span v-if="list" class="status-tabs__count">{{ formatNumber(list.counts[item.key]) }}</span>
 				</RouterLink>
 			</nav>
 
 			<div class="toolbar" role="search">
 				<label class="search-field toolbar__search">
 					<AdminIcon name="search" />
-					<span class="visually-hidden">Search redirects, or test an address</span>
-					<input ref="searchField" v-model="query" type="search" placeholder="Search, or paste an address to test" autocomplete="off" spellcheck="false" aria-keyshortcuts="/">
+					<span class="visually-hidden">{{ t('redirects_view.search_label', 'Search redirects, or test an address') }}</span>
+					<input ref="searchField" v-model="query" type="search" :placeholder="t('redirects_view.search_placeholder', 'Search, or paste an address to test')" autocomplete="off" spellcheck="false" aria-keyshortcuts="/">
 					<kbd class="search-field__key" aria-hidden="true">/</kbd>
 				</label>
 				<div class="toolbar__filter">
-					<label class="visually-hidden" for="redirects-goes">Goes to</label>
+					<label class="visually-hidden" for="redirects-goes">{{ t('redirects_view.goes_to', 'Goes to') }}</label>
 					<AdminSelect id="redirects-goes" v-model="goesValue" :options="goesOptions" />
 				</div>
-				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear Filters</button>
+				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">{{ t('redirects_view.clear_filters', 'Clear Filters') }}</button>
 				<DensityToggle />
 			</div>
 
@@ -497,10 +498,10 @@ const siteHost = computed(() => {
 
 				<!-- Where an address goes, followed as a visitor would. -->
 				<div v-if="trace" class="notebar redirect-trace" aria-live="polite">
-					<span class="redirect-trace__label"><AdminIcon name="corner-down-right" />Where it goes</span>
+					<span class="redirect-trace__label"><AdminIcon name="corner-down-right" />{{ t('redirects_view.where_it_goes', 'Where it goes') }}</span>
 					<template v-if="trace.path === null">
-						<span class="redirect-trace__step is-nf"><AdminIcon name="circle-x" />{{ trace.other ? `Another site, ${trace.other}` : 'Not an address' }}</span>
-						<span v-if="trace.other" class="redirect-trace__say">Only addresses on {{ siteHost }} can be redirected here.</span>
+						<span class="redirect-trace__step is-nf"><AdminIcon name="circle-x" />{{ trace.other ? t('redirects_view.another_site', 'Another site, {host}', { host: trace.other }) : t('redirects_view.not_an_address', 'Not an address') }}</span>
+						<span v-if="trace.other" class="redirect-trace__say">{{ t('redirects_view.only_here', 'Only addresses on {host} can be redirected here.', { host: siteHost }) }}</span>
 					</template>
 					<span v-else class="redirect-trace__chain">
 						<template v-for="(step, index) in steps" :key="index">
@@ -514,31 +515,31 @@ const siteHost = computed(() => {
 							</span>
 						</template>
 					</span>
-					<button v-if="addFrom" type="button" class="lnk" @click="editing = { row: null, from: addFrom }">Add a Redirect From Here</button>
-					<span v-if="trace.overruled" class="redirect-trace__say">{{ trace.overruled === 'page' ? 'A page answers this address, so its redirect does nothing.' : 'The site\'s code overrules the row for this address.' }}</span>
+					<button v-if="addFrom" type="button" class="lnk" @click="editing = { row: null, from: addFrom }">{{ t('redirects_view.add_from_here', 'Add a Redirect From Here') }}</button>
+					<span v-if="trace.overruled" class="redirect-trace__say">{{ trace.overruled === 'page' ? t('redirects_view.overruled_page', 'A page answers this address, so its redirect does nothing.') : t('redirects_view.overruled_code', 'The site\'s code overrules the row for this address.') }}</span>
 				</div>
 
-				<SkeletonTable v-if="list === null" :columns="['', 'From', 'To', 'Type', 'Added', '']" :rows="6" label="Loading redirects…" />
+				<SkeletonTable v-if="list === null" :columns="['', t('redirects_view.from', 'From'), t('redirects_view.to', 'To'), t('redirects_view.type', 'Type'), t('redirects_view.added_column', 'Added'), '']" :rows="6" :label="t('redirects_view.loading', 'Loading redirects…')" />
 
 				<div v-else-if="rows.length" class="table-wrap">
 					<table class="table redirects-table" aria-labelledby="redirects-heading">
 						<thead>
 							<tr>
 								<th scope="col" class="table__check">
-									<button type="button" class="check" role="checkbox" :aria-checked="allState" aria-label="Select every redirect on this page" @click="chooseAll"><AdminIcon :name="allState === 'mixed' ? 'minus' : 'check'" /></button>
+									<button type="button" class="check" role="checkbox" :aria-checked="allState" :aria-label="t('redirects_view.select_all', 'Select every redirect on this page')" @click="chooseAll"><AdminIcon :name="allState === 'mixed' ? 'minus' : 'check'" /></button>
 								</th>
-								<th scope="col">From</th>
-								<th scope="col">To</th>
-								<th scope="col" class="redirects-table__type">Type</th>
-								<th scope="col" class="redirects-table__added">Added</th>
-								<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
+								<th scope="col">{{ t('redirects_view.from', 'From') }}</th>
+								<th scope="col">{{ t('redirects_view.to', 'To') }}</th>
+								<th scope="col" class="redirects-table__type">{{ t('redirects_view.type', 'Type') }}</th>
+								<th scope="col" class="redirects-table__added">{{ t('redirects_view.added_column', 'Added') }}</th>
+								<th scope="col" class="table__actions"><span class="visually-hidden">{{ t('redirects_view.actions', 'Actions') }}</span></th>
 							</tr>
 						</thead>
 						<tbody>
 							<template v-for="row in rows" :key="row.from">
 								<tr :class="{ 'is-selected': isChosen(row.from), 'has-note': row.problem && opened.has(row.from) }">
 									<td class="table__check">
-										<button type="button" class="check" role="checkbox" :aria-checked="isChosen(row.from) ? 'true' : 'false'" :aria-label="`Select ${row.from}`" @click="toggle(row.from)"><AdminIcon name="check" /></button>
+										<button type="button" class="check" role="checkbox" :aria-checked="isChosen(row.from) ? 'true' : 'false'" :aria-label="t('redirects_view.select', 'Select {from}', { from: row.from })" @click="toggle(row.from)"><AdminIcon name="check" /></button>
 									</td>
 									<th scope="row">
 										<span class="redirects-table__from">
@@ -548,12 +549,12 @@ const siteHost = computed(() => {
 									</th>
 									<td>
 										<span v-if="row.entry" class="redirects-table__to">
-											<span v-if="row.entry.state !== 'live'" class="redirects-table__gone"><AdminIcon name="file-text" />{{ row.entry.title || 'A page that was deleted' }}</span>
-											<RouterLink v-else-if="entryLink(row)" class="lnk" :to="entryLink(row)!"><AdminIcon name="file-text" />{{ row.entry.title || 'Untitled' }}</RouterLink>
-											<span v-else><AdminIcon name="file-text" />{{ row.entry.title || 'Untitled' }}</span>
+											<span v-if="row.entry.state !== 'live'" class="redirects-table__gone"><AdminIcon name="file-text" />{{ row.entry.title || t('redirects_view.deleted_page', 'A page that was deleted') }}</span>
+											<RouterLink v-else-if="entryLink(row)" class="lnk" :to="entryLink(row)!"><AdminIcon name="file-text" />{{ row.entry.title || t('redirects_view.untitled', 'Untitled') }}</RouterLink>
+											<span v-else><AdminIcon name="file-text" />{{ row.entry.title || t('redirects_view.untitled', 'Untitled') }}</span>
 											<span class="entry-title__path">{{ row.entry.state === 'live' ? row.entry.url : STATE_WORDS[row.entry.state] }}</span>
 										</span>
-										<span v-else-if="isUrl(row.to)" class="mono redirects-table__away">{{ host(row.to ?? '').scheme }}<strong>{{ host(row.to ?? '').host }}</strong>{{ host(row.to ?? '').rest }}<AdminIcon name="external-link" /><span class="visually-hidden"> (another site)</span></span>
+										<span v-else-if="isUrl(row.to)" class="mono redirects-table__away">{{ host(row.to ?? '').scheme }}<strong>{{ host(row.to ?? '').host }}</strong>{{ host(row.to ?? '').rest }}<AdminIcon name="external-link" /><span class="visually-hidden">{{ t('redirects_view.another_site_hidden', ' (another site)') }}</span></span>
 										<RedirectPath v-else :path="row.to ?? ''" />
 									</td>
 									<td class="table__meta redirects-table__type">
@@ -564,18 +565,18 @@ const siteHost = computed(() => {
 										<template v-else>—</template>
 									</td>
 									<td class="table__actions">
-										<MenuButton button-class="row-more" :label="`Actions for ${row.from}`" floating>
+										<MenuButton button-class="row-more" :label="t('redirects_view.actions_for', 'Actions for {from}', { from: row.from })" floating>
 											<template #button>
 												<AdminIcon name="ellipsis" />
 											</template>
-											<button type="button" class="menu-item" @click="editing = { row }"><AdminIcon name="pen-line" />Edit</button>
-											<button type="button" class="menu-item" @click="test(row)"><AdminIcon name="corner-down-right" />Test this address</button>
-											<button type="button" class="menu-item" @click="copyText(row.from, 'the old address', row.from)"><AdminIcon name="copy" />Copy old address</button>
+											<button type="button" class="menu-item" @click="editing = { row }"><AdminIcon name="pen-line" />{{ t('common.edit', 'Edit') }}</button>
+											<button type="button" class="menu-item" @click="test(row)"><AdminIcon name="corner-down-right" />{{ t('redirects_view.test', 'Test this address') }}</button>
+											<button type="button" class="menu-item" @click="copyText(row.from, t('redirects_view.copy_what', 'the old address'), row.from)"><AdminIcon name="copy" />{{ t('redirects_view.copy', 'Copy old address') }}</button>
 											<div class="menu-divider" />
-											<button v-if="isPermanent(row.status)" type="button" class="menu-item" @click="retype([row.from], 302)"><AdminIcon name="clock" />Make temporary</button>
-											<button v-else type="button" class="menu-item" @click="retype([row.from], 301)"><AdminIcon name="check" />Make permanent</button>
+											<button v-if="isPermanent(row.status)" type="button" class="menu-item" @click="retype([row.from], 302)"><AdminIcon name="clock" />{{ t('redirects_view.make_temporary_item', 'Make temporary') }}</button>
+											<button v-else type="button" class="menu-item" @click="retype([row.from], 301)"><AdminIcon name="check" />{{ t('redirects_view.make_permanent_item', 'Make permanent') }}</button>
 											<div class="menu-divider" />
-											<button type="button" class="menu-item menu-item--danger" @click="remove([row.from])"><AdminIcon name="trash-2" />Delete</button>
+											<button type="button" class="menu-item menu-item--danger" @click="remove([row.from])"><AdminIcon name="trash-2" />{{ t('common.delete', 'Delete') }}</button>
 										</MenuButton>
 									</td>
 								</tr>
@@ -594,17 +595,17 @@ const siteHost = computed(() => {
 					</table>
 				</div>
 
-				<EmptyState v-else :icon="filtered ? 'search' : 'circle-check'" :heading="filtered ? 'No Redirects Match' : 'Nothing Here'" :text="filtered ? (search ? `Nothing starts at or goes to ${search}.` : 'No redirect fits these filters.') : 'No redirect is of this kind.'">
+				<EmptyState v-else :icon="filtered ? 'search' : 'circle-check'" :heading="filtered ? t('redirects_view.no_matches', 'No Redirects Match') : t('redirects_view.nothing_here', 'Nothing Here')" :text="filtered ? (search ? t('redirects_view.no_matches_search', 'Nothing starts at or goes to {search}.', { search }) : t('redirects_view.no_matches_filters', 'No redirect fits these filters.')) : t('redirects_view.none_of_kind', 'No redirect is of this kind.')">
 					<template #actions>
-						<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
+						<button v-if="filtered" type="button" class="button" @click="clear">{{ t('redirects_view.clear_filters', 'Clear Filters') }}</button>
 					</template>
 				</EmptyState>
 
-				<ListPager v-if="list" v-model:per="perValue" :page="list.page" :pages="list.pages" :total="list.total" :noun="['redirect', 'redirects']" :options="PER_OPTIONS" :link="pageLink" />
+				<ListPager v-if="list" v-model:per="perValue" :page="list.page" :pages="list.pages" :total="list.total" :counted="(count) => t('redirects_view.counted', '{count, plural, one {# redirect} other {# redirects}}', { count })" :options="PER_OPTIONS" :link="pageLink" />
 
 				<div v-if="list && list.code.length" class="panel__note redirects-code">
 					<button type="button" class="lnk" :aria-expanded="codeOpen" aria-controls="redirects-code-list" @click="codeOpen = !codeOpen">
-						<AdminIcon name="code" />The site's code sets {{ plural(list.code.length, 'more redirect') }}. {{ list.code.length === 1 ? 'It comes' : 'They come' }} before this list and can't be changed here.
+						<AdminIcon name="code" />{{ t('redirects_view.code', 'The site\'s code sets {count, plural, one {# more redirect} other {# more redirects} }. {count, plural, one {It comes} other {They come} } before this list and can\'t be changed here.', { count: list.code.length }) }}
 						<AdminIcon :name="codeOpen ? 'chevron-up' : 'chevron-down'" />
 					</button>
 					<ul v-if="codeOpen" id="redirects-code-list" class="redirects-code__list">
@@ -616,11 +617,11 @@ const siteHost = computed(() => {
 				</div>
 			</section>
 
-			<BulkBar v-if="selected.length" :count="selected.length" label="Selected redirects" @clear="selected = []">
-				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="retype([...selected], 301)"><AdminIcon name="check" />Make Permanent</button>
-				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="retype([...selected], 302)"><AdminIcon name="clock" />Make Temporary</button>
+			<BulkBar v-if="selected.length" :count="selected.length" :label="t('redirects_view.selected', 'Selected redirects')" @clear="selected = []">
+				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="retype([...selected], 301)"><AdminIcon name="check" />{{ t('redirects_view.make_permanent', 'Make Permanent') }}</button>
+				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="retype([...selected], 302)"><AdminIcon name="clock" />{{ t('redirects_view.make_temporary', 'Make Temporary') }}</button>
 				<span class="bulk-bar__divider" aria-hidden="true" />
-				<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="confirmBulkDelete"><AdminIcon name="trash-2" />Delete</button>
+				<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="confirmBulkDelete"><AdminIcon name="trash-2" />{{ t('common.delete', 'Delete') }}</button>
 			</BulkBar>
 		</template>
 

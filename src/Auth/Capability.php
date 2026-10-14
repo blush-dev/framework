@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * The framework's site capabilities (D-217), seeded into `Capabilities`,
  * where extensions add their own. Managing accounts and roles is seven
@@ -114,52 +117,52 @@ enum Capability: string
 	/**
 	 * Returns the group the admin shows the capability in.
 	 */
-	public function group(): string
+	public function group(Messages $messages): Text
 	{
 		return match ($this) {
 			self::MediaEdit, self::MediaEditOthers,
-			self::MediaDelete, self::MediaDeleteOthers              => 'Media',
-			self::HtmlAllowed, self::HtmlUnfiltered                 => 'HTML',
-			self::MenusEdit                                         => 'Structure',
+			self::MediaDelete, self::MediaDeleteOthers              => $messages->t('auth.capability_group.media', 'Media'),
+			self::HtmlAllowed, self::HtmlUnfiltered                 => $messages->t('auth.capability_group.html', 'HTML'),
+			self::MenusEdit                                         => $messages->t('auth.capability_group.structure', 'Structure'),
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
 			self::SiteJobs, self::SiteRedirects, self::SiteSecrets,
-			self::SiteActivity                                      => 'Site',
-			default                                                 => 'Users'
+			self::SiteActivity                                      => $messages->t('auth.capability_group.site', 'Site'),
+			default                                                 => $messages->t('auth.capability_group.users', 'Users')
 		};
 	}
 
 	/**
 	 * Returns the capability's label.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::MediaEdit         => 'Edit their own files',
-			self::MediaEditOthers   => 'Edit anyone\'s files',
-			self::MediaDelete       => 'Delete their own files',
-			self::MediaDeleteOthers => 'Delete anyone\'s files',
-			self::HtmlAllowed       => 'Add HTML from the allowed list',
-			self::HtmlUnfiltered    => 'Add any HTML but what\'s always refused',
-			self::MenusEdit       => 'Edit menus',
-			self::SitePublish     => 'Publish the site',
-			self::CacheClear      => 'Clear caches',
-			self::SiteSettings    => 'Change site settings',
-			self::SiteLogs        => 'Read the site\'s log',
-			self::SiteHealth      => 'See site health and fix what it finds',
-			self::SiteJobs        => 'See and manage background jobs',
-			self::SiteRedirects   => 'Manage redirects',
-			self::SiteSecrets     => 'Manage secrets',
-			self::SiteActivity    => 'See activity and undo changes',
-			self::AccountsView    => 'See accounts and roles',
-			self::AccountsCreate  => 'Create accounts',
-			self::AccountsEdit    => 'Edit accounts',
-			self::AccountsRoles   => 'Give and take roles',
-			self::AccountsSuspend => 'Suspend and reinstate accounts',
-			self::AccountsDelete  => 'Remove accounts',
-			self::RolesManage     => 'Manage roles',
-			self::ApiTokens       => 'Make API tokens for their own account',
-			self::ApiConnect      => 'Connect apps, such as Claude, to act as them'
+			self::MediaEdit         => $messages->t('auth.capability.media_edit', 'Edit their own files'),
+			self::MediaEditOthers   => $messages->t('auth.capability.media_edit_others', 'Edit anyone\'s files'),
+			self::MediaDelete       => $messages->t('auth.capability.media_delete', 'Delete their own files'),
+			self::MediaDeleteOthers => $messages->t('auth.capability.media_delete_others', 'Delete anyone\'s files'),
+			self::HtmlAllowed       => $messages->t('auth.capability.html_allowed', 'Add HTML from the allowed list'),
+			self::HtmlUnfiltered    => $messages->t('auth.capability.html_unfiltered', 'Add any HTML but what\'s always refused'),
+			self::MenusEdit         => $messages->t('auth.capability.menus_edit', 'Edit menus'),
+			self::SitePublish       => $messages->t('auth.capability.site_publish', 'Publish the site'),
+			self::CacheClear        => $messages->t('auth.capability.cache_clear', 'Clear caches'),
+			self::SiteSettings      => $messages->t('auth.capability.site_settings', 'Change site settings'),
+			self::SiteLogs          => $messages->t('auth.capability.site_logs', 'Read the site\'s log'),
+			self::SiteHealth        => $messages->t('auth.capability.site_health', 'See site health and fix what it finds'),
+			self::SiteJobs          => $messages->t('auth.capability.site_jobs', 'See and manage background jobs'),
+			self::SiteRedirects     => $messages->t('auth.capability.site_redirects', 'Manage redirects'),
+			self::SiteSecrets       => $messages->t('auth.capability.site_secrets', 'Manage secrets'),
+			self::SiteActivity      => $messages->t('auth.capability.site_activity', 'See activity and undo changes'),
+			self::AccountsView      => $messages->t('auth.capability.accounts_view', 'See accounts and roles'),
+			self::AccountsCreate    => $messages->t('auth.capability.accounts_create', 'Create accounts'),
+			self::AccountsEdit      => $messages->t('auth.capability.accounts_edit', 'Edit accounts'),
+			self::AccountsRoles     => $messages->t('auth.capability.accounts_roles', 'Give and take roles'),
+			self::AccountsSuspend   => $messages->t('auth.capability.accounts_suspend', 'Suspend and reinstate accounts'),
+			self::AccountsDelete    => $messages->t('auth.capability.accounts_delete', 'Remove accounts'),
+			self::RolesManage       => $messages->t('auth.capability.roles_manage', 'Manage roles'),
+			self::ApiTokens         => $messages->t('auth.capability.api_tokens', 'Make API tokens for their own account'),
+			self::ApiConnect        => $messages->t('auth.capability.api_connect', 'Connect apps, such as Claude, to act as them')
 		};
 	}
 }

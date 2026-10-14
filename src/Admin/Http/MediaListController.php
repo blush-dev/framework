@@ -53,6 +53,8 @@ use Blush\Media\MediaUsage;
 use Blush\Media\MediaValues;
 use Blush\Support\Filesystem;
 use Blush\Support\UrlPath;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Answers `GET {path}/api/media` (D-246): the media files an entry can use,
@@ -165,7 +167,8 @@ final readonly class MediaListController
 		private EmbeddedMetadataReader $embedded,
 		private MediaArtwork $artworks,
 		private MediaEditor $editor,
-		private ControlDefaults $defaults
+		private ControlDefaults $defaults,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -173,7 +176,7 @@ final readonly class MediaListController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
-			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.forbidden', 'You aren\'t allowed to use media.'), Status::Forbidden);
 		}
 
 		$query  = $request->getQueryParams();
@@ -223,7 +226,7 @@ final readonly class MediaListController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
-			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.forbidden', 'You aren\'t allowed to use media.'), Status::Forbidden);
 		}
 
 		// A media field names a file by its id (D-773).
@@ -234,7 +237,7 @@ final readonly class MediaListController
 		[$file, $reference] = $this->libraryFile($path);
 
 		if ($file === null) {
-			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+			return self::error($this->messages->t('admin.media_list_controller.not_found', 'There\'s no "{path}" in the media library.', path: $path), Status::NotFound);
 		}
 
 		return Response::json($this->details($file, $reference, trim($path, '/'), $this->describedBy($file, trim($path, '/')), $account), headers: ['Cache-Control' => 'no-store']);
@@ -250,14 +253,14 @@ final readonly class MediaListController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
-			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.forbidden', 'You aren\'t allowed to use media.'), Status::Forbidden);
 		}
 
 		[$file] = $this->libraryFile($path);
 		$found  = $file === null ? null : $this->embedded->artwork($file->path, $file->mime);
 
 		if ($found === null) {
-			return self::error(sprintf('There\'s no artwork in "%s".', $path), Status::NotFound);
+			return self::error($this->messages->t('admin.media_list_controller.no_artwork', 'There\'s no artwork in "{path}".', path: $path), Status::NotFound);
 		}
 
 		return new Response(Status::Ok, [
@@ -296,7 +299,7 @@ final readonly class MediaListController
 		}
 
 		if (! is_string($image) && ! $this->mayAddArtwork($account, $record)) {
-			return self::error('You aren\'t allowed to add images to the library, or this file carries no artwork.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.artwork_forbidden', 'You aren\'t allowed to add images to the library, or this file carries no artwork.'), Status::Forbidden);
 		}
 
 		try {
@@ -344,7 +347,7 @@ final readonly class MediaListController
 		$relative = trim($path, '/');
 
 		if (! $account instanceof Account) {
-			return self::error('You aren\'t allowed to change media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.change_forbidden', 'You aren\'t allowed to change media.'), Status::Forbidden);
 		}
 
 		[$file, $reference] = $this->libraryFile($path);
@@ -356,15 +359,15 @@ final readonly class MediaListController
 		}
 
 		if ($file === null || $record === null) {
-			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+			return self::error($this->messages->t('admin.media_list_controller.not_found', 'There\'s no "{path}" in the media library.', path: $path), Status::NotFound);
 		}
 
 		if (! MediaArtwork::has($record->kind())) {
-			return self::error('Only sounds and videos have artwork.', Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.media_list_controller.artwork_kinds', 'Only sounds and videos have artwork.'), Status::UnprocessableContent);
 		}
 
 		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->metadata->find($file)->owner)) {
-			return self::error('You aren\'t allowed to change this file\'s details.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.edit_forbidden', 'You aren\'t allowed to change this file\'s details.'), Status::Forbidden);
 		}
 
 		return [$account, $file, $reference, $record];
@@ -388,23 +391,23 @@ final readonly class MediaListController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::error('You aren\'t allowed to change media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.change_forbidden', 'You aren\'t allowed to change media.'), Status::Forbidden);
 		}
 
 		[$file, $reference] = $this->libraryFile($path);
 
 		if ($file === null) {
-			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+			return self::error($this->messages->t('admin.media_list_controller.not_found', 'There\'s no "{path}" in the media library.', path: $path), Status::NotFound);
 		}
 
 		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->describedBy($file, trim($path, '/'))->owner)) {
-			return self::error('You aren\'t allowed to change this file\'s details.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.edit_forbidden', 'You aren\'t allowed to change this file\'s details.'), Status::Forbidden);
 		}
 
 		$original = $this->originalOf(trim($path, '/'));
 
 		if ($original !== null) {
-			return self::error(sprintf('%s is a size of %s, whose details it goes by; change them there.', basename($path), $original), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.media_list_controller.size_of', '{name} is a size of {original}, whose details it goes by; change them there.', name: basename($path), original: $original), Status::UnprocessableContent);
 		}
 
 		try {
@@ -447,19 +450,19 @@ final readonly class MediaListController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::error('You aren\'t allowed to delete media.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.delete_forbidden', 'You aren\'t allowed to delete media.'), Status::Forbidden);
 		}
 
 		[$file] = $this->libraryFile($path);
 
 		if ($file === null) {
-			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+			return self::error($this->messages->t('admin.media_list_controller.not_found', 'There\'s no "{path}" in the media library.', path: $path), Status::NotFound);
 		}
 
 		$relative = trim($path, '/');
 
 		if (! $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $this->describedBy($file, $relative)->owner)) {
-			return self::error('You aren\'t allowed to delete this file.', Status::Forbidden);
+			return self::error($this->messages->t('admin.media_list_controller.delete_file_forbidden', 'You aren\'t allowed to delete this file.'), Status::Forbidden);
 		}
 
 		// An image goes with its sizes (D-488).
@@ -469,7 +472,7 @@ final readonly class MediaListController
 			$target = "{$this->paths->media}/{$key}";
 
 			if (is_file($target) && ! @unlink($target)) {
-				return self::error($key === $relative ? 'The file couldn\'t be deleted from the media folder.' : sprintf('%s couldn\'t be deleted from the media folder.', $key), Status::InternalServerError);
+				return self::error($key === $relative ? $this->messages->t('admin.media_list_controller.not_deleted', 'The file couldn\'t be deleted from the media folder.') : $this->messages->t('admin.media_list_controller.size_not_deleted', '{name} couldn\'t be deleted from the media folder.', name: $key), Status::InternalServerError);
 			}
 
 			// A copy `media:publish --copy` made; a linked folder already
@@ -560,7 +563,7 @@ final readonly class MediaListController
 		$owner = $metadata->owner === '' ? null : $this->accounts->findById($metadata->owner);
 
 		$schema = $this->schemas->forFile($file);
-		$result = $schema->resolve($metadata->fields(), new FieldContext($this->app->timezone()));
+		$result = $schema->resolve($metadata->fields(), new FieldContext($this->app->timezone(), $this->messages));
 		$values = [];
 
 		// Fields extensions register aren't drawn (D-791).
@@ -599,7 +602,7 @@ final readonly class MediaListController
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value
 			], $result->violations),
-			'uploader'   => $metadata->owner === '' ? null : ($owner === null ? ['username' => null, 'name' => 'A removed account'] : ['username' => $owner->username, 'name' => $this->profiles->displayName($owner)]),
+			'uploader'   => $metadata->owner === '' ? null : ($owner === null ? ['username' => null, 'name' => $this->messages->t('admin.media_list_controller.removed_account', 'A removed account')] : ['username' => $owner->username, 'name' => $this->profiles->displayName($owner)]),
 			'may'        => [
 				'edit'       => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
 				'delete'     => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner),
@@ -730,7 +733,7 @@ final readonly class MediaListController
 		];
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

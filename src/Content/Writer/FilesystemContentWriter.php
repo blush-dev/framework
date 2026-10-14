@@ -22,6 +22,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
+use Blush\Translation\Messages;
 use Blush\Support\Slug;
 
 /**
@@ -44,7 +45,8 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		private IndexFreshness $freshness,
 		private ContentTypes $types,
 		private FileNames $fileNames,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -80,7 +82,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		$path = $this->path($parent);
 
 		if ($this->record($path)?->type !== $type->name) {
-			throw new WriteException(sprintf('The page to go under isn\'t one of the %s.', $type->labels->items));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.wrong_parent', 'The page to go under isn\'t one of the {items}.', items: $type->labels->items));
 		}
 
 		return $this->idAt($this->files->createUnder($path, $slug, $changes)->path);
@@ -142,11 +144,11 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		}
 
 		if (! Slug::isSlug($slug)) {
-			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.not_a_slug', '"{slug}" isn\'t a slug; try "{suggestion}".', slug: $slug, suggestion: Slug::from($slug)));
 		}
 
 		if ($entry->landing) {
-			throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s.', $path));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.landing_name', '{path} is a landing page; its name is its folder\'s.', path: $path));
 		}
 
 		$folder = dirname($entry->key);
@@ -154,7 +156,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		$found  = $this->freshness->fresh()->snapshot()->find($entry->language, $entry->type, $key);
 
 		if ($found !== null && $found !== $path) {
-			throw new WriteException(sprintf('Another entry already has the slug "%s".', $slug));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.slug_taken', 'Another entry already has the slug "{slug}".', slug: $slug));
 		}
 
 		return $this->followed($this->files->update($path, new EntryChanges(['slug' => $slug]), $version)->path);
@@ -169,7 +171,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	#[Override]
 	public function changeLanguage(string $id, string $language, ?string $version = null): string
 	{
-		$named = $this->app->languages->find($language) ?? throw new WriteException(sprintf('The site has no language "%s".', $language));
+		$named = $this->app->languages->find($language) ?? throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.no_language', 'The site has no language "{code}".', code: $language));
 		$path  = $this->path($id);
 		$entry = $this->record($path);
 
@@ -178,20 +180,20 @@ final readonly class FilesystemContentWriter implements ContentWriter
 		}
 
 		if ($entry->landing) {
-			throw new WriteException(sprintf('%s is a landing page; it\'s in the language of the pages it lists.', $path));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.landing_language', '{path} is a landing page; it\'s in the language of the pages it lists.', path: $path));
 		}
 
 		$snapshot    = $this->freshness->fresh()->snapshot();
 		$translation = $snapshot->translations($path)[$language] ?? null;
 
 		if ($translation !== null && $translation !== $path) {
-			throw new WriteException(sprintf('Its %s translation is “%s”.', $named->name(), $snapshot->record($translation)->title ?? $translation));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.translated', 'Its {language} translation is “{title}”.', language: $named->name(), title: $snapshot->record($translation)->title ?? $translation));
 		}
 
 		$found = $snapshot->find($language, $entry->type, $entry->key);
 
 		if ($found !== null && $found !== $path) {
-			throw new WriteException(sprintf('There\'s already a %s at %s in %s.', $this->types->get($entry->type)->labels->item, $entry->key, $named->name()));
+			throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.taken_in_language', 'There\'s already a {item} at {page} in {language}.', item: $this->types->get($entry->type)->labels->item, page: $entry->key, language: $named->name()));
 		}
 
 		return $this->idAt($this->files->changeLanguage($path, $this->app->languages->isDefault($language) ? '' : $language, $version)->path);
@@ -254,7 +256,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	private function path(string $id): string
 	{
 		return $this->freshness->fresh()->records()->path($id)
-			?? throw new WriteException(sprintf('There\'s no entry with the id "%s".', $id));
+			?? throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.no_id', 'There\'s no entry with the id "{id}".', id: $id));
 	}
 
 	/**
@@ -281,6 +283,6 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	 */
 	private function idAt(string $path): string
 	{
-		return $this->record($path)->id ?? throw new WriteException(sprintf('%s was written, but the index doesn\'t have it; check Site Health.', $path));
+		return $this->record($path)->id ?? throw new WriteException((string) $this->messages->t('content.filesystem_content_writer.not_indexed', '{path} was written, but the index doesn\'t have it; check Site Health.', path: $path));
 	}
 }

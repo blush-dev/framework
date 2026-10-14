@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Secret;
 
 use Blush\Env\Env;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The keys stored secrets are encrypted with (D-715), from the
@@ -57,12 +59,14 @@ final class SecretKeys
 	/**
 	 * What's wrong with the keys as set, if anything.
 	 *
-	 * @var list<string>
+	 * @var list<Text>
 	 */
 	private array $problems = [];
 
-	public function __construct(Env $env)
-	{
+	public function __construct(
+		Env $env,
+		private readonly Messages $messages = new Messages()
+	) {
 		foreach ([self::CURRENT, self::PREVIOUS] as $name) {
 			$value = trim($env->get($name) ?? '');
 
@@ -73,7 +77,7 @@ final class SecretKeys
 			$key = base64_decode($value, true);
 
 			if ($key === false || strlen($key) !== self::LENGTH) {
-				$this->problems[] = sprintf('%s isn\'t a key: it needs %d random bytes in base64.', $name, self::LENGTH);
+				$this->problems[] = $messages->t('secret.secret_keys.not_a_key', '{variable} isn\'t a key: it needs {length} random bytes in base64.', variable: $name, length: self::LENGTH);
 				continue;
 			}
 
@@ -127,7 +131,7 @@ final class SecretKeys
 	public function current(): string
 	{
 		if ($this->current === null) {
-			throw new InvalidSecret(sprintf('Secrets can\'t be stored without a key: set %s (run "init" to add one).', self::CURRENT));
+			throw new InvalidSecret((string) $this->messages->t('secret.secret_keys.no_key', 'Secrets can\'t be stored without a key: set {variable} (run "init" to add one).', variable: self::CURRENT));
 		}
 
 		return $this->keys[$this->current];
@@ -145,7 +149,7 @@ final class SecretKeys
 	 * Returns what's wrong with the keys as set: a value that isn't a
 	 * key. Without either, there's nothing wrong, only nothing stored.
 	 *
-	 * @return list<string>
+	 * @return list<Text>
 	 */
 	public function problems(): array
 	{

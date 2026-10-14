@@ -21,6 +21,8 @@ use Blush\Field\Field;
 use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\MarkdownField;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A list of items, each with the same fields: a list field whose items
@@ -54,18 +56,18 @@ final class Repeater extends Control
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function label(): string
+	public static function label(Messages $messages): Text
 	{
-		return 'Repeating Group';
+		return $messages->t('field.repeater.label', 'Repeating Group');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function description(): string
+	public static function description(Messages $messages): Text
 	{
-		return 'A list of items, each with the same fields.';
+		return $messages->t('field.repeater.description', 'A list of items, each with the same fields.');
 	}
 
 	/**

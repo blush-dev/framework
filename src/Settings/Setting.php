@@ -55,6 +55,8 @@ use Blush\Routing\RouteConfig;
 use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Theme\ThemeConfig;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A setting the site owner may change in the admin (D-324, D-325). Its
@@ -122,21 +124,6 @@ enum Setting: string
 	public const int DESCRIPTION_MAX = 300;
 
 	/**
-	 * What the site's description is for.
-	 */
-	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters.';
-
-	/**
-	 * What the site's email address is for (D-723).
-	 */
-	public const string EMAIL_HELP = 'Where the site sends notices for its owner. It isn\'t shown on the site.';
-
-	/**
-	 * What the date and time formats are (D-445).
-	 */
-	public const string FORMAT_HELP = 'How themes show dates and times. One from the language follows the site\'s language; a fixed one keeps its order whatever the language.';
-
-	/**
 	 * The most paths robots.txt may be asked to skip.
 	 */
 	public const int DISALLOW_MAX = 50;
@@ -202,47 +189,47 @@ enum Setting: string
 	 * homepage's, from the site's collections with addresses; a site with
 	 * none has nothing to choose, and the admin only shows it).
 	 */
-	public function field(ContentTypes $types): Field
+	public function field(ContentTypes $types, Messages $messages): Field
 	{
 		$field = match ($this) {
-			self::Name            => new TextField('name')->labeled('Site name')->required(),
-			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
-			self::Email           => new TextField('email')->labeled('Email address')->described(self::EMAIL_HELP)->required(),
-			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.'),
-			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled('Untranslated pages')->described('What another language\'s address does for an entry not translated into it.')->required(),
-			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
-			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP),
-			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP),
-			self::Signups         => new BoolField('signups')->labeled('Sign-ups')->described('Anyone can make an account on the site. Off, only someone who can add accounts makes them.'),
-			self::SignupRole      => new TextField('signupRole')->labeled('Role for new accounts')->described('The role an account made by signing up holds. Never the owner or an administrator.'),
-			self::Home            => self::homeChoices($types) === []
-				? new TextField('home')->labeled('Homepage')
-				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
-			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.'),
-			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
-			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.'),
-			self::AddArtwork      => new BoolField('addArtwork')->labeled('Artwork from uploads')->described('A sound or video\'s artwork is added to the library as an image of its own when it\'s uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file\'s screen can still add it.'),
-			self::Mentions        => new BoolField('mentions')->labeled('Mentions')->described('@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.'),
-			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled('Smart punctuation')->described('Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.'),
-			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
-			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
-			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->required(),
-			self::Embeds          => new ListField('enabled')->labeled('Embeds turned on')->described('A site turned on plays its links on the page; the others keep their links as links.'),
-			self::Api             => new BoolField('enabled')->labeled('API')->described('An API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it without a token, and only a token may change content.'),
-			self::ApiAccess       => new EnumField('access', array_column(ApiAccess::cases(), 'value'))->labeled('Who can read it')->described('A token is made on Your Account, and acts as the account it belongs to.')->required(),
-			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
-			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
-			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
-			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
-			self::Llms            => new BoolField('enabled')->labeled('Markdown copies')->described('A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.'),
-			self::Mcp             => new BoolField('enabled')->labeled('MCP server')->described('Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.'),
-			self::LlmsFull        => new BoolField('full')->labeled('llms-full.txt')->described('Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.'),
-			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.'),
-			self::Theme           => new TextField('active')->labeled('Theme'),
-			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
-			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on'),
-			self::AdminThemes     => new ListField('enabled')->labeled('Admin themes turned on'),
-			self::AdminThemeDefault => new TextField('default')->labeled('The site\'s admin theme')
+			self::Name            => new TextField('name')->labeled($messages->t('settings.setting.name.label', 'Site name'))->required(),
+			self::Description     => new TextField('description')->labeled($messages->t('settings.setting.description.label', 'Description'))->described($messages->t('settings.setting.description.description', 'One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters.')),
+			self::Email           => new TextField('email')->labeled($messages->t('settings.setting.email.label', 'Email address'))->described($messages->t('settings.setting.email.description', 'Where the site sends notices for its owner. It isn\'t shown on the site.'))->required(),
+			self::Locale          => new TextField('locale')->labeled($messages->t('settings.setting.locale.label', 'Language and region'))->described($messages->t('settings.setting.locale.description', 'A language code, with a region if you like, such as en_US or fr.')),
+			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled($messages->t('settings.setting.untranslated.label', 'Untranslated pages'))->described($messages->t('settings.setting.untranslated.description', 'What another language\'s address does for an entry not translated into it.'))->required(),
+			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled($messages->t('settings.setting.timezone.label', 'Time zone')),
+			self::DateFormat      => new TextField('dateFormat')->labeled($messages->t('settings.setting.date_format.label', 'Date format'))->described(self::formatHelp($messages)),
+			self::TimeFormat      => new TextField('timeFormat')->labeled($messages->t('settings.setting.time_format.label', 'Time format'))->described(self::formatHelp($messages)),
+			self::Signups         => new BoolField('signups')->labeled($messages->t('settings.setting.signups.label', 'Sign-ups'))->described($messages->t('settings.setting.signups.description', 'Anyone can make an account on the site. Off, only someone who can add accounts makes them.')),
+			self::SignupRole      => new TextField('signupRole')->labeled($messages->t('settings.setting.signup_role.label', 'Role for new accounts'))->described($messages->t('settings.setting.signup_role.description', 'The role an account made by signing up holds. Never the owner or an administrator.')),
+			self::Home            => self::homeChoices($types, $messages) === []
+				? new TextField('home')->labeled($messages->t('settings.setting.home.label', 'Homepage'))
+				: new EnumField('home', array_keys(self::homeChoices($types, $messages)))->labeled($messages->t('settings.setting.home.label', 'Homepage')),
+			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled($messages->t('settings.setting.feed_formats.label', 'Formats'))->described($messages->t('settings.setting.feed_formats.description', 'None turns every feed off.')),
+			self::FeedContent     => new BoolField('content')->labeled($messages->t('settings.setting.feed_content.label', 'Full content'))->described($messages->t('settings.setting.feed_content.description', 'Off, a feed carries each entry\'s summary only.')),
+			self::MediaUploads    => new ObjectField('uploads')->labeled($messages->t('settings.setting.media_uploads.label', 'Uploads'))->described($messages->t('settings.setting.media_uploads.description', 'What may be uploaded, how large, and the folder under user/media it goes in.')),
+			self::AddArtwork      => new BoolField('addArtwork')->labeled($messages->t('settings.setting.add_artwork.label', 'Artwork from uploads'))->described($messages->t('settings.setting.add_artwork.description', 'A sound or video\'s artwork is added to the library as an image of its own when it\'s uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file\'s screen can still add it.')),
+			self::Mentions        => new BoolField('mentions')->labeled($messages->t('settings.setting.mentions.label', 'Mentions'))->described($messages->t('settings.setting.mentions.description', '@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.')),
+			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled($messages->t('settings.setting.smart_punctuation.label', 'Smart punctuation'))->described($messages->t('settings.setting.smart_punctuation.description', 'Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.')),
+			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled($messages->t('settings.setting.heading_anchors.label', 'Heading anchors'))->described($messages->t('settings.setting.heading_anchors.description', 'Each heading gets a link to itself, so a section can be shared.')),
+			self::Figures         => new BoolField('figures')->labeled($messages->t('settings.setting.figures.label', 'Images as figures'))->described($messages->t('settings.setting.figures.description', 'An image on a line of its own becomes a figure, with its title as the caption.')),
+			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled($messages->t('settings.setting.html.label', 'Raw HTML'))->described($messages->t('settings.setting.html.description', 'What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.'))->required(),
+			self::Embeds          => new ListField('enabled')->labeled($messages->t('settings.setting.embeds.label', 'Embeds turned on'))->described($messages->t('settings.setting.embeds.description', 'A site turned on plays its links on the page; the others keep their links as links.')),
+			self::Api             => new BoolField('enabled')->labeled($messages->t('settings.setting.api.label', 'API'))->described($messages->t('settings.setting.api.description', 'An API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it without a token, and only a token may change content.')),
+			self::ApiAccess       => new EnumField('access', array_column(ApiAccess::cases(), 'value'))->labeled($messages->t('settings.setting.api_access.label', 'Who can read it'))->described($messages->t('settings.setting.api_access.description', 'A token is made on Your Account, and acts as the account it belongs to.'))->required(),
+			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled($messages->t('settings.setting.feed_limit.label', 'Entries per feed'))->described($messages->t('settings.setting.feed_limit.description', 'From 1 to {max}.', max: self::FEED_LIMIT_MAX)),
+			self::TrailingSlash   => new BoolField('trailingSlash')->labeled($messages->t('settings.setting.trailing_slash.label', 'Trailing slash'))->described($messages->t('settings.setting.trailing_slash.description', 'The other form redirects, so links to either still work.')),
+			self::Sitemap         => new BoolField('enabled')->labeled($messages->t('settings.setting.sitemap.label', 'Sitemap and robots.txt'))->described($messages->t('settings.setting.sitemap.description', 'Off, the site has neither, and search engines find pages by their links.')),
+			self::SitemapDisallow => new ListField('disallow')->labeled($messages->t('settings.setting.sitemap_disallow.label', 'Paths robots.txt asks to skip'))->described($messages->t('settings.setting.sitemap_disallow.description', 'One path a line, each starting with /, such as /drafts/.')),
+			self::Llms            => new BoolField('enabled')->labeled($messages->t('settings.setting.llms.label', 'Markdown copies'))->described($messages->t('settings.setting.llms.description', 'A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.')),
+			self::Mcp             => new BoolField('enabled')->labeled($messages->t('settings.setting.mcp.label', 'MCP server'))->described($messages->t('settings.setting.mcp.description', 'Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.')),
+			self::LlmsFull        => new BoolField('full')->labeled('llms-full.txt')->described($messages->t('settings.setting.llms_full.description', 'Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.')),
+			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled($messages->t('settings.setting.block_ai.label', 'Ask to stay away'))->described($messages->t('settings.setting.block_ai.description', 'robots.txt is a request: well-behaved crawlers follow it, others may not.')),
+			self::Theme           => new TextField('active')->labeled($messages->t('settings.setting.theme.label', 'Theme')),
+			self::Plugins         => new ListField('enabled')->labeled($messages->t('settings.setting.plugins.label', 'Plugins turned on')),
+			self::IconPacks       => new ListField('enabled')->labeled($messages->t('settings.setting.icon_packs.label', 'Icon packs turned on')),
+			self::AdminThemes     => new ListField('enabled')->labeled($messages->t('settings.setting.admin_themes.label', 'Admin themes turned on')),
+			self::AdminThemeDefault => new TextField('default')->labeled($messages->t('settings.setting.admin_theme_default.label', 'The site\'s admin theme'))
 		};
 
 		// A screen's fields are one schema, so a key an earlier setting on
@@ -257,18 +244,18 @@ enum Setting: string
 	 * time zone without underscores, the untranslated settings' names,
 	 * the homepage's collections, and the feed formats' names.
 	 *
-	 * @return array<string, string>
+	 * @return array<string, string|Text>
 	 */
-	public function choices(ContentTypes $types): array
+	public function choices(ContentTypes $types, Messages $messages): array
 	{
 		return match ($this) {
 			self::Timezone     => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
-			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): string => $case->label(), Untranslated::cases())),
-			self::Home         => self::homeChoices($types),
-			self::FeedFormats  => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
-			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
-			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): string => $case->label(), RawHtml::cases())),
-			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): string => $case->label(), ApiAccess::cases())),
+			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): Text => $case->label($messages), Untranslated::cases())),
+			self::Home         => self::homeChoices($types, $messages),
+			self::FeedFormats  => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): Text => $format->label($messages), FeedFormat::cases())),
+			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): Text => $group->label($messages), AiCrawlerGroup::cases())),
+			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): Text => $case->label($messages), RawHtml::cases())),
+			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): Text => $case->label($messages), ApiAccess::cases())),
 			default            => []
 		};
 	}
@@ -279,15 +266,15 @@ enum Setting: string
 	 * covers (`code`, or `''`), as the AI crawler groups' user agents, and
 	 * what each untranslated setting does (D-469).
 	 *
-	 * @return array<string, array{text: string, code: string}>
+	 * @return array<string, array{text: string|Text, code: string}>
 	 */
-	public function details(): array
+	public function details(Messages $messages): array
 	{
 		return match ($this) {
-			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
-			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): array => ['text' => $case->description(), 'code' => ''], Untranslated::cases())),
-			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): array => ['text' => $case->description(), 'code' => ''], RawHtml::cases())),
-			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): array => ['text' => $case->description(), 'code' => ''], ApiAccess::cases())),
+			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description($messages), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
+			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): array => ['text' => $case->description($messages), 'code' => ''], Untranslated::cases())),
+			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): array => ['text' => $case->description($messages), 'code' => ''], RawHtml::cases())),
+			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): array => ['text' => $case->description($messages), 'code' => ''], ApiAccess::cases())),
 			default            => []
 		};
 	}
@@ -296,23 +283,23 @@ enum Setting: string
 	 * What a checkbox beside the setting says, or what a choice left
 	 * empty means.
 	 */
-	public function caption(): ?string
+	public function caption(Messages $messages): ?Text
 	{
 		return match ($this) {
-			self::TrailingSlash => 'Addresses end in a slash',
-			self::FeedContent   => 'Feeds carry each entry\'s full content',
-			self::Signups       => 'Anyone can sign up',
-			self::Sitemap       => 'The site has a sitemap and robots.txt',
-			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
-			self::Api           => 'The site has an API',
-			self::LlmsFull      => 'The site has llms-full.txt',
-			self::Mcp           => 'Apps can connect',
-			self::Home          => 'The page at user/content/index.md',
-			self::Mentions      => '@name links to a profile',
-			self::AddArtwork    => 'Uploads add their artwork to the library',
-			self::SmartPunctuation => 'Quotes, dashes, and ellipses are typographic',
-			self::HeadingAnchors => 'Headings link to themselves',
-			self::Figures       => 'A lone image is a figure',
+			self::TrailingSlash => $messages->t('settings.setting.trailing_slash.caption', 'Addresses end in a slash'),
+			self::FeedContent   => $messages->t('settings.setting.feed_content.caption', 'Feeds carry each entry\'s full content'),
+			self::Signups       => $messages->t('settings.setting.signups.caption', 'Anyone can sign up'),
+			self::Sitemap       => $messages->t('settings.setting.sitemap.caption', 'The site has a sitemap and robots.txt'),
+			self::Llms          => $messages->t('settings.setting.llms.caption', 'Every page has a Markdown copy, and the site has llms.txt'),
+			self::Api           => $messages->t('settings.setting.api.caption', 'The site has an API'),
+			self::LlmsFull      => $messages->t('settings.setting.llms_full.caption', 'The site has llms-full.txt'),
+			self::Mcp           => $messages->t('settings.setting.mcp.caption', 'Apps can connect'),
+			self::Home          => $messages->t('settings.setting.home.caption', 'The page at user/content/index.md'),
+			self::Mentions      => $messages->t('settings.setting.mentions.caption', '@name links to a profile'),
+			self::AddArtwork    => $messages->t('settings.setting.add_artwork.caption', 'Uploads add their artwork to the library'),
+			self::SmartPunctuation => $messages->t('settings.setting.smart_punctuation.caption', 'Quotes, dashes, and ellipses are typographic'),
+			self::HeadingAnchors => $messages->t('settings.setting.heading_anchors.caption', 'Headings link to themselves'),
+			self::Figures       => $messages->t('settings.setting.figures.caption', 'A lone image is a figure'),
 			default             => null
 		};
 	}
@@ -321,15 +308,15 @@ enum Setting: string
 	 * The collection types that can be the homepage, by name, with what
 	 * each shows.
 	 *
-	 * @return array<string, string>
+	 * @return array<string, Text>
 	 */
-	public static function homeChoices(ContentTypes $types): array
+	public static function homeChoices(ContentTypes $types, Messages $messages): array
 	{
 		$choices = [];
 
 		foreach ($types->all() as $type) {
 			if ($type->kind() === TypeKind::Collection && $type->hasUrls()) {
-				$choices[$type->name] = sprintf('The latest %s', mb_strtolower($type->labels->plural));
+				$choices[$type->name] = $messages->t('settings.setting.home_choice', 'The latest {type}', type: mb_strtolower($type->labels->plural));
 			}
 		}
 
@@ -425,47 +412,64 @@ enum Setting: string
 	 *
 	 * @throws InvalidSetting
 	 */
-	public function normalize(mixed $value): mixed
+	public function normalize(mixed $value, Messages $messages): mixed
 	{
 		return match ($this) {
-			self::Name            => self::name($value),
-			self::Description     => self::description($value),
-			self::Email           => self::email($value),
-			self::Locale          => self::locale($value),
-			self::Untranslated    => self::untranslated($value),
-			self::Html            => self::html($value),
-			self::ApiAccess       => self::apiAccess($value),
-			self::SignupRole      => self::signupRole($value),
-			self::Timezone        => self::timezone($value),
+			self::Name            => self::name($value, $messages),
+			self::Description     => self::description($value, $messages),
+			self::Email           => self::email($value, $messages),
+			self::Locale          => self::locale($value, $messages),
+			self::Untranslated    => self::untranslated($value, $messages),
+			self::Html            => self::html($value, $messages),
+			self::ApiAccess       => self::apiAccess($value, $messages),
+			self::SignupRole      => self::signupRole($value, $messages),
+			self::Timezone        => self::timezone($value, $messages),
 			self::DateFormat,
-			self::TimeFormat      => self::dateFormat($value),
-			self::Home            => self::home($value),
-			self::FeedFormats     => self::formats($value),
-			self::FeedLimit       => self::limit($value),
-			self::SitemapDisallow => self::disallow($value),
-			self::BlockAi         => self::blockAi($value),
-			self::MediaUploads    => self::uploads($value),
-			self::Theme           => self::theme($value),
-			self::Plugins         => self::names($value, 'plugins'),
-			self::IconPacks       => self::names($value, 'icon packs'),
-			self::AdminThemes     => self::names($value, 'admin themes'),
-			self::AdminThemeDefault => self::adminTheme($value),
-			self::Embeds          => self::providers($value),
-			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
+			self::TimeFormat      => self::dateFormat($value, $messages),
+			self::Home            => self::home($value, $messages),
+			self::FeedFormats     => self::formats($value, $messages),
+			self::FeedLimit       => self::limit($value, $messages),
+			self::SitemapDisallow => self::disallow($value, $messages),
+			self::BlockAi         => self::blockAi($value, $messages),
+			self::MediaUploads    => self::uploads($value, $messages),
+			self::Theme           => self::theme($value, $messages),
+			self::Plugins         => self::names($value, 'plugins', $messages),
+			self::IconPacks       => self::names($value, 'icon_packs', $messages),
+			self::AdminThemes     => self::names($value, 'admin_themes', $messages),
+			self::AdminThemeDefault => self::adminTheme($value, $messages),
+			self::Embeds          => self::providers($value, $messages),
+			default               => is_bool($value) ? $value : throw self::invalid($messages->t('settings.setting.invalid.bool', '"{setting}" must be true or false.', setting: $this->value))
 		};
+	}
+
+	/**
+	 * What the date and time formats are (D-445).
+	 */
+	private static function formatHelp(Messages $messages): Text
+	{
+		return $messages->t('settings.setting.format_help', 'How themes show dates and times. One from the language follows the site\'s language; a fixed one keeps its order whatever the language.');
+	}
+
+	/**
+	 * Returns the exception for a value that doesn't fit, its message
+	 * translated now, in the current language.
+	 */
+	private static function invalid(Text $message): InvalidSetting
+	{
+		return new InvalidSetting((string) $message);
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function name(mixed $value): string
+	private static function name(mixed $value, Messages $messages): string
 	{
-		$name = is_string($value) ? trim($value) : throw new InvalidSetting('The site name must be text.');
+		$name = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.name_text', 'The site name must be text.'));
 
 		return match (true) {
-			$name === ''                                    => throw new InvalidSetting('The site needs a name.'),
-			mb_strlen($name) > 100                          => throw new InvalidSetting('The site name can be at most 100 characters.'),
-			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $name) !== 0 => throw new InvalidSetting('The site name can\'t hold line breaks or control characters.'),
+			$name === ''                                    => throw self::invalid($messages->t('settings.setting.invalid.name_empty', 'The site needs a name.')),
+			mb_strlen($name) > 100                          => throw self::invalid($messages->t('settings.setting.invalid.name_long', 'The site name can be at most {max} characters.', max: 100)),
+			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $name) !== 0 => throw self::invalid($messages->t('settings.setting.invalid.name_line', 'The site name can\'t hold line breaks or control characters.')),
 			default                                         => $name
 		};
 	}
@@ -473,13 +477,13 @@ enum Setting: string
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function description(mixed $value): string
+	private static function description(mixed $value, Messages $messages): string
 	{
-		$description = is_string($value) ? trim($value) : throw new InvalidSetting('The site\'s description must be text.');
+		$description = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.description_text', 'The site\'s description must be text.'));
 
 		return match (true) {
-			mb_strlen($description) > self::DESCRIPTION_MAX                => throw new InvalidSetting(sprintf('The site\'s description can be at most %d characters.', self::DESCRIPTION_MAX)),
-			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $description) !== 0 => throw new InvalidSetting('The site\'s description is one line, without control characters.'),
+			mb_strlen($description) > self::DESCRIPTION_MAX                => throw self::invalid($messages->t('settings.setting.invalid.description_long', 'The site\'s description can be at most {max} characters.', max: self::DESCRIPTION_MAX)),
+			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $description) !== 0 => throw self::invalid($messages->t('settings.setting.invalid.description_line', 'The site\'s description is one line, without control characters.')),
 			default                                                       => $description
 		};
 	}
@@ -489,13 +493,13 @@ enum Setting: string
 	 *
 	 * @throws InvalidSetting
 	 */
-	private static function email(mixed $value): string
+	private static function email(mixed $value, Messages $messages): string
 	{
-		$email = is_string($value) ? trim($value) : throw new InvalidSetting('The site\'s email address must be text.');
+		$email = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.email_text', 'The site\'s email address must be text.'));
 
 		return match (true) {
-			$email === ''                     => throw new InvalidSetting('The site needs an email address.'),
-			! Account::isValidEmail($email) => throw new InvalidSetting(sprintf('"%s" isn\'t an email address.', $email)),
+			$email === ''                     => throw self::invalid($messages->t('settings.setting.invalid.email_empty', 'The site needs an email address.')),
+			! Account::isValidEmail($email) => throw self::invalid($messages->t('settings.setting.invalid.email', '"{email}" isn\'t an email address.', email: $email)),
 			default                         => $email
 		};
 	}
@@ -503,40 +507,40 @@ enum Setting: string
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function locale(mixed $value): string
+	private static function locale(mixed $value, Messages $messages): string
 	{
 		$locale = is_string($value) ? trim($value) : '';
 
 		return preg_match('/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/', $locale) === 1
 			? $locale
-			: throw new InvalidSetting('Use a language code, with a region if you like, such as en_US or fr.');
+			: throw self::invalid($messages->t('settings.setting.invalid.locale', 'Use a language code, with a region if you like, such as en_US or fr.'));
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function untranslated(mixed $value): string
+	private static function untranslated(mixed $value, Messages $messages): string
 	{
 		return (is_string($value) ? Untranslated::tryFrom($value) : null)->value
-			?? throw new InvalidSetting(sprintf('Untranslated pages are one of: %s.', implode(', ', array_column(Untranslated::cases(), 'value'))));
+			?? throw self::invalid($messages->t('settings.setting.invalid.untranslated', 'Untranslated pages are one of: {values}.', values: implode(', ', array_column(Untranslated::cases(), 'value'))));
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function apiAccess(mixed $value): string
+	private static function apiAccess(mixed $value, Messages $messages): string
 	{
 		return (is_string($value) ? ApiAccess::tryFrom($value) : null)->value
-			?? throw new InvalidSetting(sprintf('Who can read the API is one of: %s.', implode(', ', array_column(ApiAccess::cases(), 'value'))));
+			?? throw self::invalid($messages->t('settings.setting.invalid.api_access', 'Who can read the API is one of: {values}.', values: implode(', ', array_column(ApiAccess::cases(), 'value'))));
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function html(mixed $value): string
+	private static function html(mixed $value, Messages $messages): string
 	{
 		return (is_string($value) ? RawHtml::tryFrom($value) : null)->value
-			?? throw new InvalidSetting(sprintf('Raw HTML is one of: %s.', implode(', ', array_column(RawHtml::cases(), 'value'))));
+			?? throw self::invalid($messages->t('settings.setting.invalid.html', 'Raw HTML is one of: {values}.', values: implode(', ', array_column(RawHtml::cases(), 'value'))));
 	}
 
 	/**
@@ -545,9 +549,9 @@ enum Setting: string
 	 *
 	 * @throws InvalidSetting
 	 */
-	private static function signupRole(mixed $value): string
+	private static function signupRole(mixed $value, Messages $messages): string
 	{
-		$role    = is_string($value) ? trim($value) : throw new InvalidSetting('The role for new accounts must be a role\'s name.');
+		$role    = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.signup_role', 'The role for new accounts must be a role\'s name.'));
 		$problem = AuthConfig::signupRoleProblem($role);
 
 		return $problem === null ? $role : throw new InvalidSetting($problem);
@@ -556,47 +560,47 @@ enum Setting: string
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function timezone(mixed $value): string
+	private static function timezone(mixed $value, Messages $messages): string
 	{
 		return is_string($value) && in_array($value, DateTimeZone::listIdentifiers(), true)
 			? $value
-			: throw new InvalidSetting(sprintf('"%s" isn\'t a time zone; use one such as America/Chicago or UTC.', is_string($value) ? $value : get_debug_type($value)));
+			: throw self::invalid($messages->t('settings.setting.invalid.timezone', '"{zone}" isn\'t a time zone; use one such as America/Chicago or UTC.', zone: is_string($value) ? $value : get_debug_type($value)));
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function dateFormat(mixed $value): string
+	private static function dateFormat(mixed $value, Messages $messages): string
 	{
-		$format  = is_string($value) ? trim($value) : throw new InvalidSetting('A date or time format must be text.');
-		$problem = DateFormat::problem($format);
+		$format  = is_string($value) ? trim($value) : throw self::invalid($messages->t('settings.setting.invalid.date_format', 'A date or time format must be text.'));
+		$problem = DateFormat::problem($format, $messages);
 
-		return $problem === null ? $format : throw new InvalidSetting($problem);
+		return $problem === null ? $format : throw self::invalid($problem);
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function home(mixed $value): ?string
+	private static function home(mixed $value, Messages $messages): ?string
 	{
 		return $value === null || (is_string($value) && preg_match('/^[a-z][a-z0-9_-]*$/', $value) === 1)
 			? $value
-			: throw new InvalidSetting('The homepage must name a content type, or be null for the page at user/content/index.md.');
+			: throw self::invalid($messages->t('settings.setting.invalid.home', 'The homepage must name a content type, or be null for the page at user/content/index.md.'));
 	}
 
 	/**
 	 * @return list<string>
 	 * @throws InvalidSetting
 	 */
-	private static function formats(mixed $value): array
+	private static function formats(mixed $value, Messages $messages): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting('Feed formats must be a list: rss, atom, or json.');
+			throw self::invalid($messages->t('settings.setting.invalid.feed_formats', 'Feed formats must be a list: rss, atom, or json.'));
 		}
 
 		foreach ($value as $format) {
 			if (! is_string($format) || FeedFormat::tryFrom($format) === null) {
-				throw new InvalidSetting(sprintf('"%s" isn\'t a feed format; use rss, atom, or json.', is_string($format) ? $format : get_debug_type($format)));
+				throw self::invalid($messages->t('settings.setting.invalid.feed_format', '"{format}" isn\'t a feed format; use rss, atom, or json.', format: is_string($format) ? $format : get_debug_type($format)));
 			}
 		}
 
@@ -609,11 +613,11 @@ enum Setting: string
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function limit(mixed $value): int
+	private static function limit(mixed $value, Messages $messages): int
 	{
 		return is_int($value) && $value >= 1 && $value <= self::FEED_LIMIT_MAX
 			? $value
-			: throw new InvalidSetting(sprintf('A feed holds from 1 to %d entries.', self::FEED_LIMIT_MAX));
+			: throw self::invalid($messages->t('settings.setting.invalid.feed_limit', 'A feed holds from 1 to {max} entries.', max: self::FEED_LIMIT_MAX));
 	}
 
 	/**
@@ -622,40 +626,42 @@ enum Setting: string
 	 *
 	 * @throws InvalidSetting
 	 */
-	private static function theme(mixed $value): string
+	private static function theme(mixed $value, Messages $messages): string
 	{
 		return is_string($value) && ExtensionName::isValid($value)
 			? $value
-			: throw new InvalidSetting('The theme must be a theme\'s name (vendor/name), such as "acme/nova".');
+			: throw self::invalid($messages->t('settings.setting.invalid.theme', 'The theme must be a theme\'s name (vendor/name), such as "acme/nova".'));
 	}
 
 	/**
 	 * @throws InvalidSetting
 	 */
-	private static function adminTheme(mixed $value): string
+	private static function adminTheme(mixed $value, Messages $messages): string
 	{
 		return is_string($value) && ExtensionName::isValid($value)
 			? $value
-			: throw new InvalidSetting('The site\'s admin theme must be an admin theme\'s name (vendor/name), such as "blush/editorial".');
+			: throw self::invalid($messages->t('settings.setting.invalid.admin_theme', 'The site\'s admin theme must be an admin theme\'s name (vendor/name), such as "blush/editorial".'));
 	}
 
 	/**
 	 * Checks a list of extensions' names, and returns it without repeats,
 	 * in order; whether they're installed doesn't matter, so a list
-	 * outlives a plugin that's removed and put back.
+	 * outlives a plugin that's removed and put back. `$kind` is the
+	 * extensions' kind, as the messages' `select` names it.
 	 *
+	 * @param  'plugins'|'icon_packs'|'admin_themes' $kind
 	 * @return list<string>
 	 * @throws InvalidSetting
 	 */
-	private static function names(mixed $value, string $kind): array
+	private static function names(mixed $value, string $kind, Messages $messages): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting(sprintf('The %s turned off must be a list of names.', $kind));
+			throw self::invalid($messages->t('settings.setting.invalid.names', 'The {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off must be a list of names.', kind: $kind));
 		}
 
 		foreach ($value as $name) {
 			if (! is_string($name) || ! ExtensionName::isValid($name)) {
-				throw new InvalidSetting(sprintf('"%s" isn\'t a name; the %s turned off are named vendor/name, such as "acme/gallery".', is_string($name) ? $name : get_debug_type($name), $kind));
+				throw self::invalid($messages->t('settings.setting.invalid.name', '"{name}" isn\'t a name; the {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off are named vendor/name, such as "acme/gallery".', name: is_string($name) ? $name : get_debug_type($name), kind: $kind));
 			}
 		}
 
@@ -672,15 +678,15 @@ enum Setting: string
 	 * @return list<string>
 	 * @throws InvalidSetting
 	 */
-	private static function providers(mixed $value): array
+	private static function providers(mixed $value, Messages $messages): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting('The embeds turned on must be a list of providers\' names.');
+			throw self::invalid($messages->t('settings.setting.invalid.embeds', 'The embeds turned on must be a list of providers\' names.'));
 		}
 
 		foreach ($value as $name) {
 			if (! is_string($name) || ! EmbedConfig::isName($name)) {
-				throw new InvalidSetting(sprintf('"%s" isn\'t an embed provider\'s name, such as "codepen".', is_string($name) ? $name : get_debug_type($name)));
+				throw self::invalid($messages->t('settings.setting.invalid.embed', '"{name}" isn\'t an embed provider\'s name, such as "codepen".', name: is_string($name) ? $name : get_debug_type($name)));
 			}
 		}
 
@@ -697,10 +703,10 @@ enum Setting: string
 	 * @return array<string, mixed>
 	 * @throws InvalidSetting
 	 */
-	private static function uploads(mixed $value): array
+	private static function uploads(mixed $value, Messages $messages): array
 	{
 		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
-			throw new InvalidSetting('The upload rules must be an object: enabled, maxSize, path, and kinds.');
+			throw self::invalid($messages->t('settings.setting.invalid.uploads', 'The upload rules must be an object: enabled, maxSize, path, and kinds.'));
 		}
 
 		try {
@@ -717,15 +723,15 @@ enum Setting: string
 	 * @return list<string>
 	 * @throws InvalidSetting
 	 */
-	private static function blockAi(mixed $value): array
+	private static function blockAi(mixed $value, Messages $messages): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting('The AI crawlers to block must be a list: training, search, or fetchers.');
+			throw self::invalid($messages->t('settings.setting.invalid.block_ai', 'The AI crawlers to block must be a list: training, search, or fetchers.'));
 		}
 
 		foreach ($value as $group) {
 			if (! is_string($group) || AiCrawlerGroup::tryFrom($group) === null) {
-				throw new InvalidSetting(sprintf('"%s" isn\'t a kind of AI crawler; use training, search, or fetchers.', is_string($group) ? $group : get_debug_type($group)));
+				throw self::invalid($messages->t('settings.setting.invalid.crawler', '"{group}" isn\'t a kind of AI crawler; use training, search, or fetchers.', group: is_string($group) ? $group : get_debug_type($group)));
 			}
 		}
 
@@ -739,10 +745,10 @@ enum Setting: string
 	 * @return list<string>
 	 * @throws InvalidSetting
 	 */
-	private static function disallow(mixed $value): array
+	private static function disallow(mixed $value, Messages $messages): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting('The paths robots.txt asks to skip must be a list.');
+			throw self::invalid($messages->t('settings.setting.invalid.disallow', 'The paths robots.txt asks to skip must be a list.'));
 		}
 
 		$paths = [];
@@ -755,14 +761,14 @@ enum Setting: string
 			}
 
 			if (! str_starts_with($path, '/') || preg_match('/[\s\p{Cc}]/u', $path) !== 0) {
-				throw new InvalidSetting(sprintf('"%s" isn\'t a path; a path starts with / and has no spaces, such as /drafts/.', $path));
+				throw self::invalid($messages->t('settings.setting.invalid.path', '"{path}" isn\'t a path; a path starts with / and has no spaces, such as /drafts/.', path: $path));
 			}
 
 			$paths[$path] = true;
 		}
 
 		if (count($paths) > self::DISALLOW_MAX) {
-			throw new InvalidSetting(sprintf('robots.txt can be asked to skip at most %d paths.', self::DISALLOW_MAX));
+			throw self::invalid($messages->t('settings.setting.invalid.disallow_many', 'robots.txt can be asked to skip at most {max} paths.', max: self::DISALLOW_MAX));
 		}
 
 		return array_keys($paths);

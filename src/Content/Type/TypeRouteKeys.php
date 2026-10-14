@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RoutePattern;
+use Blush\Translation\Messages;
 
 /**
  * The route keys a content type answers at, and what each key's path
@@ -130,16 +131,21 @@ final readonly class TypeRouteKeys
 	 * @param  list<string> $relations
 	 * @throws InvalidContentType
 	 */
-	public static function check(ContentType $type, string $key, string $path, array $taxonomies, string $label, array $relations = []): void
+	public static function check(ContentType $type, string $key, string $path, array $taxonomies, string $label, Messages $messages, array $relations = []): void
 	{
 		if (preg_match('#^[A-Za-z0-9._~/{}-]*$#', $path) !== 1) {
-			throw new InvalidContentType(sprintf('The %s address can use letters, digits, "-", "_", ".", "/", and {placeholders}; "%s" has something else.', $label, $path));
+			throw new InvalidContentType((string) $messages->t(
+				'content.type_route_keys.characters',
+				'The {label} address can use letters, digits, "-", "_", ".", "/", and \'{placeholders}\'; "{path}" has something else.',
+				label: $label,
+				path: $path
+			));
 		}
 
 		try {
 			$held = RoutePattern::parse("/{$path}")->params;
 		} catch (InvalidRoute $e) {
-			throw new InvalidContentType(sprintf('The %s address "%s" isn\'t one: %s', $label, $path, $e->getMessage()), previous: $e);
+			throw new InvalidContentType((string) $messages->t('content.type_route_keys.invalid', 'The {label} address "{path}" isn\'t one: {reason}', label: $label, path: $path, reason: $e->getMessage()), previous: $e);
 		}
 
 		['required' => $required, 'optional' => $optional] = self::params($type, $key, $taxonomies, $relations);
@@ -148,16 +154,15 @@ final readonly class TypeRouteKeys
 		$unknown = array_diff($held, $required, $optional);
 
 		if ($missing !== []) {
-			throw new InvalidContentType(sprintf('The %s address needs %s.', $label, self::braced($missing)));
+			throw new InvalidContentType((string) $messages->t('content.type_route_keys.missing', 'The {label} address needs {placeholders}.', label: $label, placeholders: self::braced($missing)));
 		}
 
 		if ($unknown !== []) {
-			throw new InvalidContentType(sprintf(
-				'The %s address can\'t fill %s; it can hold %s.',
-				$label,
-				self::braced($unknown),
-				self::braced([...$required, ...$optional]) ?: 'no placeholders'
-			));
+			$holds = self::braced([...$required, ...$optional]);
+
+			throw new InvalidContentType((string) ($holds === ''
+				? $messages->t('content.type_route_keys.unknown_none', 'The {label} address can\'t fill {placeholders}; it can hold no placeholders.', label: $label, placeholders: self::braced($unknown))
+				: $messages->t('content.type_route_keys.unknown', 'The {label} address can\'t fill {placeholders}; it can hold {held}.', label: $label, placeholders: self::braced($unknown), held: $holds)));
 		}
 	}
 

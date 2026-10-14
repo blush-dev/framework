@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Markdown;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a page does with raw HTML written in Markdown, whoever wrote it
  * (`MarkdownConfig::$html`). Who may add HTML in the admin is a separate
@@ -40,24 +43,24 @@ enum RawHtml: string
 	/**
 	 * Returns what the choice does, as the Writing screen says it.
 	 */
-	public function description(): string
+	public function description(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Allow  => 'HTML is part of the page, as written.',
-			self::Filter => 'HTML is part of the page, but script, frames, forms, and styles show as text, and javascript: links lose their address.',
-			self::Escape => 'HTML shows as text, as it was typed.'
+			self::Allow  => $messages->t('markdown.raw_html.allow.description', 'HTML is part of the page, as written.'),
+			self::Filter => $messages->t('markdown.raw_html.filter.description', 'HTML is part of the page, but script, frames, forms, and styles show as text, and javascript: links lose their address.'),
+			self::Escape => $messages->t('markdown.raw_html.escape.description', 'HTML shows as text, as it was typed.')
 		};
 	}
 
 	/**
 	 * Returns the choice's name, as the Writing screen has it.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Allow  => 'Allowed',
-			self::Filter => 'Filtered',
-			self::Escape => 'Shown as Text'
+			self::Allow  => $messages->t('markdown.raw_html.allow.label', 'Allowed'),
+			self::Filter => $messages->t('markdown.raw_html.filter.label', 'Filtered'),
+			self::Escape => $messages->t('markdown.raw_html.escape.label', 'Shown as Text')
 		};
 	}
 }

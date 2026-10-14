@@ -43,7 +43,7 @@ function locked(role: RoleInfo): boolean {
 			<span class="role-check__text">
 				<span class="role-check__name">{{ role.label }}</span>
 				<span v-if="role.description" class="role-check__about">{{ role.description }}</span>
-				<span v-if="!role.grantable" class="role-check__about">{{ role.name === OWNER ? 'Only an owner gives or takes it.' : 'It can do things you can\'t, so you can\'t give or take it.' }}</span>
+				<span v-if="!role.grantable" class="role-check__about">{{ role.name === OWNER ? t('role_checks.owner_only', 'Only an owner gives or takes it.') : t('role_checks.not_grantable', 'It can do things you can\'t, so you can\'t give or take it.') }}</span>
 			</span>
 		</label>
 	</div>

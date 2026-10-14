@@ -25,9 +25,9 @@
  */
 
 import { computed, nextTick, ref } from 'vue';
-import { plural } from '../format';
 import { toast } from '../toast';
-import { canDrop, canMove, find, flatten, moveNode, moveTo, within, type Accepts, type Move, type Placed, type TreeNode, type Where } from '../tree';
+import { t } from '../messages';
+import { canDrop, canMove, find, flatten, moveNode, moveTo, within, type Accepts, type ItemTreeWords, type Move, type Placed, type TreeNode, type Where } from '../tree';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 
@@ -35,10 +35,8 @@ const props = withDefaults(defineProps<{
 	nodes: T[];
 	// A node's name, for buttons and what's read out.
 	name: (node: T) => string;
-	// What's under a closed row, counted: "sub-item", "field".
-	under: string;
-	// What the menu adds: "item", "field".
-	noun: string;
+	// What the tree says about its nodes, in the screen's words.
+	words: ItemTreeWords;
 	// What labels the tree.
 	labelledBy: string;
 	// A node to add, and a copy of one, with new page ids.
@@ -80,11 +78,11 @@ const parents = computed(() => !props.flat && flatten(props.nodes).some((placed)
 const closed  = computed(() => !props.flat && flatten(props.nodes).some((placed) => placed.node.children.length > 0 && !placed.node.open));
 const current = computed(() => selected.value !== null && rows.value.some((placed) => placed.node.id === selected.value) ? selected.value : rows.value[0]?.node.id ?? null);
 
-const ALL_MOVES: { move: Move; icon: 'arrow-up' | 'arrow-down' | 'indent-decrease' | 'indent-increase'; tip: string; label: string; said: string }[] = [
-	{ move: 'up', icon: 'arrow-up', tip: 'Move Up (⌥↑)', label: 'Move up', said: 'Moved up' },
-	{ move: 'down', icon: 'arrow-down', tip: 'Move Down (⌥↓)', label: 'Move down', said: 'Moved down' },
-	{ move: 'out', icon: 'indent-decrease', tip: 'Outdent (⌥←)', label: 'Outdent', said: 'Outdented' },
-	{ move: 'in', icon: 'indent-increase', tip: 'Indent (⌥→)', label: 'Indent', said: 'Indented' }
+const ALL_MOVES: { move: Move; icon: 'arrow-up' | 'arrow-down' | 'indent-decrease' | 'indent-increase'; tip: string; label: (name: string) => string; said: string }[] = [
+	{ move: 'up', icon: 'arrow-up', tip: t('item_tree.move_up_tip', 'Move Up (⌥↑)'), label: (name) => t('item_tree.move_up', 'Move up {name}', { name }), said: t('item_tree.moved_up', 'Moved up') },
+	{ move: 'down', icon: 'arrow-down', tip: t('item_tree.move_down_tip', 'Move Down (⌥↓)'), label: (name) => t('item_tree.move_down', 'Move down {name}', { name }), said: t('item_tree.moved_down', 'Moved down') },
+	{ move: 'out', icon: 'indent-decrease', tip: t('item_tree.outdent_tip', 'Outdent (⌥←)'), label: (name) => t('item_tree.outdent', 'Outdent {name}', { name }), said: t('item_tree.outdented', 'Outdented') },
+	{ move: 'in', icon: 'indent-increase', tip: t('item_tree.indent_tip', 'Indent (⌥→)'), label: (name) => t('item_tree.indent', 'Indent {name}', { name }), said: t('item_tree.indented', 'Indented') }
 ];
 
 // A flat tree moves only up and down.
@@ -104,7 +102,11 @@ function where(id: string): string {
 		return '';
 	}
 
-	return `level ${placed.depth + 1}, ${placed.index + 1} of ${placed.list.length}${placed.parent ? ` inside ${props.name(placed.parent)}` : ' at the top'}`;
+	const at = { level: placed.depth + 1, position: placed.index + 1, count: placed.list.length };
+
+	return placed.parent
+		? t('item_tree.where_inside', 'level {level}, {position} of {count} inside {parent}', { ...at, parent: props.name(placed.parent) })
+		: t('item_tree.where_top', 'level {level}, {position} of {count} at the top', at);
 }
 
 function underCount(node: T): number {
@@ -136,14 +138,14 @@ function select(id: string, then?: string): void {
 
 function act(id: string, move: Move, then?: string): void {
 	if (props.locked || !moveNode(props.nodes, id, move, props.accepts)) {
-		say('Can\'t move it that way from here.');
+		say(t('item_tree.cannot_move', 'Can\'t move it that way from here.'));
 
 		return;
 	}
 
 	emit('change');
 	selected.value = id;
-	say(`${ALL_MOVES.find((item) => item.move === move)!.said}. ${props.name(find(props.nodes, id)!.node)} is ${where(id)}.`);
+	say(t('item_tree.moved_where', '{said}. {name} is {where}.', { said: ALL_MOVES.find((item) => item.move === move)!.said, name: props.name(find(props.nodes, id)!.node), where: where(id) }));
 	void focus(id, then ?? '.item-tree__pick');
 }
 
@@ -183,7 +185,7 @@ async function edit(id: string): Promise<void> {
 	}
 
 	if (node !== undefined) {
-		say(`Editing ${props.name(node)}`);
+		say(t('item_tree.editing', 'Editing {name}', { name: props.name(node) }));
 	}
 }
 
@@ -224,7 +226,7 @@ async function add(place: 'above' | 'below' | 'inside' = 'below', id: string | n
 		void focus(node.id);
 	}
 
-	say(`Added ${props.noun === 'item' ? 'an' : 'a'} ${props.noun}${placed ? ` ${{ above: 'above', below: 'after', inside: 'inside' }[place]} ${props.name(placed.node)}` : ''}.`);
+	say(placed ? props.words.added(place, props.name(placed.node)) : props.words.added(null, ''));
 
 	await nextTick();
 
@@ -262,7 +264,7 @@ async function remove(id: string): Promise<void> {
 		void focus(next.id);
 	}
 
-	toast(`Removed ${props.name(node)}${count ? ` and its ${plural(count, props.under)}` : ''}`, {
+	toast(count ? props.words.removedWith(props.name(node), count) : t('item_tree.removed', 'Removed {name}', { name: props.name(node) }), {
 		undo: () => {
 			list.splice(index, 0, node);
 			emit('change');
@@ -284,7 +286,7 @@ function duplicate(id: string): void {
 	emit('change');
 	select(copy.id);
 
-	toast(`Duplicated ${props.name(placed.node)}`, {
+	toast(t('item_tree.duplicated', 'Duplicated {name}', { name: props.name(placed.node) }), {
 		undo: () => {
 			const there = find(props.nodes, copy.id);
 
@@ -330,7 +332,7 @@ function key(event: KeyboardEvent, placed: Placed<T>): void {
 		event.preventDefault();
 
 		if (!movable(placed.node.id, move)) {
-			say('Can\'t move it that way from here.');
+			say(t('item_tree.cannot_move', 'Can\'t move it that way from here.'));
 
 			return;
 		}
@@ -432,7 +434,7 @@ function dropped(event: DragEvent): void {
 
 	emit('change');
 	selected.value = id;
-	say(`Moved ${props.name(find(props.nodes, id)!.node)}, ${where(id)}.`);
+	say(t('item_tree.moved', 'Moved {name}, {where}.', { name: props.name(find(props.nodes, id)!.node), where: where(id) }));
 	void focus(id);
 }
 
@@ -471,7 +473,7 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 				<span class="item-tree__grip" aria-hidden="true"><AdminIcon v-if="!locked" name="grip-vertical" /></span>
 				<span class="item-tree__indent" />
 				<button v-if="placed.node.children.length && !flat" type="button" class="item-tree__twist" tabindex="-1" :aria-expanded="placed.node.open" @click="twist(placed)">
-					<AdminIcon name="chevron-right" /><span class="visually-hidden">{{ placed.node.open ? 'Hide' : 'Show' }} the {{ under }}s under {{ name(placed.node) }}</span>
+					<AdminIcon name="chevron-right" /><span class="visually-hidden">{{ placed.node.open ? words.hideUnder(name(placed.node)) : words.showUnder(name(placed.node)) }}</span>
 				</button>
 				<span v-else-if="!flat" class="item-tree__twist" />
 				<button
@@ -484,7 +486,7 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 					@dblclick="edit(placed.node.id)"
 				>
 					<slot name="pick" :placed="placed" :selected="current === placed.node.id" />
-					<span v-if="placed.node.children.length && (flat || !placed.node.open)" class="item-tree__under">{{ plural(underCount(placed.node), under) }}</span>
+					<span v-if="placed.node.children.length && (flat || !placed.node.open)" class="item-tree__under">{{ words.under(underCount(placed.node)) }}</span>
 					<span class="visually-hidden">, {{ where(placed.node.id) }}</span>
 				</button>
 				<span class="item-tree__controls">
@@ -500,7 +502,7 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 							:disabled="!movable(placed.node.id, item.move)"
 							@click="act(placed.node.id, item.move, `.item-tree__move[data-move='${item.move}']`)"
 						>
-							<AdminIcon :name="item.icon" /><span class="visually-hidden">{{ item.label }} {{ name(placed.node) }}</span>
+							<AdminIcon :name="item.icon" /><span class="visually-hidden">{{ item.label(name(placed.node)) }}</span>
 						</button>
 						<span class="item-tree__rule" aria-hidden="true" />
 					</template>
@@ -508,22 +510,22 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 						type="button"
 						class="item-tree__button item-tree__edit"
 						:tabindex="current === placed.node.id || editing === placed.node.id ? 0 : -1"
-						:title="editing === placed.node.id ? 'Close' : (locked ? 'Open (F2)' : 'Edit (F2)')"
+						:title="editing === placed.node.id ? t('common.close', 'Close') : (locked ? t('item_tree.open_f2', 'Open (F2)') : t('item_tree.edit_f2', 'Edit (F2)'))"
 						:aria-expanded="editing === placed.node.id"
 						:aria-controls="`item-tree-${placed.node.id}`"
 						@click="edit(placed.node.id)"
 					>
-						<AdminIcon :name="locked ? 'eye' : 'pen-line'" /><span class="visually-hidden">{{ locked ? 'Open' : 'Edit' }} {{ name(placed.node) }}</span>
+						<AdminIcon :name="locked ? 'eye' : 'pen-line'" /><span class="visually-hidden">{{ locked ? t('item_tree.open_name', 'Open {name}', { name: name(placed.node) }) : t('item_tree.edit_name', 'Edit {name}', { name: name(placed.node) }) }}</span>
 					</button>
-					<MenuButton v-if="!locked" button-class="item-tree__button" :label="`More actions for ${name(placed.node)}`" floating @open="selected = placed.node.id">
+					<MenuButton v-if="!locked" button-class="item-tree__button" :label="t('item_tree.more_actions', 'More actions for {name}', { name: name(placed.node) })" floating @open="selected = placed.node.id">
 						<template #button><AdminIcon name="ellipsis-vertical" /></template>
-						<button type="button" class="menu-item" @click="add('above', placed.node.id)"><AdminIcon name="arrow-up" />Add {{ noun }} above</button>
-						<button type="button" class="menu-item" @click="add('below', placed.node.id)"><AdminIcon name="arrow-down" />Add {{ noun }} below</button>
+						<button type="button" class="menu-item" @click="add('above', placed.node.id)"><AdminIcon name="arrow-up" />{{ words.addAbove }}</button>
+						<button type="button" class="menu-item" @click="add('below', placed.node.id)"><AdminIcon name="arrow-down" />{{ words.addBelow }}</button>
 						<slot name="menu" :placed="placed" />
 						<div class="menu-divider" />
-						<button type="button" class="menu-item" @click="duplicate(placed.node.id)"><AdminIcon name="copy" />Duplicate</button>
+						<button type="button" class="menu-item" @click="duplicate(placed.node.id)"><AdminIcon name="copy" />{{ t('item_tree.duplicate', 'Duplicate') }}</button>
 						<div class="menu-divider" />
-						<button type="button" class="menu-item menu-item--danger" @click="remove(placed.node.id)"><AdminIcon name="trash-2" />Remove</button>
+						<button type="button" class="menu-item menu-item--danger" @click="remove(placed.node.id)"><AdminIcon name="trash-2" />{{ t('common.remove', 'Remove') }}</button>
 					</MenuButton>
 				</span>
 			</div>

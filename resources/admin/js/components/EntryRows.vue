@@ -9,7 +9,8 @@
 import { RouterLink } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import StatusPill from './StatusPill.vue';
-import { formatWhen, plural } from '../format';
+import { formatWhen } from '../format';
+import { t } from '../messages';
 import { labelsOf, listRoute } from '../types';
 import type { DashboardEntry } from '../api';
 
@@ -26,15 +27,15 @@ function sub(entry: DashboardEntry, credits: boolean): string {
 	const parts = [];
 
 	if (credits && (entry.yours || entry.authors.length > 0)) {
-		parts.push(entry.yours ? 'You' : entry.authors.join(', '));
+		parts.push(entry.yours ? t('entry_rows.you', 'You') : entry.authors.join(', '));
 	}
 
 	const idle = Math.floor((Date.now() - new Date(entry.updated).getTime()) / 86_400_000);
 
 	if (entry.status === 'draft' && idle >= STALE_DAYS) {
-		parts.push(`Untouched for ${plural(idle, 'day')}`);
+		parts.push(t('entry_rows.untouched', 'Untouched for {count, plural, one {# day} other {# days}}', { count: idle }));
 	} else if (entry.status === 'scheduled') {
-		parts.push('Goes live on its own');
+		parts.push(t('entry_rows.goes_live', 'Goes live on its own'));
 	}
 
 	return [labelsOf(entry.type).singular, ...parts].join(' · ');
@@ -50,7 +51,7 @@ function when(entry: DashboardEntry): string {
 		<li v-for="entry in entries" :key="entry.path">
 			<RouterLink class="rows__link" :to="listRoute(entry)">
 				<span class="rows__main">
-					<span class="rows__title" :class="{ untitled: !entry.title }">{{ entry.title || 'Untitled' }}</span>
+					<span class="rows__title" :class="{ untitled: !entry.title }">{{ entry.title || t('entry_rows.untitled', 'Untitled') }}</span>
 					<span class="rows__sub">{{ sub(entry, credits) }}</span>
 				</span>
 				<span class="rows__side">

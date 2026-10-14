@@ -20,7 +20,7 @@ import {
 	type MarkdownBlock,
 	type MarkdownOutline
 } from './markdown';
-import { plural } from './format';
+import { t } from './messages';
 
 export interface ElementRef {
 	kind: 'block' | 'image' | 'markdown';
@@ -219,7 +219,7 @@ export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], r
 	}
 
 	if (ref.kind === 'image') {
-		return 'Image';
+		return t('elements.image', 'Image');
 	}
 
 	const markdownBlock = found[ref.index];
@@ -228,7 +228,7 @@ export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], r
 		return '';
 	}
 
-	return markdownBlock.kind === 'heading' ? `Heading ${headingLevel(markdown, markdownBlock)}` : MARKDOWN_BLOCK_KINDS[markdownBlock.kind].label;
+	return markdownBlock.kind === 'heading' ? t('elements.heading', 'Heading {level}', { level: headingLevel(markdown, markdownBlock) }) : MARKDOWN_BLOCK_KINDS[markdownBlock.kind].label;
 }
 
 /**
@@ -272,16 +272,16 @@ export function excerpt(source: string, markdown: MarkdownOutline, found: Markdo
 			const language = (lines[0] ?? '').replace(/^\s*(?:`{3,}|~{3,})/, '').replace(/\{[^}]*\}\s*$/, '').trim();
 			const count    = Math.max(0, lines.length - 2);
 
-			return `${language || 'plain'} · ${plural(count, 'line')}`;
+			return t('elements.code_excerpt', '{language} · {count, plural, one {# line} other {# lines}}', { language: language || t('elements.plain', 'plain'), count });
 		}
 		case 'table':
-			return plural((lines[0] ?? '').split('|').filter((cell) => cell.trim() !== '').length, 'column');
+			return t('elements.columns', '{count, plural, one {# column} other {# columns}}', { count: (lines[0] ?? '').split('|').filter((cell) => cell.trim() !== '').length });
 		case 'list':
-			return `${LIST_STYLES[listStyle(markdown, found, markdownBlock)].label} · ${plural(listItems(found, markdownBlock).length, 'item')}`;
+			return t('elements.list_excerpt', '{style} · {count, plural, one {# item} other {# items}}', { style: LIST_STYLES[listStyle(markdown, found, markdownBlock)].label, count: listItems(found, markdownBlock).length });
 		case 'definitions': {
 			const inside = found.filter((item) => item.first >= markdownBlock.first && item.last <= markdownBlock.last);
 
-			return `${plural(inside.filter((item) => item.kind === 'term').length, 'term')} · ${plural(inside.filter((item) => item.kind === 'definition').length, 'definition')}`;
+			return t('elements.definitions_excerpt', '{terms, plural, one {# term} other {# terms}} · {definitions, plural, one {# definition} other {# definitions}}', { terms: inside.filter((item) => item.kind === 'term').length, definitions: inside.filter((item) => item.kind === 'definition').length });
 		}
 	}
 

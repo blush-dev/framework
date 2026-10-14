@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
+use Blush\Translation\Text;
+
 /**
  * A site menu as the `menus` table keeps it (D-676): its name, where
  * it's kept (for people), its own label (text or a locale map), and its
@@ -22,8 +24,8 @@ namespace Blush\Menu;
 final readonly class MenuRecord
 {
 	/**
-	 * @param list<mixed>  $items
-	 * @param list<string> $problems
+	 * @param list<mixed>       $items
+	 * @param list<string|Text> $problems
 	 */
 	public function __construct(
 		public string $name,

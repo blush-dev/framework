@@ -41,6 +41,7 @@ use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * The filesystem driver's media table (D-674, D-675): the metadata files
@@ -73,6 +74,7 @@ final readonly class MediaFiles implements RecordStore, LocatingStore
 	public function __construct(
 		private Paths $paths,
 		private FileTransactions $transactions,
+		private Messages $messages,
 		private Filesystem $filesystem = new Filesystem(),
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
@@ -133,10 +135,10 @@ final readonly class MediaFiles implements RecordStore, LocatingStore
 		try {
 			$data = trim($text) === '' ? [] : json_decode($text, true, 512, JSON_THROW_ON_ERROR);
 		} catch (JsonException $error) {
-			throw new InvalidRecord(sprintf('%s isn\'t valid JSON: %s', $this->paths->relative($file), $error->getMessage()), previous: $error);
+			throw new InvalidRecord((string) $this->messages->t('media.media_files.invalid_json', '{file} isn\'t valid JSON: {problem}', file: $this->paths->relative($file), problem: $error->getMessage()), previous: $error);
 		}
 
-		return is_array($data) ? $data : throw new InvalidRecord(sprintf('%s must hold a JSON object.', $this->paths->relative($file)));
+		return is_array($data) ? $data : throw new InvalidRecord((string) $this->messages->t('media.media_files.not_an_object', '{file} must hold a JSON object.', file: $this->paths->relative($file)));
 	}
 
 	/**
@@ -517,7 +519,7 @@ final readonly class MediaFiles implements RecordStore, LocatingStore
 		try {
 			$this->filesystem->writeAtomic($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n", 0664);
 		} catch (Throwable $error) {
-			throw new RecordStoreFailure(sprintf('Unable to write %s.', $this->paths->relative($file)), previous: $error);
+			throw new RecordStoreFailure((string) $this->messages->t('media.media_files.unwritable', 'Unable to write {file}.', file: $this->paths->relative($file)), previous: $error);
 		}
 	}
 
@@ -535,7 +537,7 @@ final readonly class MediaFiles implements RecordStore, LocatingStore
 		$this->transactions->remember($file);
 
 		if (! @unlink($file)) {
-			throw new RecordStoreFailure(sprintf('Unable to delete %s.', $this->paths->relative($file)));
+			throw new RecordStoreFailure((string) $this->messages->t('media.media_files.undeletable', 'Unable to delete {file}.', file: $this->paths->relative($file)));
 		}
 	}
 }

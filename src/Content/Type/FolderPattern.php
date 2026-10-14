@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use DateTimeInterface;
 use Stringable;
+use Blush\Translation\Messages;
 
 /**
  * The folders a collection or profiles type keeps its files in below its
@@ -54,22 +55,31 @@ final readonly class FolderPattern implements Stringable
 	public array $tokens;
 
 	/**
+	 * @param  Messages $messages Writes why a pattern is refused; English
+	 *                            without a translator, for a pattern in code.
 	 * @throws InvalidContentType When the pattern isn't one.
 	 */
-	public function __construct(public string $pattern)
+	public function __construct(public string $pattern, Messages $messages = new Messages())
 	{
 		$segments = explode('/', $pattern);
 		$tokens   = array_map(static fn (string $segment): string => preg_match('/^\{([a-z]+)\}$/', $segment, $match) === 1 ? $match[1] : '', $segments);
+		$unknown  = array_diff($tokens, array_keys(self::TOKENS));
 		$problem  = match (true) {
-			in_array('', $tokens, true)                                          => 'must be tokens, one to a folder.',
-			array_diff($tokens, array_keys(self::TOKENS)) !== []                 => sprintf('uses {%s}; the tokens are {%s}.', implode('}, {', array_diff($tokens, array_keys(self::TOKENS))), implode('}, {', array_keys(self::TOKENS))),
-			count($tokens) !== count(array_unique($tokens))                      => 'uses a token twice.',
-			in_array('month', $tokens, true) && ! self::before('year', 'month', $tokens) => 'needs {year} before {month}.',
-			default                                                              => null
+			in_array('', $tokens, true)                          => $messages->t('content.folder_pattern.one_token', 'The folder pattern "{pattern}" must be tokens, one to a folder.', pattern: $pattern),
+			$unknown !== []                                      => $messages->t(
+				'content.folder_pattern.unknown_tokens',
+				'The folder pattern "{pattern}" uses {unknown}; the tokens are {tokens}.',
+				pattern: $pattern,
+				unknown: '{' . implode('}, {', $unknown) . '}',
+				tokens: '{' . implode('}, {', array_keys(self::TOKENS)) . '}'
+			),
+			count($tokens) !== count(array_unique($tokens))      => $messages->t('content.folder_pattern.twice', 'The folder pattern "{pattern}" uses a token twice.', pattern: $pattern),
+			in_array('month', $tokens, true) && ! self::before('year', 'month', $tokens) => $messages->t('content.folder_pattern.year_first', 'The folder pattern "{pattern}" needs \'{year}\' before \'{month}\'.', pattern: $pattern),
+			default                                              => null
 		};
 
 		if ($problem !== null) {
-			throw new InvalidContentType(sprintf('The folder pattern "%s" %s', $pattern, $problem));
+			throw new InvalidContentType((string) $problem);
 		}
 
 		$this->tokens = $tokens;

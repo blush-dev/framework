@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\Health\ContentHealth;
+use Blush\Admin\Health\SiteHealth;
 use Blush\Admin\Http\BlocksController;
 use Blush\Admin\Http\EntriesController;
 use Blush\Admin\Http\HealthController;
@@ -26,6 +27,7 @@ use Blush\Block\Callout;
 use Blush\Block\BlockRegistry;
 use Blush\Content\Entries;
 use Blush\Content\Type\TypeLabels;
+use Blush\Translation\CurrentLocale;
 
 #[CoversClass(BlocksController::class)]
 #[CoversClass(EntriesController::class)]
@@ -781,6 +783,44 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('POST', '/health/site')->getStatusCode(), 'Checking again needs the CSRF token.');
 		$again = self::json($this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $this->token()]));
 		$this->assertIsArray($again['checks'] ?? null);
+	}
+
+	public function testSiteHealthsKeptReportIsShownInItsReadersLanguage(): void
+	{
+		$this->site(['owner']);
+		$this->send('GET', '/health/site');
+
+		// The report keeps each check's words as messages, not sentences
+		// (D-836).
+		$file = $this->temporaryDirectory() . '/storage/health.json';
+		$kept = json_decode((string) file_get_contents($file), true);
+		$this->assertIsArray($kept);
+		$this->assertIsArray($kept['checks'] ?? null);
+		$this->assertIsArray($stored = array_find($kept['checks'], static fn (mixed $check): bool => is_array($check) && ($check['area'] ?? null) === 'content' && ($check['key'] ?? null) === 'files'));
+		$this->assertSame(['key' => 'admin.site_health.checks.content_files', 'text' => 'Content files', 'domain' => 'core', 'params' => []], $stored['label'] ?? null);
+		$this->assertSame('admin.site_health.checks.files_errors', is_array($stored['message'] ?? null) ? $stored['message']['key'] ?? null : null);
+
+		// Read in another language, it's in that language.
+		$this->writeTemporaryFile('user/lang/fr/core.json', '{"admin": {"site_health": {"checks": {"content_files": "Fichiers de contenu", "files_errors": "{count, plural, one {# fichier a des erreurs} other {# fichiers ont des erreurs}}."}}}}');
+		$container = $this->app->container();
+		$french    = $container->make(CurrentLocale::class)->in('fr', static fn (): string => (string) json_encode($container->make(SiteHealth::class)->saved()));
+		$french    = json_decode($french, true);
+		$this->assertIsArray($french);
+		$checks = $french['checks'] ?? null;
+		$this->assertIsArray($checks);
+		$this->assertSame('1 fichier a des erreurs.', array_column($checks, 'message', 'label')['Fichiers de contenu'] ?? null);
+		$english = self::json($this->send('GET', '/health/site'))['checks'] ?? null;
+		$this->assertIsArray($english);
+		$this->assertSame('1 file has errors.', array_column($english, 'message', 'label')['Content files'] ?? null, 'And in English for an English reader.');
+
+		// A report kept before its words were messages shows as it was kept.
+		$kept['checks'][] = ['area' => 'system', 'key' => 'old', 'status' => 'warning', 'label' => 'Old words', 'message' => 'As they were.', 'hint' => '', 'link' => null];
+		$this->writeTemporaryFile('storage/health.json', (string) json_encode($kept));
+		$saved = $container->make(SiteHealth::class)->saved()['checks'] ?? null;
+		$this->assertIsArray($saved);
+		$old = array_column($saved, null, 'key')['old'] ?? null;
+		$this->assertIsArray($old);
+		$this->assertSame(['Old words', 'As they were.'], [$old['label'] ?? null, $old['message'] ?? null]);
 	}
 
 	public function testOnlySiteHealthSeesContentHealth(): void

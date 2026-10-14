@@ -93,8 +93,8 @@
     "name": "FieldInput",
     "imports": [
       "js/admin.ts",
-      "_references.js",
       "_AdminSelect.js",
+      "_references.js",
       "_ToggleSwitch.js",
       "_IconField.js",
       "_media.js"
@@ -390,6 +390,7 @@
     "file": "js/icon-packs.js",
     "name": "icon-packs",
     "imports": [
+      "js/admin.ts",
       "_extensions.js"
     ]
   },
@@ -487,7 +488,10 @@
   },
   "_type-form.js": {
     "file": "js/type-form.js",
-    "name": "type-form"
+    "name": "type-form",
+    "imports": [
+      "js/admin.ts"
+    ]
   },
   "fonts/fira-code-latin-400-normal.woff2": {
     "file": "fonts/fira-code-latin-400-normal.woff2",
@@ -575,6 +579,7 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
+      "_AdminSelect.js",
       "_AdminThemeSketch.js",
       "_CapabilitySections.js",
       "_RoleChecks.js",
@@ -656,8 +661,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_references.js",
       "_AdminSelect.js",
+      "_references.js",
       "_referrers.js",
       "_homepage.js",
       "_RawValues.js",
@@ -680,8 +685,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_references.js",
       "_AdminSelect.js",
+      "_references.js",
       "_SkeletonTable.js",
       "_query.js",
       "_density.js",
@@ -838,9 +843,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
+      "_AdminSelect.js",
       "_RoleChecks.js",
-      "_references.js",
-      "_AdminSelect.js"
+      "_references.js"
     ],
     "css": [
       "css/NewAccountView.css"

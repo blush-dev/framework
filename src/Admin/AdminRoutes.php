@@ -16,6 +16,7 @@ namespace Blush\Admin;
 use Override;
 use Blush\Admin\Http\AccountEditController;
 use Blush\Admin\Http\ActivityController;
+use Blush\Admin\Http\AdminLanguage;
 use Blush\Admin\Http\AdminThemeAssetController;
 use Blush\Admin\Http\AdminThemeEditController;
 use Blush\Admin\Http\AdminThemesController;
@@ -383,7 +384,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/settings/date-format', [SettingsController::class, 'format'])->named('settings.date-format')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),
 			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
-		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class], exact: true);
+		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class, AdminLanguage::class], exact: true);
 
 		$app = Route::group($this->config->path, [
 			Route::get('/assets/admin-themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/{file:[A-Za-z0-9._/-]+}', AdminThemeAssetController::class)->named('admin-theme.asset'),

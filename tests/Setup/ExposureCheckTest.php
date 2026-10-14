@@ -25,6 +25,7 @@ use Blush\Setup\ProbeResponse;
 use Blush\Setup\UrlProbe;
 use Blush\Support\Filesystem;
 use Blush\Tests\TemporaryDirectory;
+use Blush\Translation\Messages;
 
 #[CoversClass(ExposureCheck::class)]
 final class ExposureCheckTest extends TestCase
@@ -73,7 +74,7 @@ final class ExposureCheckTest extends TestCase
 			}
 		};
 
-		return new ExposureCheck(Paths::fromRoot($this->temporaryDirectory()), new AppConfig(url: $url, environment: $environment), $probe, new Filesystem());
+		return new ExposureCheck(Paths::fromRoot($this->temporaryDirectory()), new AppConfig(url: $url, environment: $environment), $probe, new Filesystem(), new Messages());
 	}
 
 	public function testFailsWhenTheSiteFolderIsServed(): void
@@ -82,7 +83,7 @@ final class ExposureCheckTest extends TestCase
 		$result = $this->check(static fn (string $path): ProbeResponse => is_file($root . $path) ? new ProbeResponse(200, (string) file_get_contents($root . $path)) : new ProbeResponse(404, ''))->run();
 
 		$this->assertSame(CheckStatus::Failure, $result->status);
-		$this->assertSame('Anyone can download .env, config/app.php, and storage/ from https://example.test.', $result->message);
+		$this->assertSame('Anyone can download .env, config/app.php, and storage/ from https://example.test.', (string) $result->message);
 		$this->assertSame(['/.env', '/config/app.php', '/storage/' . ExposureCheck::SENTINEL], $this->asked);
 		$this->assertFileDoesNotExist("{$root}/storage/" . ExposureCheck::SENTINEL, 'The sentinel is removed.');
 	}
@@ -92,7 +93,7 @@ final class ExposureCheckTest extends TestCase
 		$result = $this->check(static fn (): ProbeResponse => new ProbeResponse(200, '<!doctype html><title>Home</title>'))->run();
 
 		$this->assertSame(CheckStatus::Pass, $result->status, 'A 200 that isn\'t the file isn\'t the file.');
-		$this->assertSame('Not served at https://example.test: .env, config/app.php, and storage/.', $result->message);
+		$this->assertSame('Not served at https://example.test: .env, config/app.php, and storage/.', (string) $result->message);
 	}
 
 	public function testWarnsWhenTheAddressCantBeReached(): void
@@ -100,7 +101,7 @@ final class ExposureCheckTest extends TestCase
 		$result = $this->check(static fn (): ?ProbeResponse => null)->run();
 
 		$this->assertSame(CheckStatus::Warning, $result->status);
-		$this->assertStringStartsWith('Couldn\'t reach https://example.test to check', $result->message);
+		$this->assertStringStartsWith('Couldn\'t reach https://example.test to check', (string) $result->message);
 	}
 
 	public function testRunsOnlyInProductionAtAnAddressOthersCanReach(): void

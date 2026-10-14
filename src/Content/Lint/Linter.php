@@ -48,6 +48,7 @@ use Blush\Field\ViolationKind;
 use Blush\Routing\RouteTable;
 use Blush\Media\MediaException;
 use Blush\Media\MediaMetadataCheck;
+use Blush\Translation\Messages;
 
 /**
  * Checks every content file, as `content:lint` reports it. It reads the
@@ -96,7 +97,8 @@ final readonly class Linter
 		private FormatCheck $formats,
 		private AppConfig $app,
 		private Relations $relations,
-		private MediaFieldIds $mediaFields
+		private MediaFieldIds $mediaFields,
+		private Messages $messages
 	) {}
 
 	/**
@@ -161,8 +163,8 @@ final readonly class Linter
 				}
 
 				$violations[$path][] = ($snapshot->records[$path]['original'] ?? null) === $winner
-					? new Violation(self::FILE, sprintf('has the default language\'s suffix beside %s, which wins; the default language needs none, so remove one.', $winner), Severity::Warning, ViolationKind::Duplicate)
-					: new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning, ViolationKind::Duplicate);
+					? new Violation(self::FILE, $this->messages->t('content.linter.default_suffix', 'has the default language\'s suffix beside {winner}, which wins; the default language needs none, so remove one.', winner: $winner), Severity::Warning, ViolationKind::Duplicate)
+					: new Violation(self::FILE, $this->messages->t('content.linter.duplicate', 'is the same entry as {winner}, which wins.', winner: $winner), Severity::Warning, ViolationKind::Duplicate);
 			}
 		}
 
@@ -170,12 +172,12 @@ final readonly class Linter
 			foreach ($paths as $path) {
 				$others = array_values(array_diff($paths, [$path]));
 
-				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.', implode(', ', $others)), kind: ViolationKind::Id);
+				$violations[$path][] = new Violation(EntryFields::ID, $this->messages->t('content.linter.shared_id', 'is also the id of {paths}; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.', paths: implode(', ', $others)), kind: ViolationKind::Id);
 			}
 		}
 
 		foreach ($snapshot->records as $path => $record) {
-			[, $problem] = IndexSnapshot::translationOf($record, $snapshot->ids, $snapshot->records);
+			[, $problem] = IndexSnapshot::translationOf($record, $snapshot->ids, $snapshot->records, $this->messages);
 
 			if ($problem !== null) {
 				$violations[$path][] = new Violation(EntryFields::TRANSLATION_OF, $problem, kind: ViolationKind::Translation);
@@ -258,7 +260,7 @@ final readonly class Linter
 		$file = $this->contentFiles->source()->stat($path);
 
 		if ($file === null) {
-			return [new Violation(self::FILE, 'doesn\'t exist.', kind: ViolationKind::Unreadable)];
+			return [new Violation(self::FILE, $this->messages->t('content.linter.missing', 'doesn\'t exist.'), kind: ViolationKind::Unreadable)];
 		}
 
 		try {
@@ -294,7 +296,7 @@ final readonly class Linter
 		$orderBy = $collection['orderby'] ?? null;
 
 		return in_array($orderBy, Query::FILE_ORDER, true)
-			? [new Violation('collection', sprintf('"orderby: %s" is read as "published"; entries are never sorted by file. Write "orderby: published".', $orderBy), Severity::Warning, ViolationKind::Collection)]
+			? [new Violation('collection', $this->messages->t('content.linter.file_order', '"orderby: {order}" is read as "published"; entries are never sorted by file. Write "orderby: published".', order: $orderBy), Severity::Warning, ViolationKind::Collection)]
 			: [];
 	}
 
@@ -337,7 +339,7 @@ final readonly class Linter
 				continue;
 			}
 
-			$violations[] = new Violation($key, sprintf('"%s-%s-%s" isn\'t a real date, so it\'s read as %s.', $matches[1], $matches[2], $matches[3], $read), Severity::Warning, ViolationKind::Date);
+			$violations[] = new Violation($key, $this->messages->t('content.linter.unreal_date', '"{date}" isn\'t a real date, so it\'s read as {read}.', date: "{$matches[1]}-{$matches[2]}-{$matches[3]}", read: $read), Severity::Warning, ViolationKind::Date);
 		}
 
 		return $violations;
@@ -396,12 +398,11 @@ final readonly class Linter
 		$suffix    = $record->original === null ? '' : ".{$record->language}";
 		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
-		return [new Violation(self::FILE, sprintf(
-			'has an order prefix, which only collections use; %s don\'t%s. Rename it %s.',
-			$type->labels->items,
-			$type->filename === null ? '' : sprintf(', beyond their file name pattern (%s) on files', $type->filename->pattern),
-			$suggested
-		), kind: ViolationKind::Prefix)];
+		$message = $type->filename === null
+			? $this->messages->t('content.linter.prefix', 'has an order prefix, which only collections use; {items} don\'t. Rename it {path}.', items: $type->labels->items, path: $suggested)
+			: $this->messages->t('content.linter.prefix_beyond_pattern', 'has an order prefix, which only collections use; {items} don\'t, beyond their file name pattern ({pattern}) on files. Rename it {path}.', items: $type->labels->items, pattern: $type->filename->pattern, path: $suggested);
+
+		return [new Violation(self::FILE, $message, kind: ViolationKind::Prefix)];
 	}
 
 	/**
@@ -418,11 +419,11 @@ final readonly class Linter
 			return [];
 		}
 
-		return array_map(static fn (array $path): Violation => new Violation(
+		return array_map(fn (array $path): Violation => new Violation(
 			$path['field'],
 			$path['id'] === null
-				? sprintf('is a path (%s) that names no media file with an id; choose the file again.', $path['path'])
-				: 'is written as a path; media fields name their file by id. Rewrite it with content:media-ids, or on Site Health in the admin.',
+				? $this->messages->t('content.linter.media_unknown', 'is a path ({path}) that names no media file with an id; choose the file again.', path: $path['path'])
+				: $this->messages->t('content.linter.media_path', 'is written as a path; media fields name their file by id. Rewrite it with content:media-ids, or on Site Health in the admin.'),
 			Severity::Warning,
 			ViolationKind::Media
 		), $paths);
@@ -440,7 +441,7 @@ final readonly class Linter
 	private function checkFlat(IndexRecord $record): array
 	{
 		$type   = $this->types->find($record->type);
-		$reason = $type === null ? null : EntryFolders::misplaced($type, $record->path, $record->landing);
+		$reason = $type === null ? null : EntryFolders::misplaced($type, $record->path, $record->landing, $this->messages);
 
 		if ($type === null || $reason === null) {
 			return [];
@@ -448,7 +449,7 @@ final readonly class Linter
 
 		$serious = $type->folders === null || str_starts_with(basename($record->path), 'index.');
 
-		return [new Violation(self::FILE, sprintf('%s. Move it with content:folders, or on Site Health in the admin.', $reason), $serious ? Severity::Error : Severity::Warning, ViolationKind::Folder)];
+		return [new Violation(self::FILE, $reason, $serious ? Severity::Error : Severity::Warning, ViolationKind::Folder)];
 	}
 
 	/**
@@ -460,7 +461,7 @@ final readonly class Linter
 	private function checkOwnParent(IndexRecord $record): array
 	{
 		return $this->types->nestsByParent($record->type) && ($record->values['parent'] ?? null) === $record->key
-			? [new Violation('parent', 'names the entry itself; an entry can\'t be its own parent.', kind: ViolationKind::Parent)]
+			? [new Violation('parent', $this->messages->t('content.linter.own_parent', 'names the entry itself; an entry can\'t be its own parent.'), kind: ViolationKind::Parent)]
 			: [];
 	}
 
@@ -485,13 +486,13 @@ final readonly class Linter
 
 			if ($path === null) {
 				return $key === $record->parent
-					? [new Violation('parent', sprintf('"%s" has no %s entry; the entry is shown at the top level.', $key, $record->type), Severity::Warning, ViolationKind::Parent)]
+					? [new Violation('parent', $this->messages->t('content.linter.no_parent', '"{page}" has no {type} entry; the entry is shown at the top level.', page: $key, type: $record->type), Severity::Warning, ViolationKind::Parent)]
 					: [];
 			}
 
 			if (in_array($key, $chain, true)) {
 				return $key === $record->key
-					? [new Violation('parent', sprintf('makes a loop: %s.', implode(' → ', [...$chain, $key])), kind: ViolationKind::Parent)]
+					? [new Violation('parent', $this->messages->t('content.linter.parent_loop', 'makes a loop: {chain}.', chain: implode(' → ', [...$chain, $key])), kind: ViolationKind::Parent)]
 					: [];
 			}
 
@@ -522,7 +523,7 @@ final readonly class Linter
 		$route  = $this->routes->find('GET', "{$prefix}/{$record->key}")?->route;
 
 		return $route !== null && $route->name !== $single
-			? [new Violation(self::FILE, sprintf('is at %s/%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $prefix, $record->key, $route->name ?? $route->handlerName()), Severity::Warning, ViolationKind::Route)]
+			? [new Violation(self::FILE, $this->messages->t('content.linter.route_answers', 'is at {address}, but the {route} route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', address: "{$prefix}/{$record->key}", route: $route->name ?? $route->handlerName()), Severity::Warning, ViolationKind::Route)]
 			: [];
 	}
 
@@ -539,7 +540,7 @@ final readonly class Linter
 	 */
 	private function relationProblems(IndexSnapshot $snapshot): array
 	{
-		$links    = new LinkBuilder()->build($snapshot, $this->relations, $this->types);
+		$links    = new LinkBuilder($this->messages)->build($snapshot, $this->relations, $this->types);
 		$entries  = [];
 		$trashed  = [];
 		$found    = [];
@@ -555,7 +556,7 @@ final readonly class Linter
 			}
 		}
 
-		foreach (new RelationChecker()->check($this->relations, $links->graph, $entries, [], $trashed) as $problem) {
+		foreach (new RelationChecker($this->messages)->check($this->relations, $links->graph, $entries, [], $trashed) as $problem) {
 			if ($problem->kind === ProblemKind::TooMany || $problem->kind === ProblemKind::InverseLimit) {
 				$problems[] = $problem;
 			}
@@ -605,7 +606,7 @@ final readonly class Linter
 
 			foreach ($slugs as $slug) {
 				if (! $snapshot->has($taxonomy, $slug)) {
-					$errors[] = new Violation($field, sprintf('"%s" has no %s entry, so the site leaves it out; add one, or run content:terms.', $slug, $type->labels->item ?? $taxonomy), kind: ViolationKind::Term);
+					$errors[] = new Violation($field, $this->messages->t('content.linter.missing_target', '"{slug}" has no {item} entry, so the site leaves it out; add one, or run content:terms.', slug: $slug, item: $type->labels->item ?? $taxonomy), kind: ViolationKind::Term);
 				}
 			}
 		}

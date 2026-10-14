@@ -862,17 +862,6 @@
 			"label": "Zap"
 		}
 	},
-	"player": {
-		"play": "Play",
-		"pause": "Pause",
-		"seek": "Seek",
-		"mute": "Mute",
-		"unmute": "Unmute",
-		"volume": "Volume",
-		"captions": "Captions",
-		"fullscreen": "Fullscreen",
-		"exit_fullscreen": "Exit fullscreen"
-	},
 	"no_entries": "Nothing has been published here yet.",
 	"pagination": {
 		"label": "Pagination",
@@ -909,13 +898,120 @@
 		"500": {
 			"title": "Something went wrong",
 			"message": "The server hit an error and couldn’t finish the request. Please try again later."
+		},
+		"html_renderer": {
+			"title": "Error",
+			"heading": "Something went wrong",
+			"message": "The server hit an error and could not finish the request."
 		}
 	},
 	"media": {
 		"audio_fallback": "Download the audio",
 		"video_fallback": "Download the video",
 		"captions": "Captions",
-		"file_details": "{format}, {size}"
+		"file_details": "{format}, {size}",
+		"media_ids": {
+			"not_shared": "{file} doesn't share its id with another media file."
+		},
+		"common": {
+			"not_in_library": "isn't in the media library.",
+			"@not_in_library": {
+				"context": "After a media file's path, as why it couldn't be fixed."
+			},
+			"metadata_unreadable": "its metadata file can't be read; fix it first (content:lint says why).",
+			"@metadata_unreadable": {
+				"context": "After a media file's path, as why it couldn't be fixed."
+			}
+		},
+		"media_artwork": {
+			"no_artwork": "Only sounds and videos have artwork; {file} is neither.",
+			"not_an_image": "The artwork must be an image in the media library.",
+			"none_carried": "{file} carries no artwork the library takes as an image.",
+			"not_saved": "The artwork couldn't be saved to the media folder.",
+			"not_added": "The artwork couldn't be added to the library.",
+			"title": "Artwork for {title}"
+		},
+		"media_editor": {
+			"no_uploads": "You aren't allowed to upload media.",
+			"uploads_off": "Uploads are turned off on the Media settings screen.",
+			"svg": "{name} can't be uploaded: SVG files can carry script. For icons, add an icon pack.",
+			"script": "{name} can't be uploaded: files of this type can carry script.",
+			"type_refused": "{name} isn't a type the library takes: {extensions}.",
+			"kind_forbidden": "{name} can't be uploaded: you aren't allowed to upload {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}}.",
+			"kind_off": "{name} can't be uploaded: uploads of {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}} are turned off on the Media settings screen.",
+			"too_large": "{name} is larger than {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}} may be (up to {size}).",
+			"folder_unwritable": "The media folder can't be written to.",
+			"not_saved": "The file couldn't be saved to the media folder.",
+			"mismatch": "{name} isn't what its name says it is, or isn't a type the library takes.",
+			"not_added": "{name} couldn't be added to the library.",
+			"summary": {
+				"uploaded": "Uploaded {name}",
+				"changed": "Changed {fields} on {name}"
+			},
+			"not_found": "There's no \"{file}\" in the media library.",
+			"no_change": "You aren't allowed to change this file's details.",
+			"size_of": "{file} is a size of {original}, whose details it goes by; change them there.",
+			"not_a_field": "\"{field}\" isn't a field of {kind, select, image {image} video {video} audio {audio} document {document} other {file}} files.",
+			"invalid_field": "{field} {problem}",
+			"@invalid_field": {
+				"context": "A field's name, then why its value doesn't fit, such as \"Date must be a date.\""
+			},
+			"already_undone": "That change was already undone.",
+			"cannot_undo": "That change can't be undone.",
+			"megabytes": "{size, number} MB",
+			"kilobytes": "{size, number} KB"
+		},
+		"media_kind": {
+			"image": "Images",
+			"video": "Videos",
+			"audio": "Audio",
+			"document": "Documents",
+			"file": "Other Files"
+		},
+		"media_schemas": {
+			"alt": "Alt text",
+			"alt_description": "What the image shows, for anyone who can't see it.",
+			"title_description": "What the library calls it, in place of its file name.",
+			"reserved": "A field set for {kind} media has a field (or alias) named \"{field}\", which is reserved for the file's {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.",
+			"caption_description": "Shown with the file where it's used, such as under an image.",
+			"credit_description": "Who made it, or where it's from.",
+			"description": "Description",
+			"description_description": "A longer description, for the library."
+		},
+		"media_index": {
+			"unwritable": "Unable to write the media index: {problem}"
+		},
+		"media_kind_targets": {
+			"label": "Media files",
+			"details": "Details",
+			"details_description": "Facts about each file, beside its built-in ones."
+		},
+		"media_metadata_check": {
+			"id_invalid": "isn't a UUID; give the file a new one with {command}, or on Site Health in the admin.",
+			"id_missing": "has no id; add one with {command}, or on Site Health in the admin.",
+			"id_shared": "is also the id of {files}; keep it on one file and give the others new ones with {command}, or on Site Health in the admin.",
+			"size_stale": "lists {file}, which isn't one of its sizes (it's gone, or another image's); record them again with {command}, or on Site Health in the admin.",
+			"artwork_kind": "is only for sounds and videos; this file never shows it.",
+			"artwork_missing": "names an image that isn't in the media library; choose another on the file's screen in the admin, or remove it.",
+			"size_details": "describes {file}, a size of {original}, whose details are read instead; move these there, or give this file an id of its own to keep it apart.",
+			"unreadable": "can't be read, so the file has no details: {error}",
+			"not_a_map": "isn't a map of fields, so the file has no details.",
+			"artwork_invalid": "isn't a library image's id; choose the artwork again on the file's screen in the admin.",
+			"uploaded_invalid": "isn't a date and time with its offset, such as {example}; the library orders the file by a likely one until it's fixed.",
+			"sizes_invalid": "isn't a map of each size's file to its width and height; record them again with {command}.",
+			"orphan_refused": "describes {file}, which isn't a type of media the site allows.",
+			"orphan_missing": "describes {file}, which isn't there; move this file with its media file, or delete it."
+		},
+		"media_metadata_store": {
+			"unreadable": "The metadata can't be read; fix it by hand first. {problem}",
+			"not_a_map": "The metadata isn't a map of fields; fix it by hand first."
+		},
+		"media_files": {
+			"invalid_json": "{file} isn't valid JSON: {problem}",
+			"not_an_object": "{file} must hold a JSON object.",
+			"unwritable": "Unable to write {file}.",
+			"undeletable": "Unable to delete {file}."
+		}
 	},
 	"embed": {
 		"title": "Embedded content from {provider}",
@@ -926,7 +1022,78 @@
 	},
 	"menu": {
 		"label": "Menu",
-		"toggle": "{label} submenu"
+		"toggle": "{label} submenu",
+		"menu_location": {
+			"shape": "The \"{theme}\" theme's menu location \"{location}\" must be a label or an object.",
+			"label": "The \"{theme}\" theme's menu location \"{location}\" has a \"label\" that isn't a string.",
+			"depth": "The \"{theme}\" theme's menu location \"{location}\" has a \"depth\" that isn't a whole number from 1.",
+			"fields": "The \"{theme}\" theme's menu location \"{location}\" must map \"fields\" names to field definitions.",
+			"items": "The \"{theme}\" theme's menu location \"{location}\" has \"items\" that aren't a list."
+		},
+		"menus": {
+			"assignments": "{file}: \"{name}\" must map location names to menu names.",
+			"no_location": "It's assigned the menu \"{menu}\", but the \"{theme}\" theme has no such location.",
+			"no_menu": "It's assigned the menu \"{menu}\", which the site doesn't have.",
+			"unshown": "No location of the \"{theme}\" theme shows it.",
+			"label": "\"label\" must be text or a map of locales to text.",
+			"item": "item {position}: {problem}",
+			"not_map": "must be a map of keys to values.",
+			"links": "has more than one link ({keys}); use one.",
+			"no_label": "needs a \"label\".",
+			"children": "\"children\" must be a list.",
+			"empty": "has no link and no children.",
+			"not_text": "\"{name}\" must be text.",
+			"unknown_key": "\"{name}\" isn't a menu item key or a field the location declares.",
+			"field": "\"{name}\" {problem}",
+			"@field": {
+				"context": "The problem is the rest of the sentence, such as \"must be text, not a list.\""
+			},
+			"subject_menu": "menu {menu}",
+			"subject_default": "location {location} (the theme's default)",
+			"subject_location": "location {location}",
+			"invalid_field": "The menu location \"{location}\" has an invalid field: {problem}"
+		},
+		"term_link": {
+			"invalid": "\"{link}\" must be a term as '{type}/{slug}', such as \"category/art\".",
+			"ref": "\"{link}\" has a \"ref\" that isn't a term's id.",
+			"no_pages": "\"{type}\" isn't a type of terms with pages.",
+			"missing": "No published term \"{term}\".",
+			"no_url": "The term \"{term}\" has no URL."
+		},
+		"menu_link": {
+			"empty": "\"{link}\" must be a non-empty string."
+		},
+		"collection_link": {
+			"invalid": "\"{link}\" must be a content type name, such as \"post\".",
+			"missing": "No public content type \"{type}\".",
+			"no_url": "The \"{type}\" type has no collection URL."
+		},
+		"url_link": {
+			"unsafe": "\"{link}\" isn't a safe URL."
+		},
+		"entry_link": {
+			"invalid": "\"{link}\" must be an entry as '{type}/{key}', such as \"page/about\".",
+			"ref": "\"{link}\" has a \"ref\" that isn't an entry's id.",
+			"missing": "No entry \"{entry}\".",
+			"unpublished": "The entry \"{entry}\" isn't published.",
+			"no_url": "The entry \"{entry}\" has no URL."
+		},
+		"route_link": {
+			"params": "\"{link}\" has \"params\" that aren't a map of names to values.",
+			"missing": "No route \"{route}\".",
+			"unbuilt": "The \"{route}\" route: {problem}"
+		},
+		"menu_loader": {
+			"unreadable": "The menus can't be read: {problem}",
+			"missing": "The site has no menu \"{menu}\".",
+			"invalid_name": "\"{menu}\" isn't a valid menu name: use lowercase letters, digits, hyphens, and underscores.",
+			"taken": "The site already has a menu named \"{menu}\".",
+			"not_removed": "The menu \"{menu}\" couldn't be removed from {location}: {problem}",
+			"not_saved": "The menu \"{menu}\" couldn't be saved in {location}: {problem}",
+			"bad_name": "Its name isn't valid: use lowercase letters, digits, hyphens, and underscores.",
+			"unknown_key": "\"{name}\" isn't a menu key; a menu has \"label\" and \"items\".",
+			"items": "\"items\" must be a list."
+		}
 	},
 	"progress": {
 		"label": "Progress"
@@ -942,5 +1109,2673 @@
 		"credit": "{label}:"
 	},
 	"skip_to_content": "Skip to content",
-	"untitled": "Untitled"
+	"untitled": "Untitled",
+	"admin": {
+		"health_fix_job": {
+			"label": "Fix files from Site Health",
+			"no_such_fix": "There's no such Site Health fix.",
+			"account_gone": "The account that asked for this fix can't make it any more.",
+			"progress": "Fixed {done} of {total} {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}.",
+			"changed": "Changed {count, plural, one {# {noun, select, media_file {media file} image {image} entry {entry} term {term or profile} parent {parent page} other {file}}} other {# {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}}}.",
+			"changed_failed": "Changed {count, plural, one {# {noun, select, media_file {media file} image {image} entry {entry} term {term or profile} parent {parent page} other {file}}} other {# {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}}}. {failed} couldn't be changed."
+		},
+		"site_health": {
+			"areas": {
+				"content": {
+					"label": "Content",
+					"description": "Entries' files: their fields, ids, terms, parents, folders, and names"
+				},
+				"media": {
+					"label": "Media",
+					"description": "Library files' ids, details, and image sizes"
+				},
+				"extensions": {
+					"label": "Extensions",
+					"description": "The theme, plugins, and icon packs that are on"
+				},
+				"system": {
+					"label": "System",
+					"description": "PHP, settings, the public folder, and storage"
+				},
+				"accounts": {
+					"label": "Accounts",
+					"description": "Who can always get back in"
+				}
+			},
+			"requirements": {
+				"groups": {
+					"extensions": "PHP Extensions",
+					"extensions_asked": "Plugins and Themes",
+					"uploads": "Uploads",
+					"writable": "Writable"
+				},
+				"required": "required",
+				"missing": "missing",
+				"or_newer": "{version} or newer",
+				"why": {
+					"apcu_driver": "Keeps the cache in memory: this site's cache driver is set to apcu",
+					"upload_php": "The Media settings take PHP's limit",
+					"upload_media": "The Media settings allow files this large",
+					"opcache": "Keeps compiled PHP in memory, so pages are faster",
+					"fileinfo": "Tells uploaded and served files' types apart",
+					"zip": "Installs plugins and themes from a .zip",
+					"exif": "Reads photos' embedded details",
+					"zlib": "Reads compressed PDFs' details",
+					"apcu": "Keeps the cache in memory instead of files, when the cache driver is set to apcu"
+				},
+				"why_and_required_by": "{why}; required by {extensions}",
+				"recommended": "recommended",
+				"optional": "optional",
+				"on": "on",
+				"off": "off",
+				"required_by": "Required by {extensions}",
+				"suggested_by": "Suggested by {extension}",
+				"any": "any",
+				"megabytes_or_more": "{size}M or more",
+				"writable": "writable",
+				"loaded": "loaded"
+			},
+			"facts": {
+				"version": "Version",
+				"environment": "Environment",
+				"debug": "Debugging",
+				"on": "On",
+				"off": "Off",
+				"url": "Site URL",
+				"admin": "Admin URL",
+				"content_folder": "Content folder",
+				"content": "Content",
+				"in_database": "In the database ({file})",
+				"storage": "Storage",
+				"media": "Media folder",
+				"timezone": "Time zone",
+				"languages": "Languages",
+				"theme": "Theme",
+				"cache": "Cache",
+				"entries": "Entries",
+				"media_files": "Media files",
+				"software": "Web server",
+				"os": "Operating system",
+				"memory_limit": "Memory limit",
+				"no_limit": "No limit",
+				"time_limit": "Time limit",
+				"seconds": "{count, plural, one {# second} other {# seconds}}",
+				"php_timezone": "PHP time zone",
+				"not_site_timezone": "{zone}, not the site's ({site})",
+				"disk": "Disk space",
+				"disk_free": "{free} free of {total}",
+				"sapi": {
+					"apache": "Apache module",
+					"built_in": "PHP's built-in server",
+					"cli": "command line"
+				},
+				"files_driver": "Files"
+			},
+			"checks": {
+				"content_files": "Content files",
+				"media_details": "Media details",
+				"files_errors_warnings": "{errors, plural, one {# file has errors} other {# files have errors}}, and {warnings, plural, one {# has warnings} other {# have warnings}}.",
+				"files_errors": "{count, plural, one {# file has errors} other {# files have errors}}.",
+				"files_warnings": "{count, plural, one {# file has warnings} other {# files have warnings}}.",
+				"files_pass": "{count, plural, one {# file} other {# files}} checked, and nothing is wrong.",
+				"entry_ids": "Entry ids",
+				"media_ids": "Media ids",
+				"ids_missing_shared": "{missing, plural, one {# file has no id} other {# files have no id}}, and {shared, plural, one {# id is shared} other {# ids are shared}}.",
+				"ids_missing": "{count, plural, one {# file has no id} other {# files have no id}}.",
+				"ids_shared": "{count, plural, one {# id is shared} other {# ids are shared}}.",
+				"ids_hint": "A file without an id can't be opened in the admin.",
+				"ids_pass_content": "Every entry has an id of its own.",
+				"ids_pass_media": "Every media file has an id of its own.",
+				"folders": "Collection folders",
+				"folders_warning": "{count, plural, one {# entry is not in the folder its type keeps it in} other {# entries are not in the folder their type keeps it in}}.",
+				"folders_pass": "Every collection's entries are files in the folders it keeps them in.",
+				"terms": "Terms and profiles",
+				"terms_warning": "{count, plural, one {# term or profile entries name has no file, so the site leaves it out} other {# terms and profiles entries name have no file, so the site leaves them out}}.",
+				"terms_pass": "Every term and profile entries name has a file.",
+				"parents": "Parent pages",
+				"parents_warning": "{count, plural, one {# folder pages are kept in has no page, so the pages under it are at the top of their tree} other {# folders pages are kept in have no page, so the pages under them are at the top of their tree}}.",
+				"parents_pass": "Every page is under a parent page that exists.",
+				"refs": "Links between entries",
+				"refs_warning": "{count, plural, one {# file has links not filed with their ids, so a rename or move of what it link to can break them} other {# files have links not filed with their ids, so a rename or move of what they link to can break them}}.",
+				"refs_pass": "Every link between entries is filed with its id.",
+				"taxonomies": "Taxonomies",
+				"taxonomies_warning": "{count, plural, one {# content type is still written as a taxonomy, which Blush reads as a collection and its relation until it's migrated} other {# content types are still written as taxonomies, which Blush reads as collections and their relations until they're migrated}}.",
+				"taxonomies_pass": "Every content type is written as a collection or a tree.",
+				"types": "Type folders",
+				"types_warning": "{count, plural, one {# content type names its own folder, so its entries aren't found until it's moved into _ and its name} other {# content types name their own folder, so their entries aren't found until they're moved into _ and their name}}.",
+				"types_pass": "Every content type is kept in _ and its name.",
+				"names": "File names",
+				"names_warning": "{count, plural, one {# entry is} other {# entries are}} named by an older pattern than its type's.",
+				"names_hint": "Older names keep working; renaming them changes no address.",
+				"names_pass": "Every entry is named by its type's pattern.",
+				"sizes": "Image sizes",
+				"sizes_unlisted_stale": "{images, plural, one {# image doesn't list its sizes} other {# images don't list their sizes}}, and {stale, plural, one {# lists files that aren't its sizes} other {# list files that aren't their sizes}}.",
+				"sizes_unlisted": "{count, plural, one {# image doesn't list its sizes} other {# images don't list their sizes}}.",
+				"sizes_stale": "{count, plural, one {# image lists files that aren't its sizes} other {# images list files that aren't their sizes}}.",
+				"sizes_pass": "Every image lists its sizes."
+			}
+		},
+		"health_check_job": {
+			"label": "Check content and media files",
+			"content_progress": "Checked {done} of {total} content files.",
+			"media_progress": "Checked {done} of {total} media details files.",
+			"done": "Checked {checked, plural, one {# content file} other {# content files}} and {described, plural, one {# media details file} other {# media details files}}."
+		},
+		"tool_buttons": {
+			"destructive": "{tool} may remove something that can't be put back."
+		},
+		"redirect_review": {
+			"problems": {
+				"code": "Overruled by a redirect in the site's code.",
+				"live": "Does nothing: {answer} answers this address.",
+				"gone": "Leads nowhere: {why}.",
+				"missing": "Leads to a missing page: nothing answers {path}.",
+				"chain": "Leads to another redirect: {path} goes on to {there}.",
+				"chain_nowhere": "Leads to another redirect, {path}, which goes nowhere."
+			},
+			"fixes": {
+				"show_it": "Show It",
+				"delete_redirect": "Delete Redirect",
+				"choose_another_page": "Choose Another Page",
+				"change_where_it_goes": "Change Where It Goes",
+				"point_straight_there": "Point Straight There",
+				"add_the_slash": "Add the Slash",
+				"edit_that_one": "Edit That One",
+				"go_straight_there": "Go Straight There"
+			},
+			"read": {
+				"spaces": "An address can't contain spaces.",
+				"not_whole": "That isn't a whole address. It should look like {example}.",
+				"other_site": "An old address has to be on this site. This one is on {host}.",
+				"slash": "Start with {slash}, as in {example}.",
+				"query": "Leave off the part from {mark} on. A redirect matches the path only.",
+				"placeholder": "A placeholder is a name in braces, like {example}."
+			},
+			"check": {
+				"status": "Choose a type of redirect.",
+				"from_empty": "Enter the old address, starting with {slash}.",
+				"saved_as": "Saved as {path}, without the site's address.",
+				"same": "Another redirect already starts here and goes to {to}.",
+				"code": "The site's code already redirects this address to {to}, so this one would be overruled.",
+				"answered": "Does nothing while {answer} answers this address.",
+				"entry_gone": "That page isn't there anymore. Choose another.",
+				"not_live": "{title} isn't live, so visitors would see Not Found until it is.",
+				"follows": "Follows {title} if its address changes.",
+				"to_empty": "Choose a page, or enter a path or a whole address.",
+				"to_slash": "Pick a page from the list, or start a path with {slash}.",
+				"leaves": "Leaves the site for {host}.",
+				"entry_address": "That's the address of {title}, so this will point at the page itself and follow it if it moves.",
+				"unfilled": "{placeholder} isn't in the old address, so nothing would fill it.",
+				"itself": "This sends the address to itself.",
+				"loop": "This would loop: {paths}. Change where one of them goes.",
+				"again_nowhere": "{path} redirects again, and that one goes nowhere.",
+				"again": "{path} redirects again, to {there}.",
+				"nothing_answers": "Nothing answers {path} yet, so visitors would see Not Found.",
+				"filled": "Filled from the old address: {example} goes to {filled}."
+			},
+			"untitled": "Untitled",
+			"deleted_page": "a page that was deleted",
+			"labels": {
+				"code": "Overruled",
+				"live": "Does nothing",
+				"gone": "Leads nowhere",
+				"chain": "Chained",
+				"missing": "Missing page"
+			},
+			"answer": {
+				"entry": "the {type} {title}",
+				"@entry": {
+					"context": "What answers an address, mid-sentence: \"the post Hello World\"."
+				},
+				"site": "the site's own page"
+			},
+			"gone": {
+				"deleted": "the page it led to was deleted",
+				"trash": "{title} is in the trash",
+				"draft": "{title} is a draft",
+				"scheduled": "{title} isn't published yet",
+				"hidden": "{title} isn't on the site"
+			}
+		},
+		"admin_theme_contrast": {
+			"low": "In the {scheme} scheme, {foreground} on {background} is {ratio}:1, under the {needed}:1 it needs.",
+			"@low": {
+				"context": "The scheme is light or dark; the foreground and background are token names."
+			}
+		},
+		"media_upload_controller": {
+			"forbidden": "You aren't allowed to upload media.",
+			"no_file": "No file arrived. It may be larger than the site allows.",
+			"no_file_limit": "No file arrived. It may be larger than the site allows (up to {size}).",
+			"too_large": "The file is larger than the site allows.",
+			"too_large_limit": "The file is larger than the site allows (up to {size}).",
+			"partial": "Only part of the file arrived. Try again.",
+			"no_file_sent": "No file arrived.",
+			"server": "The server couldn't take the file. Its temporary folder may be missing or full."
+		},
+		"account_edit_controller": {
+			"username_invalid": "Use lowercase letters, digits, \".\", \"_\", and \"-\" for the username (up to 64), starting with a letter or digit.",
+			"username_new": "\"new\" can't be a username here; pick another.",
+			"username_taken": "There's already an account named \"{username}\".",
+			"name_too_long": "A name is up to {length} characters on one line.",
+			"new_is_member": "You can't give roles, so a new account is a Member.",
+			"keeps_manager": "That would leave no account that can manage accounts and roles, so {username} keeps what it has.",
+			"link_suspended": "{username} is suspended. Reinstate it first.",
+			"link_token_only": "{username} is token-only: it never signs in, so it has no password.",
+			"last_manager": "{username} is the only account left that can manage accounts and roles.",
+			"no_first_token": "You aren't allowed to make tokens for other accounts, so it has none yet.",
+			"no_profile": "There's no \"{slug}\" profile, and you aren't allowed to create profiles.",
+			"no_account": "There's no \"{username}\" account.",
+			"own_account": "You can't change your own account here. Your password is on Your profile; someone else who manages accounts can change the rest.",
+			"owner_account": "{username} is an owner, and only an owner can change an owner's account.",
+			"does_more": "{username} can do things you can't, so you can't change it.",
+			"owner_role": "Only an owner can give the {role} role.",
+			"role_does_more": "You can't give the {role} role: it can do things you can't.",
+			"not_allowed": {
+				"roles": "You aren't allowed to give or take roles.",
+				"suspend": "You aren't allowed to suspend or reinstate accounts.",
+				"edit": "You aren't allowed to change accounts' names or profiles."
+			},
+			"forbidden": "You aren't allowed to do that to accounts."
+		},
+		"authorize_controller": {
+			"choose_capabilities": "Choose the capabilities to give it.",
+			"choose_scope": "Choose what it may do.",
+			"off": "Apps can't connect to this site: its MCP server is off."
+		},
+		"media_list_controller": {
+			"forbidden": "You aren't allowed to use media.",
+			"not_found": "There's no \"{path}\" in the media library.",
+			"no_artwork": "There's no artwork in \"{path}\".",
+			"artwork_forbidden": "You aren't allowed to add images to the library, or this file carries no artwork.",
+			"change_forbidden": "You aren't allowed to change media.",
+			"artwork_kinds": "Only sounds and videos have artwork.",
+			"edit_forbidden": "You aren't allowed to change this file's details.",
+			"size_of": "{name} is a size of {original}, whose details it goes by; change them there.",
+			"delete_forbidden": "You aren't allowed to delete media.",
+			"delete_file_forbidden": "You aren't allowed to delete this file.",
+			"not_deleted": "The file couldn't be deleted from the media folder.",
+			"size_not_deleted": "{name} couldn't be deleted from the media folder.",
+			"removed_account": "A removed account"
+		},
+		"icon_packs_controller": {
+			"not_installed": "No icon pack named {name} is installed.",
+			"core": "Core",
+			"@core": {
+				"context": "The name of the icons that come with the site's software, beside icon packs."
+			},
+			"forbidden": "You aren't allowed to see the site's icon packs."
+		},
+		"extension_install_controller": {
+			"update_forbidden": "{kind, select, Plugin {You aren't allowed to update plugins.} Theme {You aren't allowed to update themes.} IconPack {You aren't allowed to update icon packs.} other {You aren't allowed to update admin themes.}}",
+			"install_forbidden": "{kind, select, Plugin {You aren't allowed to install plugins.} Theme {You aren't allowed to install themes.} IconPack {You aren't allowed to install icon packs.} other {You aren't allowed to install admin themes.}}",
+			"no_file": "No file arrived. It may be larger than the site allows (up to {size} MB).",
+			"the_file": "The file",
+			"@the_file": {
+				"context": "Stands in for a file's name, at the start of a sentence, when it has none."
+			},
+			"too_large": "{name} is larger than the site allows (up to {size} MB).",
+			"not_zip": "{name} isn't a .zip file.",
+			"not_saved": "{name} couldn't be saved to the server."
+		},
+		"log_controller": {
+			"no_file": "There's no log file to download.",
+			"not_allowed": "You aren't allowed to read the log."
+		},
+		"common": {
+			"sign_in_first": "Sign in first."
+		},
+		"entries_controller": {
+			"unknown_type": "There is no such content type."
+		},
+		"users_controller": {
+			"forbidden": "You aren't allowed to see accounts."
+		},
+		"menus_controller": {
+			"bad_name": "A menu's name uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.",
+			"name_taken": "There's already a menu named \"{name}\". Pick another name.",
+			"not_saved": "The menu \"{name}\" wasn't saved.",
+			"no_location": "The active theme has no \"{location}\" location.",
+			"problems": {
+				"label": "\"label\" must be text or a map of locales to text.",
+				"not_map": "Item {position} isn't a map of keys to values.",
+				"children": "Item {position} has \"children\" that aren't a list.",
+				"links": "Item {position} has more than one link ({keys}).",
+				"link": "Item {position}'s link {problem}",
+				"@link": {
+					"context": "The problem is the rest of the sentence, such as \"must be an entry.\""
+				},
+				"no_label": "Item {position} needs a label or a link.",
+				"item_link": "Item {position}: {problem}"
+			},
+			"link_gone": "Nothing on the site is \"{value}\" anymore.",
+			"forbidden": "You aren't allowed to edit menus.",
+			"not_found": "There's no \"{name}\" menu."
+		},
+		"type_edit_controller": {
+			"no_relation": "There's no \"{name}\" relation.",
+			"no_index": "{types} have no index page.",
+			"no_archives": "{types} have no \"{name}\" archives.",
+			"index_not_written": "The type was saved, but its index page couldn't be written: {reason}",
+			"page_not_written": "The type was saved, but its {page} page couldn't be written: {reason}",
+			"no_profiles": "The site has no profiles type, so nothing can credit authors.",
+			"forbidden": "You aren't allowed to change content types."
+		},
+		"preview_link_controller": {
+			"off": "Preview links are off: the site has no APP_SECRET. Run \"bin/blush init\" to add one.",
+			"not_found": "There's no entry with the id \"{id}\".",
+			"trashed": "That entry is in the trash, so it has no preview; restore it first.",
+			"not_allowed": "You aren't allowed to preview that entry."
+		},
+		"extension_backup_controller": {
+			"rollback_forbidden": "{kind, select, Plugin {You aren't allowed to roll plugins back.} Theme {You aren't allowed to roll themes back.} IconPack {You aren't allowed to roll icon packs back.} other {You aren't allowed to roll admin themes back.}}",
+			"no_backup": "There's no earlier version of {name} to roll back to.",
+			"misfit": "{label} {version} can't be rolled back to: {reason}",
+			"discard_forbidden": "{kind, select, Plugin {You aren't allowed to delete plugins.} Theme {You aren't allowed to delete themes.} IconPack {You aren't allowed to delete icon packs.} other {You aren't allowed to delete admin themes.}}",
+			"none_kept": "{name} has no earlier version kept.",
+			"parent_missing": "it falls back to {parent}, which isn't installed.",
+			"@parent_missing": {
+				"context": "Ends a sentence that names the version that can't be rolled back to."
+			}
+		},
+		"admin_theme_edit_controller": {
+			"toggle_forbidden": "You aren't allowed to turn admin themes on and off.",
+			"not_installed": "No admin theme named {name} is installed.",
+			"base_always_on": "{label} is the admin's own look, so it's always on.",
+			"default_stays_on": "{label} is the site's default, so it can't be turned off. Choose another default first.",
+			"unmet": "{label} can't be turned on. {reason}",
+			"default_forbidden": "You aren't allowed to choose the site's admin theme.",
+			"default_off": "{label} isn't turned on, so it can't be the default. Turn it on first.",
+			"delete_forbidden": "You aren't allowed to delete admin themes.",
+			"none_in": "There's no admin theme in {where}.",
+			"default_kept": "{label} is the site's default, so it can't be deleted. Choose another default first.",
+			"not_deleted": "{where} couldn't be deleted. Check that the web server may change it."
+		},
+		"site_health_controller": {
+			"not_allowed": "You aren't allowed to see site health."
+		},
+		"field_sets_controller": {
+			"not_found": "There's no \"{name}\" field set.",
+			"every": "All {places}",
+			"@every": {
+				"context": "Every place of a kind, such as \"All content types\"."
+			}
+		},
+		"job_controller": {
+			"no_job": "There's no such job.",
+			"retry_failed_only": "Only a failed job can be tried again.",
+			"running": "A running job can't be deleted. Wait for it to finish.",
+			"not_scheduled": "\"{job}\" isn't on the schedule.",
+			"not_allowed": "You aren't allowed to do that."
+		},
+		"activity_controller": {
+			"not_allowed": "You aren't allowed to see the activity log.",
+			"not_found": "That change isn't in the log.",
+			"command_line": "Someone on the command line",
+			"removed_account": "A removed account",
+			"undo": {
+				"undone": "Undone.",
+				"new_entry": "A new entry; move it to the trash to undo it.",
+				"new_file": "A new file; delete it to undo it.",
+				"expired": "What it replaced is kept for 30 days, and that's passed.",
+				"not_allowed": "You aren't allowed to change it.",
+				"changed": "Changed since; open it to edit."
+			}
+		},
+		"shell_controller": {
+			"title": "Admin · {site}"
+		},
+		"icon_pack_edit_controller": {
+			"toggle_forbidden": "You aren't allowed to turn icon packs on and off.",
+			"not_installed": "No icon pack named {name} is installed.",
+			"unmet": "{label} can't be turned on. {reason}",
+			"delete_forbidden": "You aren't allowed to delete icon packs.",
+			"none_in": "There's no icon pack in {where}.",
+			"not_deleted": "{where} couldn't be deleted. Check that the web server may change it."
+		},
+		"password_controller": {
+			"wrong_current": "Your current password is wrong."
+		},
+		"admin_themes_controller": {
+			"not_installed": "No admin theme named {name} is installed.",
+			"forbidden": "You aren't allowed to see the site's admin themes."
+		},
+		"session_controller": {
+			"wrong": "The username or password is wrong."
+		},
+		"references_controller": {
+			"cannot_edit": "Your account can't edit content.",
+			"unknown_type": "There is no such content type."
+		},
+		"theme_edit_controller": {
+			"delete_forbidden": "You aren't allowed to delete themes.",
+			"none_in": "There's no theme in {where}.",
+			"not_deleted": "{where} couldn't be deleted. Check that the web server may change it.",
+			"active": "{label} is the active theme. Activate another theme before deleting it.",
+			"parent_of_active": "The active theme, {active}, falls back to {label}. Activate another theme before deleting it."
+		},
+		"settings_controller": {
+			"not_allowed": "You aren't allowed to see the site's settings.",
+			"no_screen": "There's no such settings screen.",
+			"field_set_hint": "From the {set} field set",
+			"groups": {
+				"site": {
+					"title": "Site",
+					"hint": "Its name, email, and language"
+				},
+				"dates": {
+					"title": "Dates and Time",
+					"hint": "How times are read and shown"
+				},
+				"accounts": {
+					"title": "Accounts",
+					"hint": "Who can make one"
+				},
+				"environment": {
+					"title": "Environment",
+					"hint": "Set where the site runs",
+					"note": "From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default."
+				},
+				"home": {
+					"title": "Homepage",
+					"hint": "What the site opens with"
+				},
+				"feeds": {
+					"title": "Feeds",
+					"hint": "For types with a feed"
+				},
+				"api": {
+					"title": "API",
+					"hint": "For other sites, apps, and AI tools"
+				},
+				"changes": {
+					"title": "Changes",
+					"hint": "What a token may change"
+				},
+				"api_mcp": {
+					"title": "MCP Server",
+					"hint": "For AI apps, beside the API"
+				},
+				"uploads": {
+					"title": "Uploads",
+					"hint": "What may be uploaded, and where it goes"
+				},
+				"artwork": {
+					"title": "Artwork",
+					"hint": "The pictures sounds and videos carry"
+				},
+				"markdown": {
+					"title": "Markdown",
+					"hint": "How what's written renders"
+				},
+				"html": {
+					"title": "HTML",
+					"hint": "Raw HTML in content"
+				},
+				"embeds": {
+					"title": "Embeds",
+					"hint": "Sites whose links play on the page"
+				},
+				"addresses": {
+					"title": "Addresses",
+					"hint": "How URLs are written"
+				},
+				"search": {
+					"title": "Search Engines",
+					"hint": "The sitemap and robots.txt"
+				},
+				"ai_markdown": {
+					"title": "Markdown Copies",
+					"hint": "What AI tools read"
+				},
+				"crawlers": {
+					"title": "AI Crawlers",
+					"hint": "What robots.txt asks of them"
+				},
+				"mcp": {
+					"title": "MCP Server",
+					"hint": "How AI apps work with the site"
+				},
+				"tools": {
+					"title": "Tools",
+					"hint": "What a connected app can be asked to do",
+					"note": "Core tools ship with the site. A plugin's tools arrive when it's turned on and leave when it's turned off. Every change a tool makes is listed under Tools → Activity."
+				},
+				"types": {
+					"title": "Content Types",
+					"hint": "Where types come from"
+				},
+				"caching": {
+					"title": "Caching",
+					"hint": "How pages are kept"
+				},
+				"publishing": {
+					"title": "Publishing and Previews",
+					"hint": "Secrets are never shown",
+					"note": "From `.env` (`PUBLISH_*`, `APP_SECRET`) when these files don't exist."
+				}
+			},
+			"general": {
+				"name": "Site name",
+				"description": "Description",
+				"email": "Email address",
+				"locale": "Language and region",
+				"locale_help": "Choose Other to type a code the menu doesn't have.",
+				"url": "Site address",
+				"url_help": "From APP_URL in .env by default.",
+				"timezone": "Time zone",
+				"timezone_help": "It's {time} there now.",
+				"date_format": "Date format",
+				"pattern_letters": "Pattern letters",
+				"time_format": "Time format",
+				"environment": "Environment",
+				"environment_help": {
+					"development": "Content changes show up on the next request, caching is off, and search engines are asked not to index the site.",
+					"staging": "Search engines are asked not to index the site."
+				},
+				"debug": "Detailed error pages",
+				"debug_warning": "Never on a live site: error pages show the site's code and settings.",
+				"untranslated": "Untranslated pages"
+			},
+			"accounts": {
+				"signups": "Sign-ups",
+				"signup_role_requires": "It needs sign-ups on."
+			},
+			"reading": {
+				"home": "Homepage",
+				"home_help": "The site has no collection with addresses to show instead.",
+				"formats": "Formats",
+				"formats_help": "None turns every feed off.",
+				"content": "Full content",
+				"content_help": "Off, a feed carries each entry's summary only.",
+				"limit": "Entries per feed",
+				"limit_help": "From 1 to {max}.",
+				"home_page": "The page at user/content/index.md",
+				"home_latest": "The latest {types}"
+			},
+			"api": {
+				"api": "API",
+				"access": "Who can read it",
+				"path": "Address",
+				"path_help": "Where the API is served, with its version.",
+				"view": "View the API",
+				"max_writes": "Changes per token",
+				"max_writes_value": "{count, plural, one {# change an hour} other {# changes an hour}}",
+				"max_writes_help": "How many entries and media files a token may create or change through the API in an hour. Past it, changes are refused until the hour is up. Each is listed under Tools → Activity.",
+				"tokens": "Who can make tokens",
+				"tokens_help": "Roles with Make API tokens. A token is made on an account's screen, under API Tokens, and does what its account may, or less.",
+				"your_account": "Your Account",
+				"roles": "Roles",
+				"mcp": "MCP server",
+				"mcp_on": "On",
+				"mcp_off": "Off",
+				"mcp_help": "AI apps connect to it with the API's tokens, or by signing in. It's set on the AI screen.",
+				"ai_settings": "AI Settings"
+			},
+			"media": {
+				"uploads": "Uploads"
+			},
+			"writing": {
+				"html": "Raw HTML"
+			},
+			"search": {
+				"trailing_slash": "Trailing slash",
+				"trailing_slash_help": "The other form redirects, so links to either still work.",
+				"media": "Media address",
+				"media_help": "Where user/media is served. The folders under it are named on Media.",
+				"media_settings": "Media settings",
+				"sitemap": "Sitemap and robots.txt",
+				"sitemap_help": "Off, the site has neither, and search engines find pages by their links.",
+				"disallow": "Paths robots.txt asks to skip",
+				"disallow_help": "One path a line, each starting with /, such as /drafts/.",
+				"indexing": "Asks not to be indexed",
+				"indexing_help": "Outside production, robots.txt asks search engines to skip the whole site. It follows the environment."
+			},
+			"ai": {
+				"llms": "Markdown copies",
+				"llms_txt_off": "Off, with the Markdown copies",
+				"llms_txt_help": "A Markdown map of the site: its name and description, then each listed type's pages.",
+				"llms_txt_pages": "{count, plural, one {# page} other {# pages}}",
+				"types": "Types in llms.txt",
+				"types_help": "Each content type chooses with its \"Listed in llms.txt\" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.",
+				"manage_types": "Manage Content Types",
+				"description": "Description",
+				"description_none": "None",
+				"description_help": "The line under the site's name in llms.txt.",
+				"change_in_general": "Change in General Settings",
+				"block_ai": "Ask to stay away",
+				"block_ai_on": "Asked to Stay Away",
+				"block_ai_off": "Allowed",
+				"block_ai_robots": "config/sitemap.php's own robots.txt replaces the generated one, so these choices aren't used.",
+				"block_ai_environment": "Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.",
+				"mcp": "MCP server",
+				"mcp_address": "Server address",
+				"mcp_address_off": "Off, with the MCP server",
+				"mcp_address_help": "Paste it into an app's connector settings, such as Claude's. Each user signs in and approves the app, and it acts as them. Every change it makes is listed under Tools → Activity.",
+				"mcp_connect": "Who can connect apps",
+				"mcp_connect_help": "Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.",
+				"manage_roles": "Manage Roles",
+				"api_settings": "API Settings",
+				"tools": "Tools",
+				"full_requires": "It needs the Markdown copies on.",
+				"full_too_big": "At {size}, it's over the page cache's {max}, so it's built again on every request for it."
+			},
+			"view": "View",
+			"bytes": {
+				"mb": "{size} MB",
+				"kb": "{size} KB",
+				"bytes": "{count, plural, one {# byte} other {# bytes}}"
+			},
+			"system": {
+				"data_types": "Content types from user/data/types",
+				"disabled": "Built-in types turned off",
+				"caching": "Caching",
+				"caching_help": "Off in development, on elsewhere.",
+				"driver": "Where it's kept",
+				"pages": "Whole pages",
+				"max_age": "Browsers keep a page",
+				"max_age_none": "Not at all; they ask each time",
+				"max_age_seconds": "{count, plural, one {# second} other {# seconds}}",
+				"webhook": "Publish webhook",
+				"webhook_help": "On with a PUBLISH_SECRET in .env.",
+				"git": "Pull with git when publishing",
+				"preview": "Preview links",
+				"preview_help": "On with an APP_SECRET in .env."
+			},
+			"environments": {
+				"development": "Development",
+				"staging": "Staging",
+				"production": "Production"
+			}
+		},
+		"tokens_controller": {
+			"make_forbidden": "You aren't allowed to make API tokens.",
+			"signs_in": "{name} signs in, so they make their own tokens. Tokens are made for others only for token-only accounts you may change.",
+			"no_token": "There's no such token.",
+			"no_app": "There's no such connected app.",
+			"an_app": "An app",
+			"name_invalid": "Give the token a name that says what it's for, up to {length} characters.",
+			"lifetime_invalid": "A token lasts {days} days, or never.",
+			"capability_not_had": "You can't give a token \"{capability}\": it's a capability you don't have.",
+			"others_forbidden": "You aren't allowed to see other accounts' tokens.",
+			"no_account": "There's no \"{username}\" account.",
+			"owner_tokens": "{username} is an owner, and only an owner can see or change an owner's tokens."
+		},
+		"profiles_controller": {
+			"cannot_view": "You aren't allowed to see accounts.",
+			"cannot_lock": "You aren't allowed to change accounts' profiles.",
+			"cannot_create": "You aren't allowed to create {items}.",
+			"no_page": "There's no page written for that archive.",
+			"cannot_delete": "You aren't allowed to delete that page.",
+			"not_found": "There's no profile \"{slug}\".",
+			"cannot_edit": "You aren't allowed to edit that profile."
+		},
+		"set_password_controller": {
+			"too_many_tries": "Too many tries. Try again later."
+		},
+		"plugins_controller": {
+			"forbidden": "You aren't allowed to see the site's plugins.",
+			"clash": "Its \"{name}\" {kind, select, type {content type} relation {relation} other {{kind}}} is left out: {owner} defines one by that name too."
+		},
+		"plugin_edit_controller": {
+			"toggle_forbidden": "You aren't allowed to turn plugins on and off.",
+			"not_installed": "No plugin named {name} is installed.",
+			"unmet": "{label} can't be turned on. {reason}",
+			"delete_forbidden": "You aren't allowed to delete plugins.",
+			"none_in": "There's no plugin in {where}.",
+			"still_on": "{label} is on. Turn it off before deleting it.",
+			"named_by_config": "config/plugins.php turns {label} on by name. Take it out of that file's \"enabled\" list before deleting it.",
+			"not_deleted": "{where} couldn't be deleted. Check that the web server may change it."
+		},
+		"field_set_edit_controller": {
+			"shadowed": "The \"{name}\" field set was saved, but a set of that name from elsewhere is used.",
+			"forbidden": "You aren't allowed to change field sets."
+		},
+		"themes_controller": {
+			"forbidden": "You aren't allowed to see the site's themes."
+		},
+		"tool_controller": {
+			"no_tool": "There's no \"{tool}\" tool.",
+			"not_allowed": "You aren't allowed to do that.",
+			"failed": "Something went wrong; the site's log says what.",
+			"done": "Done."
+		},
+		"settings_edit_controller": {
+			"not_allowed": "You aren't allowed to change the site's settings.",
+			"not_allowed_those": "You aren't allowed to change those settings.",
+			"required": "{field} is required.",
+			"not_home": "\"{type}\" can't be the homepage: it must be a collection type with addresses.",
+			"not_role": "\"{role}\" isn't a role on this site.",
+			"upload_too_big": "The server takes files of at most {server} MB, so a largest file of {size} MB won't hold.",
+			"theme_unmet": "{theme} can't be activated. {reason}"
+		},
+		"types_controller": {
+			"not_found": "There's no \"{name}\" content type."
+		},
+		"redirects_controller": {
+			"gone": "That redirect isn't there anymore. Reload the list.",
+			"needs_fixing": "Something needs fixing first.",
+			"not_saved": "The redirect couldn't be saved: {reason}",
+			"not_deleted": "The redirects couldn't be deleted: {reason}",
+			"not_changed": "The redirects couldn't be changed: {reason}",
+			"not_restored": "The redirects couldn't be put back: {reason}",
+			"forbidden": "You aren't allowed to manage redirects.",
+			"unreadable": "The redirects can't be read. Check user/data/redirects.json."
+		},
+		"entry_controller": {
+			"not_found": "There's no entry with the id \"{id}\".",
+			"cannot_create": "You aren't allowed to create entries.",
+			"cannot_create_type": "You aren't allowed to create {items}.",
+			"cannot_edit": "You aren't allowed to edit that entry.",
+			"not_movable": "Only a tree's pages move under another; \"{title}\" doesn't.",
+			"template": {
+				"unknown": "The theme has no \"{name}\" template for this type.",
+				"choose": "Choose one template by its name."
+			},
+			"cannot_delete": "You aren't allowed to delete that entry.",
+			"not_trashed": "\"{title}\" isn't in the trash; move it there first.",
+			"cannot_change": "You aren't allowed to change that entry.",
+			"restore_missing": "That isn't in the trash.",
+			"unknown_type": "There is no such content type.",
+			"bulk": {
+				"gone": "It's no longer there.",
+				"trashed": "It's in the trash already; restore it to change it.",
+				"cannot_delete": "You aren't allowed to delete it.",
+				"index_page": "It's an index page, so it can't be moved to the trash.",
+				"cannot_edit": "You aren't allowed to edit it."
+			},
+			"removed_account": "a removed account",
+			"item": "entry",
+			"items": "entries"
+		},
+		"role_edit_controller": {
+			"key_invalid": "Use lowercase letters, digits, \"_\", and \"-\" for the key, starting with a letter.",
+			"key_new": "\"new\" can't be a role's key here; pick another.",
+			"create_does_more": "You can't make a role that can do things you can't.",
+			"capability_not_had": "You can't give a role a capability you don't have.",
+			"reset_does_more": "The {role} role can do things you can't as it was built, so you can't reset it.",
+			"no_role": "There's no \"{name}\" role.",
+			"does_more": "The {role} role can do things you can't, so you can't change it.",
+			"keeps_manager": "That would leave no account that can manage accounts and roles.",
+			"forbidden": "You aren't allowed to manage roles."
+		},
+		"health_controller": {
+			"not_allowed_see": "You aren't allowed to see site health.",
+			"not_allowed_change": "You aren't allowed to change site health.",
+			"removed_account": "a removed account",
+			"not_allowed_fix_content": "You aren't allowed to fix content.",
+			"not_allowed_fix_media": "You aren't allowed to fix media.",
+			"not_allowed_fix_files": "You aren't allowed to fix files.",
+			"not_allowed_types": "You aren't allowed to change content types."
+		},
+		"provenance": {
+			"site": "This site",
+			"elsewhere": "Elsewhere"
+		},
+		"admin_tokens": {
+			"no_file": "it has no {file}.",
+			"unreadable": "its {file} is invalid: {problem}",
+			"faces_not_list": "its \"typography.fontFace\" must be a list.",
+			"unknown_token": "its {file} sets \"{token}\", which isn't a token an admin theme may set.",
+			"expected_color": "its \"{token}\" must be a color (hex, rgb(), hsl(), or oklch()) or light-dark() of two.",
+			"expected_font_family": "its \"{token}\" must be a list of font family names, such as [\"Karla\", \"sans-serif\"].",
+			"expected_font_weight": "its \"{token}\" must be a weight from {low} to {high}.",
+			"expected_length": "its \"{token}\" must be from {low}px to {high}px, such as \"{low}px\".",
+			"expected_letter_spacing": "its \"{token}\" must be from {low}em to {high}em, such as \"-.01em\"."
+		},
+		"admin_theme": {
+			"not_string": "The admin theme in {path} has a \"{field}\" that isn't a string.",
+			"namespace": "The admin theme in {path} has a \"namespace\", which admin themes don't: it has nothing to name by one.",
+			"invalid": "The admin theme in {path}: {problem}",
+			"no_name": "The admin theme in {path} needs a \"name\": vendor/name, such as \"acme/harbor\".",
+			"no_label": "The \"{name}\" admin theme needs a \"label\"."
+		},
+		"admin_theme_discovery": {
+			"framework_name": "\"{name}\" is a framework admin theme's name.",
+			"composer_name": "The admin theme in Composer package \"{package}\" is named \"{name}\"; a Composer admin theme's name is its package's."
+		},
+		"font_face": {
+			"not_object": "each of \"typography.fontFace\" must be an object.",
+			"unknown_keys": "a \"typography.fontFace\" has \"{keys}\", which isn't one of fontFamily, src, fontWeight, fontStyle, and unicodeRange.",
+			"no_family": "a \"typography.fontFace\" needs a \"fontFamily\": a family name of letters, digits, spaces, hyphens, and underscores.",
+			"no_src": "the \"{family}\" font face needs a \"src\": a .woff2 file inside the theme, such as \"fonts/{file}.woff2\".",
+			"missing_file": "the \"{family}\" font face's file, {src}, isn't in the theme.",
+			"too_big": "the \"{family}\" font face's file, {src}, is over {size} KB.",
+			"bad_weight": "the \"{family}\" font face's \"fontWeight\" must be a weight from 1 to 1000, or two (such as \"200 800\").",
+			"bad_style": "the \"{family}\" font face's \"fontStyle\" must be normal, italic, or oblique.",
+			"bad_range": "the \"{family}\" font face's \"unicodeRange\" must be code points or ranges, such as \"U+0000-00FF, U+0131\"."
+		}
+	},
+	"settings": {
+		"settings_store": {
+			"unreadable": "{location}: {reason}"
+		},
+		"settings": {
+			"not_fit": "A saved setting doesn't fit: {reason}"
+		},
+		"setting_groups": {
+			"unreadable": "The settings can't be read: {reason}",
+			"group_not_saved": "The \"{group}\" settings couldn't be saved in {location}: {reason}",
+			"not_saved": "The settings couldn't be saved: {reason}",
+			"group_unreadable": "The \"{group}\" settings can't be read: {reason}"
+		},
+		"settings_targets": {
+			"label": "Settings screens",
+			"details": {
+				"label": "Details",
+				"description": "Settings of the site's own, beside the screen's."
+			},
+			"conflict": "Field sets \"{first}\" and \"{second}\" both add a \"{setting}\" setting; settings share one store, so rename one."
+		},
+		"settings_screen": {
+			"general": "General",
+			"reading": "Reading",
+			"writing": "Writing",
+			"media": "Media",
+			"search": "Addresses and Search",
+			"ai": "AI",
+			"api": "API"
+		},
+		"setting": {
+			"name": {
+				"label": "Site name"
+			},
+			"description": {
+				"label": "Description",
+				"description": "One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters."
+			},
+			"email": {
+				"label": "Email address",
+				"description": "Where the site sends notices for its owner. It isn't shown on the site."
+			},
+			"locale": {
+				"label": "Language and region",
+				"description": "A language code, with a region if you like, such as en_US or fr."
+			},
+			"untranslated": {
+				"label": "Untranslated pages",
+				"description": "What another language's address does for an entry not translated into it."
+			},
+			"timezone": {
+				"label": "Time zone"
+			},
+			"date_format": {
+				"label": "Date format"
+			},
+			"time_format": {
+				"label": "Time format"
+			},
+			"signups": {
+				"label": "Sign-ups",
+				"description": "Anyone can make an account on the site. Off, only someone who can add accounts makes them.",
+				"caption": "Anyone can sign up"
+			},
+			"signup_role": {
+				"label": "Role for new accounts",
+				"description": "The role an account made by signing up holds. Never the owner or an administrator."
+			},
+			"home": {
+				"label": "Homepage",
+				"caption": "The page at user/content/index.md"
+			},
+			"feed_formats": {
+				"label": "Formats",
+				"description": "None turns every feed off."
+			},
+			"feed_content": {
+				"label": "Full content",
+				"description": "Off, a feed carries each entry's summary only.",
+				"caption": "Feeds carry each entry's full content"
+			},
+			"media_uploads": {
+				"label": "Uploads",
+				"description": "What may be uploaded, how large, and the folder under user/media it goes in."
+			},
+			"add_artwork": {
+				"label": "Artwork from uploads",
+				"description": "A sound or video's artwork is added to the library as an image of its own when it's uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file's screen can still add it.",
+				"caption": "Uploads add their artwork to the library"
+			},
+			"mentions": {
+				"label": "Mentions",
+				"description": "@name links to the profile with that slug, once it's published. A name that isn't anyone's stays text.",
+				"caption": "@name links to a profile"
+			},
+			"smart_punctuation": {
+				"label": "Smart punctuation",
+				"description": "Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.",
+				"caption": "Quotes, dashes, and ellipses are typographic"
+			},
+			"heading_anchors": {
+				"label": "Heading anchors",
+				"description": "Each heading gets a link to itself, so a section can be shared.",
+				"caption": "Headings link to themselves"
+			},
+			"figures": {
+				"label": "Images as figures",
+				"description": "An image on a line of its own becomes a figure, with its title as the caption.",
+				"caption": "A lone image is a figure"
+			},
+			"html": {
+				"label": "Raw HTML",
+				"description": "What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role."
+			},
+			"embeds": {
+				"label": "Embeds turned on",
+				"description": "A site turned on plays its links on the page; the others keep their links as links."
+			},
+			"api": {
+				"label": "API",
+				"description": "An API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it without a token, and only a token may change content.",
+				"caption": "The site has an API"
+			},
+			"api_access": {
+				"label": "Who can read it",
+				"description": "A token is made on Your Account, and acts as the account it belongs to."
+			},
+			"feed_limit": {
+				"label": "Entries per feed",
+				"description": "From 1 to {max}."
+			},
+			"trailing_slash": {
+				"label": "Trailing slash",
+				"description": "The other form redirects, so links to either still work.",
+				"caption": "Addresses end in a slash"
+			},
+			"sitemap": {
+				"label": "Sitemap and robots.txt",
+				"description": "Off, the site has neither, and search engines find pages by their links.",
+				"caption": "The site has a sitemap and robots.txt"
+			},
+			"sitemap_disallow": {
+				"label": "Paths robots.txt asks to skip",
+				"description": "One path a line, each starting with /, such as /drafts/."
+			},
+			"llms": {
+				"label": "Markdown copies",
+				"description": "A page's copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.",
+				"caption": "Every page has a Markdown copy, and the site has llms.txt"
+			},
+			"mcp": {
+				"label": "MCP server",
+				"description": "Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.",
+				"caption": "Apps can connect"
+			},
+			"llms_full": {
+				"description": "Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.",
+				"caption": "The site has llms-full.txt"
+			},
+			"block_ai": {
+				"label": "Ask to stay away",
+				"description": "robots.txt is a request: well-behaved crawlers follow it, others may not."
+			},
+			"theme": {
+				"label": "Theme"
+			},
+			"plugins": {
+				"label": "Plugins turned on"
+			},
+			"icon_packs": {
+				"label": "Icon packs turned on"
+			},
+			"admin_themes": {
+				"label": "Admin themes turned on"
+			},
+			"admin_theme_default": {
+				"label": "The site's admin theme"
+			},
+			"home_choice": "The latest {type}",
+			"invalid": {
+				"bool": "\"{setting}\" must be true or false.",
+				"name_text": "The site name must be text.",
+				"name_empty": "The site needs a name.",
+				"name_long": "The site name can be at most {max} characters.",
+				"name_line": "The site name can't hold line breaks or control characters.",
+				"description_text": "The site's description must be text.",
+				"description_long": "The site's description can be at most {max} characters.",
+				"description_line": "The site's description is one line, without control characters.",
+				"email_text": "The site's email address must be text.",
+				"email_empty": "The site needs an email address.",
+				"email": "\"{email}\" isn't an email address.",
+				"locale": "Use a language code, with a region if you like, such as en_US or fr.",
+				"untranslated": "Untranslated pages are one of: {values}.",
+				"api_access": "Who can read the API is one of: {values}.",
+				"html": "Raw HTML is one of: {values}.",
+				"signup_role": "The role for new accounts must be a role's name.",
+				"timezone": "\"{zone}\" isn't a time zone; use one such as America/Chicago or UTC.",
+				"date_format": "A date or time format must be text.",
+				"home": "The homepage must name a content type, or be null for the page at user/content/index.md.",
+				"feed_formats": "Feed formats must be a list: rss, atom, or json.",
+				"feed_format": "\"{format}\" isn't a feed format; use rss, atom, or json.",
+				"feed_limit": "A feed holds from 1 to {max} entries.",
+				"theme": "The theme must be a theme's name (vendor/name), such as \"acme/nova\".",
+				"admin_theme": "The site's admin theme must be an admin theme's name (vendor/name), such as \"blush/editorial\".",
+				"names": "The {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off must be a list of names.",
+				"name": "\"{name}\" isn't a name; the {kind, select, plugins {plugins} icon_packs {icon packs} other {admin themes}} turned off are named vendor/name, such as \"acme/gallery\".",
+				"embeds": "The embeds turned on must be a list of providers' names.",
+				"embed": "\"{name}\" isn't an embed provider's name, such as \"codepen\".",
+				"uploads": "The upload rules must be an object: enabled, maxSize, path, and kinds.",
+				"block_ai": "The AI crawlers to block must be a list: training, search, or fetchers.",
+				"crawler": "\"{group}\" isn't a kind of AI crawler; use training, search, or fetchers.",
+				"disallow": "The paths robots.txt asks to skip must be a list.",
+				"path": "\"{path}\" isn't a path; a path starts with / and has no spaces, such as /drafts/.",
+				"disallow_many": "robots.txt can be asked to skip at most {max} paths."
+			},
+			"format_help": "How themes show dates and times. One from the language follows the site's language; a fixed one keeps its order whatever the language."
+		}
+	},
+	"core": {
+		"untranslated": {
+			"hide": {
+				"label": "Show \"Page not found\"",
+				"description": "A page without a translation isn't found in that language, and lists show only translated entries."
+			},
+			"redirect": {
+				"label": "Redirect to the original",
+				"description": "A page without a translation sends readers to the original. Lists show only translated entries."
+			},
+			"include": {
+				"label": "Redirect, and list originals too",
+				"description": "A page without a translation sends readers to the original, and lists show the originals of untranslated entries too."
+			}
+		}
+	},
+	"extension": {
+		"autoload": {
+			"not_object": "\"autoload\" must be an object, such as '{\"psr-4\": {\"Acme\\\\Hello\\\\\": \"src/\"}, \"files\": [\"src/helpers.php\"]}'.",
+			"psr4_not_map": "\"autoload.psr-4\" must map namespace prefixes to folders.",
+			"files_not_list": "\"autoload.files\" must be a list of files.",
+			"psr4_prefix": "\"autoload.psr-4\" prefix \"{prefix}\" must be a namespace ending in a backslash, as Composer's are.",
+			"psr4_outside": "\"autoload.psr-4\" must map namespace prefixes to folders inside the extension.",
+			"files_outside": "\"autoload.files\" must list files inside the extension."
+		},
+		"extension_abandoned": {
+			"invalid": "\"abandoned\" must be true, false, or the name of the package to use instead (vendor/name).",
+			"abandoned": "It's abandoned, and no longer maintained.",
+			"use_instead": "It's abandoned; use \"{name}\" instead."
+		},
+		"install_clash": {
+			"installed": "{label} is already installed."
+		},
+		"extension_installer": {
+			"no_zip": "This server's PHP can't read .zip files (it has no zip extension).",
+			"not_writable": "The web server can't write to {folder}.",
+			"folder_not_made": "{folder} couldn't be made.",
+			"not_unpacked": "{name} couldn't be unpacked into {folder}.",
+			"not_installed": "No {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} named {name} is installed in {folder}.",
+			"no_backup": "There's no earlier version of {label} to roll back to.",
+			"git_rollback": "{folder} is a git checkout, so git changes its version, not a rollback.",
+			"rollback_aside": "{folder} couldn't be moved aside to roll it back.",
+			"not_rolled_back": "{label} couldn't be rolled back.",
+			"backup_not_removed": "The backup of {folder} couldn't be removed.",
+			"several_kinds": "{name} holds {claims}, but an extension is one kind.",
+			"wrong_kind": "{name} is {other, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}, not {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.",
+			"no_manifest": "{name} has no {manifest}.json in it, and no composer.json of type \"{type}\", so it isn't {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.",
+			"invalid": "{name} can't be installed: {reason}",
+			"default_theme_name": "\"{name}\" is the framework default theme's name.",
+			"admin_theme_name": "\"{name}\" is a framework admin theme's name.",
+			"reserved_namespace": "{name} can't be installed: its namespace, \"{namespace}\", is reserved.",
+			"installed_as": "{name} can't be installed: {installed} is installed as {kind, select, Plugin {a plugin} Theme {a theme} IconPack {an icon pack} other {an admin theme}}.",
+			"composer": "{name} is installed with Composer, so Composer updates it.",
+			"namespace_taken": "{name} can't be installed: its namespace, \"{namespace}\", is the {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} {installed}'s.",
+			"php_error": "{name} can't be installed: {file} has a PHP error on line {line} ({error}).",
+			"target_exists": "{folder} already exists, so {label} wasn't installed there. Delete or rename that folder first.",
+			"not_moved": "{label} couldn't be moved into {folder}.",
+			"git_replace": "{folder} is a git checkout, so git updates it, not an upload.",
+			"replace_aside": "{folder} couldn't be moved aside to replace it.",
+			"not_replaced": "{folder} couldn't be replaced."
+		},
+		"extension_archive": {
+			"no_zip": "This server's PHP can't read .zip files (it has no zip extension), so nothing can be installed here.",
+			"not_zip": "{name} isn't a .zip file Blush can read.",
+			"folder_not_made": "{name} couldn't be unpacked: a folder couldn't be made.",
+			"file_not_written": "{name} couldn't be unpacked: {file} couldn't be written.",
+			"too_many_files": "{name} holds more than {count, number} files.",
+			"damaged": "{name} is damaged.",
+			"outside": "{name} has a file that would land outside its folder ({file}), so it wasn't unpacked.",
+			"symlink": "{name} has a symbolic link ({file}), so it wasn't unpacked.",
+			"too_large": "{name} comes to more than {size, number} MB unpacked."
+		},
+		"local_extension": {
+			"wrong_folder": "The {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} in {where} is named \"{name}\"; an extension's folder is its name, so move it to {folder}/{name}."
+		},
+		"extension_license": {
+			"invalid": "\"license\" must be a string, or a list of strings any of which applies."
+		},
+		"extension_author": {
+			"not_object": "Each of \"authors\" must be an object with a \"name\".",
+			"unknown_key": "An author has \"name\", \"email\", \"homepage\", and \"role\"; \"{field}\" isn't one.",
+			"no_name": "Each of \"authors\" needs a \"name\".",
+			"not_string": "An author's \"{field}\" must be a string.",
+			"bad_email": "\"{email}\" isn't an email address.",
+			"bad_homepage": "An author's \"homepage\" must be an http or https URL; \"{homepage}\" isn't.",
+			"not_list": "\"authors\" must be a list of authors, each an object with a \"name\"."
+		},
+		"extension_keywords": {
+			"invalid": "\"keywords\" must be a list of strings."
+		},
+		"requirements": {
+			"not_installed": "isn't installed",
+			"active": "is active",
+			"on": "is on",
+			"not_active": "isn't active",
+			"turned_off": "is turned off",
+			"needs": "Needs {requirements}.",
+			"conflicts": "Conflicts with {requirements}.",
+			"replaces": "Replaces {requirements}.",
+			"stand_in": "{label} {version} {verb, select, replaces {replaces it} other {provides it}}",
+			"bad_constraint": "isn't a version constraint Blush understands",
+			"site_runs": "this site runs {version}",
+			"not_loaded": "isn't loaded",
+			"loaded": "version {version} is loaded",
+			"composer_checks": "Composer checks it",
+			"unknown": "isn't something Blush can check",
+			"installed": "version {version} is installed",
+			"only_provided": "only {ranges} is provided",
+			"stand_in_on": "{label} {version} {verb, select, replaces {replaces it} other {provides it}}, and is {theme, select, yes {active} other {on}}",
+			"version_on": "version {version} is {theme, select, yes {active} other {on}}",
+			"provided": "{ranges} is provided",
+			"cannot_run": "can't run"
+		},
+		"local_extensions": {
+			"composer_type": "a composer.json of type \"{type}\"",
+			"several_kinds": "It holds {claims}, but an extension is one kind."
+		},
+		"extension_require": {
+			"not_object": "\"{field}\" must be an object.",
+			"not_map": "\"{field}\" must map names to version constraints."
+		},
+		"extension_catalogs": {
+			"invalid": "\"catalogs\" must map catalog names (lowercase letters, digits, hyphens, and underscores) to lists of folders in the extension, such as '{\"site\": [\"resources/site\"]}'."
+		},
+		"extension_links": {
+			"homepage": "\"homepage\" must be an http or https URL.",
+			"support_not_object": "\"support\" must be an object with any of {keys}.",
+			"funding_not_list": "\"funding\" must be a list, each an object with a \"url\" and an optional \"type\".",
+			"support_unknown": "\"support\" has {keys}; \"{field}\" isn't one.",
+			"support_email": "\"support.email\" must be an email address.",
+			"support_irc": "\"support.irc\" must be an irc or ircs URL.",
+			"support_url": "\"support.{field}\" must be an http or https URL.",
+			"funding_not_object": "Each of \"funding\" must be an object with a \"url\" and an optional \"type\".",
+			"funding_url": "Each of \"funding\" needs a \"url\", an http or https URL, and its \"type\" must be a string."
+		},
+		"installed_extensions": {
+			"name_taken": "{kind, select, Plugin {A plugin} Theme {A theme} IconPack {An icon pack} other {An admin theme}} named \"{name}\" is already installed.",
+			"namespace_taken": "The \"{name}\" {kind, select, Plugin {plugin} Theme {theme} IconPack {icon pack} other {admin theme}} already has the namespace \"{namespace}\"; pass another with --namespace."
+		},
+		"requirement": {
+			"php_extension": "the PHP extension {extension}",
+			"with_note": "{requirement} ({note})"
+		},
+		"manifest_file": {
+			"invalid": "The manifest {file} is invalid: {error}",
+			"not_map": "The manifest {file} must be a map of keys to values."
+		},
+		"extension_suggest": {
+			"not_object": "\"suggest\" must be an object.",
+			"not_map": "\"suggest\" must map names to why each is suggested."
+		}
+	},
+	"cache": {
+		"cache_driver": {
+			"file": "Files",
+			"php_file": "PHP files",
+			"apcu": "APCu",
+			"array": "Memory, for one request",
+			"null": "Off"
+		}
+	},
+	"asset": {
+		"asset": {
+			"unknown_keys": "The \"{handle}\" asset has \"{keys}\", which isn't \"styles\", \"scripts\", or \"requires\".",
+			"requires": "The \"{handle}\" asset's \"requires\" must be a list of handles (vendor/name).",
+			"scripts": "The \"{handle}\" asset's \"scripts\" must be a list of paths, full URLs, or objects with a \"path\" and its \"attributes\" (and \"footer\" and \"catalog\").",
+			"styles": "The \"{handle}\" asset's \"styles\" must be a list of paths, full URLs, or objects with a \"path\" and its \"attributes\"."
+		}
+	},
+	"auth": {
+		"verify_csrf": {
+			"token_wrong": "The request's CSRF token is missing or wrong.",
+			"cross_site": "Cross-site requests aren't allowed."
+		},
+		"roles": {
+			"unreadable": "The roles can't be read: {error}",
+			"not_saved": "The roles couldn't be saved: {error}"
+		},
+		"tokens": {
+			"lifetime": "A token lasts {days} days, or never.",
+			"name_required": "A token needs a name that says what it's for.",
+			"name_too_long": "A token's name is up to {length} characters on one line.",
+			"unreadable": "The API tokens can't be read: {error}",
+			"not_saved": "The token \"{name}\" couldn't be saved or removed: {error}"
+		},
+		"role_editor": {
+			"name_taken": "There's already a role named \"{name}\".",
+			"built_in_fixed": "The {role} role's name and description are built in; only its capabilities can change.",
+			"nothing_to_reset": "The {role} role is built in and hasn't changed, so there's nothing to reset.",
+			"still_held": "Accounts still hold the {role} role ({accounts}). Take it from them first.",
+			"no_role": "There's no \"{name}\" role.",
+			"in_config": "The {role} role is defined in {file}, so it's changed there.",
+			"member_fixed": "The {role} role never has a capability.",
+			"owner_fixed": "The {role} role always has every capability, so it's never changed.",
+			"no_capability": "There's no \"{capability}\" capability.",
+			"label_required": "A role needs a name."
+		},
+		"authenticator": {
+			"locked_out": "Too many failed sign-ins. Try again later.",
+			"suspended": "This account is suspended. Ask an administrator to reinstate it.",
+			"wrong_passwords": "Too many wrong passwords. Try again later."
+		},
+		"account_profiles": {
+			"no_type": "The site has no profiles type.",
+			"taken": "The \"{slug}\" profile is {name}'s already; a profile belongs to one account.",
+			"locked": "The \"{slug}\" profile is locked, so no account can be linked to it. Unlock it on its screen first.",
+			"no_id": "The \"{slug}\" profile has no id yet; run {command} first."
+		},
+		"token_scope": {
+			"read": "Read",
+			"drafts": "Write drafts",
+			"account": "Same as your account"
+		},
+		"capability_group": {
+			"media": "Media",
+			"html": "HTML",
+			"structure": "Structure",
+			"site": "Site",
+			"users": "Users"
+		},
+		"capabilities": {
+			"upload_every": "Upload every kind",
+			"upload": "Upload {kind, select, image {images} video {videos} audio {audio} document {documents} other {other files}}",
+			"every_type": "Every type",
+			"content": "{type}: {action}"
+		},
+		"capability": {
+			"media_edit": "Edit their own files",
+			"media_edit_others": "Edit anyone's files",
+			"media_delete": "Delete their own files",
+			"media_delete_others": "Delete anyone's files",
+			"html_allowed": "Add HTML from the allowed list",
+			"html_unfiltered": "Add any HTML but what's always refused",
+			"menus_edit": "Edit menus",
+			"site_publish": "Publish the site",
+			"cache_clear": "Clear caches",
+			"site_settings": "Change site settings",
+			"site_logs": "Read the site's log",
+			"site_health": "See site health and fix what it finds",
+			"site_jobs": "See and manage background jobs",
+			"site_redirects": "Manage redirects",
+			"site_secrets": "Manage secrets",
+			"site_activity": "See activity and undo changes",
+			"accounts_view": "See accounts and roles",
+			"accounts_create": "Create accounts",
+			"accounts_edit": "Edit accounts",
+			"accounts_roles": "Give and take roles",
+			"accounts_suspend": "Suspend and reinstate accounts",
+			"accounts_delete": "Remove accounts",
+			"roles_manage": "Manage roles",
+			"api_tokens": "Make API tokens for their own account",
+			"api_connect": "Connect apps, such as Claude, to act as them"
+		},
+		"accounts": {
+			"not_saved": "The account \"{username}\" couldn't be saved: {error}",
+			"not_deleted": "The account \"{username}\" couldn't be deleted: {error}",
+			"username_invalid": "\"{username}\" can't be a username; use lowercase letters, digits, \".\", \"_\", and \"-\" (up to 64).",
+			"username_taken": "There's already an account named \"{username}\".",
+			"link_expired": "This link has expired, was used, or was replaced. Ask an administrator for a new one.",
+			"suspended": "This account is suspended. Ask an administrator to reinstate it.",
+			"name_too_long": "A name is up to {length} characters on one line.",
+			"email_required": "Every account needs an email address.",
+			"email_invalid": "\"{email}\" isn't an email address.",
+			"email_taken": "{name} already has that email address.",
+			"password_too_short": "Passwords must be at least {count, plural, one {# character} other {# characters}}.",
+			"no_role": "There's no \"{role}\" role; the roles are: {roles}.",
+			"token_only": "{username} is token-only: it never signs in, so it has no password.",
+			"profile_taken": "That profile is {name}'s already; a profile belongs to one account.",
+			"unreadable": "The accounts can't be read: {error}",
+			"account_unreadable": "The account \"{username}\" can't be read: {error}"
+		},
+		"built_in_role": {
+			"owner": {
+				"description": "Everything, always. Only an owner can change an owner's account or make another owner.",
+				"label": "Owner"
+			},
+			"administrator": {
+				"description": "Runs the site: accounts, roles, content types, settings, and every entry. Installs icon packs, but not plugins or themes, and doesn't see Site Health.",
+				"label": "Administrator"
+			},
+			"editor": {
+				"description": "Publishes and edits anyone's entries, and publishes the site. Can't change its structure.",
+				"label": "Editor"
+			},
+			"author": {
+				"description": "Writes and publishes their own entries, and uploads media.",
+				"label": "Author"
+			},
+			"contributor": {
+				"description": "Writes drafts of their own entries, and uploads images. Can't publish.",
+				"label": "Contributor"
+			},
+			"member": {
+				"description": "Signs in and looks after their own account. Nothing else.",
+				"label": "Member"
+			}
+		},
+		"extension_action": {
+			"view": "See {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}",
+			"install": "Install {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}",
+			"update": "Update {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}",
+			"activate_themes": "Activate themes",
+			"activate_admin_themes": "Turn admin themes on and off, and choose the site's default",
+			"activate": "Turn {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}} on and off",
+			"delete": "Delete {kind, select, plugin {plugins} theme {themes} icon_pack {icon packs} other {admin themes}}",
+			"group": {
+				"plugin": "Plugins",
+				"theme": "Themes",
+				"icon_pack": "Icon Packs",
+				"admin_theme": "Admin Themes"
+			}
+		},
+		"content_action": {
+			"create": "Create entries",
+			"edit": "Edit their own",
+			"edit_others": "Edit anyone's",
+			"publish": "Publish their own",
+			"publish_others": "Publish anyone's",
+			"delete": "Delete their own",
+			"delete_others": "Delete anyone's"
+		}
+	},
+	"activity": {
+		"activity_log": {
+			"unreadable": "The activity log can't be read: {problem}",
+			"unwritable": "The activity log couldn't be written: {problem}"
+		},
+		"activity": {
+			"damaged": "The activity \"{id}\" is damaged."
+		},
+		"via": {
+			"admin": "Admin",
+			"mcp": "MCP",
+			"cli": "Command line",
+			"api": "API"
+		},
+		"activity_action": {
+			"entry_create": "Created",
+			"entry_update": "Edited",
+			"entry_status": "Status changed",
+			"entry_trash": "Moved to Trash",
+			"entry_restore": "Restored",
+			"media_upload": "Uploaded",
+			"media_update": "Media edited"
+		}
+	},
+	"markdown": {
+		"raw_html": {
+			"allow": {
+				"description": "HTML is part of the page, as written.",
+				"label": "Allowed"
+			},
+			"filter": {
+				"description": "HTML is part of the page, but script, frames, forms, and styles show as text, and javascript: links lose their address.",
+				"label": "Filtered"
+			},
+			"escape": {
+				"description": "HTML shows as text, as it was typed.",
+				"label": "Shown as Text"
+			}
+		}
+	},
+	"setup": {
+		"exposure_check": {
+			"label": "Private files",
+			"built_in_server": "Not checked under PHP's built-in server, which can't answer a request to itself.",
+			"built_in_server_hint": "Run \"{command}\" from the command line to check.",
+			"served": "Anyone can download {files} from {url}.",
+			"served_hint": "Point the web server at the public/ folder, not the site's folder (or move public/'s files into the host's web folder), so nothing else is served.",
+			"unreached": "Couldn't reach {url} to check that {files} {count, plural, one {isn't} other {aren't}} served.",
+			"unreached_hint": "Check that {setting} is the site's address and that this server can reach it.",
+			"nothing": "Nothing to check.",
+			"checked": "Not served at {url}: {files}."
+		},
+		"site_checks": {
+			"jobs_sync": "Jobs run when they're queued (the \"sync\" runner).",
+			"jobs_run": "Cron or a worker runs them.",
+			"jobs_hint": "Add \"{cron}\" to cron, or keep \"{worker}\" running.",
+			"jobs_stale": "Cron hasn't run in the last {minutes} minutes, so scheduled tasks and background jobs may wait.",
+			"jobs_visits": "Cron isn't set up, so scheduled tasks and background jobs run only after page visits.",
+			"jobs_waiting": "Cron isn't set up, so scheduled tasks and background jobs run only while someone waits on them in the admin.",
+			"key_invalid_hint": "Set it to 32 random bytes in base64, or remove it and run \"{command}\" to add one.",
+			"key_set": "Set, so secrets can be stored.",
+			"key_missing": "Not set, so secrets can be set only in the environment, not stored.",
+			"key_missing_hint": "Run \"{command}\" to add one.",
+			"secret_unreadable": "Stored, but it won't decrypt: it was stored under a key this site doesn't have, or changed.",
+			"secret_unreadable_hint": "Store it again with \"{command}\", or put the key it was stored under in {previous}.",
+			"secret_missing_core": "Core needs it, but it isn't set.",
+			"secret_missing": "{owner} needs it, but it isn't set.",
+			"secret_missing_hint": "Set {env} in the environment, or run \"{command}\".",
+			"secret_undeclared": "Stored, but nothing declares it any more (an extension may have been removed).",
+			"secret_undeclared_hint": "Run \"{command}\" if it's no longer needed.",
+			"secrets": "Secrets",
+			"owner": "Owner",
+			"owner_found": "The site has an owner.",
+			"owner_missing": "No account is the site's owner, so administrators can lock each other out.",
+			"owner_missing_hint": "Run \"{command}\", or make yourself the owner on Your Account in the admin.",
+			"accounts": "Accounts",
+			"theme": "Theme",
+			"theme_unmet": "The \"{theme}\" theme can't run, so the default theme runs in its place.",
+			"theme_unmet_hint": "Run \"{command}\" for more.",
+			"plugins": "Plugins",
+			"icon_packs": "Icon packs",
+			"admin_themes": "Admin themes",
+			"unmet": "{count, plural, one {# {kind, select, plugin {plugin} icon_pack {icon pack} other {admin theme}} is} other {# {kind, select, plugin {plugins} icon_pack {icon packs} other {admin themes}} are}} turned on but can't run: {names}.",
+			"unmet_hint": "Run \"{command}\" to see why.",
+			"clashes": "Names defined twice",
+			"clash": "Two plugins define the \"{name}\" {kind, select, type {content type} other {relation}}: {kept}'s is used, and {dropped}'s is left out.",
+			"clashes_hint": "Turn one of them off, or ask its author to rename what it defines.",
+			"field_sets": "Field sets left off",
+			"field_sets_hint": "Rename the field in one of the sets, or turn off the plugin that adds one. Run \"{command}\" to see each.",
+			"extensions": "Extensions",
+			"extensions_run": "Everything that's on runs.",
+			"sentences": "{sentence} {next}",
+			"jobs": "Background jobs",
+			"secret": "Secret {name}"
+		},
+		"setup_checks": {
+			"why": {
+				"dom": "Reads and rewrites HTML (pages, embeds, icons, theme checks) and photos' XMP details",
+				"intl": "Dates, numbers, and sorting in the site's language, and translations",
+				"mbstring": "Handles text in every language (lengths, excerpts, slugs), and Markdown needs it"
+			},
+			"storage_files": "Files.",
+			"sqlite_unavailable": "SQLite is named, but PHP can't open SQLite databases with their JSON functions.",
+			"sqlite_unavailable_hint": "Turn on PHP's pdo_sqlite extension, or set the storage driver back to \"filesystem\".",
+			"storage_sqlite": "SQLite, in {file}.",
+			"php_too_old": "{version} is too old.",
+			"php_too_old_hint": "{name} needs PHP {version} or newer.",
+			"loaded": "Loaded.",
+			"not_loaded": "Not loaded.",
+			"not_loaded_hint": "Install or enable PHP's \"{extension}\" extension.",
+			"env_missing": "Not found, so settings come only from the server's environment.",
+			"env_missing_hint": "Run \"{command}\" to create it.",
+			"environment": "Environment",
+			"environment_debug": "{environment}, with debugging on",
+			"debug_in_production": "Debugging is on in production, so error pages show code and paths.",
+			"debug_in_production_hint": "Set {setting}.",
+			"local_url": "\"{url}\" is a local address, so feeds, sitemaps, and full URLs point there.",
+			"local_url_hint": "Set {setting} to the site's real address.",
+			"index_missing": "Not found, so the web server has nothing to run.",
+			"index_missing_hint": "Copy index.php from the {name} skeleton.",
+			"htaccess_missing": "Not found. Apache needs it to send requests to index.php (nginx doesn't use it).",
+			"unwritable_hint": "Run \"{command}\", or let the web server's user write to it.",
+			"writable": "Writable.",
+			"unwritable": "Not writable.",
+			"not_a_folder": "This is a file, not a folder.",
+			"not_a_folder_hint": "Remove the file.",
+			"created_when_needed": "Created when it's needed.",
+			"missing_parent_unwritable": "Missing, and {folder} isn't writable.",
+			"found": "Found.",
+			"storage": "Storage"
+		}
+	},
+	"plugin": {
+		"plugin_manifest": {
+			"bad_name": "Plugin name \"{name}\" is invalid; use vendor/name, such as \"acme/gallery\".",
+			"no_label": "Plugin \"{name}\" needs a \"label\".",
+			"bad_namespace": "Plugin \"{name}\" namespace \"{namespace}\" is invalid; use lowercase letters, digits, hyphens, and underscores, and not {reserved}.",
+			"bad_provider": "Plugin \"{name}\" must name its service provider class; \"{provider}\" is not a class name.",
+			"bad_prefix": "Plugin \"{name}\" autoload prefix \"{prefix}\" must be a namespace ending in a backslash.",
+			"invalid_named": "Plugin manifest for \"{name}\": {error}",
+			"invalid": "Plugin manifest: {error}",
+			"not_string_named": "Plugin manifest \"{field}\" for \"{name}\" must be a string.",
+			"not_string": "Plugin manifest \"{field}\" must be a string."
+		},
+		"local_plugin_finder": {
+			"in_file": "{error} ({file})"
+		},
+		"plugin_discovery": {
+			"same_name": "Two plugins are named \"{name}\": {first} and {second}.",
+			"same_namespace": "Two plugins have the namespace \"{namespace}\": {first} and {second}."
+		}
+	},
+	"sitemap": {
+		"ai_crawler_group": {
+			"training": {
+				"label": "Training crawlers",
+				"description": "Collect pages to train models."
+			},
+			"search": {
+				"label": "AI search crawlers",
+				"description": "Index pages so an answer can cite and link them."
+			},
+			"fetchers": {
+				"label": "Fetchers acting for a person",
+				"description": "Get one page because a reader asked their assistant about it, so turning these away turns away a reader's own tools."
+			}
+		}
+	},
+	"content": {
+		"entry_refs": {
+			"checking_index": "Checking the content index"
+		},
+		"file_names": {
+			"checking_index": "Checking the content index",
+			"checking": "Checking file names",
+			"folder": "it's kept as a folder, which a pattern never names",
+			"bad_date": "its date, {date}, isn't a real date; fix it first",
+			"translation_folder": "a translation of it is kept as a folder, so renaming it would break their link"
+		},
+		"variant_check": {
+			"no_variants": "line {line}: {block} has no \"{variant}\" variant under the active theme, so it renders as Default (it has no variants).",
+			"unknown": "line {line}: {block} has no \"{variant}\" variant under the active theme, so it renders as Default (it has {variants})."
+		},
+		"linter": {
+			"default_suffix": "has the default language's suffix beside {winner}, which wins; the default language needs none, so remove one.",
+			"duplicate": "is the same entry as {winner}, which wins.",
+			"shared_id": "is also the id of {paths}; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.",
+			"missing": "doesn't exist.",
+			"file_order": "\"orderby: {order}\" is read as \"published\"; entries are never sorted by file. Write \"orderby: published\".",
+			"unreal_date": "\"{date}\" isn't a real date, so it's read as {read}.",
+			"prefix": "has an order prefix, which only collections use; {items} don't. Rename it {path}.",
+			"prefix_beyond_pattern": "has an order prefix, which only collections use; {items} don't, beyond their file name pattern ({pattern}) on files. Rename it {path}.",
+			"media_unknown": "is a path ({path}) that names no media file with an id; choose the file again.",
+			"media_path": "is written as a path; media fields name their file by id. Rewrite it with content:media-ids, or on Site Health in the admin.",
+			"own_parent": "names the entry itself; an entry can't be its own parent.",
+			"no_parent": "\"{page}\" has no {type} entry; the entry is shown at the top level.",
+			"parent_loop": "makes a loop: {chain}.",
+			"route_answers": "is at {address}, but the {route} route answers there, so the page can't be reached; move the page or change the type's prefix.",
+			"missing_target": "\"{slug}\" has no {item} entry, so the site leaves it out; add one, or run content:terms."
+		},
+		"field_set_check": {
+			"unknown_kind": "\"{set}\" names {target}, but fields can't attach to a \"{kind}\" yet.",
+			"unknown_target": "\"{set}\" names {target}, which the site doesn't have, so it isn't used there.",
+			"slot": "\"{set}\" has the slot \"{slot}\", which {kind} don't offer, so it's in \"{in}\".",
+			"registered": "the fields {extension} registers"
+		},
+		"format_check": {
+			"markdown": "isn't read: entries are .md files. Rename it to .md.",
+			"html": "isn't read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.",
+			"data": "isn't read: entries are .md files. Move its keys into the front matter of a .md file, with its body after."
+		},
+		"relation": {
+			"reserved_key": "Relation \"{name}\" can't be written under \"{field}\", which is reserved.",
+			"no_target": "Relation \"{name}\" names no type it points to.",
+			"negative_min": "Relation \"{name}\" has a min below 0.",
+			"max_below_min": "Relation \"{name}\" has a max below its min (or below 1).",
+			"bad_defaults": "Relation \"{name}\" has more defaults than it takes, or an empty one.",
+			"within_type": "Relation \"{name}\" is a {kind}, which points from one type to the same type, one target each.",
+			"classify_to": "Relation \"{name}\" classifies, so it points to one type and is named after it: \"to\" must be [\"{name}\"].",
+			"symmetric": "Relation \"{name}\" is symmetric, so every type it points to must be one it points from.",
+			"authors": "Authors",
+			"unknown_kind": "Relation \"{name}\" has an unknown kind.",
+			"unknown_translations": "Relation \"{name}\" has an unknown translations rule.",
+			"unknown_control": "Relation \"{name}\" has an unknown control; it can be {controls}.",
+			"bad_name": "A relation's {what, select, name {name} other {front matter key}} must be lowercase letters, digits, and underscores, starting with a letter; \"{value}\" isn't."
+		},
+		"relations": {
+			"unknown_type": "Relation \"{name}\" names a \"{type}\" content type, which doesn't exist.",
+			"same_name": "Content type \"{type}\" has two relations named \"{name}\".",
+			"same_key": "Relations \"{first}\" and \"{second}\" both read \"{field}\" on content type \"{type}\"."
+		},
+		"relation_loader": {
+			"in_file": "{location}: {problem}"
+		},
+		"relation_changes": {
+			"refused_type": "{count, plural, one {# entry has} other {# entries have}} a value in \"{name}\", so it can't point at another type; make a new relation instead.",
+			"refused_one": "{count, plural, one {# entry has} other {# entries have}} more than one value in \"{name}\", so it can't take just one: {titles}.",
+			"fewer": "{count, plural, one {# published entry has} other {# published entries have}} fewer than {min}, so {count, plural, one {it can't be} other {they can't be}} published again until {count, plural, one {it has} other {they have}} more.",
+			"more": "{count, plural, one {# entry has} other {# entries have}} more than {max}; lint reports {count, plural, one {it} other {them}}, and {count, plural, one {it won't} other {they won't}} publish again until {count, plural, one {it has} other {they have}} fewer.",
+			"inverse_over": "{count, plural, one {# entry is} other {# entries are}} named by more than {max, plural, one {# entry} other {# entries}}; lint reports them."
+		},
+		"inverse": {
+			"bad_archive": "A relation's archive word must be a slug, such as \"authors\", or false for none; \"{archive}\" isn't.",
+			"max_below_one": "A relation's inverse max must be at least 1, not {max, number, integer}.",
+			"listing_subject": "A relation's inverse listing",
+			"bad_page": "A relation's inverse page must be true or false.",
+			"bad_archive_type": "A relation's inverse archive must be a word or false; for the target's own page, use \"page\": true.",
+			"max_not_number": "A relation's inverse max must be a number."
+		},
+		"data_relation_writer": {
+			"bad_name": "\"{name}\" isn't a relation name: lowercase letters, digits, and underscores, starting with a letter.",
+			"already_data": "user/data/relations already defines \"{name}\".",
+			"already_code": "The \"{name}\" relation is already defined in code; change it there.",
+			"not_data_change": "\"{name}\" isn't defined in user/data/relations, so it can't be changed here.",
+			"not_data_delete": "\"{name}\" isn't defined in user/data/relations, so it can't be deleted here.",
+			"data_types_off": "ContentConfig \"dataTypes\" is off, so relations in user/data/relations aren't read."
+		},
+		"link_resolver": {
+			"self_link": "An entry can't link to itself.",
+			"no_id": "\"{value}\" names no entry's id.",
+			"wrong_type": "\"{value}\" names a {type}, which \"{relation}\" doesn't point to.",
+			"missing": "\"{value}\" names no {types}.",
+			"ambiguous": "\"{value}\" names a {types}; write the id to say which."
+		},
+		"relation_limits": {
+			"too_few": "{relation} needs at least {min} to publish; it has {count}.",
+			"too_many": "{relation} takes at most {max}; it has {count}.",
+			"inverse_full": "\"{title}\" already has the most entries naming it in {relation} ({max})."
+		},
+		"relation_compiler": {
+			"parent": "Parent",
+			"original": "Original"
+		},
+		"relation_checker": {
+			"too_few": "Needs at least {min} {relation} to be published; it has {count}.",
+			"too_many": "Takes at most {max} {relation}; it has {count}.",
+			"cycle": "Its {relation} leads back to itself.",
+			"inverse_over": "At most {max} may name it in {relation}; {count} do."
+		},
+		"missing_terms": {
+			"checking_index": "Checking the content index",
+			"writing": "Writing terms"
+		},
+		"content_files": {
+			"in_database": "The site keeps its content in a database, so there are no content files to read."
+		},
+		"filesystem_source": {
+			"unreadable_folder": "Unable to read the content folder \"{path}\".",
+			"unreadable_file": "Unable to read content file \"{path}\"."
+		},
+		"missing_parents": {
+			"checking_index": "Checking the content index",
+			"writing": "Writing parent pages"
+		},
+		"typed_targets": {
+			"no_type": "There's no \"{type}\" type."
+		},
+		"entry_ids": {
+			"checking_index": "Checking the content index",
+			"not_shared": "{path} doesn't share its id with another file."
+		},
+		"front_matter": {
+			"invalid": "Invalid front matter: {problem}",
+			"not_a_map": "Front matter must be a map of keys to values."
+		},
+		"symfony_yaml_parser": {
+			"invalid": "Invalid YAML: {problem}",
+			"object": "YAML may not contain objects; found {class}."
+		},
+		"filesystem_writer": {
+			"unreadable": "{path} can't be read: {problem}",
+			"not_a_slug": "\"{slug}\" isn't a slug; try \"{suggestion}\".",
+			"exists": "{path} already exists.",
+			"not_a_key": "\"{page}\" isn't a page key: slugs separated by \"/\", each may start with \"_\".",
+			"not_a_parent": "{path} isn't a page other pages can go under.",
+			"index_parent": "{path} is an index page; pages under it go at the top.",
+			"page_taken": "There's already a page at {page}.",
+			"folder_has_page": "{path} can't move into {folder}/: that folder already has a page. Remove one of the two, then try again.",
+			"no_folder": "The folder {path} couldn't be created.",
+			"not_moved": "{path} couldn't be moved to {to}.",
+			"landing_copy": "{path} is a landing page; its name is its folder's, so it can't be copied.",
+			"landing_name": "{path} is a landing page; its name is its folder's.",
+			"landing_language": "{path} is a landing page; it's in the language of the pages it lists.",
+			"not_renamed": "{path} couldn't be renamed.",
+			"cannot_move": "{path} isn't a page that can move.",
+			"index_stays": "{path} is an index page; it stays at the top of its folder.",
+			"wrong_parent": "{path} isn't one of the {items} a page can go under.",
+			"under_itself": "{name} can't go under itself or a page under it.",
+			"not_deleted": "{path} couldn't be deleted.",
+			"not_copied": "{path} couldn't be copied.",
+			"changed": "{path} changed since it was opened. Reload it, then make your change again.",
+			"not_content": "\"{path}\" isn't a content file.",
+			"outside": "\"{path}\" is outside the content folder.",
+			"no_file": "There's no content file {path}.",
+			"not_written": "{path} couldn't be written: {problem}",
+			"writing_ids": "Writing ids",
+			"renaming_files": "Renaming files",
+			"missing": "There's no {path}.",
+			"no_folder_for": "The folder for {path} couldn't be created.",
+			"checking_index": "Checking the content index",
+			"updating_index": "Updating the content index",
+			"filing_relations": "Filing relations",
+			"locked": "Content can't be written right now: the write lock couldn't be taken."
+		},
+		"record_content_writer": {
+			"wrong_parent": "The page to go under isn't one of the {items}.",
+			"index_parent": "That's an index page; pages under it go at the top.",
+			"no_parent": "There's no page at {parent} to put {page} under.",
+			"landing_copy": "That's a landing page; its name is its folder's, so it can't be copied.",
+			"landing_name": "That's a landing page; its name is its folder's.",
+			"no_language": "The site has no language \"{code}\".",
+			"landing_language": "That's a landing page; it's in the language of the pages it lists.",
+			"translated": "Its {language} translation is “{title}”.",
+			"cannot_move": "{name} isn't a page that can move.",
+			"index_stays": "{name} is an index page; it stays at the top of its folder.",
+			"not_a_parent": "That isn't one of the {items} a page can go under.",
+			"under_itself": "{name} can't go under itself or a page under it.",
+			"top_taken": "There's already a {item} at the top of its type.",
+			"taken": "There's already a {item} at {page}.",
+			"changed": "The entry changed since it was opened. Reload it, then make your change again.",
+			"no_id": "There's no entry with the id \"{id}\".",
+			"not_a_slug": "\"{slug}\" isn't a slug; try \"{suggestion}\".",
+			"not_a_key": "\"{page}\" isn't a page key: slugs separated by \"/\", each may start with \"_\"."
+		},
+		"filesystem_content_writer": {
+			"wrong_parent": "The page to go under isn't one of the {items}.",
+			"not_a_slug": "\"{slug}\" isn't a slug; try \"{suggestion}\".",
+			"landing_name": "{path} is a landing page; its name is its folder's.",
+			"slug_taken": "Another entry already has the slug \"{slug}\".",
+			"no_language": "The site has no language \"{code}\".",
+			"landing_language": "{path} is a landing page; it's in the language of the pages it lists.",
+			"translated": "Its {language} translation is “{title}”.",
+			"taken_in_language": "There's already a {item} at {page} in {language}.",
+			"no_id": "There's no entry with the id \"{id}\".",
+			"not_indexed": "{path} was written, but the index doesn't have it; check Site Health."
+		},
+		"document_editor": {
+			"value_changes": "\"{name}\" wouldn't read back as given",
+			"not_removed": "\"{name}\" wouldn't be removed",
+			"others_change": "other front matter would change",
+			"body_changes": "the body wouldn't read back as given",
+			"unreadable": "{path} can't be read, so it can't be edited safely: {problem}",
+			"unsafe": "Blush couldn't edit {path} safely ({reason}), so nothing was saved."
+		},
+		"entry_editor": {
+			"cannot_create_entries": "You aren't allowed to create entries.",
+			"cannot_create": "You aren't allowed to create {items}.",
+			"new_must_be_draft": "You aren't allowed to publish, so new entries must be drafts.",
+			"not_a_tree": "Only pages of a tree go under another; {items} don't.",
+			"no_parent": "There's no \"{parent}\" in {items} to put it under.",
+			"address_in_trash": "“{title}” in the trash has this address; restore it, or delete it permanently, first.",
+			"summary": {
+				"created": "Created “{title}”",
+				"trashed": "Moved “{title}” to the trash",
+				"restored": "Restored “{title}” from the trash",
+				"copied": "Copied “{title}” as “{copy}”",
+				"undid": "Undid a change to “{title}”",
+				"published": "Published “{title}”",
+				"scheduled": "Scheduled “{title}” for later",
+				"scheduled_for": "Scheduled “{title}” for {when}",
+				"drafted": "Moved “{title}” to draft",
+				"status": "Changed the status of “{title}”",
+				"body": "the body",
+				"address": "its address",
+				"edited": "Edited “{title}”",
+				"list": "{list}, {item}",
+				"edited_parts": "Edited {changed} of “{title}”"
+			},
+			"cannot_edit": "You aren't allowed to edit that entry.",
+			"cannot_move": "Only a tree's pages move under another; \"{title}\" doesn't.",
+			"no_move_parent": "There's no \"{parent}\" in {items} to move it under.",
+			"page_taken": "There's already a page at {page}.",
+			"keeps_language": "\"{title}\" keeps the language of the pages it goes with.",
+			"passage_missing": "The body of “{title}” doesn't have that passage; read it again and copy the passage exactly.",
+			"passage_repeated": "The body of “{title}” has that passage {count, plural, one {# time} other {# times}}; send more of the text around it so it's found once.",
+			"cannot_publish": "You aren't allowed to publish that entry; keep it a draft.",
+			"cannot_delete": "You aren't allowed to delete that entry.",
+			"already_trashed": "\"{title}\" is already in the trash; delete it permanently, or restore it.",
+			"index_not_trashed": "\"{title}\" is the index page for {items}, so it can't be moved to the trash.",
+			"not_trashed": "That isn't in the trash.",
+			"cannot_restore": "You aren't allowed to restore that entry.",
+			"restore_as_draft": "You aren't allowed to publish that entry, so it can't be put back as it was; restore it as a draft.",
+			"changed_in_trash": "\"{title}\" changed in the trash since it was moved there, so it can't be put back as it was; restore it from the Trash.",
+			"cannot_duplicate": "You aren't allowed to duplicate that entry.",
+			"only_one_index": "\"{title}\" is the index page for {items}, and there's only one.",
+			"only_one_root": "\"{title}\" is the site's root page, and there's only one.",
+			"copy_title": "{title} (Copy)",
+			"gone": "“{title}” is no longer there.",
+			"already_undone": "That change was already undone.",
+			"cannot_undo": "That change can't be undone.",
+			"changed_since": "“{title}” changed since; open it to edit.",
+			"nothing_kept": "That change didn't keep what it replaced, so it can't be undone.",
+			"undo_needs_publish": "You aren't allowed to publish that entry, so this change can't be undone.",
+			"required": "{count, plural, one {{names} is required to publish.} other {{names} are required to publish.}}",
+			"cannot_add_targets": "You aren't allowed to add new {items}: {titles}.",
+			"targets_failed": "{keys} couldn't be written: {problems}",
+			"landing_slug": "\"{title}\" is its folder's landing page, so its slug is the folder's.",
+			"error_slug": "\"{title}\" is the page for error {status}, so its slug is the status.",
+			"bad_slug": "Slugs are lowercase letters, numbers, and hyphens; try \"{slug}\".",
+			"slug_in_trash": "A {item} in the trash has the slug \"{slug}\"; restore it, or delete it permanently, to use it.",
+			"slug_taken": "Another {item} already has the slug \"{slug}\".",
+			"no_language": "The site has no language \"{code}\".",
+			"translated": "Its {language} translation is “{title}”.",
+			"taken_in_language": "There's already a {item} at {page} in {language}.",
+			"keep_yourself": "You can add authors, but not take yourself off an entry.",
+			"index_not_scheduled": "An index page can't be scheduled; publish it or keep it a draft.",
+			"future_date": "Scheduling needs a future \"published\" date.",
+			"in_trash": "\"{title}\" is in the trash; restore it to change it.",
+			"untitled": "Untitled"
+		},
+		"html_guard": {
+			"unreadable": "The body couldn't be read for HTML: {problem}",
+			"no_html": "Your role can't add HTML, so {list} can't be saved. Take it out, or ask someone who can.",
+			"not_with_role": "{list} can't be added with your role. Take it out to save.",
+			"never": "{list} can't be added. Take it out to save."
+		},
+		"data_field_set_writer": {
+			"bad_name": "\"{name}\" isn't a field set name: use lowercase letters, digits, \"_\", and \"-\".",
+			"already_data": "user/data/fields already defines \"{name}\".",
+			"not_data_change": "\"{name}\" isn't defined in user/data/fields, so it can't be changed here.",
+			"fix_by_hand": "{reason} Fix it by hand first.",
+			"not_data_delete": "\"{name}\" isn't defined in user/data/fields, so it can't be deleted here.",
+			"unknown_option": "\"{option}\" isn't something the admin changes in a field set.",
+			"data_sets_off": "FieldConfig \"dataSets\" is off, so sets in user/data/fields aren't read."
+		},
+		"file_name": {
+			"no_slug": "The file name pattern \"{pattern}\" must end in '{slug}'.",
+			"no_dot": "The file name pattern \"{pattern}\" needs a \".\" before '{slug}', which starts the slug.",
+			"unknown_tokens": "The file name pattern \"{pattern}\" uses {unknown}; the tokens are '{slug}' and {tokens}.",
+			"characters": "The file name pattern \"{pattern}\" may use only the tokens, letters, digits, \"-\", \"_\", and \".\", and can't start with \"_\" or \".\"."
+		},
+		"type_feed": {
+			"unknown_options": "{subject} has unknown options: {options}.",
+			"listing_subject": "{feed} listing"
+		},
+		"content_type_targets": {
+			"label": "Content types",
+			"details": "Details",
+			"details_description": "Facts about each entry, such as notes or search engine settings."
+		},
+		"taxonomy_migration": {
+			"step": "Migrating taxonomies",
+			"no_type": "user/data/types has no \"{name}\".",
+			"relation_exists": "{location} already exists; move it aside first."
+		},
+		"type_route_keys": {
+			"characters": "The {label} address can use letters, digits, \"-\", \"_\", \".\", \"/\", and '{placeholders}'; \"{path}\" has something else.",
+			"invalid": "The {label} address \"{path}\" isn't one: {reason}",
+			"missing": "The {label} address needs {placeholders}.",
+			"unknown_none": "The {label} address can't fill {placeholders}; it can hold no placeholders.",
+			"unknown": "The {label} address can't fill {placeholders}; it can hold {held}."
+		},
+		"listing": {
+			"typed_query": "Listing \"query\" can't set {arguments}; use the Listing options instead.",
+			"invalid": "Listing is invalid: {reason}",
+			"bad_order": "{subject} \"order\" must be \"asc\" or \"desc\".",
+			"per_page_not_whole": "{subject} \"perPage\" must be a whole number.",
+			"bad_query": "{subject} \"query\" must map query argument names to values."
+		},
+		"data_type_writer": {
+			"fix_by_hand": "{reason} Fix it by hand first.",
+			"one_profiles": "The site has one profiles type; create a collection or a tree.",
+			"already_data": "user/data/types already defines \"{name}\".",
+			"already_code": "\"{name}\" is already defined in code.",
+			"not_data_change": "\"{name}\" isn't defined in user/data/types, so it can't be changed here.",
+			"still_taxonomy": "\"{name}\" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.",
+			"still_folder": "\"{name}\" still names its folder; move it first, on Site Health or with content:type-folders --write.",
+			"not_code": "\"{name}\" isn't defined in code, so there's nothing to reset it to.",
+			"nothing_changes": "Nothing in user/data/types changes \"{name}\".",
+			"bad_under": "\"under\" must be a type's name, or null for the top level.",
+			"profiles_not_placed": "{types} are listed with people, so they aren't placed in the content menu.",
+			"bad_parent": "{types} can't sit under \"{under}\": it isn't a type in the content menu.",
+			"parent_nested": "{types} can't sit under {parent}, which sits under another type; the menu nests one level.",
+			"has_children": "{types} can't sit under another type while {children} sit under it; the menu nests one level.",
+			"bad_position": "\"position\" must be a whole number, 0 or more, or null.",
+			"delete_code": "\"{name}\" is defined in code, so it can't be deleted here; reset it to undo the changes made here.",
+			"not_data_delete": "\"{name}\" isn't defined in user/data/types, so it can't be deleted here.",
+			"named_by_relations": "The {relations} {count, plural, one {relation names} other {relations name}} {name}; remove {count, plural, one {it} other {them}} first.",
+			"code_fields": "Its fields include field classes from code, so they're changed in code.",
+			"bad_folders": "\"folders\" must be a folder pattern, such as '{year}', or null.",
+			"unknown_option": "\"{option}\" isn't an option the admin changes.",
+			"no_urls_prefix": "The type has no URLs of its own, so it has no prefix to change.",
+			"no_urls_paths": "The type has no URLs of its own, so it has no paths to change.",
+			"bad_paths": "\"paths\" must map route keys to paths.",
+			"unknown_route_key": "\"{route}\" isn't a route key.",
+			"path_not_text": "The \"{route}\" path must be text.",
+			"bad_labels": "\"labels\" must map label names to text.",
+			"data_types_off": "ContentConfig \"dataTypes\" is off, so types in user/data/types aren't read.",
+			"bad_name": "\"{name}\" isn't a type name: start with a lowercase letter and use lowercase letters, digits, and underscores.",
+			"code_fixed": "{types} are {role, select, pages {the site's pages} profiles {the site's profiles type} collection {a collection type} other {a tree type}}, defined in code, so they can't be changed here."
+		},
+		"type_labels": {
+			"unknown_options": "Content type \"{name}\" labels has unknown options: {options}.",
+			"subject": "Content type \"{name}\" labels"
+		},
+		"folder_pattern": {
+			"one_token": "The folder pattern \"{pattern}\" must be tokens, one to a folder.",
+			"unknown_tokens": "The folder pattern \"{pattern}\" uses {unknown}; the tokens are {tokens}.",
+			"twice": "The folder pattern \"{pattern}\" uses a token twice.",
+			"year_first": "The folder pattern \"{pattern}\" needs '{year}' before '{month}'."
+		},
+		"content_type": {
+			"bad_name": "Content type name \"{name}\" must start with a lowercase letter and use only lowercase letters, digits, and underscores.",
+			"reserved_name": "\"{name}\" can't name a content type: _{name} is a folder the site's pages keep (the reserved names are {reserved}).",
+			"invalid_fields": "Content type \"{name}\" has invalid fields: {reason}",
+			"negative_position": "Content type \"{name}\" \"position\" must be 0 or more.",
+			"under_itself": "Content type \"{name}\" can't sit under itself.",
+			"no_name": "A content type definition needs a \"name\".",
+			"tree_folders": "Content type \"{name}\" has a folder pattern, but a tree's folders are its pages', so it takes none.",
+			"unknown_options": "Content type \"{name}\" ({kind}) has unknown options: {options}.",
+			"subject": "Content type \"{name}\"",
+			"listing_subject": "Content type \"{name}\" listing",
+			"bad_order": "Content type \"{name}\" \"order\" must be one of {orders}.",
+			"kind_changed": "user/data/types/{name} can't change the type's kind; entries are filed by it.",
+			"only_placed": "\"{name}\" can only be placed in the menu here, with \"position\" and \"under\".",
+			"profiles_not_placed": "The \"{name}\" type is listed with people, so it isn't placed in the content menu.",
+			"named_folder": "Content type \"{name}\" names its folder (\"{folder}\"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.",
+			"named_folder_option": "Content type \"{name}\" names its folder (with \"folder\"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.",
+			"credits_moved": "Content type \"{name}\" sets \"{option}\", but a type credits people through a credit relation now, defined with the others (in user/data/relations or a plugin): {example}.",
+			"bad_collect": "Content type \"{name}\" \"collect\" must be a type name or false.",
+			"taxonomy": "Content type \"{name}\" is a taxonomy, which Blush no longer has: make it a collection (with \"order: position\", and \"hierarchical: true\" if its terms nest) and define a classify relation named \"{name}\" in the content config's \"relations\" or user/data/relations. For a type in user/data/types, content:taxonomies --write does this.",
+			"bad_taxonomy": "Content type \"{name}\" \"taxonomy\" must be true or false.",
+			"bad_kind": "Content type \"{name}\" \"kind\" must be one of {kinds}.",
+			"bad_urls": "Content type \"{name}\" \"urls\" must be false or a map.",
+			"urls_subject": "Content type \"{name}\" urls",
+			"feed_subject": "Content type \"{name}\" feed",
+			"bad_feed": "Content type \"{name}\" \"feed\" must be true, false, or a map.",
+			"bad_date_archives": "Content type \"{name}\" \"dateArchives\" must be one of {values}.",
+			"position_not_whole": "Content type \"{name}\" \"position\" must be a whole number.",
+			"problem": "Content type \"{name}\": {problem}",
+			"tree_pattern": "Content type \"{name}\" has the folder pattern \"{pattern}\"; a tree's folders are its pages', so it takes none.",
+			"not_overridable": "The \"{name}\" content type is {role, select, pages {the site's pages} profiles {the site's profiles type} collection {a collection type} other {a tree type}}, which user/data/types can't change; define it in one place."
+		},
+		"type_urls": {
+			"unknown_options": "{subject} has unknown options: {options}.",
+			"bad_paths": "{subject} \"paths\" must map route keys to paths."
+		},
+		"tree": {
+			"root_prefix": "Content type \"{name}\" is the site's pages, served from the root, so it takes no prefix.",
+			"bad_prefix": "Content type \"{name}\" has an invalid prefix \"{prefix}\"."
+		},
+		"content_types": {
+			"id_field": "Content type \"{name}\" has a field (or alias) named \"{field}\", which is reserved for the entry's id; rename it.",
+			"refs_field": "Content type \"{name}\" has a field (or alias) named \"{field}\", which is reserved for the ids of the entry's links; rename it.",
+			"avatar_help": "A portrait, shown beside the name; without one, initials stand in.",
+			"linkable_help": "false locks the profile against being linked to an account (D-605).",
+			"position_help": "Its place among its sibling {items}, lowest first; those without one follow, by title.",
+			"clashing_fields": "Content type \"{name}\" has clashing fields: {reason}"
+		},
+		"collection": {
+			"parent_help": "The parent {item}, by slug."
+		},
+		"type_folder_migration": {
+			"step": "Moving type folders",
+			"no_type": "user/data/types has no \"{name}\"."
+		},
+		"content_type_loader": {
+			"data_type_urls": "The \"{name}\" data type sets \"{option}\", which ContentConfig \"dataTypeUrls\" doesn't allow.",
+			"profiles_types": "A site has one profiles type, but {types} are all profiles types.",
+			"credit_no_profiles": "Relation \"{name}\" credits people, but the site has no profiles type.",
+			"credit_to": "Relation \"{name}\" credits people, so it points at the profiles type: \"to\" must be [\"{profiles}\"].",
+			"bad_byline": "Content type \"{name}\" names \"{byline}\" as its byline, which isn't a credit relation from it.",
+			"shared_folder": "The \"{first}\" and \"{second}\" content types share the folder \"{folder}\".",
+			"missing_reference": "Content type \"{name}\" {option, select, listing {listing type} categories {feed categories} other {feed listing type}} names \"{reference}\", which doesn't exist.",
+			"bad_categories": "Content type \"{name}\" feed categories \"{categories}\" isn't a type a classify relation files entries under.",
+			"missing_inverse_type": "Relation \"{name}\" inverse listing type names \"{type}\", which doesn't exist."
+		},
+		"entry_fields": {
+			"title": {
+				"label": "Title",
+				"description": "The entry's title."
+			},
+			"subtitle": {
+				"label": "Subtitle",
+				"description": "A line shown under the title."
+			},
+			"slug": {
+				"label": "Slug",
+				"description": "The URL name, instead of the file name."
+			},
+			"published": {
+				"label": "Published",
+				"description": "The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+			},
+			"updated": {
+				"label": "Updated",
+				"description": "When it last changed; defaults to published, then the file's modified time."
+			},
+			"status": {
+				"label": "Status",
+				"description": "published (the default), draft, or trash."
+			},
+			"trashed": {
+				"label": "Trashed",
+				"description": "When the entry was moved to the trash, set with status: trash."
+			},
+			"visibility": {
+				"label": "Visibility",
+				"description": "public (the default), unlisted, or hidden."
+			},
+			"summary": {
+				"label": "Summary",
+				"description": "A short Markdown summary for listings and feeds. Without one, the first 50 words are used."
+			},
+			"image": {
+				"label": "Featured image",
+				"description": "A featured image."
+			},
+			"template": {
+				"label": "Template",
+				"description": "The theme template to use, such as single-wide."
+			},
+			"stylesheet": {
+				"label": "Stylesheet",
+				"description": "An extra stylesheet for this page."
+			},
+			"class": {
+				"label": "Classes",
+				"description": "Extra CSS classes for the page's <body>, separated by spaces."
+			},
+			"translation_of": {
+				"label": "Original",
+				"description": "For a translation, the id of the entry it translates, which links them whatever their file names."
+			},
+			"collection": {
+				"label": "Collection",
+				"description": "Lists other entries on this page."
+			}
+		},
+		"entry_folders": {
+			"folder_entry": "is a folder entry; its type's entries are files. Move it with content:folders, or on Site Health in the admin.",
+			"below": "is in a folder below its type's, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.",
+			"outside_pattern": "is in a folder its type's folder pattern ({pattern}) doesn't give. Move it with content:folders, or on Site Health in the admin.",
+			"checking_index": "Checking the content index"
+		},
+		"stored_entries": {
+			"no_id": "\"{title}\" has no id, so it can't be changed here until it has one (Site Health, or `content:ids`; D-481).",
+			"not_read_back": "The entry was written but couldn't be read back; check Site Health."
+		},
+		"media_field_ids": {
+			"no_entry": "No entry has this id."
+		},
+		"php_index": {
+			"unwritable": "Unable to write the content index: {reason}"
+		},
+		"index_store": {
+			"not_indexed": "The entry {id} was written, but the index doesn't have it.",
+			"no_type": "The entry {id} needs a \"type\" the site has.",
+			"no_slug": "The entry {id} needs a \"slug\".",
+			"translation": "On files, a translation is a file named for its language; it can't be written here yet.",
+			"parent_by_place": "On files, only a tree's pages have a parent by place; {types} name theirs in front matter.",
+			"fixed": "On files, an entry's {field, select, type {type} other {original}} can't change; it's where the file is.",
+			"slug_fixed": "On files, a landing page's slug doesn't change, and an entry keeps a slug.",
+			"parent_fixed": "On files, only a tree's pages move to another parent here; others name theirs in front matter."
+		},
+		"index_snapshot": {
+			"no_id": "names no entry's id.",
+			"own_id": "names the file's own id.",
+			"other_type": "names {path}, which is another type's.",
+			"translation": "names {path}, a translation; name its original instead.",
+			"same_language": "names {path}, which is in the same language."
+		},
+		"record_builder": {
+			"no_id": "is missing; every entry needs one. Add it with content:ids --write, or on Site Health in the admin.",
+			"bad_id": "\"{id}\" isn't a UUID; give the entry a new one with content:ids --write, or on Site Health in the admin.",
+			"bad_translation_of": "\"{id}\" isn't a UUID; it names the id of the entry this translates.",
+			"not_translation": "names an original, but this file isn't a translation: a translation has its language's code before the extension (hello.fr.md)."
+		},
+		"undeclared_keys": {
+			"no_entry": "No entry has this id."
+		}
+	},
+	"mcp": {
+		"oauth_server": {
+			"unknown_app": "The app asking to connect isn't one this site knows. Start connecting again from the app.",
+			"unregistered_redirect": "{app} asked to send you back to an address it didn't register, so it isn't sent there.",
+			"may_not_connect": "This account may not connect apps.",
+			"too_wide": "The choice is wider than the app asked for.",
+			"more_than_asked": "\"{capability}\" is more than the app asked for.",
+			"not_held": "\"{capability}\" isn't a capability this account has."
+		}
+	},
+	"field": {
+		"field_factory": {
+			"reference": "Field \"{name}\" is a reference, which isn't a field type; entries are linked by relationships (Structure → Relationships, or user/data/relations).",
+			"unknown_type": "Field \"{name}\" has an unknown type \"{type}\".",
+			"control": "Field \"{name}\" ({type}) can't be edited with the \"{control}\" control."
+		},
+		"text_format": {
+			"url": "a web address, such as https://example.com or /about",
+			"email": "an email address",
+			"icon": "an icon name, with no spaces"
+		},
+		"field_sets": {
+			"registered_field": "{owner}'s field \"{field}\"",
+			"field_set": "field set \"{set}\"",
+			"not_taken": "{target} can't take {what}: it takes no field named \"{field}\".",
+			"own_field": "{target} can't take {what}: \"{name}\" is already one of its own fields.",
+			"core_key": "{target} can't take {what}: \"{name}\" is Blush's own key, so nothing else can declare it.",
+			"declared": "{target} can't take {what}: {owner} declares \"{name}\" there already, and a key is declared once.",
+			"invalid": "{target} can't take {what}: {problem}"
+		},
+		"control_section": {
+			"structure": "Structure",
+			"text": "Text",
+			"choices": "Choices",
+			"numbers": "Numbers, dates, and color",
+			"media": "Media"
+		},
+		"field": {
+			"a_list": "a list",
+			"a_map": "a map"
+		},
+		"email": {
+			"label": "Email",
+			"description": "An email address."
+		},
+		"code": {
+			"label": "Code",
+			"description": "Text in a code font."
+		},
+		"icon": {
+			"label": "Icon",
+			"description": "One glyph from the icon set."
+		},
+		"view_only": {
+			"label": "Read-only",
+			"description": "Shown, not edited."
+		},
+		"markdown": {
+			"label": "Formatted Text",
+			"description": "Markdown, with links and emphasis."
+		},
+		"number": {
+			"label": "Number",
+			"description": "A number typed into a box."
+		},
+		"group": {
+			"label": "Group",
+			"description": "A few fields kept together, their values under its key."
+		},
+		"checkboxes": {
+			"label": "Checkboxes",
+			"description": "Any number from a set, with every option in view."
+		},
+		"link": {
+			"label": "Link",
+			"description": "A web address."
+		},
+		"file": {
+			"label": "File",
+			"description": "Any other file, to download."
+		},
+		"reference": {
+			"label": "Entry Picker",
+			"description": "Entries picked from a list."
+		},
+		"repeater": {
+			"label": "Repeating Group",
+			"description": "A list of items, each with the same fields."
+		},
+		"date": {
+			"label": "Date and Time",
+			"description": "A day, with a time if you want one."
+		},
+		"radios": {
+			"label": "Radio Buttons",
+			"description": "One of a set, with every option in view."
+		},
+		"video": {
+			"label": "Video",
+			"description": "One video from the library."
+		},
+		"audio": {
+			"label": "Audio",
+			"description": "One sound file from the library."
+		},
+		"textarea": {
+			"label": "Textarea",
+			"description": "Several lines of plain text."
+		},
+		"select": {
+			"label": "Select Dropdown",
+			"description": "One of a set, chosen from a menu."
+		},
+		"multi_select": {
+			"label": "Multi-Select",
+			"description": "Any number from a set, chosen from a menu."
+		},
+		"text": {
+			"label": "Text",
+			"description": "One line of plain text."
+		},
+		"image": {
+			"label": "Image",
+			"description": "One picture from the library."
+		},
+		"toggle": {
+			"label": "Toggle",
+			"description": "On or off."
+		},
+		"markdown_field": {
+			"type_label": "Formatted text",
+			"type_description": "Formatted text.",
+			"invalid": "must be text, not {value}."
+		},
+		"bool_field": {
+			"type_label": "Yes or no",
+			"type_description": "true or false.",
+			"invalid": "must be true or false, not {value}."
+		},
+		"number_field": {
+			"type_label": "Number",
+			"type_description": "A number.",
+			"invalid": "must be a number, not {value}.",
+			"not_whole": "must be a whole number, not {value}.",
+			"too_small": "must be at least {min}.",
+			"too_large": "must be at most {max}.",
+			"step": "must go in steps of {step} from {from}."
+		},
+		"slug_field": {
+			"type_label": "Slug",
+			"type_description": "A URL-safe name.",
+			"invalid": "must be a slug, not {value}.",
+			"not_a_slug": "\"{value}\" is not a slug; try \"{slug}\"."
+		},
+		"text_field": {
+			"type_label": "Text",
+			"type_description": "A line of text.",
+			"invalid": "must be text, not {value}.",
+			"format": "must be {format}, not \"{value}\"."
+		},
+		"list_field": {
+			"type_label": "List",
+			"type_description": "Several values.",
+			"map": "must be a list, not a map.",
+			"item": "item {number} {problem}",
+			"@item": {
+				"context": "The problem is the rest of the sentence, such as \"must be text, not a list.\""
+			},
+			"too_few": "must have at least {min, plural, one {# item} other {# items}}.",
+			"too_many": "must have at most {max, plural, one {# item} other {# items}}."
+		},
+		"reference_field": {
+			"type_label": "Reference",
+			"type_description": "Other entries, by slug.",
+			"map": "must be a slug or a list of slugs, not a map.",
+			"invalid": "must be a slug or a list of slugs; found {value}.",
+			"one": "takes one slug, not a list."
+		},
+		"media_field": {
+			"type_label": "Media file",
+			"type_description": "A media file.",
+			"invalid": "must be a media file's id, not {value}."
+		},
+		"enum_field": {
+			"type_label": "Choice",
+			"type_description": "One of a set of values.",
+			"invalid": "must be one of {options}, not {value}."
+		},
+		"date_field": {
+			"type_label": "Date and time",
+			"type_description": "A date and time.",
+			"invalid": "must be a date such as 2026-05-01 15:40:00, not {value}.",
+			"not_a_date": "\"{value}\" is not a valid date."
+		},
+		"object_field": {
+			"type_label": "Group of fields",
+			"type_description": "A group of fields.",
+			"invalid": "must be a map, not {value}."
+		},
+		"schema": {
+			"unknown": "is not a field of this type.",
+			"undeclared": "is not declared by the schema.",
+			"alias_ignored": "is ignored because \"{name}\" is set.",
+			"alias": "is read as \"{name}\".",
+			"invalid_default": "has an invalid default: {problem}",
+			"required": "is required."
+		}
+	},
+	"storage": {
+		"file_record_store": {
+			"not_list": "{file} needs a list of records.",
+			"not_list_under": "{file} needs a list of records under \"{name}\".",
+			"same_id": "{file} has two records with the id {id}.",
+			"taken_id": "{file} has the id of another record in {folder}.",
+			"invalid_json": "{file} isn't valid JSON: {problem}",
+			"not_json_data": "{file} must hold a JSON object or list.",
+			"not_object": "{file} has a record that isn't a JSON object.",
+			"misnamed": "{file} names the record \"{name}\"; a record here is named after its file.",
+			"no_id": "{file} has a record with no id.",
+			"no_id_or_key": "{file} has a record with no id or \"{name}\".",
+			"unencodable": "The record can't be written as JSON: {problem}",
+			"unwritable": "Unable to write {file}.",
+			"undeletable": "Unable to delete {file}."
+		},
+		"file_transactions": {
+			"no_lock": "Unable to take the data lock."
+		},
+		"storage_copy": {
+			"unsupported": "Copying from \"{from}\" to \"{to}\" isn't supported yet; only from \"{supported_from}\" to \"{supported_to}\".",
+			"filled": "The database already holds records (in {tables}). Copy with {option} to replace them."
+		},
+		"sqlite_record_store": {
+			"unreadable": "A record in \"{table}\" can't be read: {problem}",
+			"location": "{table}/{name} in the database"
+		}
+	},
+	"publish": {
+		"publisher": {
+			"pulling": "Pulling content",
+			"compiling_types": "Compiling content types",
+			"indexing_content": "Updating the content index",
+			"indexing_media": "Updating the media index",
+			"compiling_routes": "Compiling routes",
+			"clearing_cache": "Clearing the cache",
+			"no_lock": "Unable to open the publish lock in \"{folder}\".",
+			"running": "Another publish is running."
+		},
+		"git_puller": {
+			"no_proc_open": "proc_open() is disabled on this host, so git can't run.",
+			"missing": "\"{folder}\" doesn't exist.",
+			"no_temp_file": "Unable to create a temp file for git's output.",
+			"not_started": "Could not start \"{git}\"."
+		}
+	},
+	"theme": {
+		"theme_activator": {
+			"no_active": "Couldn't find one plain \"active\" value in {file}."
+		},
+		"theme_manifest": {
+			"no_name": "The theme in {path} needs a \"name\": vendor/name, such as \"acme/nova\".",
+			"label": "The \"{theme}\" theme's \"label\" must be a string.",
+			"namespace": "The \"{theme}\" theme's manifest needs a \"namespace\": lowercase letters, digits, hyphens, and underscores, and not {reserved}.",
+			"parent": "The \"{theme}\" theme's \"parent\" must be a theme's name (vendor/name).",
+			"provider": "The \"{theme}\" theme's \"provider\" must be a class name.",
+			"settings": "The \"{theme}\" theme's \"settings\" must map names to field definitions.",
+			"menus_setting": "The \"{theme}\" theme can't have a setting named \"{name}\": it keeps which menus the site shows in the theme's locations.",
+			"menus": "The \"{theme}\" theme's \"menus\" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.",
+			"variants": "The \"{theme}\" theme's \"variants\" must map block names to lists of variants.",
+			"bleed": "The \"{theme}\" theme's \"bleed\" must map \"wide\" and \"full\" to class names.",
+			"preview": "The \"{theme}\" theme's \"preview\" must be an object with \"layout\", \"type\", and \"palette\".",
+			"invalid": "The \"{theme}\" theme's manifest: {error}",
+			"assets": "The \"{theme}\" theme's \"assets\" must map handles (vendor/name) to the styles and scripts each loads.",
+			"asset_not_object": "The \"{handle}\" asset must be an object with \"styles\", \"scripts\", or \"requires\".",
+			"not_string": "The \"{theme}\" theme's \"{field}\" must be a string.",
+			"not_paths": "The \"{theme}\" theme's \"{field}\" must be a list of paths.",
+			"paths_outside": "The \"{theme}\" theme's \"{field}\" must be a list of paths inside the theme."
+		},
+		"themes": {
+			"loop": "The \"{theme}\" theme's parents loop back to \"{parent}\".",
+			"not_installed": "The \"{theme}\" theme is not installed.",
+			"not_installed_broken": "The \"{theme}\" theme is not installed ({where} is broken: {reason}).",
+			"ancestor_not_installed": "The \"{theme}\" theme's ancestor \"{ancestor}\" is not installed.",
+			"ancestor_not_installed_broken": "The \"{theme}\" theme's ancestor \"{ancestor}\" is not installed ({where} is broken: {reason})."
+		},
+		"theme_preview": {
+			"unknown_key": "The \"{theme}\" theme's \"preview\" has \"layout\", \"type\", and \"palette\"; \"{field}\" isn't one.",
+			"layout": "The \"{theme}\" theme's \"preview.layout\" must be {layouts}.",
+			"type": "The \"{theme}\" theme's \"preview.type\" must be a string.",
+			"palette": "The \"{theme}\" theme's \"preview.palette\" must give {roles}, each a hex color (such as \"#1f4ed8\") or a [light, dark] pair."
+		},
+		"theme_checker": {
+			"provider_failed": "The \"{theme}\" theme's provider couldn't start: {error}",
+			"provider_class": "The \"{theme}\" theme's provider {provider} isn't a service provider class (check its \"autoload\").",
+			"abandoned": "The \"{theme}\" theme: {warning}",
+			"version": "The \"{theme}\" theme's version, \"{version}\", isn't one Composer can read, so a requirement of it is met only by \"*\".",
+			"unmet_active": "{reason} The default theme runs in its place until that's fixed.",
+			"unmet": "{reason} It can't be activated until that's fixed.",
+			"block_template": "The \"{block}\" block ({class}) has no {view} template in the chain.",
+			"component_template_no_class": "The \"{component}\" component (no class) has no {view} template in the chain.",
+			"component_template": "The \"{component}\" component ({class}) has no {view} template in the chain.",
+			"entry_template": "The \"{template}\" template ({label}) is declared for entries but has no {template} view in the chain, so the editor doesn't offer it.",
+			"stray_block": "blocks/{file} isn't for a registered block, so it never renders. Themes can't add blocks (D-532): make it a component (components/{namespace}-{file}) for the theme's templates.",
+			"stray_component": "components/{file} isn't named for a component, so it never renders; name it components/{namespace}-{file}.",
+			"variants_not_block": "theme.json lists variants for \"{block}\", which isn't a block.",
+			"variant_invalid": "theme.json lists a variant of \"{block}\" that isn't valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not \"default\".",
+			"variant_label": "The \"{variant}\" variant of \"{block}\" has no label; add \"blocks.{name}.variants.{variant}.label\" to the theme's lang/ catalog.",
+			"variant_clash": "blocks/{file} is both the \"{other}\" block's template and the \"{variant}\" variant's of \"{block}\"; rename one.",
+			"image_variant_invalid": "theme.json lists an image variant that isn't valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not \"default\".",
+			"image_variant_label": "The \"{variant}\" image variant has no label; add \"images.variants.{variant}.label\" to the theme's lang/ catalog.",
+			"welcome_failed": "The welcome page doesn't render: {error}",
+			"no_lang": "The base layout's <html> has no lang attribute.",
+			"no_dir": "The base layout's <html> has no dir attribute; add dir=\"<?= attr($site->dir) ?>\" so right-to-left languages read right to left.",
+			"head_repeated": "The base layout prints {tag} more than once; $template->head() prints it, so take it out of the layout.",
+			"no_foot": "The base layout doesn't print the footer; add <?= $template->foot() ?> just before </body>, or footer scripts never load.",
+			"foot_outside": "The base layout prints $template->foot() outside <body>; print it just before </body>.",
+			"main_count": "The base layout needs one <main> landmark; it has {count, number}.",
+			"no_skip_link": "The base layout needs a skip link (the first in-page link) to the <main> content.",
+			"no_base": "The theme has no layouts/base view, so pages render in the framework's skeleton, with no site header or footer.",
+			"no_landmark": "The base layout has no <{landmark}> landmark.",
+			"h1_count": "The welcome page has {count, plural, one {# <h1> heading} other {# <h1> headings}}; pages should have one."
+		},
+		"settings_resolver": {
+			"invalid": "The \"{theme}\" theme's setting \"{name}\" is invalid: {error}"
+		},
+		"theme_discovery": {
+			"composer_name": "The theme in Composer package \"{package}\" is named \"{name}\"; a Composer theme's name is its package's.",
+			"default_name": "\"{name}\" is the framework default theme's name.",
+			"namespace_clash": "The themes {themes} all have the namespace \"{namespace}\"."
+		}
+	},
+	"feed": {
+		"feed_format": {
+			"rss": "RSS",
+			"atom": "Atom",
+			"json": "JSON Feed"
+		},
+		"feed_links": {
+			"related": "{title} | {type}",
+			"title": "{title} ({format})"
+		},
+		"feed_builder": {
+			"related": "{title} | {relation} | {type}"
+		}
+	},
+	"job": {
+		"frequency": {
+			"every_minute": "Every minute",
+			"every_minutes": "{minutes, plural, one {Every minute} other {Every # minutes}}",
+			"hourly": "Hourly at :{minute}",
+			"daily": "Daily at {time}",
+			"weekly": "{day, select, 0 {Sundays} 1 {Mondays} 2 {Tuesdays} 3 {Wednesdays} 4 {Thursdays} 5 {Fridays} other {Saturdays}} at {time}",
+			"cron": "Cron: {expression}"
+		},
+		"job_runner": {
+			"timed_out": "It stopped without finishing, after more than {seconds, plural, one {# second} other {# seconds}}: its runner may have run out of time."
+		},
+		"prune_activity_job": {
+			"label": "Prune the activity log",
+			"removed": "Removed {removed, plural, one {# old change} other {# old changes}}; let go of what {cleared} replaced."
+		},
+		"prune_cache_job": {
+			"label": "Remove expired cache entries",
+			"removed": "Removed {count, plural, one {# expired cache entry} other {# expired cache entries}}."
+		},
+		"prune_jobs_job": {
+			"label": "Remove old finished jobs",
+			"removed": "Removed {count, plural, one {# finished job} other {# finished jobs}}."
+		},
+		"prune_sessions_job": {
+			"label": "Remove idle admin sessions",
+			"removed": "Removed {count, plural, one {# idle session} other {# idle sessions}}."
+		},
+		"prune_tokens_job": {
+			"label": "Remove long-expired API tokens",
+			"removed": "Removed {tokens, plural, one {# expired token} other {# expired tokens}}, {codes, plural, one {# expired code} other {# expired codes}} and refresh tokens, and {apps, plural, one {# app} other {# apps}} nobody connected."
+		},
+		"go_live_job": {
+			"label": "Put scheduled entries live",
+			"version": "The content version is {version}.",
+			"went_live": "The content version is {version}. {count, plural, one {# entry} other {# entries}} went live."
+		},
+		"media_index_job": {
+			"label": "Index media files",
+			"left": "{count, plural, one {# media file} other {# media files}} left to read.",
+			"indexed": "Indexed {count, plural, one {# media file} other {# media files}}."
+		}
+	},
+	"api": {
+		"api_access": {
+			"anyone": {
+				"label": "Anyone",
+				"description": "Anyone can read what the site shows. A token adds what its account may edit, when it asks."
+			},
+			"token": {
+				"label": "Only with a Token",
+				"description": "Every request needs an API token; one without is refused."
+			}
+		}
+	},
+	"preview": {
+		"preview_controller": {
+			"invalid": "This preview link has expired or isn't valid. Ask for a new one."
+		}
+	},
+	"secret": {
+		"secret_scope": {
+			"missing": "\"{name}\" isn't set: set {variable} in the environment, or store it."
+		},
+		"secret_keys": {
+			"not_a_key": "{variable} isn't a key: it needs {length} random bytes in base64.",
+			"no_key": "Secrets can't be stored without a key: set {variable} (run \"init\" to add one)."
+		},
+		"secret_store": {
+			"empty": "\"{name}\" can't be stored empty; remove it instead.",
+			"locked": "\"{name}\" is set in the environment ({variable}), which always wins; change it there.",
+			"failure": "The secrets couldn't be read or written: {error}"
+		},
+		"secret_cipher": {
+			"not_encrypted": "\"{name}\" couldn't be encrypted: {error}",
+			"unknown_form": "\"{name}\" isn't stored in a form this site reads.",
+			"key_missing": "\"{name}\" was stored under a key this site doesn't have ({id}); set it again, or put that key back in {variable}.",
+			"wont_decrypt": "\"{name}\" won't decrypt: it was changed, or stored under another name."
+		}
+	},
+	"icon": {
+		"icon_pack": {
+			"no_name": "The icon pack in {path} needs a \"name\": vendor/name, such as \"acme/brands\".",
+			"no_label": "The \"{pack}\" icon pack needs a \"label\".",
+			"namespace": "The \"{pack}\" icon pack needs a \"namespace\": lowercase letters, digits, hyphens, and underscores, and not {reserved}.",
+			"folder": "The \"{pack}\" icon pack's \"folder\" must be a folder inside the pack.",
+			"not_string": "The icon pack in {path} has a \"{field}\" that isn't a string.",
+			"invalid": "The icon pack in {path}: {error}"
+		},
+		"icon_pack_discovery": {
+			"composer_name": "The icon pack in Composer package \"{package}\" is named \"{name}\"; a Composer icon pack's name is its package's.",
+			"namespace_clash": "The icon packs {packs} all have the namespace \"{namespace}\"."
+		}
+	},
+	"clock": {
+		"date_format": {
+			"empty": "A format can't be empty; use full, long, medium, or short, or a pattern such as MMMM d, y.",
+			"too_long": "A format can be at most {max} characters.",
+			"one_line": "A format is one line, without control characters.",
+			"not_field": "\"{letter}\" isn't a date or time field; put words in single quotes, such as 'at'.",
+			"unclosed": "A quote isn't closed; write two ('') for a quote itself.",
+			"no_field": "A format needs a field at least, such as d, MMMM, or y.",
+			"style": "{style, select, full {Full} long {Long} medium {Medium} other {Short}}",
+			"from_language": "From the language",
+			"fixed": "Fixed"
+		}
+	},
+	"tool": {
+		"fields": {
+			"on_field": "{problem} (field \"{field}\")",
+			"conflict": "{problem} Read it again with get_entry, then make the change on what's there now.",
+			"revision_required": "Send the \"revision\" get_entry answered, so no one else's change is lost."
+		},
+		"get_type": {
+			"title": "Get a Content Type",
+			"description": "Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry's fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries' slugs), and what this connection may do with it. Call it before create_entry or update_entry."
+		},
+		"set_status": {
+			"title": "Publish, Unpublish, or Schedule",
+			"description": "Changes whether an entry is live: \"published\" puts it on the site now, \"draft\" takes it off, and \"scheduled\" puts it on at a future \"published\" date. Only use it when the person asked to publish or unpublish. Needs the revision get_entry answered.",
+			"needs_date": "Scheduling needs a future \"published\" date.",
+			"published": "Published “{title}”.",
+			"scheduled": "Scheduled “{title}”.",
+			"draft": "Moved “{title}” to draft."
+		},
+		"list_types": {
+			"title": "List Content Types",
+			"description": "Lists the site's content types (posts, pages, and the site's own): each one's name, label, kind (a dated collection, or a tree of pages), a line about it, and how many entries this connection can see. Call it first to learn what the site has; call get_type before writing an entry of a type."
+		},
+		"edit_body": {
+			"title": "Edit Part of a Body",
+			"description": "Replaces one passage of an entry's Markdown body with new text, for a small change such as a typo or a sentence, without sending the whole body back. \"find\" must be copied exactly from the body get_entry answered and appear in it exactly once; send more of the text around it when it's found more than once. Needs the revision get_entry answered.",
+			"edited": "Edited the body of “{title}”."
+		},
+		"create_entry": {
+			"title": "Create a Draft",
+			"description": "Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries' slugs), and a Markdown body. It's never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site's editor and to preview it.",
+			"no_status": "New entries are drafts; leave \"status\" out, and use set_status after, when asked to publish.",
+			"created": "Created the draft “{title}”."
+		},
+		"get_media": {
+			"title": "Get a Media File",
+			"description": "Gets one file in the media library by id: its address, dimensions, alt text, caption, sizes, and other details, and the entries that use it.",
+			"not_found": "No media file has the id \"{id}\".",
+			"unreadable": "The media library can't be read: {problem}"
+		},
+		"update_media": {
+			"title": "Update a Media File",
+			"description": "Changes a media file's alt text, caption, or title, by its id. Alt text describes an image for someone who can't see it; keep it to a sentence. An empty value clears one.",
+			"unreadable": "The media library can't be read: {problem}",
+			"not_found": "No media file has the id \"{id}\".",
+			"nothing": "Send \"alt\", \"caption\", or \"title\" to change.",
+			"updated": "Updated {name}."
+		},
+		"trash_entry": {
+			"title": "Move an Entry to the Trash",
+			"description": "Moves an entry to the trash, off the site; restore_entry brings it back. When live entries link to it, it names them and does nothing until it's sent again with confirm: true. Needs the revision get_entry answered.",
+			"linked": "{count, plural, one {# live entry links} other {# live entries link}} to “{title}”: {entries}{more, select, yes {, and more} other {}}. Trashing it takes it off the site, and those links stop working. Send confirm: true to trash it anyway.",
+			"trashed": "Moved “{title}” to the trash; restore_entry brings it back."
+		},
+		"reindex": {
+			"title": "Reindex Content",
+			"description": "Update the content and media indexes from the files, without pulling or clearing other caches.",
+			"indexed_more": "Indexed {entries, plural, one {# entry} other {# entries}}: {added} added, {changed} changed, {removed} removed. Indexed {files, plural, one {# media file} other {# media files}}. {pending} more are being read in the background.",
+			"indexed": "Indexed {entries, plural, one {# entry} other {# entries}}: {added} added, {changed} changed, {removed} removed. Indexed {files, plural, one {# media file} other {# media files}}.",
+			"unindexed": "{summary} {count, plural, one {# file} other {# files}} couldn't be indexed."
+		},
+		"search_entries": {
+			"title": "Search Entries",
+			"description": "Finds entries (posts, pages, and the site's other types) by words, type, status, relationship (such as a tag or an author), parent page, and dates. Answers short summaries (id, type, title, status, address, dates, excerpt) without bodies; read one in full with get_entry. Finds drafts and scheduled entries this connection may see as well as published ones, but not the trash unless status asks for it.",
+			"found": "Found {count, plural, one {# entry} other {# entries}}.",
+			"no_relationship": "There's no \"{name}\" relationship to filter by; get_type lists a type's relationships.",
+			"not_a_date": "\"{field}\" must be a date, such as 2026-01-31; \"{value}\" isn't one.",
+			"cursor": "\"cursor\" must be the next_cursor a search answered."
+		},
+		"search_media": {
+			"title": "Search Media",
+			"description": "Finds files in the media library (images, video, audio, documents) by kind, by words in their name, title, alt text, or caption, and those missing alt text. Answers each file's id, address, size, title, alt text, and caption; get_media adds where it's used.",
+			"cursor": "\"cursor\" must be the next_cursor a search answered.",
+			"unreadable": "The media library can't be read: {problem}",
+			"found": "Found {count, plural, one {# file} other {# files}}."
+		},
+		"clear_caches": {
+			"title": "Clear Caches",
+			"description": "Empty the page, body, and fragment caches, so every page renders fresh.",
+			"cleared": "Cleared the caches ({caches})."
+		},
+		"get_entry": {
+			"title": "Get an Entry",
+			"description": "Gets one entry in full, by its id or its address on the site: its fields, its Markdown body exactly as written, its relationships, and, when this connection may edit it, its revision (which update_entry, edit_body, set_status, and trash_entry need) and links to edit and preview it. Add include: [\"linked_from\"] to list the entries that link to it, before trashing or unpublishing it.",
+			"id_or_url": "Send the entry's \"id\", or its \"url\".",
+			"redirects": "\"{url}\" redirects to {to}; ask for that address instead."
+		},
+		"restore_entry": {
+			"title": "Restore an Entry",
+			"description": "Brings an entry back from the trash as a draft. search_entries with status [\"trash\"] finds what's there.",
+			"restored": "Restored “{title}” as a draft."
+		},
+		"publish": {
+			"title": "Publish",
+			"description": "Put content changes live: pull (when set up), reindex, and clear the caches.",
+			"pull_failed": "Publishing stopped: the pull failed.",
+			"unindexed": "Published, but {count, plural, one {# file} other {# files}} couldn't be indexed.",
+			"published_more": "Published in {ms} ms. {pending, plural, one {# more media file is} other {# more media files are}} being read in the background.",
+			"published": "Published in {ms} ms."
+		},
+		"upload_media": {
+			"title": "Upload a Media File",
+			"description": "Adds a file to the media library from its contents, as base64, with its file name (whose extension says its type), and alt text and a caption. Only the types the site takes, up to the sizes it allows; never SVG. Answers the file with its id, for a media field such as image, and its address, for a body's Markdown image.",
+			"not_base64": "\"data\" must be the file's contents as base64.",
+			"uploaded": "Uploaded {name}.",
+			"uploaded_unsaved": "Uploaded {name}. Its alt text and caption weren't saved: {problem}"
+		},
+		"update_entry": {
+			"title": "Update an Entry",
+			"description": "Changes an entry: only the fields given (null removes one), a whole new Markdown body, a new slug, or, for a page, a new parent page. Needs the revision get_entry answered; if someone changed it since, it's refused, so read it again. For a small change to the body, use edit_body instead. To publish or unpublish, use set_status.",
+			"no_status": "Change the status with set_status, not update_entry.",
+			"updated": "Updated “{title}”."
+		},
+		"tool_job": {
+			"label": "Run a tool",
+			"no_tool": "The job doesn't say which tool to run, or with what.",
+			"no_account": "The account that asked for it is gone or suspended.",
+			"done": "Done."
+		},
+		"tools": {
+			"not_found": "There's no tool \"{tool}\" for you.",
+			"queued": "Queued; it runs in the background."
+		},
+		"tool_entries": {
+			"no_type": "There's no \"{name}\" type; list_types says which there are.",
+			"no_entry": "There's no entry with the id \"{id}\" that this connection may see.",
+			"no_published": "There's no published entry at \"{url}\"; search_entries finds drafts.",
+			"unreadable": "“{title}” can't be read: {problem}"
+		}
+	}
 }

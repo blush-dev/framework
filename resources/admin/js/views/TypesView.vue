@@ -17,8 +17,8 @@ import EmptyState from '../components/EmptyState.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { request, type ContentTypeSummary, type EntryList } from '../api';
-import { humanize } from '../fields';
-import { plural } from '../format';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 import { canCreateTypes, loadTypes, types } from '../types';
 
 const loaded = ref(false);
@@ -48,10 +48,10 @@ function kindOf(type: ContentTypeSummary): Kind {
 }
 
 // Each kind's tab, shown when the site has a type of that kind.
-const kinds: [Kind, string][] = [['collection', 'Collections'], ['terms', 'Terms'], ['tree', 'Trees'], ['profiles', 'Profiles']];
+const kinds: [Kind, string][] = [['collection', t('types_view.tab_collections', 'Collections')], ['terms', t('types_view.tab_terms', 'Terms')], ['tree', t('types_view.tab_trees', 'Trees')], ['profiles', t('types_view.tab_profiles', 'Profiles')]];
 
 const tabs = computed(() => [
-	{ key: 'all' as const, label: 'All', count: types.value.length },
+	{ key: 'all' as const, label: t('types_view.tab_all', 'All'), count: types.value.length },
 	...kinds
 		.map(([key, label]) => ({ key, label, count: types.value.filter((type) => kindOf(type) === key).length }))
 		.filter((tab) => tab.count > 0)
@@ -68,49 +68,49 @@ const shown = computed(() => {
  * Where a type comes from, for people.
  */
 function origin(type: ContentTypeSummary): string {
-	return { 'built-in': 'Built in', extension: 'A plugin', data: 'user/data/types' }[type.origin];
+	return { 'built-in': t('types_view.origin_built_in', 'Built in'), extension: t('types_view.origin_plugin', 'A plugin'), data: 'user/data/types' }[type.origin];
 }
 </script>
 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Content Types</h1>
-			<p class="page-header__hint">The kinds of entries the site has. Terms are content types too.</p>
+			<h1 tabindex="-1">{{ t('types_view.title', 'Content Types') }}</h1>
+			<p class="page-header__hint">{{ t('types_view.hint', 'The kinds of entries the site has. Terms are content types too.') }}</p>
 		</div>
 		<div v-if="canCreateTypes" class="page-header__actions">
-			<RouterLink class="button button--primary" :to="{ name: 'type-new' }"><AdminIcon name="plus" />New Content Type</RouterLink>
+			<RouterLink class="button button--primary" :to="{ name: 'type-new' }"><AdminIcon name="plus" />{{ t('types_view.new', 'New Content Type') }}</RouterLink>
 		</div>
 	</header>
 
-	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Collections from plugins are edited too, with the changes saved in <code>user/data/types</code> over the code's. The pages and authors types stay as their code defines them, so their screens show them.</span></p>
-	<p v-if="failed" class="notice notice--error" role="alert">The content types couldn't be loaded.</p>
+	<p class="notice"><span><MessageText :text="t('types_view.notice', 'Types made here live in {folder}, and their screens edit them. Collections from plugins are edited too, with the changes saved in {folder} over the code\'s. The pages and authors types stay as their code defines them, so their screens show them.')"><template #folder><code>user/data/types</code></template></MessageText></span></p>
+	<p v-if="failed" class="notice notice--error" role="alert">{{ t('types_view.load_failed', 'The content types couldn\'t be loaded.') }}</p>
 
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">
 		<header class="panel__header">
-			<h2 id="types-heading" class="visually-hidden">Content Types</h2>
-			<div class="segmented" role="group" aria-label="Kinds">
+			<h2 id="types-heading" class="visually-hidden">{{ t('types_view.title', 'Content Types') }}</h2>
+			<div class="segmented" role="group" :aria-label="t('types_view.kinds', 'Kinds')">
 				<button v-for="tab in tabs" :key="tab.key" type="button" :aria-pressed="kind === tab.key" @click="kind = tab.key">
 					{{ tab.label }} <span class="types-count">{{ tab.count }}</span>
 				</button>
 			</div>
 			<label class="search-field types-search">
 				<AdminIcon name="search" />
-				<span class="visually-hidden">Search content types</span>
-				<input v-model="search" type="search" placeholder="Search names and keys…" autocomplete="off">
+				<span class="visually-hidden">{{ t('types_view.search_label', 'Search content types') }}</span>
+				<input v-model="search" type="search" :placeholder="t('types_view.search_placeholder', 'Search names and keys…')" autocomplete="off">
 			</label>
 		</header>
 
-		<SkeletonTable v-if="!loaded" :columns="['Name', 'Kind', 'Source', 'Fields', 'Entries']" :rows="4" label="Loading the content types…" />
+		<SkeletonTable v-if="!loaded" :columns="[t('types_view.col_name', 'Name'), t('types_view.col_kind', 'Kind'), t('types_view.col_source', 'Source'), t('types_view.col_fields', 'Fields'), t('types_view.col_entries', 'Entries')]" :rows="4" :label="t('types_view.loading', 'Loading the content types…')" />
 		<div v-else-if="shown.length" class="table-wrap">
 			<table class="table" aria-labelledby="types-heading">
 				<thead>
 					<tr>
-						<th scope="col">Name</th>
-						<th scope="col">Kind</th>
-						<th scope="col">Source</th>
-						<th scope="col" class="table__count">Fields</th>
-						<th scope="col" class="table__count">Entries</th>
+						<th scope="col">{{ t('types_view.col_name', 'Name') }}</th>
+						<th scope="col">{{ t('types_view.col_kind', 'Kind') }}</th>
+						<th scope="col">{{ t('types_view.col_source', 'Source') }}</th>
+						<th scope="col" class="table__count">{{ t('types_view.col_fields', 'Fields') }}</th>
+						<th scope="col" class="table__count">{{ t('types_view.col_entries', 'Entries') }}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -126,7 +126,7 @@ function origin(type: ContentTypeSummary): string {
 								</span>
 							</span>
 						</th>
-						<td>{{ type.terms ? 'Terms' : humanize(type.kind) }}</td>
+						<td>{{ t('types_view.kind', '{kind, select, terms {Terms} collection {Collection} tree {Tree} other {Profiles} }', { kind: type.terms ? 'terms' : type.kind }) }}</td>
 						<td :class="{ mono: type.origin === 'data' }">{{ origin(type) }}</td>
 						<td class="table__count mono">{{ type.fields }}</td>
 						<td class="table__count mono">{{ counts[type.name] ?? '—' }}</td>
@@ -134,12 +134,12 @@ function origin(type: ContentTypeSummary): string {
 				</tbody>
 			</table>
 		</div>
-		<EmptyState v-else icon="search" heading="No Types Match" text="Nothing matches the search and kind.">
+		<EmptyState v-else icon="search" :heading="t('types_view.no_match', 'No Types Match')" :text="t('types_view.no_match_text', 'Nothing matches the search and kind.')">
 			<template #actions>
-				<button type="button" class="button" @click="search = ''; kind = 'all'">Clear Filters</button>
+				<button type="button" class="button" @click="search = ''; kind = 'all'">{{ t('types_view.clear_filters', 'Clear Filters') }}</button>
 			</template>
 		</EmptyState>
-		<p v-if="loaded" class="visually-hidden" role="status">{{ plural(shown.length, 'type') }} shown</p>
+		<p v-if="loaded" class="visually-hidden" role="status">{{ t('types_view.shown', '{count, plural, one {# type} other {# types} } shown', { count: shown.length }) }}</p>
 	</section>
 </template>
 

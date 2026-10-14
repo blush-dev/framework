@@ -11,9 +11,9 @@
  *         <audio src="/media/song.mp3" controls preload="metadata"></audio>
  *     </blush-audio-player>
  *
- * Its labels are English unless `label-play`, `label-pause`,
- * `label-seek`, `label-mute`, `label-unmute`, and `label-volume` say
- * otherwise. Its colors are the host's, by custom
+ * Its labels are in the page's language, from core's catalog (D-831),
+ * unless `label-play`, `label-pause`, `label-seek`, `label-mute`,
+ * `label-unmute`, or `label-volume` words one itself. Its colors are the host's, by custom
  * properties (`player.css`).
  */
 

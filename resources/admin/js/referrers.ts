@@ -13,7 +13,8 @@
 
 import { entryPath, request, type EntryStatus } from './api';
 import { confirmAction, confirmChecked, type ConfirmItem } from './confirm';
-import { plural, series, titleCase } from './format';
+import { series, titleCase } from './format';
+import { t } from './messages';
 
 export interface EntryReferrers {
 	// How many entries link to it, how many are live, how many are
@@ -46,7 +47,7 @@ function listed(found: EntryReferrers, total: number, rest: string): { items: Co
 	const items = found.entries.map((item) => ({ title: item.title, meta: [item.type, ...item.relations].join(' · '), status: item.status }));
 	const more  = total - items.length;
 
-	return more > 0 ? { items, more: `and ${more} more, ${rest}.` } : { items };
+	return more > 0 ? { items, more: t('referrers.and_more_rest', 'and {count} more, {rest}.', { count: more, rest }) } : { items };
 }
 
 /**
@@ -62,18 +63,21 @@ export async function confirmLeaving(id: string, name: string, action: 'trash' |
 		return true;
 	}
 
-	const until = action === 'trash' ? 'it\'s restored' : 'it\'s published again';
-	const body  = credits
-		? [
-			`${name} is credited on **${plural(found.live, 'live entry', 'live entries')}**. The name comes off ${found.live === 1 ? 'it' : 'all of them'} until ${until}.${found.uncredited > 0 ? ` **${found.uncredited === found.live ? (found.live === 1 ? 'It credits' : 'They credit') : `${found.uncredited} of them credit`} no one else**, so ${found.uncredited === 1 ? 'it' : 'they'}'ll show no byline.` : ''}`
-		]
-		: [`${name} is linked from **${plural(found.live, 'live entry', 'live entries')}**. ${found.live === 1 ? 'It keeps' : 'They keep'} the link, but ${found.live === 1 ? 'stops' : 'stop'} showing ${name} until ${until}.`];
+	const params = { name, action, count: found.live, uncredited: found.uncredited };
+	const alone  = found.uncredited === 0
+		? ''
+		: ` ${found.uncredited === found.live
+			? t('referrers.all_uncredited', '**{count, plural, one {It credits} other {They credit}} no one else**, so {uncredited, plural, one {it\'ll} other {they\'ll}} show no byline.', params)
+			: t('referrers.some_uncredited', '**{uncredited} of them credit no one else**, so {uncredited, plural, one {it\'ll} other {they\'ll}} show no byline.', params)}`;
+	const body   = credits
+		? [t('referrers.credited_on', '{name} is credited on **{count, plural, one {# live entry} other {# live entries}}**. The name comes off {count, plural, one {it} other {all of them}} until {action, select, trash {it\'s restored} other {it\'s published again}}.', params) + alone]
+		: [t('referrers.linked_from', '{name} is linked from **{count, plural, one {# live entry} other {# live entries}}**. {count, plural, one {It keeps the link, but stops} other {They keep the link, but stop}} showing {name} until {action, select, trash {it\'s restored} other {it\'s published again}}.', params)];
 
 	return confirmAction({
-		title: action === 'trash' ? `Move ${name} to Trash?` : `Move ${name} to Draft?`,
+		title: action === 'trash' ? t('referrers.move_to_trash_title', 'Move {name} to Trash?', { name }) : t('referrers.move_to_draft_title', 'Move {name} to Draft?', { name }),
 		body,
-		...listed(found, found.live, 'in its Linked From'),
-		confirm: action === 'trash' ? 'Move to Trash' : 'Move to Draft'
+		...listed(found, found.live, t('referrers.in_linked_from', 'in its Linked From')),
+		confirm: action === 'trash' ? t('referrers.move_to_trash', 'Move to Trash') : t('referrers.move_to_draft', 'Move to Draft')
 	});
 }
 
@@ -84,23 +88,25 @@ export async function confirmLeaving(id: string, name: string, action: 'trash' |
  */
 export async function confirmPurge(id: string, name: string): Promise<string | null> {
 	const found = await referrersOf(id);
-	const title = `Delete ${name} Permanently?`;
+	const title = t('referrers.delete_title', 'Delete {name} Permanently?', { name });
 
 	if (found === null || found.count === 0) {
-		return await confirmAction({ title, body: 'This can\'t be undone.', confirm: 'Delete Permanently', danger: true }) ? '' : null;
+		return await confirmAction({ title, body: t('referrers.cant_be_undone', 'This can\'t be undone.'), confirm: t('referrers.delete_permanently', 'Delete Permanently'), danger: true }) ? '' : null;
 	}
 
 	const others = found.count - found.editable;
-	const those  = found.count === 1 ? 'that entry' : `those ${found.count} entries`;
 	const unlink = await confirmChecked({
 		title,
-		body: `${name} is gone for good after this. **${plural(found.count, 'entry still links', 'entries still link')} to it**${found.drafts > 0 ? `, including ${plural(found.drafts, 'draft')}` : ''}.`,
-		...listed(found, found.count, 'in its Linked From'),
+		body: found.drafts > 0
+			? t('referrers.gone_with_drafts', '{name} is gone for good after this. **{count, plural, one {# entry still links} other {# entries still link}} to it**, including {drafts, plural, one {# draft} other {# drafts}}.', { name, count: found.count, drafts: found.drafts })
+			: t('referrers.gone', '{name} is gone for good after this. **{count, plural, one {# entry still links} other {# entries still link}} to it**.', { name, count: found.count }),
+		...listed(found, found.count, t('referrers.in_linked_from', 'in its Linked From')),
 		check: found.editable === found.count
-			? `Also remove it from ${those}`
-			: `Also remove it from the ${plural(found.editable, 'entry', 'entries')} you can edit`,
-		checkHelp: `Left in place, each link shows as not found in its editor and in Site Health.${others > 0 ? ` The ${plural(others, 'entry', 'entries')} you can't edit keep theirs either way.` : ''}`,
-		confirm: 'Delete Permanently',
+			? t('referrers.also_remove_all', 'Also remove it from {count, plural, one {that entry} other {those # entries}}', { count: found.count })
+			: t('referrers.also_remove_editable', 'Also remove it from the {count, plural, one {# entry} other {# entries}} you can edit', { count: found.editable }),
+		checkHelp: t('referrers.left_in_place', 'Left in place, each link shows as not found in its editor and in Site Health.')
+			+ (others > 0 ? ` ${t('referrers.others_keep', 'The {count, plural, one {# entry} other {# entries}} you can\'t edit keep theirs either way.', { count: others })}` : ''),
+		confirm: t('referrers.delete_permanently', 'Delete Permanently'),
 		danger: true
 	});
 
@@ -132,19 +138,22 @@ export async function confirmLeavingMany(titles: Record<string, string>, count: 
 
 	const links    = linked.reduce((sum, item) => sum + item.live, 0);
 	const shown    = linked.slice(0, 8);
-	const unlinked = ids.filter((id) => !linked.some((item) => item.id === id)).map((id) => titles[id] || 'Untitled');
-	const these    = ids.length === 1 ? 'it' : 'these';
+	const unlinked = ids.filter((id) => !linked.some((item) => item.id === id)).map((id) => titles[id] || t('referrers.untitled', 'Untitled'));
 	const quiet    = unlinked.length === 0 ? [] : [unlinked.length <= 3
-		? `${series(unlinked)} ${unlinked.length === 1 ? 'isn\'t' : 'aren\'t'} linked from anything live.`
-		: `The other ${unlinked.length} aren't linked from anything live.`];
+		? t('referrers.names_not_linked', '{names} {count, plural, one {isn\'t} other {aren\'t}} linked from anything live.', { names: series(unlinked), count: unlinked.length })
+		: t('referrers.others_not_linked', 'The other {count} aren\'t linked from anything live.', { count: unlinked.length })];
+	const what     = titleCase(count);
+	const params   = { count: ids.length, linked: linked.length, links };
 
 	return confirmAction({
-		title: `Move ${titleCase(count)} to ${action === 'trash' ? 'Trash' : 'Draft'}?`,
-		body: `**${linked.length === ids.length ? (ids.length === 1 ? 'It is' : `All ${ids.length} are`) : `${linked.length} of the ${ids.length} are`} linked from live entries**, ${plural(links, 'link')} in all. Those entries keep the links but stop showing ${these}.`,
-		items: shown.map((item) => ({ title: item.title, count: plural(item.live, 'entry', 'entries') })),
-		...(linked.length > shown.length ? { more: `and ${linked.length - shown.length} more.` } : {}),
-		...(linked.length > shown.length && onlyLinked ? { action: { label: `Show Only the Linked ${linked.length}`, run: onlyLinked } } : {}),
+		title: action === 'trash' ? t('referrers.move_many_to_trash_title', 'Move {what} to Trash?', { what }) : t('referrers.move_many_to_draft_title', 'Move {what} to Draft?', { what }),
+		body: linked.length === ids.length
+			? t('referrers.all_linked', '**{count, plural, one {It is} other {All # are}} linked from live entries**, {links, plural, one {# link} other {# links}} in all. Those entries keep the links but stop showing {count, plural, one {it} other {these}}.', params)
+			: t('referrers.some_linked', '**{linked} of the {count} are linked from live entries**, {links, plural, one {# link} other {# links}} in all. Those entries keep the links but stop showing {count, plural, one {it} other {these}}.', params),
+		items: shown.map((item) => ({ title: item.title, count: t('referrers.entry_count', '{count, plural, one {# entry} other {# entries}}', { count: item.live }) })),
+		...(linked.length > shown.length ? { more: t('referrers.and_more', 'and {count} more.', { count: linked.length - shown.length }) } : {}),
+		...(linked.length > shown.length && onlyLinked ? { action: { label: t('referrers.show_only_linked', 'Show Only the Linked {count}', { count: linked.length }), run: onlyLinked } } : {}),
 		after: quiet,
-		confirm: `Move ${titleCase(count)} to ${action === 'trash' ? 'Trash' : 'Draft'}`
+		confirm: action === 'trash' ? t('referrers.move_many_to_trash', 'Move {what} to Trash', { what }) : t('referrers.move_many_to_draft', 'Move {what} to Draft', { what })
 	});
 }

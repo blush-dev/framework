@@ -28,6 +28,7 @@ use Blush\Http\ClientIp;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Session\Session;
+use Blush\Translation\Messages;
 
 /**
  * Answers `POST {path}/api/set-password` (D-312), the one write anyone
@@ -47,7 +48,8 @@ final readonly class SetPasswordController
 		private Authenticator $authenticator,
 		private LoginThrottle $throttle,
 		private AuthConfig $config,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Messages $messages
 	) {}
 
 	/**
@@ -70,7 +72,7 @@ final readonly class SetPasswordController
 		$username = strtolower(trim($input['account']));
 
 		if ($this->throttle->isLockedOut($ip, $username)) {
-			return self::json(['error' => 'Too many tries. Try again later.'], Status::TooManyRequests, ['Retry-After' => (string) $this->config->lockout]);
+			return self::json(['error' => $this->messages->t('admin.set_password_controller.too_many_tries', 'Too many tries. Try again later.')], Status::TooManyRequests, ['Retry-After' => (string) $this->config->lockout]);
 		}
 
 		$problem = $this->accounts->passwordProblem($input['password']);

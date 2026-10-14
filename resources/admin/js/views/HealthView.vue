@@ -38,12 +38,13 @@ import DensityToggle from '../components/DensityToggle.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import HealthRow from '../components/HealthRow.vue';
-import { formatWhen, plural } from '../format';
+import { formatNumber, formatWhen } from '../format';
 import { healthGroups, SCREENS, type HealthCheckKey, type HealthGroup, type HealthRow as Row, type Severity } from '../health';
 import { screenTitle } from '../screen';
 import { useSearchKey } from '../search-key';
 import { toast } from '../toast';
 import { refreshTypes } from '../types';
+import { t } from '../messages';
 
 const props = defineProps<{
 	area: 'content' | 'media';
@@ -52,7 +53,7 @@ const props = defineProps<{
 
 const route = useRoute();
 
-const screen = computed(() => SCREENS[`${props.area}:${props.check}`] ?? { title: 'Site Health', about: '', clear: '', byFile: false });
+const screen = computed(() => SCREENS[`${props.area}:${props.check}`] ?? { title: t('health_view.site_health', 'Site Health'), about: '', clear: '', byFile: false });
 
 watch(screen, (value) => {
 	screenTitle.value = value.title;
@@ -103,7 +104,7 @@ const searchField = useSearchKey();
 async function load(again = false, clear = again): Promise<void> {
 	checking.value = null;
 
-	await run('The files couldn\'t be checked.', async () => {
+	await run(t('health_view.check_failed', 'The files couldn\'t be checked.'), async () => {
 		const answer = await request<Health | { job: string }>(again ? 'POST' : 'GET', '/health');
 
 		// Checking again reads every file, a chunk at a time in a job
@@ -189,8 +190,8 @@ const tab       = computed<Tab>(() => {
 });
 const twoKinds  = computed(() => groups.value.some((group) => group.severity === 'error') && groups.value.some((group) => group.severity === 'warning'));
 
-const sevOptions  = [{ value: 'any', label: 'Any severity' }, { value: 'error', label: 'Errors' }, { value: 'warning', label: 'Warnings' }];
-const modeOptions = [{ value: 'problem', label: 'Group by problem' }, { value: 'file', label: 'Group by file' }];
+const sevOptions  = [{ value: 'any', label: t('health_view.any_severity', 'Any severity') }, { value: 'error', label: t('health_view.errors', 'Errors') }, { value: 'warning', label: t('health_view.warnings', 'Warnings') }];
+const modeOptions = [{ value: 'problem', label: t('health_view.group_by_problem', 'Group by problem') }, { value: 'file', label: t('health_view.group_by_file', 'Group by file') }];
 
 const sevValue = computed({
 	get: () => sev.value,
@@ -248,16 +249,16 @@ const files = computed(() => {
 });
 
 const PILLS: Record<Severity, { label: string; kind: string }> = {
-	error: { label: 'Error', kind: 'pill--danger' },
-	warning: { label: 'Warning', kind: 'pill--warn' },
-	notice: { label: 'Notice', kind: '' }
+	error: { label: t('health_view.pill_error', 'Error'), kind: 'pill--danger' },
+	warning: { label: t('health_view.pill_warning', 'Warning'), kind: 'pill--warn' },
+	notice: { label: t('health_view.pill_notice', 'Notice'), kind: '' }
 };
 
 // Ignored shows even at 0, as a list's Draft tab does.
 const tabs = computed(() => [
-	{ key: 'need', label: 'Needs Attention', count: needs.value },
-	...(hasNotice.value ? [{ key: 'notices', label: 'Notices', count: tally.value.notice }] : []),
-	{ key: 'ignored', label: 'Ignored', count: tally.value.ignored }
+	{ key: 'need', label: t('health_view.tab_need', 'Needs Attention'), count: needs.value },
+	...(hasNotice.value ? [{ key: 'notices', label: t('health_view.tab_notices', 'Notices'), count: tally.value.notice }] : []),
+	{ key: 'ignored', label: t('health_view.tab_ignored', 'Ignored'), count: tally.value.ignored }
 ]);
 
 // The rows a group's fix would change: those not fixed or ignored, and
@@ -285,12 +286,12 @@ async function setIgnored(row: Row, ignore: boolean): Promise<void> {
 		void loadCounts();
 
 		if (ignore) {
-			toast('Ignored. It\'s in the Ignored tab.', { undo: () => void setIgnored(row, false) });
+			toast(t('health_view.ignored', 'Ignored. It\'s in the Ignored tab.'), { undo: () => void setIgnored(row, false) });
 		} else {
-			toast('No longer ignored');
+			toast(t('health_view.unignored', 'No longer ignored'));
 		}
 	} catch (caught) {
-		toast(errorMessage(caught, 'It couldn\'t be changed.'), { kind: 'danger' });
+		toast(errorMessage(caught, t('health_view.change_failed', 'It couldn\'t be changed.')), { kind: 'danger' });
 	} finally {
 		fixing.value = null;
 	}
@@ -313,12 +314,12 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 	if (options.bulk || rows.length > 1 || fixer.ask) {
 		const listed = rows.slice(0, 8);
 		const ok     = await confirmAction({
-			title: group.bulk?.title(rows.length) ?? `Change ${plural(rows.length, 'File')}?`,
-			body: group.bulk?.say ?? 'Each file gets the change below and nothing else.',
+			title: group.bulk?.title(rows.length) ?? t('health_view.change_files_title', 'Change {count, plural, one {# File} other {# Files}}?', { count: rows.length }),
+			body: group.bulk?.say ?? t('health_view.change_files_body', 'Each file gets the change below and nothing else.'),
 			items: listed.map((row) => ({ title: row.path, meta: row.fix?.change ?? '' })),
-			more: rows.length > listed.length ? `and ${rows.length - listed.length} more, the same change in each` : undefined,
-			after: group.bulk?.after ?? 'Published entries change on the site as soon as this is done.',
-			confirm: group.bulk?.label(rows.length) ?? `Change ${plural(rows.length, 'File')}`
+			more: rows.length > listed.length ? t('health_view.and_more', 'and {count} more, the same change in each', { count: rows.length - listed.length }) : undefined,
+			after: group.bulk?.after ?? t('health_view.change_files_after', 'Published entries change on the site as soon as this is done.'),
+			confirm: group.bulk?.label(rows.length) ?? t('health_view.change_files', 'Change {count, plural, one {# File} other {# Files}}', { count: rows.length })
 		});
 
 		if (!ok) {
@@ -338,15 +339,15 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 		for (const row of done) {
 			const { rows: _rows, ...meta } = group;
 
-			next[row.key] = { group: meta, row, at: group.rows.indexOf(row), done: row.fix?.done ?? 'Fixed.' };
+			next[row.key] = { group: meta, row, at: group.rows.indexOf(row), done: row.fix?.done ?? t('health_view.fixed', 'Fixed.') };
 		}
 
 		fixed.value = next;
 
 		if (failed.length) {
-			toast(`${plural(failed.length, ...fixer.noun)} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
+			toast(t('health_view.fix_failed_files', '{files} couldn\'t be changed: {reasons}', { files: fixer.noun(failed.length), reasons: failed.map(([file, why]) => t('health_view.file_reason', '{file} ({why})', { file, why })).join('; ') }), { kind: 'warn' });
 		} else if (done.length) {
-			toast(done.length === 1 ? `Fixed ${done[0]?.title ?? done[0]?.path}` : `Fixed ${plural(done.length, ...group.unit)}`, { kind: 'good' });
+			toast(done.length === 1 ? t('health_view.fixed_one', 'Fixed {name}', { name: done[0]?.title ?? done[0]?.path }) : t('health_view.fixed_many', 'Fixed {things}', { things: group.unit(done.length) }), { kind: 'good' });
 		}
 
 		if (props.check === 'taxonomies' || props.check === 'types') {
@@ -355,7 +356,7 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 
 		await load(true, false);
 	} catch (caught) {
-		toast(errorMessage(caught, 'It couldn\'t be fixed.'), { kind: 'danger' });
+		toast(errorMessage(caught, t('health_view.fix_failed', 'It couldn\'t be fixed.')), { kind: 'danger' });
 	} finally {
 		fixing.value   = null;
 		progress.value = null;
@@ -387,68 +388,68 @@ onMounted(() => {
 
 <template>
 	<header class="page-header">
-		<RouterLink class="page-back" :to="{ name: 'health' }"><AdminIcon name="chevron-left" />Site Health</RouterLink>
+		<RouterLink class="page-back" :to="{ name: 'health' }"><AdminIcon name="chevron-left" />{{ t('health_view.site_health', 'Site Health') }}</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ screen.title }}</h1>
-			<p class="page-header__hint">{{ loading && health ? 'Checking…' : (health ? `Last checked ${formatWhen(health.at).toLowerCase()}` : screen.about) }}</p>
+			<p class="page-header__hint">{{ loading && health ? t('health_view.checking', 'Checking…') : (health ? t('health_view.last_checked', 'Last checked {when}', { when: formatWhen(health.at).toLowerCase() }) : screen.about) }}</p>
 		</div>
 		<div class="page-header__actions">
 			<button type="button" class="button" :disabled="loading || fixing !== null" @click="load(true)">
-				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? `Checking… ${checking}%` : 'Checking…') : 'Check Again' }}
+				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? t('health_view.checking_percent', 'Checking… {percent}%', { percent: checking }) : t('health_view.checking', 'Checking…')) : t('health_view.check_again', 'Check Again') }}
 			</button>
 		</div>
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-else-if="!health" class="loading">Loading the last check…</p>
+	<p v-else-if="!health" class="loading">{{ t('health_view.loading', 'Loading the last check…') }}</p>
 
 	<template v-else>
-		<nav class="status-tabs" aria-label="Problems">
+		<nav class="status-tabs" :aria-label="t('health_view.problems', 'Problems')">
 			<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'need' ? {} : { tab: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">
 				{{ item.label }}
-				<span class="status-tabs__count">{{ item.count.toLocaleString() }}</span>
+				<span class="status-tabs__count">{{ formatNumber(item.count) }}</span>
 			</RouterLink>
 		</nav>
 
 		<div v-if="groups.length" class="toolbar" role="search">
 			<label class="search-field toolbar__search">
 				<AdminIcon name="search" />
-				<span class="visually-hidden">Search titles and files</span>
-				<input ref="searchField" v-model="query" type="search" placeholder="Search titles and files" autocomplete="off" aria-keyshortcuts="/">
+				<span class="visually-hidden">{{ t('health_view.search_label', 'Search titles and files') }}</span>
+				<input ref="searchField" v-model="query" type="search" :placeholder="t('health_view.search_label', 'Search titles and files')" autocomplete="off" aria-keyshortcuts="/">
 				<kbd class="search-field__key" aria-hidden="true">/</kbd>
 			</label>
 			<div v-if="tab === 'need' && twoKinds" class="toolbar__filter">
-				<label class="visually-hidden" for="health-severity">Severity</label>
+				<label class="visually-hidden" for="health-severity">{{ t('health_view.severity', 'Severity') }}</label>
 				<AdminSelect id="health-severity" v-model="sevValue" :options="sevOptions" />
 			</div>
 			<div v-if="screen.byFile" class="toolbar__filter">
-				<label class="visually-hidden" for="health-group">Group by</label>
+				<label class="visually-hidden" for="health-group">{{ t('health_view.group_by', 'Group by') }}</label>
 				<AdminSelect id="health-group" v-model="modeValue" :options="modeOptions" />
 			</div>
 			<DensityToggle />
 		</div>
 
 		<div v-if="!visibleCount" class="panel">
-			<EmptyState v-if="query.trim()" icon="search" :heading="`Nothing Matches “${query.trim()}”`" text="The search looks at titles, files, and what was found.">
+			<EmptyState v-if="query.trim()" icon="search" :heading="t('health_view.no_match', 'Nothing Matches “{query}”', { query: query.trim() })" :text="t('health_view.no_match_text', 'The search looks at titles, files, and what was found.')">
 				<template #actions>
-					<button type="button" class="button" @click="query = ''">Clear the Search</button>
+					<button type="button" class="button" @click="query = ''">{{ t('health_view.clear_search', 'Clear the Search') }}</button>
 				</template>
 			</EmptyState>
-			<EmptyState v-else-if="tab === 'need'" icon="circle-check" heading="Nothing Needs Fixing" :text="tally.notice ? `${screen.clear} ${plural(tally.notice, 'notice')} ${tally.notice === 1 ? 'is' : 'are'} in their own tab; none of them change what the site shows.` : screen.clear" />
-			<EmptyState v-else-if="tab === 'ignored'" icon="eye-off" heading="Nothing Ignored" text="Ignore a warning or notice from its row's menu. Ignored problems stop counting, for everyone." />
-			<EmptyState v-else icon="info" heading="No Notices" />
+			<EmptyState v-else-if="tab === 'need'" icon="circle-check" :heading="t('health_view.nothing_needs_fixing', 'Nothing Needs Fixing')" :text="tally.notice ? t('health_view.clear_with_notices', '{clear} {count, plural, one {# notice is} other {# notices are} } in their own tab; none of them change what the site shows.', { clear: screen.clear, count: tally.notice }) : screen.clear" />
+			<EmptyState v-else-if="tab === 'ignored'" icon="eye-off" :heading="t('health_view.nothing_ignored', 'Nothing Ignored')" :text="t('health_view.nothing_ignored_text', 'Ignore a warning or notice from its row\'s menu. Ignored problems stop counting, for everyone.')" />
+			<EmptyState v-else icon="info" :heading="t('health_view.no_notices', 'No Notices')" />
 		</div>
 
 		<template v-else-if="mode === 'file' && screen.byFile">
 <section v-for="file in files.slice(0, filesShown)" :key="file.path" class="panel" :class="{ 'panel--compact': compact }" :aria-label="file.title ?? file.path">
 				<header class="panel__header">
 					<div class="panel__header-text">
-						<h2>{{ file.title ?? 'The Title Can\'t Be Read' }}</h2>
+						<h2>{{ file.title ?? t('health_view.unreadable_title', 'The Title Can\'t Be Read') }}</h2>
 						<p class="panel__hint mono">{{ file.path }}</p>
 					</div>
 					<div class="panel__actions">
-						<span class="panel__hint">{{ plural(file.rows.length, 'problem') }}</span>
-						<RouterLink v-if="file.entry" class="button button--small" :to="entryRoute(file.entry)"><AdminIcon name="file-pen-line" />Open in Editor</RouterLink>
+						<span class="panel__hint">{{ t('health_view.problem_count', '{count, plural, one {# problem} other {# problems} }', { count: file.rows.length }) }}</span>
+						<RouterLink v-if="file.entry" class="button button--small" :to="entryRoute(file.entry)"><AdminIcon name="file-pen-line" />{{ t('health_view.open_in_editor', 'Open in Editor') }}</RouterLink>
 					</div>
 				</header>
 				<ul class="problems">
@@ -468,8 +469,8 @@ onMounted(() => {
 				</ul>
 			</section>
 			<p v-if="files.length > filesShown" class="panel panel__foot">
-				<span>Showing {{ filesShown.toLocaleString() }} of {{ files.length.toLocaleString() }} files</span>
-				<button type="button" class="lnk" @click="filesShown += MORE">Show {{ Math.min(MORE, files.length - filesShown) }} More</button>
+				<span>{{ t('health_view.showing_files', 'Showing {shown} of {total} files', { shown: filesShown, total: files.length }) }}</span>
+				<button type="button" class="lnk" @click="filesShown += MORE">{{ t('health_view.show_more', 'Show {count} More', { count: Math.min(MORE, files.length - filesShown) }) }}</button>
 			</p>
 		</template>
 
@@ -481,10 +482,10 @@ onMounted(() => {
 						<p class="panel__hint">{{ group.says }}</p>
 					</div>
 					<div class="panel__actions">
-						<span class="panel__hint">{{ openCount(rows) ? plural(openCount(rows), ...group.unit) : 'All fixed' }}</span>
+						<span class="panel__hint">{{ openCount(rows) ? group.unit(openCount(rows)) : t('health_view.all_fixed', 'All fixed') }}</span>
 						<span class="pill" :class="PILLS[group.severity].kind">{{ PILLS[group.severity].label }}</span>
 						<button v-if="tab !== 'ignored' && group.bulk && bulkRows(rows).length > 1" type="button" class="button button--small button--primary" :disabled="fixing !== null" @click="fix(group, bulkRows(rows), { bulk: true })">
-							<span v-if="fixing === group.key" class="spin" aria-hidden="true" />{{ fixing === group.key && progress !== null && progress < 100 ? `Working… ${progress}%` : group.bulk.label(bulkRows(rows).length) }}
+							<span v-if="fixing === group.key" class="spin" aria-hidden="true" />{{ fixing === group.key && progress !== null && progress < 100 ? t('health_view.working_percent', 'Working… {percent}%', { percent: progress }) : group.bulk.label(bulkRows(rows).length) }}
 						</button>
 					</div>
 				</header>
@@ -503,8 +504,8 @@ onMounted(() => {
 					/>
 				</ul>
 				<p v-if="rows.length > (shown[group.key] ?? PER_GROUP)" class="panel__foot">
-					<span>Showing {{ (shown[group.key] ?? PER_GROUP).toLocaleString() }} of {{ rows.length.toLocaleString() }}</span>
-					<button type="button" class="lnk" @click="shown = { ...shown, [group.key]: (shown[group.key] ?? PER_GROUP) + MORE }">Show {{ Math.min(MORE, rows.length - (shown[group.key] ?? PER_GROUP)) }} More</button>
+					<span>{{ t('health_view.showing', 'Showing {shown} of {total}', { shown: shown[group.key] ?? PER_GROUP, total: rows.length }) }}</span>
+					<button type="button" class="lnk" @click="shown = { ...shown, [group.key]: (shown[group.key] ?? PER_GROUP) + MORE }">{{ t('health_view.show_more', 'Show {count} More', { count: Math.min(MORE, rows.length - (shown[group.key] ?? PER_GROUP)) }) }}</button>
 				</p>
 			</section>
 		</template>

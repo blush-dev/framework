@@ -52,6 +52,8 @@ use Blush\Routing\InvalidRoute;
 use Blush\Storage\Record\Order;
 use Blush\Storage\Record\RecordException;
 use Blush\Support\Slug;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The one write path for entries (D-756): every rule a save follows, for
@@ -110,7 +112,8 @@ final readonly class EntryEditor
 		private ArchivePages $archivePages,
 		private RedirectWriter $redirects,
 		private ActivityLog $activity,
-		private LoggerInterface $logger
+		private LoggerInterface $logger,
+		private Messages $messages
 	) {}
 
 	/**
@@ -141,7 +144,9 @@ final readonly class EntryEditor
 		$type    = $this->types->find($new->type);
 
 		if (! $this->permissions->can($account, ContentAction::Create, $type?->name)) {
-			throw EditRefused::forbidden($type === null ? 'You aren\'t allowed to create entries.' : sprintf('You aren\'t allowed to create %s.', $type->labels->items));
+			throw EditRefused::forbidden($type === null
+				? $this->messages->t('content.entry_editor.cannot_create_entries', 'You aren\'t allowed to create entries.')
+				: $this->messages->t('content.entry_editor.cannot_create', 'You aren\'t allowed to create {items}.', items: $type->labels->items));
 		}
 
 		if ($type === null || trim($new->title) === '') {
@@ -167,7 +172,7 @@ final readonly class EntryEditor
 		}
 
 		if (! self::isDraft($changes, null) && ! $this->permissions->can($account, ContentAction::Publish, $type->name)) {
-			throw EditRefused::forbidden('You aren\'t allowed to publish, so new entries must be drafts.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.new_must_be_draft', 'You aren\'t allowed to publish, so new entries must be drafts.'));
 		}
 
 		$html = $this->html->refusal($account, '', $changes->body ?? '');
@@ -180,13 +185,13 @@ final readonly class EntryEditor
 
 		if ($new->parent !== null && $new->parent !== '') {
 			if (! $type instanceof Tree) {
-				throw EditRefused::invalid(sprintf('Only pages of a tree go under another; %s don\'t.', $type->labels->items));
+				throw EditRefused::invalid($this->messages->t('content.entry_editor.not_a_tree', 'Only pages of a tree go under another; {items} don\'t.', items: $type->labels->items));
 			}
 
 			$parent = $this->content->named($type->name, $new->parent);
 
 			if ($parent === null || $parent->landing) {
-				throw EditRefused::unprocessable(sprintf('There\'s no "%s" in %s to put it under.', $new->parent, $type->labels->items), 'parent');
+				throw EditRefused::unprocessable($this->messages->t('content.entry_editor.no_parent', 'There\'s no "{parent}" in {items} to put it under.', parent: $new->parent, items: $type->labels->items), 'parent');
 			}
 		}
 
@@ -208,11 +213,11 @@ final readonly class EntryEditor
 			$holder = $this->content->named($type->name, $parent === null ? $slug : "{$parent->key}/{$slug}");
 
 			throw EditRefused::unprocessable($holder?->status === EntryStatus::Trash
-				? sprintf('“%s” in the trash has this address; restore it, or delete it permanently, first.', self::titleOf($holder))
+				? $this->messages->t('content.entry_editor.address_in_trash', '“{title}” in the trash has this address; restore it, or delete it permanently, first.', title: $this->titleOf($holder))
 				: $e->getMessage(), previous: $e);
 		}
 
-		$this->log($actor, ActivityAction::EntryCreate, $entry, sprintf('Created “%s”', self::titleOf($entry)));
+		$this->log($actor, ActivityAction::EntryCreate, $entry, $this->messages->t('content.entry_editor.summary.created', 'Created “{title}”', title: $this->titleOf($entry)));
 
 		return $entry;
 	}
@@ -233,11 +238,11 @@ final readonly class EntryEditor
 		$account = $actor->account;
 
 		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to edit that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
 
 		if ($entry->status === EntryStatus::Trash) {
-			throw EditRefused::unprocessable(self::inTrash($entry));
+			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
 		if ($revision === null) {
@@ -274,13 +279,13 @@ final readonly class EntryEditor
 
 		if ($edit->parent !== null) {
 			if (! $entry->type instanceof Tree || $entry->landing || ErrorPage::status($entry) !== null) {
-				throw EditRefused::invalid(sprintf('Only a tree\'s pages move under another; "%s" doesn\'t.', $entry->title));
+				throw EditRefused::invalid($this->messages->t('content.entry_editor.cannot_move', 'Only a tree\'s pages move under another; "{title}" doesn\'t.', title: $entry->title));
 			}
 
 			$target = $edit->parent === '' ? null : $this->content->named($entry->type->name, $edit->parent);
 
 			if ($edit->parent !== '' && ($target === null || $target->landing)) {
-				throw EditRefused::unprocessable(sprintf('There\'s no "%s" in %s to move it under.', $edit->parent, $entry->type->labels->items), 'parent');
+				throw EditRefused::unprocessable($this->messages->t('content.entry_editor.no_move_parent', 'There\'s no "{parent}" in {items} to move it under.', parent: $edit->parent, items: $entry->type->labels->items), 'parent');
 			}
 
 			if ($entry->type->parentKey($entry->key, []) !== $target?->key) {
@@ -297,7 +302,7 @@ final readonly class EntryEditor
 		}
 
 		if ($move !== false && $rename === null && $this->slugProblem($entry, $entry->slug, $folder) !== null) {
-			throw EditRefused::unprocessable(sprintf('There\'s already a page at %s.', ($folder === '.' ? '' : "{$folder}/") . $entry->slug), 'parent');
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.page_taken', 'There\'s already a page at {page}.', page: ($folder === '.' ? '' : "{$folder}/") . $entry->slug), 'parent');
 		}
 
 		// Another language (D-728), checked before anything is written.
@@ -305,7 +310,7 @@ final readonly class EntryEditor
 
 		if ($language !== null) {
 			$problem = $entry->landing || $this->archivePages->isList($entry) || $this->archivePages->isTarget($entry) || ErrorPage::status($entry) !== null
-				? sprintf('"%s" keeps the language of the pages it goes with.', $entry->title)
+				? $this->messages->t('content.entry_editor.keeps_language', '"{title}" keeps the language of the pages it goes with.', title: $entry->title)
 				: $this->languageProblem($entry->type, ($folder === '.' ? '' : "{$folder}/") . ($rename ?? $entry->slug), $language, $entry);
 
 			if ($problem !== null) {
@@ -383,8 +388,8 @@ final readonly class EntryEditor
 
 		if ($count !== 1) {
 			throw EditRefused::unprocessable($count === 0
-				? sprintf('The body of “%s” doesn\'t have that passage; read it again and copy the passage exactly.', self::titleOf($entry))
-				: sprintf('The body of “%s” has that passage %d times; send more of the text around it so it\'s found once.', self::titleOf($entry), $count), 'find');
+				? $this->messages->t('content.entry_editor.passage_missing', 'The body of “{title}” doesn\'t have that passage; read it again and copy the passage exactly.', title: $this->titleOf($entry))
+				: $this->messages->t('content.entry_editor.passage_repeated', 'The body of “{title}” has that passage {count, plural, one {# time} other {# times}}; send more of the text around it so it\'s found once.', title: $this->titleOf($entry), count: $count), 'find');
 		}
 
 		return $this->update($actor, $entry, new EntryEdit(body: str_replace($find, $replace, $body)), $revision);
@@ -401,15 +406,15 @@ final readonly class EntryEditor
 	public function setStatus(Actor $actor, Entry $entry, string $status, ?string $revision = null, ?string $published = null): Entry
 	{
 		if ($entry->status === EntryStatus::Trash) {
-			throw EditRefused::unprocessable(self::inTrash($entry));
+			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
 		if (! $this->permissions->can($actor->account, ContentAction::Edit, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to edit that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
 
 		if ($status !== 'draft' && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to publish that entry; keep it a draft.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_publish', 'You aren\'t allowed to publish that entry; keep it a draft.'));
 		}
 
 		if ($status !== 'draft') {
@@ -433,15 +438,15 @@ final readonly class EntryEditor
 	public function trash(Actor $actor, Entry $entry, ?string $revision): array
 	{
 		if (! $this->permissions->can($actor->account, ContentAction::Delete, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to delete that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_delete', 'You aren\'t allowed to delete that entry.'));
 		}
 
 		if ($entry->status === EntryStatus::Trash) {
-			throw EditRefused::unprocessable(sprintf('"%s" is already in the trash; delete it permanently, or restore it.', $entry->title));
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.already_trashed', '"{title}" is already in the trash; delete it permanently, or restore it.', title: $entry->title));
 		}
 
 		if (IndexPage::is($entry)) {
-			throw EditRefused::unprocessable(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->labels->items));
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.index_not_trashed', '"{title}" is the index page for {items}, so it can\'t be moved to the trash.', title: $entry->title, items: $entry->type->labels->items));
 		}
 
 		if ($revision === null) {
@@ -460,7 +465,7 @@ final readonly class EntryEditor
 
 		$declared = is_string($declared) ? $declared : null;
 
-		$this->log($actor, ActivityAction::EntryTrash, $trashed, sprintf('Moved “%s” to the trash', self::titleOf($entry)), ['status' => $declared]);
+		$this->log($actor, ActivityAction::EntryTrash, $trashed, $this->messages->t('content.entry_editor.summary.trashed', 'Moved “{title}” to the trash', title: $this->titleOf($entry)), ['status' => $declared]);
 
 		return [$trashed, $declared];
 	}
@@ -475,11 +480,11 @@ final readonly class EntryEditor
 	public function restore(Actor $actor, Entry $entry, ?EntryStatus $status = EntryStatus::Draft, ?string $revision = null): Entry
 	{
 		if ($entry->status !== EntryStatus::Trash) {
-			throw EditRefused::notFound('That isn\'t in the trash.');
+			throw EditRefused::notFound($this->messages->t('content.entry_editor.not_trashed', 'That isn\'t in the trash.'));
 		}
 
 		if (! $this->permissions->can($actor->account, ContentAction::Delete, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to restore that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_restore', 'You aren\'t allowed to restore that entry.'));
 		}
 
 		if ($status === EntryStatus::Trash || $status === EntryStatus::Scheduled) {
@@ -491,18 +496,18 @@ final readonly class EntryEditor
 		}
 
 		if ($status !== EntryStatus::Draft && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.restore_as_draft', 'You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.'));
 		}
 
 		try {
 			$restored = $this->content->restore($entry, $revision, $status);
 		} catch (WriteConflict $e) {
-			throw EditRefused::conflict(sprintf('"%s" changed in the trash since it was moved there, so it can\'t be put back as it was; restore it from the Trash.', $entry->title), $e);
+			throw EditRefused::conflict($this->messages->t('content.entry_editor.changed_in_trash', '"{title}" changed in the trash since it was moved there, so it can\'t be put back as it was; restore it from the Trash.', title: $entry->title), $e);
 		} catch (WriteException $e) {
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
 
-		$this->log($actor, ActivityAction::EntryRestore, $restored, sprintf('Restored “%s” from the trash', self::titleOf($entry)), ['trash' => true]);
+		$this->log($actor, ActivityAction::EntryRestore, $restored, $this->messages->t('content.entry_editor.summary.restored', 'Restored “{title}” from the trash', title: $this->titleOf($entry)), ['trash' => true]);
 
 		return $restored;
 	}
@@ -520,23 +525,23 @@ final readonly class EntryEditor
 		$account = $actor->account;
 
 		if (! $this->permissions->can($account, ContentAction::Create, $entry->type->name) || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to duplicate that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_duplicate', 'You aren\'t allowed to duplicate that entry.'));
 		}
 
 		if ($entry->status === EntryStatus::Trash) {
-			throw EditRefused::unprocessable(self::inTrash($entry));
+			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
 		if (IndexPage::is($entry)) {
-			throw EditRefused::unprocessable(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->labels->items));
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.only_one_index', '"{title}" is the index page for {items}, and there\'s only one.', title: $entry->title, items: $entry->type->labels->items));
 		}
 
 		if ($entry->landing) {
-			throw EditRefused::unprocessable(sprintf('"%s" is the site\'s root page, and there\'s only one.', $entry->title));
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.only_one_root', '"{title}" is the site\'s root page, and there\'s only one.', title: $entry->title));
 		}
 
 		$now   = $this->clock->now()->setTimezone($this->app->timezone());
-		$title = sprintf('%s (Copy)', self::titleOf($entry));
+		$title = (string) $this->messages->t('content.entry_editor.copy_title', '{title} (Copy)', title: $this->titleOf($entry));
 		$set   = [
 			'title'     => $title,
 			'status'    => 'draft',
@@ -551,7 +556,7 @@ final readonly class EntryEditor
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
 
-		$this->log($actor, ActivityAction::EntryCreate, $copy, sprintf('Copied “%s” as “%s”', self::titleOf($entry), $title));
+		$this->log($actor, ActivityAction::EntryCreate, $copy, $this->messages->t('content.entry_editor.summary.copied', 'Copied “{title}” as “{copy}”', title: $this->titleOf($entry), copy: $title));
 
 		return $copy;
 	}
@@ -568,11 +573,13 @@ final readonly class EntryEditor
 		$entry = $this->content->find($activity->subject);
 
 		if ($entry === null) {
-			throw EditRefused::notFound(sprintf('“%s” is no longer there.', $activity->title));
+			throw EditRefused::notFound($this->messages->t('content.entry_editor.gone', '“{title}” is no longer there.', title: $activity->title));
 		}
 
 		if (! $activity->canUndo()) {
-			throw EditRefused::unprocessable($activity->undone !== null ? 'That change was already undone.' : 'That change can\'t be undone.');
+			throw EditRefused::unprocessable($activity->undone !== null
+				? $this->messages->t('content.entry_editor.already_undone', 'That change was already undone.')
+				: $this->messages->t('content.entry_editor.cannot_undo', 'That change can\'t be undone.'));
 		}
 
 		$before = $activity->before ?? [];
@@ -581,7 +588,7 @@ final readonly class EntryEditor
 		$moved = is_string($before['key'] ?? null) && $before['key'] !== $entry->key;
 
 		if ($moved || ($activity->revision !== null && $file->version !== $activity->revision)) {
-			throw EditRefused::conflict(sprintf('“%s” changed since; open it to edit.', self::titleOf($entry)));
+			throw EditRefused::conflict($this->messages->t('content.entry_editor.changed_since', '“{title}” changed since; open it to edit.', title: $this->titleOf($entry)));
 		}
 
 		$actor = $actor->undoing($activity);
@@ -627,7 +634,7 @@ final readonly class EntryEditor
 		$body        = is_string($before['body'] ?? null) ? $before['body'] : null;
 
 		if ($frontMatter === null || $body === null) {
-			throw EditRefused::unprocessable('That change didn\'t keep what it replaced, so it can\'t be undone.');
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.nothing_kept', 'That change didn\'t keep what it replaced, so it can\'t be undone.'));
 		}
 
 		$set = [];
@@ -640,11 +647,11 @@ final readonly class EntryEditor
 		$status = $set['status'] ?? null;
 
 		if ((! is_string($status) || $status !== 'draft') && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to publish that entry, so this change can\'t be undone.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.undo_needs_publish', 'You aren\'t allowed to publish that entry, so this change can\'t be undone.'));
 		}
 
 		if (! $this->permissions->can($actor->account, ContentAction::Edit, $entry)) {
-			throw EditRefused::forbidden('You aren\'t allowed to edit that entry.');
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
 
 		try {
@@ -655,7 +662,7 @@ final readonly class EntryEditor
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
 
-		$this->log($actor, ActivityAction::EntryUpdate, $restored, sprintf('Undid a change to “%s”', self::titleOf($restored)), self::before($entry, $file));
+		$this->log($actor, ActivityAction::EntryUpdate, $restored, $this->messages->t('content.entry_editor.summary.undid', 'Undid a change to “{title}”', title: $this->titleOf($restored)), self::before($entry, $file));
 
 		return $restored;
 	}
@@ -666,7 +673,7 @@ final readonly class EntryEditor
 	 *
 	 * @param ?array<string, mixed> $before
 	 */
-	private function log(Actor $actor, ActivityAction $action, Entry $entry, string $summary, ?array $before = null): void
+	private function log(Actor $actor, ActivityAction $action, Entry $entry, Text $summary, ?array $before = null): void
 	{
 		if ($entry->id === null) {
 			return;
@@ -679,45 +686,59 @@ final readonly class EntryEditor
 		}
 
 		try {
-			$this->activity->record($actor, $action, $entry->id, self::titleOf($entry), $summary, $before, $revision);
+			$this->activity->record($actor, $action, $entry->id, $this->titleOf($entry), $summary, $before, $revision);
 		} catch (ActivityException $e) {
 			$this->logger->warning('A change to "{title}" couldn\'t be added to the activity log: {problem}', ['title' => $entry->title, 'problem' => $e->getMessage()]);
 		}
 	}
 
 	/**
-	 * Says what an update changed, for the activity log.
+	 * Says what an update changed, for the activity log: a message, kept
+	 * as one and shown in the reader's language (D-836), with what changed
+	 * as messages of its own, joined by `summary.list`.
 	 */
-	private function updateSummary(Entry $was, Entry $now, EntryEdit $edit, EditableEntry $file): string
+	private function updateSummary(Entry $was, Entry $now, EntryEdit $edit, EditableEntry $file): Text
 	{
-		$title = self::titleOf($now);
+		$title = $this->titleOf($now);
 
 		if ($edit->isStatusOnly()) {
+			$when = $now->published?->format('Y-m-d H:i');
+
 			return match ($now->status) {
-				EntryStatus::Published => sprintf('Published “%s”', $title),
-				EntryStatus::Scheduled => sprintf('Scheduled “%s” for %s', $title, $now->published?->format('Y-m-d H:i') ?? 'later'),
-				EntryStatus::Draft     => sprintf('Moved “%s” to draft', $title),
-				default                => sprintf('Changed the status of “%s”', $title)
+				EntryStatus::Published => $this->messages->t('content.entry_editor.summary.published', 'Published “{title}”', title: $title),
+				EntryStatus::Scheduled => $when === null
+					? $this->messages->t('content.entry_editor.summary.scheduled', 'Scheduled “{title}” for later', title: $title)
+					: $this->messages->t('content.entry_editor.summary.scheduled_for', 'Scheduled “{title}” for {when}', title: $title, when: $when),
+				EntryStatus::Draft     => $this->messages->t('content.entry_editor.summary.drafted', 'Moved “{title}” to draft', title: $title),
+				default                => $this->messages->t('content.entry_editor.summary.status', 'Changed the status of “{title}”', title: $title)
 			};
 		}
 
 		$parts = [];
 
 		if ($edit->body !== null && $edit->body !== $file->body) {
-			$parts[] = 'the body';
+			$parts[] = $this->messages->t('content.entry_editor.summary.body', 'the body');
 		}
 
-		$fields = array_values(array_diff([...array_keys($edit->set), ...$edit->remove], ['updated', 'status', 'published']));
-
-		if ($fields !== []) {
-			$parts[] = implode(', ', $fields);
+		foreach (array_values(array_diff([...array_keys($edit->set), ...$edit->remove], ['updated', 'status', 'published'])) as $field) {
+			$parts[] = $field;
 		}
 
 		if ($was->slug !== $now->slug || $was->key !== $now->key) {
-			$parts[] = 'its address';
+			$parts[] = $this->messages->t('content.entry_editor.summary.address', 'its address');
 		}
 
-		return $parts === [] ? sprintf('Edited “%s”', $title) : sprintf('Edited %s of “%s”', implode(', ', $parts), $title);
+		if ($parts === []) {
+			return $this->messages->t('content.entry_editor.summary.edited', 'Edited “{title}”', title: $title);
+		}
+
+		$changed = array_shift($parts);
+
+		foreach ($parts as $part) {
+			$changed = $this->messages->t('content.entry_editor.summary.list', '{list}, {item}', list: $changed, item: $part);
+		}
+
+		return $this->messages->t('content.entry_editor.summary.edited_parts', 'Edited {changed} of “{title}”', changed: $changed, title: $title);
 	}
 
 	/**
@@ -751,7 +772,7 @@ final readonly class EntryEditor
 	 * fields, so it has none; the publish date isn't checked, since
 	 * publishing sets it.
 	 */
-	private function missing(Entry $entry): ?string
+	private function missing(Entry $entry): ?Text
 	{
 		$empty = IndexPage::is($entry) ? [] : array_filter($entry->type->schema->fields, static function (Field $field) use ($entry): bool {
 			$value = $field->name === 'title' ? $entry->title : $entry->field($field->name);
@@ -763,11 +784,12 @@ final readonly class EntryEditor
 
 		$names = array_values(array_map(static fn (Field $field): string => $field->label === '' ? ucfirst($field->name) : $field->label, $empty));
 
-		return match (count($names)) {
-			0       => null,
-			1       => sprintf('%s is required to publish.', $names[0]),
-			default => sprintf('%s are required to publish.', implode(', ', $names))
-		};
+		return $names === [] ? null : $this->messages->t(
+			'content.entry_editor.required',
+			'{count, plural, one {{names} is required to publish.} other {{names} are required to publish.}}',
+			count: count($names),
+			names: implode(', ', $names)
+		);
 	}
 
 	/**
@@ -788,7 +810,7 @@ final readonly class EntryEditor
 			foreach ($byType as $target => $titles) {
 				if (! $this->permissions->can($account, ContentAction::Create, $target) || ! $this->permissions->can($account, ContentAction::Publish, $target)) {
 					throw EditRefused::forbidden(
-						sprintf('You aren\'t allowed to add new %s: %s.', $this->types->find($target)->labels->items ?? $target, implode(', ', $titles)),
+						$this->messages->t('content.entry_editor.cannot_add_targets', 'You aren\'t allowed to add new {items}: {titles}.', items: $this->types->find($target)->labels->items ?? $target, titles: implode(', ', $titles)),
 						$this->relations->find($type->name, $name)->field ?? $name
 					);
 				}
@@ -803,7 +825,7 @@ final readonly class EntryEditor
 				$full     = $relation !== null && $problems[0]->kind === ProblemKind::InverseLimit ? $this->full($relation, $problems[0]->value, $entry->id ?? '') : null;
 
 				throw EditRefused::unprocessable(
-					implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems)),
+					implode(' ', array_map(static fn (RelationProblem $problem): string => (string) $problem->message, $problems)),
 					$relation?->field,
 					$full === null ? [] : ['full' => $full]
 				);
@@ -813,7 +835,7 @@ final readonly class EntryEditor
 		$created = $found === [] ? null : $this->typed->create($found);
 
 		if ($created !== null && $created->failed !== []) {
-			throw EditRefused::unprocessable(sprintf('%s couldn\'t be written: %s', implode(', ', array_keys($created->failed)), implode(' ', $created->failed)));
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.targets_failed', '{keys} couldn\'t be written: {problems}', keys: implode(', ', array_keys($created->failed)), problems: implode(' ', $created->failed)));
 		}
 	}
 
@@ -862,25 +884,25 @@ final readonly class EntryEditor
 	{
 		$problems = $this->limits->check($entry->type->name, $entry->id, $entry->language, $this->editable($entry)->frontMatter);
 
-		return $problems === [] ? null : implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems));
+		return $problems === [] ? null : implode(' ', array_map(static fn (RelationProblem $problem): string => (string) $problem->message, $problems));
 	}
 
 	/**
 	 * Returns what's wrong with renaming an entry to a slug, or `null`,
 	 * in the folder of keys it's in, or moving to (`.` for the top).
 	 */
-	private function slugProblem(Entry $entry, string $slug, ?string $folder = null): ?string
+	private function slugProblem(Entry $entry, string $slug, ?string $folder = null): ?Text
 	{
 		if ($entry->landing) {
-			return sprintf('"%s" is its folder\'s landing page, so its slug is the folder\'s.', $entry->title);
+			return $this->messages->t('content.entry_editor.landing_slug', '"{title}" is its folder\'s landing page, so its slug is the folder\'s.', title: $entry->title);
 		}
 
 		if (ErrorPage::status($entry) !== null && $slug !== $entry->slug) {
-			return sprintf('"%s" is the page for error %s, so its slug is the status.', $entry->title, $entry->slug);
+			return $this->messages->t('content.entry_editor.error_slug', '"{title}" is the page for error {status}, so its slug is the status.', title: $entry->title, status: $entry->slug);
 		}
 
 		if (! Slug::isSlug($slug)) {
-			return sprintf('Slugs are lowercase letters, numbers, and hyphens; try "%s".', Slug::from($slug) ?: 'untitled');
+			return $this->messages->t('content.entry_editor.bad_slug', 'Slugs are lowercase letters, numbers, and hyphens; try "{slug}".', slug: Slug::from($slug) ?: 'untitled');
 		}
 
 		$folder ??= dirname($entry->key);
@@ -888,8 +910,8 @@ final readonly class EntryEditor
 
 		return match ($this->content->named($entry->type->name, $key)?->status) {
 			null              => null,
-			EntryStatus::Trash => sprintf('A %s in the trash has the slug "%s"; restore it, or delete it permanently, to use it.', $entry->type->labels->item, $slug),
-			default           => sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug)
+			EntryStatus::Trash => $this->messages->t('content.entry_editor.slug_in_trash', 'A {item} in the trash has the slug "{slug}"; restore it, or delete it permanently, to use it.', item: $entry->type->labels->item, slug: $slug),
+			default           => $this->messages->t('content.entry_editor.slug_taken', 'Another {item} already has the slug "{slug}".', item: $entry->type->labels->item, slug: $slug)
 		};
 	}
 
@@ -898,32 +920,32 @@ final readonly class EntryEditor
 	 * language (D-728), or `null`: a language the site doesn't have, one
 	 * its translations already have, or a key that's taken there.
 	 */
-	private function languageProblem(ContentType $type, string $key, string $code, ?Entry $entry = null): ?string
+	private function languageProblem(ContentType $type, string $key, string $code, ?Entry $entry = null): ?Text
 	{
 		$language = $this->app->languages->find($code);
 
 		if ($language === null) {
-			return sprintf('The site has no language "%s".', $code);
+			return $this->messages->t('content.entry_editor.no_language', 'The site has no language "{code}".', code: $code);
 		}
 
 		$translation = $entry === null ? null : $this->content->translations($entry)[$code] ?? null;
 
 		if ($translation !== null && $translation->id !== $entry->id) {
-			return sprintf('Its %s translation is “%s”.', $language->name(), self::titleOf($translation));
+			return $this->messages->t('content.entry_editor.translated', 'Its {language} translation is “{title}”.', language: $language->name(), title: $this->titleOf($translation));
 		}
 
 		$found = $this->content->named($type->name, $key, $code);
 
-		return $found === null || $found->id === $entry?->id ? null : sprintf('There\'s already a %s at %s in %s.', $type->labels->item, $key, $language->name());
+		return $found === null || $found->id === $entry?->id ? null : $this->messages->t('content.entry_editor.taken_in_language', 'There\'s already a {item} at {page} in {language}.', item: $type->labels->item, page: $key, language: $language->name());
 	}
 
 	/**
 	 * Returns why the account may not make a change, or `null`.
 	 */
-	private function refusal(Account $account, Entry $entry, EntryChanges $changes): ?string
+	private function refusal(Account $account, Entry $entry, EntryChanges $changes): ?Text
 	{
 		if (! self::isDraft($changes, $entry) && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
-			return 'You aren\'t allowed to publish that entry; keep it a draft.';
+			return $this->messages->t('content.entry_editor.cannot_publish', 'You aren\'t allowed to publish that entry; keep it a draft.');
 		}
 
 		// The byline (its type's byline relation, D-602) is what makes an
@@ -948,7 +970,7 @@ final readonly class EntryEditor
 
 		return $own !== null && in_array($own, $authors, true)
 			? null
-			: 'You can add authors, but not take yourself off an entry.';
+			: $this->messages->t('content.entry_editor.keep_yourself', 'You can add authors, but not take yourself off an entry.');
 	}
 
 	/**
@@ -969,7 +991,7 @@ final readonly class EntryEditor
 		$index  = $entry !== null && IndexPage::is($entry);
 
 		if ($status === 'scheduled' && $index) {
-			throw EditRefused::invalid('An index page can\'t be scheduled; publish it or keep it a draft.', 'status');
+			throw EditRefused::invalid($this->messages->t('content.entry_editor.index_not_scheduled', 'An index page can\'t be scheduled; publish it or keep it a draft.'), 'status');
 		}
 
 		unset($set['status']);
@@ -984,7 +1006,7 @@ final readonly class EntryEditor
 			$when = self::date($published, $this->app);
 
 			if ($when === null || $when <= $now) {
-				throw EditRefused::invalid('Scheduling needs a future "published" date.', 'published');
+				throw EditRefused::invalid($this->messages->t('content.entry_editor.future_date', 'Scheduling needs a future "published" date.'), 'published');
 			}
 
 			$set['published'] = self::dateString($when);
@@ -1097,17 +1119,17 @@ final readonly class EntryEditor
 	/**
 	 * Says that an entry is in the trash, so it can't be changed.
 	 */
-	public static function inTrash(Entry $entry): string
+	public function inTrash(Entry $entry): Text
 	{
-		return sprintf('"%s" is in the trash; restore it to change it.', self::titleOf($entry));
+		return $this->messages->t('content.entry_editor.in_trash', '"{title}" is in the trash; restore it to change it.', title: $this->titleOf($entry));
 	}
 
 	/**
 	 * Returns an entry's title, or "Untitled".
 	 */
-	private static function titleOf(Entry $entry): string
+	private function titleOf(Entry $entry): string
 	{
-		return trim($entry->title) === '' ? 'Untitled' : $entry->title;
+		return trim($entry->title) === '' ? (string) $this->messages->t('content.entry_editor.untitled', 'Untitled') : $entry->title;
 	}
 
 	/**

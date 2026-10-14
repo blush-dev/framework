@@ -42,6 +42,8 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Changes the site's admin themes from the Admin Themes screens (D-827),
@@ -75,13 +77,14 @@ final readonly class AdminThemeEditController
 		private Permissions $permissions,
 		private Filesystem $filesystem,
 		private ExtensionInstaller $installer,
-		private ExtensionText $text
+		private ExtensionText $text,
+		private Messages $messages
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Activate)) {
-			return self::error('You aren\'t allowed to turn admin themes on and off.', Status::Forbidden);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.toggle_forbidden', 'You aren\'t allowed to turn admin themes on and off.'), Status::Forbidden);
 		}
 
 		$enable = self::input($request)['enabled'] ?? null;
@@ -93,24 +96,24 @@ final readonly class AdminThemeEditController
 		$theme = $this->themes->find("{$vendor}/{$name}");
 
 		if ($theme === null) {
-			return self::error(sprintf('No admin theme named %s/%s is installed.', $vendor, $name), Status::NotFound);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.not_installed', 'No admin theme named {name} is installed.', name: "{$vendor}/{$name}"), Status::NotFound);
 		}
 
 		$label = (string) $this->text->label($theme);
 
 		if (! $enable && $theme->name === AdminThemes::BASE) {
-			return self::error(sprintf('%s is the admin\'s own look, so it\'s always on.', $label), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.base_always_on', '{label} is the admin\'s own look, so it\'s always on.', label: $label), Status::UnprocessableContent);
 		}
 
 		if (! $enable && $this->isDefault($theme)) {
-			return self::error(sprintf('%s is the site\'s default, so it can\'t be turned off. Choose another default first.', $label), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.default_stays_on', '{label} is the site\'s default, so it can\'t be turned off. Choose another default first.', label: $label), Status::UnprocessableContent);
 		}
 
 		// One whose requirements aren't met can't be turned on (D-431).
 		$checked = $this->extensions->check($theme);
 
 		if ($enable && ! Requirements::met($checked)) {
-			return self::error(sprintf('%s can\'t be turned on. %s', $label, Requirements::reason($checked)), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.unmet', '{label} can\'t be turned on. {reason}', label: $label, reason: Requirements::reason($checked, $this->messages)), Status::UnprocessableContent);
 		}
 
 		try {
@@ -150,7 +153,7 @@ final readonly class AdminThemeEditController
 	public function setDefault(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Activate)) {
-			return self::error('You aren\'t allowed to choose the site\'s admin theme.', Status::Forbidden);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.default_forbidden', 'You aren\'t allowed to choose the site\'s admin theme.'), Status::Forbidden);
 		}
 
 		$name  = self::input($request)['name'] ?? null;
@@ -161,7 +164,7 @@ final readonly class AdminThemeEditController
 		}
 
 		if (! $this->themes->isOffered($theme->name)) {
-			return self::error(sprintf('%s isn\'t turned on, so it can\'t be the default. Turn it on first.', $this->text->label($theme)), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.default_off', '{label} isn\'t turned on, so it can\'t be the default. Turn it on first.', label: (string) $this->text->label($theme)), Status::UnprocessableContent);
 		}
 
 		try {
@@ -176,7 +179,7 @@ final readonly class AdminThemeEditController
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete)) {
-			return self::error('You aren\'t allowed to delete admin themes.', Status::Forbidden);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.delete_forbidden', 'You aren\'t allowed to delete admin themes.'), Status::Forbidden);
 		}
 
 		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
@@ -184,17 +187,17 @@ final readonly class AdminThemeEditController
 		$theme = array_find($this->themes->all(), static fn (AdminTheme $theme): bool => $theme->source === AdminThemeSource::Local && $theme->path === $path);
 
 		if (! is_dir($path) || ($theme === null && ! array_key_exists($where, $this->themes->invalid()))) {
-			return self::error(sprintf('There\'s no admin theme in %s.', $where), Status::NotFound);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.none_in', 'There\'s no admin theme in {where}.', where: $where), Status::NotFound);
 		}
 
 		if ($theme !== null && $this->isDefault($theme)) {
-			return self::error(sprintf('%s is the site\'s default, so it can\'t be deleted. Choose another default first.', $this->text->label($theme)), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.default_kept', '{label} is the site\'s default, so it can\'t be deleted. Choose another default first.', label: (string) $this->text->label($theme)), Status::UnprocessableContent);
 		}
 
 		try {
 			$this->filesystem->removeDirectory($path);
 		} catch (FilesystemException) {
-			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
+			return self::error($this->messages->t('admin.admin_theme_edit_controller.not_deleted', '{where} couldn\'t be deleted. Check that the web server may change it.', where: $where), Status::InternalServerError);
 		}
 
 		LocalExtensions::prune($this->paths, $path);
@@ -263,7 +266,7 @@ final readonly class AdminThemeEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

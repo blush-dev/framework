@@ -9,6 +9,7 @@ import { entryRoute, request, type ContentTypeSummary, type TypeLabels } from '.
 import { humanize } from './fields';
 import { titleCase } from './format';
 import type { IconName } from './icons';
+import { locale, t } from './messages';
 import { loadIconMasks } from './site-icons';
 
 export const types = ref<ContentTypeSummary[]>([]);
@@ -107,7 +108,7 @@ export function labelsOf(name: string): TypeLabels {
 	const singular = humanize(name);
 	const item     = name.replace(/[_-]+/g, ' ').trim();
 
-	return { singular, plural: singular, menu: singular, item, items: item, newItem: titleCase(`New ${item}`), editItem: `Edit ${item}`, searchItems: `Search ${item}` };
+	return { singular, plural: singular, menu: singular, item, items: item, newItem: titleCase(t('types.new_item', 'New {item}', { item })), editItem: t('types.edit_item', 'Edit {item}', { item }), searchItems: t('types.search_items', 'Search {item}', { item }) };
 }
 
 /**
@@ -131,7 +132,7 @@ export interface MenuType {
  * those without one by the names the menu shows (D-278).
  */
 export function byMenuPlace(a: ContentTypeSummary, b: ContentTypeSummary): number {
-	return (a.position ?? Infinity) - (b.position ?? Infinity) || a.labels.menu.localeCompare(b.labels.menu);
+	return (a.position ?? Infinity) - (b.position ?? Infinity) || a.labels.menu.localeCompare(b.labels.menu, locale());
 }
 
 /**

@@ -40,6 +40,8 @@ import { extensionView } from '../density';
 import { extensionRoute, folderName, useExtensionFilter } from '../extensions';
 import { useInstall } from '../install';
 import { can } from '../session';
+import { t } from '../messages';
+import MessageText from '../components/MessageText.vue';
 
 const { answer, error, busy, load, toggle: toggleTheme, makeDefault, useConfig, useConfigDefault, remove: removeTheme } = useAdminThemes();
 
@@ -51,7 +53,7 @@ const canDelete   = can('extensions.admin-themes.delete');
 const { installing, canInstall, afterInstall, hop, installState, next } = useInstall('admin-theme', load, {
 	find: (name) => themes.value.find((item) => item.name === name) ?? null,
 	state: (theme) => ({
-		words: theme?.enabled ? 'turned on' : 'turned off',
+		words: theme?.enabled ? t('admin_themes_view.turned_on', 'turned on') : t('admin_themes_view.turned_off', 'turned off'),
 		next: theme !== null && !theme.enabled && blocked(theme) === null && canActivate,
 		live: theme?.enabled ?? false
 	}),
@@ -92,9 +94,9 @@ function blocked(theme: AdminThemeSummary): string | null {
 // Why its switch is locked, or `null`.
 function locked(theme: AdminThemeSummary): string | null {
 	return blocked(theme)
-		?? (theme.base ? 'Neutral is the admin\'s own look, so it\'s always on.' : null)
-		?? (theme.default ? 'It\'s the site\'s default. Make another theme the default to turn it off.' : null)
-		?? (canActivate ? null : 'Your role can\'t turn admin themes on and off.');
+		?? (theme.base ? t('admin_themes_view.locked_base', 'Neutral is the admin\'s own look, so it\'s always on.') : null)
+		?? (theme.default ? t('admin_themes_view.locked_default', 'It\'s the site\'s default. Make another theme the default to turn it off.') : null)
+		?? (canActivate ? null : t('admin_themes_view.locked_role', 'Your role can\'t turn admin themes on and off.'));
 }
 
 async function toggle(theme: AdminThemeSummary, value: boolean): Promise<void> {
@@ -119,22 +121,22 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Admin Themes</h1>
-			<p class="page-header__hint">How the admin looks: its colors, fonts, and sizes. Each account chooses its own on Your Account.</p>
+			<h1 tabindex="-1">{{ t('admin_themes_view.heading', 'Admin Themes') }}</h1>
+			<p class="page-header__hint">{{ t('admin_themes_view.hint', 'How the admin looks: its colors, fonts, and sizes. Each account chooses its own on Your Account.') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Admin Theme</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />{{ t('admin_themes_view.install', 'Install Admin Theme') }}</button>
 		</div>
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="answer">
-		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" noun="admin themes" on="On" off="Off" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="`${on} to choose from`" :filtered="filtered" views @clear="clear" />
+		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" :noun="t('admin_themes_view.noun', 'admin themes')" :on="t('admin_themes_view.on', 'On')" :off="t('admin_themes_view.off', 'Off')" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="t('admin_themes_view.summary', '{count} to choose from', { count: on })" :filtered="filtered" views @clear="clear" />
 
 		<div v-if="shown === 0" class="panel">
-			<EmptyState icon="search" heading="No Admin Theme Matches" text="Nothing here fits the filters in force. Clearing them brings the other admin themes back.">
-				<template #actions><button type="button" class="button" @click="clear">Clear Filters</button></template>
+			<EmptyState icon="search" :heading="t('admin_themes_view.no_matches', 'No Admin Theme Matches')" :text="t('admin_themes_view.no_matches_text', 'Nothing here fits the filters in force. Clearing them brings the other admin themes back.')">
+				<template #actions><button type="button" class="button" @click="clear">{{ t('admin_themes_view.clear_filters', 'Clear Filters') }}</button></template>
 			</EmptyState>
 		</div>
 
@@ -143,39 +145,39 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 				<template v-if="list" #mark><AdminIcon name="swatch-book" /></template>
 				<template v-else #media><AdminThemeSketch class="theme-sketch" :preview="theme.preview" /></template>
 				<template #pills>
-					<span v-if="theme.default" class="pill pill--good">Site default</span>
-					<span v-else-if="theme.source === 'framework'" class="pill">Built in</span>
-					<span v-if="blocked(theme)" class="pill pill--warn">Can't turn on</span>
-					<span v-if="theme.abandoned !== false" class="pill pill--warn">Abandoned</span>
+					<span v-if="theme.default" class="pill pill--good">{{ t('admin_themes_view.site_default', 'Site default') }}</span>
+					<span v-else-if="theme.source === 'framework'" class="pill">{{ t('admin_themes_view.built_in', 'Built in') }}</span>
+					<span v-if="blocked(theme)" class="pill pill--warn">{{ t('admin_themes_view.cant_turn_on', "Can't turn on") }}</span>
+					<span v-if="theme.abandoned !== false" class="pill pill--warn">{{ t('admin_themes_view.abandoned', 'Abandoned') }}</span>
 				</template>
 				<p v-if="blocked(theme)" class="notice notice--small notice--warn extension__message">
-					<AdminIcon name="triangle-alert" /><span>{{ blocked(theme) }} {{ theme.enabled ? 'It\'s turned on, but no one can choose it until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+					<AdminIcon name="triangle-alert" /><span>{{ theme.enabled ? t('admin_themes_view.blocked_on', '{reason} It\'s turned on, but no one can choose it until that\'s fixed.', { reason: blocked(theme) }) : t('admin_themes_view.blocked_off', '{reason} It can\'t be turned on until that\'s fixed.', { reason: blocked(theme) }) }}</span>
 				</p>
-				<p v-else-if="theme.source === 'composer' && !theme.enabled" class="extension__description">Installed by Composer. It's off because the list of admin themes turned on here doesn't name it.</p>
+				<p v-else-if="theme.source === 'composer' && !theme.enabled" class="extension__description">{{ t('admin_themes_view.composer_off', "Installed by Composer. It's off because the list of admin themes turned on here doesn't name it.") }}</p>
 				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
-					<li v-if="theme.source === 'framework'"><AdminIcon name="package" />Ships with Blush</li>
+					<li v-if="theme.source === 'framework'"><AdminIcon name="package" />{{ t('admin_themes_view.ships_with', 'Ships with Blush') }}</li>
 					<li v-else-if="theme.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ theme.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ theme.path }}</span></li>
-					<li v-if="theme.contrast.length" class="is-warn"><AdminIcon name="triangle-alert" /><span>Some text is hard to read</span></li>
+					<li v-if="theme.contrast.length" class="is-warn"><AdminIcon name="triangle-alert" /><span>{{ t('admin_themes_view.contrast', 'Some text is hard to read') }}</span></li>
 				</ul>
 				<template #[foot]>
 					<!-- A row's switch comes last, lined up with the other rows' switches. -->
-					<button v-if="list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">Make Default<span class="visually-hidden"> {{ theme.label }}</span></button>
+					<button v-if="list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">{{ t('admin_themes_view.make_default', 'Make Default') }}<span class="visually-hidden"> {{ theme.label }}</span></button>
 					<ToggleSwitch :checked="theme.running" :label="theme.label" :locked="locked(theme) !== null" :busy="busy === theme.name" :reason="locked(theme)" @change="toggle(theme, $event)" />
-					<button v-if="!list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">Make Default<span class="visually-hidden"> {{ theme.label }}</span></button>
-					<ExtensionMenu :label="theme.label" :details="extensionRoute('admin-theme', theme.name)" details-label="Admin theme details" :copy="theme.path" :delete-label="canDelete && theme.deletable && theme.folder && !theme.default ? 'Delete admin theme' : undefined" @delete="remove(theme.label, theme.folder ?? '', theme)" />
+					<button v-if="!list && canActivate && theme.offered && !theme.default" type="button" class="button button--small" :disabled="busy !== null" @click="choose(theme)">{{ t('admin_themes_view.make_default', 'Make Default') }}<span class="visually-hidden"> {{ theme.label }}</span></button>
+					<ExtensionMenu :label="theme.label" :details="extensionRoute('admin-theme', theme.name)" :details-label="t('admin_themes_view.details', 'Admin theme details')" :copy="theme.path" :delete-label="canDelete && theme.deletable && theme.folder && !theme.default ? t('admin_themes_view.delete', 'Delete admin theme') : undefined" @delete="remove(theme.label, theme.folder ?? '', theme)" />
 				</template>
 			</component>
 
 			<component :is="list ? ExtensionRow : ExtensionCard" v-for="theme in shownBroken" :key="theme.where" class="is-off" :label="theme.where">
 				<template v-if="list" #mark><AdminIcon name="triangle-alert" /></template>
 				<template v-else #media><AdminThemeSketch class="theme-sketch" :preview="null" /></template>
-				<template #pills><span class="pill pill--warn">Can't be used</span></template>
+				<template #pills><span class="pill pill--warn">{{ t('admin_themes_view.cant_be_used', "Can't be used") }}</span></template>
 				<p class="notice notice--small notice--warn extension__message">
-					<AdminIcon name="triangle-alert" /><span>{{ theme.reason }} It can't be chosen until that's fixed.</span>
+					<AdminIcon name="triangle-alert" /><span>{{ t('admin_themes_view.broken', '{reason} It can\'t be chosen until that\'s fixed.', { reason: theme.reason }) }}</span>
 				</p>
 				<template v-if="canDelete && theme.deletable" #[foot]>
-					<ExtensionMenu :label="theme.where" :copy="theme.where" delete-label="Delete admin theme" @delete="remove(folderName(theme.where), theme.where)" />
+					<ExtensionMenu :label="theme.where" :copy="theme.where" :delete-label="t('admin_themes_view.delete', 'Delete admin theme')" @delete="remove(folderName(theme.where), theme.where)" />
 				</template>
 			</component>
 		</component>
@@ -203,15 +205,15 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 
 	<p v-if="answer" class="notice extension__note">
 		<span>
-			Admin themes live in <code>extensions/</code> or come from Composer, and change only how the admin looks. Each account chooses one on Your Account; the site's default is what everyone else sees, and the sign-in screen.
+			<MessageText :text="t('admin_themes_view.note', 'Admin themes live in {extensions} or come from Composer, and change only how the admin looks. Each account chooses one on Your Account; the site\'s default is what everyone else sees, and the sign-in screen.')"><template #extensions><code>extensions/</code></template></MessageText>
 			<template v-if="answer.saved">
-				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/admin-themes.php</code>.
-				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/admin-themes.php</code>'s list</button>
+				<MessageText :text="t('admin_themes_view.note_saved', 'Which are on was set here, and is saved in {settings} over {config}.')"><template #settings><code>user/data/settings.json</code></template><template #config><code>config/admin-themes.php</code></template></MessageText>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig"><MessageText :text="t('admin_themes_view.use_config', 'Use {config}\'s list')"><template #config><code>config/admin-themes.php</code></template></MessageText></button>
 			</template>
-			<template v-else>A theme in <code>extensions/</code> is off until <code>config/admin-themes.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; the framework's and Composer's are on. Turning one on or off here saves the list of every theme that's on, over that file.</template>
+			<template v-else><MessageText :text="t('admin_themes_view.note_config', 'A theme in {extensions} is off until {config} names it in {enabled}{missing}; the framework\'s and Composer\'s are on. Turning one on or off here saves the list of every theme that\'s on, over that file.')"><template #extensions><code>extensions/</code></template><template #config><code>config/admin-themes.php</code></template><template #enabled><code>enabled</code></template><template #missing><template v-if="!answer.config">{{ t('admin_themes_view.no_file', ' (there\'s no such file yet)') }}</template></template></MessageText></template>
 			<template v-if="answer.defaultSaved">
-				The default was chosen here.
-				<button v-if="canActivate" type="button" class="link-button" @click="useConfigDefault">Use <code>config/admin-themes.php</code>'s default</button>
+				{{ t('admin_themes_view.default_saved', 'The default was chosen here.') }}
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfigDefault"><MessageText :text="t('admin_themes_view.use_config_default', 'Use {config}\'s default')"><template #config><code>config/admin-themes.php</code></template></MessageText></button>
 			</template>
 		</span>
 	</p>

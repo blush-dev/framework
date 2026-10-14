@@ -14,7 +14,7 @@ import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { errorMessage } from '../api';
-import { plural } from '../format';
+import { t } from '../messages';
 import { grants, loadRoles, MEMBER, originOf, type RoleInfo, type RoleList } from '../people';
 import { can } from '../session';
 
@@ -24,7 +24,7 @@ const error = ref('');
 loadRoles().then((answer) => {
 	list.value = answer;
 }, (caught: unknown) => {
-	error.value = errorMessage(caught, 'The roles couldn\'t be loaded.');
+	error.value = errorMessage(caught, t('roles_view.load_failed', 'The roles couldn\'t be loaded.'));
 });
 
 const site = computed(() => list.value?.capabilities.filter((capability) => capability.type === undefined) ?? []);
@@ -36,30 +36,30 @@ function reach(role: RoleInfo): string {
 	const types = list.value?.types ?? [];
 
 	if (role.capabilities.includes(all) || role.capabilities.some((name) => name.startsWith('content.*.'))) {
-		return 'Every type';
+		return t('roles_view.every_type', 'Every type');
 	}
 
 	const count = types.filter((type) => role.capabilities.some((name) => name.startsWith(`content.${type.name}.`))).length;
 
-	return count === 0 ? 'No types' : `${count} of ${types.length} types`;
+	return count === 0 ? t('roles_view.no_types', 'No types') : t('roles_view.types_of', '{count} of {total} types', { count, total: types.length });
 }
 
 // How many of the site's capabilities it has.
 function siteCount(role: RoleInfo): string {
 	const count = site.value.filter((capability) => grants(role, capability.name, list.value?.all ?? '*')).length;
 
-	return `${count} of ${site.value.length} site`;
+	return t('roles_view.site_of', '{count} of {total} site', { count, total: site.value.length });
 }
 </script>
 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Roles</h1>
-			<p class="page-header__hint">Named sets of capabilities, given to accounts</p>
+			<h1 tabindex="-1">{{ t('roles_view.title', 'Roles') }}</h1>
+			<p class="page-header__hint">{{ t('roles_view.hint', 'Named sets of capabilities, given to accounts') }}</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink v-if="can('roles.manage')" class="button button--primary" :to="{ name: 'role-new' }"><AdminIcon name="plus" />New Role</RouterLink>
+			<RouterLink v-if="can('roles.manage')" class="button button--primary" :to="{ name: 'role-new' }"><AdminIcon name="plus" />{{ t('roles_view.new_role', 'New Role') }}</RouterLink>
 		</div>
 	</header>
 
@@ -67,18 +67,18 @@ function siteCount(role: RoleInfo): string {
 
 	<section v-if="!error" class="panel" aria-labelledby="roles-heading" :aria-busy="list === null">
 		<header class="panel__header">
-			<h2 id="roles-heading">All Roles</h2>
-			<p v-if="list" class="panel__hint">{{ plural(list.roles.length, 'role') }}</p>
+			<h2 id="roles-heading">{{ t('roles_view.all_roles', 'All Roles') }}</h2>
+			<p v-if="list" class="panel__hint">{{ t('roles_view.roles_count', '{count, plural, one {# role} other {# roles} }', { count: list.roles.length }) }}</p>
 		</header>
-		<SkeletonTable v-if="list === null" :columns="['Role', 'Description', 'Capabilities', 'Accounts']" :rows="4" label="Loading the roles…" />
+		<SkeletonTable v-if="list === null" :columns="[t('roles_view.role', 'Role'), t('roles_view.description', 'Description'), t('roles_view.capabilities', 'Capabilities'), t('roles_view.accounts', 'Accounts')]" :rows="4" :label="t('roles_view.loading', 'Loading the roles…')" />
 		<div v-else class="table-wrap">
 			<table class="table" aria-labelledby="roles-heading">
 				<thead>
 					<tr>
-						<th scope="col">Role</th>
-						<th scope="col" class="roles__description">Description</th>
-						<th scope="col">Capabilities</th>
-						<th scope="col" class="table__count">Accounts</th>
+						<th scope="col">{{ t('roles_view.role', 'Role') }}</th>
+						<th scope="col" class="roles__description">{{ t('roles_view.description', 'Description') }}</th>
+						<th scope="col">{{ t('roles_view.capabilities', 'Capabilities') }}</th>
+						<th scope="col" class="table__count">{{ t('roles_view.accounts', 'Accounts') }}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -93,8 +93,8 @@ function siteCount(role: RoleInfo): string {
 						</th>
 						<td class="roles__description">{{ role.description }}</td>
 						<td class="roles__capabilities">
-							<template v-if="role.capabilities.includes(list.all)">Everything</template>
-							<template v-else-if="role.name === MEMBER">Their own account</template>
+							<template v-if="role.capabilities.includes(list.all)">{{ t('roles_view.everything', 'Everything') }}</template>
+							<template v-else-if="role.name === MEMBER">{{ t('roles_view.own_account', 'Their own account') }}</template>
 							<template v-else>
 								{{ reach(role) }}
 								<span class="roles__site">{{ siteCount(role) }}</span>

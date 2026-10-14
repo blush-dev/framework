@@ -15,6 +15,8 @@ namespace Blush\Admin\Theme;
 
 use JsonException;
 use Blush\Extension\ExtensionException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * An admin theme's `tokens.json` (D-827), read and checked: the values it
@@ -56,25 +58,26 @@ final readonly class AdminTokens
 	) {}
 
 	/**
-	 * Reads a theme's `tokens.json`.
+	 * Reads a theme's `tokens.json`. What's wrong is written with
+	 * `$messages`, and kept with the exception (`ExtensionException::$text`).
 	 *
 	 * @throws ExtensionException When it's missing, can't be parsed, or sets something it can't.
 	 */
-	public static function load(string $path): self
+	public static function load(string $path, Messages $messages = new Messages()): self
 	{
 		$file = "{$path}/" . self::FILE;
 
 		if (! is_file($file)) {
-			throw new ExtensionException(sprintf('it has no %s.', self::FILE));
+			throw new ExtensionException($messages->t('admin.admin_tokens.no_file', 'it has no {file}.', file: self::FILE));
 		}
 
 		try {
 			$data = json_decode((string) file_get_contents($file), true, 64, JSON_THROW_ON_ERROR);
 		} catch (JsonException $e) {
-			throw new ExtensionException(sprintf('its %s is invalid: %s', self::FILE, $e->getMessage()), previous: $e);
+			throw new ExtensionException($messages->t('admin.admin_tokens.unreadable', 'its {file} is invalid: {problem}', file: self::FILE, problem: $e->getMessage()), previous: $e);
 		}
 
-		return self::fromArray(is_array($data) ? $data : [], $path);
+		return self::fromArray(is_array($data) ? $data : [], $path, $messages);
 	}
 
 	/**
@@ -84,7 +87,7 @@ final readonly class AdminTokens
 	 * @param  array<array-key, mixed> $data
 	 * @throws ExtensionException
 	 */
-	public static function fromArray(array $data, string $path): self
+	public static function fromArray(array $data, string $path, Messages $messages = new Messages()): self
 	{
 		unset($data['$schema']);
 
@@ -96,18 +99,18 @@ final readonly class AdminTokens
 		}
 
 		if (! is_array($faces) || ! array_is_list($faces)) {
-			throw new ExtensionException('its "typography.fontFace" must be a list.');
+			throw new ExtensionException($messages->t('admin.admin_tokens.faces_not_list', 'its "typography.fontFace" must be a list.'));
 		}
 
 		$values = [];
 
 		foreach (self::flatten($data) as $key => $value) {
-			$token = AdminToken::at($key) ?? throw new ExtensionException(sprintf('its %s sets "%s", which isn\'t a token an admin theme may set.', self::FILE, $key));
+			$token = AdminToken::at($key) ?? throw new ExtensionException($messages->t('admin.admin_tokens.unknown_token', 'its {file} sets "{token}", which isn\'t a token an admin theme may set.', file: self::FILE, token: $key));
 
-			$values[$token->value] = self::value($token, $value) ?? throw new ExtensionException(sprintf('its "%s" %s.', $key, self::expected($token)));
+			$values[$token->value] = self::value($token, $value) ?? throw new ExtensionException(self::expected($token, $key, $messages));
 		}
 
-		return new self($values, array_map(static fn (mixed $face): FontFace => FontFace::fromArray($face, $path), $faces));
+		return new self($values, array_map(static fn (mixed $face): FontFace => FontFace::fromArray($face, $path, $messages), $faces));
 	}
 
 	/**
@@ -129,7 +132,7 @@ final readonly class AdminTokens
 	 * @param  array<array-key, mixed> $data
 	 * @throws ExtensionException
 	 */
-	public static function fromCache(array $data, string $path): self
+	public static function fromCache(array $data, string $path, Messages $messages = new Messages()): self
 	{
 		$values = [];
 
@@ -143,7 +146,7 @@ final readonly class AdminTokens
 
 		$faces = is_array($data['faces'] ?? null) ? $data['faces'] : [];
 
-		return new self($values, array_values(array_map(static fn (mixed $face): FontFace => FontFace::fromArray($face, $path), $faces)));
+		return new self($values, array_values(array_map(static fn (mixed $face): FontFace => FontFace::fromArray($face, $path, $messages), $faces)));
 	}
 
 	/**
@@ -284,16 +287,16 @@ final readonly class AdminTokens
 	/**
 	 * Says what a token's value must be, for messages.
 	 */
-	private static function expected(AdminToken $token): string
+	private static function expected(AdminToken $token, string $key, Messages $messages): Text
 	{
 		[$low, $high] = $token->range() ?? [0, 0];
 
 		return match ($token->type()) {
-			TokenType::Color         => 'must be a color (hex, rgb(), hsl(), or oklch()) or light-dark() of two',
-			TokenType::FontFamily    => 'must be a list of font family names, such as ["Karla", "sans-serif"]',
-			TokenType::FontWeight    => sprintf('must be a weight from %d to %d', $low, $high),
-			TokenType::Length        => sprintf('must be from %spx to %spx, such as "%spx"', $low, $high, $low),
-			TokenType::LetterSpacing => sprintf('must be from %sem to %sem, such as "-.01em"', $low, $high)
+			TokenType::Color         => $messages->t('admin.admin_tokens.expected_color', 'its "{token}" must be a color (hex, rgb(), hsl(), or oklch()) or light-dark() of two.', token: $key),
+			TokenType::FontFamily    => $messages->t('admin.admin_tokens.expected_font_family', 'its "{token}" must be a list of font family names, such as ["Karla", "sans-serif"].', token: $key),
+			TokenType::FontWeight    => $messages->t('admin.admin_tokens.expected_font_weight', 'its "{token}" must be a weight from {low} to {high}.', token: $key, low: sprintf('%d', $low), high: sprintf('%d', $high)),
+			TokenType::Length        => $messages->t('admin.admin_tokens.expected_length', 'its "{token}" must be from {low}px to {high}px, such as "{low}px".', token: $key, low: (string) $low, high: (string) $high),
+			TokenType::LetterSpacing => $messages->t('admin.admin_tokens.expected_letter_spacing', 'its "{token}" must be from {low}em to {high}em, such as "-.01em".', token: $key, low: (string) $low, high: (string) $high)
 		};
 	}
 }

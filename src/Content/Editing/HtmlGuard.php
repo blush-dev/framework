@@ -20,6 +20,8 @@ use Blush\Markdown\Html\HtmlAccess;
 use Blush\Markdown\Html\HtmlRules;
 use Blush\Markdown\Html\MarkupFinder;
 use Blush\Markdown\MarkdownException;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Checks the raw HTML a save adds to a body (D-495). Files edited on disk
@@ -32,7 +34,8 @@ final readonly class HtmlGuard
 {
 	public function __construct(
 		private Permissions $permissions,
-		private MarkupFinder $finder
+		private MarkupFinder $finder,
+		private Messages $messages
 	) {}
 
 	/**
@@ -41,7 +44,7 @@ final readonly class HtmlGuard
 	 */
 	public function withPermissions(Permissions $permissions): self
 	{
-		return new self($permissions, $this->finder);
+		return new self($permissions, $this->finder, $this->messages);
 	}
 
 	/**
@@ -59,7 +62,7 @@ final readonly class HtmlGuard
 	/**
 	 * Returns why a body can't be saved, or `null` when it can.
 	 */
-	public function refusal(Account $account, string $before, string $after): ?string
+	public function refusal(Account $account, string $before, string $after): ?Text
 	{
 		if ($before === $after) {
 			return null;
@@ -73,7 +76,7 @@ final readonly class HtmlGuard
 				HtmlRules::problems($this->finder->find($after), $access)
 			);
 		} catch (MarkdownException $e) {
-			return sprintf('The body couldn\'t be read for HTML: %s', $e->getMessage());
+			return $this->messages->t('content.html_guard.unreadable', 'The body couldn\'t be read for HTML: {problem}', problem: $e->getMessage());
 		}
 
 		if ($added === []) {
@@ -82,9 +85,11 @@ final readonly class HtmlGuard
 
 		$list = self::sentence(array_map(static fn (string $problem): string => "`{$problem}`", $added));
 
-		return $access === HtmlAccess::None
-			? sprintf('Your role can\'t add HTML, so %s can\'t be saved. Take it out, or ask someone who can.', $list)
-			: sprintf('%s can\'t be added%s. Take it out to save.', ucfirst($list), $access === HtmlAccess::Allowed ? ' with your role' : '');
+		return match ($access) {
+			HtmlAccess::None    => $this->messages->t('content.html_guard.no_html', 'Your role can\'t add HTML, so {list} can\'t be saved. Take it out, or ask someone who can.', list: $list),
+			HtmlAccess::Allowed => $this->messages->t('content.html_guard.not_with_role', '{list} can\'t be added with your role. Take it out to save.', list: ucfirst($list)),
+			default             => $this->messages->t('content.html_guard.never', '{list} can\'t be added. Take it out to save.', list: ucfirst($list))
+		};
 	}
 
 	/**

@@ -343,12 +343,30 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   `MenuLocation` as a `Text`; `SettingsResolver` labels each setting's
   field with it. `ExtensionText::extracted()` feeds `lang:extract`,
   `theme:check`, `plugin:check`, and `icon-pack:check`.
+- **Text in the browser (D-831, D-833):** a domain's scripts read
+  **named catalogs** (`lang/{catalog}/{locale}.json`, with `@@catalog`;
+  overrides in `user/lang/{locale}/{catalog}/…`), resolved whole by
+  `Translator::catalog()`. A `Script` with `catalog:` gets its catalog
+  printed by `PageMarkup::addMessages()` (via `Assets`) before its
+  asset's first script, in the page's locale, and the head maps
+  `blush/messages` (`resources/site/js/messages.ts`, served at
+  `/blush/js/messages.js`) in an import map. `messages(domain)` gives
+  `t(key, text?, params?)`, ICU on `Intl`. Which catalog a script
+  writes to: its folder's, by the manifest's `catalogs`
+  (`ExtensionCatalogs`) or a catalog per `resources/` folder; core's
+  are `ScriptMessages::CORE` (`site`, `admin`). `MessageExtractor::extractScripts()`
+  and `ScriptMessages` feed `lang:extract`, `theme:check`, and
+  `plugin:check`. The admin bundles the module, prints core's `admin`
+  catalog in the shell, and gives Vue templates `t`; its language is
+  the account's (`Preferences::$language`, `AdminLanguages`), which
+  `AdminLanguage` sets for every admin API request.
 - **Locale fallback:** `en_US` → `en` → the default locale and its
   language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
 - **Available in:** views (`$messages->t()`), blocks, components, controllers, the CLI,
-  and later the admin.
+  scripts (`blush/messages`), and the admin (its own strings not yet
+  converted).
 - **Multilingual content** (the same entry in several languages) is separate
   from UI translation (D-036, D-455, D-456). `config/app.php`'s
   `languages` lists the languages besides the site locale's

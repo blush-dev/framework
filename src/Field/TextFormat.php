@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * What a text field's value must look like (`TextField`'s `format`), so
  * the type checks what a link, email, or icon control implies (D-769).
@@ -26,12 +29,12 @@ enum TextFormat: string
 	/**
 	 * What a value of the format is, for messages.
 	 */
-	public function label(): string
+	public function label(Messages $messages): Text
 	{
 		return match ($this) {
-			self::Url   => 'a web address, such as https://example.com or /about',
-			self::Email => 'an email address',
-			self::Icon  => 'an icon name, with no spaces'
+			self::Url   => $messages->t('field.text_format.url', 'a web address, such as https://example.com or /about'),
+			self::Email => $messages->t('field.text_format.email', 'an email address'),
+			self::Icon  => $messages->t('field.text_format.icon', 'an icon name, with no spaces')
 		};
 	}
 }

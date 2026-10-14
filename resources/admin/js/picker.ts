@@ -21,6 +21,7 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { debounced } from './action';
 import { errorMessage, type FieldDescription, type InheritedValues } from './api';
+import { t } from './messages';
 import { moreLine, ranked, referenceValues, slugOf, loadReferences, WHOLE, type ReferenceItem } from './references';
 import { moved, useReorder } from './reorder';
 import { canType } from './session';
@@ -205,7 +206,7 @@ export function usePicker(props: PickerProps, model: Ref<string>, options: Picke
 			suggested.value = list.suggested ?? [];
 			remember([...list.items, ...suggested.value]);
 		} catch (caught) {
-			error.value = errorMessage(caught, `The ${names.value.items} couldn't be loaded.`);
+			error.value = errorMessage(caught, t('picker.errors.not_loaded', 'The {items} couldn\'t be loaded.', { items: names.value.items }));
 		} finally {
 			loading.value = false;
 		}
@@ -372,20 +373,20 @@ export function pickerMeta(field: FieldDescription, count: number, options: { in
 	const from     = options.inherited;
 
 	if (from !== undefined && from.values.length > 0 && (from.rule === 'add' || count === 0)) {
-		return { text: from.rule === 'add' ? `${count} + ${from.values.length} from ${from.language}` : `From ${from.language}`, tone: '' };
+		return { text: from.rule === 'add' ? t('picker.meta.plus_from', '{count} + {more} from {language}', { count, more: from.values.length, language: from.language }) : t('picker.meta.from', 'From {language}', { language: from.language }), tone: '' };
 	}
 
 	if (min > 0 && count < min) {
-		return { text: count === 0 && options.attempted !== true ? `Needs ${min}` : `${count} of at least ${min}`, tone: options.attempted === true ? 'bad' : 'need' };
+		return { text: count === 0 && options.attempted !== true ? t('picker.meta.needs', 'Needs {min}', { min }) : t('picker.meta.at_least', '{count} of at least {min}', { count, min }), tone: options.attempted === true ? 'bad' : 'need' };
 	}
 
 	if (max !== null && max > 1) {
-		return { text: `${count} of ${max}`, tone: count >= max ? 'full' : '' };
+		return { text: t('picker.meta.of_max', '{count} of {max}', { count, max }), tone: count >= max ? 'full' : '' };
 	}
 
 	if (count === 0) {
 		return { text: '', tone: '' };
 	}
 
-	return { text: options.people === true ? `${count} ${count === 1 ? 'person' : 'people'}` : `${count.toLocaleString()} selected`, tone: '' };
+	return { text: options.people === true ? t('picker.meta.people', '{count, plural, one {# person} other {# people}}', { count }) : t('picker.meta.selected', '{count} selected', { count }), tone: '' };
 }

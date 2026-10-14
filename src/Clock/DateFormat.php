@@ -16,6 +16,8 @@ namespace Blush\Clock;
 use DateTimeInterface;
 use DateTimeZone;
 use IntlDateFormatter;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The site's date and time formats (D-445): each is a style the language
@@ -69,22 +71,22 @@ final class DateFormat
 	/**
 	 * Returns what's wrong with a format, or `null` when it's fine.
 	 */
-	public static function problem(string $format): ?string
+	public static function problem(string $format, Messages $messages): ?Text
 	{
 		if (self::isStyle($format)) {
 			return null;
 		}
 
 		if (trim($format) === '') {
-			return 'A format can\'t be empty; use full, long, medium, or short, or a pattern such as MMMM d, y.';
+			return $messages->t('clock.date_format.empty', 'A format can\'t be empty; use full, long, medium, or short, or a pattern such as MMMM d, y.');
 		}
 
 		if (mb_strlen($format) > self::MAX) {
-			return sprintf('A format can be at most %d characters.', self::MAX);
+			return $messages->t('clock.date_format.too_long', 'A format can be at most {max} characters.', max: self::MAX);
 		}
 
 		if (preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $format) !== 0) {
-			return 'A format is one line, without control characters.';
+			return $messages->t('clock.date_format.one_line', 'A format is one line, without control characters.');
 		}
 
 		$quoted = false;
@@ -95,7 +97,7 @@ final class DateFormat
 				$quoted = ! $quoted;
 			} elseif (! $quoted && preg_match('/^[A-Za-z]$/', $character) === 1) {
 				if (! str_contains(self::FIELDS, $character)) {
-					return sprintf('"%s" isn\'t a date or time field; put words in single quotes, such as \'at\'.', $character);
+					return $messages->t('clock.date_format.not_field', '"{letter}" isn\'t a date or time field; put words in single quotes, such as \'at\'.', letter: $character);
 				}
 
 				$fields++;
@@ -103,8 +105,8 @@ final class DateFormat
 		}
 
 		return match (true) {
-			$quoted      => 'A quote isn\'t closed; write two (\'\') for a quote itself.',
-			$fields === 0 => 'A format needs a field at least, such as d, MMMM, or y.',
+			$quoted      => $messages->t('clock.date_format.unclosed', 'A quote isn\'t closed; write two (\'\') for a quote itself.'),
+			$fields === 0 => $messages->t('clock.date_format.no_field', 'A format needs a field at least, such as d, MMMM, or y.'),
 			default      => null
 		};
 	}
@@ -143,9 +145,9 @@ final class DateFormat
 	 * labeled by how it shows `$now` and hinted by its name or pattern.
 	 *
 	 * @param  'date'|'time' $kind
-	 * @return list<array{value: string, label: string, hint: string, group: string}>
+	 * @return list<array{value: string, label: string, hint: string|Text, group: Text}>
 	 */
-	public static function options(string $kind, DateTimeInterface $now, string $locale, DateTimeZone|string $timezone): array
+	public static function options(string $kind, DateTimeInterface $now, string $locale, DateTimeZone|string $timezone, Messages $messages): array
 	{
 		$options = [];
 		$seen    = [];
@@ -158,7 +160,7 @@ final class DateFormat
 			}
 
 			$seen[$label] = true;
-			$options[]    = ['value' => $style, 'label' => $label, 'hint' => ucfirst($style), 'group' => 'From the language'];
+			$options[]    = ['value' => $style, 'label' => $label, 'hint' => $messages->t('clock.date_format.style', '{style, select, full {Full} long {Long} medium {Medium} other {Short}}', style: $style), 'group' => $messages->t('clock.date_format.from_language', 'From the language')];
 		}
 
 		foreach (self::PRESETS[$kind] as $preset) {
@@ -169,7 +171,7 @@ final class DateFormat
 			}
 
 			$seen[$label] = true;
-			$options[]    = ['value' => $preset, 'label' => $label, 'hint' => $preset, 'group' => 'Fixed'];
+			$options[]    = ['value' => $preset, 'label' => $label, 'hint' => $preset, 'group' => $messages->t('clock.date_format.fixed', 'Fixed')];
 		}
 
 		return $options;

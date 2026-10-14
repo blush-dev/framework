@@ -15,6 +15,8 @@ namespace Blush\Field;
 
 use Stringable;
 use NoDiscard;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * The abstract base of every field type (the enum + registry pattern,
@@ -80,10 +82,11 @@ abstract class Field
 	abstract public function type(): string;
 
 	/**
-	 * Returns the field type's name for people, such as "Formatted text".
-	 * An empty string leaves the admin to make one from the type's key.
+	 * Returns the field type's name for people, such as "Formatted text",
+	 * written with `$messages` (D-836). An empty string leaves the admin to
+	 * make one from the type's key.
 	 */
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): string|Text
 	{
 		return '';
 	}
@@ -91,7 +94,7 @@ abstract class Field
 	/**
 	 * Returns what the field type holds, in a sentence.
 	 */
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): string|Text
 	{
 		return '';
 	}
@@ -101,7 +104,8 @@ abstract class Field
 	/**
 	 * Validates a raw value and returns its normalized form: plain data
 	 * that `var_export()` can write into the index. `Schema` never passes
-	 * `null`, `""`, or `[]`; it treats those as missing values.
+	 * `null`, `""`, or `[]`; it treats those as missing values. What's
+	 * wrong with a value is written with the context's `messages` (D-836).
 	 *
 	 * @throws InvalidField
 	 */
@@ -295,22 +299,25 @@ abstract class Field
 	}
 
 	/**
-	 * Builds the exception for a value that doesn't fit.
+	 * Builds the exception for a value that doesn't fit: what's wrong,
+	 * said of the value's key ("must be text, not a list.").
 	 */
-	protected function invalid(string $message): InvalidField
+	protected function invalid(string|Text $message): InvalidField
 	{
 		return new InvalidField($message);
 	}
 
 	/**
-	 * Describes a value's type for error messages.
+	 * Describes a value's type for error messages: "a list" or "a map"
+	 * for people, else the value or type as code writes it.
 	 */
-	protected static function describe(mixed $value): string
+	protected static function describe(mixed $value, Messages $messages): string|Text
 	{
 		return match (true) {
-			is_array($value) => array_is_list($value) ? 'a list' : 'a map',
-			is_bool($value)  => $value ? 'true' : 'false',
-			default          => get_debug_type($value)
+			is_array($value) && array_is_list($value) => $messages->t('field.field.a_list', 'a list'),
+			is_array($value)                          => $messages->t('field.field.a_map', 'a map'),
+			is_bool($value)                           => $value ? 'true' : 'false',
+			default                                   => get_debug_type($value)
 		};
 	}
 }

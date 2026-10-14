@@ -24,6 +24,7 @@ use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\RecordException;
+use Blush\Translation\Messages;
 
 /**
  * Writes the field sets the site defines in data (D-337), the
@@ -62,7 +63,8 @@ final readonly class DataFieldSetWriter
 		private FieldSetLoader $loaded,
 		private FieldFactory $fields,
 		private FieldTargets $targets,
-		#[Defer(ContentTypeLoader::class)] private Closure $loader
+		#[Defer(ContentTypeLoader::class)] private Closure $loader,
+		private Messages $messages
 	) {}
 
 	/**
@@ -74,7 +76,7 @@ final readonly class DataFieldSetWriter
 	public function location(string $name): ?string
 	{
 		if (preg_match(FieldSet::NAME_PATTERN, $name) !== 1) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t a field set name: use lowercase letters, digits, "_", and "-".', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.bad_name', '"{name}" isn\'t a field set name: use lowercase letters, digits, "_", and "-".', name: $name));
 		}
 
 		try {
@@ -95,7 +97,7 @@ final readonly class DataFieldSetWriter
 		$this->assertEnabled();
 
 		if ($this->location($name) !== null) {
-			throw new InvalidContentType(sprintf('user/data/fields already defines "%s".', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.already_data', 'user/data/fields already defines "{name}".', name: $name));
 		}
 
 		return $this->write($name, [], $changes);
@@ -112,13 +114,13 @@ final readonly class DataFieldSetWriter
 		$this->assertEnabled();
 
 		if ($this->location($name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be changed here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.not_data_change', '"{name}" isn\'t defined in user/data/fields, so it can\'t be changed here.', name: $name));
 		}
 
 		try {
 			$data = $this->table()->find($name) ?? [];
 		} catch (RecordException $error) {
-			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.fix_by_hand', '{reason} Fix it by hand first.', reason: $error->getMessage()), previous: $error);
 		}
 
 		return $this->write($name, $data, $changes);
@@ -135,7 +137,7 @@ final readonly class DataFieldSetWriter
 		$this->assertEnabled();
 
 		if ($this->location($name) === null) {
-			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be deleted here.', $name));
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.not_data_delete', '"{name}" isn\'t defined in user/data/fields, so it can\'t be deleted here.', name: $name));
 		}
 
 		return $this->checked(function () use ($name): void {
@@ -157,7 +159,7 @@ final readonly class DataFieldSetWriter
 
 		foreach ($changes as $key => $value) {
 			if (! in_array($key, self::KEYS, true)) {
-				throw new InvalidContentType(sprintf('"%s" isn\'t something the admin changes in a field set.', $key));
+				throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.unknown_option', '"{option}" isn\'t something the admin changes in a field set.', option: $key));
 			}
 
 			if ($value === null || $value === '' || $value === []) {
@@ -229,7 +231,7 @@ final readonly class DataFieldSetWriter
 				$first = array_first(array_merge(...array_values(array_intersect_key($problems, $types->sets->all()))));
 
 				if ($first !== null) {
-					throw new InvalidContentType($first);
+					throw new InvalidContentType((string) $first);
 				}
 
 				return $types;
@@ -275,7 +277,7 @@ final readonly class DataFieldSetWriter
 	private function assertEnabled(): void
 	{
 		if (! $this->config->dataSets) {
-			throw new InvalidContentType('FieldConfig "dataSets" is off, so sets in user/data/fields aren\'t read.');
+			throw new InvalidContentType((string) $this->messages->t('content.data_field_set_writer.data_sets_off', 'FieldConfig "dataSets" is off, so sets in user/data/fields aren\'t read.'));
 		}
 	}
 }

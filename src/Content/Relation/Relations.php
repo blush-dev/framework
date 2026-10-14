@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
+use Blush\Translation\Messages;
+
 /**
  * Every relation of a site, checked to fit its content types (D-585):
  * each names types that exist, and no source type has two relations
@@ -31,9 +33,10 @@ final readonly class Relations
 	/**
 	 * @param  list<Relation> $relations
 	 * @param  list<string>   $types     The site's content type names.
+	 * @param  Messages       $messages  Writes why they don't fit; English without a translator.
 	 * @throws InvalidRelation
 	 */
-	public function __construct(public array $relations, public array $types)
+	public function __construct(public array $relations, public array $types, Messages $messages = new Messages())
 	{
 		$byType = array_fill_keys($types, []);
 		$keys   = [];
@@ -41,18 +44,25 @@ final readonly class Relations
 		foreach ($relations as $relation) {
 			foreach ([...$relation->from, ...$relation->to, ...($relation->inverse === false ? [] : $relation->inverse->types)] as $type) {
 				if (! in_array($type, $types, true)) {
-					throw new InvalidRelation(sprintf('Relation "%s" names a "%s" content type, which doesn\'t exist.', $relation->name, $type));
+					throw new InvalidRelation((string) $messages->t('content.relations.unknown_type', 'Relation "{name}" names a "{type}" content type, which doesn\'t exist.', name: $relation->name, type: $type));
 				}
 			}
 
 			foreach ($relation->from === [] ? $types : $relation->from as $type) {
 				if (isset($byType[$type][$relation->name])) {
-					throw new InvalidRelation(sprintf('Content type "%s" has two relations named "%s".', $type, $relation->name));
+					throw new InvalidRelation((string) $messages->t('content.relations.same_name', 'Content type "{type}" has two relations named "{name}".', type: $type, name: $relation->name));
 				}
 
 				foreach ($relation->kind->isStructural() ? [] : $relation->keys() as $key) {
 					if (isset($keys[$type][$key])) {
-						throw new InvalidRelation(sprintf('Relations "%s" and "%s" both read "%s" on content type "%s".', $keys[$type][$key], $relation->name, $key, $type));
+						throw new InvalidRelation((string) $messages->t(
+							'content.relations.same_key',
+							'Relations "{first}" and "{second}" both read "{field}" on content type "{type}".',
+							first: $keys[$type][$key],
+							second: $relation->name,
+							field: $key,
+							type: $type
+						));
 					}
 
 					$keys[$type][$key] = $relation->name;
@@ -154,8 +164,8 @@ final readonly class Relations
 	 * @param  list<string>                  $types
 	 * @throws InvalidRelation
 	 */
-	public static function fromArray(array $relations, array $types): self
+	public static function fromArray(array $relations, array $types, Messages $messages): self
 	{
-		return new self(array_map(Relation::fromArray(...), $relations), $types);
+		return new self(array_map(static fn (array $relation): Relation => Relation::fromArray($relation, $messages), $relations), $types, $messages);
 	}
 }

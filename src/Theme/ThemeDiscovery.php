@@ -22,6 +22,7 @@ use Blush\Extension\LocalExtension;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
+use Blush\Translation\Messages;
 
 /**
  * Finds every installed theme (D-034): the framework default theme,
@@ -48,8 +49,13 @@ use Blush\Support\ComposerPackages;
  */
 final readonly class ThemeDiscovery
 {
-	public function __construct(private Paths $paths)
-	{}
+	/**
+	 * @param Messages $messages Its messages: English at boot, before there's a translator.
+	 */
+	public function __construct(
+		private Paths $paths,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * Finds every theme.
@@ -86,18 +92,18 @@ final readonly class ThemeDiscovery
 					$data = $at->read();
 				} else {
 					$path = $at;
-					$data = ManifestFile::load($path, ExtensionKind::Theme);
+					$data = ManifestFile::load($path, ExtensionKind::Theme, $this->messages);
 				}
 
 				if ($source === ThemeSource::Composer) {
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {
-						throw new ThemeException(sprintf('The theme in Composer package "%s" is named "%s"; a Composer theme\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
+						throw new ThemeException((string) $this->messages->t('theme.theme_discovery.composer_name', 'The theme in Composer package "{package}" is named "{name}"; a Composer theme\'s name is its package\'s.', package: $where, name: is_string($data['name']) ? $data['name'] : ''));
 					}
 				}
 
-				$theme = ThemeManifest::fromArray($path, $data, $source);
+				$theme = ThemeManifest::fromArray($path, $data, $source, $this->messages);
 			} catch (ThemeException | ExtensionException $error) {
 				$invalid[$where] = $error->getMessage();
 
@@ -105,7 +111,7 @@ final readonly class ThemeDiscovery
 			}
 
 			if ($theme->name === Themes::DEFAULT && $source !== ThemeSource::Framework) {
-				$invalid[$where] = sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT);
+				$invalid[$where] = (string) $this->messages->t('theme.theme_discovery.default_name', '"{name}" is the framework default theme\'s name.', name: Themes::DEFAULT);
 
 				continue;
 			}
@@ -128,7 +134,7 @@ final readonly class ThemeDiscovery
 
 			foreach ($claimants as $theme) {
 				if ($theme->source !== ThemeSource::Framework) {
-					$invalid[self::where($theme, $this->paths)] = sprintf('The themes %s all have the namespace "%s".', implode(', ', $names), $namespace);
+					$invalid[self::where($theme, $this->paths)] = (string) $this->messages->t('theme.theme_discovery.namespace_clash', 'The themes {themes} all have the namespace "{namespace}".', themes: implode(', ', $names), namespace: $namespace);
 					unset($themes[$theme->name]);
 				}
 			}

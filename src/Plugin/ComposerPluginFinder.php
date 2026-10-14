@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 use Blush\Support\ComposerPackages;
 use Blush\Support\FilesystemException;
+use Blush\Translation\Messages;
 
 /**
  * Finds plugins installed with Composer: packages of type `blush-plugin`
@@ -53,9 +54,10 @@ use Blush\Support\FilesystemException;
  */
 final readonly class ComposerPluginFinder implements PluginFinder
 {
-	public function __construct(private string $vendorPath)
-	{
-	}
+	public function __construct(
+		private string $vendorPath,
+		private Messages $messages = new Messages()
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -114,8 +116,9 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),
 			'suggest'     => $blush['suggest'] ?? ExtensionSuggest::lenient($package['suggest'] ?? null),
 			'keywords'    => $blush['keywords'] ?? ExtensionKeywords::lenient($package['keywords'] ?? null),
+			'catalogs'    => $blush['catalogs'] ?? null,
 			...ExtensionLinks::lenient($package)->toArray()
-		]);
+		], $this->messages);
 	}
 
 	/**

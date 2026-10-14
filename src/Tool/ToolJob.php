@@ -14,12 +14,15 @@ declare(strict_types=1);
 namespace Blush\Tool;
 
 use Override;
+use Stringable;
 use Blush\Activity\Actor;
 use Blush\Activity\Via;
 use Blush\Auth\Accounts;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `core/tool`: runs a `queued()` tool in the background (D-761), with the
@@ -32,16 +35,17 @@ final class ToolJob extends Job
 	public function __construct(
 		private readonly Tools $tools,
 		private readonly ToolContexts $contexts,
-		private readonly Accounts $accounts
+		private readonly Accounts $accounts,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Run a tool';
+		return $this->messages->t('tool.tool_job.label', 'Run a tool');
 	}
 
 	/**
@@ -77,11 +81,11 @@ final class ToolJob extends Job
 		$account = $job->account === null ? null : $this->accounts->findById($job->account);
 
 		if (! is_string($key) || ! is_array($input) || ($input !== [] && array_is_list($input))) {
-			return JobResult::failed('The job doesn\'t say which tool to run, or with what.');
+			return JobResult::failed($this->messages->t('tool.tool_job.no_tool', 'The job doesn\'t say which tool to run, or with what.'));
 		}
 
 		if ($account === null || $account->suspended) {
-			return JobResult::failed('The account that asked for it is gone or suspended.');
+			return JobResult::failed($this->messages->t('tool.tool_job.no_account', 'The account that asked for it is gone or suspended.'));
 		}
 
 		$client = $job->data['client'] ?? null;
@@ -94,6 +98,15 @@ final class ToolJob extends Job
 			return JobResult::failed($error->getMessage(), $error->details);
 		}
 
-		return JobResult::done((string) ($result->text ?? 'Done.'), array_map(strval(...), $result->details), $result->data);
+		return JobResult::done(self::kept($result->text ?? $this->messages->t('tool.tool_job.done', 'Done.')), array_map(self::kept(...), $result->details), $result->data);
+	}
+
+	/**
+	 * Returns a line to keep with the job: a message as it is, so it's
+	 * shown in the reader's language (D-836), anything else as text.
+	 */
+	private static function kept(string|Stringable $line): string|Text
+	{
+		return $line instanceof Text || is_string($line) ? $line : (string) $line;
 	}
 }

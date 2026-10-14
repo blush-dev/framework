@@ -18,6 +18,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Field\Field;
 use Blush\Field\FieldTarget;
 use Blush\Field\Schema;
+use Blush\Translation\Messages;
 
 /**
  * A Settings screen as a place field sets attach to (D-343):
@@ -35,7 +36,8 @@ final readonly class SettingsTarget implements FieldTarget
 
 	public function __construct(
 		private SettingsScreen $screen,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private Messages $messages
 	) {}
 
 	/**
@@ -61,7 +63,7 @@ final readonly class SettingsTarget implements FieldTarget
 	#[Override]
 	public function label(): string
 	{
-		return $this->screen->label();
+		return (string) $this->screen->label($this->messages);
 	}
 
 	/**
@@ -79,6 +81,6 @@ final readonly class SettingsTarget implements FieldTarget
 	#[Override]
 	public function schema(): Schema
 	{
-		return new Schema(array_map(fn (Setting $setting): Field => $setting->field($this->types), $this->screen->settings()));
+		return new Schema(array_map(fn (Setting $setting): Field => $setting->field($this->types, $this->messages), $this->screen->settings()));
 	}
 }

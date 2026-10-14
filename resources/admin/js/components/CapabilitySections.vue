@@ -29,6 +29,7 @@ import TypeIcon from './TypeIcon.vue';
 import type { IconName } from '../icons';
 import { showKeys, type CapabilityInfo, type RoleType } from '../people';
 import { can, type ContentAction } from '../session';
+import { locale, t } from '../messages';
 
 const props = defineProps<{
 	capabilities: CapabilityInfo[];
@@ -45,40 +46,40 @@ const id    = useId();
 
 // The actions in a section, in pairs: their own, then anyone's.
 const ACTIONS: { action: ContentAction; label: string }[] = [
-	{ action: 'create', label: 'Create entries' },
-	{ action: 'edit', label: 'Edit their own' },
-	{ action: 'edit.others', label: 'Edit anyone\'s' },
-	{ action: 'publish', label: 'Publish their own' },
-	{ action: 'publish.others', label: 'Publish anyone\'s' },
-	{ action: 'delete', label: 'Delete their own' },
-	{ action: 'delete.others', label: 'Delete anyone\'s' }
+	{ action: 'create', label: t('capability_sections.action_create', 'Create entries') },
+	{ action: 'edit', label: t('capability_sections.action_edit', 'Edit their own') },
+	{ action: 'edit.others', label: t('capability_sections.action_edit_others', 'Edit anyone\'s') },
+	{ action: 'publish', label: t('capability_sections.action_publish', 'Publish their own') },
+	{ action: 'publish.others', label: t('capability_sections.action_publish_others', 'Publish anyone\'s') },
+	{ action: 'delete', label: t('capability_sections.action_delete', 'Delete their own') },
+	{ action: 'delete.others', label: t('capability_sections.action_delete_others', 'Delete anyone\'s') }
 ];
 
 // A section's ⋮ for a type: the whole section at once.
 const PRESETS: { key: string; label: string; text: string; actions: ContentAction[] }[] = [
-	{ key: 'full', label: 'Full access', text: 'Create, and edit, publish, and delete anyone\'s.', actions: ACTIONS.map((item) => item.action) },
-	{ key: 'own', label: 'Their own only', text: 'Create, and edit, publish, and delete their own.', actions: ['create', 'edit', 'publish', 'delete'] },
-	{ key: 'drafts', label: 'Drafts only', text: 'Create, and edit and delete their own drafts. Never publish.', actions: ['create', 'edit', 'delete'] },
-	{ key: 'none', label: 'No access', text: 'Nothing; the type is left out of their admin.', actions: [] }
+	{ key: 'full', label: t('capability_sections.preset_full', 'Full access'), text: t('capability_sections.preset_full_text', 'Create, and edit, publish, and delete anyone\'s.'), actions: ACTIONS.map((item) => item.action) },
+	{ key: 'own', label: t('capability_sections.preset_own', 'Their own only'), text: t('capability_sections.preset_own_text', 'Create, and edit, publish, and delete their own.'), actions: ['create', 'edit', 'publish', 'delete'] },
+	{ key: 'drafts', label: t('capability_sections.preset_drafts', 'Drafts only'), text: t('capability_sections.preset_drafts_text', 'Create, and edit and delete their own drafts. Never publish.'), actions: ['create', 'edit', 'delete'] },
+	{ key: 'none', label: t('capability_sections.preset_none', 'No access'), text: t('capability_sections.preset_none_text', 'Nothing; the type is left out of their admin.'), actions: [] }
 ];
 
 // Media's kinds, by the names the library gives them.
 const MEDIA_KINDS: { kind: string; label: string }[] = [
-	{ kind: 'image', label: 'Images' },
-	{ kind: 'video', label: 'Videos' },
-	{ kind: 'audio', label: 'Audio' },
-	{ kind: 'document', label: 'Documents' },
-	{ kind: 'file', label: 'Other Files' }
+	{ kind: 'image', label: t('capability_sections.kind_image', 'Images') },
+	{ kind: 'video', label: t('capability_sections.kind_video', 'Videos') },
+	{ kind: 'audio', label: t('capability_sections.kind_audio', 'Audio') },
+	{ kind: 'document', label: t('capability_sections.kind_document', 'Documents') },
+	{ kind: 'file', label: t('capability_sections.kind_file', 'Other Files') }
 ];
 const MEDIA_EVERY = 'media.*.upload';
 const uploadKey   = (kind: string): string => `media.${kind}.upload`;
 
 // Media's ⋮: the whole section at once.
 const MEDIA_PRESETS: { key: string; label: string; text: string; names: string[] }[] = [
-	{ key: 'full', label: 'Full access', text: 'Upload every kind, and change and delete anyone\'s files.', names: [MEDIA_EVERY, 'media.edit', 'media.edit.others', 'media.delete', 'media.delete.others'] },
-	{ key: 'own', label: 'Their own only', text: 'Upload every kind, and change and delete their own files.', names: [MEDIA_EVERY, 'media.edit', 'media.delete'] },
-	{ key: 'images', label: 'Images only', text: 'Upload images, and change their own files.', names: [uploadKey('image'), 'media.edit'] },
-	{ key: 'none', label: 'No access', text: 'Nothing; the Media screen is left out of their admin.', names: [] }
+	{ key: 'full', label: t('capability_sections.preset_full', 'Full access'), text: t('capability_sections.media_full_text', 'Upload every kind, and change and delete anyone\'s files.'), names: [MEDIA_EVERY, 'media.edit', 'media.edit.others', 'media.delete', 'media.delete.others'] },
+	{ key: 'own', label: t('capability_sections.preset_own', 'Their own only'), text: t('capability_sections.media_own_text', 'Upload every kind, and change and delete their own files.'), names: [MEDIA_EVERY, 'media.edit', 'media.delete'] },
+	{ key: 'images', label: t('capability_sections.media_images', 'Images only'), text: t('capability_sections.media_images_text', 'Upload images, and change their own files.'), names: [uploadKey('image'), 'media.edit'] },
+	{ key: 'none', label: t('capability_sections.preset_none', 'No access'), text: t('capability_sections.media_none_text', 'Nothing; the Media screen is left out of their admin.'), names: [] }
 ];
 
 const GROUP_ICONS: Record<string, IconName> = { Media: 'image', HTML: 'code', Structure: 'layers', Site: 'globe', Users: 'users', Themes: 'paintbrush', Plugins: 'plug', 'Icon Packs': 'shapes' };
@@ -105,10 +106,10 @@ const groups = computed(() => {
 });
 
 // Types by their names, content before terms (D-593).
-const byLabel = (a: RoleType, b: RoleType): number => a.label.localeCompare(b.label);
+const byLabel = (a: RoleType, b: RoleType): number => a.label.localeCompare(b.label, locale());
 const kinds   = computed(() => [
-	{ key: 'content', label: 'Content types', types: props.types.filter((type) => !type.terms).sort(byLabel) },
-	{ key: 'terms', label: 'Terms', types: props.types.filter((type) => type.terms).sort(byLabel) }
+	{ key: 'content', label: t('capability_sections.kinds_content', 'Content types'), types: props.types.filter((type) => !type.terms).sort(byLabel) },
+	{ key: 'terms', label: t('capability_sections.kinds_terms', 'Terms'), types: props.types.filter((type) => type.terms).sort(byLabel) }
 ].filter((kind) => kind.types.length > 0));
 
 const has = (name: string): boolean => model.value.includes(name);
@@ -170,7 +171,6 @@ function scope(type: string, action: ContentAction): Scope {
 	return granted(type, `${action}.others` as ContentAction) ? 'any' : 'own';
 }
 
-const whose = (value: Scope): string => value === 'any' ? 'anyone\'s' : 'their own';
 
 function join(items: string[], word: string): string {
 	return items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} ${word} ${items[items.length - 1]}`;
@@ -183,36 +183,43 @@ function typeSentence(type: string): { text: string; none: boolean } {
 	const remove  = scope(type, 'delete');
 
 	if (!create && edit === 'none' && publish === 'none' && remove === 'none') {
-		return { text: type === EVERY ? 'Nothing on every type; each type is set on its own.' : 'No access. Left out of their admin.', none: true };
+		return { text: type === EVERY ? t('capability_sections.every_none', 'Nothing on every type; each type is set on its own.') : t('capability_sections.type_none', 'No access. Left out of their admin.'), none: true };
 	}
 
 	// "Edit their own, publish their own, and delete their own" is one
 	// fact said three times; the scope is said once when they agree.
 	if (edit !== 'none' && edit === publish && publish === remove) {
-		const tail = `edit, publish, and delete ${whose(edit)}`;
-
-		return { text: create ? `Can create, and ${tail}.` : `Can ${tail}. Cannot create.`, none: false };
+		return {
+			text: create
+				? t('capability_sections.all_create', 'Can create, and edit, publish, and delete {scope, select, any {anyone\'s} other {their own}}.', { scope: edit })
+				: t('capability_sections.all_no_create', 'Can edit, publish, and delete {scope, select, any {anyone\'s} other {their own}}. Cannot create.', { scope: edit }),
+			none: false
+		};
 	}
 
 	// Changing a live entry is publishing it, so without publishing,
 	// editing and deleting reach drafts alone.
-	const reach = (verb: string, value: Scope): string => {
+	const reach = (verb: 'edit' | 'delete', value: Scope): string => {
 		if (publish === 'none') {
-			return `${verb} ${whose(value)} drafts`;
+			return t('capability_sections.reach_drafts', '{verb, select, edit {edit} other {delete}} {scope, select, any {anyone\'s} other {their own}} drafts', { verb, scope: value });
 		}
 
-		return value === 'any' && publish === 'own' ? `${verb} their own and anyone's drafts` : `${verb} ${whose(value)}`;
+		return value === 'any' && publish === 'own'
+			? t('capability_sections.reach_both', '{verb, select, edit {edit} other {delete}} their own and anyone\'s drafts', { verb })
+			: t('capability_sections.reach', '{verb, select, edit {edit} other {delete}} {scope, select, any {anyone\'s} other {their own}}', { verb, scope: value });
 	};
+	const and = t('capability_sections.and', 'and');
+	const or  = t('capability_sections.or', 'or');
 
 	const yes: string[] = [];
 	const no: string[]  = [];
 
-	(create ? yes : no).push('create');
-	edit === 'none' ? no.push('edit') : yes.push(reach('edit', edit));
-	publish === 'none' ? no.push('publish') : yes.push(`publish ${whose(publish)}`);
-	remove === 'none' ? no.push('delete') : yes.push(reach('delete', remove));
+	(create ? yes : no).push(t('capability_sections.verb_create', 'create'));
+	edit === 'none' ? no.push(t('capability_sections.verb_edit', 'edit')) : yes.push(reach('edit', edit));
+	publish === 'none' ? no.push(t('capability_sections.verb_publish', 'publish')) : yes.push(t('capability_sections.publish_scope', 'publish {scope, select, any {anyone\'s} other {their own}}', { scope: publish }));
+	remove === 'none' ? no.push(t('capability_sections.verb_delete', 'delete')) : yes.push(reach('delete', remove));
 
-	return { text: `Can ${join(yes, 'and')}.${no.length ? ` Cannot ${join(no, 'or')}.` : ''}`, none: false };
+	return { text: [t('capability_sections.can', 'Can {list}.', { list: join(yes, and) }), ...(no.length ? [t('capability_sections.cannot', 'Cannot {list}.', { list: join(no, or) })] : [])].join(' '), none: false };
 }
 
 // "Edit posts and edit pages" is what a plain join says; phrases that
@@ -241,7 +248,7 @@ function groupSentence(capabilities: CapabilityInfo[]): { text: string; none: bo
 	const no     = capabilities.filter((capability) => !has(capability.name)).map(phrase);
 
 	return {
-		text: [yes.length ? `Can ${phrases(yes, 'and')}.` : '', no.length ? `Cannot ${phrases(no, 'or')}.` : ''].filter(Boolean).join(' '),
+		text: [yes.length ? t('capability_sections.can', 'Can {list}.', { list: phrases(yes, t('capability_sections.and', 'and')) }) : '', no.length ? t('capability_sections.cannot', 'Cannot {list}.', { list: phrases(no, t('capability_sections.or', 'or')) }) : ''].filter(Boolean).join(' '),
 		none: yes.length === 0
 	};
 }
@@ -283,22 +290,22 @@ function mediaSentence(): { text: string; none: boolean } {
 	const no: string[]  = [];
 
 	if (has(MEDIA_EVERY) || kinds.length === MEDIA_KINDS.length) {
-		yes.push('upload every kind');
+		yes.push(t('capability_sections.upload_every', 'upload every kind'));
 	} else if (kinds.length > 0) {
-		yes.push(`upload ${join(kinds, 'and')}`);
+		yes.push(t('capability_sections.upload_kinds', 'upload {kinds}', { kinds: join(kinds, t('capability_sections.and', 'and')) }));
 	} else {
-		no.push('upload');
+		no.push(t('capability_sections.verb_upload', 'upload'));
 	}
 
 	if (edit !== 'none' && edit === remove) {
-		yes.push(`change and delete ${whose(edit)} files`);
+		yes.push(t('capability_sections.change_delete_files', 'change and delete {scope, select, any {anyone\'s} other {their own}} files', { scope: edit }));
 	} else {
-		edit === 'none' ? no.push('change files') : yes.push(`change ${whose(edit)} files`);
-		remove === 'none' ? no.push('delete files') : yes.push(`delete ${whose(remove)} files`);
+		edit === 'none' ? no.push(t('capability_sections.change_files', 'change files')) : yes.push(t('capability_sections.change_scope_files', 'change {scope, select, any {anyone\'s} other {their own}} files', { scope: edit }));
+		remove === 'none' ? no.push(t('capability_sections.delete_files', 'delete files')) : yes.push(t('capability_sections.delete_scope_files', 'delete {scope, select, any {anyone\'s} other {their own}} files', { scope: remove }));
 	}
 
 	return {
-		text: [yes.length ? `Can ${join(yes, 'and')}.` : '', no.length ? `Cannot ${join(no, 'or')}.` : ''].filter(Boolean).join(' '),
+		text: [yes.length ? t('capability_sections.can', 'Can {list}.', { list: join(yes, t('capability_sections.and', 'and')) }) : '', no.length ? t('capability_sections.cannot', 'Cannot {list}.', { list: join(no, t('capability_sections.or', 'or')) }) : ''].filter(Boolean).join(' '),
 		none: yes.length === 0
 	};
 }
@@ -325,6 +332,15 @@ function flip(section: string): void {
 	open.value = next;
 }
 
+// A media check's label: changing or deleting, their own or anyone's.
+function mediaLabel(base: 'media.edit' | 'media.delete', others: boolean): string {
+	if (base === 'media.edit') {
+		return others ? t('capability_sections.media_edit_others', 'Change anyone\'s files') : t('capability_sections.media_edit', 'Change their own files');
+	}
+
+	return others ? t('capability_sections.media_delete_others', 'Delete anyone\'s files') : t('capability_sections.media_delete', 'Delete their own files');
+}
+
 function flipAll(): void {
 	open.value = allOpen.value ? new Set() : new Set(sections.value);
 }
@@ -333,19 +349,19 @@ function flipAll(): void {
 <template>
 	<div class="sections" :class="{ 'sections--keys': showKeys }">
 		<div class="sections__toolbar">
-			<span class="sections__note">Open a section to {{ readonly ? 'see' : 'change' }} what it grants.</span>
+			<span class="sections__note">{{ readonly ? t('capability_sections.note_see', 'Open a section to see what it grants.') : t('capability_sections.note_change', 'Open a section to change what it grants.') }}</span>
 			<button type="button" class="button button--small" @click="flipAll">
-				<AdminIcon :name="allOpen ? 'chevron-up' : 'chevron-down'" />{{ allOpen ? 'Collapse All' : 'Expand All' }}
+				<AdminIcon :name="allOpen ? 'chevron-up' : 'chevron-down'" />{{ allOpen ? t('capability_sections.collapse_all', 'Collapse All') : t('capability_sections.expand_all', 'Expand All') }}
 			</button>
 			<button type="button" class="button button--small" :aria-pressed="showKeys" @click="showKeys = !showKeys">
-				<AdminIcon name="key-round" />{{ showKeys ? 'Hide Keys' : 'Show Keys' }}
+				<AdminIcon name="key-round" />{{ showKeys ? t('capability_sections.hide_keys', 'Hide Keys') : t('capability_sections.show_keys', 'Show Keys') }}
 			</button>
 		</div>
 
 		<section class="panel" :aria-labelledby="`${id}-site`">
 			<header class="panel__header">
-				<h2 :id="`${id}-site`">Site Capabilities</h2>
-				<p class="panel__hint">Not tied to a content type</p>
+				<h2 :id="`${id}-site`">{{ t('capability_sections.site_heading', 'Site Capabilities') }}</h2>
+				<p class="panel__hint">{{ t('capability_sections.site_hint', 'Not tied to a content type') }}</p>
 			</header>
 			<template v-for="group in groups" :key="group.name">
 				<CapabilitySection
@@ -356,23 +372,23 @@ function flipAll(): void {
 					:sentence="mediaSentence()"
 					:changed="changed(group.capabilities.map((capability) => capability.name))"
 					key-text="media.…"
-					note="A file is its uploader's. Files from before uploads were recorded, or added by hand, are anyone's."
-					:menu-label="readonly ? undefined : `Set everything in ${group.name}`"
-					menu-heading="Set Media"
+					:note="t('capability_sections.media_note', 'A file is its uploader\'s. Files from before uploads were recorded, or added by hand, are anyone\'s.')"
+					:menu-label="readonly ? undefined : t('capability_sections.set_everything', 'Set everything in {name}', { name: group.name })"
+					:menu-heading="t('capability_sections.set_media', 'Set Media')"
 					:presets="MEDIA_PRESETS"
 					@toggle="flip(`group-${group.name}`)"
 					@preset="(item) => mediaPreset(item.names)"
 				>
 					<template #icon><AdminIcon :name="group.icon" class="section__icon" /></template>
-					<CapabilityCheck :name="MEDIA_EVERY" label="Upload every kind" :checked="has(MEDIA_EVERY)" :disabled="locked(MEDIA_EVERY)" :unheld="unheld(MEDIA_EVERY)" @change="(on) => set([MEDIA_EVERY], on)" />
+					<CapabilityCheck :name="MEDIA_EVERY" :label="t('capability_sections.upload_every_label', 'Upload every kind')" :checked="has(MEDIA_EVERY)" :disabled="locked(MEDIA_EVERY)" :unheld="unheld(MEDIA_EVERY)" @change="(on) => set([MEDIA_EVERY], on)" />
 					<CapabilityCheck
 						v-for="item in MEDIA_KINDS"
 						:key="item.kind"
 						:name="uploadKey(item.kind)"
-						:label="`Upload ${item.label.toLowerCase()}`"
+						:label="t('capability_sections.upload_kind', 'Upload {kind}', { kind: item.label.toLowerCase() })"
 						:checked="uploads(item.kind)"
 						:disabled="locked(uploadKey(item.kind)) || has(MEDIA_EVERY)"
-						:from="has(MEDIA_EVERY) ? 'every kind' : undefined"
+						:from="has(MEDIA_EVERY) ? t('capability_sections.from_every_kind', 'every kind') : undefined"
 						:unheld="unheld(uploadKey(item.kind))"
 						@change="(on) => set([uploadKey(item.kind)], on)"
 					/>
@@ -381,7 +397,7 @@ function flipAll(): void {
 							v-for="others in [false, true]"
 							:key="String(others)"
 							:name="others ? `${action[0]}.others` : action[0]"
-							:label="`${action[1]} ${others ? 'anyone\'s files' : 'their own files'}`"
+							:label="mediaLabel(action[0], others)"
 							:checked="has(others ? `${action[0]}.others` : action[0])"
 							:disabled="locked(others ? `${action[0]}.others` : action[0])"
 							:unheld="unheld(others ? `${action[0]}.others` : action[0])"
@@ -396,14 +412,14 @@ function flipAll(): void {
 					:body-id="`${id}-group-${group.name}`"
 					:sentence="groupSentence(group.capabilities)"
 					:changed="changed(group.capabilities.map((capability) => capability.name))"
-					:menu-label="readonly ? undefined : `Set everything in ${group.name}`"
-					menu-heading="Set this group"
+					:menu-label="readonly ? undefined : t('capability_sections.set_everything', 'Set everything in {name}', { name: group.name })"
+					:menu-heading="t('capability_sections.set_group', 'Set this group')"
 					@toggle="flip(`group-${group.name}`)"
 				>
 					<template #icon><AdminIcon :name="group.icon" class="section__icon" /></template>
 					<template #menu>
-						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">Grant everything in {{ group.name }}</button>
-						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">Remove everything in {{ group.name }}</button>
+						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">{{ t('capability_sections.grant_group', 'Grant everything in {name}', { name: group.name }) }}</button>
+						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">{{ t('capability_sections.remove_group', 'Remove everything in {name}', { name: group.name }) }}</button>
 					</template>
 					<CapabilityCheck
 						v-for="capability in group.capabilities"
@@ -421,32 +437,32 @@ function flipAll(): void {
 
 		<section class="panel" :aria-labelledby="`${id}-content`">
 			<header class="panel__header">
-				<h2 :id="`${id}-content`">Content Capabilities</h2>
-				<p class="panel__hint">One section per content type</p>
+				<h2 :id="`${id}-content`">{{ t('capability_sections.content_heading', 'Content Capabilities') }}</h2>
+				<p class="panel__hint">{{ t('capability_sections.content_hint', 'One section per content type') }}</p>
 			</header>
 			<CapabilitySection
-				title="Every Type"
+				:title="t('capability_sections.every_type', 'Every Type')"
 				:open="open.has(`type-${EVERY}`)"
 				:body-id="`${id}-type-every`"
 				:sentence="typeSentence(EVERY)"
 				:changed="changed(typeNames(EVERY))"
 				key-text="content.*.…"
-				note="What's ticked here is granted on every content type, including ones added later, and shows fixed in each type's section below."
+				:note="t('capability_sections.every_note', 'What\'s ticked here is granted on every content type, including ones added later, and shows fixed in each type\'s section below.')"
 				every
-				:menu-label="readonly ? undefined : 'Set everything in Every Type'"
-				menu-heading="Set every action"
+				:menu-label="readonly ? undefined : t('capability_sections.set_every_type', 'Set everything in Every Type')"
+				:menu-heading="t('capability_sections.set_every_action', 'Set every action')"
 				:presets="PRESETS"
 				@toggle="flip(`type-${EVERY}`)"
 				@preset="(item) => preset(EVERY, item.actions)"
 			>
 				<template #icon><AdminIcon name="pin" class="section__icon" /></template>
-				<template #marks><span class="index-mark">Includes new types</span></template>
+				<template #marks><span class="index-mark">{{ t('capability_sections.includes_new', 'Includes new types') }}</span></template>
 				<template #menu>
 					<div class="menu-divider" />
 					<button type="button" class="menu-item menu-item--described" :disabled="!ACTIONS.some((item) => has(key(EVERY, item.action)))" @click="spread">
 						<span>
-							<span class="menu-item__name">Set each type separately</span>
-							<span class="menu-item__text">Moves these into every type there is now, so one can differ. Types added later get nothing.</span>
+							<span class="menu-item__name">{{ t('capability_sections.spread', 'Set each type separately') }}</span>
+							<span class="menu-item__text">{{ t('capability_sections.spread_text', 'Moves these into every type there is now, so one can differ. Types added later get nothing.') }}</span>
 						</span>
 					</button>
 				</template>
@@ -472,14 +488,14 @@ function flipAll(): void {
 					:sentence="typeSentence(type.name)"
 					:changed="changed(typeNames(type.name))"
 					:key-text="`content.${type.name}.…`"
-					:menu-label="readonly || sealed(type.name) ? undefined : `Set everything in ${type.label}`"
-					menu-heading="Set every action"
+					:menu-label="readonly || sealed(type.name) ? undefined : t('capability_sections.set_everything', 'Set everything in {name}', { name: type.label })"
+					:menu-heading="t('capability_sections.set_every_action', 'Set every action')"
 					:presets="PRESETS"
 					@toggle="flip(`type-${type.name}`)"
 					@preset="(item) => preset(type.name, item.actions)"
 				>
 					<template #icon><TypeIcon :type="type" class="section__icon" /></template>
-					<template v-if="sealed(type.name)" #marks><span class="index-mark">Set by Every Type</span></template>
+					<template v-if="sealed(type.name)" #marks><span class="index-mark">{{ t('capability_sections.set_by_every', 'Set by Every Type') }}</span></template>
 					<CapabilityCheck
 						v-for="item in ACTIONS"
 						:key="item.action"
@@ -487,7 +503,7 @@ function flipAll(): void {
 						:label="item.label"
 						:checked="granted(type.name, item.action)"
 						:disabled="locked(key(type.name, item.action)) || inherited(type.name, item.action)"
-						:from="inherited(type.name, item.action) ? 'every type' : undefined"
+						:from="inherited(type.name, item.action) ? t('capability_sections.from_every_type', 'every type') : undefined"
 						:unheld="unheld(key(type.name, item.action))"
 						@change="(on) => toggle(type.name, item.action, on)"
 					/>

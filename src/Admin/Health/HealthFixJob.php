@@ -37,6 +37,8 @@ use Blush\Media\MediaException;
 use Blush\Media\MediaIds;
 use Blush\Media\MediaSizes;
 use Blush\Media\RecordedMediaSizes;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Runs a Site Health fix over many files as a job (`core/health-fix`,
@@ -73,16 +75,17 @@ final class HealthFixJob extends Job
 		private readonly MissingParents $parents,
 		private readonly EntryRefs $refs,
 		private readonly MediaFieldIds $mediaFields,
-		private readonly UndeclaredKeys $undeclared
+		private readonly UndeclaredKeys $undeclared,
+		private readonly Messages $messages
 	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Fix files from Site Health';
+		return $this->messages->t('admin.health_fix_job.label', 'Fix files from Site Health');
 	}
 
 	/**
@@ -96,11 +99,11 @@ final class HealthFixJob extends Job
 		$type    = is_string($job->data['type'] ?? null) ? $job->data['type'] : null;
 
 		if ($fix === null) {
-			return JobResult::failed('There\'s no such Site Health fix.');
+			return JobResult::failed($this->messages->t('admin.health_fix_job.no_such_fix', 'There\'s no such Site Health fix.'));
 		}
 
 		if ($account === null || $account->suspended) {
-			return JobResult::failed('The account that asked for this fix can\'t make it any more.');
+			return JobResult::failed($this->messages->t('admin.health_fix_job.account_gone', 'The account that asked for this fix can\'t make it any more.'));
 		}
 
 		$remaining = self::strings($job->data['remaining'] ?? null) ?? $this->candidates($fix, $type);
@@ -118,14 +121,30 @@ final class HealthFixJob extends Job
 			return JobResult::more(
 				[...$job->data, 'remaining' => $rest, 'total' => $total, 'changed' => $changed, 'failed' => $failed],
 				intdiv(($total - count($rest)) * 100, max(1, $total)),
-				sprintf('Fixed %d of %d %s.', $total - count($rest), $total, $fix->noun()[1])
+				$this->messages->t(
+					'admin.health_fix_job.progress',
+					'Fixed {done} of {total} {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}.',
+					done: $total - count($rest),
+					total: $total,
+					noun: $fix->noun()
+				)
 			);
 		}
 
-		[$one, $many] = $fix->noun();
-
-		$message = sprintf('Changed %d %s.', count($changed), count($changed) === 1 ? $one : $many)
-			. ($failed === [] ? '' : sprintf(' %d couldn\'t be changed.', count($failed)));
+		$message = $failed === []
+			? $this->messages->t(
+				'admin.health_fix_job.changed',
+				'Changed {count, plural, one {# {noun, select, media_file {media file} image {image} entry {entry} term {term or profile} parent {parent page} other {file}}} other {# {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}}}.',
+				count: count($changed),
+				noun: $fix->noun()
+			)
+			: $this->messages->t(
+				'admin.health_fix_job.changed_failed',
+				'Changed {count, plural, one {# {noun, select, media_file {media file} image {image} entry {entry} term {term or profile} parent {parent page} other {file}}} other {# {noun, select, media_file {media files} image {images} entry {entries} term {terms and profiles} parent {parent pages} other {files}}}}. {failed} couldn\'t be changed.',
+				count: count($changed),
+				noun: $fix->noun(),
+				failed: count($failed)
+			);
 
 		return JobResult::done(
 			$message,

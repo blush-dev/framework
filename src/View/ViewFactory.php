@@ -95,17 +95,20 @@ final class ViewFactory
 	 * `$site`, the entry's presentation front matter (
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
 	 * locale (a list's language's, D-455, else the entry's, else the
-	 * site's).
+	 * site's), which the catalogs its scripts read print in (D-831).
 	 *
 	 * @throws ThemeException When a build manifest is invalid.
 	 */
 	public function context(Views $views, ?Entry $entry = null, string $path = '', ?string $language = null): ViewContext
 	{
+		$locale = ($language === null ? null : $this->services->app->languages->find($language)?->locale) ?? $entry->locale ?? $this->services->app->locale;
 		$markup = new PageMarkup(
 			$this->services->app->name,
 			origin: $this->services->app->origin(),
 			assets: $this->services->assets,
-			logger: $this->services->app->environment->isDevelopment() ? $this->logger : null
+			logger: $this->services->app->environment->isDevelopment() ? $this->logger : null,
+			translator: $views->translator,
+			locale: $locale
 		);
 		$head   = $markup->head;
 		$theme  = $views->chain->active();
@@ -150,7 +153,6 @@ final class ViewFactory
 			$this->presentation($views, $head, $entry);
 		}
 
-		$locale  = ($language === null ? null : $this->services->app->languages->find($language)?->locale) ?? $entry->locale ?? $this->services->app->locale;
 		$language ??= $entry?->language;
 		$context = new ViewContext(
 			$markup,

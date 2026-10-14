@@ -19,6 +19,10 @@ export interface AdminConfig {
 	// The admin themes an account may choose, Neutral first, and the
 	// site's default (D-827).
 	adminThemes: { default: string | null; offered: AdminThemeChoice[] };
+	// The signed-in account's language, or `null` for the site's, and
+	// the languages the admin has text in, each named in its own (D-831).
+	language: string | null;
+	adminLanguages: { code: string; label: string }[];
 	// Whether `@name` links to a profile (`MarkdownConfig`, D-493).
 	mentions: boolean;
 	// The site's language (a BCP 47 tag) and its date and time formats,

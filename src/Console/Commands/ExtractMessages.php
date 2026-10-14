@@ -27,8 +27,10 @@ use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
+use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 use Blush\Translation\MessageExtractor;
+use Blush\Translation\ScriptMessages;
 use Blush\Translation\SourceCatalog;
 use Blush\Translation\TranslationException;
 use Blush\Translation\Translator;
@@ -44,6 +46,10 @@ use Blush\Translation\Translator;
  * pack, its manifest's alone. Problems (a key that isn't a plain
  * string, one key with two texts, text that isn't valid ICU) are
  * warnings; the messages they're in aren't written.
+ *
+ * Its scripts' `t()` calls (D-831) go to the named catalog of their
+ * folder (`lang/{catalog}/en.json`; `ScriptMessages`), each written
+ * once it has a message.
  */
 #[Command('lang:extract', 'Write the messages an extension\'s code writes to its catalog.')]
 final readonly class ExtractMessages
@@ -53,7 +59,8 @@ final readonly class ExtractMessages
 		private Plugins $plugins,
 		private IconPacks $packs,
 		private MessageExtractor $extractor,
-		private SourceCatalog $catalog
+		private SourceCatalog $catalog,
+		private ScriptMessages $scripts
 	) {}
 
 	public function __invoke(
@@ -70,31 +77,51 @@ final readonly class ExtractMessages
 			return ExitCode::Failure;
 		}
 
-		[$root, $folders, $lang, $manifest] = $found;
-		[$messages, $problems]             = $manifest instanceof IconPack ? [[], []] : $this->extractor->extract($root, $folders);
-		$messages                          = $manifest === null ? $messages : [...ExtensionText::extracted($manifest), ...$messages];
-		$file                              = SourceCatalog::path($lang, $locale);
+		[$root, $folders, $lang, $manifest, $declared] = $found;
+		[$messages, $problems]                        = $manifest instanceof IconPack ? [[], []] : $this->extractor->extract($root, $folders);
+		[$named, $scriptProblems]                     = $manifest instanceof IconPack ? [[], []] : $this->scripts->extract($root, $declared, $name);
+		$messages                                     = $manifest === null ? $messages : [...ExtensionText::extracted($manifest), ...$messages];
+		$problems                                     = [...$problems, ...$scriptProblems];
+		$catalogs                                     = [[null, $messages]];
 
-		try {
-			$result = $this->catalog->write($messages, $file, $name, $locale, $dryRun);
-		} catch (TranslationException $e) {
-			$output->error($e->getMessage());
-
-			return ExitCode::Failure;
+		foreach ($named as $catalog => $written) {
+			if ($written !== [] || is_file(SourceCatalog::path($lang, $locale, $catalog))) {
+				$catalogs[] = [$catalog, $written];
+			}
 		}
 
-		$lines = [];
+		$lines     = [];
+		$conflicts = 0;
+		$count     = 0;
+		$files     = [];
 
-		foreach ($result['added'] as $key) {
-			$lines[] = new StatusLine(Outcome::Pass, $key, 'Added.');
-		}
+		foreach ($catalogs as [$catalog, $written]) {
+			$file    = SourceCatalog::path($lang, $locale, $catalog);
+			$prefix  = $catalog === null ? '' : "{$catalog}: ";
+			$files[] = $file;
+			$count  += count($written);
 
-		foreach ($result['changed'] as $key) {
-			$lines[] = new StatusLine(Outcome::Pass, $key, 'Its text changed; translators should recheck it.');
-		}
+			try {
+				$result = $this->catalog->write($written, $file, $name, $locale, $dryRun, $catalog);
+			} catch (TranslationException $e) {
+				$output->error($e->getMessage());
 
-		foreach ($result['conflicts'] as $key) {
-			$lines[] = new StatusLine(Outcome::Warning, $key, 'A key above or below it holds the other kind (text or a group), so it wasn\'t written.');
+				return ExitCode::Failure;
+			}
+
+			foreach ($result['added'] as $key) {
+				$lines[] = new StatusLine(Outcome::Pass, $prefix . $key, 'Added.');
+			}
+
+			foreach ($result['changed'] as $key) {
+				$lines[] = new StatusLine(Outcome::Pass, $prefix . $key, 'Its text changed; translators should recheck it.');
+			}
+
+			foreach ($result['conflicts'] as $key) {
+				$lines[] = new StatusLine(Outcome::Warning, $prefix . $key, 'A key above or below it holds the other kind (text or a group), so it wasn\'t written.');
+			}
+
+			$conflicts += count($result['conflicts']);
 		}
 
 		foreach ($problems as $problem) {
@@ -104,9 +131,9 @@ final readonly class ExtractMessages
 		$output->status($lines);
 		$output->summary(
 			Outcome::worst(Outcome::Pass, ...array_map(static fn (StatusLine $line): Outcome => $line->outcome, $lines)),
-			sprintf('%s %s', $dryRun ? 'Would update' : 'Updated', $file),
-			Output::count(count($messages), 'message', 'messages'),
-			...Output::problems(0, count($result['conflicts']) + count($problems))
+			sprintf('%s %s', $dryRun ? 'Would update' : 'Updated', implode(', ', $files)),
+			Output::count($count, 'message', 'messages'),
+			...Output::problems(0, $conflicts + count($problems))
 		);
 
 		return ExitCode::Success;
@@ -114,21 +141,22 @@ final readonly class ExtractMessages
 
 	/**
 	 * Returns an extension's folder, the folders in it to read (all of
-	 * it when none), its `lang/` folder, and its manifest (`null` for
-	 * core), or `null`.
+	 * it when none), its `lang/` folder, its manifest (`null` for core),
+	 * and its scripts' catalogs as declared (`[]` for the defaults), or
+	 * `null`.
 	 *
-	 * @return ?array{string, list<string>, string, ?ExtensionManifest}
+	 * @return ?array{string, list<string>, string, ?ExtensionManifest, array<string, list<string>>}
 	 */
 	private function find(string $name): ?array
 	{
 		if ($name === Translator::CORE) {
-			return [Framework::path(), ['src', 'resources/views', 'resources/blocks'], Framework::path('resources/lang'), null];
+			return [Framework::path(), ['src', 'resources/views', 'resources/blocks'], Framework::path('resources/lang'), null, ScriptMessages::CORE];
 		}
 
 		$extension = $this->themes->find($name)
 			?? array_find($this->plugins->installed(), static fn (PluginManifest $plugin): bool => $plugin->name === $name)
 			?? $this->packs->find($name);
 
-		return $extension === null ? null : [$extension->path, [], "{$extension->path}/lang", $extension];
+		return $extension === null ? null : [$extension->path, [], "{$extension->path}/lang", $extension, $extension instanceof PluginManifest || $extension instanceof ThemeManifest ? $extension->catalogs : []];
 	}
 }

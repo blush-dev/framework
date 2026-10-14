@@ -1262,7 +1262,50 @@ Move each item to `decisions.md` once it's answered.
     translated content, and translated strings likely belong on one
     screen, with what's missing per language.
   - The admin's own strings: settled in D-831 (named catalogs,
-    `catalog:` on a script, `blush/messages`); planned, not built.
+    `catalog:` on a script, `blush/messages`); the system is built
+    (D-833) and the strings converted (D-834), with the admin API's
+    own PHP text (D-835 stage 1). Left (stage 2): text the admin shows
+    from services outside `src/Admin` (exception messages, problems,
+    `Setting` help, labels from enums), and text kept in storage
+    (Site Health's stored report, job results, activity summaries,
+    the admin theme cache's reasons). Built in D-836 and D-837. Still
+    English, each needing a small design: the theme and icon pack
+    caches' `invalid` reasons (strings; could keep `ExtensionException`'s
+    `Text` as admin themes do); `Bootstrap`'s extension clash and
+    "broken" reasons; `Redirect`'s `InvalidRoute` messages (a value
+    object built in several places); `DataKeys`' and `Filesystem`'s
+    errors (built with `new`); `Progress` step labels (now `Stringable`,
+    not yet converted everywhere); `MediaUploads` and `MediaUploadRule`
+    errors shown on Settings → Media (config objects); `Field`
+    definitions' `InvalidSchema` for hand-edited data files;
+    `Tool\InputCheck`'s sentences built from type names; heading
+    anchors' "Link to this section" (printed on the front end, needs
+    the entry's language); the admin's `health.ts` putting "The file"
+    before a lowercase message; and the CLI's
+    own prose and the API's and MCP's errors (later sweeps).
+- **Translation, what's left** (2026-10-14, after D-834 to D-839; the
+  author: "record those to pick up again later"). In the suggested
+  order:
+  1. **Small fixes, no decision needed:** the items listed above as
+     still English (the theme and icon pack caches' reasons, boot-time
+     extension reasons, `Redirect`'s route errors, upload settings
+     errors, `Progress` step labels, `InvalidSchema` for hand-edited
+     data files, and `health.ts`'s "The file" prefix).
+  2. **Decisions first:** heading anchors' "Link to this section" (set
+     once for the Markdown parser, so it can't follow an entry's
+     language); labels stored as data (below); `Tool\InputCheck`'s
+     sentences built from JSON Schema type names, read mostly by AI
+     apps (rewrite, or leave English).
+  3. **The CLI's own prose:** output, prompts, and tables in
+     `src/Console`, a mechanical sweep like D-834's. `StatusLine`
+     already takes a message.
+  4. **The API's and MCP's own errors:** whether they're translated at
+     all, and if so in the token's account's language or the request's
+     `Accept-Language` (D-831's open item).
+  5. **Multilingual sites and catalog tooling:** below (**Multilingual,
+     what's left**, paused by the author 2026-10-04) and in
+     **Translations written inline** (`--prune`, rechecking changed
+     text).
 - **Translating labels stored as data** (raised 2026-10-14, D-831):
   every label is to be translatable. Labels set in code go through
   `Messages`; labels the site stores (types in `user/data/types`,

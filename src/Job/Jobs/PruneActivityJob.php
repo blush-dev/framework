@@ -18,6 +18,8 @@ use Blush\Activity\ActivityLog;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Prunes the activity log (`ActivityLog::prune()`, D-758): changes kept
@@ -26,16 +28,16 @@ use Blush\Job\JobResult;
  */
 final class PruneActivityJob extends Job
 {
-	public function __construct(private readonly ActivityLog $activity)
+	public function __construct(private readonly ActivityLog $activity, private readonly Messages $messages)
 	{}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function label(): string
+	public function label(): Text
 	{
-		return 'Prune the activity log';
+		return $this->messages->t('job.prune_activity_job.label', 'Prune the activity log');
 	}
 
 	/**
@@ -46,6 +48,6 @@ final class PruneActivityJob extends Job
 	{
 		[$removed, $cleared] = $this->activity->prune();
 
-		return JobResult::done(sprintf('Removed %d old change%s; let go of what %d replaced.', $removed, $removed === 1 ? '' : 's', $cleared));
+		return JobResult::done($this->messages->t('job.prune_activity_job.removed', 'Removed {removed, plural, one {# old change} other {# old changes}}; let go of what {cleared} replaced.', removed: $removed, cleared: $cleared));
 	}
 }

@@ -7,6 +7,7 @@
  */
 
 import { classNames } from '../markdown';
+import MessageText from './MessageText.vue';
 
 defineProps<{
 	classes: string[];
@@ -22,7 +23,7 @@ const emit = defineEmits<{
 
 <template>
 	<div class="field">
-		<label :for="`${idPrefix}classes`">Classes</label>
+		<label :for="`${idPrefix}classes`">{{ t('attribute_fields.classes', 'Classes') }}</label>
 		<input
 			:id="`${idPrefix}classes`"
 			class="mono"
@@ -33,10 +34,10 @@ const emit = defineEmits<{
 			:aria-describedby="`${idPrefix}classes-help`"
 			@input="emit('change', classNames(($event.target as HTMLInputElement).value), id)"
 		>
-		<p :id="`${idPrefix}classes-help`" class="field__help">Space separated, without the dots.</p>
+		<p :id="`${idPrefix}classes-help`" class="field__help">{{ t('attribute_fields.classes_help', 'Space separated, without the dots.') }}</p>
 	</div>
 	<div class="field">
-		<label :for="`${idPrefix}id`">ID</label>
+		<label :for="`${idPrefix}id`">{{ t('attribute_fields.id', 'ID') }}</label>
 		<input
 			:id="`${idPrefix}id`"
 			class="mono"
@@ -47,6 +48,6 @@ const emit = defineEmits<{
 			:aria-describedby="`${idPrefix}id-help`"
 			@input="emit('change', classes, ($event.target as HTMLInputElement).value.trim())"
 		>
-		<p :id="`${idPrefix}id-help`" class="field__help">The anchor this can be linked to, as <code>#section-two</code>.</p>
+		<p :id="`${idPrefix}id-help`" class="field__help"><MessageText :text="t('attribute_fields.id_help', 'The anchor this can be linked to, as {example}.')"><template #example><code>#section-two</code></template></MessageText></p>
 	</div>
 </template>

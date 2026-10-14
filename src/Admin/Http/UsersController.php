@@ -26,6 +26,7 @@ use Blush\Auth\Role;
 use Blush\Auth\Roles;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers the admin's Users screens (D-249), for accounts with
@@ -49,7 +50,8 @@ final readonly class UsersController
 		private Accounts $accounts,
 		private Permissions $permissions,
 		private UsersJson $json,
-		private UserRules $rules
+		private UserRules $rules,
+		private Messages $messages
 	) {}
 
 	public function roles(ServerRequestInterface $request): ResponseInterface
@@ -57,7 +59,7 @@ final readonly class UsersController
 		$viewer = $this->viewer($request);
 
 		if ($viewer === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -79,7 +81,7 @@ final readonly class UsersController
 		$viewer = $this->viewer($request);
 
 		if ($viewer === null) {
-			return self::forbidden();
+			return $this->forbidden();
 		}
 
 		try {
@@ -110,8 +112,8 @@ final readonly class UsersController
 		return Response::json(['error' => $error->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 	}
 
-	private static function forbidden(): ResponseInterface
+	private function forbidden(): ResponseInterface
 	{
-		return Response::json(['error' => 'You aren\'t allowed to see accounts.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		return Response::json(['error' => $this->messages->t('admin.users_controller.forbidden', 'You aren\'t allowed to see accounts.')], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}
 }

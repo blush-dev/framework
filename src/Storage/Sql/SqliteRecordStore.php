@@ -37,6 +37,7 @@ use Blush\Storage\Record\Related;
 use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageConfig;
+use Blush\Translation\Messages;
 
 /**
  * Keeps records in a SQLite database (D-606, D-640): a table each, its
@@ -68,7 +69,8 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 	private readonly SqlCompiler $compiler;
 
 	public function __construct(
-		private readonly Sqlite $pdo
+		private readonly Sqlite $pdo,
+		private readonly Messages $messages = new Messages()
 	) {
 		$this->dialect  = new SqliteDialect();
 		$this->compiler = new SqlCompiler($this->dialect);
@@ -77,11 +79,12 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 	/**
 	 * Opens the store a site keeps its records in: the database file
 	 * `StorageConfig::$sqlite` names, from the site's root unless it's
-	 * absolute, its folder made when missing (D-662).
+	 * absolute, its folder made when missing (D-662), saying what's wrong
+	 * with a record with `$messages`.
 	 *
 	 * @throws RecordStoreFailure
 	 */
-	public static function forSite(StorageConfig $config, string $root): self
+	public static function forSite(StorageConfig $config, string $root, Messages $messages = new Messages()): self
 	{
 		$file = str_starts_with($config->sqlite, '/') ? $config->sqlite : "{$root}/{$config->sqlite}";
 
@@ -89,7 +92,7 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 			throw new RecordStoreFailure(sprintf('The SQLite database\'s folder, %s, couldn\'t be made.', dirname($file)));
 		}
 
-		return self::open($file);
+		return new self(SqliteConnection::open($file), $messages);
 	}
 
 	/**
@@ -519,7 +522,7 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 		try {
 			$fields = json_decode(is_string($row['fields'] ?? null) ? $row['fields'] : '', true, 512, JSON_THROW_ON_ERROR);
 		} catch (JsonException $e) {
-			throw new RecordStoreFailure(sprintf('A record in "%s" can\'t be read: %s', $table->name, $e->getMessage()), 0, $e);
+			throw new RecordStoreFailure((string) $this->messages->t('storage.sqlite_record_store.unreadable', 'A record in "{table}" can\'t be read: {problem}', table: $table->name, problem: $e->getMessage()), 0, $e);
 		}
 
 		/** @var array<string, mixed> $fields */
@@ -539,7 +542,7 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 	#[Override]
 	public function location(Table $table, string $key): string
 	{
-		return sprintf('%s/%s in the database', $table->name, $key);
+		return (string) $this->messages->t('storage.sqlite_record_store.location', '{table}/{name} in the database', table: $table->name, name: $key);
 	}
 
 	/**

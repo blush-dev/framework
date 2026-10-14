@@ -26,6 +26,8 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
 use Blush\Routing\RouteTable;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * `get_entry` (D-755): one entry in full, by id or by its address (people
@@ -41,19 +43,20 @@ final class GetEntry extends Tool
 		private readonly ToolEntries $entries,
 		private readonly Referrers $referrers,
 		private readonly RouteTable $routes,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly Messages $messages
 	) {}
 
 	#[Override]
-	public function title(): string
+	public function title(): Text
 	{
-		return 'Get an Entry';
+		return $this->messages->t('tool.get_entry.title', 'Get an Entry');
 	}
 
 	#[Override]
-	public function description(): string
+	public function description(): Text
 	{
-		return 'Gets one entry in full, by its id or its address on the site: its fields, its Markdown body exactly as written, its relationships, and, when this connection may edit it, its revision (which update_entry, edit_body, set_status, and trash_entry need) and links to edit and preview it. Add include: ["linked_from"] to list the entries that link to it, before trashing or unpublishing it.';
+		return $this->messages->t('tool.get_entry.description', 'Gets one entry in full, by its id or its address on the site: its fields, its Markdown body exactly as written, its relationships, and, when this connection may edit it, its revision (which update_entry, edit_body, set_status, and trash_entry need) and links to edit and preview it. Add include: ["linked_from"] to list the entries that link to it, before trashing or unpublishing it.');
 	}
 
 	#[Override]
@@ -77,7 +80,7 @@ final class GetEntry extends Tool
 		$url = self::optional($input, 'url');
 
 		if ($id === null && $url === null) {
-			throw new ToolError('Send the entry\'s "id", or its "url".');
+			throw new ToolError((string) $this->messages->t('tool.get_entry.id_or_url', 'Send the entry\'s "id", or its "url".'));
 		}
 
 		if ($id === null) {
@@ -107,7 +110,7 @@ final class GetEntry extends Tool
 		if ($redirect !== null) {
 			$to = preg_match('#^[a-z][a-z0-9+.-]*://#i', $redirect->to) === 1 ? $redirect->to : $this->app->absoluteUrl($redirect->to);
 
-			throw new ToolError(sprintf('"%s" redirects to %s; ask for that address instead.', $url, $to));
+			throw new ToolError((string) $this->messages->t('tool.get_entry.redirects', '"{url}" redirects to {to}; ask for that address instead.', url: $url, to: $to));
 		}
 	}
 

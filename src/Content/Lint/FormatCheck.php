@@ -17,6 +17,8 @@ use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Finds files in `user/content` in the formats Blush read before entries
@@ -29,7 +31,8 @@ use Blush\Field\ViolationKind;
 final readonly class FormatCheck
 {
 	public function __construct(
-		private ContentFiles $contentFiles
+		private ContentFiles $contentFiles,
+		private Messages $messages
 	) {}
 
 	/**
@@ -48,7 +51,7 @@ final readonly class FormatCheck
 		$violations = [];
 
 		foreach ($source->others() as $path) {
-			$message = self::message(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
+			$message = $this->message(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
 
 			if ($message !== null) {
 				$violations[$path] = [new Violation(Linter::FILE, $message, kind: ViolationKind::Unreadable)];
@@ -62,12 +65,12 @@ final readonly class FormatCheck
 	 * Returns what to do with a file of an extension, or `null` for one
 	 * that was never content.
 	 */
-	private static function message(string $extension): ?string
+	private function message(string $extension): ?Text
 	{
 		return match ($extension) {
-			'markdown'            => 'isn\'t read: entries are .md files. Rename it to .md.',
-			'html'                => 'isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.',
-			'json', 'yaml', 'yml' => 'isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.',
+			'markdown'            => $this->messages->t('content.format_check.markdown', 'isn\'t read: entries are .md files. Rename it to .md.'),
+			'html'                => $this->messages->t('content.format_check.html', 'isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'),
+			'json', 'yaml', 'yml' => $this->messages->t('content.format_check.data', 'isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'),
 			default               => null
 		};
 	}

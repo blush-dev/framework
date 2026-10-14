@@ -18,6 +18,8 @@ use Blush\Field\Field;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Support\Slug;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * A URL slug, such as a `slug:` override. The value must already be a
@@ -43,18 +45,18 @@ final class SlugField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeLabel(): string
+	public static function typeLabel(Messages $messages): Text
 	{
-		return 'Slug';
+		return $messages->t('field.slug_field.type_label', 'Slug');
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public static function typeDescription(): string
+	public static function typeDescription(Messages $messages): Text
 	{
-		return 'A URL-safe name.';
+		return $messages->t('field.slug_field.type_description', 'A URL-safe name.');
 	}
 
 	/**
@@ -68,11 +70,11 @@ final class SlugField extends Field
 		}
 
 		if (! is_string($value)) {
-			throw $this->invalid(sprintf('must be a slug, not %s.', self::describe($value)));
+			throw $this->invalid($context->messages->t('field.slug_field.invalid', 'must be a slug, not {value}.', value: self::describe($value, $context->messages)));
 		}
 
 		if (! Slug::isSlug($value)) {
-			throw $this->invalid(sprintf('"%s" is not a slug; try "%s".', $value, Slug::from($value)));
+			throw $this->invalid($context->messages->t('field.slug_field.not_a_slug', '"{value}" is not a slug; try "{slug}".', value: $value, slug: Slug::from($value)));
 		}
 
 		return $value;

@@ -66,7 +66,7 @@ final readonly class ListJobs
 				$job->status->label() . ($job->progress !== null && $job->status === JobStatus::Queued ? " ({$job->progress}%)" : ''),
 				DateTimeImmutable::createFromTimestamp($job->queued)->setTimezone($this->app->timezone())->format('Y-m-d H:i'),
 				$job->account ?? 'system',
-				$job->error ?? $job->message
+				(string) ($job->error ?? $job->message)
 			];
 		}
 

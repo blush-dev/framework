@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use Closure;
+use Blush\Translation\Messages;
 
 /**
  * The settings saved in the admin (D-324, D-325): core's groups of
@@ -37,7 +38,8 @@ use Closure;
 final readonly class SettingsStore
 {
 	public function __construct(
-		private SettingGroups $groups
+		private SettingGroups $groups,
+		private Messages $messages
 	) {}
 
 	/**
@@ -96,12 +98,12 @@ final readonly class SettingsStore
 
 		foreach ($sections as $section => $values) {
 			try {
-				Settings::fromArray([$section => $values]);
+				Settings::fromArray([$section => $values], $this->messages);
 			} catch (InvalidSetting $error) {
-				throw new InvalidSetting(sprintf('%s: %s', $this->location($section), $error->getMessage()), previous: $error);
+				throw new InvalidSetting((string) $this->messages->t('settings.settings_store.unreadable', '{location}: {reason}', location: $this->location($section), reason: $error->getMessage()), previous: $error);
 			}
 		}
 
-		return Settings::fromArray($sections);
+		return Settings::fromArray($sections, $this->messages);
 	}
 }

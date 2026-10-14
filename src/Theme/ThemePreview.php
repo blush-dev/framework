@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Translation\Messages;
+
 /**
  * What the admin draws a theme's preview from (D-381), as `theme.json`'s
  * `preview` declares it: a layout, a line about its type (such as "Serif
@@ -61,28 +63,28 @@ final readonly class ThemePreview
 	 * @param  array<array-key, mixed> $data
 	 * @throws ThemeException When a value is missing or doesn't fit.
 	 */
-	public static function fromArray(string $theme, array $data): self
+	public static function fromArray(string $theme, array $data, Messages $messages = new Messages()): self
 	{
 		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['layout', 'type', 'palette']);
 
 		if ($unknown !== []) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "preview" has "layout", "type", and "palette"; "%s" isn\'t one.', $theme, reset($unknown)));
+			throw new ThemeException((string) $messages->t('theme.theme_preview.unknown_key', 'The "{theme}" theme\'s "preview" has "layout", "type", and "palette"; "{field}" isn\'t one.', theme: $theme, field: reset($unknown)));
 		}
 
 		$layout = $data['layout'] ?? PreviewLayout::Centered->value;
 		$layout = is_string($layout) ? PreviewLayout::tryFrom($layout) : null;
 
 		if ($layout === null) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "preview.layout" must be %s.', $theme, implode(', ', array_column(PreviewLayout::cases(), 'value'))));
+			throw new ThemeException((string) $messages->t('theme.theme_preview.layout', 'The "{theme}" theme\'s "preview.layout" must be {layouts}.', theme: $theme, layouts: implode(', ', array_column(PreviewLayout::cases(), 'value'))));
 		}
 
 		$type = $data['type'] ?? '';
 
 		if (! is_string($type)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "preview.type" must be a string.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_preview.type', 'The "{theme}" theme\'s "preview.type" must be a string.', theme: $theme));
 		}
 
-		return new self($layout, trim($type), self::palette($theme, $data['palette'] ?? null));
+		return new self($layout, trim($type), self::palette($theme, $data['palette'] ?? null, $messages));
 	}
 
 	/**
@@ -103,20 +105,21 @@ final readonly class ThemePreview
 	 * @return array<string, array{string, string}>
 	 * @throws ThemeException
 	 */
-	private static function palette(string $theme, mixed $palette): array
+	private static function palette(string $theme, mixed $palette, Messages $messages): array
 	{
 		if ($palette === null) {
 			return [];
 		}
 
-		$message = sprintf(
-			'The "%s" theme\'s "preview.palette" must give %s, each a hex color (such as "#1f4ed8") or a [light, dark] pair.',
-			$theme,
-			implode(', ', self::ROLES)
-		);
+		$error = static fn (): ThemeException => new ThemeException((string) $messages->t(
+			'theme.theme_preview.palette',
+			'The "{theme}" theme\'s "preview.palette" must give {roles}, each a hex color (such as "#1f4ed8") or a [light, dark] pair.',
+			theme: $theme,
+			roles: implode(', ', self::ROLES)
+		));
 
 		if (! is_array($palette) || array_is_list($palette) || array_diff(array_map(strval(...), array_keys($palette)), self::ROLES) !== []) {
-			throw new ThemeException($message);
+			throw $error();
 		}
 
 		$colors = [];
@@ -126,10 +129,10 @@ final readonly class ThemePreview
 			$pair  = is_string($value) ? [$value, $value] : $value;
 
 			if (! is_array($pair) || ! array_is_list($pair) || count($pair) !== 2 || ! is_string($pair[0]) || ! is_string($pair[1])) {
-				throw new ThemeException($message);
+				throw $error();
 			}
 
-			$colors[$role] = [self::color($pair[0]) ?? throw new ThemeException($message), self::color($pair[1]) ?? throw new ThemeException($message)];
+			$colors[$role] = [self::color($pair[0]) ?? throw $error(), self::color($pair[1]) ?? throw $error()];
 		}
 
 		return $colors;

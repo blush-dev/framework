@@ -38,6 +38,8 @@ use Blush\Plugin\LocalPluginFinder;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Rolls a folder extension back to the version replacing it kept, and
@@ -68,7 +70,8 @@ final readonly class ExtensionBackupController
 		private Bootstrap $bootstrap,
 		private ContentVersion $version,
 		private Themes $themes,
-		private ExtensionState $state
+		private ExtensionState $state,
+		private Messages $messages
 	) {}
 
 	public function rollbackTheme(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -114,21 +117,21 @@ final readonly class ExtensionBackupController
 	private function rollback(ServerRequestInterface $request, ExtensionKind $kind, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Update, $kind)) {
-			return self::error(sprintf('You aren\'t allowed to roll %ss back.', $kind->label()), Status::Forbidden);
+			return self::error($this->messages->t('admin.extension_backup_controller.rollback_forbidden', '{kind, select, Plugin {You aren\'t allowed to roll plugins back.} Theme {You aren\'t allowed to roll themes back.} IconPack {You aren\'t allowed to roll icon packs back.} other {You aren\'t allowed to roll admin themes back.}}', kind: $kind->name), Status::Forbidden);
 		}
 
 		$folder = $this->extensions->folder($kind, $name);
 		$older  = $folder === null ? null : $this->installer->backupOf($kind, $folder, $name);
 
 		if ($folder === null || $older === null) {
-			return self::error(sprintf('There\'s no earlier version of %s to roll back to.', $name), Status::NotFound);
+			return self::error($this->messages->t('admin.extension_backup_controller.no_backup', 'There\'s no earlier version of {name} to roll back to.', name: $name), Status::NotFound);
 		}
 
 		$live   = $this->extensions->live($kind, $name);
 		$misfit = $this->misfit($kind, $name, $this->installer->backupPath($folder), $live);
 
 		if ($misfit !== null) {
-			return self::error(sprintf('%s %s can\'t be rolled back to: %s', $older->label, $older->version, $misfit), Status::UnprocessableContent);
+			return self::error($this->messages->t('admin.extension_backup_controller.misfit', '{label} {version} can\'t be rolled back to: {reason}', label: $older->label, version: $older->version, reason: $misfit), Status::UnprocessableContent);
 		}
 
 		try {
@@ -159,13 +162,13 @@ final readonly class ExtensionBackupController
 	private function discard(ServerRequestInterface $request, ExtensionKind $kind, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete, $kind)) {
-			return self::error(sprintf('You aren\'t allowed to delete %ss.', $kind->label()), Status::Forbidden);
+			return self::error($this->messages->t('admin.extension_backup_controller.discard_forbidden', '{kind, select, Plugin {You aren\'t allowed to delete plugins.} Theme {You aren\'t allowed to delete themes.} IconPack {You aren\'t allowed to delete icon packs.} other {You aren\'t allowed to delete admin themes.}}', kind: $kind->name), Status::Forbidden);
 		}
 
 		$folder = $this->extensions->folder($kind, $name);
 
 		if ($folder === null || ! is_dir($this->installer->backupPath($folder))) {
-			return self::error(sprintf('%s has no earlier version kept.', $name), Status::NotFound);
+			return self::error($this->messages->t('admin.extension_backup_controller.none_kept', '{name} has no earlier version kept.', name: $name), Status::NotFound);
 		}
 
 		try {
@@ -196,12 +199,12 @@ final readonly class ExtensionBackupController
 				$checked = $this->state->check($older);
 
 				if (! Requirements::met($checked)) {
-					return Requirements::reason($checked);
+					return Requirements::reason($checked, $this->messages);
 				}
 			}
 
 			if ($older instanceof ThemeManifest && $live && $older->parent !== null && ! $this->themes->has($older->parent)) {
-				return sprintf('it falls back to %s, which isn\'t installed.', $older->parent);
+				return (string) $this->messages->t('admin.extension_backup_controller.parent_missing', 'it falls back to {parent}, which isn\'t installed.', parent: $older->parent, context: 'Ends a sentence that names the version that can\'t be rolled back to.');
 			}
 		} catch (ExtensionException | ThemeException $error) {
 			return $error->getMessage();
@@ -217,7 +220,7 @@ final readonly class ExtensionBackupController
 		return $account instanceof Account && $this->permissions->can($account, $action->on($kind));
 	}
 
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string|Text $message, Status $status): ResponseInterface
 	{
 		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
 	}

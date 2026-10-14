@@ -27,6 +27,7 @@ use Blush\Preview\PreviewConfig;
 use Blush\Preview\PreviewLinks;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Translation\Messages;
 
 /**
  * Answers `POST {path}/api/previews` with `{"entry": id}`: a signed
@@ -39,13 +40,14 @@ final readonly class PreviewLinkController
 		private PreviewLinks $links,
 		private PreviewConfig $config,
 		private Entries $content,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private Messages $messages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		if (! $this->config->isEnabled()) {
-			return self::json(['error' => 'Preview links are off: the site has no APP_SECRET. Run "bin/blush init" to add one.'], Status::ServiceUnavailable);
+			return self::json(['error' => $this->messages->t('admin.preview_link_controller.off', 'Preview links are off: the site has no APP_SECRET. Run "bin/blush init" to add one.')], Status::ServiceUnavailable);
 		}
 
 		try {
@@ -64,15 +66,15 @@ final readonly class PreviewLinkController
 		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::json(['error' => sprintf('There\'s no entry with the id "%s".', $id)], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.preview_link_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id)], Status::NotFound);
 		}
 
 		if ($entry->status === EntryStatus::Trash) {
-			return self::json(['error' => 'That entry is in the trash, so it has no preview; restore it first.'], Status::UnprocessableContent);
+			return self::json(['error' => $this->messages->t('admin.preview_link_controller.trashed', 'That entry is in the trash, so it has no preview; restore it first.')], Status::UnprocessableContent);
 		}
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			return self::json(['error' => 'You aren\'t allowed to preview that entry.'], Status::Forbidden);
+			return self::json(['error' => $this->messages->t('admin.preview_link_controller.not_allowed', 'You aren\'t allowed to preview that entry.')], Status::Forbidden);
 		}
 
 		$link = $this->links->make($entry);

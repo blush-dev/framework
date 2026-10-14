@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Secret;
 
 use Closure;
+use Blush\Translation\Messages;
 
 /**
  * One owner's secrets (D-715), by key: what `Secrets::for()` gives core
@@ -25,7 +26,8 @@ final readonly class SecretScope
 	public function __construct(
 		private Secrets $secrets,
 		private SecretStore $store,
-		public string $owner
+		public string $owner,
+		private Messages $messages
 	) {}
 
 	/**
@@ -52,10 +54,11 @@ final readonly class SecretScope
 	{
 		$definition = $this->definition($key);
 
-		return $this->store->get($definition) ?? throw new SecretMissing(sprintf(
-			'"%s" isn\'t set: set %s in the environment, or store it.',
-			$definition->name(),
-			$definition->env
+		return $this->store->get($definition) ?? throw new SecretMissing((string) $this->messages->t(
+			'secret.secret_scope.missing',
+			'"{name}" isn\'t set: set {variable} in the environment, or store it.',
+			name: $definition->name(),
+			variable: $definition->env
 		));
 	}
 

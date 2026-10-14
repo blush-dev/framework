@@ -247,8 +247,8 @@ final class SecretStoreTest extends TestCase
 		$checks = $fresh->container()->make(SiteChecks::class)->secrets();
 
 		$this->assertSame([CheckStatus::Pass, CheckStatus::Failure, CheckStatus::Warning], self::statuses($checks), 'Its value won\'t decrypt, and acme/gone isn\'t declared.');
-		$this->assertSame('Secret acme/analytics.ga_refresh_token', $checks[1]->label);
-		$this->assertSame('Secret acme/gone.token', $checks[2]->label);
+		$this->assertSame('Secret acme/analytics.ga_refresh_token', (string) $checks[1]->label);
+		$this->assertSame('Secret acme/gone.token', (string) $checks[2]->label);
 
 		$none = $this->site(['SECRETS_KEY' => 'short']);
 

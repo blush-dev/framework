@@ -18,6 +18,7 @@ use Blush\Content\Entry\Position;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
+use Blush\Translation\Messages;
 
 /**
  * A type whose entries nest by folder (D-386). The built-in `page` type is
@@ -58,6 +59,7 @@ final readonly class Tree extends ContentType
 	 * @param  ?string         $prefix      The path a tree in a folder is served under (D-683); its name by default.
 	 * @param  ?int            $position    Its order in the admin's menu (D-726).
 	 * @param  ?string         $under       The type it sits under in the admin's menu (D-726).
+	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -75,18 +77,19 @@ final readonly class Tree extends ContentType
 		?string $prefix = null,
 		?int $position = null,
 		?string $under = null,
-		FieldControls $controls = new FieldControls()
+		FieldControls $controls = new FieldControls(),
+		Messages $messages = new Messages()
 	) {
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $messages);
 
 		$prefix = trim($prefix ?? '', '/ ');
 
 		if ($prefix !== '' && $this->atRoot()) {
-			throw new InvalidContentType(sprintf('Content type "%s" is the site\'s pages, served from the root, so it takes no prefix.', $name));
+			throw new InvalidContentType((string) $messages->t('content.tree.root_prefix', 'Content type "{name}" is the site\'s pages, served from the root, so it takes no prefix.', name: $name));
 		}
 
 		if ($prefix !== '' && array_any(explode('/', $prefix), static fn (string $segment): bool => in_array($segment, ['', '.', '..'], true) || str_starts_with($segment, '_'))) {
-			throw new InvalidContentType(sprintf('Content type "%s" has an invalid prefix "%s".', $name, $prefix));
+			throw new InvalidContentType((string) $messages->t('content.tree.bad_prefix', 'Content type "{name}" has an invalid prefix "{prefix}".', name: $name, prefix: $prefix));
 		}
 
 		$this->urlPrefix = $prefix === '' ? null : $prefix;
@@ -125,7 +128,7 @@ final readonly class Tree extends ContentType
 	#[Override]
 	public function role(): string
 	{
-		return $this->atRoot() ? 'the site\'s pages' : parent::role();
+		return $this->atRoot() ? 'pages' : parent::role();
 	}
 
 	/**

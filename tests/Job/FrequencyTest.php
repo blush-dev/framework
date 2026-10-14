@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Blush\Job\Frequency;
 use Blush\Job\InvalidFrequency;
+use Blush\Translation\Messages;
 
 #[CoversClass(Frequency::class)]
 final class FrequencyTest extends TestCase
@@ -58,12 +59,14 @@ final class FrequencyTest extends TestCase
 
 	public function testDescribesItselfInWords(): void
 	{
-		$this->assertSame('Every minute', Frequency::everyMinute()->describe());
-		$this->assertSame('Every 15 minutes', Frequency::everyMinutes(15)->describe());
-		$this->assertSame('Hourly at :05', Frequency::hourly(5)->describe());
-		$this->assertSame('Daily at 03:00', Frequency::daily('03:00')->describe());
-		$this->assertSame('Mondays at 06:00', Frequency::weekly(1, '06:00')->describe());
-		$this->assertSame('Cron: 0 9 1 * *', Frequency::cron('0 9 1 * *')->describe());
+		$messages = new Messages();
+
+		$this->assertSame('Every minute', (string) Frequency::everyMinute()->describe($messages));
+		$this->assertSame('Every 15 minutes', (string) Frequency::everyMinutes(15)->describe($messages));
+		$this->assertSame('Hourly at :05', (string) Frequency::hourly(5)->describe($messages));
+		$this->assertSame('Daily at 03:00', (string) Frequency::daily('03:00')->describe($messages));
+		$this->assertSame('Mondays at 06:00', (string) Frequency::weekly(1, '06:00')->describe($messages));
+		$this->assertSame('Cron: 0 9 1 * *', (string) Frequency::cron('0 9 1 * *')->describe($messages));
 	}
 
 	/**

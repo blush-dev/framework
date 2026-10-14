@@ -93,6 +93,33 @@ final readonly class Messages
 	}
 
 	/**
+	 * Returns a message stored with `Text::toArray()` (D-836), translated
+	 * when it's shown, as its own domain's text, or `null` when the value
+	 * isn't one (such as text stored as a sentence before it was a
+	 * message, which the caller shows as it is).
+	 */
+	public function restore(mixed $data): ?Text
+	{
+		if (! is_array($data) || ! is_string($data['key'] ?? null) || $data['key'] === '') {
+			return null;
+		}
+
+		$text   = $data['text'] ?? null;
+		$domain = $data['domain'] ?? null;
+		$params = [];
+
+		foreach (is_array($data['params'] ?? null) ? $data['params'] : [] as $name => $value) {
+			if (is_string($name)) {
+				$params[$name] = is_array($value) ? $this->restore($value) : $value;
+			}
+		}
+
+		$domain = is_string($domain) && $domain !== '' ? $domain : Translator::CORE;
+
+		return new Text($data['key'], is_string($text) ? $text : null, $domain, $params, translator: $this->translator, locale: $this->locale);
+	}
+
+	/**
 	 * Returns whether a key has a message in a catalog.
 	 */
 	public function has(string $key): bool

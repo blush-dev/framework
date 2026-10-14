@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Translation\Text;
+
 /**
  * A place field sets attach to (D-337), such as a content type. Field
  * types know nothing about where they're used; a target says which fields
@@ -28,9 +30,10 @@ interface FieldTarget
 	public function key(): string;
 
 	/**
-	 * Returns the target's name for people.
+	 * Returns the target's name for people, written with `t()` when it's
+	 * core's text rather than the site's (D-836).
 	 */
-	public function label(): string;
+	public function label(): string|Text;
 
 	/**
 	 * Returns whether the target takes a field.

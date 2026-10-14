@@ -56,8 +56,8 @@ final class ExtensionAbandonedTest extends TestCase
 	public function testWarns(): void
 	{
 		$this->assertNull(ExtensionAbandoned::warning(false));
-		$this->assertSame('It\'s abandoned, and no longer maintained.', ExtensionAbandoned::warning(true));
-		$this->assertSame('It\'s abandoned; use "acme/next" instead.', ExtensionAbandoned::warning('acme/next'));
+		$this->assertSame('It\'s abandoned, and no longer maintained.', (string) ExtensionAbandoned::warning(true));
+		$this->assertSame('It\'s abandoned; use "acme/next" instead.', (string) ExtensionAbandoned::warning('acme/next'));
 	}
 
 	public function testEveryKindReadsItAndComposerJsonFillsIt(): void

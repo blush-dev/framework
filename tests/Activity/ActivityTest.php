@@ -96,7 +96,7 @@ final class ActivityTest extends TestCase
 		$this->assertSame(ActivityAction::EntryUpdate, $changes[0]->action);
 		$this->assertSame(Via::Admin, $changes[0]->via);
 		$this->assertSame($this->jane->id, $changes[0]->account);
-		$this->assertSame('Edited the body of “Mine”', $changes[0]->summary);
+		$this->assertSame('Edited the body of “Mine”', (string) $changes[0]->summary);
 		$this->assertTrue($changes[0]->canUndo());
 		$this->assertSame([], $this->log()->list(new ActivityFilter(via: Via::Mcp))[0]);
 	}
@@ -159,7 +159,7 @@ final class ActivityTest extends TestCase
 
 		[$changes] = $this->log()->list(new ActivityFilter(subject: $uploaded->id));
 		$this->assertSame([ActivityAction::MediaUpdate, ActivityAction::MediaUpload], array_map(static fn (Activity $activity): ActivityAction => $activity->action, $changes));
-		$this->assertSame('Changed alt text on dot.png', $changes[0]->summary);
+		$this->assertSame('Changed alt text on dot.png', (string) $changes[0]->summary);
 
 		$media->undo(Actor::admin($this->jane), $changes[0]);
 

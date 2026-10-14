@@ -21,6 +21,7 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Core\AppConfig;
+use Blush\Translation\Messages;
 
 /**
  * The feeds a page advertises with `<link rel="alternate">`: the home
@@ -34,7 +35,8 @@ final readonly class FeedLinks
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private FeedConfig $config,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -60,7 +62,7 @@ final readonly class FeedLinks
 				$slug     = $page->entry->slug;
 				$relation = $page->relation;
 
-				$this->addFeeds($links, "{$page->title} | {$type->labels->plural}", fn (FeedFormat $format): ?string => $this->urls->relatedFeed($type, $relation, $slug, $format->routeSuffix()));
+				$this->addFeeds($links, (string) $this->messages->t('feed.feed_links.related', '{title} | {type}', title: $page->title, type: $type->labels->plural), fn (FeedFormat $format): ?string => $this->urls->relatedFeed($type, $relation, $slug, $format->routeSuffix()));
 			} elseif ($page->kind === PageKind::Profile && $page->target !== null) {
 				$this->addFeeds($links, $page->title, fn (FeedFormat $format): ?string => $this->urls->profileFeed($page->target->slug, 'single.feed' . $format->routeSuffix()));
 			} elseif ($type->hasUrls() && ! $type instanceof Profiles) {
@@ -83,7 +85,7 @@ final readonly class FeedLinks
 			$url = $feed($format);
 
 			if ($url !== null) {
-				$links[$url] ??= [$url, $format, "{$title} ({$format->label()})"];
+				$links[$url] ??= [$url, $format, $this->title($title, $format)];
 			}
 		}
 	}
@@ -100,8 +102,16 @@ final readonly class FeedLinks
 			$url = $this->urls->feed($type, 'collection.feed' . $format->routeSuffix(), $term);
 
 			if ($url !== null) {
-				$links[$url] ??= [$url, $format, "{$title} ({$format->label()})"];
+				$links[$url] ??= [$url, $format, $this->title($title, $format)];
 			}
 		}
+	}
+
+	/**
+	 * A feed's title: the page's, with the format's name.
+	 */
+	private function title(string $title, FeedFormat $format): string
+	{
+		return (string) $this->messages->t('feed.feed_links.title', '{title} ({format})', title: $title, format: $format->label($this->messages));
 	}
 }

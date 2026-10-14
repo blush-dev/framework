@@ -22,6 +22,7 @@ use Blush\Core\Paths;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Log\LogConfig;
+use Blush\Translation\Messages;
 
 /**
  * The site's log, read only, on the Tools screen (D-540), for when
@@ -52,7 +53,8 @@ final readonly class LogController
 	public function __construct(
 		private LogConfig $config,
 		private Paths $paths,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private Messages $messages
 	) {}
 
 	/**
@@ -91,7 +93,7 @@ final readonly class LogController
 		$path = $this->config->path($this->paths->logs);
 
 		if ($path === null || ! is_file($path) || ! is_readable($path)) {
-			return self::json(['error' => 'There\'s no log file to download.'], Status::NotFound);
+			return self::json(['error' => $this->messages->t('admin.log_controller.no_file', 'There\'s no log file to download.')], Status::NotFound);
 		}
 
 		return Response::file($path, 'text/plain; charset=utf-8', [
@@ -108,12 +110,12 @@ final readonly class LogController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account) {
-			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+			return self::json(['error' => $this->messages->t('admin.common.sign_in_first', 'Sign in first.')], Status::Unauthorized);
 		}
 
 		return $this->permissions->can($account, Capability::SiteLogs)
 			? null
-			: self::json(['error' => 'You aren\'t allowed to read the log.'], Status::Forbidden);
+			: self::json(['error' => $this->messages->t('admin.log_controller.not_allowed', 'You aren\'t allowed to read the log.')], Status::Forbidden);
 	}
 
 	/**

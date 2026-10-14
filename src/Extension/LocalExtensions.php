@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 use Blush\Core\Paths;
+use Blush\Translation\Messages;
 
 /**
  * Finds the local extensions of every kind (D-418): folders two levels
@@ -33,15 +34,16 @@ final readonly class LocalExtensions
 	 */
 	public function __construct(
 		private string $folder,
-		private string $root = ''
+		private string $root = '',
+		private Messages $messages = new Messages()
 	) {}
 
 	/**
 	 * Builds the finder for a site.
 	 */
-	public static function forPaths(Paths $paths): self
+	public static function forPaths(Paths $paths, Messages $messages = new Messages()): self
 	{
-		return new self($paths->extensions, $paths->root);
+		return new self($paths->extensions, $paths->root, $messages);
 	}
 
 	/**
@@ -120,13 +122,13 @@ final readonly class LocalExtensions
 	 *
 	 * @param array<string, ?string> $claims
 	 */
-	public static function describe(array $claims): string
+	public static function describe(array $claims, Messages $messages = new Messages()): string
 	{
 		$described = [];
 
 		foreach ($claims as $kind => $file) {
 			$described[] = $file === null
-				? sprintf('a composer.json of type "%s"', ExtensionKind::from($kind)->packageType())
+				? (string) $messages->t('extension.local_extensions.composer_type', 'a composer.json of type "{type}"', type: ExtensionKind::from($kind)->packageType())
 				: basename($file);
 		}
 
@@ -152,10 +154,10 @@ final readonly class LocalExtensions
 			$name    = substr($path, strlen($this->folder) + 1);
 			$where   = $this->root !== '' && str_starts_with($path, $this->root . '/') ? substr($path, strlen($this->root) + 1) : $path;
 			$problem = count($claims) > 1
-				? sprintf('It holds %s, but an extension is one kind.', self::describe($claims))
+				? (string) $this->messages->t('extension.local_extensions.several_kinds', 'It holds {claims}, but an extension is one kind.', claims: self::describe($claims, $this->messages))
 				: null;
 
-			$found[] = new LocalExtension($kind, $name, $path, $where, $claims[$kind->value], $problem);
+			$found[] = new LocalExtension($kind, $name, $path, $where, $claims[$kind->value], $problem, $this->messages);
 		}
 
 		return $found;

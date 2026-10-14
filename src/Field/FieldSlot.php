@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Field;
 
+use Blush\Translation\Text;
+
 /**
  * A slot a kind of place offers field sets (D-347): what a set's fields
  * are to the places they're added to, such as `details` about an entry
@@ -26,14 +28,14 @@ final readonly class FieldSlot
 {
 	public function __construct(
 		public string $name,
-		public string $label,
-		public string $description = ''
+		public string|Text $label,
+		public string|Text $description = ''
 	) {}
 
 	/**
 	 * Describes the slot for the admin.
 	 *
-	 * @return array{name: string, label: string, description: string}
+	 * @return array{name: string, label: string|Text, description: string|Text}
 	 */
 	public function toArray(): array
 	{

@@ -13,6 +13,7 @@
 import { ref, watch } from 'vue';
 import type { MediaItem } from '../api';
 import { isMediaId, mediaFile } from '../media';
+import { t } from '../messages';
 import AdminIcon from './AdminIcon.vue';
 
 const props = withDefaults(defineProps<{
@@ -22,7 +23,7 @@ const props = withDefaults(defineProps<{
 	noun?: string;
 	// Without the address and size under it.
 	bare?: boolean;
-}>(), { wide: false, noun: 'the image', bare: false });
+}>(), { wide: false, noun: t('image_preview.the_image', 'the image'), bare: false });
 
 const emit = defineEmits<{
 	pick: [];
@@ -84,20 +85,20 @@ function loaded(event: Event): void {
 			<img v-if="url && !missing" :src="url" alt="" @load="loaded" @error="missing = true">
 			<span v-else class="image-preview__missing">
 				<AdminIcon name="image-off" />
-				<span>{{ url === null && !missing ? 'Loading…' : 'Not found' }}</span>
+				<span>{{ url === null && !missing ? t('common.loading', 'Loading…') : t('image_preview.not_found', 'Not found') }}</span>
 			</span>
 		</span>
 		<span class="image-preview__veil" aria-hidden="true" />
 		<span class="image-preview__actions">
-			<button type="button" class="button button--small" @click="emit('pick')">Replace<span class="visually-hidden"> {{ noun }}</span></button>
-			<button type="button" class="button button--small button--danger" @click="emit('remove')">Remove<span class="visually-hidden"> {{ noun }}</span></button>
+			<button type="button" class="button button--small" @click="emit('pick')">{{ t('image_preview.replace', 'Replace') }}<span class="visually-hidden"> {{ noun }}</span></button>
+			<button type="button" class="button button--small button--danger" @click="emit('remove')">{{ t('common.remove', 'Remove') }}<span class="visually-hidden"> {{ noun }}</span></button>
 		</span>
 	</div>
 	<div v-else class="image-preview image-preview--empty" :class="{ 'image-preview--wide': wide }">
-		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />Choose an Image</button>
+		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />{{ t('image_preview.choose', 'Choose an Image') }}</button>
 	</div>
 	<p v-if="src && !bare" class="field__help mono image-preview__about">
-		{{ shown || src }}<template v-if="missing"> · not found</template><template v-else-if="size"> · {{ size }}</template>
+		{{ shown || src }}<template v-if="missing"> · {{ t('image_preview.not_found_inline', 'not found') }}</template><template v-else-if="size"> · {{ size }}</template>
 	</p>
 </template>
 

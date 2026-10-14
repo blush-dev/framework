@@ -27,6 +27,7 @@ use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Support\RequestMemo;
 use Blush\Support\Uuid;
+use Blush\Translation\Messages;
 
 /**
  * The API tokens repository (D-747): the `tokens` table of the accounts
@@ -74,6 +75,7 @@ final readonly class Tokens
 	public function __construct(
 		private RecordStores|RecordStore $stores,
 		private ClockInterface $clock,
+		private Messages $messages,
 		private RequestMemo $memo = new RequestMemo()
 	) {}
 
@@ -126,13 +128,17 @@ final readonly class Tokens
 		}
 
 		if ($days !== null && ! in_array($days, self::LIFETIMES, true)) {
-			throw new AuthException(sprintf('A token lasts %s days, or never.', implode(', ', self::LIFETIMES)));
+			throw new AuthException((string) $this->messages->t('auth.tokens.lifetime', 'A token lasts {days} days, or never.', days: implode(', ', self::LIFETIMES)));
 		}
 
 		$name = Account::tidyName($name) ?? '';
 
 		if ($name === '') {
-			throw new AuthException('A token needs a name that says what it\'s for.');
+			throw new AuthException((string) $this->messages->t('auth.tokens.name_required', 'A token needs a name that says what it\'s for.'));
+		}
+
+		if (! Token::isValidName($name)) {
+			throw new AuthException((string) $this->messages->t('auth.tokens.name_too_long', 'A token\'s name is up to {length} characters on one line.', length: Token::NAME_LENGTH));
 		}
 
 		$now    = $this->clock->now();
@@ -365,7 +371,7 @@ final readonly class Tokens
 		try {
 			return $read($this->store());
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The API tokens can\'t be read: %s', $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.tokens.unreadable', 'The API tokens can\'t be read: {error}', error: $e->getMessage()), previous: $e);
 		}
 	}
 
@@ -380,7 +386,7 @@ final readonly class Tokens
 		try {
 			$write($this->store());
 		} catch (RecordException | StorageException $e) {
-			throw new AuthException(sprintf('The token "%s" couldn\'t be saved or removed: %s', $name, $e->getMessage()), previous: $e);
+			throw new AuthException((string) $this->messages->t('auth.tokens.not_saved', 'The token "{name}" couldn\'t be saved or removed: {error}', name: $name, error: $e->getMessage()), previous: $e);
 		} finally {
 			$this->memo->forget();
 		}

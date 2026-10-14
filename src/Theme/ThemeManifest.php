@@ -18,6 +18,7 @@ use Blush\Asset\AssetException;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ExtensionCatalogs;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
@@ -28,6 +29,7 @@ use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
 use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
+use Blush\Translation\Messages;
 
 /**
  * A theme, as its `theme.json` describes it: its
@@ -92,6 +94,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 * @param list<string> $keywords What it's about, searched by the admin (D-565).
 	 * @param list<Asset>  $assets   The assets it registers by handle (D-574).
+	 * @param array<string, list<string>> $catalogs Its scripts' folders by named catalog, or `[]` for the defaults (D-831).
 	 */
 	public function __construct(
 		public string $name,
@@ -119,7 +122,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public array $suggest = [],
 		public array $preload = [],
 		public array $keywords = [],
-		public array $assets = []
+		public array $assets = [],
+		public array $catalogs = []
 	) {}
 
 	public function kind(): ExtensionKind
@@ -133,50 +137,51 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param  array<array-key, mixed> $data
 	 * @throws ThemeException When a value is missing or has the wrong type.
 	 */
-	public static function fromArray(string $path, array $data, ThemeSource $source = ThemeSource::Local): self
+	public static function fromArray(string $path, array $data, ThemeSource $source = ThemeSource::Local, Messages $messages = new Messages()): self
 	{
 		$theme = $data['name'] ?? null;
 
 		if (! is_string($theme) || ! ExtensionName::isValid($theme)) {
-			throw new ThemeException(sprintf('The theme in %s needs a "name": vendor/name, such as "acme/nova".', $path));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.no_name', 'The theme in {path} needs a "name": vendor/name, such as "acme/nova".', path: $path));
 		}
 
 		$label = $data['label'] ?? null;
 
 		if ($label !== null && ! is_string($label)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "label" must be a string.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.label', 'The "{theme}" theme\'s "label" must be a string.', theme: $theme));
 		}
 
 		$namespace = $data['namespace'] ?? ExtensionNamespace::fromName($theme);
 
 		if (! is_string($namespace) || ! ExtensionNamespace::isValid($namespace) || (ExtensionNamespace::isReserved($namespace) && $source !== ThemeSource::Framework)) {
-			throw new ThemeException(sprintf(
-				'The "%s" theme\'s manifest needs a "namespace": lowercase letters, digits, hyphens, and underscores, and not %s.',
-				$theme,
-				implode(', ', ExtensionNamespace::RESERVED)
+			throw new ThemeException((string) $messages->t(
+				'theme.theme_manifest.namespace',
+				'The "{theme}" theme\'s manifest needs a "namespace": lowercase letters, digits, hyphens, and underscores, and not {reserved}.',
+				theme: $theme,
+				reserved: implode(', ', ExtensionNamespace::RESERVED)
 			));
 		}
 
 		$parent = $data['parent'] ?? null;
 
 		if ($parent !== null && (! is_string($parent) || ! ExtensionName::isValid($parent))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "parent" must be a theme\'s name (vendor/name).', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.parent', 'The "{theme}" theme\'s "parent" must be a theme\'s name (vendor/name).', theme: $theme));
 		}
 
 		$provider = $data['provider'] ?? null;
 
 		if ($provider !== null && (! is_string($provider) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$/', $provider) !== 1)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "provider" must be a class name.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.provider', 'The "{theme}" theme\'s "provider" must be a class name.', theme: $theme));
 		}
 
 		$settings = $data['settings'] ?? [];
 
 		if (! is_array($settings) || ($settings !== [] && array_is_list($settings)) || ! array_all($settings, static fn (mixed $item): bool => is_array($item))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.settings', 'The "{theme}" theme\'s "settings" must map names to field definitions.', theme: $theme));
 		}
 
 		if (array_key_exists(self::MENUS, $settings)) {
-			throw new ThemeException(sprintf('The "%s" theme can\'t have a setting named "%s": it keeps which menus the site shows in the theme\'s locations.', $theme, self::MENUS));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.menus_setting', 'The "{theme}" theme can\'t have a setting named "{name}": it keeps which menus the site shows in the theme\'s locations.', theme: $theme, name: self::MENUS));
 		}
 
 		$locations = $data['menus'] ?? [];
@@ -186,13 +191,13 @@ final readonly class ThemeManifest implements ExtensionManifest
 			|| ($locations !== [] && array_is_list($locations))
 			|| ! array_all($locations, static fn (mixed $value, int|string $name): bool => (is_string($value) || is_array($value)) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $name) === 1)
 		) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "menus" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.menus', 'The "{theme}" theme\'s "menus" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', theme: $theme));
 		}
 
 		$variants = $data['variants'] ?? [];
 
 		if (! is_array($variants) || ($variants !== [] && array_is_list($variants)) || ! array_all($variants, static fn (mixed $list): bool => is_array($list) && array_is_list($list))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map block names to lists of variants.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.variants', 'The "{theme}" theme\'s "variants" must map block names to lists of variants.', theme: $theme));
 		}
 
 		$bleed = $data['bleed'] ?? [];
@@ -202,47 +207,48 @@ final readonly class ThemeManifest implements ExtensionManifest
 			|| ($bleed !== [] && array_is_list($bleed))
 			|| ! array_all($bleed, static fn (mixed $class, int|string $width): bool => in_array($width, ['wide', 'full'], true) && is_string($class) && preg_match('/^[A-Za-z_][A-Za-z0-9_-]*$/', $class) === 1)
 		) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "bleed" must map "wide" and "full" to class names.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.bleed', 'The "{theme}" theme\'s "bleed" must map "wide" and "full" to class names.', theme: $theme));
 		}
 
 		$preview = $data['preview'] ?? null;
 
 		if ($preview !== null && (! is_array($preview) || ($preview !== [] && array_is_list($preview)))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "preview" must be an object with "layout", "type", and "palette".', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.preview', 'The "{theme}" theme\'s "preview" must be an object with "layout", "type", and "palette".', theme: $theme));
 		}
 
 		try {
-			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
-			$autoload = Autoload::fromArray($data['autoload'] ?? null);
-			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
-			$links    = ExtensionLinks::fromArray($data);
-			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
-			$conflict  = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
-			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace');
-			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
-			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
-			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
-			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
+			$authors  = ExtensionAuthor::list($data['authors'] ?? [], $messages);
+			$autoload = Autoload::fromArray($data['autoload'] ?? null, $messages);
+			$license  = ExtensionLicense::fromManifest($data['license'] ?? '', $messages);
+			$links    = ExtensionLinks::fromArray($data, $messages);
+			$require  = ExtensionRequire::fromArray($data['require'] ?? null, 'require', $messages);
+			$conflict  = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict', $messages);
+			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace', $messages);
+			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide', $messages);
+			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false, $messages);
+			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null, $messages);
+			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null, $messages);
+			$catalogs  = ExtensionCatalogs::fromManifest($data['catalogs'] ?? null, $messages);
 		} catch (ExtensionException $error) {
-			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.invalid', 'The "{theme}" theme\'s manifest: {error}', theme: $theme, error: $error->getMessage()), 0, $error);
 		}
 
 		$assets = $data['assets'] ?? [];
 
 		if (! is_array($assets) || ($assets !== [] && array_is_list($assets))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "assets" must map handles (vendor/name) to the styles and scripts each loads.', $theme));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.assets', 'The "{theme}" theme\'s "assets" must map handles (vendor/name) to the styles and scripts each loads.', theme: $theme));
 		}
 
 		try {
 			$assets = array_map(
 				static fn (mixed $asset, int|string $handle): Asset => is_array($asset)
-					? Asset::fromArray((string) $handle, $asset, $theme)
-					: throw new AssetException(sprintf('The "%s" asset must be an object with "styles", "scripts", or "requires".', $handle)),
+					? Asset::fromArray((string) $handle, $asset, $theme, $messages)
+					: throw new AssetException((string) $messages->t('theme.theme_manifest.asset_not_object', 'The "{handle}" asset must be an object with "styles", "scripts", or "requires".', handle: $handle)),
 				$assets,
 				array_keys($assets)
 			);
 		} catch (AssetException $error) {
-			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.invalid', 'The "{theme}" theme\'s manifest: {error}', theme: $theme, error: $error->getMessage()), 0, $error);
 		}
 
 		/** @var array<string, mixed> $data */
@@ -251,16 +257,16 @@ final readonly class ThemeManifest implements ExtensionManifest
 			path: $path,
 			label: ExtensionName::label($label, $theme),
 			namespace: $namespace,
-			version: self::string($theme, $data, 'version'),
+			version: self::string($theme, $data, 'version', $messages),
 			parent: $parent,
-			description: self::string($theme, $data, 'description'),
-			styles: self::paths($theme, $data, 'styles', ['style.css']),
-			scripts: self::paths($theme, $data, 'scripts', []),
+			description: self::string($theme, $data, 'description', $messages),
+			styles: self::paths($theme, $data, 'styles', ['style.css'], $messages),
+			scripts: self::paths($theme, $data, 'scripts', [], $messages),
 			data: $data,
 			source: $source,
 			provider: $provider,
 			autoload: $autoload,
-			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview),
+			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview, $messages),
 			authors: $authors,
 			license: $license,
 			links: $links,
@@ -270,9 +276,10 @@ final readonly class ThemeManifest implements ExtensionManifest
 			provide: $provide,
 			abandoned: $abandoned,
 			suggest: $suggest,
-			preload: self::paths($theme, $data, 'preload', []),
+			preload: self::paths($theme, $data, 'preload', [], $messages),
 			keywords: $keywords,
-			assets: $assets
+			assets: $assets,
+			catalogs: $catalogs
 		);
 	}
 
@@ -356,11 +363,11 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param  array<array-key, mixed> $data
 	 * @throws ThemeException
 	 */
-	private static function string(string $theme, array $data, string $key): string
+	private static function string(string $theme, array $data, string $key, Messages $messages): string
 	{
 		$value = $data[$key] ?? '';
 
-		return is_string($value) ? $value : throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a string.', $theme, $key));
+		return is_string($value) ? $value : throw new ThemeException((string) $messages->t('theme.theme_manifest.not_string', 'The "{theme}" theme\'s "{field}" must be a string.', theme: $theme, field: $key));
 	}
 
 	/**
@@ -371,19 +378,19 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @return list<string>
 	 * @throws ThemeException
 	 */
-	private static function paths(string $theme, array $data, string $key, array $default): array
+	private static function paths(string $theme, array $data, string $key, array $default, Messages $messages): array
 	{
 		$value = $data[$key] ?? $default;
 
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths.', $theme, $key));
+			throw new ThemeException((string) $messages->t('theme.theme_manifest.not_paths', 'The "{theme}" theme\'s "{field}" must be a list of paths.', theme: $theme, field: $key));
 		}
 
 		$paths = [];
 
 		foreach ($value as $path) {
 			if (! is_string($path) || ! ThemeChain::isValidAssetPath($path)) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths inside the theme.', $theme, $key));
+				throw new ThemeException((string) $messages->t('theme.theme_manifest.paths_outside', 'The "{theme}" theme\'s "{field}" must be a list of paths inside the theme.', theme: $theme, field: $key));
 			}
 
 			$paths[] = $path;

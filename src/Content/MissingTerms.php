@@ -22,6 +22,7 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Support\Progress;
+use Blush\Translation\Messages;
 
 /**
  * Every term and profile is a file (D-584): a slug entries name in a
@@ -41,7 +42,8 @@ final readonly class MissingTerms
 		private ContentTypes $types,
 		private Entries $content,
 		private ClockInterface $clock,
-		private AppConfig $app
+		private AppConfig $app,
+		private Messages $messages
 	) {}
 
 	/**
@@ -53,7 +55,7 @@ final readonly class MissingTerms
 	 */
 	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
+		$this->indexer->index(progress: new Progress($progress)->of((string) $this->messages->t('content.missing_terms.checking_index', 'Checking the content index')));
 
 		$snapshot = $this->index->snapshot();
 		$missing  = [];
@@ -125,7 +127,7 @@ final readonly class MissingTerms
 		}
 
 		foreach ($terms as $done => [$type, $slug, $title]) {
-			$steps->step('Writing terms', $done, count($terms));
+			$steps->step((string) $this->messages->t('content.missing_terms.writing', 'Writing terms'), $done, count($terms));
 
 			try {
 				$created["{$type->name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
@@ -137,7 +139,7 @@ final readonly class MissingTerms
 			}
 		}
 
-		$steps->step('Writing terms', count($terms), count($terms));
+		$steps->step((string) $this->messages->t('content.missing_terms.writing', 'Writing terms'), count($terms), count($terms));
 
 		return new CreatedEntries($created, $failed);
 	}
