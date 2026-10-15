@@ -107,7 +107,7 @@ final class VisibilityTest extends TestCase
 
 		$this->assertFalse($open->type->hasVisibility());
 		$this->assertSame(Visibility::Public, $open->visibility, 'Front matter is ignored.');
-		$this->assertSame(['name' => 'note', 'kind' => 'collection', 'visibility' => false], array_intersect_key($open->type->toArray(), array_flip(['name', 'kind', 'visibility'])));
+		$this->assertSame(['name' => 'note', 'kind' => 'collection'], array_intersect_key($open->type->toArray(), array_flip(['name', 'kind', 'visibility'])), 'Off is the default, so it isn\'t written (D-866).');
 		$this->assertTrue($this->named('post', 'live')->type->hasVisibility());
 		$this->assertFalse($this->named('card', 'one')->type->hasVisibility(), 'A type off the site has no addresses.');
 		$this->assertFalse($this->named('card', 'one')->isLinkable());

@@ -1391,3 +1391,41 @@ history of what carried over; where they say set, read this:
 - **The editor's sidebar** draws each section as the set's collapsible
   group did; a type's library fields outside any section join its own
   ("{Type} Fields").
+
+## Content types (`content-types-sketch-001.html`, D-866)
+
+Built from the admin's own pieces:
+
+- **Rows are `SettingRow`** in `.setting-panels__rows`, as on Settings, over the shared `.setting` classes (label,
+  control, help in the third column, or under it for `wide` rows), not
+  the sketch's own row styles. Its unsaved dot is the shared `.unsaved`,
+  and **Changed Here** is the accent pill, with what the plugin sets
+  under the help.
+- **No section links** under the title (the author's call, D-869).
+- **The kind is `.choices--detailed` radios**, as the API token form
+  has them, not cards. The icon is `IconField`, the site's icon picker.
+- **File Names and Folders keep their presets** (`AdminSelect`, with a
+  pattern written by hand kept as itself); the sketch's pattern field
+  with token chips isn't built for them. Route paths use the sketch's
+  pattern field (D-871), but as setting rows lined up with the page's
+  other controls, not a Route / Path table, and labeled for people
+  (Listing, Entry, Year archive) rather than by route key (D-872).
+- **A new type's addresses** are set before it's made: its routes come
+  from the server's preview of the draft (`POST types/routes`, D-870),
+  asked again as its kind, prefix, and switches change.
+- **A type the admin can't change** shows its switches locked and its
+  other settings as values, with its menu place, fields, and
+  relationships still editable.
+- **Toasts after saving say what happened** (pages moved, files kept
+  their names) rather than carrying Add Redirects or Open Site Health:
+  toasts offer only Undo.
+- **No save bar.** The page saves from its header, as the other
+  Structure screens do (D-868): Update or Saved with Revert changes in
+  its menu, and Cancel and Create on a new type. What a change does is
+  said under the setting that makes it (D-867), not in a bar.
+- **The delete trail** is a notice on the list (`?deleted=`), with Open
+  Site Health and a dismiss button.
+- **Labels' rows** are named for where they show (In the Menu, One in a
+  Sentence, New Button, Editor Title, Search Box), not by their keys.
+- **Listing has no Other Query Arguments**, as the sketch's last version
+  has it.

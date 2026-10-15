@@ -228,18 +228,18 @@ block offers (`bin/blush icon:list`), such as `film` or
 ### Where a type sits in the admin's menu
 
 The admin's **Content** menu lists your types alphabetically by their
-menu names. `position` puts a type in an order of your own: types with
-one come first, lowest first, then the rest alphabetically. `under`
-names the type it sits under in the menu, such as a Cast type under
-Movies:
+menu names. `adminPosition` puts a type in an order of your own: types
+with one come first, lowest first, then the rest alphabetically.
+`adminUnder` names the type it sits under in the menu, such as a Cast
+type under Movies:
 
 `user/data/types/cast.json`:
 
 ```json
 {
 	"labels": { "plural": "Cast" },
-	"position": 2,
-	"under": "movie"
+	"adminPosition": 2,
+	"adminUnder": "movie"
 }
 ```
 
@@ -252,7 +252,7 @@ accounts, so they take neither setting.
 
 You don't have to write these by hand: each type's screen under
 **Structure → Content Types** has an **In the Menu** panel with **Sits
-under** and **Position**. It's there for every type, including Pages
+Under** and **Position**. It's there for every type, including Pages
 and types from plugins, even ones whose other settings can't be changed
 in the admin. For a type defined in code, the file in `user/data/types/`
 holds only what you've changed, and resetting the type keeps its place.
@@ -452,15 +452,17 @@ entry is shown at the top level) and an entry that's its own ancestor.
 
 A collection's `order` sets how it lists its entries: `date`
 (newest first, the default) or `position`, by the `position` front
-matter (lowest first), then title. A collection that nests or is
-ordered by position has the `position` field. In
+matter (lowest first), then title. Its entries have a `position` only
+when it [supports one](#supports) (`"position": true`); without it,
+ordering by position sorts by title. In
 `user/data/types/category.json`:
 
 ```json
 {
 	"urls": { "prefix": "topics" },
 	"hierarchical": true,
-	"order": "position"
+	"order": "position",
+	"position": true
 }
 ```
 
@@ -896,8 +898,7 @@ Every kind takes these:
 | `fields`            |                                                                | The library fields it carries ([A type's fields](#a-types-fields)) |
 | `closed`            | `false`                                                        | Whether front matter no field declares is an error ([Custom fields](#custom-fields)) |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
-| `expires`           | `false`                                                        | Whether its entries can have an `expires` date ([Expiry](#expiry)) |
-| `visibility`        | `true`                                                         | Whether its entries choose a visibility ([Visibility](#visibility)) |
+| `image`, `summary`, `subtitle`, `position`, `visibility`, `expires` | `false` | The optional built-in fields its entries have ([Supports](#supports)) |
 | `workflow`          | `standard`                                                     | The statuses its entries move through, and the transitions between them, by name. Blush has `standard` (draft and published); plugins add more (see [Workflows from a plugin](extending.md#workflows-from-a-plugin)). A name there isn't uses `standard`, and `content:lint` says so |
 
 Collections and trees also take these:
@@ -905,8 +906,8 @@ Collections and trees also take these:
 | Option     | Default                    | What it does                                                                            |
 |------------|----------------------------|-----------------------------------------------------------------------------------------|
 | `byline`   | Its only credit relation   | The [credit relation](#crediting-people) its byline uses, by name, when it has several |
-| `position` | None (alphabetical)        | [Its order in the admin's menu](#where-a-type-sits-in-the-admins-menu), lowest first    |
-| `under`    | None (the top level)       | [The type it sits under in the admin's menu](#where-a-type-sits-in-the-admins-menu)     |
+| `adminPosition` | None (alphabetical)   | [Its order in the admin's menu](#where-a-type-sits-in-the-admins-menu), lowest first    |
+| `adminUnder` | None (the top level)     | [The type it sits under in the admin's menu](#where-a-type-sits-in-the-admins-menu)     |
 
 Trees also take this:
 
@@ -918,7 +919,7 @@ Collections and the profiles type also take these:
 
 | Option    | Default       | What it does                                                                                                                      |
 |-----------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `urls`    | Standard URLs | `false` for no URLs of its own, or [custom URLs](#custom-urls)                                                                    |
+| `urls`    | Standard URLs | `false` for no URLs of its own (the admin's **Routes** off), or [custom URLs](#custom-urls)                                       |
 | `listing` |               | How the listing page lists entries ([above](#listing-entries))                                                                    |
 | `feed`    | `false`       | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the [type of terms](#terms-and-relationships) used for each item's categories) and `listing` |
 | `folders` |               | The [folders its files are kept in](#folders-for-many-files) inside its own: `{year}`, `{year}/{month}`, or `{initial}`             |
@@ -931,9 +932,37 @@ Only collections take:
 | `hierarchical` | `false`     | Whether an entry may name a `parent` entry ([Nesting and order](#nesting-and-order))             |
 | `order`        | `date` | `date` (newest first) or `position` (lowest first, then title) ([Nesting and order](#nesting-and-order)) |
 
+### Supports
+
+Besides `title`, `slug`, `status`, `date`, and `updated`, which every
+entry has, a type chooses which of core's other fields its entries
+have, each switched on in its file (or under **Supports** on its
+screen). Each is off unless it says `true`:
+
+| Option       | Adds                                                                      |
+|--------------|---------------------------------------------------------------------------|
+| `image`      | `image`, a featured image for lists, feeds, and shared links              |
+| `summary`    | `summary` (`excerpt` too), a short description for lists, feeds, and search |
+| `subtitle`   | `subtitle`, a line under the title                                        |
+| `position`   | `position`, a hand-picked order among siblings                            |
+| `visibility` | `visibility`, each entry public, unlisted, or hidden ([below](#visibility)) |
+| `expires`    | `expires`, a date after which an entry is off the site ([Expiry](#expiry)) |
+
+```json
+{ "image": true, "summary": true, "position": true, "visibility": true }
+```
+
+A field that's off isn't declared, so a value for it in a file stays
+there unread, and the editor doesn't show it. The admin's **New Content
+Type** starts with `image`, `summary`, and `visibility` on, and
+`position` for trees and nesting types. The built-in pages have
+`image`, `summary`, `position`, and `visibility`; profiles have
+`subtitle` and `visibility`. A plugin's type sets its own (`new
+Collection('recipe', image: true, summary: true)`).
+
 ### Expiry
 
-A type with `expires: true` (in Type Settings, **Entries can expire**)
+A type with `expires: true` (in Supports, **Expiration**)
 gives each entry an `expires` date. Once it passes, the entry is
 expired: off the site, as a draft is, so its address is a 404 and no
 list, feed, sitemap, or API read shows it. Nothing in its file changes;
@@ -948,14 +977,13 @@ expiry ignores the date, and `content:lint` says so.
 
 ### Visibility
 
-A type that's on the site (`public`, the default) lets each entry
-choose its visibility: `public`, `unlisted` (an address, but in no
-list), or `hidden` (no address). See
-[Who sees an entry](content.md#who-sees-an-entry). Turn it off with
-`visibility: false` (in Type Settings, **Entries choose a
-visibility**) for a type whose entries should all be public: the
-admin no longer offers it, and a `visibility` in an entry's front
-matter is ignored. A type with `public: false` has no addresses, so
+A type that's on the site (`public`, the default) and has
+`visibility: true` (in Supports, **Visibility**) lets each entry choose
+its visibility: `public`, `unlisted` (an address, but in no list), or
+`hidden` (no address). See
+[Who sees an entry](content.md#who-sees-an-entry). Without it, every
+entry is public: the admin doesn't offer it, and a `visibility` in an
+entry's front matter is ignored. A type with `public: false` has no addresses, so
 its entries have no visibility either way.
 
 ## Naming new files

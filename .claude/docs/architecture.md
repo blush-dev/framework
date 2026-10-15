@@ -723,9 +723,8 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   exceptions.
 - **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
   `date` (D-852; once `published`), `updated`, `status`, `visibility`, `summary`
-  (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
-  `stylesheet`, `class`, and
-  `collection`, plus the field of each relation the site defines from
+  (alias `excerpt`), `image`, `locale`, `template` (alias `view`), and
+  `collection` (`stylesheet` and `class` are gone, D-865), plus the field of each relation the site defines from
   the type (a classify relation's terms).
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
   **typed entry fields**, and **admin forms** (D-233). Field sets,

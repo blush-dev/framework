@@ -261,7 +261,12 @@ field sets, controls (core only for 2.x), and forms as four terms
 in `roadmap.md`; field sets are since replaced by a field library that
 types list in their `fields` (D-863), in sections (Structure → Fields makes
 fields one at a time; a type changes only a field's label, help, and
-required; Group is Object, Repeating Group is List; D-858 to D-860).
+required; Group is Object, Repeating Group is List; D-858 to D-860);
+and, from the content types sketch
+(`.claude/docs/admin-design/content-types-sketch-001.html`), Supports
+switches for core's optional fields (missing is off), the menu's
+`adminPosition` and `adminUnder`, and one page for a type and a new one
+(D-864 to D-866).
 Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.

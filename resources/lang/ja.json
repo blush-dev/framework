@@ -3091,14 +3091,6 @@
 				"label": "テンプレート",
 				"description": "使用するテーマのテンプレート（single-wide など）。"
 			},
-			"stylesheet": {
-				"label": "スタイルシート",
-				"description": "このページ用の追加のスタイルシート。"
-			},
-			"class": {
-				"label": "クラス",
-				"description": "ページの <body> に付ける追加の CSS クラス（スペース区切り）。"
-			},
 			"translation_of": {
 				"label": "翻訳元",
 				"description": "翻訳の場合、翻訳元エントリーのID。ファイル名に関係なく両者をリンクします。"

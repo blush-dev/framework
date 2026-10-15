@@ -89,6 +89,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param list<DefinitionClash>      $clashes   Types and relations two extensions define by one name; the first of each is kept (D-597).
 	 * @param list<string>               $namedFolders Data types that still name their folder, read in `_` and their name until they're moved (D-683).
 	 * @param Messages                   $messages  Writes why a type's fields are refused, and the help of the fields it adds.
+	 * @param array<string, class-string> $sources  The class each type from an extension came from, by name, to find the extension (D-866).
 	 */
 	public function __construct(
 		private readonly array $types,
@@ -101,11 +102,24 @@ final class ContentTypes implements IteratorAggregate, Countable
 		public readonly array $legacy = [],
 		public readonly array $clashes = [],
 		public readonly array $namedFolders = [],
-		private readonly Messages $messages = new Messages()
+		private readonly Messages $messages = new Messages(),
+		private readonly array $sources = []
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
 		}
+	}
+
+	/**
+	 * Returns the class a type from an extension came from (its
+	 * `ContentTypeSource`), to find the extension, or `null` for a type
+	 * that isn't an extension's.
+	 *
+	 * @return ?class-string
+	 */
+	public function source(string $name): ?string
+	{
+		return $this->sources[$name] ?? null;
 	}
 
 	/**
@@ -379,10 +393,10 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 */
 	public function menuParent(string $name): ?string
 	{
-		$under  = $this->find($name)?->under;
+		$under  = $this->find($name)?->adminUnder;
 		$parent = $under === null ? null : $this->find($under);
 
-		return $parent === null || $parent instanceof Profiles || $parent->under !== null ? null : $parent->name;
+		return $parent === null || $parent instanceof Profiles || $parent->adminUnder !== null ? null : $parent->name;
 	}
 
 	/**
@@ -602,10 +616,13 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns a type's schema before what it's given: the built-in entry
-	 * fields, the field of each relation the site defines from it (D-593:
-	 * a classify relation's terms, or a credit's profiles, say), a
-	 * profile's `avatar` and `linkable`, a hierarchical collection's `parent`, a tree's or a
-	 * positioned collection's `position` (D-412), then the type's own
+	 * fields it has (D-866: always `title`, `slug`, `status`, `date`, and
+	 * `updated`, with core's bookkeeping, and `image`, `summary`,
+	 * `subtitle`, `visibility`, and `expires` only when it's switched them
+	 * on), the field of each relation the site defines from it (D-593: a
+	 * classify relation's terms, or a credit's profiles, say), a profile's
+	 * `avatar` and `linkable`, a hierarchical collection's `parent`, its
+	 * `position` when it's switched on (D-412, D-866), then the type's own
 	 * fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
@@ -626,12 +643,22 @@ final class ContentTypes implements IteratorAggregate, Countable
 				new BoolField('linkable')->described($this->messages->t('content.content_types.linkable_help', 'false locks the profile against being linked to an account (D-605).'))
 			] : [];
 			$parent   = $type instanceof Collection ? $type->parentField($this->messages) : null;
-			$position = $type instanceof Tree || ($type instanceof Collection && $type->isPositioned())
+			$position = $type->position
 				? [new NumberField(Position::FIELD, integer: true)->described($this->messages->t('content.content_types.position_help', 'Its place among its sibling {items}, lowest first; those without one follow, by title.', items: $type->labels->items))]
 				: [];
 
+			// Core's optional fields, each only when the type has it (D-866).
+			$core = array_filter(EntryFields::schema($this->messages)->fields, static fn (Field $field): bool => match ($field->name) {
+				'image'      => $type->image,
+				'summary'    => $type->summary,
+				'subtitle'   => $type->subtitle,
+				'visibility' => $type->hasVisibility(),
+				'expires'    => $type->expires,
+				default      => true
+			});
+
 			return new Schema([
-				...array_values(EntryFields::schema($this->messages)->fields),
+				...array_values($core),
 				...$terms,
 				...$avatar,
 				...($parent === null ? [] : [$parent]),
@@ -645,7 +672,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, library: list<array<string, mixed>>, fields: list<array{owner: string, targets: list<string>, field: array<string, mixed>}>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>, namedFolders: list<string>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, library: list<array<string, mixed>>, fields: list<array{owner: string, targets: list<string>, field: array<string, mixed>}>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>, namedFolders: list<string>, sources: array<string, class-string>}
 	 */
 	public function toArray(): array
 	{
@@ -660,7 +687,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 			'relationOrigins' => array_map(static fn (RelationOrigin $origin): string => $origin->value, $this->relationOrigins),
 			'legacy'          => $this->legacy,
 			'clashes'         => array_map(static fn (DefinitionClash $clash): array => $clash->toArray(), $this->clashes),
-			'namedFolders'    => $this->namedFolders
+			'namedFolders'    => $this->namedFolders,
+			'sources'         => $this->sources
 		];
 	}
 
@@ -727,7 +755,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		$named = array_values(array_filter(is_array($data['namedFolders'] ?? null) ? $data['namedFolders'] : [], is_string(...)));
 
-		return new self($types, $origins, is_string($home) ? $home : null, $library, $overrides, $relations, $relationOrigins, $legacy, $clashes, $named, $messages);
+		$sources = array_filter(is_array($data['sources'] ?? null) ? $data['sources'] : [], static fn (mixed $class, int|string $name): bool => is_string($name) && is_string($class) && class_exists($class), ARRAY_FILTER_USE_BOTH);
+
+		return new self($types, $origins, is_string($home) ? $home : null, $library, $overrides, $relations, $relationOrigins, $legacy, $clashes, $named, $messages, $sources);
 	}
 
 	/**

@@ -388,8 +388,8 @@ export interface ContentTypeSummary {
 	// Its place in the admin's content menu (D-726): its order (`null`
 	// for none, after those with one, by name) and the type it sits under
 	// (`null` for the top level).
-	position: number | null;
-	under: string | null;
+	adminPosition: number | null;
+	adminUnder: string | null;
 	// Its workflow (D-851), and its statuses, in the order its list's
 	// tabs show them.
 	workflow: string;
@@ -405,6 +405,14 @@ export interface ContentTypeSummary {
 	folder: string;
 	prefix: string | null;
 	fields: number;
+	// Whether its entries have pages on the site at all.
+	public: boolean;
+	// How many entries it has, in any status but the trash; the label of
+	// the plugin that defines it, and how many options a file here
+	// changes (D-866).
+	entries: number;
+	plugin: string | null;
+	changed: number;
 }
 
 /**
@@ -547,6 +555,21 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	fields: TypeFieldItem[];
 	fieldsEditable: boolean;
 	library: LibraryFieldOption[];
+	// The labels it sets (`TypeLabels::KEYS`), the rest made from its
+	// names (D-866).
+	labelsSet: Record<string, unknown>;
+	// The optional core fields it has (D-866).
+	supports: { image: boolean; summary: boolean; subtitle: boolean; position: boolean; visibility: boolean; expires: boolean };
+	// How its listing page lists entries, its feed's settings (`null`
+	// without a feed), and whether it has routes at all (D-866).
+	listing: { type?: string; orderBy?: string; order?: string; perPage?: number };
+	feedSettings: { categories?: string; listing?: { orderBy?: string; order?: string; perPage?: number } } | null;
+	hasRoutes: boolean;
+	// A plugin type's options as its code defines them, or `null`.
+	code: Record<string, unknown> | null;
+	// Who can use it: roles that grant every type, that name it, and that
+	// name other types but not it (D-866).
+	roles: { every: string[]; named: string[]; others: string[] };
 	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
 	dateArchives: string;
 	// Its own file name pattern (D-511, D-514), or `null` for the

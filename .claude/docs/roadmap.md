@@ -1058,7 +1058,7 @@ required there. Group is Object, Repeating Group is List. Each stage
 ends with `composer check`, `npm run admin:build`, the jtcom trial's
 files rewritten (no migration, D-859), and `docs/`.
 
-**Stage 1. The server.** Built (D-860).
+**Stage 1. The server.** Built. Built (D-860).
 - `FieldLibrary` (the site's fields by name, with the registered
   fields) in place of `FieldSets`; its loader reads the `fields` table
   (`user/data/fields/{name}.json`) in place of `field_sets`.
@@ -1103,6 +1103,38 @@ files rewritten (no migration, D-859), and `docs/`.
 - Object and List in the control picker, `FieldForm`, and the editor's
   text; the field sketch's departures in `departures.md`.
 - `docs/`: fields, types, and front matter rewritten for the library.
+
+### Content types from the sketch (D-866): built
+
+From `.claude/docs/admin-design/content-types-sketch-001.html`, built
+from the admin's own pieces (record departures in `departures.md`).
+Each stage ends with `composer check`, `npm run admin:build`, the trial
+site updated, and `docs/`.
+
+**Stage 1. The server.** `adminPosition` and `adminUnder` for the menu;
+the Supports switches on `ContentType` (`image`, `summary`, `subtitle`,
+`position`, `visibility`, `expires`; missing is off), each declaring its
+core field only when on; Pages and Profiles set theirs; the trial site's
+types and plugin types write theirs.
+
+**Stage 2. The admin's API.** Built. A type's screen gets everything it sets:
+every label, the switches, `listing`, `feed` as a map (`categories`,
+`listing`), routes on or off (`urls: false`), the plugin that defines
+it, and who can use it (roles that grant every type, and those that
+name types); every one of them can be changed.
+
+**Stage 3. The list.** Built. Kind tabs only for kinds the site has; each row
+the name over its key and address, its kind (what a taxonomy files,
+that a tree nests), where it's defined (the plugin's name, and whether
+it's changed here), and its fields and entries.
+
+**Stage 4. One page for a type and a new one.** Built. Sections in order
+(General, Labels, Supports, In the Menu, Behavior, Archives,
+Relationships, Addresses, Fields, Danger Zone) with links under the
+title; `.setting` rows; switches; what doesn't apply hidden with a line,
+or shown disabled with what controls it; changes from a plugin marked;
+one save bar that says what saving does, and Create on a new type's.
+`NewTypeView` is replaced by the same page.
 
 ### Declared front matter (D-786): planned
 

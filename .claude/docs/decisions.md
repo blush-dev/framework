@@ -27538,3 +27538,187 @@ decision, add a new entry that supersedes it and mark the old one
     and `fields`.
   - The brief, `docs/`, and the trial site's file use `fields`.
 - **Status:** Built.
+
+### D-864: Core fields a type opts into
+
+- **Date:** 2026-10-15
+- **Refines:** D-787 and D-792 (core's fields on every type, `type:*`),
+  D-852 (`expires`), D-855 (`visibility`), D-860 (no featured image
+  switch).
+- **The author's decisions:** which of core's entry fields a type has
+  is set on the type, when it's created or edited, not by listing them
+  in its `fields` (D-863), which stay the library's.
+  - **Always, on every type:** `title`, `slug`, `status`, `date`, and
+    `updated`.
+  - **Opt in:** `subtitle`; `image` (on by default in the admin's new
+    type screen); `visibility` (on by default there for public types);
+    `position` (on by default for trees and hierarchical types).
+  - **`parent`:** always on for trees and hierarchical types, as now.
+  - **`template`:** shown only when the theme has a template for it.
+  - **`stylesheet` and `class` are removed** from core: they were only
+    for the author's site, and a site adds them as its own fields
+    (built, D-865).
+  - **`summary`** opts in like `subtitle`, on by default in the new type
+    screen; **`expires`** stays the opt-in it is (off by default).
+  - **Off means not read:** a type that hasn't opted in doesn't declare
+    the field, so a value in a file stays there but templates, the API,
+    and the editor don't see it, as any undeclared key (D-794).
+  - **A switch each** in the type's definition: `subtitle`, `summary`,
+    `image`, and `position` beside `visibility` and `expires`. The admin's
+    defaults are written into a new type's file, so a file says what its
+    type has.
+  - Core's own bookkeeping (`trashed`, `translation_of`, `collection`)
+    is unchanged.
+- **Status:** Planned.
+
+### D-865: `stylesheet` and `class` leave core
+
+- **Date:** 2026-10-15
+- **Builds:** D-864's removal of `stylesheet` and `class`, ahead of the
+  rest of it.
+- **Decision:** The author's call: they were only for the author's own
+  site. Core no longer declares them (`EntryFields`), a page no longer
+  links an entry's `stylesheet` or adds its `class` to `<body>`
+  (`ViewFactory`), and the editor's Advanced group, which held only
+  them, is gone. A site that wants them makes them its own fields, and
+  its theme reads them. A file that still has them keeps the keys,
+  unread, and Site Health lists them under Fields Nothing Reads.
+- **Status:** Built.
+
+### D-866: Supports switches, admin menu keys, and the content types sketch
+
+- **Date:** 2026-10-15
+- **Builds:** D-864. **Supersedes:** D-726's `position` and `under`
+  keys (renamed), D-855's `visibility` on by default, and D-864's "the
+  admin's defaults are written into a new type's file" as the only
+  defaults: a missing switch is off.
+- **The author's decisions,** with the content types sketch
+  (`.claude/docs/admin-design/content-types-sketch-001.html`) to build
+  from:
+  - **A type's place in the admin's menu is `adminPosition` and
+    `adminUnder`** (were `position` and `under`), so `position` can be
+    the entries' switch.
+  - **Supports switches:** `image`, `summary`, `subtitle`, `position`,
+    `visibility`, and `expires`, each `true` or `false`. **A missing one
+    is off**, for every type: one in `user/data/types`, a plugin's, and
+    the built-in Pages and Profiles, which set theirs in code. A type
+    that's off doesn't declare the field, so it isn't read (D-864).
+  - **The admin's new type screen** starts with `image` and `summary`
+    on, `position` on for trees and hierarchical types, `visibility` on
+    for public types, and the rest off, and writes what's on.
+  - **Built in:** Pages have `image`, `summary`, `position`, and
+    `visibility`; Profiles have `subtitle` (the line under a name) and
+    `visibility`. Decided for the author.
+- **The sketch,** built from the admin's pieces, as the plan in
+  `roadmap.md` stages it: the list with kind tabs and richer rows, one
+  page for a type and a new type alike (sections with links under the
+  title, `.setting` rows, one save bar that says what saving does),
+  Labels with every label, a Supports panel, Behavior's groups, Archives,
+  Relationships with credits and nesting at the top, Addresses as route
+  paths with their placeholders, Fields (`TypeFields`), and the danger
+  zone.
+- **Status:** Built (2026-10-15): all four stages. The server's
+  switches and admin keys (and `ContentTypes::source()` for a plugin
+  type's plugin); the API's labels set, supports, listing, feed
+  settings, routes on or off, a plugin type's code options, roles, and
+  entry counts, with `routes`, `listing`, and `PATCH`'s `authors`
+  writable; the list; and one `TypeView` for a type and a new one
+  (`NewTypeView`, `TypeEditor`, `TypeBasicsFields`, `TypeBehaviorFields`,
+  and `TypeMenuFields` are gone), with `SettingRow`, `SectionLinks`, and
+  `SaveBar`'s `create`. Departures in `departures.md`.
+
+### D-867: The save bar only counts; a setting says what its change does
+
+- **Date:** 2026-10-15
+- **Refines:** D-866 (the sketch's save bar sentence).
+- **Decision:** The author's call: the floating save bar carries the
+  count of changes and its buttons, never a sentence of what saving
+  does ("Creates the type and its index page…"). A new type's bar says
+  "Not saved yet" with Cancel and Create. What a change does (pages
+  moving to new addresses, new files named the new way, statuses kept)
+  is said in the help under the setting that makes it, and in the toast
+  after saving. `SaveBar`'s `note` is gone. `SettingRow`'s control is a
+  `.field`, so its inputs are drawn as every form's are.
+- **Status:** Built.
+
+### D-868: A type's page saves from its header
+
+- **Date:** 2026-10-15
+- **Refines:** D-866 and D-867 (the type page's save bar).
+- **Decision:** The author's call: a type's page saves as the other
+  Structure screens do (a field, a menu, a relationship), from its
+  header, not a floating save bar. An existing type has **Update**
+  (**Saved** when nothing's changed) and a menu with **Revert
+  changes**; a new type has **Cancel** and **Create**. A refused save is
+  a notice under the header. `SaveBar` loses its `create` mode (D-866);
+  the Settings screens, roles, and media files keep the save bar.
+- **Status:** Built.
+
+### D-869: No section links on a type's page
+
+- **Date:** 2026-10-15
+- **Refines:** D-866 (the sketch's section links).
+- **Decision:** The author's call: a type's page has no line of links
+  to its sections under the title; `SectionLinks` is gone. Its rows sit
+  in `.setting-panels__rows`, as the Settings screens' do, so they have
+  no gap between them, and its form is the `.setting-panels` around the
+  panels, the container whose width places each row's help (beside the
+  control when it's wide, under it otherwise), as on Settings.
+- **Status:** Built.
+
+### D-870: A new type's addresses before it's made
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-866's departure that a new type's addresses are its
+  prefix only, set once it's made.
+- **Decision:** The author asked why a new type left its addresses out;
+  they're configurable (`POST types` takes `set.paths`), so a new type's
+  page shows its **Addresses** too. The routes a type has depend on the
+  server (its kind, feeds, relationship archives, the home type), so
+  the admin asks for them: `POST types/routes` takes the draft as
+  `POST types` would (with the authors and classify relationships Create
+  would add) and answers its `routes` in the details' shape, writing
+  nothing; 422 when the draft is invalid. The page asks again (debounced)
+  as the draft changes, and the paths typed are sent with Create.
+- **Status:** Built.
+
+### D-871: Route paths as the sketch draws them
+
+- **Date:** 2026-10-15
+- **Refines:** D-866 (a type's page, from the content types sketch) and
+  D-350 (route paths).
+- **Decision:** The author's call: a type's routes follow the sketch,
+  built from the Media settings' path box. Media's path box is now the
+  shared `PatternField`: a lead (what it's under) and the pattern;
+  while it has focus, the path it makes and its tokens, which go in at
+  the caret with the slashes they need; a required token marked with a
+  dot and a held one pressed; a problem under it. Media keeps its
+  example always shown. `TypeRoutesFields` is a Route / Path table
+  (`.table`), rows grouped on bands as Collection, Single, Date
+  Archives, and Relationship Archive: {relation}, each route's key in
+  mono with a dot when its path isn't saved, and its path a
+  `PatternField` under `/{prefix}/` with the key's default as its
+  placeholder. A path that's missing a required placeholder, holds one
+  the route doesn't give, or has other characters says so as it's
+  typed; the server still checks on save. The routes' people-readable
+  labels (Listing, Year archive) are gone: the sketch names routes by
+  key. Where addresses can't be set (`dataTypeUrls`), each is shown
+  whole, its placeholders marked.
+- **Status:** Built.
+
+### D-872: Routes as setting rows, the prefix as a pattern field
+
+- **Date:** 2026-10-15
+- **Refines:** D-871.
+- **Decision:** The author's call: a type's route paths line up with
+  its other settings, so `TypeRoutesFields` is setting rows (`SettingRow`,
+  wide), not a Route / Path table (whose rows took `.table`'s hover), in groups on the bands the type page's other
+  groups use, now the shared `.setting-panels__group`. The URL Prefix
+  (a collection's and a tree's) is a `PatternField` with `/` as its
+  lead, as the route paths are, without tokens. `.field`'s input styles
+  leave a pattern field's input alone, as they do a dialog's. The note
+  that the site's config locks addresses is the prefix's help alone.
+  Each row is labeled for people again (Listing, Entry, Year archive,
+  Feed (Atom), Authors archive, later pages), as before D-871, in place
+  of the sketch's route keys: the author asked for readable labels.
+- **Status:** Built.

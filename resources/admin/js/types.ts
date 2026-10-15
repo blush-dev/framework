@@ -132,7 +132,7 @@ export interface MenuType {
  * those without one by the names the menu shows (D-278).
  */
 export function byMenuPlace(a: ContentTypeSummary, b: ContentTypeSummary): number {
-	return (a.position ?? Infinity) - (b.position ?? Infinity) || a.labels.menu.localeCompare(b.labels.menu, locale());
+	return (a.adminPosition ?? Infinity) - (b.adminPosition ?? Infinity) || a.labels.menu.localeCompare(b.labels.menu, locale());
 }
 
 /**
@@ -146,8 +146,8 @@ export function contentMenu(list: ContentTypeSummary[]): MenuType[] {
 	const names  = new Set(sorted.map((type) => type.name));
 
 	return sorted
-		.filter((type) => type.under === null || !names.has(type.under))
-		.map((type) => ({ type, under: sorted.filter((child) => child.under === type.name) }));
+		.filter((type) => type.adminUnder === null || !names.has(type.adminUnder))
+		.map((type) => ({ type, under: sorted.filter((child) => child.adminUnder === type.name) }));
 }
 
 /**

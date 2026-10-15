@@ -13,12 +13,19 @@ declare(strict_types=1);
 
 namespace Blush\Admin\Http;
 
+use JsonException;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Blush\Auth\Role;
+use Blush\Auth\Roles;
+use Blush\Container\Container;
 use Blush\Content\Http\RelatedController;
+use Blush\Content\Relation\InvalidRelation;
 use Blush\Content\Relation\Relation;
 use Blush\Content\ContentConfig;
 use Blush\Content\Entries;
 use Blush\Content\Source\ContentFiles;
+use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -34,11 +41,13 @@ use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
 use Blush\Field\ControlDefaults;
+use Blush\Field\FieldFactory;
 use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\LibraryField;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Plugin\Plugins;
 use Blush\Translation\Messages;
 use Blush\Workflow\Workflow;
 use Blush\Workflow\Workflows;
@@ -114,7 +123,10 @@ final readonly class TypesController
 		private ContentFiles $files,
 		private ControlDefaults $defaults,
 		private Messages $messages,
-		private Workflows $workflows
+		private Workflows $workflows,
+		private Roles $roles,
+		private Container $container,
+		private FieldFactory $fields
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -143,6 +155,69 @@ final readonly class TypesController
 		}
 
 		return Response::json($this->detail($this->types, $type), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Answers `POST types/routes` (D-870): the routes a type being made
+	 * would have, as `show()` gives a type's `routes`, so a new type's
+	 * addresses can be set before Create. Takes the draft as Create does
+	 * (`name`, `kind`, `set`, `authors`) and, for a taxonomy, `files`:
+	 * the type is built from it with the relationships Create makes (its
+	 * place in Authors, a taxonomy's classify relationship), among the
+	 * site's types. Answers `{"routes"}`, or a `422` with why the draft
+	 * isn't a type yet.
+	 */
+	public function preview(ServerRequestInterface $request): ResponseInterface
+	{
+		try {
+			$input = json_decode((string) $request->getBody(), true, 64, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			$input = [];
+		}
+
+		$input   = is_array($input) ? $input : [];
+		$name    = is_string($input['name'] ?? null) && preg_match('/^[a-z][a-z0-9_]*$/', $input['name']) === 1 && $this->types->find($input['name']) === null ? $input['name'] : 'draft';
+		$kind    = ($input['kind'] ?? 'collection') === 'tree' ? 'tree' : 'collection';
+		$set     = is_array($input['set'] ?? null) ? $input['set'] : [];
+		$files   = is_array($input['files'] ?? null) ? array_values(array_filter($input['files'], is_string(...))) : [];
+		$routes  = ($set['routes'] ?? true) !== false;
+		$prefix  = is_string($set['prefix'] ?? null) && trim($set['prefix'], '/ ') !== '' ? trim($set['prefix'], '/ ') : null;
+		$draft   = ['name' => $name, 'kind' => $kind];
+
+		foreach (['public', 'dateArchives', 'hierarchical', 'order', 'feed'] as $option) {
+			if (array_key_exists($option, $set) && $set[$option] !== null) {
+				$draft[$option] = $set[$option];
+			}
+		}
+
+		if ($kind === 'tree') {
+			$draft['prefix'] = $prefix;
+		} else {
+			$draft['urls'] = $routes ? array_filter(['prefix' => $prefix], static fn (?string $value): bool => $value !== null) : false;
+		}
+
+		try {
+			$type      = ContentType::fromArray($draft, $this->fields, $this->messages);
+			$relations = $this->types->relations();
+			$profiles  = $this->types->profiles();
+			$authors   = $relations[Relation::AUTHORS] ?? null;
+
+			if (($input['authors'] ?? false) === true && $profiles !== null && $kind !== 'tree') {
+				$relations[Relation::AUTHORS] = $authors === null
+					? Relation::authors([$name], $profiles->name, $this->messages)
+					: ($authors->from === [] ? $authors : Relation::fromArray([...$authors->toArray(), 'from' => [...$authors->from, $name]], $this->messages));
+			}
+
+			if (($input['taxonomy'] ?? false) === true && $kind === 'collection') {
+				$relations[$name] = Relation::fromArray(['name' => $name, 'kind' => 'classify', 'from' => $files, 'to' => [$name], 'create' => true], $this->messages);
+			}
+		} catch (InvalidContentType | InvalidRelation $error) {
+			return Response::json(['error' => $error->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
+		}
+
+		$types = new ContentTypes([...$this->types->all(), $name => $type], [], $this->types->home, $this->types->library, [], $relations, messages: $this->messages);
+
+		return Response::json(['routes' => $this->routes($types, $type)], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -200,6 +275,15 @@ final readonly class TypesController
 			], $types->relationArchives($type))),
 			'fields'       => $type->layout->toArray(),
 			'fieldsEditable' => $this->config->dataTypes,
+			// The optional core fields it has (D-866).
+			// The labels it sets, the rest made from its names (D-866).
+			'labelsSet'    => (object) $type->labels->toArray($type->name, BuiltInType::labelsFor($type->kind(), $type->name, $this->messages)),
+			'supports'     => ['image' => $type->image, 'summary' => $type->summary, 'subtitle' => $type->subtitle, 'position' => $type->position, 'visibility' => $type->visibility, 'expires' => $type->expires],
+			'listing'      => (object) $type->listing->toArray(),
+			'feedSettings' => $type->feed === false ? null : (object) $type->feed->toArray(),
+			'hasRoutes'    => $type->hasUrls(),
+			'code'         => $this->code($name),
+			'roles'        => $this->roles($name),
 			'library'      => array_values(array_map(fn (LibraryField $field): array => [
 				'name'        => $field->name(),
 				'label'       => $field->field->label,
@@ -332,8 +416,8 @@ final readonly class TypesController
 			'taxonomy'       => $types->classification($type->name) !== null,
 			'hierarchical' => $types->nestsByParent($type->name),
 			'order'       => $type instanceof Collection ? $type->order->value : null,
-			'position'    => $type->position,
-			'under'       => $types->menuParent($type->name),
+			'adminPosition' => $type->adminPosition,
+			'adminUnder'  => $types->menuParent($type->name),
 			// Its workflow (D-851), and its statuses, which its list's tabs
 			// show.
 			'workflow'    => $this->workflows->for($type)->name,
@@ -346,13 +430,78 @@ final readonly class TypesController
 			...($types->classification($type->name) !== null ? ['types' => $types->classification($type->name)->from] : []),
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,
+			'public'      => $type->public,
 			'folder'      => $type->folder,
 			'prefix'      => match (true) {
 				$type->hasUrls()                              => '/' . $type->prefix(),
 				$type instanceof Tree && ! $type->atRoot()    => '/' . $type->pagePath(),
 				default                                       => null
 			},
-			'fields'      => count($type->schema->fields) + count($type->layout->names())
+			'fields'      => count($type->schema->fields) + count($type->layout->names()),
+			'entries'     => $this->content->query()->type($type->name)->anyStatus()->count(),
+			// The plugin that defines it, and how many options a file here
+			// changes (D-866).
+			'plugin'      => $this->plugin($types, $type->name),
+			'changed'     => $types->isOverridden($type->name) ? count($this->overrides($type->name)) : 0
 		];
+	}
+
+	/**
+	 * The label of the plugin that defines a type, or `null` for a type
+	 * that isn't a plugin's (or whose plugin can't be told).
+	 */
+	private function plugin(ContentTypes $types, string $name): ?string
+	{
+		$source = $types->source($name);
+
+		if ($source === null || ! $this->container->has(Plugins::class)) {
+			return null;
+		}
+
+		return $this->container->make(Plugins::class)->owning($source)?->label;
+	}
+
+	/**
+	 * A plugin type's options as its code defines them, to show what a
+	 * file here changes (D-866); `null` for a type that isn't a plugin's.
+	 *
+	 * @return ?array<string, mixed>
+	 */
+	private function code(string $name): ?array
+	{
+		try {
+			$code = $this->writer->codeType($name);
+		} catch (InvalidContentType) {
+			return null;
+		}
+
+		return $code === null ? null : array_diff_key($code->toArray(), ['fields' => true, ContentType::OWN_FIELDS => true]);
+	}
+
+	/**
+	 * Who can use a type (D-866): the labels of the roles that grant
+	 * every type (`content.*.…`, or everything), of those that name it,
+	 * and of those that name other types but not it.
+	 *
+	 * @return array{every: list<string>, named: list<string>, others: list<string>}
+	 */
+	private function roles(string $name): array
+	{
+		$out = ['every' => [], 'named' => [], 'others' => []];
+
+		foreach ($this->roles->all() as $role) {
+			$caps  = $role->capabilities;
+			$label = (string) $role->label;
+
+			if (in_array(Role::ALL, $caps, true) || array_any($caps, static fn (string $cap): bool => str_starts_with($cap, 'content.*.'))) {
+				$out['every'][] = $label;
+			} elseif (array_any($caps, static fn (string $cap): bool => str_starts_with($cap, "content.{$name}."))) {
+				$out['named'][] = $label;
+			} elseif (array_any($caps, static fn (string $cap): bool => str_starts_with($cap, 'content.'))) {
+				$out['others'][] = $label;
+			}
+		}
+
+		return $out;
 	}
 }

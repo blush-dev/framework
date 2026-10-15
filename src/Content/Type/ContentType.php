@@ -99,17 +99,26 @@ abstract readonly class ContentType
 
 	/**
 	 * The name of the type this one sits under in the admin's menu
-	 * (D-726), or `null` for the top level. It's only where the admin
-	 * shows it: no address, folder, or capability follows it.
+	 * (D-726, `adminUnder`, D-866), or `null` for the top level. It's only
+	 * where the admin shows it: no address, folder, or capability follows
+	 * it.
 	 */
-	public ?string $under;
+	public ?string $adminUnder;
 
 	/**
-	 * The options that place a type in the admin's menu (D-726), which a
-	 * data file may set over any type, even one it can't otherwise
-	 * change: the built-in pages, say.
+	 * The options that place a type in the admin's menu (D-726, D-866),
+	 * which a data file may set over any type, even one it can't
+	 * otherwise change: the built-in pages, say.
 	 */
-	public const array PLACEMENT = ['position', 'under'];
+	public const array PLACEMENT = ['adminPosition', 'adminUnder'];
+
+	/**
+	 * The switches for core's optional entry fields (D-864, D-866), each
+	 * `true` or `false`, off when it's missing: a type that's off doesn't
+	 * declare the field. `visibility` and `expires` have more to them
+	 * (D-855, D-852).
+	 */
+	public const array SUPPORTS = ['image', 'summary', 'subtitle', 'position', 'visibility', 'expires'];
 
 	/**
 	 * What a data file may set over any type (D-726, D-858): its place
@@ -147,13 +156,17 @@ abstract readonly class ContentType
 	 * @param  ?string         $byline       The credit relation that's its byline, or `null` for its only one.
 	 * @param  bool            $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
 	 * @param  ?FileName       $filename     How new files are named (D-511, D-514); the slug alone by default.
-	 * @param  ?int            $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
-	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
+	 * @param  ?int            $adminPosition Its order in the admin's menu (D-726, D-866), lowest first; `null` after those with one, by name.
+	 * @param  ?string         $adminUnder   The type it sits under in the admin's menu (D-726, D-866), or `null` for the top level.
 	 * @param  ?string         $workflow     The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires      Whether its entries may have an `expires` date, after which they're expired (D-852).
-	 * @param  bool            $visibility   Whether its entries choose a visibility (D-855); off, every entry is public. Only a public type has it.
+	 * @param  bool            $visibility   Whether its entries choose a visibility (D-855); off, every entry is public. Only a public type has it. Off unless it's on (D-866).
 	 * @param  Messages        $messages     Writes why a type is refused; English without a translator, for a type in code.
 	 * @param  FieldLayout     $layout       The library fields it carries, in sections (D-858), written as its definition's `fields` (D-863).
+	 * @param  bool            $image        Whether entries have a featured `image` (D-866).
+	 * @param  bool            $summary      Whether entries have a `summary` (D-866).
+	 * @param  bool            $subtitle     Whether entries have a `subtitle` (D-866).
+	 * @param  bool            $position     Whether entries have a `position` among their siblings (D-412, D-866).
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -173,14 +186,18 @@ abstract readonly class ContentType
 		?string $byline = null,
 		public bool $llms = true,
 		public ?FileName $filename = null,
-		public ?int $position = null,
-		?string $under = null,
+		public ?int $adminPosition = null,
+		?string $adminUnder = null,
 		public FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		public bool $expires = false,
-		public bool $visibility = true,
+		public bool $visibility = false,
 		Messages $messages = new Messages(),
-		public FieldLayout $layout = new FieldLayout()
+		public FieldLayout $layout = new FieldLayout(),
+		public bool $image = false,
+		public bool $summary = false,
+		public bool $subtitle = false,
+		public bool $position = false
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType((string) $messages->t(
@@ -211,14 +228,14 @@ abstract readonly class ContentType
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
 		$this->byline      = $byline === null || trim($byline) === '' ? null : trim($byline);
-		$this->under       = $under === null || trim($under) === '' ? null : trim($under);
+		$this->adminUnder  = $adminUnder === null || trim($adminUnder) === '' ? null : trim($adminUnder);
 		$this->workflow    = $workflow === null || trim($workflow) === '' ? null : trim($workflow);
 
-		if ($position !== null && $position < 0) {
-			throw new InvalidContentType((string) $messages->t('content.content_type.negative_position', 'Content type "{name}" "position" must be 0 or more.', name: $name));
+		if ($adminPosition !== null && $adminPosition < 0) {
+			throw new InvalidContentType((string) $messages->t('content.content_type.negative_position', 'Content type "{name}" "adminPosition" must be 0 or more.', name: $name));
 		}
 
-		if ($this->under === $name) {
+		if ($this->adminUnder === $name) {
 			throw new InvalidContentType((string) $messages->t('content.content_type.under_itself', 'Content type "{name}" can\'t sit under itself.', name: $name));
 		}
 	}
@@ -465,7 +482,11 @@ abstract readonly class ContentType
 				'controls'    => $controls,
 				'workflow'    => $definition->nullableString('workflow'),
 				'expires'     => $definition->bool('expires'),
-				'visibility'  => $definition->bool('visibility', true),
+				'visibility'  => $definition->bool('visibility'),
+				'image'       => $definition->bool('image'),
+				'summary'     => $definition->bool('summary'),
+				'subtitle'    => $definition->bool('subtitle'),
+				'position'    => $definition->bool('position'),
 				'messages'    => $messages,
 				'layout'      => FieldLayout::fromArray($data['fields'] ?? null, (string) $messages->t('content.content_type.subject', 'Content type "{name}"', name: $name))
 			];
@@ -485,8 +506,8 @@ abstract readonly class ContentType
 
 			// A place in the admin's menu (D-726); profiles, listed with
 			// people, have none.
-			$common['position'] = self::position($definition, $name, $messages);
-			$common['under']    = $definition->nullableString('under');
+			$common['adminPosition'] = self::position($definition, $name, $messages);
+			$common['adminUnder']    = $definition->nullableString('adminUnder');
 
 			if ($kind === TypeKind::Tree) {
 				unset($common['folders']);
@@ -599,7 +620,7 @@ abstract readonly class ContentType
 	public function overlaidBy(array $data, FieldFactory $fields, Messages $messages): self
 	{
 		if (! self::onlyOverlays($data)) {
-			throw new InvalidContentType((string) $messages->t('content.content_type.only_overlaid', '"{name}" can only be placed in the menu and given fields here, with "position", "under", and "fields".', name: $this->name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.only_overlaid', '"{name}" can only be placed in the menu and given fields here, with "adminPosition", "adminUnder", and "fields".', name: $this->name));
 		}
 
 		if ($this->kind() === TypeKind::Profiles && array_intersect_key($data, array_flip(self::PLACEMENT)) !== []) {
@@ -642,11 +663,15 @@ abstract readonly class ContentType
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,
 			'filename'    => $this->filename?->pattern,
-			'position'    => $this->position,
-			'under'       => $this->under,
+			'adminPosition' => $this->adminPosition,
+			'adminUnder'  => $this->adminUnder,
 			'workflow'    => $this->workflow,
 			'expires'     => $this->expires ?: null,
-			'visibility'  => $this->visibility ? null : false,
+			'visibility'  => $this->visibility ?: null,
+			'image'       => $this->image ?: null,
+			'summary'     => $this->summary ?: null,
+			'subtitle'    => $this->subtitle ?: null,
+			'position'    => $this->position ?: null,
 			...$this->options(),
 			self::OWN_FIELDS => $this->controls->definitions($this->schema->fields),
 			'fields'      => $this->layout->toArray(),
@@ -852,17 +877,18 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Reads the `position` option (D-726): a whole number, 0 or more.
+	 * Reads the `adminPosition` option (D-726, D-866): a whole number, 0
+	 * or more.
 	 *
 	 * @throws InvalidSchema
 	 * @throws InvalidContentType
 	 */
 	private static function position(Definition $definition, string $name, Messages $messages): ?int
 	{
-		$position = $definition->number('position');
+		$position = $definition->number('adminPosition');
 
 		if ($position !== null && ! is_int($position)) {
-			throw new InvalidContentType((string) $messages->t('content.content_type.position_not_whole', 'Content type "{name}" "position" must be a whole number.', name: $name));
+			throw new InvalidContentType((string) $messages->t('content.content_type.position_not_whole', 'Content type "{name}" "adminPosition" must be a whole number.', name: $name));
 		}
 
 		return $position;

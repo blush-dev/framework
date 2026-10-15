@@ -144,28 +144,30 @@ final class ContentTypeTest extends TestCase
 
 	public function testATypeIsPlacedInTheMenu(): void
 	{
-		$cast = ContentType::fromArray(['name' => 'cast', 'position' => 2, 'under' => 'movie'], $this->fields, new Messages());
-		$this->assertSame([2, 'movie'], [$cast->position, $cast->under]);
-		$this->assertSame(['position' => 2, 'under' => 'movie'], array_intersect_key($cast->toArray(), array_flip(ContentType::PLACEMENT)));
+		$cast = ContentType::fromArray(['name' => 'cast', 'adminPosition' => 2, 'adminUnder' => 'movie'], $this->fields, new Messages());
+		$this->assertSame([2, 'movie'], [$cast->adminPosition, $cast->adminUnder]);
+		$this->assertSame(['adminPosition' => 2, 'adminUnder' => 'movie'], array_intersect_key($cast->toArray(), array_flip(ContentType::PLACEMENT)), 'The menu\'s keys are adminPosition and adminUnder (D-866).');
 
-		$page = BuiltInType::Page->type()->overlaidBy(['position' => 0], $this->fields, new Messages());
+		$page = BuiltInType::Page->type()->overlaidBy(['adminPosition' => 0], $this->fields, new Messages());
 		$this->assertInstanceOf(Tree::class, $page);
-		$this->assertSame([0, true], [$page->position, $page->atRoot()], 'Placing the site\'s pages keeps them as they are (D-726).');
+		$this->assertSame([0, true], [$page->adminPosition, $page->atRoot()], 'Placing the site\'s pages keeps them as they are (D-726).');
 
 		$profile = BuiltInType::Profile->type()->overlaidBy(['fields' => ['website']], $this->fields, new Messages());
 		$this->assertSame(['website'], $profile->layout->names(), 'Any type takes library fields (D-858).');
 
-		$this->assertTrue(ContentType::onlyOverlays(['under' => 'movie']));
+		$this->assertTrue(ContentType::onlyOverlays(['adminUnder' => 'movie']));
+		$this->assertFalse(ContentType::onlyOverlays(['under' => 'movie']), 'The old key is no overlay.');
 		$this->assertTrue(ContentType::onlyOverlays(['fields' => ['website']]));
-		$this->assertFalse(ContentType::onlyOverlays(['under' => 'movie', 'icon' => 'film']));
+		$this->assertFalse(ContentType::onlyOverlays(['adminUnder' => 'movie', 'icon' => 'film']));
 		$this->assertFalse(ContentType::onlyOverlays([]));
 
 		$refused = [
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => -1], $this->fields, new Messages()), '0 or more'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 1.5], $this->fields, new Messages()), 'whole number'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'under' => 'cast'], $this->fields, new Messages()), 'under itself'],
-			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'under' => 'movie'], $this->fields, new Messages()), 'unknown options: under'],
-			[fn (): ContentType => BuiltInType::Profile->type()->overlaidBy(['position' => 1], $this->fields, new Messages()), 'listed with people'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'adminPosition' => -1], $this->fields, new Messages()), '0 or more'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'adminPosition' => 1.5], $this->fields, new Messages()), 'whole number'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 2], $this->fields, new Messages()), 'must be true or false'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'adminUnder' => 'cast'], $this->fields, new Messages()), 'under itself'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'adminUnder' => 'movie'], $this->fields, new Messages()), 'unknown options: adminUnder'],
+			[fn (): ContentType => BuiltInType::Profile->type()->overlaidBy(['adminPosition' => 1], $this->fields, new Messages()), 'listed with people'],
 			[fn (): ContentType => BuiltInType::Page->type()->overlaidBy(['icon' => 'file'], $this->fields, new Messages()), 'only be placed']
 		];
 

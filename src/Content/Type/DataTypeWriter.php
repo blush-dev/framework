@@ -36,7 +36,8 @@ use Blush\Translation\Messages;
  * Changes are given by canonical option name (`labels`, `description`,
  * `icon`, `prefix` for the URL prefix (a tree's own `prefix`, D-683),
  * `paths` for route keys' paths (`null` or `''` for a key's default,
- * D-350), `public`, `sitemap`, `llms` (D-398), `feed`, `byline` (D-602),
+ * D-350), `routes` (`false` for none, `urls: false`, D-866), `listing`
+ * (D-866), `public`, `sitemap`, `llms` (D-398), `feed`, `byline` (D-602),
  * `dateArchives`, `filename` (D-511), `folders` for the folder pattern
  * (`{year}`, D-629), `hierarchical`, `order` (D-593), and `fields`, the
  * library fields it carries, D-858);
@@ -79,6 +80,7 @@ final readonly class DataTypeWriter
 		'sitemap'      => [],
 		'llms'         => [],
 		'feed'         => [],
+		'listing'      => ['collection'],
 		'byline'       => [],
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'filename'     => [],
@@ -86,8 +88,12 @@ final readonly class DataTypeWriter
 		'prefix'       => [],
 		'hierarchical' => [],
 		'order'        => [],
+		'adminPosition' => [],
+		'adminUnder'   => [],
+		'image'        => [],
+		'summary'      => [],
+		'subtitle'     => [],
 		'position'     => [],
-		'under'        => [],
 		'workflow'     => [],
 		'expires'      => [],
 		'visibility'   => [],
@@ -182,7 +188,7 @@ final readonly class DataTypeWriter
 		$type  = $types->find($name);
 
 		if ($type !== null && array_intersect_key($changes, array_flip(ContentType::PLACEMENT)) !== []) {
-			$this->checkPlacement($types, $type, array_key_exists('under', $changes) ? $changes['under'] : $type->under);
+			$this->checkPlacement($types, $type, array_key_exists('adminUnder', $changes) ? $changes['adminUnder'] : $type->adminUnder);
 		}
 
 		// A type the admin can't otherwise change is only placed, and given
@@ -251,7 +257,7 @@ final readonly class DataTypeWriter
 	private function checkPlacement(ContentTypes $types, ContentType $type, mixed $under): void
 	{
 		if ($under !== null && ! is_string($under)) {
-			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_under', '"under" must be a type\'s name, or null for the top level.'));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_under', '"adminUnder" must be a type\'s name, or null for the top level.'));
 		}
 
 		$under = trim($under ?? '');
@@ -270,11 +276,11 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_parent', '{types} can\'t sit under "{under}": it isn\'t a type in the content menu.', types: $type->labels->plural, under: $under));
 		}
 
-		if ($parent->under !== null) {
+		if ($parent->adminUnder !== null) {
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.parent_nested', '{types} can\'t sit under {parent}, which sits under another type; the menu nests one level.', types: $type->labels->plural, parent: $parent->labels->plural));
 		}
 
-		$children = array_filter($types->all(), static fn (ContentType $child): bool => $child->under === $type->name);
+		$children = array_filter($types->all(), static fn (ContentType $child): bool => $child->adminUnder === $type->name);
 
 		if ($children !== []) {
 			throw new InvalidContentType((string) $this->messages->t(
@@ -300,11 +306,11 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.profiles_not_placed', '{types} are listed with people, so they aren\'t placed in the content menu.', types: $type->labels->plural));
 		}
 
-		$position = array_key_exists('position', $changes) ? $changes['position'] : $type->position;
-		$under    = array_key_exists('under', $changes) ? $changes['under'] : $type->under;
+		$position = array_key_exists('adminPosition', $changes) ? $changes['adminPosition'] : $type->adminPosition;
+		$under    = array_key_exists('adminUnder', $changes) ? $changes['adminUnder'] : $type->adminUnder;
 
 		if ($position !== null && (! is_int($position) || $position < 0)) {
-			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_position', '"position" must be a whole number, 0 or more, or null.'));
+			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_position', '"adminPosition" must be a whole number, 0 or more, or null.'));
 		}
 
 		try {
@@ -317,7 +323,7 @@ final readonly class DataTypeWriter
 		[$code] = ($this->loader)()->codeTypes();
 
 		return $this->checked(function () use ($type, $position, $under, $layout, $code): void {
-			$this->overlay($type->name, ['position' => $position, 'under' => $under, 'fields' => $layout->toArray()], $code[$type->name] ?? null);
+			$this->overlay($type->name, ['adminPosition' => $position, 'adminUnder' => $under, 'fields' => $layout->toArray()], $code[$type->name] ?? null);
 		});
 	}
 
@@ -326,7 +332,7 @@ final readonly class DataTypeWriter
 	 * record, or, over a type from code, only what differs from the
 	 * code's.
 	 *
-	 * @param array{position: ?int, under: ?string, fields: list<string|array<string, mixed>>} $values
+	 * @param array{adminPosition: ?int, adminUnder: ?string, fields: list<string|array<string, mixed>>} $values
 	 */
 	private function overlay(string $name, array $values, ?ContentType $code): void
 	{
@@ -335,8 +341,8 @@ final readonly class DataTypeWriter
 
 		if ($code !== null) {
 			$values = [
-				'position' => $values['position'] === $code->position ? null : $values['position'],
-				'under'    => $values['under'] === $code->under ? null : ($values['under'] ?? ($code->under === null ? null : '')),
+				'adminPosition' => $values['adminPosition'] === $code->adminPosition ? null : $values['adminPosition'],
+				'adminUnder'    => $values['adminUnder'] === $code->adminUnder ? null : ($values['adminUnder'] ?? ($code->adminUnder === null ? null : '')),
 				'fields'   => $values['fields'] === $code->layout->toArray() ? null : $values['fields']
 			];
 		}
@@ -457,6 +463,11 @@ final readonly class DataTypeWriter
 				$value = $this->labels($merged, $value);
 			} elseif ($key === 'feed' && $value === true && is_array($merged['feed'] ?? null)) {
 				$value = $merged['feed'];
+			} elseif ($key === 'routes') {
+				// Routes off is `urls: false`; on again, its URLs as they were,
+				// or the default ones (D-866).
+				$key   = 'urls';
+				$value = $value === false ? false : (is_array($merged['urls'] ?? null) ? $merged['urls'] : []);
 			}
 
 			if (! array_key_exists($key, self::OPTIONS)) {
@@ -575,11 +586,15 @@ final readonly class DataTypeWriter
 			'prefix'       => $type->name,
 			'hierarchical' => false,
 			'order'        => TypeOrder::Date->value,
-			'position'     => null,
-			'under'        => '',
+			'adminPosition' => null,
+			'adminUnder'   => '',
 			'workflow'     => '',
 			'expires'      => false,
-			'visibility'   => true,
+			'visibility'   => false,
+			'image'        => false,
+			'summary'      => false,
+			'subtitle'     => false,
+			'position'     => false,
 			default        => []
 		};
 	}

@@ -227,7 +227,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->themeView('about-page.php', '<?php $template->layout(\'plain\') ?>custom about');
 		$this->themeView('layouts/plain.php', '<body class="<?= attr($template->bodyClass()) ?>"><?= $template->section(\'content\') ?></body>');
 
-		$this->assertSame('<body class="wide dark mode is-page type-page">custom about</body>', $this->body('/about'));
+		$this->assertSame('<body class="is-page type-page">custom about</body>', $this->body('/about'), 'Front matter adds no classes now: `class` is a site\'s own field (D-865).');
 	}
 
 	public function testTheWelcomePageShowsOnAnEmptySite(): void

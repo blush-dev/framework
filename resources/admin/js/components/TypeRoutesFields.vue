@@ -1,20 +1,26 @@
 <script setup lang="ts">
 /**
- * A content type's addresses (D-350): each route key it answers at (its
- * listing and date archives, entries or terms, feeds, and each
- * relation's archives, D-596, D-602), with the path after its prefix, edited in place. An empty
- * path is the key's default, shown as the placeholder. Each row says
- * which {placeholders} it needs and may hold, and shows the whole
- * address; the server checks them on save.
+ * A content type's routes (D-350, drawn from the content types sketch,
+ * D-871): a setting row for each route key it answers at, its control
+ * lined up with the type page's other rows, grouped on bands as the code
+ * groups them (its listing and feeds, its entries, date archives, and
+ * each relation's archive, D-596, D-602), with its path after the
+ * prefix. A path is a `PatternField`, as Media's upload paths are: an
+ * empty one is the key's default, shown as the placeholder, and while
+ * it has focus it shows the address it makes and the placeholders it
+ * may hold, a required one marked. A path that leaves out a required
+ * placeholder, or holds one the route doesn't give, says so under it;
+ * the server checks them again on save.
  */
 
 import { computed } from 'vue';
 import type { TypeRoute } from '../api';
 import { pathOf, type TypeForm } from '../type-form';
 import { t } from '../messages';
-import MessageText from './MessageText.vue';
+import PatternField from './PatternField.vue';
+import SettingRow from './SettingRow.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
 	idPrefix: string;
 	routes: TypeRoute[];
 	// The prefix the addresses sit under, without slashes.
@@ -24,7 +30,9 @@ const props = defineProps<{
 	taxonomy: boolean;
 	// Whether the type may set its URLs (`dataTypeUrls`).
 	editable: boolean;
-}>();
+	// The saved paths, to mark a path not saved yet; `null` for a new type.
+	saved?: Record<string, string> | null;
+}>(), { saved: null });
 
 const form = defineModel<TypeForm>({ required: true });
 
@@ -66,59 +74,117 @@ function labelOf(route: TypeRoute): string {
 	return paged ? t('type_routes_fields.later_pages', '{label}, later pages', { label }) : label;
 }
 
+// What each placeholder stands for in an example address.
+const EXAMPLES: Record<string, string> = { name: 'hello-world', year: '2026', month: '10', day: '15', hour: '13', minute: '28', second: '00', page: '2', target: 'jane-doe' };
 
-function addressOf(route: TypeRoute): string {
-	const path = pathOf(form.value.paths[route.key] ?? '') || route.default;
+function groupOf(route: TypeRoute): string {
+	if (route.relation !== null) {
+		return t('type_routes_fields.relation_group', 'Relationship Archive: {relation}', { relation: route.relation });
+	}
+
+	if (route.key.startsWith('single')) {
+		return t('type_routes_fields.single', 'Single');
+	}
+
+	return /^collection\.(year|month|day|hour|minute|second)\b/.test(route.key) ? t('type_routes_fields.date_archives', 'Date Archives') : t('type_routes_fields.collection', 'Collection');
+}
+
+const groups = computed(() => {
+	const all: { name: string; routes: TypeRoute[] }[] = [];
+
+	for (const route of props.routes) {
+		const name = groupOf(route);
+		const last = all.at(-1);
+
+		if (last?.name === name) {
+			last.routes.push(route);
+		} else {
+			all.push({ name, routes: [route] });
+		}
+	}
+
+	return all;
+});
+
+function leadOf(route: TypeRoute): string {
+	return route.root || props.prefix === '' ? '/' : `/${props.prefix}/`;
+}
+
+function exampleOf(route: TypeRoute): string {
+	const path = (pathOf(form.value.paths[route.key] ?? '') || route.default).replace(/\{([a-z_]+)\}/g, (match, token: string) => EXAMPLES[token] ?? match);
 
 	return `/${[route.root ? '' : props.prefix, path].filter((part) => part !== '').join('/')}`;
 }
 
-function braced(names: string[]): string {
-	return names.map((name) => `{${name}}`).join(' ');
+function problemOf(route: TypeRoute): string {
+	const path = pathOf(form.value.paths[route.key] ?? '');
+
+	if (path === '') {
+		return '';
+	}
+
+	if (!/^[A-Za-z0-9{}/_.-]*$/.test(path)) {
+		return t('type_routes_fields.characters', 'Letters, digits, - _ . / and placeholders only.');
+	}
+
+	const held    = [...path.matchAll(/\{([a-z_]+)\}/g)].map((match) => match[1] ?? '');
+	const missing = route.requires.filter((token) => !held.includes(token));
+
+	if (missing.length) {
+		return t('type_routes_fields.missing', 'Missing required {tokens}: without it, two pages would share this path.', { tokens: missing.map((token) => `{${token}}`).join(' ') });
+	}
+
+	const foreign = held.find((token) => !route.requires.includes(token) && !route.allows.includes(token));
+
+	return foreign === undefined ? '' : t('type_routes_fields.foreign', '{token} isn\'t a placeholder this route gives.', { token: `{${foreign}}` });
 }
 
-const shown = computed(() => props.routes);
+function unsaved(route: TypeRoute): boolean {
+	return props.saved !== null && pathOf(form.value.paths[route.key] ?? '') !== pathOf(props.saved[route.key] ?? '');
+}
+
+// A path that can't be changed, whole, with its placeholders.
+function fixedOf(route: TypeRoute): string {
+	const whole = `${leadOf(route)}${pathOf(form.value.paths[route.key] ?? '') || route.default}`;
+
+	return whole === '/' ? whole : whole.replace(/\/+$/, '');
+}
+
+function marked(path: string): string[] {
+	return path.split(/(\{[a-z_]+\})/).filter((part) => part !== '');
+}
 </script>
 
 <template>
-	<div class="form-stack">
-		<p v-if="!editable" class="field__help">
-			<MessageText :text="t('type_routes_fields.not_editable', '{config} doesn\'t let types in {folder} set their URLs ({setting}), so these are as the site has them.')">
-				<template #config><code>config/content.php</code></template>
-				<template #folder><code>user/data/types</code></template>
-				<template #setting><code>dataTypeUrls</code></template>
-			</MessageText>
-		</p>
-		<div class="type-routes__grid">
-			<div v-for="route in shown" :key="route.key" class="field">
-				<label :for="`${idPrefix}${route.key}`">{{ labelOf(route) }}</label>
-				<input :id="`${idPrefix}${route.key}`" v-model="form.paths[route.key]" class="mono" :placeholder="route.default || t('type_routes_fields.prefix_itself', '(the prefix itself)')" :disabled="!editable" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${route.key}-help`">
-				<p :id="`${idPrefix}${route.key}-help`" class="field__help">
-					<MessageText :text="t('type_routes_fields.at', 'At {address}.')"><template #address><code>{{ addressOf(route) }}</code></template></MessageText>
-					<MessageText v-if="route.requires.length && route.allows.length" :text="t('type_routes_fields.needs_may_hold', 'Needs {requires}; may hold {allows}.')">
-						<template #requires><code>{{ braced(route.requires) }}</code></template>
-						<template #allows><code>{{ braced(route.allows) }}</code></template>
-					</MessageText>
-					<MessageText v-else-if="route.requires.length" :text="t('type_routes_fields.needs', 'Needs {requires}.')"><template #requires><code>{{ braced(route.requires) }}</code></template></MessageText>
-					<MessageText v-else-if="route.allows.length" :text="t('type_routes_fields.may_hold', 'May hold {allows}.')"><template #allows><code>{{ braced(route.allows) }}</code></template></MessageText>
-				</p>
-			</div>
+	<template v-for="group in groups" :key="group.name">
+		<h3 class="setting-panels__group">{{ group.name }}</h3>
+		<div class="setting-panels__rows">
+			<SettingRow v-for="route in group.routes" :key="route.key" :label="labelOf(route)" :control-id="editable ? `${idPrefix}${route.key}` : undefined" :changed="unsaved(route)" wide>
+				<PatternField
+					v-if="editable"
+					:id="`${idPrefix}${route.key}`"
+					:model-value="form.paths[route.key] ?? ''"
+					:lead="leadOf(route)"
+					:placeholder="route.default"
+					:tokens="[...route.requires.map((name) => ({ name, required: true })), ...route.allows.map((name) => ({ name }))]"
+					:example="exampleOf(route)"
+					:label="t('type_routes_fields.path_label', '{route} path', { route: route.key })"
+					:problem="problemOf(route)"
+					@update:model-value="form.paths[route.key] = $event"
+				/>
+				<p v-else class="setting__value"><code class="type-routes__path"><template v-for="(part, index) in marked(fixedOf(route))" :key="index"><span :class="{ 'type-routes__token': part.startsWith('{') }">{{ part }}</span></template></code></p>
+			</SettingRow>
 		</div>
-		<p class="field__help">
-			<MessageText :text="t('type_routes_fields.paths_help', 'Paths follow the prefix. Leave one empty for its default. Changing an address moves those pages; add redirects for the old ones in {folder}.')"><template #folder><code>user/data/redirects</code></template></MessageText>
-		</p>
-	</div>
+	</template>
 </template>
 
 <style scoped>
-.type-routes__grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-	align-items: start;
-	gap: var(--s-4);
+.type-routes__path {
+	color: var(--color-text-secondary);
+	overflow-wrap: anywhere;
 }
 
-.type-routes__grid code {
-	overflow-wrap: anywhere;
+.type-routes__token {
+	color: var(--color-accent);
 }
 </style>

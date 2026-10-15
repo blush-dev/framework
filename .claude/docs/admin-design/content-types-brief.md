@@ -52,8 +52,8 @@ from the one before it.
 
 | Key | Holds | Default | Rules |
 |---|---|---|---|
-| `position` | Its order in the Content menu, lowest first | none (after those with one, by name) | A whole number, 0 or more. Not on profiles. |
-| `under` | The type it sits under in the Content menu | none (top level) | Another type's key. One level only: that type must be at the top, and a type with types under it can't go under another. Not the type itself. Not on profiles. Affects only the menu: no address, folder, or capability follows it. |
+| `adminPosition` | Its order in the Content menu, lowest first | none (after those with one, by name) | A whole number, 0 or more. Not on profiles. |
+| `adminUnder` | The type it sits under in the Content menu | none (top level) | Another type's key. One level only: that type must be at the top, and a type with types under it can't go under another. Not the type itself. Not on profiles. Affects only the menu: no address, folder, or capability follows it. |
 
 ## 4. On the site
 
@@ -62,7 +62,7 @@ from the one before it.
 | `public` | Whether entries have pages on the site at all | `true` | Off: no addresses, and it's out of the sitemap and `llms.txt` whatever those say. |
 | `sitemap` | Whether entries are in `sitemap.xml` | `true` | Only while `public`. |
 | `llms` | Whether entries are listed in `llms.txt` | `true` for collections and trees; `false` for profiles | Only while `public`. The admin's wizard turns it off for a taxonomy. |
-| `visibility` | Whether each entry chooses a visibility: `public`, `unlisted` (an address, but in no lists), or `hidden` (no address) | `true` | Only while `public`. Off: every entry is public, and the editor hides the choice. |
+| `visibility` | Whether each entry chooses a visibility: `public`, `unlisted` (an address, but in no lists), or `hidden` (no address); one of §11's switches | `false` (the new type screen starts it on) | Only while `public`. Off: every entry is public, and the editor hides the choice. |
 
 ## 5. Addresses
 
@@ -143,7 +143,7 @@ Trees have no feed.
 | `order` | How entries sort in lists and the admin | `date` (newest first) | `date`, `position` (each entry's `position`, then title; those without one last) |
 | `hierarchical` | Whether an entry may name a parent entry of the same type (as categories nest) | `false` | `true` adds a `parent` field to its entries. A loop of parents is refused. |
 
-A tree's entries always have `position` and nest by folder.
+A tree's entries nest by folder; they have a `position` when it's switched on (§11).
 
 ## 9. Files (when content is kept in files)
 
@@ -160,25 +160,38 @@ renames existing files (Site Health offers to).
 | Key | Holds | Default | Rules |
 |---|---|---|---|
 | `workflow` | The workflow its entries' statuses move through, and who may move them | `standard` (draft, published) | A workflow's name (the site's in `user/data/workflows`, or a plugin's). Changing it keeps entries' statuses; Site Health lists those the new workflow doesn't use. |
-| `expires` | Whether entries may have an `expires` date, after which they're off the site, as a draft is | `false` | |
+| `expires` | Whether entries may have an `expires` date, after which they're off the site, as a draft is; one of §11's switches | `false` | |
 | `byline` | Which credit relationship names an entry's author, shown first | its only credit relationship | A credit relationship's name, when the type has more than one. Not on profiles. |
 
 ## 11. Fields
 
 ### What every entry has
 
-Every type's entries have these built-in fields, which no other field
-may reuse: `title`, `subtitle`, `slug`, `date`, `expires` (only used
-when `expires` is on), `updated`, `status`, `trashed`, `visibility`
-(only used when §4's is on), `summary` (alias `excerpt`), `image` (the
-featured image, a media field), `template` (alias `view`), `stylesheet`,
-`class`, `translation_of`, `collection`, and the Markdown body.
+Every type's entries have `title`, `slug`, `status`, `date`, and
+`updated`, with core's bookkeeping (`trashed`, `translation_of`,
+`collection`, and `template`, shown only when the theme has templates),
+and the Markdown body.
+
+**Supports:** core's other fields are each a switch on the type, `true`
+or `false`, **off when it's missing**. A field that's off isn't declared
+(its value in a file is kept, unread):
+
+| Key | Adds | The new type screen starts it |
+|---|---|---|
+| `image` | `image`, the featured image (a media field) | on |
+| `summary` | `summary` (alias `excerpt`) | on |
+| `subtitle` | `subtitle`, a line under the title | off |
+| `position` | `position`, an order among siblings | on for trees and nesting types |
+| `visibility` | `visibility` (§4), only while `public` | on for public types |
+| `expires` | `expires` (§10) | off |
+
+Built in: Pages have `image`, `summary`, `position`, and `visibility`;
+Profiles have `subtitle` and `visibility`. A plugin's type sets its own.
 
 Then by kind and setup:
 
 - a field for each relationship from the type (§12), under its key;
 - a hierarchical collection's `parent`;
-- a tree's, or a `position`-ordered collection's, `position`;
 - a profile's `avatar` (a media field) and `linkable`.
 
 `id` and `refs` are reserved: the entry's id and its links' ids.
@@ -324,7 +337,7 @@ the type:
 |---|---|
 | The site (`user/data/types`) | Every option but `name` and `kind`. It can be deleted; its entries stay in their folder, unlisted. |
 | A plugin: a collection, or a tree in a folder | Every option but `name` and `kind`, saved as a file of only the differences. **Reset** removes that file. It can't be deleted. |
-| The built-in pages, profiles, or another plugin type that can't be changed | Only `fields`, `position`, and `under` (not `position` or `under` for profiles). |
+| The built-in pages, profiles, or another plugin type that can't be changed | Only `fields`, `adminPosition`, and `adminUnder` (not `adminPosition` or `adminUnder` for profiles). |
 
 **Site settings that lock things** (`config/content.php`):
 
@@ -354,7 +367,7 @@ change that doesn't fit is refused whole, with the reason.
 | Option | Collection | Tree | Profiles |
 |---|---|---|---|
 | `labels`, `description`, `icon` | ✓ | ✓ | ✓ |
-| `position`, `under` | ✓ | ✓ | |
+| `adminPosition`, `adminUnder` | ✓ | ✓ | |
 | `public`, `sitemap`, `llms`, `visibility` | ✓ | ✓ | ✓ |
 | `urls` | ✓ | | ✓ |
 | `prefix` | | ✓ | |
@@ -362,7 +375,8 @@ change that doesn't fit is refused whole, with the reason.
 | `dateArchives`, `order`, `hierarchical` | ✓ | | |
 | `filename` | ✓ | ✓ | ✓ |
 | `folders` | ✓ | | ✓ |
-| `workflow`, `expires` | ✓ | ✓ | ✓ |
+| `workflow` | ✓ | ✓ | ✓ |
+| `image`, `summary`, `subtitle`, `position`, `visibility`, `expires` | ✓ | ✓ | ✓ |
 | `byline` | ✓ | ✓ | |
 | `fields`, `closed` | ✓ | ✓ | ✓ |
 
@@ -375,7 +389,7 @@ change that doesn't fit is refused whole, with the reason.
 	"labels": { "singular": "Recipe", "plural": "Recipes", "menu": "Recipes" },
 	"description": "Dishes worth making again.",
 	"icon": "coffee",
-	"position": 3,
+	"adminPosition": 3,
 	"urls": { "prefix": "recipes", "paths": { "single": "{year}/{name}" } },
 	"listing": { "orderBy": "title", "order": "asc", "perPage": 20 },
 	"feed": { "categories": "cuisine" },
@@ -388,6 +402,9 @@ change that doesn't fit is refused whole, with the reason.
 	"sitemap": true,
 	"llms": true,
 	"visibility": true,
+	"image": true,
+	"summary": true,
+	"position": false,
 	"workflow": "editorial",
 	"expires": true,
 	"byline": "cooks",

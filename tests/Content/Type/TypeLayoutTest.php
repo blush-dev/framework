@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
 use Blush\Content\EntryFields;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeTarget;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Core\Application;
@@ -123,9 +124,51 @@ final class TypeLayoutTest extends TestCase
 		$types = $this->types();
 		$core  = array_keys(EntryFields::schema(new Messages())->fields);
 
-		$this->assertSame($core, array_slice(array_keys($types->schema('page')->fields), 0, count($core)), 'A type\'s fields start with them (D-790).');
+		$pages = array_values(array_diff($core, ['subtitle', 'expires']));
+
+		$this->assertSame($pages, array_slice(array_keys($types->schema('page')->fields), 0, count($pages)), 'A type\'s fields start with those it has (D-790, D-866).');
 		$this->assertSame($core, array_map(static fn (RegisteredField $field): string => $field->field->name, $types->library->registered->fields), 'Registered by core, never in the library.');
 		$this->assertSame([], $types->library->all());
+	}
+
+	public function testAMissingSupportsSwitchIsOff(): void
+	{
+		$this->writeTemporaryFile('user/data/types/note.json', '{}');
+		$this->writeTemporaryFile('user/data/types/card.json', '{"image": true, "summary": true, "subtitle": true, "position": true, "visibility": true, "expires": true}');
+
+		$types = $this->types();
+		$note  = $types->schema('note');
+		$card  = $types->schema('card');
+
+		foreach (['title', 'slug', 'status', 'date', 'updated'] as $always) {
+			$this->assertTrue($note->has($always), "Every type has {$always} (D-864).");
+		}
+
+		foreach (['image', 'summary', 'subtitle', 'position', 'visibility', 'expires'] as $optional) {
+			$this->assertFalse($note->has($optional), "A missing switch is off, so {$optional} isn't declared (D-866).");
+			$this->assertTrue($card->has($optional), "Switched on, {$optional} is declared.");
+		}
+
+		$this->assertSame(['expires' => true, 'visibility' => true, 'image' => true, 'summary' => true, 'subtitle' => true, 'position' => true], array_intersect_key($types->get('card')->toArray(), array_flip(ContentType::SUPPORTS)), 'Written as switches; off ones are left out.');
+		$this->assertSame([], array_intersect_key($types->get('note')->toArray(), array_flip(ContentType::SUPPORTS)));
+	}
+
+	public function testCoresTypesSetTheirOwnSwitches(): void
+	{
+		$types   = $this->types();
+		$pages   = $types->schema('page');
+		$profile = $types->schema('profile');
+
+		foreach (['image', 'summary', 'position', 'visibility'] as $on) {
+			$this->assertTrue($pages->has($on), "Pages have {$on} (D-866).");
+		}
+
+		$this->assertFalse($pages->has('subtitle'));
+		$this->assertFalse($pages->has('expires'));
+		$this->assertTrue($profile->has('subtitle'), 'The line under a profile\'s name.');
+		$this->assertTrue($profile->has('visibility'));
+		$this->assertFalse($profile->has('image'));
+		$this->assertFalse($profile->has('summary'));
 	}
 
 	public function testExtensionsRegisterFieldsOutsideTheLibrary(): void

@@ -15,7 +15,9 @@
  * defined. One stored here that points back here appears once.
  *
  * The header links to the Relationships list, filtered to this type, and
- * **Add Relationship** starts one stored here.
+ * **Add Relationship** starts one stored here. The default slot, above
+ * the list, holds what the type's screen sets that's a relationship
+ * (nesting, author credits; D-866).
  */
 
 import { computed } from 'vue';
@@ -81,6 +83,7 @@ async function remove(relation: RelationInfo): Promise<void> {
 				<RouterLink v-if="canCreateTypes" class="button button--small" :to="{ name: 'relation-new', query: { type: type.name } }"><AdminIcon name="plus" />{{ t('type_relations.add', 'Add Relationship') }}</RouterLink>
 			</div>
 		</header>
+		<slot />
 		<div v-if="type.relations.length" class="table-wrap">
 			<table class="table type-relations" aria-labelledby="relations-heading">
 				<colgroup><col><col class="type-relations__key"><col class="type-relations__takes"><col class="type-relations__actions"></colgroup>

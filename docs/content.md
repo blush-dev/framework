@@ -89,8 +89,6 @@ needed in practice. The built-in keys:
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
 | `template` | The theme template to use, one name, such as `template-wide` (`view` works too). The admin's **Template** row offers the ones the theme [declares](themes.md#templates-for-single-entries) |
-| `class` | Extra CSS classes for the page's `<body>`, separated by spaces: `class: wide dark` |
-| `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |
 | `id` | The entry's id, a UUID that never changes (see [Ids](#ids)). Blush writes it, last |
 | `refs` | The ids of the entries this one names, such as its terms and authors (see [Links between entries](#links-between-entries)) |

@@ -3,7 +3,8 @@
  * The save bar (D-324, D-508): a screen's unsaved changes, counted, over
  * the bottom of the screen, with a refused save's reason, **Revert**, and
  * **Save changes**, which submits the form it's in. It shows once
- * there's a change or a failure to say.
+ * there's a change or a failure to say. It says only how many changes
+ * there are; what a change does is said by the setting that makes it.
  */
 
 import { t } from '../messages';

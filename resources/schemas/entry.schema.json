@@ -120,20 +120,6 @@
 			],
 			"description": "Same as template. The theme template to use, such as single-wide."
 		},
-		"stylesheet": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "Stylesheet: An extra stylesheet for this page."
-		},
-		"class": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "Classes: Extra CSS classes for the page's <body>, separated by spaces."
-		},
 		"translation_of": {
 			"type": [
 				"string",

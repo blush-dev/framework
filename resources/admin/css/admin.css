@@ -1102,7 +1102,7 @@
 
 /* A field with something to fix that isn't an error, such as an image
    without alt text, and the line under it that says so. */
-.field--warn :is(input, textarea):not([aria-invalid="true"]):where(:not(.field dialog *)) {
+.field--warn :is(input, textarea):not([aria-invalid="true"]):where(:not(.field dialog *, .pattern-field *)) {
 	border-color: var(--color-warning-indicator);
 }
 
@@ -1137,12 +1137,12 @@
 }
 
 /* Text inputs, selects, and text areas. A dialog opened from a field
-   (an icon field's picker) draws its own controls, so the field's
-   don't reach into it. */
+   (an icon field's picker) and a pattern field (D-871) draw their own
+   controls, so the field's don't reach into them. */
 .input,
-.field input:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *)),
-.field select:where(:not(.field dialog *)),
-.field textarea:where(:not(.field dialog *)) {
+.field input:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *, .pattern-field *)),
+.field select:where(:not(.field dialog *, .pattern-field *)),
+.field textarea:where(:not(.field dialog *, .pattern-field *)) {
 	width: 100%;
 	min-height: var(--ctl);
 	padding: 0 12px;
@@ -1156,23 +1156,23 @@
 	width: auto;
 }
 
-.field textarea:where(:not(.field dialog *)) {
+.field textarea:where(:not(.field dialog *, .pattern-field *)) {
 	padding: 10px 12px;
 	line-height: 1.55;
 	resize: vertical;
 }
 
 .input:hover,
-.field input:not([type="checkbox"], [type="radio"]):hover:where(:not(.field dialog *)),
-.field select:hover:where(:not(.field dialog *)),
-.field textarea:hover:where(:not(.field dialog *)) {
+.field input:not([type="checkbox"], [type="radio"]):hover:where(:not(.field dialog *, .pattern-field *)),
+.field select:hover:where(:not(.field dialog *, .pattern-field *)),
+.field textarea:hover:where(:not(.field dialog *, .pattern-field *)) {
 	border-color: var(--color-text-muted);
 }
 
 .input:focus-visible,
-.field input:focus-visible:where(:not(.field dialog *)),
-.field select:focus-visible:where(:not(.field dialog *)),
-.field textarea:focus-visible:where(:not(.field dialog *)) {
+.field input:focus-visible:where(:not(.field dialog *, .pattern-field *)),
+.field select:focus-visible:where(:not(.field dialog *, .pattern-field *)),
+.field textarea:focus-visible:where(:not(.field dialog *, .pattern-field *)) {
 	border-color: var(--color-accent);
 	outline-offset: 0;
 }
@@ -1184,9 +1184,9 @@
 /* A field shown but not changeable, such as a role's key: sunk, so it
    doesn't read as one to type in. */
 .input:disabled,
-.field input:disabled:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *)),
-.field select:disabled:where(:not(.field dialog *)),
-.field textarea:disabled:where(:not(.field dialog *)) {
+.field input:disabled:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *, .pattern-field *)),
+.field select:disabled:where(:not(.field dialog *, .pattern-field *)),
+.field textarea:disabled:where(:not(.field dialog *, .pattern-field *)) {
 	border-color: var(--border-color);
 	background: var(--color-surface-subtle);
 	color: var(--color-text-secondary);
@@ -1393,6 +1393,16 @@
 	width: 14px;
 	height: 14px;
 	margin-top: 1px;
+}
+
+/* A change not saved yet (D-866): a small dot beside a row's label. */
+.unsaved {
+	display: inline-block;
+	flex: none;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--color-accent);
 }
 
 /* The save bar: unsaved changes, counted, over the bottom of the screen
@@ -4736,6 +4746,33 @@ a.problem__title:hover {
 	padding-top: 0;
 }
 
+/* A panel's groups of rows (a type's On the Site, Entries, and Files, and
+   its routes' groups) sit on a band of their own (D-866, D-871). */
+.setting-panels__group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	padding: var(--s-2) var(--padding-inline);
+	border-block: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+	color: var(--color-text-secondary);
+	font-size: var(--font-size-xsmall);
+	font-weight: 600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+/* The panel header's own line is the only one over the first band. */
+.panel__header + .setting-panels__group {
+	border-top: 0;
+}
+
+.setting-panels__group .icon {
+	width: 13px;
+	height: 13px;
+}
+
 .setting__label {
 	padding-top: 8px;
 	color: var(--color-text);
@@ -4754,7 +4791,8 @@ a.problem__title:hover {
 	min-width: 0;
 }
 
-.setting__control > * {
+/* A dialog a control opens keeps its own margin, which centers it. */
+.setting__control > :not(dialog) {
 	margin: 0;
 }
 

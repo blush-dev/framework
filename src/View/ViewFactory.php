@@ -92,8 +92,7 @@ final class ViewFactory
 	 * build manifest pairs with them; built scripts load as modules) and
 	 * the files it preloads (D-558, by the URL the page asks for them
 	 * at, D-698),
-	 * `$site`, the entry's presentation front matter (
-	 * `class`, and `stylesheet`, D-027), and the page's URL path and
+	 * `$site`, and the page's URL path and
 	 * locale (a list's language's, D-455, else the entry's, else the
 	 * site's), which the catalogs its scripts read print in (D-831).
 	 *
@@ -149,25 +148,14 @@ final class ViewFactory
 			}
 		}
 
-		if ($entry !== null) {
-			$this->presentation($views, $head, $entry);
-		}
-
 		$language ??= $entry?->language;
-		$context = new ViewContext(
+		return new ViewContext(
 			$markup,
 			['site' => Site::fromConfig($this->services->app, $locale, $this->services->site), 'media' => $this->services->media],
 			$path,
 			$locale,
 			$language !== null && $this->services->app->languages->isOther($language) ? $language : ''
 		);
-		$classes = $entry?->field('class');
-
-		foreach (is_string($classes) ? preg_split('/\s+/', $classes, flags: PREG_SPLIT_NO_EMPTY) ?: [] : [] as $class) {
-			$context->addClass($class);
-		}
-
-		return $context;
 	}
 
 	/**
@@ -186,23 +174,5 @@ final class ViewFactory
 			locale: $locale,
 			language: $found !== null && $this->services->app->languages->isOther($found->code) ? $found->code : ''
 		);
-	}
-
-	/**
-	 * Adds an entry's own stylesheet to the head.
-	 *
-	 * @throws ThemeException
-	 */
-	private function presentation(Views $views, Head $head, Entry $entry): void
-	{
-		$stylesheet = $entry->field('stylesheet');
-
-		if (is_string($stylesheet) && $stylesheet !== '') {
-			$url = preg_match('#^(https?:)?//|^/#', $stylesheet) === 1 ? $stylesheet : $views->assets->url(ltrim($stylesheet, './'));
-
-			if ($url !== null) {
-				$head->style($url);
-			}
-		}
 	}
 }

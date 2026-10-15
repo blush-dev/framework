@@ -160,9 +160,6 @@ const PLACED = ['title', 'status', 'date', 'slug'];
 // every save, a list's settings and a template are the file's for now.
 const UNSHOWN = ['updated', 'collection', 'template'];
 
-// The built-in fields under Advanced, for the theme (D-728).
-const ADVANCED = ['stylesheet', 'class'];
-
 // Why a required field stops publishing.
 const REQUIRED = t('editor_view.required', 'Required to publish.');
 
@@ -1252,8 +1249,8 @@ async function preview(): Promise<void> {
 // top of Publish, under the title; visibility, the subtitle, a term's
 // parent, and a tree page's or term's position as rows under Publish;
 // then each people field, each other reference (terms, as a picker), the
-// type's other fields as a form, each field set's (D-337), and the
-// theme's fields under Advanced.
+// type's other fields as a form, then each section of its library
+// fields (D-858).
 const visibilityField = computed(() => entry.value?.type.visibility === true ? ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum') : undefined);
 const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
 // A tree page's or term's place among its siblings (D-412), a row beside
@@ -1271,19 +1268,13 @@ const subtitleField   = computed(() => ownFields.value.find((field) => field.nam
 // When it comes off the site (D-852), in a type with expiry; clearing
 // it, or moving it later, brings an expired entry back.
 const expiresField    = computed(() => entry.value?.type.expires === true ? ownFields.value.find((field) => field.name === 'expires' && field.type === 'date') : undefined);
-// What the theme draws it with (D-728): a layout, a stylesheet, and the
-// body's classes, these last typed on one line, apart by spaces.
-const advancedFields  = computed(() => ownFields.value.filter((field) => ADVANCED.includes(field.name)));
-// Advanced folds away (D-730), open while one of its fields is set or
-// has an error, so nothing in it is out of sight.
-const advancedSet     = computed(() => advancedFields.value.some((field) => String(form.value[field.name] ?? '').trim() !== '' || errorFor(field.name) !== undefined));
 const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && !peopleFields.value.includes(field)));
 // A relation that takes exactly one (a cuisine, or who tested a recipe)
 // is a value in the Publish rows, as Status and Date are (D-607).
 const singleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple === false && field !== parentField.value && field.relation !== undefined));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, subtitleField.value, expiresField.value, ...referenceFields.value, ...singleFields.value, ...advancedFields.value];
+	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, subtitleField.value, expiresField.value, ...referenceFields.value, ...singleFields.value];
 
 	return ownFields.value.filter((field) => !placed.includes(field) && !UNSHOWN.includes(field.name));
 });
@@ -3401,9 +3392,6 @@ function fieldKey(field: FieldDescription): string {
 								</FieldControl>
 							</OptionsGroup>
 
-							<OptionsGroup v-if="advancedFields.length" :heading="t('editor_view.groups.advanced', 'Advanced')" collapsible :open="advancedSet">
-								<FieldControl v-for="field in advancedFields" :key="fieldKey(field)" :field="field.type === 'list' ? { ...field, control: 'code' } : field" :model-value="inline(field)" :error="errorFor(field.name)" @update:model-value="setInline(field, $event)" />
-							</OptionsGroup>
 
 
 							<OptionsGroup v-if="entry.violations.length" :heading="t('editor_view.groups.problems', 'Problems')">

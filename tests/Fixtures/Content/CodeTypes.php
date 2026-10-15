@@ -19,6 +19,7 @@ use Blush\Content\Type\ContentTypeSource;
 use Blush\Core\Paths;
 use Blush\Field\FieldFactory;
 use Blush\Translation\Messages;
+use Blush\Tests\TypeSupports;
 
 /**
  * Types from code, as a plugin defines them, read from the scratch site's
@@ -41,7 +42,7 @@ final readonly class CodeTypes implements ContentTypeSource
 				unset($definition['fields']);
 			}
 
-			yield ContentType::fromArray(['name' => $name, ...$definition], $this->fields, new Messages());
+			yield ContentType::fromArray(['name' => $name, ...TypeSupports::defaults($definition)], $this->fields, new Messages());
 		}
 	}
 

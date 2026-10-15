@@ -40,8 +40,11 @@ enum BuiltInType: string
 	public function type(Messages $messages = new Messages()): ContentType
 	{
 		return match ($this) {
-			self::Page    => new Tree(messages: $messages),
-			self::Profile => new Profiles(messages: $messages)
+			// What core's types support (D-866): pages a featured image, a
+			// summary, an order among siblings, and a visibility; profiles
+			// the line under a name, and a visibility.
+			self::Page    => new Tree(messages: $messages, visibility: true, image: true, summary: true, position: true),
+			self::Profile => new Profiles(messages: $messages, visibility: true, subtitle: true)
 		};
 	}
 

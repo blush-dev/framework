@@ -11,9 +11,30 @@ import { t } from './messages';
 
 export type TypeKind = 'collection' | 'tree';
 
+/**
+ * The labels made from a type's names (`TypeLabels::KEYS`, D-866),
+ * beyond the singular and plural.
+ */
+export const LABEL_KEYS = ['menu', 'item', 'items', 'newItem', 'editItem', 'searchItems'] as const;
+
+export type LabelKey = typeof LABEL_KEYS[number];
+
+/**
+ * A listing's settings (`Listing`): what it lists, by what, in which
+ * direction, and how many to a page; `''` for each one's default.
+ */
+export interface ListingForm {
+	type: string;
+	orderBy: string;
+	order: string;
+	perPage: string;
+}
+
 export interface TypeForm {
 	singular: string;
 	plural: string;
+	// The other labels it sets, `''` for each one's default (D-866).
+	labels: Record<LabelKey, string>;
 	description: string;
 	icon: string;
 	// The URL prefix, without slashes (a tree's too, D-683); `''` for
@@ -25,8 +46,16 @@ export interface TypeForm {
 	// off for a new type of terms (D-401).
 	llms: boolean;
 	feed: boolean;
-	// The new-type wizard's: whether the type joins the `authors` credit
-	// relation (D-602), sent beside the options, not among them.
+	// The taxonomy whose entries become a feed item's categories, `''`
+	// for every one but authors, and how the feed lists (D-866).
+	feedCategories: string;
+	feedListing: ListingForm;
+	// Whether it has routes at all (`urls: false` when not, D-866).
+	routes: boolean;
+	// How its listing page lists entries (D-866).
+	listing: ListingForm;
+	// Whether the type joins the `authors` credit relation (D-602), sent
+	// beside the options, not among them.
 	authors: boolean;
 	// The credit relation that's its byline, `''` for its only one
 	// (D-602).
@@ -47,14 +76,19 @@ export interface TypeForm {
 	fields: TypeFieldItem[];
 	// Its place in the content menu (D-726): its position, `''` for none,
 	// and the type it sits under, `''` for the top level.
-	position: string;
-	under: string;
+	adminPosition: string;
+	adminUnder: string;
 	// Its workflow's name (D-851), `''` for core's `standard`.
 	workflow: string;
 	// Whether its entries may have an Expires date (D-852).
 	expires: boolean;
 	// Whether its entries choose a visibility (D-855).
 	visibility: boolean;
+	// The optional core fields it has (D-866).
+	image: boolean;
+	summary: boolean;
+	subtitle: boolean;
+	position: boolean;
 	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
 	// default.
 	paths: Record<string, string>;
@@ -64,7 +98,54 @@ export interface TypeForm {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'date', fields: [], position: '', under: '', workflow: '', expires: false, visibility: true, paths: {} };
+	return {
+		singular: '', plural: '', labels: emptyLabels(), description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false,
+		feedCategories: '', feedListing: emptyListing(), routes: true, listing: emptyListing(), authors: true, byline: '', dateArchives: 'none', filename: '', folders: '',
+		hierarchical: false, order: 'date', fields: [], adminPosition: '', adminUnder: '', workflow: '', expires: false,
+		// A new type starts with a featured image, a summary, and a
+		// visibility (D-866); `position` follows its kind and nesting.
+		visibility: true, image: true, summary: true, subtitle: false, position: false, paths: {}
+	};
+}
+
+function emptyLabels(): Record<LabelKey, string> {
+	return { menu: '', item: '', items: '', newItem: '', editItem: '', searchItems: '' };
+}
+
+function emptyListing(): ListingForm {
+	return { type: '', orderBy: '', order: '', perPage: '' };
+}
+
+function listingFormOf(listing: Record<string, unknown> | null | undefined): ListingForm {
+	const text = (value: unknown): string => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+
+	return { type: text(listing?.type), orderBy: text(listing?.orderBy), order: text(listing?.order), perPage: text(listing?.perPage) };
+}
+
+/**
+ * A listing as the server takes it: only what's set, or `null` for its
+ * defaults.
+ */
+function listingOf(listing: ListingForm): Record<string, unknown> | null {
+	const out: Record<string, unknown> = {};
+
+	if (listing.type) {
+		out.type = listing.type;
+	}
+
+	if (listing.orderBy) {
+		out.orderBy = listing.orderBy;
+	}
+
+	if (listing.order) {
+		out.order = listing.order;
+	}
+
+	if (listing.perPage.trim() !== '' && /^\d+$/.test(listing.perPage.trim())) {
+		out.perPage = Number(listing.perPage.trim());
+	}
+
+	return Object.keys(out).length ? out : null;
 }
 
 /**
@@ -76,6 +157,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 	return {
 		singular: type.labels.singular,
 		plural: type.labels.plural,
+		labels: Object.fromEntries(LABEL_KEYS.map((key) => [key, typeof type.labelsSet[key] === 'string' ? type.labelsSet[key] : ''])) as Record<LabelKey, string>,
 		description: type.description,
 		icon: type.icon ?? '',
 		prefix: prefix === type.defaultPrefix ? '' : prefix,
@@ -83,7 +165,11 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		sitemap: type.sitemap,
 		llms: type.llms,
 		feed: type.feed,
-		authors: type.authors,
+		feedCategories: typeof type.feedSettings?.categories === 'string' ? type.feedSettings.categories : '',
+		feedListing: listingFormOf(type.feedSettings?.listing as Record<string, unknown> | undefined),
+		routes: type.hasRoutes,
+		listing: listingFormOf(type.listing),
+		authors: type.credits.includes('authors'),
 		byline: type.byline ?? '',
 		dateArchives: type.dateArchives,
 		filename: type.filename ?? '',
@@ -91,11 +177,15 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		hierarchical: type.hierarchical,
 		order: type.order ?? 'date',
 		fields: copy(type.fields),
-		position: type.position === null ? '' : String(type.position),
-		under: type.under ?? '',
+		adminPosition: type.adminPosition === null ? '' : String(type.adminPosition),
+		adminUnder: type.adminUnder ?? '',
 		workflow: type.workflow === 'standard' ? '' : type.workflow,
-		expires: type.expires,
-		visibility: type.visibility,
+		expires: type.supports.expires,
+		visibility: type.supports.visibility,
+		image: type.supports.image,
+		summary: type.supports.summary,
+		subtitle: type.supports.subtitle,
+		position: type.supports.position,
 		paths: Object.fromEntries(type.routes.map((route) => [route.key, route.path === route.default ? '' : route.path]))
 	};
 }
@@ -116,28 +206,45 @@ export function pathOf(path: string): string {
 }
 
 /**
+ * A type's `feed`: off, on, or on with its settings (D-866).
+ */
+function feedOf(form: TypeForm): boolean | Record<string, unknown> {
+	if (!form.feed) {
+		return false;
+	}
+
+	const listing = listingOf({ ...form.feedListing, type: '' });
+
+	return form.feedCategories || listing ? { ...(form.feedCategories ? { categories: form.feedCategories } : {}), ...(listing ? { listing } : {}) } : true;
+}
+
+/**
  * The options to change: every one for a new type (`initial` is
  * `null`), else the ones that differ from `initial`. Route paths are
  * sent only for the keys that changed, `null` for a key's default.
  */
 export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKind): Record<string, unknown> {
 	const all: Record<string, unknown> = {
-		labels: { singular: form.singular.trim(), plural: form.plural.trim() },
+		labels: { singular: form.singular.trim(), plural: form.plural.trim(), ...Object.fromEntries(LABEL_KEYS.map((key) => [key, form.labels[key].trim()])) },
 		description: form.description.trim() || null,
 		icon: form.icon.trim() || null,
 		prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null,
 		public: form.public,
 		sitemap: form.sitemap,
 		llms: form.llms,
-		// A tree has no feed of its own (D-386).
-		...(kind === 'tree' ? {} : { feed: form.feed }),
+		// A tree has no feed, routes of its own, or listing (D-386).
+		...(kind === 'tree' ? {} : { feed: feedOf(form), routes: form.routes, listing: listingOf(form.listing) }),
 		byline: form.byline || null,
 		fields: form.fields,
-		position: String(form.position).trim() === '' ? null : Number(form.position),
-		under: form.under || null,
+		adminPosition: String(form.adminPosition).trim() === '' ? null : Number(form.adminPosition),
+		adminUnder: form.adminUnder || null,
 		workflow: form.workflow || null,
 		expires: form.expires,
 		visibility: form.visibility,
+		image: form.image,
+		summary: form.summary,
+		subtitle: form.subtitle,
+		position: form.position,
 		filename: form.filename || null,
 		// A tree's folders are its pages' (D-629).
 		...(kind === 'tree' ? {} : { folders: form.folders || null }),
@@ -145,8 +252,11 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'date' ? null : form.order } : {})
 	};
 
+	// A new type sends the route paths typed for it (D-870).
 	if (initial === null) {
-		return all;
+		const typed = Object.fromEntries(Object.entries(form.paths).map(([key, path]) => [key, pathOf(path)]).filter(([, path]) => path !== ''));
+
+		return Object.keys(typed).length ? { ...all, paths: typed } : all;
 	}
 
 	const before = changesOf(initial, null, kind);

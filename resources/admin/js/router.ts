@@ -43,7 +43,6 @@ const MenuView = () => import('./views/MenuView.vue');
 const MediaView = () => import('./views/MediaView.vue');
 const NewAccountView = () => import('./views/NewAccountView.vue');
 const NewRoleView = () => import('./views/NewRoleView.vue');
-const NewTypeView = () => import('./views/NewTypeView.vue');
 const PluginView = () => import('./views/PluginView.vue');
 const PluginsView = () => import('./views/PluginsView.vue');
 const ProfileDetailView = () => import('./views/ProfileDetailView.vue');
@@ -96,7 +95,7 @@ export const router = createRouter({
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
 		{ path: '/types', name: 'types', component: TypesView, meta: { title: t('router.titles.content_types', 'Content Types'), capability: 'site.settings', area: 'structure' } },
-		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: t('router.titles.new_content_type', 'New Content Type'), capability: 'site.settings', area: 'structure', parent: 'types' } },
+		{ path: '/types/new', name: 'type-new', component: TypeView, meta: { title: t('router.titles.new_content_type', 'New Content Type'), capability: 'site.settings', area: 'structure', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: t('router.titles.content_type', 'Content Type'), capability: 'site.settings', area: 'structure', parent: 'types' } },
 		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: t('router.titles.relationships', 'Relationships'), capability: 'site.settings', area: 'structure' } },
 		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: t('router.titles.new_relationship', 'New Relationship'), capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },

@@ -228,6 +228,20 @@
       "css/PaletteLegend.css"
     ]
   },
+  "_PatternField.css": {
+    "file": "css/PatternField.css",
+    "src": "_PatternField.css"
+  },
+  "_PatternField.js": {
+    "file": "js/PatternField.js",
+    "name": "PatternField",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/PatternField.css"
+    ]
+  },
   "_PickModal.js": {
     "file": "js/PickModal.js",
     "name": "PickModal",
@@ -304,26 +318,6 @@
     ],
     "css": [
       "css/ToggleSwitch.css"
-    ]
-  },
-  "_TypeBehaviorFields.css": {
-    "file": "css/TypeBehaviorFields.css",
-    "src": "_TypeBehaviorFields.css"
-  },
-  "_TypeBehaviorFields.js": {
-    "file": "js/TypeBehaviorFields.js",
-    "name": "TypeBehaviorFields",
-    "imports": [
-      "js/admin.ts",
-      "_AdminSelect.js",
-      "_ToggleSwitch.js",
-      "_IconField.js",
-      "_controls.js",
-      "_type-form.js",
-      "_ItemTree.js"
-    ],
-    "css": [
-      "css/TypeBehaviorFields.css"
     ]
   },
   "_admin-themes.js": {
@@ -526,7 +520,6 @@
       "js/views/MediaView.vue",
       "js/views/NewAccountView.vue",
       "js/views/NewRoleView.vue",
-      "js/views/NewTypeView.vue",
       "js/views/PluginView.vue",
       "js/views/PluginsView.vue",
       "js/views/ProfileDetailView.vue",
@@ -879,20 +872,6 @@
       "css/NewRoleView.css"
     ]
   },
-  "js/views/NewTypeView.vue": {
-    "file": "js/NewTypeView.js",
-    "name": "NewTypeView",
-    "src": "js/views/NewTypeView.vue",
-    "isDynamicEntry": true,
-    "imports": [
-      "js/admin.ts",
-      "_type-form.js",
-      "_TypeBehaviorFields.js"
-    ],
-    "css": [
-      "css/NewTypeView.css"
-    ]
-  },
   "js/views/PluginView.vue": {
     "file": "js/PluginView.js",
     "name": "PluginView",
@@ -1041,7 +1020,8 @@
       "_AdminSelect.js",
       "_ToggleSwitch.js",
       "_FieldInput.js",
-      "_SaveBar.js"
+      "_SaveBar.js",
+      "_PatternField.js"
     ],
     "css": [
       "css/SettingsView.css"
@@ -1133,10 +1113,13 @@
       "js/admin.ts",
       "_AdminSelect.js",
       "_DangerZone.js",
+      "_ToggleSwitch.js",
+      "_IconField.js",
+      "_controls.js",
       "_type-form.js",
-      "_SaveBar.js",
-      "_TypeBehaviorFields.js",
-      "_relations.js"
+      "_ItemTree.js",
+      "_relations.js",
+      "_PatternField.js"
     ],
     "css": [
       "css/TypeView.css"

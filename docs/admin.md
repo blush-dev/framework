@@ -562,9 +562,7 @@ They have two tabs:
   content type's other fields (a few kinds show their value read-only);
   each [section](content-types.md#a-types-fields) the type arranges its
   fields in, under its heading, in the type's order (see
-  [Fields on the Document tab](#fields-on-the-document-tab)); **Advanced**, with the page's **Stylesheet**
-  and **Class** (the page's classes on one line, apart by spaces),
-  folded away until you open it, or open when one of them is set; and
+  [Fields on the Document tab](#fields-on-the-document-tab)); and
   what Site Health finds in the file, as last saved (notices only if
   you ask). Every save, and every bulk change, sets `updated` to when it
   was made, so there's no field for it, and `collection` is kept in the file
@@ -1107,83 +1105,92 @@ file you uploaded. You can also put files in
 
 ## Content types
 
-With `site.settings`, **Structure → Content types** lists every type, with
-its kind (**Taxonomy** for a collection other entries are [filed under](content-types.md#terms-and-relationships)),
-where it's defined (built in, a plugin, or `user/data/types`), how
-many fields it has, and how many entries. Tabs
-narrow it (Collections, Taxonomies, Trees, Profiles; only the ones the site
-has), beside a search. Choose one for its settings, its relationships,
-and its fields; **Type Settings** on a type's list goes there too.
+With `site.settings`, **Structure → Content Types** lists every type.
+Tabs narrow it to a kind (Collections, Taxonomies, Trees, Profiles;
+only the ones the site has), beside a search. Each row has:
 
-Types in `user/data/types` are edited on their screen. So are
-collections and [trees](content-types.md#trees) from plugins:
-what you change is saved in `user/data/types/{key}.json` over the code's
-definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
-The pages and profiles types defined in code stay as they are, so their
-screens only show them. A type still written as a taxonomy can't be
-edited until it's migrated (see [Site Health](#site-health) and
+- its name, with its key and address under it;
+- its kind, with what a taxonomy files, or that a tree or collection
+  nests;
+- where it's defined (this site, built in, or the plugin, by name), and
+  whether anything is changed here;
+- how many fields and entries it has.
+
+Types in `user/data/types` are changed on their page. So are
+collections and [trees](content-types.md#trees) from plugins: what you
+change is saved in `user/data/types/{key}.json` as only what differs from
+the plugin's (see [Changing a type from code](content-types.md#changing-a-type-from-code)),
+and each setting changed there says **Changed Here** and what the plugin
+sets. The built-in pages and profiles show their settings as they are;
+their place in the menu, their fields, and their relationships still
+change. A type still written as a taxonomy can't be changed until it's
+migrated (see [Site Health](#site-health) and
 [Moving from taxonomies](content-types.md#moving-from-taxonomies)), nor
 can one that still names its own folder until it's moved (see
 [Moving a type into its folder](content-types.md#moving-a-type-into-its-folder)).
 
+### A type's page
+
+A type's page is one long page of panels. A dot marks a setting with
+changes not saved yet.
+
+- **General:** its kind and name, both fixed once it's made, its icon,
+  and who can use it: the roles that grant every type, and the ones that
+  name types one by one.
+- **Labels:** its plural and singular, its description, and every label
+  made from them (its name in the menu, in a sentence, on its New
+  button, the editor's title, and its search box), each blank for the
+  default shown.
+- **Supports:** the built-in fields its entries have beyond the title,
+  slug, status, and dates: **Featured Image**, **Summary**, **Subtitle**,
+  **Position**, **Visibility**, and **Expiration** (see
+  [Supports](content-types.md#supports)).
+- **In the Menu:** **Sits Under** and **Position** in the Content menu.
+- **Behavior:** on the site (**Public**, **Sitemap**, **Listed for AI**
+  for `llms.txt`, **Feeds**, and the feeds' categories and listing), its
+  entries (**Order**, its **Listing Page**: what it lists, by what, in
+  which direction, and how many to a page, and its **Workflow**), and,
+  when content is kept in files, **File Names** and **Folders**.
+- **Archives:** a collection's **Date Archives** and its **Index Page**.
+- **Relationships:** **Nesting** (an entry can name a parent),
+  **Author Credits** (joining the `authors` relationship), each
+  relationship archive's list page, and the **Byline**, then every
+  relationship it takes part in (below).
+- **Addresses:** **Routes** (off, it's still public but nothing has an
+  address), its **URL Prefix**, and each address's path.
+- **Fields**, and a **Danger Zone** with **Delete** (or **Reset** for a
+  plugin's type).
+
+What a kind doesn't have is left out, with a line saying so. What
+another setting turns off stays in place, disabled, naming that setting
+("Disabled while Public is off"). What a change does is said under the
+setting as you make it: pages that move to new addresses, new file
+names for new files only, statuses kept. **Update**, at the top right,
+saves every change (it says **Saved** when there's nothing to save),
+and the menu beside it has **Revert changes**. Leaving with changes
+unsaved asks first.
+
 ### Creating a type
 
-**New Content Type** walks through three steps, with **What Gets
-Created** beside them:
-
-1. **Basics:** a **Collection**, a **Taxonomy** (a collection whose
-   entries file other entries, such as topics or tags), or a
-   [**Tree**](content-types.md#trees), its names, a key
-   (made from the name, such as `recipe`), a description, and an icon.
-   Its entries live in `_` and the key under `user/content`
-   (`_recipe`), and the key can't change later.
-2. **Behavior:** the URL prefix (made from the plural name, such as
-   `recipes`; empty for the key), whether it's
-   visible on the site, whether its entries **choose a visibility**
-   (on by default; off, every entry is public; see
-   [Who sees an entry](content.md#who-sees-an-entry)), in the sitemap,
-   listed in `llms.txt` (on for collections and trees, off for
-   taxonomies, by default), and has a feed;
-   for a collection, date archives, a featured image (an `image` media
-   field), whether entries nest under a parent, and its **Order**
-   (newest first by date, or by position for a taxonomy); for a
-   taxonomy, **Files**, the types filed under it (none for every type); an
-   index page, the type's landing page (on by default); and, when the
-   site has profiles, whether entries **credit authors** (on for content,
-   off for a taxonomy), which adds the type to the `authors`
-   [credit relation](content-types.md#crediting-people) (writing it when
-   there's none), and whether its list of authors has a **page
-   introducing it** (see [People archives](content-types.md#people-archives)).
-   Other credits are relationships, added on the type's screen. A tree
-   has no feed or author archives: its entries are at their paths under
-   its prefix. **File names** and **Folders** (for a type with thousands
-   of entries) are offered only when content is kept in files.
-3. **Fields:** the fields its entries carry beside the title, slug,
-   status, dates, and body.
-
-**Create Type** writes `user/data/types/{key}.json`, the index page
-as `index.md` in its folder, titled with the plural name, and the
-authors page, when chosen, as `_authors.md`, titled "Authors". For a
-taxonomy, it also writes the classify relation that files the chosen
-types under it, as `user/data/relations/{key}.json`. A taxonomy is a
-collection ordered by position, with no authors, and left out of
+**New Content Type** is the same page, empty: choose its kind
+(**Collection**, **Taxonomy**, a collection whose entries file other
+entries, or [**Tree**](content-types.md#trees)), and its plural name,
+from which its singular, its name (its key, such as `recipe`), and its
+URL prefix follow until you type them. It starts with **Featured
+Image**, **Summary**, and **Visibility** on, and **Position** for a tree
+or a type that nests. A taxonomy chooses the types it files under
+**Relationships**. Its **Addresses** follow what you choose, and each
+can be set before it's made. **Create**,
+at the top right beside **Cancel**, makes `user/data/types/{key}.json`, its
+index page when chosen (`index.md` in its folder, titled with the plural
+name), and for a taxonomy the classify relationship that files the
+chosen types, as `user/data/relations/{key}.json`. A taxonomy is a
+collection ordered by position, credits no one, and is left out of
 `llms.txt`.
 
-### Editing a type
+### Relationships on a type's page
 
-A type's screen has General (names, description, icon), Behavior (as
-above), **Archives**, **Relationships**, Addresses, and Fields.
-
-In Behavior, a collection has **Entries can nest under a parent, as
-categories do** (`hierarchical`) and **Order** (`order`; see
-[Nesting and order](content-types.md#nesting-and-order)). When a plugin
-adds a workflow, every type editable here has **Workflow** (`workflow`):
-the statuses its entries move through. Entries keep their status when
-it changes; `content:lint` lists those whose status the new workflow
-doesn't use. **Entries can expire** (`expires`) gives each entry an
-**Expires** date (see [Expiry](content-types.md#expiry)).
-
-**Relationships** lists every [relation](content-types.md#terms-and-relationships)
+The **Relationships** panel lists every [relation](content-types.md#terms-and-relationships)
 the type takes part in, from either side, each said as a sentence from
 its side ("Credits **Profiles** as Cooks", "Filed under **Courses**",
 "Linked from **Posts** as Mentions"), with its key and what it takes
@@ -1191,23 +1198,23 @@ its side ("Credits **Profiles** as Cooks", "Filed under **Courses**",
 is stored: the ones **Stored on** this type (its files carry the key)
 have **Edit** and **Remove**; one stored on another type has only the
 way to that type (**Edit on Posts**), since that's where it's edited.
-One from a plugin keeps its row with **In code**, and says where it's defined. **View in Relationships** opens
-the [Relationships](#relationships) list for this type, and **Add
-Relationship** starts one stored here.
+One from a plugin keeps its row with **In code**, and says where it's
+defined. **View in Relationships** opens the
+[Relationships](#relationships) list for this type, and **Add
+Relationship** starts one stored here. Whether a relation has archives,
+and their word, are set on its [screen](#a-relationships-screen); a
+page written for one target's archive is kept when they're off, and on a
+profile it's marked **Unreachable**.
 
-**Archives** shows each [relation archive](content-types.md#people-archives)
-under the type (its authors', say, at `/blog/authors`): its list page,
-if it has one, or **Has a page introducing the list** to write one,
-titled with the relation's label. A type with more than one credit
-chooses its **Byline** there, the credit that names an entry's author.
-Whether a relation has archives, and their word, are set on its
-[screen](#a-relationships-screen); a page written for one target's archive is kept
-when they're off, and on a profile it's marked **Unreachable**.
-
-**Addresses** lists every address the type has: its listing and later
-pages, date archives, entries (or terms), feeds, and author archives.
-Each shows its path after the type's prefix, its default when empty,
-the whole address, and the {placeholders} it needs and may hold: an
+**Addresses** lists every route the type has, grouped as
+Collection (its listing, later pages, and feeds), Single (its entries,
+and a taxonomy's pages and feeds), Date Archives, and each
+relationship's archive. Each route, such as Listing, Entry, or Year
+archive, has its path after the type's prefix, which shows its default
+when empty.
+Click into a path, as into an upload path on Settings → Media, for the
+address it makes and its {placeholders}, which go in at the cursor (a
+dot marks one it needs): an
 entry's address needs `{name}` and may hold the date's parts
 (`{year}` to `{second}`) and the name of a type of terms it's filed
 under; later pages need
@@ -1221,7 +1228,7 @@ field's control, its label as this type asks for it, its key, and
 **Required** when it's required to publish, or a section's heading with
 its fields under it. **Add Field** picks a field from the library, or
 makes a **New Field** there, on a screen of its own that comes back
-with it ([Fields](#fields)); the new type wizard only picks. **Add Section**
+with it ([Fields](#fields)); a new type only picks. **Add Section**
 adds a heading. A field goes into a section by indenting it under one
 (⌥→, or drag it onto the section), and out by outdenting it (⌥←).
 Open a field's row to change only how this type asks for it: its
@@ -1230,10 +1237,11 @@ own until you change it (the row then says **Changed Here**); the field
 itself, its key and settings, is edited in the library, which the row
 links to. Open a section's row to change its heading and help. Removing
 a section keeps its fields. A type from a plugin may have fields of its
-own, listed above, read only. Every type has this panel, the built-in
-pages and the profiles type too. Changes wait in the **save bar** at
-the bottom, which counts them: **Save Changes** writes them, and
-**Revert** puts them back.
+own, listed above, read only.
+
+**Deleting** a type is refused while a relationship names it, listing
+which. Its entries stay in their folder, off the site; the list then
+says where, with a way to Site Health, until it's dismissed.
 
 Only the options you change are written, and nothing at its default:
 the rest of the file stays as you wrote it, comments included. A change
@@ -2411,10 +2419,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST themes`, `POST plugins`, `POST icon-packs`, `POST admin-themes` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
 | `POST {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `date` or `position`; `null` for other kinds), `workflow` (its workflow's name) and `statuses` (that workflow's statuses, which its list's tabs show). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with the `ownFields` its code gives it (as forms take them), its `fields` (the library fields it carries, in sections, as its file writes them), `fieldsEditable`, the field `library` (each field's `{"name", "label", "description", "required", "type", "control"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`), and `workflows` (each one it may use: `{"name", "label"}`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
-| `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields` (the library fields it carries); `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. Any type, the built-in pages and profiles too, takes `fields`, `position`, and `under` alone. A change that doesn't fit is a `422` with the reason |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "public", "folder", "prefix", "fields", "entries", "plugin", "changed", "adminPosition", "adminUnder"}], "authors"}` (`entries` counts every status but the trash; `plugin` names the plugin that defines it; `changed` is how many options a file here changes), by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `date` or `position`; `null` for other kinds), `workflow` (its workflow's name) and `statuses` (that workflow's statuses, which its list's tabs show). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its `labelsSet` (the labels it sets, the rest made from its names), its `supports` (`{"image", "summary", "subtitle", "position", "visibility", "expires"}`), `listing`, `feedSettings` (`null` without a feed), `hasRoutes`, `code` (a plugin type's options as its code defines them, or `null`), `roles` (`{"every", "named", "others"}`: the labels of roles that grant every type, that name it, and that name other types), the `ownFields` its code gives it (as forms take them), its `fields` (the library fields it carries, in sections, as its file writes them), `fieldsEditable`, the field `library` (each field's `{"name", "label", "description", "required", "type", "control"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`), and `workflows` (each one it may use: `{"name", "label"}`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
+| `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed` (`true`, `false`, or `{"categories", "listing"}`), `routes` (`false` for no addresses), `listing` (`{"type", "orderBy", "order", "perPage"}`), `image`, `summary`, `subtitle`, `position`, `visibility`, `expires`, `adminPosition`, `adminUnder`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields` (the library fields it carries); `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authors"}`, as above (`null` removes an option; `authors` true or false joins or leaves the authors credit); answers with the type. Any type, the built-in pages and profiles too, takes `fields`, `adminPosition`, and `adminUnder` alone. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
 | `GET workflows` | The Workflows screen (with `site.settings`): `{"workflows", "statuses", "problems"}`. Each workflow is `{"name", "label", "statuses", "initial", "transitions", "subject", "source", "over", "types", "editable", "customize"}` (`source` and `over` each `{"kind", "label"}`, `kind` being `core`, `plugin`, or `site`; `over` is what a site record replaces, or `null`); each status adds `source`, `over`, the `workflows` using it, and whether it may be relabeled (`relabel`), edited (`edit`), or deleted (`delete`). `GET workflows/{name}` is one, with `counts`, how many entries of its types are stored with each status. `PUT workflows/{name}` saves `{"label", "statuses", "initial", "transitions"}` as the site's, `POST workflows/{name}/customize` copies Blush's or a plugin's into it, and `DELETE workflows/{name}` deletes it (`{"deleted": true}`) or reverts a copy (the workflow). `PUT statuses/{name}` saves `{"label", "plural", "tone", "live", "active"}` and `DELETE statuses/{name}` deletes or reverts one, each answering `GET workflows`. What can't be saved is a `422`, saying why |
 | `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
@@ -2423,6 +2431,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST relations/{name}/check` | What replacing a relation with the definition sent would do, without saving it: `{"refusal", "refused", "inWay", "inWayCount", "warnings", "uses", "moved", "unfiled", "stripped", "over", "overCount", "fewer", "inverseOver"}`. `refused` is `type` (it points at another type while entries have values) or `one` (it takes one where entries have several), or `null`; `inWay` and `over` name up to 8 entries (`{"id", "type", "title", "count"}`, most values first) in the way of a refusal and over a new `max`; `fewer` counts published entries under a new `min`, and `inverseOver` targets over a new inverse `max`. Needs `site.settings` |
 | `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
+| `POST types/routes` | A new type's routes before it's made: send the draft (`name`, `kind`, `set`, `authors`, `taxonomy`, `files`, as `POST types` takes them); answers `{"routes"}`, as a type's details list them, and writes nothing |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/controls` | The controls and field types definitions can use: `{"controls": [{"value", "label", "description", "section", "type", "implies", "options"}], "types": [{"type", "label", "description", "controls", "options"}]}`. A control's `section` is the picker's (`{"value", "label"}`, or `null` for one the picker doesn't offer), `type` the value type it stores (`null` for one that edits several), and `implies` the type options it writes. A type's `controls` are `{"value", "label"}`, the ones that store it without implying options, its default first. `options` are definition keys as JSON Schemas |
 | `GET fields/library` | The field library: `{"fields": [{"name", "label", "description", "required", "type", "control", "editable", "file", "types", "problems"}], "create"}`: the site's fields in `user/data/fields` only; `control` is the one it's drawn with; `types` are the types that have it (`{"name", "label"}`); `problems` says why it's left off a type (a key declared there already); `create` is whether fields can be made here |

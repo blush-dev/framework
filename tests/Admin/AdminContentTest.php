@@ -114,7 +114,9 @@ final class AdminContentTest extends TestCase
 		// a test that adds posts credits them too.
 		$posts = is_file($this->temporaryDirectory() . '/user/data/types/post.json');
 
-		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree"}');
+		// The built-in pages' switches (D-866), which a file redefining them
+		// sets itself.
+		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree", "image": true, "summary": true, "position": true, "visibility": true}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"' . ($posts ? ', "post"' : '') . '], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000001\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
@@ -413,7 +415,7 @@ final class AdminContentTest extends TestCase
 
 	public function testFiltersAndSortsFlattenTrees(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true, "position": true}');
 		$this->writeTemporaryFile('user/content/_topic/books.md', "---\ntitle: Books\n---\n");
 		$this->writeTemporaryFile('user/content/_topic/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\nupdated: 2001-01-01\n---\n");
 		$this->site(['editor']);
@@ -458,7 +460,7 @@ final class AdminContentTest extends TestCase
 
 	public function testListsNestingTypesAsATree(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true, "position": true}');
 		$this->writeTemporaryFile('user/content/_topic/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\n---\n");
 		$this->writeTemporaryFile('user/content/_topic/zoo.md', "---\ntitle: Zoo\nparent: art\n---\n");
 		$this->writeTemporaryFile('user/content/_topic/books.md', "---\ntitle: Books\n---\n");
@@ -490,7 +492,7 @@ final class AdminContentTest extends TestCase
 
 	public function testOrdersATreesPagesByPosition(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true, "position": true}');
 		$this->writeTemporaryFile('user/content/_topic/zebras.md', "---\ntitle: Zebras\nposition: 1\n---\n");
 		$this->writeTemporaryFile('user/content/_topic/apes.md', "---\ntitle: Apes\nposition: 2\n---\n");
 		$this->writeTemporaryFile('user/content/guide/index.md', "---\ntitle: Guide\n---\n");
@@ -521,7 +523,7 @@ final class AdminContentTest extends TestCase
 	public function testOrdersEachKindsAllTab(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
-		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "urls": {"prefix": "moods"}}');
+		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "urls": {"prefix": "moods"}, "position": true}');
 		$this->writeTemporaryFile('user/content/_post/old.md', "---\ntitle: Old\ndate: 2001-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/_post/new.md', "---\ntitle: New\ndate: 2020-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/_mood/sad.md', "---\ntitle: Sad\n---\n");

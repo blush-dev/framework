@@ -64,9 +64,13 @@ final readonly class Profiles extends ContentType
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
-	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
+	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public. Off unless it's on (D-866).
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @param  FieldLayout     $layout      The library fields it carries, in sections (D-858).
+	 * @param  bool            $image       Whether entries have a featured `image` (D-866).
+	 * @param  bool            $summary     Whether entries have a `summary` (D-866).
+	 * @param  bool            $subtitle    Whether entries have a `subtitle` (D-866).
+	 * @param  bool            $position    Whether entries have a `position` among their siblings (D-412, D-866).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -87,13 +91,17 @@ final readonly class Profiles extends ContentType
 		FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		bool $expires = false,
-		bool $visibility = true,
+		bool $visibility = false,
 		Messages $messages = new Messages(),
-		FieldLayout $layout = new FieldLayout()
+		FieldLayout $layout = new FieldLayout(),
+		bool $image = false,
+		bool $summary = false,
+		bool $subtitle = false,
+		bool $position = false
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Profiles, $name, $messages);
 
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $visibility, $messages, $layout);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $visibility, $messages, $layout, $image, $summary, $subtitle, $position);
 	}
 
 	/**

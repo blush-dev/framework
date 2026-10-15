@@ -1476,7 +1476,8 @@
 			"index_not_written": "The type was saved, but its index page couldn't be written: {reason}",
 			"page_not_written": "The type was saved, but its {page} page couldn't be written: {reason}",
 			"no_profiles": "The site has no profiles type, so nothing can credit authors.",
-			"forbidden": "You aren't allowed to change content types."
+			"forbidden": "You aren't allowed to change content types.",
+			"authors_every": "The authors relationship credits every type, so one can't leave it here; name its types on its own screen first."
 		},
 		"preview_link_controller": {
 			"off": "Preview links are off: the site has no APP_SECRET. Run \"bin/blush init\" to add one.",
@@ -3079,12 +3080,12 @@
 			"still_folder": "\"{name}\" still names its folder; move it first, on Site Health or with content:type-folders --write.",
 			"not_code": "\"{name}\" isn't defined in code, so there's nothing to reset it to.",
 			"nothing_changes": "Nothing in user/data/types changes \"{name}\".",
-			"bad_under": "\"under\" must be a type's name, or null for the top level.",
+			"bad_under": "\"adminUnder\" must be a type's name, or null for the top level.",
 			"profiles_not_placed": "{types} are listed with people, so they aren't placed in the content menu.",
 			"bad_parent": "{types} can't sit under \"{under}\": it isn't a type in the content menu.",
 			"parent_nested": "{types} can't sit under {parent}, which sits under another type; the menu nests one level.",
 			"has_children": "{types} can't sit under another type while {children} sit under it; the menu nests one level.",
-			"bad_position": "\"position\" must be a whole number, 0 or more, or null.",
+			"bad_position": "\"adminPosition\" must be a whole number, 0 or more, or null.",
 			"delete_code": "\"{name}\" is defined in code, so it can't be deleted here; reset it to undo the changes made here.",
 			"not_data_delete": "\"{name}\" isn't defined in user/data/types, so it can't be deleted here.",
 			"named_by_relations": "The {relations} {count, plural, one {relation names} other {relations name}} {name}; remove {count, plural, one {it} other {them}} first.",
@@ -3114,7 +3115,7 @@
 			"bad_name": "Content type name \"{name}\" must start with a lowercase letter and use only lowercase letters, digits, and underscores.",
 			"reserved_name": "\"{name}\" can't name a content type: _{name} is a folder the site's pages keep (the reserved names are {reserved}).",
 			"invalid_fields": "Content type \"{name}\" has invalid fields: {reason}",
-			"negative_position": "Content type \"{name}\" \"position\" must be 0 or more.",
+			"negative_position": "Content type \"{name}\" \"adminPosition\" must be 0 or more.",
 			"under_itself": "Content type \"{name}\" can't sit under itself.",
 			"no_name": "A content type definition needs a \"name\".",
 			"tree_folders": "Content type \"{name}\" has a folder pattern, but a tree's folders are its pages', so it takes none.",
@@ -3136,11 +3137,11 @@
 			"feed_subject": "Content type \"{name}\" feed",
 			"bad_feed": "Content type \"{name}\" \"feed\" must be true, false, or a map.",
 			"bad_date_archives": "Content type \"{name}\" \"dateArchives\" must be one of {values}.",
-			"position_not_whole": "Content type \"{name}\" \"position\" must be a whole number.",
+			"position_not_whole": "Content type \"{name}\" \"adminPosition\" must be a whole number.",
 			"problem": "Content type \"{name}\": {problem}",
 			"tree_pattern": "Content type \"{name}\" has the folder pattern \"{pattern}\"; a tree's folders are its pages', so it takes none.",
 			"not_overridable": "The \"{name}\" content type is {role, select, pages {the site's pages} profiles {the site's profiles type} collection {a collection type} other {a tree type}}, which user/data/types can't change; define it in one place.",
-			"only_overlaid": "\"{name}\" can only be placed in the menu and given fields here, with \"position\", \"under\", and \"fields\"."
+			"only_overlaid": "\"{name}\" can only be placed in the menu and given fields here, with \"adminPosition\", \"adminUnder\", and \"fields\"."
 		},
 		"type_urls": {
 			"unknown_options": "{subject} has unknown options: {options}.",
@@ -3222,14 +3223,6 @@
 			"template": {
 				"label": "Template",
 				"description": "The theme template to use, such as single-wide."
-			},
-			"stylesheet": {
-				"label": "Stylesheet",
-				"description": "An extra stylesheet for this page."
-			},
-			"class": {
-				"label": "Classes",
-				"description": "Extra CSS classes for the page's <body>, separated by spaces."
 			},
 			"translation_of": {
 				"label": "Original",

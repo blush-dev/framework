@@ -18,13 +18,14 @@
  * (All Files, and a kind with rules of its own, start open).
  */
 
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import type { UploadsInfo } from '../api';
 import type { IconName } from '../icons';
 import { expand, megabytes, patternOf, sizeProblem, type UploadGrid, type UploadRow } from '../uploads';
 import { t } from '../messages';
 import AdminIcon from './AdminIcon.vue';
 import MessageText from './MessageText.vue';
+import PatternField from './PatternField.vue';
 import ToggleSwitch from './ToggleSwitch.vue';
 
 const props = defineProps<{
@@ -198,50 +199,7 @@ function typeSize(row: Row, event: Event): void {
 	set(row, { size: digits });
 }
 
-// The tokens belong to the path box you're in.
-const tokensFor = ref<string | null>(null);
-
-function leave(event: FocusEvent, row: Row): void {
-	const cell = (event.currentTarget as HTMLElement | null);
-
-	if (!(event.relatedTarget instanceof Node && cell?.contains(event.relatedTarget)) && tokensFor.value === row.key) {
-		tokensFor.value = null;
-	}
-}
-
-function braced(token: string): string {
-	return `{${token}}`;
-}
-
-// A token is a folder level, so it lands with the slashes it needs and
-// never two of them.
-async function insert(row: Row, token: string): Promise<void> {
-	const input = document.getElementById(`${id}-path-${row.key}`) as HTMLInputElement | null;
-
-	if (input === null || input.disabled) {
-		return;
-	}
-
-	const value  = input.value;
-	const start  = input.selectionStart ?? value.length;
-	const end    = input.selectionEnd ?? start;
-	const before = value.slice(0, start);
-	const after  = value.slice(end);
-	let add      = braced(token);
-
-	if (before !== '' && !before.endsWith('/')) {
-		add = `/${add}`;
-	}
-
-	if (after !== '' && !after.startsWith('/')) {
-		add = `${add}/`;
-	}
-
-	set(row, { path: before + add + after });
-	await nextTick();
-	input.focus();
-	input.setSelectionRange(before.length + add.length, before.length + add.length);
-}
+const tokens = computed(() => props.info.tokens.map((name) => ({ name })));
 </script>
 
 <template>
@@ -301,27 +259,19 @@ async function insert(row: Row, token: string): Promise<void> {
 							</div>
 							<p v-if="allowed(row) && sizeProblem(rowOf(row).size, info.serverLimit)" class="uploads__problem"><AdminIcon name="triangle-alert" />{{ sizeProblem(rowOf(row).size, info.serverLimit) }}</p>
 						</td>
-						<td :data-label="t('upload_rules.path', 'Path')" @focusin="tokensFor = row.key" @focusout="leave($event, row)">
-							<div class="uploads__path">
-								<div class="uploads__prefix" :class="{ 'is-disabled': disabled || !allowed(row) }">
-									<span class="uploads__lead" aria-hidden="true">user/media/</span>
-									<input
-										:id="`${id}-path-${row.key}`"
-										:value="rowOf(row).path"
-										class="mono"
-										spellcheck="false"
-										autocomplete="off"
-										:placeholder="pathPlaceholder(row)"
-										:disabled="disabled || !allowed(row)"
-										:aria-label="t('upload_rules.path_label', 'Path for {kind}, under user/media', { kind: row.label.toLowerCase() })"
-										@input="set(row, { path: ($event.target as HTMLInputElement).value })"
-									>
-								</div>
-								<p v-if="example(row)" class="uploads__example">→ {{ example(row) }}</p>
-								<div v-if="tokensFor === row.key && allowed(row) && !disabled" class="uploads__tokens" role="group" :aria-label="t('upload_rules.tokens_label', 'Tokens for the {kind} path', { kind: row.label.toLowerCase() })">
-									<button v-for="token in info.tokens" :key="token" type="button" class="mono" @mousedown.prevent @click="insert(row, token)" v-text="braced(token)" />
-								</div>
-							</div>
+						<td :data-label="t('upload_rules.path', 'Path')">
+							<PatternField
+								:id="`${id}-path-${row.key}`"
+								:model-value="rowOf(row).path"
+								lead="user/media/"
+								:placeholder="pathPlaceholder(row)"
+								:tokens="tokens"
+								:example="example(row) ?? ''"
+								always-example
+								:disabled="disabled || !allowed(row)"
+								:label="t('upload_rules.path_label', 'Path for {kind}, under user/media', { kind: row.label.toLowerCase() })"
+								@update:model-value="set(row, { path: $event })"
+							/>
 						</td>
 					</template>
 				</tr>
@@ -484,99 +434,22 @@ async function insert(row: Row, token: string): Promise<void> {
 	color: var(--color-warning-indicator);
 }
 
-.uploads__path {
-	display: grid;
-	gap: var(--s-2);
-	max-width: 780px;
-}
 
 /* The folder every path is under, then the box. */
-.uploads__prefix {
-	display: flex;
-	align-items: stretch;
-	min-height: var(--ctl);
-	overflow: hidden;
-	border: 1px solid var(--border-color-strong);
-	border-radius: var(--border-radius-small);
-	background: var(--color-surface);
-}
 
-.uploads__prefix:hover {
-	border-color: var(--color-text-muted);
-}
 
-.uploads__prefix:focus-within {
-	border-color: var(--color-accent);
-	outline: 2px solid var(--color-accent);
-}
 
-.uploads__prefix.is-disabled {
-	border-color: var(--border-color);
-	background: var(--color-surface-subtle);
-}
 
-.uploads__lead {
-	display: flex;
-	align-items: center;
-	padding: 0 var(--s-2) 0 var(--s-3);
-	border-right: 1px solid var(--border-color);
-	background: var(--color-surface-subtle);
-	color: var(--color-text-muted);
-	font-family: var(--font-mono);
-	font-size: var(--font-size-small);
-	white-space: nowrap;
-}
 
-.uploads__prefix input {
-	flex: 1;
-	min-width: 0;
-	padding: 0 var(--s-3);
-	border: 0;
-	outline: 0;
-	background: none;
-	color: var(--color-text);
-	font-size: var(--font-size-small);
-}
 
-.uploads__prefix input::placeholder,
 .uploads__size input::placeholder {
 	color: var(--color-text-muted);
 }
 
-.uploads__prefix input:disabled {
-	cursor: not-allowed;
-}
 
-.uploads__example {
-	margin: 0;
-	color: var(--color-text-muted);
-	font-family: var(--font-mono);
-	font-size: var(--font-size-xsmall);
-	overflow-wrap: anywhere;
-}
 
-.uploads__tokens {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--s-2);
-}
 
-.uploads__tokens button {
-	height: 24px;
-	padding: 0 var(--s-2);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-small);
-	background: var(--color-surface);
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-xsmall);
-	cursor: pointer;
-}
 
-.uploads__tokens button:hover {
-	border-color: var(--color-accent-border);
-	background: var(--color-accent-subtle);
-	color: var(--color-accent);
-}
 
 /* The panel's footer or a bar draws the line under the last row. */
 .uploads__table tbody tr:last-child > * {

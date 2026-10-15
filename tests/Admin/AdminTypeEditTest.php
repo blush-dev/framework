@@ -204,6 +204,30 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame([true, 'easy'], [$schema->field('servings')?->required, $schema->field('difficulty')?->default], 'Its library fields, servings required on it (D-858).');
 	}
 
+	public function testPreviewsANewTypesRoutesAndCreatesItWithTheirPaths(): void
+	{
+		$this->site();
+
+		$preview = $this->write('POST', '/types/routes', ['name' => 'recipe', 'kind' => 'collection', 'set' => ['prefix' => 'cook']]);
+		$this->assertSame(200, $preview->getStatusCode(), (string) $preview->getBody());
+		$routes = self::json($preview)['routes'] ?? null;
+		$this->assertIsArray($routes);
+		$keys = array_column($routes, 'key');
+		$this->assertContains('single', $keys, 'A new type\'s routes, before it\'s made (D-870).');
+		$this->assertSame('', $this->file('user/data/types/recipe.json'), 'A preview writes nothing.');
+
+		$none = $this->write('POST', '/types/routes', ['name' => 'recipe', 'kind' => 'collection', 'set' => ['routes' => false]]);
+		$this->assertSame([], self::json($none)['routes'] ?? null, 'A type without routes has none to set.');
+
+		$made = $this->write('POST', '/types', [
+			'name' => 'recipe',
+			'kind' => 'collection',
+			'set'  => ['prefix' => 'cook', 'paths' => ['single' => 'r/{name}']]
+		]);
+		$this->assertSame(201, $made->getStatusCode(), (string) $made->getBody());
+		$this->assertSame(['urls' => ['prefix' => 'cook', 'paths' => ['single' => 'r/{name}']]], array_intersect_key($this->data('user/data/types/recipe.json'), ['urls' => true]), 'Its paths, set before Create.');
+	}
+
 	public function testEditsOnlyWhatChangedAndKeepsTheRest(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.json', '{"routing": {"single": "r/{name}"}, "listing": {"orderBy": "title"}}');
@@ -523,10 +547,10 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testPlacesTypesInTheMenu(): void
 	{
-		$this->codeConfig(['types' => ['movie' => ['description' => 'Films.', 'under' => 'page']]]);
+		$this->codeConfig(['types' => ['movie' => ['description' => 'Films.', 'adminUnder' => 'page']]]);
 		$this->writeTemporaryFile('user/data/types/cast.json', '{"labels": {"plural": "Cast"}}');
 		$this->writeTemporaryFile('user/data/types/genre.json', '{}');
-		$this->writeTemporaryFile('user/data/types/note.json', '{"under": "gone"}');
+		$this->writeTemporaryFile('user/data/types/note.json', '{"adminUnder": "gone"}');
 		$this->site();
 
 		$listed = self::placement(self::json($this->send('GET', '/types')));
@@ -537,40 +561,40 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame([false, true], [$page['editable'] ?? null, $page['placeable'] ?? null], 'The built-in pages can be placed, though not edited.');
 		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['placeable'] ?? null, 'Profiles are listed under Users.');
 
-		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['position' => 1, 'under' => null]])->getStatusCode());
-		$this->assertSame(['position' => 1, 'under' => ''], $this->data('user/data/types/movie.json'), 'Over code, only what differs, with the top level written out.');
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['adminPosition' => 1, 'adminUnder' => null]])->getStatusCode());
+		$this->assertSame(['adminPosition' => 1, 'adminUnder' => ''], $this->data('user/data/types/movie.json'), 'Over code, only what differs, with the top level written out.');
 
-		$answer = $this->write('PATCH', '/types/cast', ['set' => ['position' => 2, 'under' => 'movie']]);
+		$answer = $this->write('PATCH', '/types/cast', ['set' => ['adminPosition' => 2, 'adminUnder' => 'movie']]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
-		$this->assertSame([2, 'movie'], [self::json($answer)['position'] ?? null, self::json($answer)['under'] ?? null]);
-		$this->assertSame(['labels' => ['plural' => 'Cast'], 'position' => 2, 'under' => 'movie'], $this->data('user/data/types/cast.json'), 'A data type keeps its place in its own file.');
+		$this->assertSame([2, 'movie'], [self::json($answer)['adminPosition'] ?? null, self::json($answer)['adminUnder'] ?? null]);
+		$this->assertSame(['labels' => ['plural' => 'Cast'], 'adminPosition' => 2, 'adminUnder' => 'movie'], $this->data('user/data/types/cast.json'), 'A data type keeps its place in its own file.');
 
-		$answer = $this->write('PATCH', '/types/page', ['set' => ['position' => 4]]);
+		$answer = $this->write('PATCH', '/types/page', ['set' => ['adminPosition' => 4]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
-		$this->assertSame(['position' => 4], $this->data('user/data/types/page.json'), 'The built-in pages are placed too, and nothing else.');
-		$this->assertSame(['built-in', false, false, 4], [self::json($answer)['origin'] ?? null, self::json($answer)['editable'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['position'] ?? null], 'Placing a type doesn\'t change it.');
-		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['position' => 4, 'icon' => 'file']])->getStatusCode(), 'Nothing else about the pages changes here.');
+		$this->assertSame(['adminPosition' => 4], $this->data('user/data/types/page.json'), 'The built-in pages are placed too, and nothing else.');
+		$this->assertSame(['built-in', false, false, 4], [self::json($answer)['origin'] ?? null, self::json($answer)['editable'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['adminPosition'] ?? null], 'Placing a type doesn\'t change it.');
+		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['adminPosition' => 4, 'icon' => 'file']])->getStatusCode(), 'Nothing else about the pages changes here.');
 
 		$refused = [
-			['genre', ['under' => 'cast']],
-			['movie', ['under' => 'page']],
-			['cast', ['under' => 'cast']],
-			['cast', ['under' => 'nope']],
-			['cast', ['under' => 'profile']],
-			['cast', ['position' => -1]],
-			['page', ['position' => 'first']],
-			['profile', ['position' => 1]]
+			['genre', ['adminUnder' => 'cast']],
+			['movie', ['adminUnder' => 'page']],
+			['cast', ['adminUnder' => 'cast']],
+			['cast', ['adminUnder' => 'nope']],
+			['cast', ['adminUnder' => 'profile']],
+			['cast', ['adminPosition' => -1]],
+			['page', ['adminPosition' => 'first']],
+			['profile', ['adminPosition' => 1]]
 		];
 
 		foreach ($refused as [$name, $set]) {
 			$this->assertSame(422, $this->write('PATCH', "/types/{$name}", ['set' => $set])->getStatusCode(), (string) json_encode([$name, $set]));
 		}
 
-		$this->assertSame(['labels' => ['plural' => 'Cast'], 'position' => 2, 'under' => 'movie'], $this->data('user/data/types/cast.json'), 'A refused change writes nothing.');
+		$this->assertSame(['labels' => ['plural' => 'Cast'], 'adminPosition' => 2, 'adminUnder' => 'movie'], $this->data('user/data/types/cast.json'), 'A refused change writes nothing.');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.']])->getStatusCode());
 		$this->assertSame(200, $this->write('POST', '/types/movie/reset')->getStatusCode());
-		$this->assertSame(['position' => 1, 'under' => ''], $this->data('user/data/types/movie.json'), 'Resetting a code type keeps its place.');
+		$this->assertSame(['adminPosition' => 1, 'adminUnder' => ''], $this->data('user/data/types/movie.json'), 'Resetting a code type keeps its place.');
 	}
 
 	/**
@@ -585,7 +609,7 @@ final class AdminTypeEditTest extends TestCase
 
 		foreach (is_array($list['types'] ?? null) ? $list['types'] : [] as $type) {
 			if (is_array($type) && is_string($type['name'] ?? null)) {
-				$placed[$type['name']] = [$type['position'] ?? null, $type['under'] ?? null];
+				$placed[$type['name']] = [$type['adminPosition'] ?? null, $type['adminUnder'] ?? null];
 			}
 		}
 

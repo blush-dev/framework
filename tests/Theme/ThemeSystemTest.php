@@ -283,16 +283,6 @@ final class ThemeSystemTest extends TestCase
 		$this->assertStringContainsString('Saved tagline|none', $this->get('/'));
 	}
 
-	public function testAnEntryStylesheetReachesThePage(): void
-	{
-		$this->writeTemporaryFile('extensions/acme/tinted/theme.json', '{"name": "acme/tinted", "label": "Tinted", "namespace": "tinted"}');
-		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\nstylesheet: extra.css\n---\nHi");
-		$this->writeTemporaryFile('extensions/acme/tinted/extra.css', '');
-		$this->activeTheme('acme/tinted');
-
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/acme/tinted/extra.css\?v=[0-9a-f]{8}">#', $this->get('/'));
-	}
-
 	public function testPublicManifestsBuildFromResources(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/vite/theme.json', '{"name": "acme/vite", "label": "Vite", "namespace": "vite", "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]}');

@@ -278,6 +278,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
 			Route::post('/types', [TypeEditController::class, 'create'])->named('type.create')->middleware(Authenticate::class),
 			Route::post('/types/refresh', [TypeEditController::class, 'refresh'])->named('types.refresh')->middleware(Authenticate::class),
+			Route::post('/types/routes', [TypesController::class, 'preview'])->named('types.routes')->middleware(Authenticate::class),
 			Route::get('/types/{name:[a-z0-9_-]+}', [TypesController::class, 'show'])->named('type')->middleware(Authenticate::class),
 			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),

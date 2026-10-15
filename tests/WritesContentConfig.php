@@ -57,7 +57,7 @@ trait WritesContentConfig
 				}
 
 				if ($key === 'types') {
-					$definition = $this->libraryFields($definition);
+					$definition = TypeSupports::defaults($this->libraryFields($definition));
 				}
 
 				$this->writeTemporaryFile("user/data/{$key}/{$name}.json", json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));

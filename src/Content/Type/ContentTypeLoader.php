@@ -98,7 +98,7 @@ final readonly class ContentTypeLoader
 	 */
 	private function loadTypes(): ContentTypes
 	{
-		[$types, $origins, $clashes] = $this->codeTypes();
+		[$types, $origins, $clashes, $sources] = $this->codeTypes();
 
 		$overrides = [];
 		$legacy    = [];
@@ -170,7 +170,7 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $library, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named, $this->messages);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $library, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named, $this->messages, $sources);
 		$this->check($resolved);
 
 		return $resolved;
@@ -184,7 +184,7 @@ final readonly class ContentTypeLoader
 	 * Two extensions defining a type by one name keep the first, and the
 	 * clash is returned (D-597).
 	 *
-	 * @return array{array<string, ContentType>, array<string, TypeOrigin>, list<DefinitionClash>}
+	 * @return array{array<string, ContentType>, array<string, TypeOrigin>, list<DefinitionClash>, array<string, class-string>}
 	 * @throws InvalidContentType
 	 */
 	public function codeTypes(): array
@@ -215,14 +215,14 @@ final readonly class ContentTypeLoader
 			$sources[$type->name] = $source;
 		}
 
-		return [$types, $origins, $clashes];
+		return [$types, $origins, $clashes, $sources];
 	}
 
 	/**
 	 * Returns the types from extension sources, each with its source's
 	 * class.
 	 *
-	 * @return iterable<array{ContentType, string}>
+	 * @return iterable<array{ContentType, class-string}>
 	 */
 	private function extensionTypes(): iterable
 	{

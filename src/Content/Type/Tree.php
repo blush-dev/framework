@@ -58,13 +58,17 @@ final readonly class Tree extends ContentType
 	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @param  ?string         $prefix      The path a tree in a folder is served under (D-683); its name by default.
-	 * @param  ?int            $position    Its order in the admin's menu (D-726).
-	 * @param  ?string         $under       The type it sits under in the admin's menu (D-726).
+	 * @param  ?int            $adminPosition Its order in the admin's menu (D-726, D-866).
+	 * @param  ?string         $adminUnder The type it sits under in the admin's menu (D-726, D-866).
 	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
-	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
+	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public. Off unless it's on (D-866).
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @param  FieldLayout     $layout      The library fields it carries, in sections (D-858).
+	 * @param  bool            $image       Whether entries have a featured `image` (D-866).
+	 * @param  bool            $summary     Whether entries have a `summary` (D-866).
+	 * @param  bool            $subtitle    Whether entries have a `subtitle` (D-866).
+	 * @param  bool            $position    Whether entries have a `position` among their siblings (D-412, D-866).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -80,18 +84,22 @@ final readonly class Tree extends ContentType
 		bool $llms = true,
 		?FileName $filename = null,
 		?string $prefix = null,
-		?int $position = null,
-		?string $under = null,
+		?int $adminPosition = null,
+		?string $adminUnder = null,
 		FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		bool $expires = false,
-		bool $visibility = true,
+		bool $visibility = false,
 		Messages $messages = new Messages(),
-		FieldLayout $layout = new FieldLayout()
+		FieldLayout $layout = new FieldLayout(),
+		bool $image = false,
+		bool $summary = false,
+		bool $subtitle = false,
+		bool $position = false
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Tree, $name, $messages);
 
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $visibility, $messages, $layout);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $adminPosition, $adminUnder, $controls, $workflow, $expires, $visibility, $messages, $layout, $image, $summary, $subtitle, $position);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

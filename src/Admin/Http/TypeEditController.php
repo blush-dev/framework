@@ -56,7 +56,8 @@ use Blush\Translation\Text;
  *   `"set"`, `"index"`, `"listPages"`, `"authors"}`, kept in `_` and its
  *   name (D-683); answers `201` with
  *   the type as `GET types/{name}` describes it.
- * - `PATCH types/{name}`: `{"set", "index", "listPages"}`; answers
+ * - `PATCH types/{name}`: `{"set", "index", "listPages", "authors"}`
+ *   (`authors` true or false joins or leaves the `authors` credit, D-866); answers
  *   with the type.
  * - `DELETE types/{name}`: deletes its file (its entries stay); answers
  *   `{"deleted"}`.
@@ -150,8 +151,19 @@ final readonly class TypeEditController
 			return self::error('Send "set" (options to values).', Status::BadRequest);
 		}
 
+		// Joining or leaving the authors credit saves with the type (D-866).
+		$authors = $input['authors'] ?? null;
+
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, ($input['index'] ?? false) === true, self::listPages($input));
+		return $this->changed(function () use ($name, $set, $authors): ContentTypes {
+			$types = $set === [] ? $this->loader->load() : $this->writer->update($name, $set);
+
+			return match ($authors) {
+				true    => $this->credit($types, $name),
+				false   => $this->uncredit($types, $name),
+				default => $types
+			};
+		}, $name, ($input['index'] ?? false) === true, self::listPages($input));
 	}
 
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
@@ -459,6 +471,32 @@ final readonly class TypeEditController
 			}
 
 			return $this->relations->update(Relation::fromArray([...$authors->toArray(), 'from' => [...$authors->from, $name]], $this->messages));
+		} catch (InvalidRelation $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
+		}
+	}
+
+	/**
+	 * Takes a type out of the `authors` credit relation's `from` (D-866),
+	 * and returns the types without it. Its entries keep their `authors`
+	 * in their files, unread.
+	 *
+	 * @throws InvalidContentType When the relation credits every type.
+	 */
+	private function uncredit(ContentTypes $types, string $name): ContentTypes
+	{
+		$authors = $types->relations()[Relation::AUTHORS] ?? null;
+
+		if ($authors === null || ! $authors->isFrom($name)) {
+			return $types;
+		}
+
+		if ($authors->from === []) {
+			throw new InvalidContentType((string) $this->messages->t('admin.type_edit_controller.authors_every', 'The authors relationship credits every type, so one can\'t leave it here; name its types on its own screen first.'));
+		}
+
+		try {
+			return $this->relations->update(Relation::fromArray([...$authors->toArray(), 'from' => array_values(array_diff($authors->from, [$name]))], $this->messages));
 		} catch (InvalidRelation $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}

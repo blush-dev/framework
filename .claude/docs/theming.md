@@ -488,11 +488,10 @@ in D-160. It may return as an add-on; notes on the old design:
 
 ## Per-entry presentation (D-027)
 
-Built-in front matter: `template`, `stylesheet`, `class`.
-These let a single post have its own design without a custom theme.
-`class` is added to `<body>` (D-109), and `stylesheet` is a URL or a
-theme asset path (D-119). `layout`, which replaced the page template's
-layout, is gone (D-783).
+Built-in front matter: `template`. `stylesheet` and `class` (D-109,
+D-119) are gone from core (D-865): a site that wants them makes them
+its own fields, read by its theme. `layout`, which replaced the page
+template's layout, is gone (D-783).
 
 **Templates for single entries (D-783):** a theme declares the
 templates the editor's Template row offers, in code for now
