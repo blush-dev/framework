@@ -103,7 +103,7 @@ final readonly class SitemapBuilder
 		}
 
 		$landing = $this->content->named($type->name, '');
-		$landing = $landing !== null && $landing->isPublished() && $landing->isRoutable() ? $landing : null;
+		$landing = $landing !== null && $landing->isLinkable() ? $landing : null;
 
 		if ($this->types->home === null && $type->name === $this->types->forFile('index.md')->name) {
 			$urls['/'] = new SitemapUrl($this->urls->absolute('/'), $landing?->updated);
@@ -124,7 +124,7 @@ final readonly class SitemapBuilder
 				$url  = $this->urls->term($type, $slug);
 				$term = $this->content->term($type->name, $slug);
 
-				if ($url !== null && $term !== null && $term->isPublished() && $term->isRoutable()) {
+				if ($url !== null && $term !== null && $term->isLinkable()) {
 					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $term->updated);
 				}
 			}

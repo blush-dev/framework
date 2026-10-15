@@ -748,7 +748,7 @@ final class AdminEditingTest extends TestCase
 		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
 		$this->writeTemporaryFile('user/content/work/index.md', "---\ntitle: Work\n---\n");
 		$this->writeTemporaryFile('user/content/work/design.md', "---\ntitle: Design\n---\n");
-		$this->writeTemporaryFile('user/content/work/_notes.md', "---\ntitle: Notes\n---\n");
+		$this->writeTemporaryFile('user/content/work/notes.md', "---\ntitle: Notes\nvisibility: hidden\n---\n");
 		$this->site();
 
 		$work = $this->load('work/index.md');

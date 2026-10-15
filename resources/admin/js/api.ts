@@ -379,7 +379,7 @@ export interface ContentTypeSummary {
 	// Whether its entries are terms: a classify relation files other
 	// entries under them (D-593); whether they nest by a `parent`; and a
 	// collection's default order (`published` or `position`).
-	terms: boolean;
+	taxonomy: boolean;
 	hierarchical: boolean;
 	order: 'date' | 'position' | null;
 	// A term type's: the types its relation files, empty for every type.
@@ -396,6 +396,9 @@ export interface ContentTypeSummary {
 	statuses: string[];
 	// Whether its entries may have an Expires date (D-852).
 	expires: boolean;
+	// Whether its entries choose a visibility (D-855); only a public
+	// type's do.
+	visibility: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
 	origin: 'built-in' | 'extension' | 'data';
@@ -1498,12 +1501,14 @@ export interface EntryDetail {
 		name: string;
 		kind: ContentTypeSummary['kind'];
 		// Whether its entries are terms, and nest by a `parent` (D-593).
-		terms: boolean;
+		taxonomy: boolean;
 		hierarchical: boolean;
 		// The byline's field (its type's byline credit, D-602), or `null`.
 		byline: string | null;
 		// Whether its entries may expire (D-852).
 		expires: boolean;
+		// Whether its entries choose a visibility (D-855).
+		visibility: boolean;
 		dated: boolean;
 		fields: FieldDescription[];
 		// The field sets attached to the type (D-337), with the names of

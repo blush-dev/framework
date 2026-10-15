@@ -102,7 +102,7 @@ final readonly class Referrers
 			if (
 				$byline !== null
 				&& $source->id !== null
-				&& $source->isPublished()
+				&& $source->isLive()
 				&& array_any($relations, static fn (Relation $relation): bool => $relation->name === $byline->name)
 				&& count($this->links->targets($source->id, $byline->name)) === 1
 			) {
@@ -190,7 +190,7 @@ final readonly class Referrers
 	 */
 	public static function live(array $referrers): int
 	{
-		return count(array_filter($referrers, static fn (Entry $entry): bool => $entry->isPublished()));
+		return count(array_filter($referrers, static fn (Entry $entry): bool => $entry->isLive()));
 	}
 
 	/**

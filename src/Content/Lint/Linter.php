@@ -39,6 +39,7 @@ use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
+use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
@@ -124,7 +125,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkUnderscore($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 			}
@@ -285,7 +286,7 @@ final readonly class Linter
 			$contents = $this->contentFiles->source()->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkUnderscore($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 		}
@@ -429,14 +430,30 @@ final readonly class Linter
 	}
 
 	/**
+	 * Warns of a `_` file or folder name that isn't a relation archive's
+	 * page (D-855): it no longer hides the entry or makes it a draft, and
+	 * an address with a `_` part is never served, so the entry can't be
+	 * reached. Front matter's `visibility` and `status` say those.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkUnderscore(IndexRecord $record): array
+	{
+		if ($record->visibility === Visibility::Hidden || ! array_any(explode('/', $record->key), static fn (string $part): bool => str_starts_with($part, '_'))) {
+			return [];
+		}
+
+		return [new Violation(self::FILE, $this->messages->t('content.linter.underscore', 'has a name starting with "_", which no longer hides an entry or makes it a draft, and leaves it without an address. Rename it, and say "visibility: hidden" or "status: draft" in its front matter.'), Severity::Warning, ViolationKind::Prefix)];
+	}
+
+	/**
 	 * Checks that a tree's or profiles type's file, and the folders
 	 * between it and its type's folder, have no order prefix (D-409): the
 	 * part of a name before its last `.`. A file may have the prefix its
 	 * type's own `filename` pattern gives it (D-514); a folder never. Only collections
 	 * order files by name; a page's folder named `01.about` doesn't nest
-	 * under `about`, and a prefix orders nothing in a tree. A hidden file,
-	 * or one in a hidden folder that isn't a type's (`__drafts/`), is
-	 * left alone.
+	 * under `about`, and a prefix orders nothing in a tree. A `_` file or
+	 * folder is left alone: `checkUnderscore()` speaks for it.
 	 *
 	 * @return list<Violation>
 	 */
@@ -454,7 +471,7 @@ final readonly class Linter
 		$segments = explode('/', $below);
 		$last     = array_key_last($segments);
 
-		// Hidden files have no address, so a prefix harms nothing there.
+		// `_` names have no address, so a prefix harms nothing there.
 		if (array_any($segments, static fn (string $segment): bool => str_starts_with($segment, '_'))) {
 			return [];
 		}

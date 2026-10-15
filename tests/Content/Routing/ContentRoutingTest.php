@@ -238,7 +238,7 @@ final class ContentRoutingTest extends TestCase
 		$this->assertPage('/about/', 301, '/about');
 		$this->assertPage('/about/biography', 200, 'Biography');
 		$this->assertPage('/notes', 200, 'Notes');
-		$this->assertPage('/_private', 404);
+		$this->assertPage('/private', 404);
 		$this->assertPage('/__drafts/idea', 404);
 		$this->assertPage('/missing', 404);
 		$this->assertPage('/missing/', 404);

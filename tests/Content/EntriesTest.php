@@ -106,7 +106,7 @@ final class EntriesTest extends TestCase
 
 	public function testNamingEntriesFindsHiddenOnesAndLandingPages(): void
 	{
-		$this->assertSame(['_private'], self::slugs($this->content->query()->names('_private')->get()));
+		$this->assertSame(['private'], self::slugs($this->content->query()->names('private')->get()));
 		$this->assertSame(['rainy'], self::slugs($this->content->query()->names('rainy')->get()));
 		$this->assertSame(['index'], self::slugs($this->content->query()->type('post')->names('index')->get()));
 		$this->assertSame(['hello', 'welcome'], self::slugs($this->content->query()->type('post')->exceptNames('spring')->get()));
@@ -284,11 +284,11 @@ final class EntriesTest extends TestCase
 		$this->assertSame(['art', 'book-reviews'], $entry->slugs('category'));
 		$this->assertTrue($entry->linksTo('category', (string) $this->content->term('category', 'art')?->id));
 		$this->assertFalse($entry->linksTo('category', (string) $this->content->term('category', 'life')?->id));
-		$this->assertTrue($entry->isPublished());
+		$this->assertTrue($entry->isLive());
 		$this->assertTrue($entry->isRoutable());
 		$this->assertTrue($entry->isListed());
 		$this->assertFalse($this->content->named('post', '')?->isListed());
-		$this->assertFalse($this->content->named('page', '_private')?->isRoutable());
+		$this->assertFalse($this->content->named('page', 'private')?->isRoutable());
 	}
 
 	public function testBodiesAreReadOnlyWhenUsed(): void

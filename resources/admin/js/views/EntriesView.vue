@@ -159,9 +159,9 @@ const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Numb
 
 const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || linking.value !== '' || linked.value || over.value !== '' || Object.keys(chosen.value).length > 0);
 
-// Terms (D-593), and the authors type's entries, which are people
+// A taxonomy's entries (D-593, D-856), and the profiles type's
 // (D-329): they're counted by use, not credited.
-const terms = computed(() => info.value?.terms === true || info.value?.kind === 'profiles');
+const terms = computed(() => info.value?.taxonomy === true || info.value?.kind === 'profiles');
 
 // A nesting type lists as a tree on All with no search (D-261); a tab or
 // a search flattens it, and a bar says so and how to get it back (the
@@ -302,7 +302,7 @@ function pinnedOf(answer: EntryList): EntrySummary[] {
 }
 
 // The term types that file this type (D-593).
-const termTypes = computed(() => types.value.filter((item) => item.terms
+const termTypes = computed(() => types.value.filter((item) => item.taxonomy
 	&& item.name !== type.value
 	&& (!item.types?.length || item.types.includes(type.value))));
 
@@ -655,7 +655,7 @@ function purpose(summary: ContentTypeSummary | undefined, label: string): string
 		return summary.description;
 	}
 
-	if (summary?.terms) {
+	if (summary?.taxonomy) {
 		return t('entries_view.purpose_terms', '{label} file other entries. Each one is an entry of its own, with a page listing what\'s filed under it.', { label });
 	}
 
@@ -695,7 +695,7 @@ const emptyText = computed(() => {
 		<header class="page-header">
 			<div class="page-header__text">
 				<h1 tabindex="-1">{{ heading }}</h1>
-				<p class="page-header__hint">{{ info?.kind === 'profiles' ? t('entries_view.hint_profiles', 'Public identities. Every byline on the site points at one.') : (terms ? t('entries_view.hint_terms', 'Terms that group other entries') : t('entries_view.hint', 'Every {item} you can edit', { item: labels.item })) }}</p>
+				<p class="page-header__hint">{{ info?.kind === 'profiles' ? t('entries_view.hint_profiles', 'Public identities. Every byline on the site points at one.') : (terms ? t('entries_view.hint_taxonomy', 'Entries that group other entries') : t('entries_view.hint', 'Every {item} you can edit', { item: labels.item })) }}</p>
 			</div>
 			<div v-if="(canType(type, 'create') && !nothingYet) || can('site.settings')" class="page-header__actions">
 				<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />{{ t('entries_view.type_settings', 'Type Settings') }}</RouterLink>

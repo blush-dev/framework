@@ -65,7 +65,7 @@ final readonly class FeedController
 			$archived = $this->types->relationArchives($contentType)[$relation] ?? null;
 			$entry    = $archived === null ? null : $this->content->named($archived->to[0], basename($target));
 
-			if ($archived === null || $entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+			if ($archived === null || $entry === null || ! $entry->isLinkable()) {
 				throw new NotFound(sprintf('There is no "%s" %s "%s".', $type, $relation, $target));
 			}
 
@@ -73,7 +73,7 @@ final readonly class FeedController
 		} elseif ($contentType instanceof Profiles) {
 			$entry = $name === null ? null : $this->content->term($contentType->name, $name);
 
-			if ($entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+			if ($entry === null || ! $entry->isLinkable()) {
 				throw new NotFound(sprintf('There is no profile "%s".', $name ?? ''));
 			}
 
@@ -84,7 +84,7 @@ final readonly class FeedController
 			// A hierarchical term's `{name}` is its path; the term is its last slug.
 			$term = $this->types->hasTermPages($contentType->name) ? $this->content->term($contentType->name, basename($name)) : null;
 
-			if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
+			if ($term === null || ! $term->isLinkable()) {
 				throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));
 			}
 

@@ -31,6 +31,7 @@ use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Index\HiddenKeys;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Field\FieldContext;
@@ -449,8 +450,10 @@ final readonly class RecordContentWriter implements ContentWriter
 		$expires   = $type->expires && is_int($values['expires'] ?? null) ? $values['expires'] : null;
 		$status    = is_string($values['status'] ?? null) && trim($values['status']) !== '' ? strtolower(trim($values['status'])) : null;
 		$key       = $this->keyOf($place);
-		$hidden    = array_any(explode('/', $key), static fn (string $part): bool => str_starts_with($part, '_'));
-		$declared  = is_string($values['visibility'] ?? null) ? Visibility::tryFrom($values['visibility']) : null;
+		// Pages core serves somewhere else are hidden (D-855); a type
+		// without visibility makes every entry public.
+		$hidden    = $place['archive'] !== null || HiddenKeys::has($this->types, $type, $key);
+		$declared  = $type->hasVisibility() && is_string($values['visibility'] ?? null) ? Visibility::tryFrom($values['visibility']) : null;
 
 		unset($values['slug']);
 

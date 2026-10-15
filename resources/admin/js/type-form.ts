@@ -52,6 +52,8 @@ export interface TypeForm {
 	workflow: string;
 	// Whether its entries may have an Expires date (D-852).
 	expires: boolean;
+	// Whether its entries choose a visibility (D-855).
+	visibility: boolean;
 	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
 	// default.
 	paths: Record<string, string>;
@@ -66,7 +68,7 @@ export const FEATURED: FieldDescription = { name: 'image', type: 'media', contro
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'date', fields: [], position: '', under: '', workflow: '', expires: false, paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'date', fields: [], position: '', under: '', workflow: '', expires: false, visibility: true, paths: {} };
 }
 
 /**
@@ -97,6 +99,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		under: type.under ?? '',
 		workflow: type.workflow === 'standard' ? '' : type.workflow,
 		expires: type.expires,
+		visibility: type.visibility,
 		paths: Object.fromEntries(type.routes.map((route) => [route.key, route.path === route.default ? '' : route.path]))
 	};
 }
@@ -145,6 +148,7 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		under: form.under || null,
 		workflow: form.workflow || null,
 		expires: form.expires,
+		visibility: form.visibility,
 		filename: form.filename || null,
 		// A tree's folders are its pages' (D-629).
 		...(kind === 'tree' ? {} : { folders: form.folders || null }),

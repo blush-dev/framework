@@ -321,7 +321,7 @@ final readonly class TypesController
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
 			'authors'     => $types->credits($type->name) !== [],
-			'terms'       => $types->classification($type->name) !== null,
+			'taxonomy'       => $types->classification($type->name) !== null,
 			'hierarchical' => $types->nestsByParent($type->name),
 			'order'       => $type instanceof Collection ? $type->order->value : null,
 			'position'    => $type->position,
@@ -331,6 +331,9 @@ final readonly class TypesController
 			'workflow'    => $this->workflows->for($type)->name,
 			// Whether its entries may expire (D-852).
 			'expires'     => $type->expires,
+			// Whether its entries choose a visibility (D-855), and
+			// whether it can: only a public type's do.
+			'visibility'  => $type->visibility,
 			'statuses'    => $this->workflows->for($type)->statuses,
 			...($types->classification($type->name) !== null ? ['types' => $types->classification($type->name)->from] : []),
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),

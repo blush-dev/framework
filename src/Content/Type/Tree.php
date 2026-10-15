@@ -61,6 +61,7 @@ final readonly class Tree extends ContentType
 	 * @param  ?string         $under       The type it sits under in the admin's menu (D-726).
 	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
+	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -82,11 +83,12 @@ final readonly class Tree extends ContentType
 		FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		bool $expires = false,
+		bool $visibility = true,
 		Messages $messages = new Messages()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Tree, $name, $messages);
 
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $messages);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $visibility, $messages);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

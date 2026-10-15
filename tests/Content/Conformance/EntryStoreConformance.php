@@ -247,7 +247,7 @@ abstract class EntryStoreConformance extends TestCase
 
 	public function testNames(): void
 	{
-		$this->assertSame(['_private'], $this->found($this->query()->names('_private')));
+		$this->assertSame(['private'], $this->found($this->query()->names('private')));
 		$this->assertSame(['rainy'], $this->found($this->query()->names('rainy')));
 		$this->assertSame(['index'], $this->found($this->query()->type('post')->names('index')));
 		$this->assertSame(['hello', 'welcome'], $this->found($this->query()->type('post')->exceptNames('spring')));

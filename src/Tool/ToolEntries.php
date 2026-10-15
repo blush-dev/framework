@@ -148,7 +148,7 @@ final readonly class ToolEntries
 			return $context->can(ContentAction::Delete, $entry);
 		}
 
-		return ($entry->type->public && $entry->isPublished() && $entry->visibility !== Visibility::Hidden)
+		return $entry->isLinkable()
 			|| $context->can(ContentAction::Edit, $entry);
 	}
 
@@ -165,7 +165,7 @@ final readonly class ToolEntries
 			'type'      => $entry->type->name,
 			'title'     => $entry->title,
 			'status'    => $entry->status->name,
-			'url'       => $entry->isPublished() ? $this->api->url($entry) : null,
+			'url'       => $entry->isLive() ? $this->api->url($entry) : null,
 			'date'      => $entry->date?->format(DATE_ATOM),
 			'updated'   => $entry->updated->format(DATE_ATOM),
 			...($entry->type->expires ? ['expires' => $entry->expires?->format(DATE_ATOM)] : []),
@@ -191,7 +191,7 @@ final readonly class ToolEntries
 		}
 
 		$item['status'] = $entry->status->name;
-		$item['url']    = $entry->isPublished() ? $this->api->url($entry) : null;
+		$item['url']    = $entry->isLive() ? $this->api->url($entry) : null;
 
 		if ($editing && $context->can(ContentAction::Edit, $entry)) {
 			$item['revision'] = $file->version;

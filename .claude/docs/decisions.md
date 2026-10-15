@@ -27268,3 +27268,74 @@ decision, add a new entry that supersedes it and mark the old one
     new workflow starts with Draft and Published, Publish and
     Unpublish; a change bumps the content version.
 - **Status:** Built (2026-10-15).
+
+### D-855: Visibility without `_` names, `isLive()` and `isLinkable()`, and visibility per type
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-078's hidden `_`-prefixed file names and `_`
+  folders, and the `_drafts` folder; D-082's `isPublished()` meaning.
+- **The author's decisions:**
+  - **No hidden `_` names.** A `_`-prefixed file name or folder no
+    longer makes an entry hidden, and a `_drafts` folder no longer
+    makes it a draft: `visibility: hidden` and `status: draft` say so.
+    A 1.x leftover that only the author's own site used. The `_` of a
+    type's folder (`_post`, D-683) and `_error` keep their meaning.
+  - **No custom visibilities.** Visibility is whether an entry has an
+    address and whether it's listed; `public`, `unlisted`, and
+    `hidden` are every combination that means something. Who may see
+    an entry (signed in, a role, a password) is access, a question of
+    its own, not a visibility.
+  - **Front matter stays** `visibility: public|unlisted|hidden`.
+  - **`isLive()`** is what `isPublished()` meant: a live status whose
+    date has come and that hasn't expired. **`isPublished()`** is the
+    status `published` alone. Entries get **`hasStatus(string $name)`**
+    and one method per core status: `isDraft()`, `isScheduled()`,
+    `isExpired()`, `isTrashed()`. A scheduled entry is `isScheduled()`,
+    not `isPublished()`.
+  - **`isLinkable()`**: live, routable, and of a public type; it
+    replaces `isPublished() && isRoutable()`.
+  - **`link()` prints the title alone when the entry isn't linkable**,
+    so a theme writes `<?= $entry->link() ?>` and never checks.
+    **`url()` stays the entry's address** whatever its status (the
+    admin, previews, and canonical tags need drafts' addresses).
+  - **Visibility is a type option, for types with URLs only**, on or
+    off; off, the editor doesn't show it and every entry of the type
+    is public. Types without URLs have no visibility and no option.
+  - **`docs/` says what `unlisted` means:** it has an address and is
+    read by URL (its page, Markdown copy, a single API or MCP read),
+    but it's left out of collections, feeds, sitemaps, `llms.txt`,
+    related lists, and API lists. It isn't private.
+- **Claude's calls:** the type option is on by default. On jtcom-trial,
+  Claude moves any file the old rules hid or drafted to front matter.
+  - **Core's own `_` places stay hidden** (`HiddenKeys`), whatever front
+    matter says: a relation archive's pages (`_authors.md`,
+    `_authors/{slug}.md`, D-602), served at their archives, and the
+    error pages with their folder's page (`_errors/404.md`, D-411),
+    which would otherwise reach the sitemap and lists.
+  - **`content:lint` warns of any other `_` name** (`checkUnderscore`):
+    its entry has no address (`PageController` still refuses `_`
+    paths), so it says to rename it and use front matter.
+  - **`drafts` is no longer a reserved type name.**
+  - **Every `isPublished() && isRoutable()` became `isLinkable()`**, in
+    core and the trial's themes; other `isPublished()` calls became
+    `isLive()`.
+  - **The admin's `terms` flag on types is `taxonomy`** (D-856), in the
+    API the admin reads and its code.
+- **Status:** Built (2026-10-15).
+
+### D-856: The admin's "Terms" kind is a Taxonomy, and a brief for content types
+
+- **Date:** 2026-10-15
+- **The author's decisions:**
+  - **"Terms" is called a Taxonomy** in the admin: the new-type
+    wizard's choice beside Collection and Tree, and a type's kind on
+    its screen. It's still a collection with the classify relationship
+    made with it (D-593), not a stored kind; the relationship stays a
+    relationship. What a taxonomy's entries are called in the admin's
+    text is left open, for design.
+  - **A design brief for content types**,
+    `.claude/docs/admin-design/content-types-brief.md`: the flows,
+    what's allowed by kind and origin, and what's fixed, for the
+    design team; it says what screens need, not how they look.
+- **Status:** Built (2026-10-15): the brief, and the admin's labels
+  (Taxonomy, Taxonomies) with D-855.

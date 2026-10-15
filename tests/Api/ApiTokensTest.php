@@ -143,8 +143,8 @@ final class ApiTokensTest extends TestCase
 		$this->assertSame('Unfinished', $this->json("/api/v1/entries/{$draft}?status=draft", $editor)['title'] ?? null);
 		$this->assertSame('not_found', $this->code("/api/v1/entries/{$draft}?status=draft", $author, 404));
 		$this->assertSame('not_found', $this->code("/api/v1/entries/{$draft}", $editor, 404), 'Without status, a draft isn\'t there.');
-		$this->assertContains('_private', $this->slugs('/api/v1/entries?status=published&per_page=100', $editor), 'Hidden pages too, when asked.');
-		$this->assertNotContains('_private', $this->slugs('/api/v1/entries?per_page=100', $editor));
+		$this->assertContains('private', $this->slugs('/api/v1/entries?status=published&per_page=100', $editor), 'Hidden pages too, when asked.');
+		$this->assertNotContains('private', $this->slugs('/api/v1/entries?per_page=100', $editor));
 		$this->assertSame('invalid_query', $this->code('/api/v1/entries?status=nope', $editor, 400));
 	}
 

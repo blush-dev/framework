@@ -90,8 +90,8 @@ trait BuildsContentSite
 		$this->entry('index.md', 'title: Home');
 		$this->entry('about/index.md', 'title: About');
 		$this->entry('about/biography.md', 'title: Biography');
-		$this->entry('_private.md', 'title: Private');
-		$this->entry('__drafts/idea.md', 'title: Idea');
+		$this->entry('private.md', "title: Private\nvisibility: hidden");
+		$this->entry('__drafts/idea.md', "title: Idea\nstatus: draft\nvisibility: hidden");
 		$this->entry('_post/index.md', 'title: Blog');
 		$this->entry('_post/2003-04-15.welcome.md', "title: Welcome\ndate: 2003-04-15 17:39:00 -5\ncategory: old-posts\nauthor: justintadlock", 'Hello and welcome to my site.');
 		$this->entry('_post/2008-04-05.spring.md', "title: spring\ndate: 2008-04-05 09:00:00\ncategory: [art, Book Reviews]\nauthor: [justintadlock, guest]\ntag: flowers", 'Spring is here.');

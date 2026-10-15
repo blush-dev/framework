@@ -48,9 +48,9 @@ abstract readonly class ContentType
 	/**
 	 * Names no type may have (D-683): the `_` folders the site's pages
 	 * keep at the content root, `_system` (for system pages such as
-	 * errors, D-684) and the `_error` it replaces, and `_drafts`.
+	 * errors, D-684) and the `_error` it replaces.
 	 */
-	public const array RESERVED = ['system', 'error', 'drafts'];
+	public const array RESERVED = ['system', 'error'];
 
 	/**
 	 * The folder under `user/content` the type's files are kept in:
@@ -137,6 +137,7 @@ abstract readonly class ContentType
 	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
 	 * @param  ?string         $workflow     The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires      Whether its entries may have an `expires` date, after which they're expired (D-852).
+	 * @param  bool            $visibility   Whether its entries choose a visibility (D-855); off, every entry is public. Only a public type has it.
 	 * @param  Messages        $messages     Writes why a type is refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -162,6 +163,7 @@ abstract readonly class ContentType
 		public FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		public bool $expires = false,
+		public bool $visibility = true,
 		Messages $messages = new Messages()
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
@@ -269,6 +271,15 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns whether its entries choose a visibility (D-855): a public
+	 * type's, unless it turns it off. Without it, every entry is public.
+	 */
+	public function hasVisibility(): bool
+	{
+		return $this->public && $this->visibility;
+	}
+
+	/**
 	 * Returns whether the type has a feed.
 	 */
 	public function hasFeed(): bool
@@ -322,8 +333,8 @@ abstract readonly class ContentType
 	/**
 	 * Returns the folder an entry's file is kept in: the type's, then the
 	 * folders its pattern gives the slug and date (D-629). With `_`
-	 * folders given (`_drafts`), it's those instead: a hidden file is
-	 * kept where it is, outside the pattern.
+	 * folders given (a relation archive's `_authors`), it's those
+	 * instead: an archive's page is kept where it is, outside the pattern.
 	 *
 	 * @param list<string> $hidden
 	 */
@@ -334,8 +345,9 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns the `_` folders between the type's folder and a path's
-	 * file (`_drafts`), which keep what they mean wherever the file is
-	 * kept; a folder entry's own folder isn't one of them.
+	 * file (a relation archive's `_authors`), which keep what they mean
+	 * wherever the file is kept; a folder entry's own folder isn't one
+	 * of them.
 	 *
 	 * @return list<string>
 	 */
@@ -437,6 +449,7 @@ abstract readonly class ContentType
 				'controls'    => $controls,
 				'workflow'    => $definition->nullableString('workflow'),
 				'expires'     => $definition->bool('expires'),
+				'visibility'  => $definition->bool('visibility', true),
 				'messages'    => $messages
 			];
 
@@ -614,6 +627,7 @@ abstract readonly class ContentType
 			'under'       => $this->under,
 			'workflow'    => $this->workflow,
 			'expires'     => $this->expires ?: null,
+			'visibility'  => $this->visibility ? null : false,
 			...$this->options(),
 			'fields'      => $this->controls->definitions($this->schema->fields),
 			'closed'      => $this->schema->closed ?: null

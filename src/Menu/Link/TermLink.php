@@ -93,14 +93,14 @@ final class TermLink extends MenuLink implements LinksEntry
 			throw new UnresolvedLink((string) $this->messages->t('menu.term_link.no_pages', '"{type}" isn\'t a type of terms with pages.', type: $name));
 		}
 
-		if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
+		if ($term === null || ! $term->isLinkable()) {
 			throw new UnresolvedLink((string) $this->messages->t('menu.term_link.missing', 'No published term "{term}".', term: $value));
 		}
 
 		// On a translated page, its translation when it has one (D-463).
 		$language    = $this->app->languages->forLocale($locale)?->code;
 		$translation = $language === null ? null : $this->content->term($name, $slug, $language);
-		$translated  = $translation !== null && $translation->language === $language && $translation->isPublished() && $translation->isRoutable();
+		$translated  = $translation !== null && $translation->language === $language && $translation->isLinkable();
 		$term        = $translated ? $translation : $term;
 
 		$url = $this->urls->term($taxonomy, $slug, 1, $translated ? $language : null) ?? throw new UnresolvedLink((string) $this->messages->t('menu.term_link.no_url', 'The term "{term}" has no URL.', term: $value));

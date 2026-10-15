@@ -79,10 +79,10 @@ final class CollectionLink extends MenuLink
 		// landing page or entries there (D-463).
 		$language = $this->app->languages->forLocale($locale)?->code;
 		$landing  = $language === null ? null : $this->content->named($name, '', $language);
-		$listed   = $language !== null && ($landing?->isPublished() === true || $this->content->query()->type($type->listedType())->language($language)->count() > 0);
+		$listed   = $language !== null && ($landing?->isLive() === true || $this->content->query()->type($type->listedType())->language($language)->count() > 0);
 		$landing  = $listed ? $landing : $this->content->named($name, '');
 		$url      = $this->urls->collection($type, 1, $listed ? $language : null) ?? throw new UnresolvedLink((string) $this->messages->t('menu.collection_link.no_url', 'The "{type}" type has no collection URL.', type: $name));
 
-		return new LinkTarget($url, $landing !== null && $landing->isPublished() ? $landing->title : '');
+		return new LinkTarget($url, $landing !== null && $landing->isLive() ? $landing->title : '');
 	}
 }

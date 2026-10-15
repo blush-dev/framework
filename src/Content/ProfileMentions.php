@@ -55,6 +55,6 @@ final readonly class ProfileMentions implements MentionResolver
 
 		$profile = ($this->content)()->term($profiles->name, strtolower($name));
 
-		return $profile !== null && $profile->isPublished() && $profile->isRoutable() ? $this->urls->profile($profile->slug) : null;
+		return $profile !== null && $profile->isLinkable() ? $this->urls->profile($profile->slug) : null;
 	}
 }

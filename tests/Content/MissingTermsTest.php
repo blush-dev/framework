@@ -51,7 +51,7 @@ final class MissingTermsTest extends TestCase
 		$content = $app->container()->make(Entries::class);
 
 		$this->assertSame('Lost Cause', $content->term('category', 'lost-cause')?->title);
-		$this->assertTrue($content->term('profile', 'nobody')?->isPublished());
+		$this->assertTrue($content->term('profile', 'nobody')?->isLive());
 		$this->assertSame([], $app->container()->make(MissingTerms::class)->report());
 	}
 

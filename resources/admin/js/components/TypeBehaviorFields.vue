@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * How a content type behaves (D-311), for the type editor and the
- * new-type wizard: its URL prefix, whether it's public, in the sitemap
+ * new-type wizard: its URL prefix, whether it's public, whether its
+ * entries choose a visibility (D-855), in the sitemap
  * and `llms.txt` (D-398, D-401), and has a feed; a collection's date archives, featured image (an
  * `image` media field), nesting by a `parent`, and order (D-593); file
  * names, for every kind (D-511, D-514), and folders, for every kind but a
@@ -87,6 +88,8 @@ const folders = computed(() => FOLDERS.some((option) => option.value === form.va
 		<fieldset class="fieldset">
 			<legend>{{ t('type_behavior_fields.options', 'Options') }}</legend>
 			<label class="checkbox"><input v-model="form.public" type="checkbox"> {{ t('type_behavior_fields.public', 'Visible on the site') }}</label>
+			<label class="checkbox"><input v-model="form.visibility" type="checkbox" :disabled="!form.public" :aria-describedby="`${idPrefix}visibility-help`"> {{ t('type_behavior_fields.visibility', 'Entries choose a visibility') }}</label>
+			<p :id="`${idPrefix}visibility-help`" class="field__help">{{ t('type_behavior_fields.visibility_help', 'Public, unlisted (an address, but in no lists), or hidden (no address). Off, every entry is public.') }}</p>
 			<label class="checkbox"><input v-model="form.sitemap" type="checkbox" :disabled="!form.public"> {{ t('type_behavior_fields.sitemap', 'In the sitemap') }}</label>
 			<label class="checkbox"><input v-model="form.llms" type="checkbox" :disabled="!form.public"> <MessageText :text="t('type_behavior_fields.llms', 'Listed in {file}')"><template #file><code>llms.txt</code></template></MessageText></label>
 			<label v-if="kind !== 'tree'" class="checkbox"><input v-model="form.feed" type="checkbox"> {{ t('type_behavior_fields.feed', 'Has a feed (RSS, Atom, and JSON)') }}</label>
@@ -111,7 +114,7 @@ const folders = computed(() => FOLDERS.some((option) => option.value === form.va
 		<div v-if="kind === 'collection'" class="field">
 			<label :for="`${idPrefix}order`">{{ t('type_behavior_fields.order', 'Order') }}</label>
 			<AdminSelect :id="`${idPrefix}order`" v-model="form.order" :options="ORDERS" :described-by="`${idPrefix}order-help`" />
-			<p :id="`${idPrefix}order-help`" class="field__help">{{ t('type_behavior_fields.order_help', 'How its lists are ordered unless a list says otherwise. Terms are usually by position: those without one follow, by title.') }}</p>
+			<p :id="`${idPrefix}order-help`" class="field__help">{{ t('type_behavior_fields.order_help', 'How its lists are ordered unless a list says otherwise. Taxonomies are usually by position: those without one follow, by title.') }}</p>
 		</div>
 
 		<div v-if="kind === 'collection'" class="field">

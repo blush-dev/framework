@@ -358,7 +358,7 @@ final readonly class EntryEditor
 			: [];
 
 		// The old address can redirect to the new one, once it's saved.
-		$from = $edit->redirect && $moved && $entry->isPublished() ? $this->urls->entry($entry) : null;
+		$from = $edit->redirect && $moved && $entry->isLive() ? $this->urls->entry($entry) : null;
 
 		$expiry = $this->expiryProblem($entry->type, $entry, array_diff_key([...$file->frontMatter, ...$changes->set], array_flip($changes->remove)));
 
@@ -1311,7 +1311,7 @@ final readonly class EntryEditor
 
 		foreach ($under as $page) {
 			$found = $this->content->named($now->type->name, $now->key . substr($page->key, strlen($was->key)));
-			$old   = $page->isPublished() ? $this->urls->entry($page) : null;
+			$old   = $page->isLive() ? $this->urls->entry($page) : null;
 			$new   = $found === null ? null : $this->urls->entry($found);
 
 			if ($found !== null && $old !== null && $new !== null) {

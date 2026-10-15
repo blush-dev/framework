@@ -46,10 +46,12 @@ use Blush\Workflow\Status;
  *   A collection's or the profiles' folders below its own are only where
  *   files are kept (D-629): `_post/2026/hello.md` is `hello`, listed in
  *   `_post`. Their `_` folders are kept in keys as before.
- * - A `_`-prefixed file name, or a `_`-prefixed folder between the type's
- *   folder and the file, makes the entry hidden, whatever its front
- *   matter says (1.x's private files and page segments). A `_drafts`
- *   folder makes it a draft.
+ * - Front matter alone says an entry's status and visibility (D-855):
+ *   a `_` file or folder name means nothing about them. Pages core
+ *   serves somewhere else (a relation archive's `_authors.md`, the
+ *   site's `_errors/404.md`) are hidden (`HiddenKeys`), and a type
+ *   without visibility (`ContentType::hasVisibility()`)
+ *   makes every entry public.
  * - `updated` falls back to `date`, then to the file's modification
  *   time.
  * - On a multilingual site (D-455), a file name whose last `.` part
@@ -68,11 +70,6 @@ use Blush\Workflow\Status;
  */
 final readonly class RecordBuilder
 {
-	/**
-	 * The folder name that marks its entries as drafts.
-	 */
-	public const string DRAFTS = '_drafts';
-
 	public function __construct(
 		private ContentTypes $types,
 		private DocumentParser $parser,
@@ -109,7 +106,6 @@ final readonly class RecordBuilder
 		$bundle    = $filename === 'index' && ! $landing;
 		$listedIn  = $bundle ? self::directoryOf($directory) : $directory;
 		$segments  = self::segmentsBelow($type, $listedIn);
-		$private   = $bundle ? [...$segments, basename($directory)] : $segments;
 
 		// A collection's folders below its own are only where files are
 		// kept (D-629); its `_` folders still mean something.
@@ -138,8 +134,8 @@ final readonly class RecordBuilder
 			directory: $listedIn,
 			locale: $suffixed ? $language->locale : $this->app->locale,
 			landing: $landing,
-			status: $this->status($values, $private),
-			visibility: $this->visibility($values, $filename, $private),
+			status: $this->status($values),
+			visibility: $this->visibility($type, $values, $landing ? '' : implode('/', [...$segments, $slug])),
 			date: $date,
 			updated: $updated,
 			expires: $expires,
@@ -266,30 +262,32 @@ final readonly class RecordBuilder
 
 	/**
 	 * Returns the declared status's name: front matter's, in lowercase
-	 * (one nothing registers isn't live, D-735), or draft inside a
-	 * `_drafts` folder, else published.
+	 * (one nothing registers isn't live, D-735), else published.
 	 *
 	 * @param array<string, mixed> $values
-	 * @param list<string>         $segments
 	 */
-	private function status(array $values, array $segments): string
+	private function status(array $values): string
 	{
 		$declared = is_string($values['status'] ?? null) && trim($values['status']) !== '' ? strtolower(trim($values['status'])) : null;
 
-		return $declared ?? (in_array(self::DRAFTS, $segments, true) ? Status::DRAFT : Status::PUBLISHED);
+		return $declared ?? Status::PUBLISHED;
 	}
 
 	/**
-	 * Returns the visibility: hidden for private names, otherwise front
-	 * matter's, otherwise public.
+	 * Returns the visibility (D-855): hidden in core's own places
+	 * (`HiddenKeys`), public for a type without visibility, else front matter's,
+	 * else public.
 	 *
 	 * @param array<string, mixed> $values
-	 * @param list<string>         $segments
 	 */
-	private function visibility(array $values, string $filename, array $segments): Visibility
+	private function visibility(ContentType $type, array $values, string $key): Visibility
 	{
-		if (str_starts_with($filename, '_') || array_any($segments, static fn (string $segment): bool => str_starts_with($segment, '_'))) {
+		if (HiddenKeys::has($this->types, $type, $key)) {
 			return Visibility::Hidden;
+		}
+
+		if (! $type->hasVisibility()) {
+			return Visibility::Public;
 		}
 
 		return is_string($values['visibility'] ?? null)

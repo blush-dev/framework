@@ -125,7 +125,7 @@ final readonly class UsersJson
 			'name'  => $type->name,
 			'label' => $type->labels->plural,
 			'kind'  => $type->kind()->value,
-			'terms' => $this->types->classification($type->name) !== null,
+			'taxonomy' => $this->types->classification($type->name) !== null,
 			'icon'  => $type->icon
 		], $this->types->all()));
 	}

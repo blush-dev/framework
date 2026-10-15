@@ -42,7 +42,7 @@ final readonly class RelationArchives
 		foreach ($key === null ? [] : $this->content->termCounts($key, $this->content->query()->type($type->name)) as $slug => $count) {
 			$target = $count > 0 ? $this->content->named($relation->to[0], (string) $slug) : null;
 
-			if ($target !== null && $target->isPublished() && $target->isRoutable()) {
+			if ($target !== null && $target->isLinkable()) {
 				$targets[] = $target;
 			}
 		}

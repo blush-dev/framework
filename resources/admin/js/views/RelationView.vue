@@ -100,7 +100,7 @@ const options = computed(() => choices.value.map((item) => ({ value: item.name, 
 
 // A new set of terms files under a type nothing files under yet.
 const termOptions = computed(() => creating.value
-	? [{ value: '', label: t('relation_view.choose_type', 'Choose a type') }, ...choices.value.filter((item) => !item.terms).map((item) => ({ value: item.name, label: item.labels.plural }))]
+	? [{ value: '', label: t('relation_view.choose_type', 'Choose a type') }, ...choices.value.filter((item) => !item.taxonomy).map((item) => ({ value: item.name, label: item.labels.plural }))]
 	: options.value);
 const fileable = computed(() => choices.value.filter((item) => item.name !== terms.value));
 
@@ -202,9 +202,9 @@ function fill(found: RelationInfo | null): void {
 	// A new one, from the type it was opened on, if any.
 	const here = types.value.find((item) => item.name === fromType.value);
 
-	purpose.value      = here?.terms === true ? 'reference' : 'classify';
+	purpose.value      = here?.taxonomy === true ? 'reference' : 'classify';
 	terms.value        = '';
-	from.value         = here && here.terms !== true ? [here.name] : [];
+	from.value         = here && here.taxonomy !== true ? [here.name] : [];
 	source.value       = here?.name ?? '';
 	target.value       = '';
 	key.value          = '';
@@ -218,7 +218,7 @@ function fill(found: RelationInfo | null): void {
 	maximum.value      = '';
 	control.value      = '';
 	translations.value = 'fallback';
-	page.value         = here?.terms !== true;
+	page.value         = here?.taxonomy !== true;
 	archived.value     = false;
 	word.value         = '';
 	sideLabel.value    = '';
@@ -271,7 +271,7 @@ watch(purpose, (now) => {
 		page.value     = now !== 'reference';
 		archived.value = now === 'credit';
 		create.value   = now === 'classify';
-		from.value     = now !== 'reference' && fromType.value !== '' && types.value.find((item) => item.name === fromType.value)?.terms !== true ? [fromType.value] : [];
+		from.value     = now !== 'reference' && fromType.value !== '' && types.value.find((item) => item.name === fromType.value)?.taxonomy !== true ? [fromType.value] : [];
 	}
 });
 
@@ -480,9 +480,9 @@ async function remove(): Promise<void> {
 					</header>
 					<div class="setting-panels__rows">
 						<div v-if="purpose === 'classify'" class="setting">
-							<div class="setting__label"><label for="relation-terms">{{ t('relation_view.terms', 'Terms') }}</label></div>
+							<div class="setting__label"><label for="relation-terms">{{ t('relation_view.taxonomy', 'Taxonomy') }}</label></div>
 							<div class="field setting__control"><AdminSelect id="relation-terms" v-model="terms" :options="termOptions" :disabled="!creating || locked" described-by="relation-terms-help" /></div>
-							<div id="relation-terms-help" class="setting__help"><p>{{ creating ? t('relation_view.terms_help_new', 'The type whose entries are the terms: one nothing files under yet.') : t('relation_view.terms_help', 'The type whose entries are the terms.') }}</p></div>
+							<div id="relation-terms-help" class="setting__help"><p>{{ creating ? t('relation_view.taxonomy_help_new', 'The taxonomy entries are filed under: one nothing files under yet.') : t('relation_view.taxonomy_help', 'The taxonomy entries are filed under.') }}</p></div>
 						</div>
 
 						<div class="setting">

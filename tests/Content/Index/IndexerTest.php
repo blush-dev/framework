@@ -119,16 +119,22 @@ final class IndexerTest extends TestCase
 		}
 	}
 
-	public function testPrivateNamesAreHiddenAndDraftFoldersAreDrafts(): void
+	public function testFrontMatterAloneSaysStatusAndVisibility(): void
 	{
 		$this->entry('_post/_drafts/soon.md', 'title: Soon');
+		$this->entry('_notes.md', 'title: Notes');
 		$this->entry('_post/visible.md', "title: Visible\nvisibility: unlisted");
+		$this->entry('_post/_authors.md', 'title: Authors');
+		$this->entry('_errors/404.md', 'title: Not Found');
 		$this->indexer()->index();
 
-		$this->assertSame(Visibility::Hidden, $this->record('_private.md')->visibility);
+		$this->assertSame(Visibility::Hidden, $this->record('private.md')->visibility);
 		$this->assertSame(Visibility::Hidden, $this->record('__drafts/idea.md')->visibility);
-		$this->assertSame(Visibility::Hidden, $this->record('_post/_drafts/soon.md')->visibility);
-		$this->assertSame(Status::DRAFT, $this->record('_post/_drafts/soon.md')->status);
+		$this->assertSame(Visibility::Public, $this->record('_post/_drafts/soon.md')->visibility, 'A `_` name no longer hides an entry (D-855).');
+		$this->assertSame(Status::PUBLISHED, $this->record('_post/_drafts/soon.md')->status, 'Nor does `_drafts` make it a draft.');
+		$this->assertSame(Visibility::Public, $this->record('_notes.md')->visibility);
+		$this->assertSame(Visibility::Hidden, $this->record('_post/_authors.md')->visibility, 'A relation archive\'s page is served at its archive.');
+		$this->assertSame(Visibility::Hidden, $this->record('_errors/404.md')->visibility, 'An error page is served for errors.');
 		$this->assertSame(Visibility::Unlisted, $this->record('_post/visible.md')->visibility);
 		$this->assertSame(Visibility::Public, $this->record('_post/2003-04-15.welcome.md')->visibility);
 	}

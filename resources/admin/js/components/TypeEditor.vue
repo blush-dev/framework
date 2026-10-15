@@ -220,7 +220,7 @@ guardLeave(() => changed.value);
 				<p class="panel__hint"><MessageText :text="t('type_editor.under', 'Under {prefix}')"><template #prefix><code>/{{ prefix }}</code></template></MessageText></p>
 			</header>
 			<div class="panel__body">
-				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :terms="type.terms" :editable="typeUrls" />
+				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :taxonomy="type.taxonomy" :editable="typeUrls" />
 			</div>
 		</section>
 

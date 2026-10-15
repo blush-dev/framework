@@ -113,7 +113,7 @@ final readonly class ThemedErrorPages implements ErrorPages
 			$key   = ltrim(substr("{$folder}/{$status}", strlen($type->folder)), '/');
 			$entry = $this->content->named($type->name, $key);
 
-			if ($entry !== null && $entry->isPublished()) {
+			if ($entry !== null && $entry->isLive()) {
 				return $entry;
 			}
 		}

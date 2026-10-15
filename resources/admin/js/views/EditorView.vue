@@ -1253,14 +1253,14 @@ async function preview(): Promise<void> {
 // then each people field, each other reference (terms, as a picker), the
 // type's other fields as a form, each field set's (D-337), and the
 // theme's fields under Advanced.
-const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
+const visibilityField = computed(() => entry.value?.type.visibility === true ? ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum') : undefined);
 const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
 // A tree page's or term's place among its siblings (D-412), a row beside
 // its parent.
 const positionField   = computed(() => ownFields.value.find((field) => field.name === 'position' && field.type === 'number'));
 // A term has no author or featured image of its own (admin.md §8), so
 // those show only when its file has one.
-const term = computed(() => entry.value?.type.terms === true);
+const term = computed(() => entry.value?.type.taxonomy === true);
 const imageField      = computed(() => ownFields.value.find((field) => field.name === 'image' && field.type === 'media'));
 // Each people field (D-353): a reference to profiles, such as `authors`
 // or a recipe's `cooks`, as a people picker under its own label.
@@ -3066,7 +3066,7 @@ function fieldKey(field: FieldDescription): string {
 					<button v-if="entry.url && entry.status === 'published'" type="button" class="menu-item" @click="copyLink">
 						<AdminIcon name="link" />{{ t('editor_view.menu.copy_link', 'Copy link') }}
 					</button>
-					<button v-if="entry.can.duplicate && !entry.type.terms" type="button" class="menu-item" @click="duplicate">
+					<button v-if="entry.can.duplicate && !entry.type.taxonomy" type="button" class="menu-item" @click="duplicate">
 						<AdminIcon name="copy" />{{ t('editor_view.menu.duplicate', 'Duplicate') }}
 					</button>
 					<template v-if="entry.can.delete">

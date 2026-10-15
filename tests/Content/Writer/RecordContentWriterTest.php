@@ -148,18 +148,22 @@ final class RecordContentWriterTest extends TestCase
 		$this->assertSame('one', $this->content->editable($two)->frontMatter['parent'] ?? null);
 	}
 
-	public function testPagesAtKeysWithUnderscoresAreHidden(): void
+	public function testOnlyCoresOwnPlacesAreHiddenByTheirKeys(): void
 	{
-		$type  = $this->type('page');
-		$home  = $this->content->createAt($type, 'index', new EntryChanges(set: ['title' => 'Home']));
-		$cooks = $this->content->createAt($type, '_cooks', new EntryChanges(set: ['title' => 'Cooks']));
-		$jane  = $this->content->createAt($type, '_cooks/jane', new EntryChanges(set: ['title' => 'Jane']));
+		$type   = $this->type('page');
+		$home   = $this->content->createAt($type, 'index', new EntryChanges(set: ['title' => 'Home']));
+		$cooks  = $this->content->createAt($type, '_cooks', new EntryChanges(set: ['title' => 'Cooks']));
+		$errors = $this->content->createAt($type, '_errors', new EntryChanges(set: ['title' => 'Errors']));
+		$gone   = $this->content->createAt($type, '_errors/404', new EntryChanges(set: ['title' => 'Not Found']));
+		$quiet  = $this->content->createAt($type, 'quiet', new EntryChanges(set: ['title' => 'Quiet', 'visibility' => 'unlisted']));
 
 		$this->assertTrue($home->landing);
 		$this->assertSame('Home', $this->content->editableAt($type, 'index')?->frontMatter['title'] ?? null);
-		$this->assertSame(Visibility::Hidden, $cooks->visibility);
-		$this->assertSame(Visibility::Hidden, $jane->visibility, 'Under a hidden page.');
-		$this->assertSame('_cooks/jane', $jane->key);
+		$this->assertSame(Visibility::Public, $cooks->visibility, 'A `_` key means nothing of itself (D-855).');
+		$this->assertSame(Visibility::Hidden, $errors->visibility, 'The error pages\' folder is core\'s.');
+		$this->assertSame(Visibility::Hidden, $gone->visibility);
+		$this->assertSame('_errors/404', $gone->key);
+		$this->assertSame(Visibility::Unlisted, $quiet->visibility);
 	}
 
 	public function testWritesMoveTheContentVersionOnAndAreCheckedByVersion(): void

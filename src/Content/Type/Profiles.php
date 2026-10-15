@@ -63,6 +63,7 @@ final readonly class Profiles extends ContentType
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
+	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -84,11 +85,12 @@ final readonly class Profiles extends ContentType
 		FieldControls $controls = new FieldControls(),
 		?string $workflow = null,
 		bool $expires = false,
+		bool $visibility = true,
 		Messages $messages = new Messages()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Profiles, $name, $messages);
 
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $messages);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $visibility, $messages);
 	}
 
 	/**

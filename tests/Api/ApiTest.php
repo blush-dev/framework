@@ -255,7 +255,7 @@ final class ApiTest extends TestCase
 
 		$this->assertSame(['error' => ['code' => 'not_found', 'message' => 'No entry has the id "nope".']], $this->json('/api/v1/entries/nope', 404));
 
-		foreach (['_post/2020-01-01.unfinished.md', '_post/2026-12-25.future.md', '_private.md'] as $path) {
+		foreach (['_post/2020-01-01.unfinished.md', '_post/2026-12-25.future.md', 'private.md'] as $path) {
 			$this->assertSame('not_found', self::at($this->json('/api/v1/entries/' . self::idFor($path), 404), 'error', 'code'), $path);
 		}
 	}

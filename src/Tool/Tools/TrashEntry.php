@@ -88,7 +88,7 @@ final class TrashEntry extends Tool
 		if (($input['confirm'] ?? false) !== true) {
 			$live = array_values(array_filter(
 				array_column($this->referrers->sources($entry), 'entry'),
-				static fn (Entry $source): bool => $source->isPublished()
+				static fn (Entry $source): bool => $source->isLive()
 			));
 
 			if ($live !== []) {

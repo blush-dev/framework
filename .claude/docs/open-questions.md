@@ -4,6 +4,40 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Access control: who may read an entry** (discussed 2026-10-15,
+  after D-855; the author: "something we should build for the 2.x
+  branch"). A third setting beside status (whether and when) and
+  visibility (where): today every live entry is readable by anyone
+  with its address, and `unlisted` is unguessable, not private. D-855
+  ruled out doing this as a visibility. Forms: **signed in**; **by
+  capability or role** (members, staff, tiers); a **password** per
+  entry, with no account; named accounts (rarely needed).
+  What it touches, each its own question:
+  - **The entry's page** for someone without access: a 404, a sign-in
+    prompt, or a teaser (title and summary). A setting, per site or
+    per type?
+  - **Lists per viewer:** collections, archives, related entries,
+    menus, search, and the dashboard. `isLinkable()` and `link()`
+    become "for this viewer".
+  - **Machine outputs:** feeds, the sitemap, `llms.txt`, and Markdown
+    copies leave restricted entries out always; the API and MCP check
+    the token's account.
+  - **Caching:** restricted pages, and lists that include them, can't
+    share the page or fragment cache: skip it, or key it by role, and
+    send `Cache-Control: private`. The largest cost.
+  - **Media:** files in `user/media` are served directly, so a
+    members-only post's attachments are public unless media gets
+    access too (served through PHP).
+  - **Reader accounts:** members are accounts that never see the
+    admin, so front-end sign-in, sign-up, and password reset, styled
+    by the theme (see **Sign-ups and community sites**).
+  - **Data:** an `access` field on entries (`signed_in`,
+    `role:subscriber`, `password`), with a type default; a database
+    column (a settled table: ask first).
+  Leaning (Claude's): its own subsystem, staged: signed-in and
+  capability first, passwords next, media after, tiers and paid
+  membership left to plugins.
+
 - **The editor's Status menu: every status, or only the reachable
   ones?** (the author, 2026-10-15, trying a site workflow on Recipes.)
   Now (D-851) the menu lists where the entry is, then only the statuses
@@ -431,8 +465,8 @@ Move each item to `decisions.md` once it's answered.
   - **Content:** `terms` is three shapes (`$entry->terms` slugs by
     taxonomy, `$entry->terms('x')` slugs, `$template->terms($entry, 'x')`
     entries). `summary()` is Markdown or `null` and `excerpt()` HTML,
-    which the names don't say. `isPublished()`, `isRoutable()`,
-    `isListed()`: explained in their doc comments and
+    which the names don't say. `isLive()`, `isLinkable()`,
+    `isListed()` (D-855): explained in their doc comments and
     `docs/extending.md` (D-560).
     `field()` returns `mixed` (typed access waits on the Fields API,
     D-348). `->get()->all()` for an array (`query()->type()` takes the

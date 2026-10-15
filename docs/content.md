@@ -40,9 +40,9 @@ A few rules make the file names flexible:
   (`about.md`). A prefixed page still works, but `content:lint` reports
   it as an error, because a prefix orders nothing among pages and its
   folder wouldn't nest under it. The exception is a prefix their type's
-  own file name pattern gives a file; folders never take one. Hidden
-  files (`_`-prefixed, or in a `_` folder) are left alone, since they
-  have no address. Any type can name the files it creates for you by a
+  own file name pattern gives a file; folders never take one. Files
+  named with a `_` (a relation archive's `_authors.md`) are left alone,
+  since they have no address of their own. Any type can name the files it creates for you by a
   pattern ([Naming new files](content-types.md#naming-new-files)).
 - **A collection's entries are files in its folder**, never folders of
   their own ([Collections are flat](content-types.md#collections-are-flat)),
@@ -82,7 +82,7 @@ needed in practice. The built-in keys:
 | `updated` | When it last changed; defaults to `date`, then the file's modified time. Every save and bulk change in the admin sets it |
 | `status` | `published` (the default), `draft`, or `trash`, or a status a plugin adds (see [Statuses from a plugin](extending.md#statuses-from-a-plugin)). The admin's **Move to trash** sets `trash`, which takes the entry off your site. A status the site doesn't have keeps the entry off the site, and `content:lint` warns about it |
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
-| `visibility` | `public` (the default), `unlisted`, or `hidden` |
+| `visibility` | `public` (the default), `unlisted`, or `hidden` (see [Who sees an entry](#who-sees-an-entry)). Only in types that have it |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words of the content's paragraphs and lists are used. (`excerpt` works too.) |
 | `image` | A featured image: an image [media file's](media.md) id, which the admin writes when you choose one |
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
@@ -118,14 +118,43 @@ Today's the day...
 
 | You want to... | Do this |
 |---|---|
-| Keep an entry unpublished | Add `status: draft`, or put it in a `_drafts/` folder |
+| Keep an entry unpublished | Add `status: draft` |
 | Publish it later | Set `date` to a future date. It goes live by itself at that time. |
 | Take it down later | Set `expires`, in a type with expiry. It comes off the site by itself at that time, and comes back if you move or remove the date. |
-| Reach it only by its link | Add `visibility: unlisted`. It has a URL, but no listing, feed, or sitemap shows it. |
-| Hide it completely | Start its file name with `_` (`_notes.md`), or add `visibility: hidden` |
+| Reach it only by its link | Add `visibility: unlisted`. It has a URL, but no list shows it. |
+| Hide it completely | Add `visibility: hidden`. It has no URL, but your theme can still show it. |
 | Throw it away, but keep it for now | Add `status: trash` (the admin's **Move to trash** does this). It's off your site, and the admin lists it under **Trash** until you restore it or delete it. |
 
-A `_` at the start of a folder name hides everything inside it.
+A file or folder name never hides an entry or makes it a draft: its
+front matter does. (In 1.x, a `_` at the start of a name did;
+`content:lint` warns of a name that still starts with `_`, since its
+entry has no address. Rename it, and add `visibility: hidden` or
+`status: draft`.) The only `_` names Blush keeps are its own: each
+type's folder (`_post`), a relation archive's pages (`_post/_authors.md`),
+and the error pages (`_errors/404.md`).
+
+### Who sees an entry
+
+Two things decide whether an entry is on your site: its **status**
+says whether and when, and its **visibility** says where.
+
+An entry is **live** when its status is a live one (`published`, or
+one a plugin adds), its `date` has come, and its `expires` date (if it
+has one) hasn't passed. Drafts, scheduled and expired entries, and the
+trash are never shown.
+
+A live entry's visibility then says where it appears:
+
+| Visibility | Its own address | In lists | |
+|---|---|---|---|
+| `public` (the default) | Yes | Yes | |
+| `unlisted` | Yes | No | Its page, its [Markdown copy](configuration.md#ai), and a read of it by the [API](api.md) or an AI app all work. It's left out of listings, feeds, the sitemap, `llms.txt`, related entries, and the API's lists. Anyone with the link can read it: unlisted isn't private. |
+| `hidden` | No | No | Your theme can still show it, by asking for it by name. |
+
+Visibility is a [type option](content-types.md#visibility), on by
+default. A type with it off doesn't offer it in the admin, and every
+one of its entries is public. A type that isn't on the site (`public:
+false`) has no addresses at all, so its entries have no visibility.
 
 ## Translations
 

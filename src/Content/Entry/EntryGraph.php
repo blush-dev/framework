@@ -43,7 +43,7 @@ use Blush\View\Avatar;
  * version, and language, so asking twice is one lookup.
  *
  * Entries come back whatever their status or visibility: what shows
- * them decides, with `isPublished()` and `isRoutable()`.
+ * them decides, with `isLive()` and `isLinkable()`.
  */
 final readonly class EntryGraph
 {

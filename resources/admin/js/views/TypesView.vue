@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Content types (D-250): every type, terms too, as a list screen with a
- * tab for each kind the site has (D-400: Collections, Terms (collections a
+ * Content types (D-250): every type, taxonomies too, as a list screen with a
+ * tab for each kind the site has (D-400, D-856: Collections, Taxonomies (collections a
  * classify relation files entries under, D-593), Trees, Profiles) and a
  * search, then a screen for each type (admin.md §8, List, then detail).
  * Types in `user/data/types` are created and edited here (D-311), and
@@ -40,15 +40,15 @@ loadTypes().then(() => {
 	failed.value = true;
 });
 
-// A type's tab: its kind, with terms apart from other collections.
-type Kind = ContentTypeSummary['kind'] | 'terms';
+// A type's tab: its kind, with taxonomies apart from other collections.
+type Kind = ContentTypeSummary['kind'] | 'taxonomy';
 
 function kindOf(type: ContentTypeSummary): Kind {
-	return type.terms ? 'terms' : type.kind;
+	return type.taxonomy ? 'taxonomy' : type.kind;
 }
 
 // Each kind's tab, shown when the site has a type of that kind.
-const kinds: [Kind, string][] = [['collection', t('types_view.tab_collections', 'Collections')], ['terms', t('types_view.tab_terms', 'Terms')], ['tree', t('types_view.tab_trees', 'Trees')], ['profiles', t('types_view.tab_profiles', 'Profiles')]];
+const kinds: [Kind, string][] = [['collection', t('types_view.tab_collections', 'Collections')], ['taxonomy', t('types_view.tab_taxonomies', 'Taxonomies')], ['tree', t('types_view.tab_trees', 'Trees')], ['profiles', t('types_view.tab_profiles', 'Profiles')]];
 
 const tabs = computed(() => [
 	{ key: 'all' as const, label: t('types_view.tab_all', 'All'), count: types.value.length },
@@ -76,7 +76,7 @@ function origin(type: ContentTypeSummary): string {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ t('types_view.title', 'Content Types') }}</h1>
-			<p class="page-header__hint">{{ t('types_view.hint', 'The kinds of entries the site has. Terms are content types too.') }}</p>
+			<p class="page-header__hint">{{ t('types_view.hint', 'The kinds of entries the site has. Taxonomies are content types too.') }}</p>
 		</div>
 		<div v-if="canCreateTypes" class="page-header__actions">
 			<RouterLink class="button button--primary" :to="{ name: 'type-new' }"><AdminIcon name="plus" />{{ t('types_view.new', 'New Content Type') }}</RouterLink>
@@ -126,7 +126,7 @@ function origin(type: ContentTypeSummary): string {
 								</span>
 							</span>
 						</th>
-						<td>{{ t('types_view.kind', '{kind, select, terms {Terms} collection {Collection} tree {Tree} other {Profiles} }', { kind: type.terms ? 'terms' : type.kind }) }}</td>
+						<td>{{ t('types_view.kind', '{kind, select, taxonomy {Taxonomy} collection {Collection} tree {Tree} other {Profiles} }', { kind: type.taxonomy ? 'taxonomy' : type.kind }) }}</td>
 						<td :class="{ mono: type.origin === 'data' }">{{ origin(type) }}</td>
 						<td class="table__count mono">{{ type.fields }}</td>
 						<td class="table__count mono">{{ counts[type.name] ?? '—' }}</td>

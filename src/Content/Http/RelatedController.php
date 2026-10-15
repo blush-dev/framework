@@ -97,7 +97,7 @@ final class RelatedController extends ContentController
 	 */
 	public static function page(?Entry $entry): ?Entry
 	{
-		return $entry !== null && $entry->isPublished() ? $entry : null;
+		return $entry !== null && $entry->isLive() ? $entry : null;
 	}
 
 	/**

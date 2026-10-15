@@ -204,7 +204,7 @@ final class WorkflowsTest extends TestCase
 
 		$date = $this->editor()->transition(Actor::admin($this->editor), $this->post('rough'), 'publish');
 
-		$this->assertTrue($date->isPublished());
+		$this->assertTrue($date->isLive());
 	}
 
 	public function testRefusesAMoveWithNoTransitionOrWithoutItsCapability(): void

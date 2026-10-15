@@ -109,11 +109,11 @@ const groups = computed(() => {
 	return [...found].map(([name, list]) => ({ name, icon: GROUP_ICONS[name] ?? 'plug', capabilities: list }));
 });
 
-// Types by their names, content before terms (D-593).
+// Types by their names, content before taxonomies (D-593, D-856).
 const byLabel = (a: RoleType, b: RoleType): number => a.label.localeCompare(b.label, locale());
 const kinds   = computed(() => [
-	{ key: 'content', label: t('capability_sections.kinds_content', 'Content types'), types: props.types.filter((type) => !type.terms).sort(byLabel) },
-	{ key: 'terms', label: t('capability_sections.kinds_terms', 'Terms'), types: props.types.filter((type) => type.terms).sort(byLabel) }
+	{ key: 'content', label: t('capability_sections.kinds_content', 'Content types'), types: props.types.filter((type) => !type.taxonomy).sort(byLabel) },
+	{ key: 'taxonomy', label: t('capability_sections.kinds_taxonomies', 'Taxonomies'), types: props.types.filter((type) => type.taxonomy).sort(byLabel) }
 ].filter((kind) => kind.types.length > 0));
 
 const has = (name: string): boolean => model.value.includes(name);
@@ -570,7 +570,7 @@ function flipAll(): void {
 	font-size: var(--font-size-small);
 }
 
-/* A caption, so content types and terms don't read as one list. */
+/* A caption, so content types and taxonomies don't read as one list. */
 .sections__caption {
 	padding: 11px var(--padding-inline) 7px;
 	border-bottom: 1px solid var(--border-color);

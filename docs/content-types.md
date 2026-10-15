@@ -19,10 +19,11 @@ Every content type is one of three kinds:
 
 - **Collection:** entries that are listed, such as posts, recipes, or
   projects. A collection has a listing page, and it can have a feed and
-  date archives. Tags, categories, and series are collections too: their
-  entries are **terms**, which other entries are filed under through a
-  [relation](#terms-and-relationships), and each term gets a page
-  listing the entries filed under it.
+  date archives. Tags, categories, and series are collections too: a
+  **taxonomy** (as the admin calls it) is a collection that other
+  entries are filed under through a [relation](#terms-and-relationships),
+  and each of its entries gets a page listing the entries filed under
+  it.
 - **Tree:** entries that nest by folder, each served at its path under
   the tree's prefix.
   The built-in `page` type is a tree: it holds every entry that isn't in
@@ -101,8 +102,8 @@ Type** in the admin) to go back to the plugin's definition. With `dataTypes` off
 
 Both do the same thing, and every option below works in each. (In
 JSON, use the option names as keys.) A type's name uses lowercase letters,
-digits, and underscores. It can't be `system`, `error`, or `drafts`:
-`_system`, `_error`, and `_drafts` are folders your pages keep.
+digits, and underscores. It can't be `system` or `error`: `_system`
+and `_error` are folders your pages keep.
 
 If two places define the same type, a plugin's type replaces a
 built-in one. A JSON type may replace a built-in type; one named for a
@@ -902,6 +903,7 @@ Every kind takes these:
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
 | `expires`           | `false`                                                        | Whether its entries can have an `expires` date ([Expiry](#expiry)) |
+| `visibility`        | `true`                                                         | Whether its entries choose a visibility ([Visibility](#visibility)) |
 | `workflow`          | `standard`                                                     | The statuses its entries move through, and the transitions between them, by name. Blush has `standard` (draft and published); plugins add more (see [Workflows from a plugin](extending.md#workflows-from-a-plugin)). A name there isn't uses `standard`, and `content:lint` says so |
 
 Collections and trees also take these:
@@ -950,6 +952,18 @@ plugins hear of them with `EntriesExpired` (see
 error pages, and a folder's landing page, never expire. A type without
 expiry ignores the date, and `content:lint` says so.
 
+### Visibility
+
+A type that's on the site (`public`, the default) lets each entry
+choose its visibility: `public`, `unlisted` (an address, but in no
+list), or `hidden` (no address). See
+[Who sees an entry](content.md#who-sees-an-entry). Turn it off with
+`visibility: false` (in Type Settings, **Entries choose a
+visibility**) for a type whose entries should all be public: the
+admin no longer offers it, and a `visibility` in an entry's front
+matter is ignored. A type with `public: false` has no addresses, so
+its entries have no visibility either way.
+
 ## Naming new files
 
 Every type names the files it creates (from the admin, `content:new`,
@@ -995,7 +1009,7 @@ health in the admin. Each entry's file is renamed, with its translations
 named after it. Dates are each entry's `date` as its file writes
 it (`2013-02-09 00:00:00 -5` names the 9th, wherever your site is), or
 its `updated` date, or when the file last changed. It leaves alone
-hidden files (`_`-prefixed), entries kept as folders, entries with a
+a relation archive's pages (`_authors.md`), entries kept as folders, entries with a
 translation kept as one, and entries whose date isn't a real date
 (such as a `2007-00-00` placeholder, which `content:lint` warns of).
 No address changes.
@@ -1012,8 +1026,8 @@ In the admin, choose it under **File names** on the type's screen.
 A collection's entries are files, never folders of their own:
 `_post/hello.md`, not `_post/hello/index.md`. Unless it sets
 [folders for many files](#folders-for-many-files), they're directly in
-its folder, not in `_post/2024/hello.md`. Only `_` folders
-(`_post/_drafts`) may sit inside one, and they can hold its files. `content:lint` reports an entry kept as a folder, or in a
+its folder, not in `_post/2024/hello.md`. Only a relation
+archive's `_` folders (`_post/_authors`) may sit inside one. `content:lint` reports an entry kept as a folder, or in a
 folder the collection doesn't keep files in, as an error. To move
 them, run `bin/blush content:folders` to see what would change, then
 `bin/blush content:folders --write`, or use **Collection Folders** on
@@ -1077,9 +1091,10 @@ slug in different years.
   pattern's folders. `bin/blush content:folders --write`, or
   **Collection Folders** on Site Health, moves them, by the date
   as the file writes it (else its updated date).
-- **Hidden files stay where they are.** A `_` file (`_post/_authors.md`)
-  or a file in a `_` folder (`_post/_drafts/idea.md`) is kept outside
-  the pattern's folders, and isn't moved into them.
+- **A relation archive's pages stay where they are.** Its `_` file
+  (`_post/_authors.md`) and the files in its `_` folder
+  (`_post/_authors/jane.md`) are kept outside the pattern's folders,
+  and aren't moved into them.
 
 In the admin, choose it under **Folders** on the type's screen: None,
 By year, By year and month, or By first letter.

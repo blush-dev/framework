@@ -98,7 +98,7 @@ final class GoLiveJob extends Job
 
 		$live = $seen === null ? [] : array_values(array_filter(
 			array_map($this->entry(...), array_values(array_diff($seen, $scheduled))),
-			static fn (?Entry $entry): bool => $entry?->isPublished() === true
+			static fn (?Entry $entry): bool => $entry?->isLive() === true
 		));
 
 		// Expired since the last look, and still expired.

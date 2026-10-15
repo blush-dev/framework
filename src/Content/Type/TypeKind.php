@@ -43,9 +43,9 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folders', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'hierarchical', 'order', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon', 'position', 'under', 'workflow', 'expires'],
-			self::Tree       => ['prefix', 'filename', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon', 'position', 'under', 'workflow', 'expires'],
-			self::Profiles   => ['folders', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon', 'workflow', 'expires']
+			self::Collection => ['folders', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'hierarchical', 'order', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon', 'position', 'under', 'workflow', 'expires', 'visibility'],
+			self::Tree       => ['prefix', 'filename', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon', 'position', 'under', 'workflow', 'expires', 'visibility'],
+			self::Profiles   => ['folders', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon', 'workflow', 'expires', 'visibility']
 		};
 	}
 }

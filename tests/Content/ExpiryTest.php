@@ -92,7 +92,7 @@ final class ExpiryTest extends TestCase
 	public function testAnEntryPastItsExpiryIsExpiredAndOffTheSite(): void
 	{
 		$this->assertSame(Status::EXPIRED, $this->find('_post/gone.md')->status->name);
-		$this->assertFalse($this->find('_post/gone.md')->isPublished());
+		$this->assertFalse($this->find('_post/gone.md')->isLive());
 		$this->assertSame('2026-05-20', $this->find('_post/gone.md')->expires?->format('Y-m-d'));
 		$this->assertSame(Status::PUBLISHED, $this->find('_post/soon.md')->status->name);
 		$this->assertSame(Status::PUBLISHED, $this->find('_note/kept.md')->status->name, 'A type without expiry ignores the date.');

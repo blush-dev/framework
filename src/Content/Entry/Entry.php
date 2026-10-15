@@ -85,7 +85,9 @@ final readonly class Entry implements Stringable
 	) {}
 
 	/**
-	 * Returns its URL path, or `''` when it has none.
+	 * Returns its URL path, or `''` when it has none: its address
+	 * whatever its status, so a draft has one too (D-855). Before linking
+	 * to it, ask `isLinkable()`, or print `link()`, which does.
 	 */
 	public function url(): string
 	{
@@ -331,15 +333,16 @@ final readonly class Entry implements Stringable
 	 * part escaped, with attributes by name. A camelCase name is dashed
 	 * (`dataId:` is `data-id`, `ariaCurrent:` is `aria-current`), `true`
 	 * prints a bare attribute, and `false` or `null` leaves it out. An
-	 * empty title reads "Untitled" in its language; without a URL, it's
-	 * the title alone.
+	 * empty title reads "Untitled" in its language. When the entry isn't
+	 * linkable (`isLinkable()`: a draft, scheduled, hidden), it's the
+	 * title alone (D-855), so a template needn't check first.
 	 *
 	 * @throws InvalidHtmlAttribute When an attribute isn't named.
 	 */
 	public function link(string|int|bool|null ...$attributes): SafeHtml
 	{
 		$title = $this->title === '' ? ($this->graph?->untitled($this) ?? 'Untitled') : $this->title;
-		$url   = $this->url();
+		$url   = $this->isLinkable() ? $this->url() : '';
 
 		if ($url === '') {
 			return new TrustedHtml(Escaper::html($title));
@@ -438,26 +441,79 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns whether the entry is live: its status is a live one (D-850)
-	 * and its date has come. A draft, an entry scheduled for later, and
-	 * one in the trash aren't. This is about time and status only: a published
-	 * entry can still be hidden (see `isRoutable()`). Queries find only
-	 * published entries unless they ask for others; what an entry leads
-	 * to (`related()`, `parent()`, and the rest) isn't
-	 * filtered, so check this before showing what they give (D-802).
+	 * Returns whether the entry is live (D-850, D-855): its status is a
+	 * live one, its date has come, and it hasn't expired. A draft, an
+	 * entry scheduled for later or expired, and one in the trash aren't.
+	 * This is about status and time only: a live entry can still be
+	 * hidden (see `isLinkable()`). Queries find only live entries unless
+	 * they ask for others; what an entry leads to (`related()`,
+	 * `parent()`, and the rest) isn't filtered, so check this, or
+	 * `isLinkable()`, before showing what they give (D-802).
 	 */
-	public function isPublished(): bool
+	public function isLive(): bool
 	{
 		return $this->status->live;
 	}
 
 	/**
+	 * Returns whether the entry's status is a status by name (D-855):
+	 * as it is now, so a published entry whose date is still to come
+	 * has `scheduled`, and one past its `expires` date has `expired`.
+	 */
+	public function hasStatus(string $name): bool
+	{
+		return $this->status->is($name);
+	}
+
+	/**
+	 * Returns whether the entry's status is core's `published` (D-855),
+	 * and its date has come. An entry with another live status (one a
+	 * plugin registers) is live but not published: see `isLive()`.
+	 */
+	public function isPublished(): bool
+	{
+		return $this->hasStatus(Status::PUBLISHED);
+	}
+
+	/**
+	 * Returns whether the entry is a draft.
+	 */
+	public function isDraft(): bool
+	{
+		return $this->hasStatus(Status::DRAFT);
+	}
+
+	/**
+	 * Returns whether the entry is scheduled: a live status whose date
+	 * is still to come.
+	 */
+	public function isScheduled(): bool
+	{
+		return $this->hasStatus(Status::SCHEDULED);
+	}
+
+	/**
+	 * Returns whether the entry has expired: a live status whose
+	 * `expires` date has passed (D-852).
+	 */
+	public function isExpired(): bool
+	{
+		return $this->hasStatus(Status::EXPIRED);
+	}
+
+	/**
+	 * Returns whether the entry is in the trash (D-484).
+	 */
+	public function isTrashed(): bool
+	{
+		return $this->hasStatus(Status::TRASH);
+	}
+
+	/**
 	 * Returns whether the entry has a page of its own, by visibility
-	 * alone: public and unlisted entries do, hidden ones (1.x's
-	 * `hidden`, or a `_` file name) don't. It doesn't look at status,
-	 * so a draft is routable, though its page isn't served until it's
-	 * published. Check it with `isPublished()` before linking to an
-	 * entry: `$entry->isPublished() && $entry->isRoutable()`.
+	 * alone: public and unlisted entries do, hidden ones don't. It
+	 * doesn't look at status or the type: to know whether to link to an
+	 * entry, ask `isLinkable()`.
 	 */
 	public function isRoutable(): bool
 	{
@@ -465,14 +521,24 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
+	 * Returns whether a page may link to the entry (D-855): it's live,
+	 * it isn't hidden, and its type is on the site. `link()` asks it, so
+	 * a template that prints `$entry->link()` needn't.
+	 */
+	public function isLinkable(): bool
+	{
+		return $this->isLive() && $this->isRoutable() && $this->type->public;
+	}
+
+	/**
 	 * Returns whether the entry appears in collections, feeds, and
-	 * sitemaps: published, public (not unlisted or hidden), and not a
+	 * sitemaps: live, public (not unlisted or hidden), and not a
 	 * listing's landing page. Everything listed is routable; an unlisted
 	 * entry is routable but not listed.
 	 */
 	public function isListed(): bool
 	{
-		return $this->visibility === Visibility::Public && $this->isPublished() && ! $this->landing;
+		return $this->visibility === Visibility::Public && $this->isLive() && ! $this->landing;
 	}
 
 	/**

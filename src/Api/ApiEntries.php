@@ -64,7 +64,7 @@ final readonly class ApiEntries
 	 */
 	public function shows(Entry $entry): bool
 	{
-		return $entry->isPublished() && $entry->type->public && $entry->isRoutable();
+		return $entry->isLinkable();
 	}
 
 	/**

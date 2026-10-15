@@ -540,9 +540,10 @@ They have two tabs:
   replace, or remove it), its summary as written, with **Edit summary**
   (or **Add a summary…**) under it to write it in a small form beside
   it, then its **Status** (choose it to see what each status does,
-  and to change it), its **Visibility** (**Public**, **Unlisted**: it
-  has an address but isn't in lists, feeds, or the sitemap, or
-  **Hidden**: no address), its **Date** (choose it for a calendar and
+  and to change it), its **Visibility**, in a type that has it
+  (**Public**, **Unlisted**: it has an address but isn't in lists,
+  feeds, or the sitemap, or **Hidden**: no address; see
+  [Who sees an entry](content.md#who-sees-an-entry)), its **Date** (choose it for a calendar and
   the time, on a 12-hour clock), its **Slug** (see below), its
   **Subtitle**, its **Language** (on a site with
   [translations](content.md#translations); see below), and a new page's
@@ -1107,10 +1108,10 @@ file you uploaded. You can also put files in
 ## Content types
 
 With `site.settings`, **Structure → Content types** lists every type, with
-its kind (**Terms** for a [type of terms](content-types.md#terms-and-relationships)),
+its kind (**Taxonomy** for a collection other entries are [filed under](content-types.md#terms-and-relationships)),
 where it's defined (built in, a plugin, or `user/data/types`), how
 many fields it has, and how many entries. Tabs
-narrow it (Collections, Terms, Trees, Profiles; only the ones the site
+narrow it (Collections, Taxonomies, Trees, Profiles; only the ones the site
 has), beside a search. Choose one for its settings, its relationships,
 and its fields; **Type Settings** on a type's list goes there too.
 
@@ -1130,23 +1131,26 @@ can one that still names its own folder until it's moved (see
 **New Content Type** walks through three steps, with **What Gets
 Created** beside them:
 
-1. **Basics:** a **Collection**, **Terms** (a collection whose entries
-   file other entries, such as topics or tags), or a
+1. **Basics:** a **Collection**, a **Taxonomy** (a collection whose
+   entries file other entries, such as topics or tags), or a
    [**Tree**](content-types.md#trees), its names, a key
    (made from the name, such as `recipe`), a description, and an icon.
    Its entries live in `_` and the key under `user/content`
    (`_recipe`), and the key can't change later.
 2. **Behavior:** the URL prefix (made from the plural name, such as
    `recipes`; empty for the key), whether it's
-   visible on the site, in the sitemap, listed in `llms.txt` (on for
-   collections and trees, off for terms, by default), and has a feed;
+   visible on the site, whether its entries **choose a visibility**
+   (on by default; off, every entry is public; see
+   [Who sees an entry](content.md#who-sees-an-entry)), in the sitemap,
+   listed in `llms.txt` (on for collections and trees, off for
+   taxonomies, by default), and has a feed;
    for a collection, date archives, a featured image (an `image` media
    field), whether entries nest under a parent, and its **Order**
-   (newest first by date, or by position for terms); for terms,
-   **Files**, the types filed under them (none for every type); an
+   (newest first by date, or by position for a taxonomy); for a
+   taxonomy, **Files**, the types filed under it (none for every type); an
    index page, the type's landing page (on by default); and, when the
    site has profiles, whether entries **credit authors** (on for content,
-   off for terms), which adds the type to the `authors`
+   off for a taxonomy), which adds the type to the `authors`
    [credit relation](content-types.md#crediting-people) (writing it when
    there's none), and whether its list of authors has a **page
    introducing it** (see [People archives](content-types.md#people-archives)).
@@ -1159,10 +1163,11 @@ Created** beside them:
 
 **Create Type** writes `user/data/types/{key}.json`, the index page
 as `index.md` in its folder, titled with the plural name, and the
-authors page, when chosen, as `_authors.md`, titled "Authors". For
-terms, it also writes the classify relation that files the chosen types
-under them, as `user/data/relations/{key}.json`. Terms are a collection
-ordered by position, with no authors, and left out of `llms.txt`.
+authors page, when chosen, as `_authors.md`, titled "Authors". For a
+taxonomy, it also writes the classify relation that files the chosen
+types under it, as `user/data/relations/{key}.json`. A taxonomy is a
+collection ordered by position, with no authors, and left out of
+`llms.txt`.
 
 ### Editing a type
 
@@ -1270,7 +1275,7 @@ credit Profiles as Cooks."), and changes as you change it.
   Entries**, or **Credits People**. It's chosen when it's made.
 - **Endpoints:** **Stored On**, the types whose files carry its key
   (for terms and credits, none chosen means every type), and what it
-  points at: the **Terms** type (one nothing files under yet), a type
+  points at: the **Taxonomy** (one nothing files under yet), a type
   of entries, or, for credits, the profiles.
 - **Names:** the **Front Matter Key** (`authors` for a new credit
   unless you change it), what it's **Called** in the editor, such as
@@ -2026,8 +2031,8 @@ A role's screen shows its key, where it comes from, and who holds it,
 then its capabilities in sections: **Site Capabilities** (Media,
 Structure, Site, People, and any a plugin adds) and **Content
 Capabilities**, **Every Type** first, then one section for each
-content type, under **Content types** and then **Terms** (the
-[types of terms](content-types.md#terms-and-relationships)). Each section says in a sentence what the role can do; open it
+content type, under **Content types** and then **Taxonomies** (the
+collections other entries are [filed under](content-types.md#terms-and-relationships)). Each section says in a sentence what the role can do; open it
 to tick or untick its capabilities. **Expand All** opens every section,
 and **Show Keys** shows each capability's key.
 

@@ -114,8 +114,8 @@ export function labelsOf(name: string): TypeLabels {
 /**
  * The icon a type's kind is shown with: a tag for terms (D-593).
  */
-export function typeIcon(type: Pick<ContentTypeSummary, 'kind'> & { terms?: boolean }): IconName {
-	return type.terms === true ? 'tag' : ({ tree: 'files', profiles: 'user-round', collection: 'file-text' } as const)[type.kind];
+export function typeIcon(type: Pick<ContentTypeSummary, 'kind'> & { taxonomy?: boolean }): IconName {
+	return type.taxonomy === true ? 'tag' : ({ tree: 'files', profiles: 'user-round', collection: 'file-text' } as const)[type.kind];
 }
 
 /**

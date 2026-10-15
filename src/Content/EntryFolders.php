@@ -44,8 +44,8 @@ use Blush\Translation\Text;
  *   move with their original, so they stay linked; one linked by
  *   `translation_of` is placed by its own date.
  * - **Left alone:** landing pages and trees (whose folders are their
- *   pages'). A hidden file (`_`-named, or in a `_` folder such as
- *   `_drafts` or a relation archive's `_authors`) stays in its folder,
+ *   pages'). A `_` file (a relation archive's page, `_authors.md`, or one in
+ *   its `_authors` folder) stays in its folder,
  *   whatever the pattern, as a file name pattern leaves it (D-512); one
  *   kept as a folder still becomes a file there.
  *

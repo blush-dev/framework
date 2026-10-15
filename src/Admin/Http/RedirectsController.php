@@ -523,7 +523,7 @@ final readonly class RedirectsController
 		return match (true) {
 			$entry->status->is(EntryStatus::TRASH)     => 'trash',
 			$entry->status->is(EntryStatus::SCHEDULED) => 'scheduled',
-			! $entry->isPublished()                 => 'draft',
+			! $entry->isLive()                 => 'draft',
 			$entry->visibility === Visibility::Hidden    => 'hidden',
 			default                                      => 'live'
 		};

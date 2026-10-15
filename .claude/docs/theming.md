@@ -233,8 +233,9 @@ relation kind (D-808: `classifications()`, `credits()`, `references()`,
 return a `RelatedEntries` (D-803: `relation`, `byline`, `published()`,
 `first()`, `isEmpty()`, `all()`, countable and iterable); there's no
 `terms()`, `author()`, or `credits()`. They come back
-whatever their status; the template checks `isPublished()` and
-`isRoutable()`, or uses `published()`. An entry keeps its links as
+whatever their status; the template checks `isLinkable()` (D-855),
+or uses `published()`, and `link()` prints the title alone for an
+entry that isn't linkable. An entry keeps its links as
 target ids with their slugs by relation name; core code that builds
 addresses reads them through the `@internal` `slugs()` and `links()`.
 Every `EntryGraph` answer is kept in the shared `RequestMemo` (D-805),

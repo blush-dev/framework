@@ -617,9 +617,9 @@ is in that decision.
 - Every type but `page` is kept in `_` and its name (`_post`, D-683),
   which no definition names. `index.md` there is the type's landing
   page. A file belongs to the type whose folder is its first, or else to
-  `page` (`ContentTypes::forFile()`). `system`, `error`, and `drafts`
-  can't name a type (`ContentType::RESERVED`): `_system` (D-684),
-  `_error`, and `_drafts` are pages' folders.
+  `page` (`ContentTypes::forFile()`). `system` and `error`
+  can't name a type (`ContentType::RESERVED`): `_system` (D-684) and
+  `_error` are pages' folders.
 - A tree's pages and a positioned or hierarchical collection's entries
   (terms) have a `position` field (D-412, D-593): siblings sort by it,
   then title, those without one last.
@@ -628,9 +628,14 @@ is in that decision.
   it sets the default order. Only collections take these
   prefixes; on a tree's or profiles type's file or folder they still
   read, but lint reports an error (D-409).
-- A `_` prefix on a file name, or on a folder between the type's folder
-  and the file, means hidden (D-088).
-- A `_drafts/` folder or `status: draft` marks unpublished entries;
+- Front matter alone says status and visibility (D-855): a `_` name
+  no longer means hidden, nor a `_drafts/` folder a draft, and lint
+  warns of a `_` name (`checkUnderscore`). Core's own places are hidden
+  whatever front matter says (`HiddenKeys`): a relation archive's pages
+  (`_authors`, `_authors/{slug}`) and the error pages (`_errors/404`).
+  A type's `visibility` option (on by default; only a public type has
+  it, `hasVisibility()`) off makes every entry public.
+- `status: draft` marks unpublished entries;
   `status: trash` (with `trashed`) marks entries in the trash (D-484).
 - **Folder entries:** `slug/index.md` is the entry `slug`, listed in the
   folder above. `index` directly in a type's folder is the landing page
@@ -896,7 +901,10 @@ Implemented in M4b (D-088).
   (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
   schema), `extra` (undeclared keys), `terms`, `landing`, and `source`
   (path, mtime, size). Helpers: `field()`, `summary()`, `excerpt()`,
-  `templates()`, `terms()`, `hasTerm()`, `isListed()`, `isRoutable()`.
+  `templates()`, `terms()`, `hasTerm()`, `isListed()`, `isRoutable()`,
+  and (D-855) `isLive()`, `isLinkable()` (live, routable, of a public
+  type; `link()` asks it), `hasStatus()`, `isPublished()` (`published`
+  alone), `isDraft()`, `isScheduled()`, `isExpired()`, `isTrashed()`.
 - The `Body`'s source is a **lazy ghost** (`EntryHydrator`): the file is
   read, parsed, and rendered only when `body()` is called, and not at all
   when the `BodyCache` has the rendering (D-130).

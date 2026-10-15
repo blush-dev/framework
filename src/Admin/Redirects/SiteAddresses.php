@@ -115,7 +115,7 @@ final class SiteAddresses
 	 */
 	public function urlOf(Entry $entry): ?string
 	{
-		return $entry->isPublished() && $entry->isRoutable() ? $this->urls->entry($entry) : null;
+		return $entry->isLinkable() ? $this->urls->entry($entry) : null;
 	}
 
 	/**

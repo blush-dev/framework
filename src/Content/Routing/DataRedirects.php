@@ -118,6 +118,6 @@ final readonly class DataRedirects implements RedirectSource
 
 		$entry = ($this->content)()->find($row->entry);
 
-		return $entry !== null && $entry->isPublished() && $entry->isRoutable() ? $this->urls->entry($entry) : null;
+		return $entry !== null && $entry->isLinkable() ? $this->urls->entry($entry) : null;
 	}
 }

@@ -57,7 +57,7 @@ final class RelatedEntries implements Countable, IteratorAggregate
 	public function published(): self
 	{
 		return $this->published ??= new self(
-			array_values(array_filter($this->entries, static fn (Entry $entry): bool => $entry->isPublished() && $entry->isRoutable())),
+			array_values(array_filter($this->entries, static fn (Entry $entry): bool => $entry->isLinkable())),
 			$this->relation,
 			$this->byline
 		);

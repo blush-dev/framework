@@ -123,7 +123,7 @@ final class AdminRelationsTest extends TestCase
 
 		$this->assertSame(['cuisine'], $type['taxonomies'] ?? null, 'Recipes are filed under cuisines.');
 		$this->assertSame(['cuisine'], array_column(is_array($type['relations'] ?? null) ? $type['relations'] : [], 'name'));
-		$this->assertTrue(self::json($this->send('GET', '/types/cuisine'))['terms'] ?? null);
+		$this->assertTrue(self::json($this->send('GET', '/types/cuisine'))['taxonomy'] ?? null);
 
 		$changed = $this->write('PATCH', '/relations/cuisine', ['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine'], 'min' => 1]);
 
@@ -134,7 +134,7 @@ final class AdminRelationsTest extends TestCase
 		$this->assertSame(200, $this->write('DELETE', '/relations/cuisine')->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/relations/cuisine.json');
 		$this->reload();
-		$this->assertFalse(self::json($this->send('GET', '/types/cuisine'))['terms'] ?? null);
+		$this->assertFalse(self::json($this->send('GET', '/types/cuisine'))['taxonomy'] ?? null);
 	}
 
 	public function testCreatesTargetsAsTheyreTyped(): void

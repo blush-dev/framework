@@ -588,13 +588,13 @@ final readonly class EntryController
 		$sources = $this->referrers->sources($entry);
 		$found   = array_column($sources, 'entry');
 		$listed  = in_array($request->getQueryParams()['live'] ?? null, ['1', 'true'], true)
-			? array_filter($sources, static fn (array $source): bool => $source['entry']->isPublished())
+			? array_filter($sources, static fn (array $source): bool => $source['entry']->isLive())
 			: $sources;
 
 		return self::json([
 			'count'      => count($found),
 			'live'       => Referrers::live($found),
-			'drafts'     => count(array_filter($found, static fn (Entry $referrer): bool => ! $referrer->isPublished() && ! $referrer->status->is(EntryStatus::TRASH))),
+			'drafts'     => count(array_filter($found, static fn (Entry $referrer): bool => ! $referrer->isLive() && ! $referrer->status->is(EntryStatus::TRASH))),
 			'editable'   => count(array_filter($found, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))),
 			'uncredited' => $this->referrers->soleCredits($entry),
 			'entries'    => array_map(static fn (array $source): array => [
@@ -626,7 +626,7 @@ final readonly class EntryController
 		foreach ($ids as $id) {
 			$entry = $this->content->find($id);
 
-			if ($entry === null || ! $entry->isPublished() || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
+			if ($entry === null || ! $entry->isLive() || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 				continue;
 			}
 
@@ -885,7 +885,7 @@ final readonly class EntryController
 			...$this->workflowOf($account, $live && $this->permissions->can($account, ContentAction::Edit, $entry) ? $entry : null, Transitions::stored($file->frontMatter), $entry->type),
 			'trashed'     => self::trashed($entry),
 			'own'         => $this->permissions->owns($account, $entry),
-			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
+			'url'         => $entry->isLive() ? $this->urls->entry($entry) : null,
 			'type'        => $this->typeOf($entry->type, $fields),
 			'inherited'   => (object) $this->inherited($entry, $file),
 			'linkedFrom'  => $this->linkedFrom($entry),
@@ -985,11 +985,15 @@ final readonly class EntryController
 		// (D-852).
 		$fields = array_filter($fields, static fn (Field $field): bool => $type->expires || $field->name !== 'expires');
 
+		// Visibility only where the type has it (D-855).
+		$fields = array_filter($fields, static fn (Field $field): bool => $type->hasVisibility() || $field->name !== 'visibility');
+
 		return [
 			'name'   => $type->name,
 			'expires' => $type->expires,
+			'visibility' => $type->hasVisibility(),
 			'kind'   => $type->kind()->value,
-			'terms'  => $this->types->classification($type->name) !== null,
+			'taxonomy'  => $this->types->classification($type->name) !== null,
 			'hierarchical' => $this->types->nestsByParent($type->name),
 			'byline' => $this->types->byline($type->name)?->field,
 			'dated'  => $type->dateArchives !== DateArchives::None,
@@ -1066,7 +1070,7 @@ final readonly class EntryController
 				'typeName' => $group['type'],
 				'relation' => self::relationLabel($group['relation']),
 				'count'    => $count,
-				'drafts'   => count(array_filter($entries, static fn (Entry $source): bool => ! $source->isPublished())),
+				'drafts'   => count(array_filter($entries, static fn (Entry $source): bool => ! $source->isLive())),
 				'entries'  => array_map(fn (Entry $source): array => [
 					'id'     => $source->id,
 					'title'  => $source->title,

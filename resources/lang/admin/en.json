@@ -625,14 +625,16 @@
 		"authors_help": "They're credited through the {relation} relationship, whose archives and words are set under Relationships.",
 		"authors_page_help": "An entry is created at {file} in the folder, titled Authors, and pinned in its list.",
 		"order": "Order",
-		"order_help": "How its lists are ordered unless a list says otherwise. Terms are usually by position: those without one follow, by title.",
+		"order_help": "How its lists are ordered unless a list says otherwise. Taxonomies are usually by position: those without one follow, by title.",
 		"archives": "Date archives",
 		"archives_help": "With archives, entries are dated: new ones get a publish date, and listings by year (and finer) appear.",
 		"filenames": "File names",
 		"filenames_help": "How new entries' files are named; the default is the slug alone. Changing it renames nothing (Site Health can rename older files to a pattern chosen here, but never to the default): a file's address comes from its slug, after the last dot, so older names keep working.",
 		"filenames_tree": "Folders keep their pages' slugs.",
 		"folders": "Folders",
-		"folders_help": "Where entries' files are kept inside the type's folder, for a type with thousands of them; by year and month go by the publish date, and a new date moves the file. Folders are never part of an address. Changing it moves nothing; Site Health moves older files."
+		"folders_help": "Where entries' files are kept inside the type's folder, for a type with thousands of them; by year and month go by the publish date, and a new date moves the file. Folders are never part of an address. Changing it moves nothing; Site Health moves older files.",
+		"visibility": "Entries choose a visibility",
+		"visibility_help": "Public, unlisted (an address, but in no lists), or hidden (no address). Off, every entry is public."
 	},
 	"palette_legend": {
 		"background": "Background",
@@ -854,7 +856,6 @@
 		"media_images_text": "Upload images, and change their own files.",
 		"media_none_text": "Nothing; the Media screen is left out of their admin.",
 		"kinds_content": "Content types",
-		"kinds_terms": "Terms",
 		"every_none": "Nothing on every type; each type is set on its own.",
 		"type_none": "No access. Left out of their admin.",
 		"all_create": "Can create, and edit, publish, and delete {scope, select, any {anyone's} other {their own}}.",
@@ -911,7 +912,8 @@
 		"spread_text": "Moves these into every type there is now, so one can differ. Types added later get nothing.",
 		"set_by_every": "Set by Every Type",
 		"from_every_type": "every type",
-		"transitions": "Can use {list}."
+		"transitions": "Can use {list}.",
+		"kinds_taxonomies": "Taxonomies"
 	},
 	"shown_once": {
 		"copied": "Copied {noun}.",
@@ -2262,15 +2264,13 @@
 		"kind": "Kind",
 		"collection": "Collection",
 		"collection_text": "Entries people write: posts, recipes, anything with a body.",
-		"terms": "Terms",
-		"terms_text": "Entries that file other entries, like topics or tags.",
 		"tree": "Tree",
 		"tree_text": "Pages that nest by folder, like docs or a handbook.",
 		"key": "Key",
 		"key_help": "Names the type in files and the API, and the folder its entries are kept in. Fixed once it's created.",
 		"files": "Files",
-		"files_none": "None chosen, so its terms file every type.",
-		"files_some": "Entries of these types can be filed under its terms. Change it later under Relationships.",
+		"files_none": "None chosen, so it files every type.",
+		"files_some": "Entries of these types can be filed under it. Change it later under Relationships.",
 		"fields_help": "Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.",
 		"next": "Next",
 		"creating": "Creating…",
@@ -2296,7 +2296,9 @@
 		"not_credited": "Not credited",
 		"feed": "Feed",
 		"fields": "Fields",
-		"none_yet": "None yet"
+		"none_yet": "None yet",
+		"taxonomy": "Taxonomy",
+		"taxonomy_text": "Entries that file other entries, like topics or tags."
 	},
 	"admin_theme_view": {
 		"errors": {
@@ -2522,9 +2524,6 @@
 		"endpoints_classify": "Which types are filed, and under which terms",
 		"endpoints_reference": "Which type links, and to which",
 		"endpoints_credit": "Which types credit, and which profiles they credit",
-		"terms": "Terms",
-		"terms_help_new": "The type whose entries are the terms: one nothing files under yet.",
-		"terms_help": "The type whose entries are the terms.",
 		"stored_on": "Stored On",
 		"stored_help": "{reference, select, yes {The type} other {The types} } whose files carry the key{creating, select, yes {: the one being edited when the choice is made} other {} }.",
 		"none_chosen_classify": "None chosen, so every type can be filed under them.",
@@ -2590,7 +2589,10 @@
 		"word": "Under the Word",
 		"word_help": "Each archive is at {path}, introduced by {file} in that type's folder, when there is one.",
 		"remove_body": "The picker leaves the editor and its links stop showing on the site. Entries keep their values unless you strip them, so adding it again brings them back.",
-		"remove": "Remove Relationship"
+		"remove": "Remove Relationship",
+		"taxonomy": "Taxonomy",
+		"taxonomy_help_new": "The taxonomy entries are filed under: one nothing files under yet.",
+		"taxonomy_help": "The taxonomy entries are filed under."
 	},
 	"admin_themes_view": {
 		"turned_on": "turned on",
@@ -3275,14 +3277,13 @@
 	},
 	"types_view": {
 		"tab_collections": "Collections",
-		"tab_terms": "Terms",
 		"tab_trees": "Trees",
 		"tab_profiles": "Profiles",
 		"tab_all": "All",
 		"origin_built_in": "Built in",
 		"origin_plugin": "A plugin",
 		"title": "Content Types",
-		"hint": "The kinds of entries the site has. Terms are content types too.",
+		"hint": "The kinds of entries the site has. Taxonomies are content types too.",
 		"new": "New Content Type",
 		"notice": "Types made here live in {folder}, and their screens edit them. Collections from plugins are edited too, with the changes saved in {folder} over the code's. The pages and authors types stay as their code defines them, so their screens show them.",
 		"load_failed": "The content types couldn't be loaded.",
@@ -3295,11 +3296,12 @@
 		"col_fields": "Fields",
 		"col_entries": "Entries",
 		"loading": "Loading the content types…",
-		"kind": "{kind, select, terms {Terms} collection {Collection} tree {Tree} other {Profiles} }",
+		"kind": "{kind, select, taxonomy {Taxonomy} collection {Collection} tree {Tree} other {Profiles} }",
 		"no_match": "No Types Match",
 		"no_match_text": "Nothing matches the search and kind.",
 		"clear_filters": "Clear Filters",
-		"shown": "{count, plural, one {# type} other {# types} } shown"
+		"shown": "{count, plural, one {# type} other {# types} } shown",
+		"tab_taxonomies": "Taxonomies"
 	},
 	"set_password_view": {
 		"errors": {
@@ -3759,7 +3761,6 @@
 		"origin_plugin": "A plugin",
 		"all_types": "All types",
 		"title": "Content Type",
-		"terms": "Terms",
 		"from_origin": "from {origin}",
 		"changed_in": "changed in {file}",
 		"view_items": "View {items}",
@@ -3800,7 +3801,8 @@
 		"col_required": "Required",
 		"list_of": "of {type}",
 		"no_fields": "None of its own.",
-		"every_entry": "Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships."
+		"every_entry": "Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships.",
+		"taxonomy": "Taxonomy"
 	},
 	"icon_packs_view": {
 		"turned_on": "turned on",
@@ -4306,7 +4308,6 @@
 		"empty_status": "No {what} among the {items}.",
 		"drafts": "drafts",
 		"hint_profiles": "Public identities. Every byline on the site points at one.",
-		"hint_terms": "Terms that group other entries",
 		"hint": "Every {item} you can edit",
 		"type_settings": "Type Settings",
 		"none_yet": "No {label} Yet",
@@ -4339,7 +4340,8 @@
 		"move_draft": "Move to Draft",
 		"move_trash": "Move to Trash",
 		"counted": "{count, plural, one {# {item}} other {# {items}}}",
-		"date": "Date"
+		"date": "Date",
+		"hint_taxonomy": "Entries that group other entries"
 	},
 	"account_view": {
 		"load_failed": "The account couldn't be loaded.",

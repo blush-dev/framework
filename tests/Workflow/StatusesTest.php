@@ -135,9 +135,16 @@ final class StatusesTest extends TestCase
 	{
 		$entries = array_column(array_map(static fn (Entry $entry): array => [$entry->title, $entry], $this->posts()->allStatuses()->limit(null)->get()->all()), 1, 0);
 
-		$this->assertTrue($entries['Featured']->isPublished(), 'A live status is on the site.');
-		$this->assertFalse($entries['Review']->isPublished());
-		$this->assertFalse($entries['Lost']->isPublished(), 'A status nothing registers isn\'t live (D-735).');
+		$this->assertTrue($entries['Featured']->isLive(), 'A live status is on the site.');
+		$this->assertFalse($entries['Featured']->isPublished(), 'But it isn\'t published, which is core\'s status alone (D-855).');
+		$this->assertTrue($entries['Featured']->hasStatus('featured'));
+		$this->assertTrue($entries['Live']->isPublished());
+		$this->assertFalse($entries['Review']->isLive());
+		$this->assertFalse($entries['Lost']->isLive(), 'A status nothing registers isn\'t live (D-735).');
+		$this->assertTrue($entries['Later']->isScheduled());
+		$this->assertFalse($entries['Later']->isPublished(), 'Scheduled, not published, until its date.');
+		$this->assertTrue($entries['Binned']->isTrashed());
+		$this->assertTrue($entries['Rough']->isDraft());
 		$this->assertSame('lost', $entries['Lost']->status->name, 'Kept in lowercase.');
 		$this->assertSame('scheduled', $entries['Later']->status->name);
 	}

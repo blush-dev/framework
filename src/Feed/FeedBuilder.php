@@ -60,7 +60,7 @@ final readonly class FeedBuilder
 	public function collection(ContentType $type, FeedFormat $format): Feed
 	{
 		$landing = $this->content->named($type->name, '');
-		$landing = $landing !== null && $landing->isPublished() ? $landing : null;
+		$landing = $landing !== null && $landing->isLive() ? $landing : null;
 		$home    = $type->name === $this->types->home;
 		$title   = $home ? '' : ($landing->title ?? '');
 

@@ -1236,9 +1236,11 @@ admin changed, and `docs/`.
   and admin notices (`open-questions.md`).
 - **Front-end search:** a JSON index; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
-  fourth kind on the shared pieces (joining `AdminTheme`, D-317);
-  installing from the admin, data-only kinds (icon packs) first, where
-  the Install buttons are placeholders now.
+  fourth kind are done (D-827), and installing from a `.zip` in the
+  admin, replacing, and rolling back are done for every kind (D-392,
+  D-393). Left: installing from a URL, from the CLI, and from a
+  registry (Packagist first), and updates (`open-questions.md` →
+  **Installing and updating extensions**).
   (`plugin:list`, `plugin:check`, and broken plugin manifests listed
   instead of failing discovery are done, D-394, and `plugin:new`,
   D-416. Every local extension lives in `extensions/{vendor}/{name}`,
@@ -1358,6 +1360,11 @@ admin changed, and `docs/`.
 
 Agreed, not scheduled; built when the author says so.
 
+- **Access control for 2.x** (the author, 2026-10-15): who may read
+  an entry (signed in, by capability or role, a password), beside
+  status and visibility (D-855). Its open points are in
+  `open-questions.md` (**Access control**); settle them, then plan the
+  stages.
 - **Media blocks from templates, with shortcuts** (D-814, author
   2026-10-13): a media block's `#[MediaProp]` values (`src`,
   `poster`, `track`, `art`) are resolved only in Markdown today, so a

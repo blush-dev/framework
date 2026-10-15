@@ -343,7 +343,7 @@ final readonly class MenusController
 					'value'   => $link->value($entry),
 					'ref'     => $entry->id,
 					'title'   => $entry->title,
-					'address' => $entry->isPublished() ? $this->urls->entry($entry) ?? '' : '',
+					'address' => $entry->isLive() ? $this->urls->entry($entry) ?? '' : '',
 					'state'   => self::state($entry),
 					'message' => null,
 					'order'   => $order
@@ -651,7 +651,7 @@ final readonly class MenusController
 		return match (true) {
 			$entry->status->is(EntryStatus::TRASH)     => 'trash',
 			$entry->status->is(EntryStatus::SCHEDULED) => 'scheduled',
-			! $entry->isPublished()                 => 'draft',
+			! $entry->isLive()                 => 'draft',
 			$entry->visibility === Visibility::Hidden => 'hidden',
 			default                                   => 'live'
 		};

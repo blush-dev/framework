@@ -206,18 +206,24 @@ A few things to know:
   categories).
 - **`parent($entry)`** and **`children($entry)`** give a page's or a
   nesting collection entry's parent and children, whatever their status, so filter
-  with `isPublished()` where you show them.
+  with `isLinkable()` where you link to them.
 
 An entry can tell you what it is:
 
 | Check | True when | For example |
 |---|---|---|
-| `isPublished()` | Its status is published and its date has come | Not a draft, a post scheduled for tomorrow, or one in the trash |
-| `isRoutable()` | It has a page of its own: it isn't hidden. Status doesn't count | A draft is routable; its page is served once it's published |
-| `isListed()` | It's in collections, feeds, and sitemaps: published, public, and not a landing page | An unlisted page is routable but not listed |
+| `isLive()` | It's on the site: its status is a live one, its date has come, and it hasn't expired | Not a draft, a post scheduled for tomorrow, an expired one, or one in the trash |
+| `isLinkable()` | You can link to it: it's live, it isn't hidden, and its type is on the site | A live unlisted page is linkable; a draft or a hidden page isn't |
+| `isListed()` | It's in collections, feeds, and sitemaps: live, public, and not a landing page | An unlisted page is linkable but not listed |
+| `isRoutable()` | It has an address: it isn't hidden. Status doesn't count | A draft is routable; its page is served once it's live |
+| `hasStatus('in_review')` | Its status is that one, as it is now | A published post dated tomorrow has `scheduled`, not `published` |
+| `isPublished()` | Its status is `published` and its date has come | A post with a plugin's live status is live, but not published |
+| `isDraft()`, `isScheduled()`, `isExpired()`, `isTrashed()` | Its status is that one | |
 
-To link to an entry you found some other way than a query (a parent, a
-child, a term), check `isPublished() && isRoutable()`.
+`$entry->link()` prints a link only when the entry is linkable, and its
+title alone otherwise, so a template can print it without checking.
+`$entry->url()` is its address whatever its status, so check
+`isLinkable()` before you link to it yourself.
 
 ## Blocks and components
 

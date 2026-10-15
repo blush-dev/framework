@@ -842,7 +842,6 @@
 		"media_images_text": "画像をアップロードし、自分のファイルを変更できます。",
 		"media_none_text": "何もできません。メディア画面は管理画面に表示されません。",
 		"kinds_content": "コンテンツタイプ",
-		"kinds_terms": "項目",
 		"every_none": "すべてのタイプ共通では何もなし。各タイプを個別に設定します。",
 		"type_none": "アクセスなし。管理画面に表示されません。",
 		"all_create": "作成と、{scope, select, any {すべてのもの} other {自分のもの}}の編集・公開・削除ができます。",
@@ -898,7 +897,8 @@
 		"spread": "タイプごとに個別に設定",
 		"spread_text": "これらを現在あるすべてのタイプに移し、タイプごとに変えられるようにします。後から追加されるタイプには何も付与されません。",
 		"set_by_every": "「すべてのタイプ」で設定",
-		"from_every_type": "すべてのタイプ"
+		"from_every_type": "すべてのタイプ",
+		"kinds_taxonomies": "タクソノミー"
 	},
 	"shown_once": {
 		"copied": "{noun}をコピーしました。",
@@ -2238,8 +2238,6 @@
 		"kind": "種類",
 		"collection": "コレクション",
 		"collection_text": "人が書くエントリー。投稿、レシピなど、本文があるもの。",
-		"terms": "項目",
-		"terms_text": "ほかのエントリーを分類するエントリー。トピックやタグなど。",
 		"tree": "ツリー",
 		"tree_text": "フォルダーで入れ子になるページ。ドキュメントやハンドブックなど。",
 		"key": "キー",
@@ -2272,7 +2270,9 @@
 		"not_credited": "クレジットなし",
 		"feed": "フィード",
 		"fields": "フィールド",
-		"none_yet": "まだありません"
+		"none_yet": "まだありません",
+		"taxonomy": "タクソノミー",
+		"taxonomy_text": "ほかのエントリーを分類するエントリー。トピックやタグなど。"
 	},
 	"admin_theme_view": {
 		"errors": {
@@ -2494,9 +2494,6 @@
 		"endpoints_classify": "どのタイプを、どの項目の下に分類するか",
 		"endpoints_reference": "どのタイプが、どのタイプにリンクするか",
 		"endpoints_credit": "どのタイプが、どのプロフィールをクレジットするか",
-		"terms": "項目",
-		"terms_help_new": "エントリーが項目になるタイプ。まだ何も分類していないものです。",
-		"terms_help": "エントリーが項目になるタイプです。",
 		"stored_on": "保存先",
 		"stored_help": "キーを持つファイルの{reference, select, yes {タイプ} other {タイプ} }{creating, select, yes {（選択時に編集中のもの）} other {} }。",
 		"none_chosen_classify": "何も選択されていないため、すべてのタイプをこの下に分類できます。",
@@ -2562,7 +2559,10 @@
 		"word": "URL の語",
 		"word_help": "各アーカイブは {path} にあり、そのタイプのフォルダーに {file} がある場合はそれが導入部になります。",
 		"remove_body": "ピッカーはエディターから消え、リンクはサイトに表示されなくなります。値を取り除かない限りエントリーには残るため、再度追加すると元に戻ります。",
-		"remove": "リレーションを削除"
+		"remove": "リレーションを削除",
+		"taxonomy": "タクソノミー",
+		"taxonomy_help_new": "エントリーが項目になるタイプ。まだ何も分類していないものです。",
+		"taxonomy_help": "エントリーが項目になるタイプです。"
 	},
 	"admin_themes_view": {
 		"turned_on": "有効化しました",
@@ -3235,7 +3235,6 @@
 	},
 	"types_view": {
 		"tab_collections": "コレクション",
-		"tab_terms": "項目",
 		"tab_trees": "ツリー",
 		"tab_profiles": "プロフィール",
 		"tab_all": "すべて",
@@ -3255,11 +3254,12 @@
 		"col_fields": "フィールド",
 		"col_entries": "エントリー",
 		"loading": "コンテンツタイプを読み込んでいます…",
-		"kind": "{kind, select, terms {項目} collection {コレクション} tree {ツリー} other {プロフィール} }",
+		"kind": "{kind, select, taxonomy {タクソノミー} collection {コレクション} tree {ツリー} other {プロフィール} }",
 		"no_match": "一致するタイプはありません",
 		"no_match_text": "検索と種類に一致するものはありません。",
 		"clear_filters": "絞り込みを解除",
-		"shown": "{count, plural, one {# 件のタイプ} other {# 件のタイプ} }を表示中"
+		"shown": "{count, plural, one {# 件のタイプ} other {# 件のタイプ} }を表示中",
+		"tab_taxonomies": "タクソノミー"
 	},
 	"set_password_view": {
 		"errors": {
@@ -3716,7 +3716,6 @@
 		"origin_plugin": "プラグイン",
 		"all_types": "すべてのタイプ",
 		"title": "コンテンツタイプ",
-		"terms": "項目",
 		"from_origin": "{origin}から",
 		"changed_in": "{file} で変更",
 		"view_items": "{items}を表示",
@@ -3757,7 +3756,8 @@
 		"col_required": "必須",
 		"list_of": "{type}の",
 		"no_fields": "独自のものはありません。",
-		"every_entry": "どのエントリーにも、タイトル、ステータス、日付、スラッグ、著者、そしてリレーションのフィールドがあります。"
+		"every_entry": "どのエントリーにも、タイトル、ステータス、日付、スラッグ、著者、そしてリレーションのフィールドがあります。",
+		"taxonomy": "タクソノミー"
 	},
 	"icon_packs_view": {
 		"turned_on": "有効化しました",
@@ -4263,7 +4263,6 @@
 		"empty_status": "{items}に{what}はありません。",
 		"drafts": "下書き",
 		"hint_profiles": "公開用の人物情報です。サイト上の署名はすべていずれかを指します。",
-		"hint_terms": "ほかのエントリーをまとめる項目",
 		"hint": "編集できるすべての{item}",
 		"type_settings": "タイプ設定",
 		"none_yet": "{label}はまだありません",
@@ -4295,7 +4294,8 @@
 		"publish": "公開",
 		"move_draft": "下書きに戻す",
 		"move_trash": "ゴミ箱へ移動",
-		"counted": "{count, plural, one {#件の{item}} other {#件の{items}}}"
+		"counted": "{count, plural, one {#件の{item}} other {#件の{items}}}",
+		"hint_taxonomy": "ほかのエントリーをまとめる項目"
 	},
 	"account_view": {
 		"load_failed": "アカウントを読み込めませんでした。",

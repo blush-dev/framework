@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
  * A new content type (D-311; admin.md §8, List, then detail: the type
- * wizard is its own screen): Basics (a collection, terms, or a tree,
+ * wizard is its own screen): Basics (a collection, a taxonomy (D-856), or a tree,
  * D-386; names, key, description, icon), Behavior
- * (`TypeBehaviorFields`, and for terms the types they file), and Fields
+ * (`TypeBehaviorFields`, and for a taxonomy the types it files), and Fields
  * (`FieldTree`), with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
  * `user/data/types/{key}.json` (`POST types`), adds the index page when
- * asked, and opens the type's screen. Terms are a collection ordered by
+ * asked, and opens the type's screen. A taxonomy is a collection ordered by
  * position, with no authors and out
  * of `llms.txt`, and a classify relation
  * named after it that files the chosen types under them (`POST
@@ -41,11 +41,11 @@ loadTypes().catch(() => undefined);
 const STEPS = [t('new_type_view.step_basics', 'Basics'), t('new_type_view.step_behavior', 'Behavior'), t('new_type_view.step_fields', 'Fields')];
 
 const step          = ref(0);
-// What it is: terms are a collection a classify relation files entries
+// What it is: a taxonomy is a collection a classify relation files entries
 // under (D-593).
-const choice        = ref<TypeKind | 'terms'>('collection');
-const kind          = computed<TypeKind>(() => choice.value === 'terms' ? 'collection' : choice.value);
-// The types a new type of terms files; none for every type.
+const choice        = ref<TypeKind | 'taxonomy'>('collection');
+const kind          = computed<TypeKind>(() => choice.value === 'taxonomy' ? 'collection' : choice.value);
+// The types a new taxonomy files; none for every type.
 const files         = ref<string[]>([]);
 const form          = ref<TypeForm>({ ...emptyForm(), fields: [{ ...FEATURED }] });
 const key           = ref('');
@@ -74,22 +74,22 @@ watch(() => form.value.plural, (plural) => {
 	previous.value = plural;
 });
 
-// Terms and trees have no featured image; a collection starts with one.
+// Taxonomies and trees have no featured image; a collection starts with one.
 watch(choice, (value) => {
 	if (value !== 'collection' && hasFeatured(form.value)) {
 		form.value.fields = form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
 	}
 
-	// Collections credit authors by default; terms don't (D-329).
+	// Collections credit authors by default; taxonomies don't (D-329).
 	form.value.authors = value === 'collection';
 
-	// Terms are left out of llms.txt unless they ask (D-401), and are
+	// Taxonomies are left out of llms.txt unless they ask (D-401), and are
 	// ordered by position (D-412).
-	form.value.llms  = value !== 'terms';
-	form.value.order = value === 'terms' ? 'position' : 'date';
+	form.value.llms  = value !== 'taxonomy';
+	form.value.order = value === 'taxonomy' ? 'position' : 'date';
 });
 
-// The types new terms can file: any but profiles.
+// The types a new taxonomy can file: any but profiles.
 const fileable = computed(() => types.value.filter((type) => type.kind !== 'profiles'));
 
 function filed(name: string, on: boolean): void {
@@ -144,8 +144,8 @@ async function create(): Promise<void> {
 			set: changesOf(form.value, null, kind.value)
 		});
 
-		// Terms file other entries through a relation named after them.
-		if (choice.value === 'terms') {
+		// A taxonomy files other entries through a relation named after it.
+		if (choice.value === 'taxonomy') {
 			await request('POST', '/relations', { name: type.name, kind: 'classify', from: files.value, to: [type.name], create: true });
 		}
 
@@ -196,10 +196,10 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 						<span class="kind__name">{{ t('new_type_view.collection', 'Collection') }}</span>
 						<span class="kind__text">{{ t('new_type_view.collection_text', 'Entries people write: posts, recipes, anything with a body.') }}</span>
 					</label>
-					<label class="kind" :class="{ 'kind--on': choice === 'terms' }">
-						<input v-model="choice" type="radio" value="terms" name="kind" class="visually-hidden">
-						<span class="kind__name">{{ t('new_type_view.terms', 'Terms') }}</span>
-						<span class="kind__text">{{ t('new_type_view.terms_text', 'Entries that file other entries, like topics or tags.') }}</span>
+					<label class="kind" :class="{ 'kind--on': choice === 'taxonomy' }">
+						<input v-model="choice" type="radio" value="taxonomy" name="kind" class="visually-hidden">
+						<span class="kind__name">{{ t('new_type_view.taxonomy', 'Taxonomy') }}</span>
+						<span class="kind__text">{{ t('new_type_view.taxonomy_text', 'Entries that file other entries, like topics or tags.') }}</span>
 					</label>
 					<label class="kind" :class="{ 'kind--on': choice === 'tree' }">
 						<input v-model="choice" type="radio" value="tree" name="kind" class="visually-hidden">
@@ -217,10 +217,10 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 			</div>
 
 			<div v-else-if="step === 1" class="panel__body form-stack">
-				<fieldset v-if="choice === 'terms'" class="fieldset">
+				<fieldset v-if="choice === 'taxonomy'" class="fieldset">
 					<legend>{{ t('new_type_view.files', 'Files') }}</legend>
 					<label v-for="type in fileable" :key="type.name" class="checkbox"><input type="checkbox" :checked="files.includes(type.name)" @change="filed(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
-					<p class="field__help">{{ files.length === 0 ? t('new_type_view.files_none', 'None chosen, so its terms file every type.') : t('new_type_view.files_some', 'Entries of these types can be filed under its terms. Change it later under Relationships.') }}</p>
+					<p class="field__help">{{ files.length === 0 ? t('new_type_view.files_none', 'None chosen, so it files every type.') : t('new_type_view.files_some', 'Entries of these types can be filed under it. Change it later under Relationships.') }}</p>
 				</fieldset>
 				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :default-prefix="key" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" />
 			</div>
@@ -247,16 +247,16 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 				<p class="panel__hint">{{ t('new_type_view.summary_hint', 'Updates as you go') }}</p>
 			</header>
 			<dl class="panel__body facts">
-				<div><dt>{{ t('new_type_view.kind', 'Kind') }}</dt><dd>{{ { collection: t('new_type_view.collection', 'Collection'), terms: t('new_type_view.terms', 'Terms'), tree: t('new_type_view.tree', 'Tree') }[choice] }}</dd></div>
+				<div><dt>{{ t('new_type_view.kind', 'Kind') }}</dt><dd>{{ { collection: t('new_type_view.collection', 'Collection'), taxonomy: t('new_type_view.taxonomy', 'Taxonomy'), tree: t('new_type_view.tree', 'Tree') }[choice] }}</dd></div>
 				<div><dt>{{ t('new_type_view.name', 'Name') }}</dt><dd>{{ form.plural || t('new_type_view.not_set', 'Not set') }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
 				<div><dt>{{ t('new_type_view.file', 'File') }}</dt><dd class="mono">user/data/types/{{ key || '…' }}.json</dd></div>
-				<div v-if="choice === 'terms'"><dt>{{ t('new_type_view.relationship', 'Relationship') }}</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
+				<div v-if="choice === 'taxonomy'"><dt>{{ t('new_type_view.relationship', 'Relationship') }}</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
 				<div v-if="typeFiles"><dt>{{ t('new_type_view.entries_in', 'Entries in') }}</dt><dd class="mono">user/content/_{{ key || '…' }}</dd></div>
 				<div><dt>{{ t('new_type_view.addresses', 'Addresses') }}</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
 				<div v-if="choice === 'collection'"><dt>{{ t('new_type_view.dated', 'Dated') }}</dt><dd>{{ form.dateArchives === 'none' ? t('common.no', 'No') : t('new_type_view.dated_yes', 'Yes, {archives}', { archives: archiveLabel.toLowerCase() }) }}</dd></div>
 				<div v-if="kind === 'tree'"><dt>{{ t('new_type_view.nesting', 'Nesting') }}</dt><dd>{{ t('new_type_view.by_folder', 'By folder') }}</dd></div>
 				<div v-else><dt>{{ t('new_type_view.nesting', 'Nesting') }}</dt><dd>{{ form.hierarchical ? t('new_type_view.nest_parent', 'Entries nest by parent') : t('new_type_view.flat', 'Flat') }}</dd></div>
-				<div v-if="choice === 'terms'"><dt>{{ t('new_type_view.files', 'Files') }}</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : t('new_type_view.every_type', 'Every type') }}</dd></div>
+				<div v-if="choice === 'taxonomy'"><dt>{{ t('new_type_view.files', 'Files') }}</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : t('new_type_view.every_type', 'Every type') }}</dd></div>
 				<div><dt>{{ t('new_type_view.index_page', 'Index page') }}</dt><dd>{{ index ? t('new_type_view.index_created', 'Created and pinned') : t('new_type_view.none', 'None') }}</dd></div>
 				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ form.authors ? t('new_type_view.credited', 'Credited, through the authors relationship') : t('new_type_view.not_credited', 'Not credited') }}</dd></div>
 				<div v-if="kind !== 'tree'"><dt>{{ t('new_type_view.feed', 'Feed') }}</dt><dd>{{ form.feed ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>

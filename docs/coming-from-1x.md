@@ -19,8 +19,11 @@ Copy your `user/` folder across as it is. In particular:
   `orderby: filename` is read as `date`. Pages still work with a
   prefix, but `content:lint` reports it: rename `01.about.md` to
   `about.md`.
-- `index.md` landing pages, `_`-prefixed hidden files, and `_drafts/`
-  folders work as before.
+- `index.md` landing pages work as before. A `_` at the start of a
+  file or folder name no longer hides an entry, and a `_drafts/` folder
+  no longer makes its entries drafts: say `visibility: hidden` or
+  `status: draft` in the front matter, and rename the file.
+  `content:lint` warns of each name that still starts with `_`.
 - `date` is still the entry's date. The other 1.x front matter names
   still work: `author` (now `authors`), `excerpt` (now `summary`), and `view` (now
   `template`). You don't need to rename anything. Authors are credited

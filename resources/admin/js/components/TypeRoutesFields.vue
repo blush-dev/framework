@@ -19,8 +19,9 @@ const props = defineProps<{
 	routes: TypeRoute[];
 	// The prefix the addresses sit under, without slashes.
 	prefix: string;
-	// Whether its entries are terms, with pages and feeds of their own (D-593).
-	terms: boolean;
+	// Whether it's a taxonomy, whose entries have pages and feeds of
+	// their own (D-593, D-856).
+	taxonomy: boolean;
 	// Whether the type may set its URLs (`dataTypeUrls`).
 	editable: boolean;
 }>();
@@ -43,7 +44,7 @@ function labelOf(route: TypeRoute): string {
 	}
 
 	if (feed) {
-		const what = ({ collection: t('type_routes_fields.feed', 'Feed'), single: props.terms ? t('type_routes_fields.term_feed', 'Term feed') : t('type_routes_fields.feed', 'Feed') } as Record<string, string>)[feed[1] ?? ''] ?? t('type_routes_fields.feed', 'Feed');
+		const what = ({ collection: t('type_routes_fields.feed', 'Feed'), single: props.taxonomy ? t('type_routes_fields.term_feed', 'Term feed') : t('type_routes_fields.feed', 'Feed') } as Record<string, string>)[feed[1] ?? ''] ?? t('type_routes_fields.feed', 'Feed');
 
 		return t('type_routes_fields.feed_format', '{what} ({format})', { what, format: FEEDS[feed[2] ?? ''] ?? 'RSS' });
 	}
@@ -57,7 +58,7 @@ function labelOf(route: TypeRoute): string {
 	} else if (level && LEVELS[level[1] ?? '']) {
 		label = t('type_routes_fields.level_archive', '{level} archive', { level: LEVELS[level[1] ?? ''] });
 	} else if (base === 'single') {
-		label = props.terms ? t('type_routes_fields.term', 'Term') : t('type_routes_fields.entry', 'Entry');
+		label = props.taxonomy ? t('type_routes_fields.term', 'Term') : t('type_routes_fields.entry', 'Entry');
 	} else {
 		label = key;
 	}

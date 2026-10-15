@@ -92,14 +92,14 @@ final class EntryLink extends MenuLink implements LinksEntry
 			throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.missing', 'No entry "{entry}".', entry: $value));
 		}
 
-		if (! $entry->isPublished()) {
+		if (! $entry->isLive()) {
 			throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.unpublished', 'The entry "{entry}" isn\'t published.', entry: $value));
 		}
 
 		// On a translated page, its translation when it's published (D-463).
 		$language    = $this->app->languages->forLocale($locale)?->code;
 		$translation = $language === null ? null : $this->content->translation($entry, $language);
-		$entry       = $translation !== null && $translation->isPublished() && $translation->isRoutable() ? $translation : $entry;
+		$entry       = $translation !== null && $translation->isLinkable() ? $translation : $entry;
 
 		$url = $this->urls->entry($entry) ?? throw new UnresolvedLink((string) $this->messages->t('menu.entry_link.no_url', 'The entry "{entry}" has no URL.', entry: $value));
 

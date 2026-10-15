@@ -264,7 +264,7 @@ abstract class ContentController
 	 */
 	protected function visible(?Entry $entry): ?Entry
 	{
-		return $entry !== null && $entry->isPublished() && $entry->isRoutable() ? $entry : null;
+		return $entry !== null && $entry->isLinkable() ? $entry : null;
 	}
 
 	/**

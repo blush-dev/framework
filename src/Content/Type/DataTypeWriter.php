@@ -87,6 +87,7 @@ final readonly class DataTypeWriter
 		'under'        => [],
 		'workflow'     => [],
 		'expires'      => [],
+		'visibility'   => [],
 		'fields'       => []
 	];
 
@@ -599,6 +600,7 @@ final readonly class DataTypeWriter
 			'under'        => '',
 			'workflow'     => '',
 			'expires'      => false,
+			'visibility'   => true,
 			default        => []
 		};
 	}

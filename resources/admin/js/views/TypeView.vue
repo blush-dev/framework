@@ -106,7 +106,7 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ type?.labels.plural ?? t('type_view.title', 'Content Type') }}</h1>
 			<p v-if="type" class="page-header__hint">
-				{{ type.terms ? t('type_view.terms', 'Terms') : humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · {{ t('type_view.from_origin', 'from {origin}', { origin }) }}<template v-if="type.overridden"> · <MessageText :text="t('type_view.changed_in', 'changed in {file}')"><template #file><span class="mono">{{ type.file }}</span></template></MessageText></template>
+				{{ type.taxonomy ? t('type_view.taxonomy', 'Taxonomy') : humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · {{ t('type_view.from_origin', 'from {origin}', { origin }) }}<template v-if="type.overridden"> · <MessageText :text="t('type_view.changed_in', 'changed in {file}')"><template #file><span class="mono">{{ type.file }}</span></template></MessageText></template>
 			</p>
 			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>
