@@ -190,14 +190,15 @@ router.beforeEach(async (to) => {
 });
 
 /**
- * Whether a navigation keeps the screen that's open: the editor's
- * address moving to the entry it opened as, by its handle, or once a new
- * one is written (D-336).
+ * Whether a navigation keeps the screen that's open: only its query
+ * changing, as a list's search, tabs, and filters write it, or the
+ * editor's address moving to the entry it opened as, by its handle, or
+ * once a new one is written (D-336).
  */
 export function sameScreen(to: RouteLocationNormalized, from: RouteLocationNormalized): boolean {
 	const editor = (route: RouteLocationNormalized): boolean => route.name === 'entry' || route.name === 'entry-new';
 
-	return editor(to) && editor(from) && to.name !== from.name;
+	return to.path === from.path || (editor(to) && editor(from) && to.name !== from.name);
 }
 
 function setTitle(): void {
