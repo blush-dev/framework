@@ -31,8 +31,8 @@ use Blush\Admin\Http\EntryController;
 use Blush\Admin\Http\ExtensionBackupController;
 use Blush\Admin\Http\ExtensionInstallController;
 use Blush\Admin\Http\FieldControlsController;
-use Blush\Admin\Http\FieldSetEditController;
-use Blush\Admin\Http\FieldSetsController;
+use Blush\Admin\Http\FieldEditController;
+use Blush\Admin\Http\FieldsController;
 use Blush\Admin\Http\ForgotPasswordController;
 use Blush\Admin\Http\HealthController;
 use Blush\Admin\Http\IconPackEditController;
@@ -137,10 +137,10 @@ use Blush\Session\StartSession;
  *     D-854).
  *   - `GET  fields/controls`: the controls and field types definitions
  *     can use (`FieldControlsController`, D-766).
- *   - `GET  fields/sets`: the site's field sets, and `GET
- *     fields/sets/{name}` one; `POST fields/sets`, and `PATCH` and
- *     `DELETE fields/sets/{name}` edit the ones in `user/data/fields`
- *     (`FieldSetEditController`, D-337).
+ *   - `GET  fields/library`: the site's field library, and `GET
+ *     fields/library/{name}` one field; `POST fields/library`, and
+ *     `PATCH` and `DELETE fields/library/{name}` edit them in
+ *     `user/data/fields` (`FieldEditController`, D-858).
  *   - `GET  blocks`: the blocks the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
@@ -309,11 +309,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/relations/{name:[a-z0-9_]+}', [TypeEditController::class, 'deleteRelation'])->named('relation.delete')->middleware(Authenticate::class),
 			Route::get('/blocks', BlocksController::class)->named('blocks')->middleware(Authenticate::class),
 			Route::get('/fields/controls', FieldControlsController::class)->named('fields.controls')->middleware(Authenticate::class),
-			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),
-			Route::post('/fields/sets', [FieldSetEditController::class, 'create'])->named('fields.set.create')->middleware(Authenticate::class),
-			Route::get('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetsController::class, 'show'])->named('fields.set')->middleware(Authenticate::class),
-			Route::patch('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetEditController::class, 'update'])->named('fields.set.update')->middleware(Authenticate::class),
-			Route::delete('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetEditController::class, 'delete'])->named('fields.set.delete')->middleware(Authenticate::class),
+			Route::get('/fields/library', FieldsController::class)->named('fields.library')->middleware(Authenticate::class),
+			Route::post('/fields/library', [FieldEditController::class, 'create'])->named('fields.field.create')->middleware(Authenticate::class),
+			Route::get('/fields/library/{name:[a-z_][a-z0-9_]*}', [FieldsController::class, 'show'])->named('fields.field')->middleware(Authenticate::class),
+			Route::patch('/fields/library/{name:[a-z_][a-z0-9_]*}', [FieldEditController::class, 'update'])->named('fields.field.update')->middleware(Authenticate::class),
+			Route::delete('/fields/library/{name:[a-z_][a-z0-9_]*}', [FieldEditController::class, 'delete'])->named('fields.field.delete')->middleware(Authenticate::class),
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Group control.
+ * Object control.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -22,10 +22,11 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * A few fields kept together under one heading: an object field, whose
- * fields' values are kept together under its key (D-780).
+ * An Object (D-858): a field made of other fields, whose values are kept
+ * together under its key (D-780). Named for its field type, since
+ * `object` can't name a PHP class.
  */
-final class Group extends Control
+final class ObjectControl extends Control
 {
 	/**
 	 * @inheritDoc
@@ -33,7 +34,7 @@ final class Group extends Control
 	#[Override]
 	public static function name(): string
 	{
-		return 'group';
+		return 'object';
 	}
 
 	/**
@@ -42,7 +43,7 @@ final class Group extends Control
 	#[Override]
 	public static function label(Messages $messages): Text
 	{
-		return $messages->t('field.group.label', 'Group');
+		return $messages->t('field.object.label', 'Object');
 	}
 
 	/**
@@ -51,7 +52,7 @@ final class Group extends Control
 	#[Override]
 	public static function description(Messages $messages): Text
 	{
-		return $messages->t('field.group.description', 'A few fields kept together, their values under its key.');
+		return $messages->t('field.object.description', 'A field made of other fields, saved together under its key.');
 	}
 
 	/**

@@ -987,7 +987,7 @@
 			"alt": "Alt text",
 			"alt_description": "What the image shows, for anyone who can't see it.",
 			"title_description": "What the library calls it, in place of its file name.",
-			"reserved": "A field set for {kind} media has a field (or alias) named \"{field}\", which is reserved for the file's {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.",
+			"reserved": "A field for {kind} media has a field (or alias) named \"{field}\", which is reserved for the file's {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.",
 			"caption_description": "Shown with the file where it's used, such as under an image.",
 			"credit_description": "Who made it, or where it's from.",
 			"description": "Description",
@@ -1511,13 +1511,6 @@
 		"site_health_controller": {
 			"not_allowed": "You aren't allowed to see site health."
 		},
-		"field_sets_controller": {
-			"not_found": "There's no \"{name}\" field set.",
-			"every": "All {places}",
-			"@every": {
-				"context": "Every place of a kind, such as \"All content types\"."
-			}
-		},
 		"job_controller": {
 			"no_job": "There's no such job.",
 			"retry_failed_only": "Only a failed job can be tried again.",
@@ -1574,7 +1567,6 @@
 		"settings_controller": {
 			"not_allowed": "You aren't allowed to see the site's settings.",
 			"no_screen": "There's no such settings screen.",
-			"field_set_hint": "From the {set} field set",
 			"groups": {
 				"site": {
 					"title": "Site",
@@ -1870,10 +1862,6 @@
 			"named_by_config": "config/plugins.php turns {label} on by name. Take it out of that file's \"enabled\" list before deleting it.",
 			"not_deleted": "{where} couldn't be deleted. Check that the web server may change it."
 		},
-		"field_set_edit_controller": {
-			"shadowed": "The \"{name}\" field set was saved, but a set of that name from elsewhere is used.",
-			"forbidden": "You aren't allowed to change field sets."
-		},
 		"themes_controller": {
 			"forbidden": "You aren't allowed to see the site's themes."
 		},
@@ -2007,6 +1995,13 @@
 			"not_found": "There's no \"{name}\" workflow.",
 			"site": "Site",
 			"forbidden": "You aren't allowed to change workflows."
+		},
+		"field_edit_controller": {
+			"not_read": "The \"{name}\" field was saved, but the field library isn't read (FieldConfig \"library\").",
+			"forbidden": "You aren't allowed to change the field library."
+		},
+		"fields_controller": {
+			"not_found": "The field library has no \"{name}\" field."
 		}
 	},
 	"settings": {
@@ -2027,8 +2022,7 @@
 			"details": {
 				"label": "Details",
 				"description": "Settings of the site's own, beside the screen's."
-			},
-			"conflict": "Field sets \"{first}\" and \"{second}\" both add a \"{setting}\" setting; settings share one store, so rename one."
+			}
 		},
 		"settings_screen": {
 			"general": "General",
@@ -2654,8 +2648,6 @@
 			"clashes": "Names defined twice",
 			"clash": "Two plugins define the \"{name}\" {kind, select, type {content type} status {status} workflow {workflow} other {relation}}: {kept}'s is used, and {dropped}'s is left out.",
 			"clashes_hint": "Turn one of them off, or ask its author to rename what it defines.",
-			"field_sets": "Field sets left off",
-			"field_sets_hint": "Rename the field in one of the sets, or turn off the plugin that adds one. Run \"{command}\" to see each.",
 			"extensions": "Extensions",
 			"extensions_run": "Everything that's on runs.",
 			"sentences": "{sentence} {next}",
@@ -2671,7 +2663,9 @@
 			"mail_set": "Sent through {transport}.",
 			"core_status_clash": "{dropped} defines the \"{name}\" status, one of Blush's own, so its is left out.",
 			"workflows": "Statuses and workflows left out",
-			"workflows_hint": "Fix each in user/data/statuses or user/data/workflows, or in the plugin that defines it. Types whose workflow is left out use the standard one."
+			"workflows_hint": "Fix each in user/data/statuses or user/data/workflows, or in the plugin that defines it. Types whose workflow is left out use the standard one.",
+			"fields": "Fields left off",
+			"fields_hint": "Change the field's key in the field library, or turn off the plugin that registers the other. Run \"{command}\" to see each."
 		},
 		"setup_checks": {
 			"why": {
@@ -2782,12 +2776,6 @@
 			"expiry_off": "Expiry isn't on for {items}, so this date is ignored.",
 			"expires_before_date": "It expires before its date, so it's never on the site.",
 			"underscore": "has a name starting with \"_\", which no longer hides an entry or makes it a draft, and leaves it without an address. Rename it, and say \"visibility: hidden\" or \"status: draft\" in its front matter."
-		},
-		"field_set_check": {
-			"unknown_kind": "\"{set}\" names {target}, but fields can't attach to a \"{kind}\" yet.",
-			"unknown_target": "\"{set}\" names {target}, which the site doesn't have, so it isn't used there.",
-			"slot": "\"{set}\" has the slot \"{slot}\", which {kind} don't offer, so it's in \"{in}\".",
-			"registered": "the fields {extension} registers"
 		},
 		"format_check": {
 			"markdown": "isn't read: entries are .md files. Rename it to .md.",
@@ -3047,15 +3035,6 @@
 			"not_with_role": "{list} can't be added with your role. Take it out to save.",
 			"never": "{list} can't be added. Take it out to save."
 		},
-		"data_field_set_writer": {
-			"bad_name": "\"{name}\" isn't a field set name: use lowercase letters, digits, \"_\", and \"-\".",
-			"already_data": "user/data/fields already defines \"{name}\".",
-			"not_data_change": "\"{name}\" isn't defined in user/data/fields, so it can't be changed here.",
-			"fix_by_hand": "{reason} Fix it by hand first.",
-			"not_data_delete": "\"{name}\" isn't defined in user/data/fields, so it can't be deleted here.",
-			"unknown_option": "\"{option}\" isn't something the admin changes in a field set.",
-			"data_sets_off": "FieldConfig \"dataSets\" is off, so sets in user/data/fields aren't read."
-		},
 		"file_name": {
 			"no_slug": "The file name pattern \"{pattern}\" must end in '{slug}'.",
 			"no_dot": "The file name pattern \"{pattern}\" needs a \".\" before '{slug}', which starts the slug.",
@@ -3109,7 +3088,6 @@
 			"delete_code": "\"{name}\" is defined in code, so it can't be deleted here; reset it to undo the changes made here.",
 			"not_data_delete": "\"{name}\" isn't defined in user/data/types, so it can't be deleted here.",
 			"named_by_relations": "The {relations} {count, plural, one {relation names} other {relations name}} {name}; remove {count, plural, one {it} other {them}} first.",
-			"code_fields": "Its fields include field classes from code, so they're changed in code.",
 			"bad_folders": "\"folders\" must be a folder pattern, such as '{year}', or null.",
 			"unknown_option": "\"{option}\" isn't an option the admin changes.",
 			"no_urls_prefix": "The type has no URLs of its own, so it has no prefix to change.",
@@ -3145,7 +3123,6 @@
 			"listing_subject": "Content type \"{name}\" listing",
 			"bad_order": "Content type \"{name}\" \"order\" must be one of {orders}.",
 			"kind_changed": "user/data/types/{name} can't change the type's kind; entries are filed by it.",
-			"only_placed": "\"{name}\" can only be placed in the menu here, with \"position\" and \"under\".",
 			"profiles_not_placed": "The \"{name}\" type is listed with people, so it isn't placed in the content menu.",
 			"named_folder": "Content type \"{name}\" names its folder (\"{folder}\"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.",
 			"named_folder_option": "Content type \"{name}\" names its folder (with \"folder\"), but every type is kept in _{name} now: move its files there, and give it a URL prefix if its addresses came from the folder. For a type in user/data/types, content:type-folders --write (or Site Health) does both.",
@@ -3162,7 +3139,8 @@
 			"position_not_whole": "Content type \"{name}\" \"position\" must be a whole number.",
 			"problem": "Content type \"{name}\": {problem}",
 			"tree_pattern": "Content type \"{name}\" has the folder pattern \"{pattern}\"; a tree's folders are its pages', so it takes none.",
-			"not_overridable": "The \"{name}\" content type is {role, select, pages {the site's pages} profiles {the site's profiles type} collection {a collection type} other {a tree type}}, which user/data/types can't change; define it in one place."
+			"not_overridable": "The \"{name}\" content type is {role, select, pages {the site's pages} profiles {the site's profiles type} collection {a collection type} other {a tree type}}, which user/data/types can't change; define it in one place.",
+			"only_overlaid": "\"{name}\" can only be placed in the menu and given fields here, with \"position\", \"under\", and \"fields\"."
 		},
 		"type_urls": {
 			"unknown_options": "{subject} has unknown options: {options}.",
@@ -3196,7 +3174,9 @@
 			"shared_folder": "The \"{first}\" and \"{second}\" content types share the folder \"{folder}\".",
 			"missing_reference": "Content type \"{name}\" {option, select, listing {listing type} categories {feed categories} other {feed listing type}} names \"{reference}\", which doesn't exist.",
 			"bad_categories": "Content type \"{name}\" feed categories \"{categories}\" isn't a type a classify relation files entries under.",
-			"missing_inverse_type": "Relation \"{name}\" inverse listing type names \"{type}\", which doesn't exist."
+			"missing_inverse_type": "Relation \"{name}\" inverse listing type names \"{type}\", which doesn't exist.",
+			"data_fields": "user/data/types/{name} defines fields, but a type's fields are made in the field library (Structure → Fields, user/data/fields) and placed by its \"layout\".",
+			"own_fields": "user/data/types/{name} sets \"{option}\", which only code writes; a type's fields are made in the field library (Structure → Fields, user/data/fields) and listed in its \"fields\"."
 		},
 		"entry_fields": {
 			"title": {
@@ -3331,6 +3311,17 @@
 				"edit_item": "Edit profile",
 				"search_items": "Search profiles"
 			}
+		},
+		"field_library_check": {
+			"unknown_field": "{types} place the \"{field}\" field, which the field library doesn't have, so it isn't shown.",
+			"registered": "the fields {extension} registers"
+		},
+		"data_field_writer": {
+			"bad_name": "\"{name}\" isn't a field's key: use lowercase letters, digits, and \"_\", starting with a letter or \"_\".",
+			"exists": "The field library already has a \"{name}\" field.",
+			"not_found": "The field library has no \"{name}\" field.",
+			"key_fixed": "A field's key is fixed once it's made, since every type that carries it reads it by its key; add the old one as an older name of a new field instead.",
+			"library_off": "FieldConfig \"library\" is off, so the field library in user/data/fields isn't read."
 		}
 	},
 	"mcp": {
@@ -3353,15 +3344,6 @@
 			"url": "a web address, such as https://example.com or /about",
 			"email": "an email address",
 			"icon": "an icon name, with no spaces"
-		},
-		"field_sets": {
-			"registered_field": "{owner}'s field \"{field}\"",
-			"field_set": "field set \"{set}\"",
-			"not_taken": "{target} can't take {what}: it takes no field named \"{field}\".",
-			"own_field": "{target} can't take {what}: \"{name}\" is already one of its own fields.",
-			"core_key": "{target} can't take {what}: \"{name}\" is Blush's own key, so nothing else can declare it.",
-			"declared": "{target} can't take {what}: {owner} declares \"{name}\" there already, and a key is declared once.",
-			"invalid": "{target} can't take {what}: {problem}"
 		},
 		"control_section": {
 			"structure": "Structure",
@@ -3398,10 +3380,6 @@
 			"label": "Number",
 			"description": "A number typed into a box."
 		},
-		"group": {
-			"label": "Group",
-			"description": "A few fields kept together, their values under its key."
-		},
 		"checkboxes": {
 			"label": "Checkboxes",
 			"description": "Any number from a set, with every option in view."
@@ -3417,10 +3395,6 @@
 		"reference": {
 			"label": "Entry Picker",
 			"description": "Entries picked from a list."
-		},
-		"repeater": {
-			"label": "Repeating Group",
-			"description": "A list of items, each with the same fields."
 		},
 		"date": {
 			"label": "Date and Time",
@@ -3539,6 +3513,23 @@
 			"alias": "is read as \"{name}\".",
 			"invalid_default": "has an invalid default: {problem}",
 			"required": "is required."
+		},
+		"field_library": {
+			"registered_field": "{owner}'s field \"{field}\"",
+			"library_field": "the \"{field}\" field",
+			"not_taken": "{target} can't take {what}: it takes no field named \"{field}\".",
+			"own_field": "{target} can't take {what}: \"{name}\" is already one of its own fields.",
+			"core_key": "{target} can't take {what}: \"{name}\" is Blush's own key, so nothing else can declare it.",
+			"declared": "{target} can't take {what}: {owner} declares \"{name}\" there already, and a key is declared once.",
+			"invalid": "{target} can't take {what}: {problem}"
+		},
+		"list": {
+			"label": "List",
+			"description": "A list of values, or of Objects, each item the same."
+		},
+		"object": {
+			"label": "Object",
+			"description": "A field made of other fields, saved together under its key."
 		}
 	},
 	"storage": {

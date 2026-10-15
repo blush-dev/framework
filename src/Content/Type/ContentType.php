@@ -20,6 +20,7 @@ use Blush\Field\Definition;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
 use Blush\Field\FieldFactory;
+use Blush\Field\FieldLayout;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 use Blush\Translation\Messages;
@@ -111,6 +112,19 @@ abstract readonly class ContentType
 	public const array PLACEMENT = ['position', 'under'];
 
 	/**
+	 * What a data file may set over any type (D-726, D-858): its place
+	 * in the admin's menu and the library fields it carries.
+	 */
+	public const array OVERLAY = [...self::PLACEMENT, 'fields'];
+
+	/**
+	 * The key a definition holds a code type's own fields under (D-863),
+	 * which only code and the compiled types write; a site's file lists
+	 * library fields under `fields` (its layout), and can't use it.
+	 */
+	public const string OWN_FIELDS = 'ownFields';
+
+	/**
 	 * The name of the workflow its entries move through (D-735, D-851),
 	 * or `null` for core's `standard` (`Workflows::for()`).
 	 */
@@ -139,6 +153,7 @@ abstract readonly class ContentType
 	 * @param  bool            $expires      Whether its entries may have an `expires` date, after which they're expired (D-852).
 	 * @param  bool            $visibility   Whether its entries choose a visibility (D-855); off, every entry is public. Only a public type has it.
 	 * @param  Messages        $messages     Writes why a type is refused; English without a translator, for a type in code.
+	 * @param  FieldLayout     $layout       The library fields it carries, in sections (D-858), written as its definition's `fields` (D-863).
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -164,7 +179,8 @@ abstract readonly class ContentType
 		?string $workflow = null,
 		public bool $expires = false,
 		public bool $visibility = true,
-		Messages $messages = new Messages()
+		Messages $messages = new Messages(),
+		public FieldLayout $layout = new FieldLayout()
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType((string) $messages->t(
@@ -433,7 +449,7 @@ abstract readonly class ContentType
 		$definition = new Definition($data, (string) $messages->t('content.content_type.subject', 'Content type "{name}"', name: $name));
 
 		try {
-			[$own, $controls] = $fields->withControls($definition->listOrMap('fields'));
+			[$own, $controls] = $fields->withControls($definition->listOrMap(self::OWN_FIELDS));
 			$schema           = new Schema($own, $definition->bool('closed'));
 			$common = [
 				'name'        => $name,
@@ -450,7 +466,8 @@ abstract readonly class ContentType
 				'workflow'    => $definition->nullableString('workflow'),
 				'expires'     => $definition->bool('expires'),
 				'visibility'  => $definition->bool('visibility', true),
-				'messages'    => $messages
+				'messages'    => $messages,
+				'layout'      => FieldLayout::fromArray($data['fields'] ?? null, (string) $messages->t('content.content_type.subject', 'Content type "{name}"', name: $name))
 			];
 
 
@@ -570,20 +587,22 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Returns the type placed in the admin's menu by a data file that sets
-	 * only `position` and `under` (D-726), which may lay over any type but
-	 * the profiles type, even one it can't otherwise change.
+	 * Returns the type with a data file laid over it that sets only what
+	 * any type takes (`OVERLAY`): its place in the admin's menu
+	 * (`position` and `under`, D-726; not the profiles type's) and the
+	 * library fields it carries (`fields`, D-858, D-863), even over a type the
+	 * file can't otherwise change.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
-	public function placedBy(array $data, FieldFactory $fields, Messages $messages): self
+	public function overlaidBy(array $data, FieldFactory $fields, Messages $messages): self
 	{
-		if (! self::onlyPlaces($data)) {
-			throw new InvalidContentType((string) $messages->t('content.content_type.only_placed', '"{name}" can only be placed in the menu here, with "position" and "under".', name: $this->name));
+		if (! self::onlyOverlays($data)) {
+			throw new InvalidContentType((string) $messages->t('content.content_type.only_overlaid', '"{name}" can only be placed in the menu and given fields here, with "position", "under", and "fields".', name: $this->name));
 		}
 
-		if ($this->kind() === TypeKind::Profiles) {
+		if ($this->kind() === TypeKind::Profiles && array_intersect_key($data, array_flip(self::PLACEMENT)) !== []) {
 			throw new InvalidContentType((string) $messages->t('content.content_type.profiles_not_placed', 'The "{name}" type is listed with people, so it isn\'t placed in the content menu.', name: $this->name));
 		}
 
@@ -591,14 +610,14 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Returns whether a data file sets only the options that place a type
-	 * in the admin's menu (D-726).
+	 * Returns whether a data file sets only what may lay over any type
+	 * (`OVERLAY`).
 	 *
 	 * @param array<array-key, mixed> $data
 	 */
-	public static function onlyPlaces(array $data): bool
+	public static function onlyOverlays(array $data): bool
 	{
-		return $data !== [] && array_diff(array_map(strval(...), array_keys($data)), self::PLACEMENT) === [];
+		return $data !== [] && array_diff(array_map(strval(...), array_keys($data)), self::OVERLAY) === [];
 	}
 
 	/**
@@ -629,7 +648,8 @@ abstract readonly class ContentType
 			'expires'     => $this->expires ?: null,
 			'visibility'  => $this->visibility ? null : false,
 			...$this->options(),
-			'fields'      => $this->controls->definitions($this->schema->fields),
+			self::OWN_FIELDS => $this->controls->definitions($this->schema->fields),
+			'fields'      => $this->layout->toArray(),
 			'closed'      => $this->schema->closed ?: null
 		];
 

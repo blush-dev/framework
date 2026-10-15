@@ -94,14 +94,6 @@ const fields  = computed<FieldDescription[]>(() => file.value?.fields ?? []);
 
 const { busy: saving, error: failure, run } = useAction();
 
-// The field sets attached to the kind (D-341), each under its label after
-// the built-in fields.
-const inSets    = computed(() => new Set((file.value?.sets ?? []).flatMap((set) => set.fields)));
-const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
-const setGroups = computed(() => (file.value?.sets ?? []).map((set) => ({
-	...set,
-	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
-})).filter((set) => set.fields.length > 0));
 const changes = computed(() => fields.value.filter((field) => form.value[field.name] !== initial.value[field.name]));
 const changed = computed(() => changes.value.length > 0 || artChange.value !== null);
 const altText = computed(() => typeof form.value.alt === 'string' ? form.value.alt.trim() : '');
@@ -644,7 +636,7 @@ const snippet = computed(() => {
 					<p v-if="file.original" class="field__help text__note"><AdminIcon name="info" /><MessageText :text="t('media_file_view.size_of', 'A size of {link}, whose details it goes by. Change them there.')"><template #link><RouterLink :to="{ name: 'media-file', params: { path: file.original.path.split('/') } }">{{ file.original.title || file.original.name }}</RouterLink></template></MessageText></p>
 					<p v-else-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? t('media_file_view.no_uploader', 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.') : t('media_file_view.only_uploader', 'Only {name}, or someone who may change anyone\'s files, can change its details.', { name: file.uploader.name }) }}</p>
 					<FieldControl
-						v-for="field in ownFields"
+						v-for="field in fields"
 						:key="`${file.reference}-${field.name}`"
 						:field="field"
 						id-prefix="media-"
@@ -661,19 +653,6 @@ const snippet = computed(() => {
 							<p :id="id" class="field__warn"><AdminIcon name="triangle-alert" /><span><MessageText :text="t('media_file_view.no_alt', '{title} It\'s what the image shows, for anyone who can\'t see it; images inserted from the library start with it, and pages use it where they have none.')"><template #title><strong>{{ t('media_file_view.no_alt_title', 'No alt text.') }}</strong></template></MessageText></span></p>
 						</template>
 					</FieldControl>
-					<div v-for="set in setGroups" :key="`${file.reference}-set-${set.name}`" class="text__set">
-						<p class="text__set-heading">{{ set.label }}</p>
-						<p v-if="set.description" class="field__help">{{ set.description }}</p>
-						<FieldControl
-							v-for="field in set.fields"
-							:key="`${file.reference}-${field.name}`"
-							:field="field"
-							id-prefix="media-"
-							:model-value="form[field.name] ?? ''"
-							:error="errorFor(field)"
-							@update:model-value="form[field.name] = $event"
-						/>
-					</div>
 					<div v-if="extra.length" class="text__extra">
 						<p class="field__help">{{ t('media_file_view.extra', 'Also in its metadata file, kept as they are:') }}</p>
 						<RawValues :entries="extra" />
@@ -1086,27 +1065,6 @@ fieldset.text {
 	color: var(--color-success-indicator);
 }
 
-/* A field set's fields, under its label (D-341), as the editor's panel
-   groups them. */
-.text__set {
-	display: grid;
-	gap: var(--s-4);
-	padding-top: var(--s-4);
-	border-top: 1px solid var(--border-color);
-}
-
-.text__set > .field__help {
-	margin-top: calc(var(--s-4) * -1 + 4px);
-}
-
-.text__set-heading {
-	margin: 0;
-	color: var(--color-text-muted);
-	font-size: var(--font-size-xsmall);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-}
 
 .text__extra dl {
 	margin: 6px 0 0;

@@ -44,31 +44,13 @@ can't see it. Where an image is used, what the entry writes wins; the
 library's alt text and caption are filled in when you insert it, and a
 page's image without alt text uses the library's.
 
-To add your own, use a [field set](content-types.md#field-sets) aimed
-at the kinds of file it's for: `media:image`, `media:video`,
-`media:audio`, `media:document` (PDFs, office files, plain text), or
-`media:file` (anything else):
-
-`user/data/fields/photo-rights.json`:
-
-```json
-{
-    "label": "Photo Rights",
-    "targets": ["media:image"],
-    "fields": {
-        "photographer": {},
-        "license": {
-            "type": "enum",
-            "options": ["cc-by", "all-rights-reserved"]
-        }
-    }
-}
-```
-
-List all four kinds for fields every file should have. A set's fields
-come after the built-in ones, under the set's label in the admin, and
-can't reuse a built-in field's name. **Structure → Fields** in the admin
-creates and edits sets ([Fields](admin.md#fields)).
+A plugin can [register fields](extending.md#fields-from-a-plugin) of
+its own for the kinds of file they're for: `media:image`,
+`media:video`, `media:audio`, `media:document` (PDFs, office files,
+plain text), or `media:file` (anything else). Their values are checked
+and kept in the metadata file, and can't reuse a built-in field's name.
+The admin doesn't show them yet; fields from the site's
+[field library](content-types.md#custom-fields) go on content types.
 
 A metadata file can point your editor at the built-in fields'
 schema, with a `"$schema"` key:

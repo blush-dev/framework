@@ -25,7 +25,7 @@ use Blush\Content\Type\DefinitionTables;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Feed\FeedConfig;
-use Blush\Field\FieldSetLoader;
+use Blush\Field\FieldLibraryLoader;
 use Blush\Job\JobRecord;
 use Blush\Job\JobStatus;
 use Blush\Job\JobStore;
@@ -170,12 +170,12 @@ final class SqliteAreasTest extends TestCase
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Menus and assignments kept in the database (D-676).');
 	}
 
-	public function testKeepsFieldSetsAndRedirectsAsRecords(): void
+	public function testKeepsLibraryFieldsAndRedirectsAsRecords(): void
 	{
-		$this->make(FieldSetLoader::class)->records()->save('kitchen', ['targets' => ['type:post'], 'fields' => ['oven' => ['type' => 'text']]]);
+		$this->make(FieldLibraryLoader::class)->records()->save('oven', ['type' => 'text', 'label' => 'Oven']);
 		new KeyedTable($this->make(RecordStores::class), DataRedirects::table(), $this->make(ClockInterface::class))->save('/news/{name}', ['to' => '/blog/{name}']);
 
-		$this->assertSame(['type:post'], $this->make(FieldSetLoader::class)->load()->find('kitchen')->targets ?? null);
+		$this->assertSame('Oven', $this->make(FieldLibraryLoader::class)->load()->find('oven')?->field->label);
 		$this->assertSame(['/news/{name}'], array_map(static fn (Redirect $redirect): string => $redirect->from, [...$this->make(DataRedirects::class)->redirects()]));
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Kept in the database (D-678).');
 	}

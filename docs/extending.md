@@ -2056,9 +2056,10 @@ Each key is registered once on a type. If yours is already one of the
 type's fields, Blush's own (`title`, `date`, and the rest), or
 another plugin's, your field is left off that type and the site says
 so (Site Health and `bin/blush content:lint`), so prefer keys unlikely
-to clash, or keep several under one group (`seo: { title, description }`).
-A site's [field set](content-types.md#field-sets) that uses a key you
-registered is left off instead, for the site to rename.
+to clash, or keep several under one object (`seo: { title, description }`).
+A field from the site's [field library](content-types.md#custom-fields)
+that uses a key you registered is left off instead, for the site to
+rename.
 
 ### Field types from a plugin
 
@@ -2135,10 +2136,9 @@ public function boot(): void
 }
 ```
 
-Then `type: color` works in `user/data/types`, `user/data/fields`, and
-the rest, and the admin's field editor offers it. Controls
+Then `type: color` works in `user/data/fields` and the rest, and the admin's field editor offers it. Controls
 (`Blush\Field\Controls\*`) come only from Blush for now, so a field
-type picks from those; it can't bring its own. A field set's or type's
+type picks from those; it can't bring its own. A library field's
 definition may choose its default control, or another whose `fits()`
 takes the field (`"control": {"name": "code"}`). Options of its own, described by
 `definitionSchema()`, are offered in the field editor when they're

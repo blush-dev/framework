@@ -23,6 +23,7 @@ use Blush\Api\EntryResource;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
+use Blush\Content\Type\ContentTypes;
 use Blush\Field\Field;
 use Blush\Field\Fields\ListField;
 
@@ -40,7 +41,8 @@ final readonly class TypesController
 		private ApiResponses $responses,
 		private ApiEntries $entries,
 		private Relations $relations,
-		private ContentUrls $urls
+		private ContentUrls $urls,
+		private ContentTypes $types
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -96,7 +98,7 @@ final readonly class TypesController
 				'description' => $field->description,
 				'required'    => $field->required,
 				...($field instanceof ListField ? ['item' => $field->item->type()] : [])
-			], $type->schema->fields)),
+			], $this->types->carried($type->name))),
 			'relations'   => array_keys(array_filter($this->relations->for($type->name), EntryResource::lists(...)))
 		];
 	}

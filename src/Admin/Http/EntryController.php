@@ -63,8 +63,8 @@ use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Field\ControlDefaults;
 use Blush\Field\Field;
-use Blush\Field\FieldSet;
-use Blush\Field\FieldTargets;
+use Blush\Field\FieldSection;
+use Blush\Field\PlacedField;
 use Blush\Field\FormField;
 use Blush\Field\Violation;
 use Blush\Http\Response;
@@ -225,7 +225,6 @@ final readonly class EntryController
 		private EntryHandles $handles,
 		private Permissions $permissions,
 		private AppConfig $app,
-		private FieldTargets $targets,
 		private Accounts $accounts,
 		private Homepage $homepage,
 		private Relations $relations,
@@ -970,11 +969,10 @@ final readonly class EntryController
 
 	/**
 	 * Describes a type for the editor: its name, kind, whether it's
-	 * dated, the fields it edits (as forms take them), and the field sets
-	 * attached to it (D-337), each with its `name`, `label`,
-	 * `description`, `slot` (the one it's in, D-347: the slot it names, or
-	 * its kind's default), and the names of its `fields`, so the editor
-	 * groups them where the slot puts them.
+	 * dated, the fields it edits (as forms take them), and the sections
+	 * its layout arranges library fields in (D-858), each with its
+	 * `label`, `description`, and the names of its `fields`, so the editor
+	 * groups them under it.
 	 *
 	 * @param  array<array-key, Field> $fields
 	 * @return array<string, mixed>
@@ -998,13 +996,14 @@ final readonly class EntryController
 			'byline' => $this->types->byline($type->name)?->field,
 			'dated'  => $type->dateArchives !== DateArchives::None,
 			'fields' => array_values(array_map(fn (Field $field): array => [...FormField::of($field, $this->types->controls($type->name), $this->defaults)->toArray(), ...$this->relationOf($type, $field)], $fields)),
-			'sets'   => array_map(fn (FieldSet $set): array => [
-				'name'        => $set->name,
-				'label'       => $set->label,
-				'description' => $set->description,
-				'slot'        => $this->targets->slotFor($set)->name ?? 'details',
-				'fields'      => array_keys($set->schema->fields)
-			], $this->types->setsFor($type->name))
+			'sections' => array_map(fn (FieldSection $section): array => [
+				'label'       => $section->label,
+				'description' => $section->description,
+				'fields'      => array_values(array_filter(
+					array_map(static fn (PlacedField $field): string => $field->name, $section->fields),
+					fn (string $name): bool => $this->types->library->find($name) !== null
+				))
+			], $type->layout->sections())
 		];
 	}
 

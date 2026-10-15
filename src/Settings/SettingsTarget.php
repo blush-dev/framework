@@ -16,12 +16,13 @@ namespace Blush\Settings;
 use Override;
 use Blush\Content\Type\ContentTypes;
 use Blush\Field\Field;
+use Blush\Field\FieldLayout;
 use Blush\Field\FieldTarget;
 use Blush\Field\Schema;
 use Blush\Translation\Messages;
 
 /**
- * A Settings screen as a place field sets attach to (D-343):
+ * A Settings screen as a place fields go on (D-343):
  * `settings:{screen}`, one for each `SettingsScreen`. Its own
  * fields are its built-in settings (`Setting::field()`); a set's settings
  * are saved in the `site` group of saved settings (`user/data/settings/site.json`), which holds
@@ -82,5 +83,16 @@ final readonly class SettingsTarget implements FieldTarget
 	public function schema(): Schema
 	{
 		return new Schema(array_map(fn (Setting $setting): Field => $setting->field($this->types, $this->messages), $this->screen->settings()));
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * None yet: a Settings screen gets a layout with its editor (D-858).
+	 */
+	#[Override]
+	public function layout(): FieldLayout
+	{
+		return new FieldLayout();
 	}
 }

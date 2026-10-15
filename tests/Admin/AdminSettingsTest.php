@@ -472,39 +472,6 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame([], $this->savedSettings(), 'Nothing saved removes the file.');
 	}
 
-	public function testFieldSetsAddSettings(): void
-	{
-		$this->writeTemporaryFile('user/data/fields/brand.json', '{"label": "Brand", "description": "How the site presents itself.", "targets": ["settings:general"], "fields": {"tagline": {"required": true}, "accent": {"type": "enum", "options": ["red", "blue"], "default": "blue"}}}');
-		$this->boot(roles: ['administrator']);
-		$this->login();
-
-		$general = self::json($this->send('GET', '/settings/general'));
-		$groups  = is_array($general['groups'] ?? null) ? $general['groups'] : [];
-
-		$this->assertSame(['site', 'dates', 'accounts', 'environment', 'set-brand'], array_column($groups, 'key'), 'A set\'s group after the screen\'s own.');
-		$tagline = $this->setting($general, 'set-brand', 'site-tagline');
-		$this->assertSame('site.tagline', $tagline['setting'] ?? null);
-		$this->assertFalse($tagline['saved'] ?? null);
-		$this->assertNull($tagline['file'] ?? null);
-		$this->assertSame('blue', $this->setting($general, 'set-brand', 'site-accent')['input'] ?? null, 'Its default until it\'s saved.');
-		$this->assertSame('How the site presents itself.', array_column($groups, 'hint', 'key')['set-brand'] ?? null);
-
-		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.accent' => 'green']])->getStatusCode());
-		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.tagline' => '']])->getStatusCode(), 'Required.');
-		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.nope' => 'x']])->getStatusCode());
-
-		$saved = self::json($this->write('PATCH', '/settings', ['set' => ['site.tagline' => 'Notes from the field', 'app.name' => 'Field Notes']]));
-		$this->assertSame(['app' => ['name' => 'Field Notes'], 'site' => ['tagline' => 'Notes from the field']], $saved['saved'] ?? null);
-		$this->assertFalse($saved['refresh'] ?? null);
-
-		$site = $this->scratchApplication()->container()->make(SiteSettings::class);
-		$this->assertSame('Notes from the field', $site->get('tagline'));
-		$this->assertSame('blue', $site->get('accent'), 'A field\'s default.');
-		$this->assertSame('fallback', $site->get('missing', 'fallback'));
-
-		$this->assertSame(['app' => ['name' => 'Field Notes']], self::json($this->write('PATCH', '/settings', ['unset' => ['site.tagline']]))['saved'] ?? null);
-	}
-
 	public function testRefusesValuesThatDontFit(): void
 	{
 		$this->writeTemporaryFile('user/data/types/topic.json', '{"urls": false}');

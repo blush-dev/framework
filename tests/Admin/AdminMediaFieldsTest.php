@@ -21,6 +21,7 @@ use Blush\Media\MediaKind;
 use Blush\Media\MediaKindTarget;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaSchemas;
+use Blush\Tests\Fixtures\Field\MediaFieldsProvider;
 use Blush\Tests\Fixtures\Media\TaggedAudioVideo;
 use Blush\Tests\Fixtures\Media\TaggedJpeg;
 
@@ -43,8 +44,8 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->writeTemporaryFile('user/media/photo.png', (string) base64_decode(self::PNG, true));
 
 		if ($fields) {
-			$this->writeTemporaryFile('user/data/fields/photo.json', '{"label": "Photo", "targets": ["media:image"], "fields": [{"name": "photographer", "aliases": ["shot_by"]}]}');
-			$this->writeTemporaryFile('user/data/fields/rights.json', '{"targets": ["media:image", "media:video", "media:audio", "media:file"], "fields": [{"name": "license", "type": "enum", "options": ["cc-by", "all-rights"], "required": true}]}');
+			$this->writeTemporaryFile('extensions/test/media/plugin.json', json_encode(['name' => 'test/media', 'label' => 'Media Fields', 'namespace' => 'media', 'provider' => MediaFieldsProvider::class], JSON_THROW_ON_ERROR));
+			$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['test/media']);\n");
 		}
 
 		$this->boot();
@@ -119,34 +120,19 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
 	}
 
-	public function testFieldSetsAddFieldsByKind(): void
+	public function testExtensionsRegisterFieldsByKind(): void
 	{
 		$this->site();
 
 		$file = self::json($this->send('GET', '/media/photo.png'));
 
-		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
-		$this->assertSame([
-			['name' => 'photo', 'label' => 'Photo', 'description' => '', 'fields' => ['photographer']],
-			['name' => 'rights', 'label' => 'Rights', 'description' => '', 'fields' => ['license']]
-		], $file['sets'] ?? null);
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content'], self::names($file['fields'] ?? null), 'Registered fields aren\'t drawn (D-791).');
+		$this->assertArrayNotHasKey('sets', $file, 'No field sets (D-858).');
 		$this->assertContains(['field' => 'license', 'message' => 'is required.', 'severity' => 'error'], (array) ($file['violations'] ?? []));
-		$this->assertSame(['title', 'caption', 'credit', 'content', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the sets on a kind.');
+		$this->assertSame(['title', 'caption', 'credit', 'content', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the fields on a kind.');
 	}
 
-	public function testASetThatReusesABuiltInFieldIsLeftOff(): void
-	{
-		$this->writeTemporaryFile('user/data/fields/strict.json', '{"targets": ["media:image"], "fields": [{"name": "alt", "required": true}]}');
-		$this->writeTemporaryFile('user/data/fields/owned.json', '{"targets": ["media:image"], "fields": [{"name": "owner"}]}');
-		$this->site(false);
-
-		$schema = $this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Image);
-
-		$this->assertFalse($schema->field('alt')->required ?? true, 'The built-in field is kept (D-786).');
-		$this->assertFalse($schema->has('owner'), 'A reserved key leaves its set off too.');
-	}
-
-	public function testSavesSetsAndRemovesFields(): void
+	public function testSavesRegisteredFieldsAndRemovesFields(): void
 	{
 		$this->site();
 
@@ -162,7 +148,7 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->assertIsArray($written);
 		$this->assertSame(['shot_by' => 'Sam', 'notes' => 'kept', 'license' => 'cc-by', 'alt' => 'A dog running'], array_diff_key($written, ['id' => true]), 'An alias in use is kept; other keys stay.');
 		$this->assertSame('id', array_key_last($written), 'Saved, it gets its id, last (D-675).');
-		$this->assertSame(['alt' => 'A dog running', 'photographer' => 'Sam', 'license' => 'cc-by'], $file['values'] ?? null, 'In the fields\' order.');
+		$this->assertSame(['alt' => 'A dog running'], $file['values'] ?? null, 'The drawn fields\' values; registered ones are saved, not drawn (D-791).');
 		$this->assertSame(['notes' => 'kept'], $file['extra'] ?? null);
 		$this->assertSame('A dog running', $file['alt'] ?? null);
 

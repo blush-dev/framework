@@ -19,7 +19,7 @@ import { t } from './messages';
  * The controls the admin draws (`Blush\Field\ControlType`, D-766).
  */
 export const CONTROLS = [
-	'group', 'repeater', 'text', 'textarea', 'markdown', 'link', 'email', 'radios', 'select', 'checkboxes', 'multiselect',
+	'object', 'list', 'text', 'textarea', 'markdown', 'link', 'email', 'radios', 'select', 'checkboxes', 'multiselect',
 	'toggle', 'number', 'date', 'image', 'video', 'audio', 'file', 'icon', 'code', 'reference', 'readonly'
 ] as const;
 
@@ -79,7 +79,7 @@ export function isShownOnly(kind: Control): boolean {
  * Whether a control holds other fields: a group, or a repeating group.
  */
 export function isContainer(kind: Control): boolean {
-	return kind === 'group' || kind === 'repeater';
+	return kind === 'object' || kind === 'list';
 }
 
 /**
@@ -90,7 +90,7 @@ export function childrenOf(field: FieldDescription): FieldDescription[] {
 		return [{ ...field.item!, name: ITEM_VALUE, label: field.item?.label ?? field.itemLabel ?? t('fields.item', 'Item') }];
 	}
 
-	return (control(field) === 'repeater' ? field.item?.fields : field.fields) ?? [];
+	return (control(field) === 'list' ? field.item?.fields : field.fields) ?? [];
 }
 
 // What a repeating group of plain values keeps each item's value under
@@ -102,7 +102,7 @@ const ITEM_VALUE = '_value';
  * not a group of fields (D-777): each item is then one box.
  */
 export function holdsValues(field: FieldDescription): boolean {
-	return control(field) === 'repeater' && field.item !== undefined && field.item.type !== 'object';
+	return control(field) === 'list' && field.item !== undefined && field.item.type !== 'object';
 }
 
 /**
@@ -258,13 +258,13 @@ export function toForm(field: FieldDescription, value: unknown): FormValue {
 		return '';
 	}
 
-	if (kind === 'group') {
+	if (kind === 'object') {
 		const data = typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
 		return fromGroup(Object.fromEntries(childrenOf(field).map((child) => [child.name, toForm(child, data[child.name])])));
 	}
 
-	if (kind === 'repeater') {
+	if (kind === 'list') {
 		const items = Array.isArray(value) ? value : [value];
 
 		if (holdsValues(field)) {
@@ -312,18 +312,18 @@ export function fromForm(field: FieldDescription, state: FormValue, original: un
 		return state.trim() === '' ? null : state;
 	}
 
-	if (kind === 'group') {
+	if (kind === 'object') {
 		return fromGroupState(field, groupOf(state), original);
 	}
 
-	if (kind === 'repeater' && holdsValues(field)) {
+	if (kind === 'list' && holdsValues(field)) {
 		const [child] = childrenOf(field);
 		const values  = itemsOf(state).map((item) => fromForm(child!, item[ITEM_VALUE] ?? '', undefined)).filter((value) => value !== null);
 
 		return values.length === 0 ? null : values;
 	}
 
-	if (kind === 'repeater') {
+	if (kind === 'list') {
 		// Items move, so none keeps keys from the one that was in its place.
 		const items = itemsOf(state).map((item) => fromGroupState(field, item, undefined)).filter((item) => item !== null);
 

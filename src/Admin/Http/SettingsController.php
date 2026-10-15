@@ -46,7 +46,6 @@ use Blush\Field\ControlDefaults;
 use Blush\Field\FieldControls;
 use Blush\Field\FormField;
 use Blush\Field\Field;
-use Blush\Field\FieldSets;
 use Blush\Field\Fields\EnumField;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -73,7 +72,6 @@ use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Settings\SettingsScreen;
-use Blush\Settings\SettingsTarget;
 use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Tool\ToolRegistry;
@@ -105,9 +103,7 @@ use Blush\Translation\Text;
  * `control` to draw, `choices` naming its options, and a `caption` for a
  * checkbox or an empty choice), the `input` the form starts from, and
  * whether it's `saved` in the saved settings (`user/data/settings/`); its `file` is where
- * its value comes from when it isn't. After a screen's own groups, each
- * field set on it (`settings:{screen}`) adds a group of its settings,
- * saved as `site.{name}`, with no `file` behind them. Media's upload
+ * its value comes from when it isn't. Media's upload
  * rules are one setting drawn as a grid (`kind` `uploads`, D-406; see
  * `media()`). AI's crawler groups are one list drawn as a switch for
  * each option (`kind` `switches`, with the `words` a switch says), and
@@ -145,7 +141,6 @@ final readonly class SettingsController
 		private SettingsStore $store,
 		private ClockInterface $clock,
 		private Permissions $permissions,
-		private FieldSets $fieldSets,
 		private MediaLibrary $library,
 		private AuthConfig $auth,
 		private Roles $roles,
@@ -189,12 +184,6 @@ final readonly class SettingsController
 
 		$groups = $groups === null ? null : array_map(self::sourced(...), $groups);
 
-		$target = SettingsScreen::tryFrom($screen);
-
-		if ($groups !== null && $target !== null) {
-			$groups = [...$groups, ...$this->sets($target, $saved)];
-		}
-
 		return $groups === null
 			? Response::json(['error' => $this->messages->t('admin.settings_controller.no_screen', 'There\'s no such settings screen.')], Status::NotFound, ['Cache-Control' => 'no-store'])
 			: Response::json(['groups' => $groups], headers: ['Cache-Control' => 'no-store']);
@@ -230,39 +219,6 @@ final readonly class SettingsController
 			: DateFormat::format($now, $locale, $this->app->timezone, $format);
 
 		return Response::json(['text' => $text], headers: ['Cache-Control' => 'no-store']);
-	}
-
-	/**
-	 * The groups the field sets on a screen add (D-343): one per set,
-	 * headed by its label, each of its fields a setting saved in
-	 * the `site` group of saved settings (`user/data/settings/site.json`) (`site.{name}`), with no
-	 * config value behind it.
-	 *
-	 * @return list<array<string, mixed>>
-	 */
-	private function sets(SettingsScreen $screen, Settings $saved): array
-	{
-		$values = $saved->site();
-		$groups = [];
-
-		foreach ($this->fieldSets->for(SettingsTarget::keyFor($screen)) as $set) {
-			$items = [];
-
-			foreach ($set->schema->fields as $name => $field) {
-				$has     = array_key_exists($name, $values);
-				$items[] = [
-					...self::item("site-{$name}", $field->label === '' ? ucfirst(str_replace('_', ' ', $name)) : $field->label, '', ! $has, help: $field->description === '' ? null : $field->description),
-					'setting' => Settings::SITE . ".{$name}",
-					'field'   => FormField::of($field, $set->controls, $this->defaults)->toArray(),
-					'input'   => $has ? $values[$name] : $field->default,
-					'saved'   => $has
-				];
-			}
-
-			$groups[] = self::group("set-{$set->name}", $set->label, $set->description === '' ? $this->messages->t('admin.settings_controller.field_set_hint', 'From the {set} field set', set: $set->label) : $set->description, $items);
-		}
-
-		return $groups;
 	}
 
 	/**
@@ -870,8 +826,7 @@ final readonly class SettingsController
 	 * Names the file a group's settings are from once (`source`, D-695),
 	 * when every setting it edits is from the same one, so its rows say
 	 * where they're from only when they're saved here. Upload rules,
-	 * embeds, and switches by option say it in their own foot, and a field set's settings
-	 * (`site.…`) have no file.
+	 * embeds, and switches by option say it in their own foot.
 	 *
 	 * @param  array<string, mixed> $group
 	 * @return array<string, mixed>

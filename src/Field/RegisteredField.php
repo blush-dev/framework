@@ -52,7 +52,7 @@ final readonly class RegisteredField
 		}
 
 		foreach ($targets as $target) {
-			if (preg_match(FieldSet::TARGET_PATTERN, $target) !== 1) {
+			if (preg_match(TargetKey::PATTERN, $target) !== 1) {
 				throw new InvalidSchema(sprintf('%s\'s field "%s" target "%s" must be a kind and a name, such as "type:post".', $owner, $field->name, $target));
 			}
 		}
@@ -76,7 +76,7 @@ final readonly class RegisteredField
 	 */
 	public function attachesTo(string $target): bool
 	{
-		return FieldSet::targets($this->targets, $target);
+		return TargetKey::matches($this->targets, $target);
 	}
 
 	/**

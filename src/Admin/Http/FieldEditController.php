@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Admin field set edit controller.
+ * Admin field edit controller.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -24,10 +24,11 @@ use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Editing\FieldMoves;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\DataFieldSetWriter;
+use Blush\Content\Type\DataFieldWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
@@ -36,37 +37,39 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * Creates, changes, and deletes the field sets the site defines in
- * `user/data/fields` (D-337), for accounts with `site.settings`:
+ * Makes, changes, and deletes the fields of the site's field library in
+ * `user/data/fields` (D-858), for accounts with `site.settings`:
  *
- * - `POST fields/sets`: `{"name", "set"}`; answers `201` with the set as
- *   `GET fields/sets/{name}` describes it.
- * - `PATCH fields/sets/{name}`: `{"set"}`; answers with the set, and
- *   `moved`: a field put somewhere new (into a group, out of one) has
- *   its values moved in the entries of the set's types (D-780,
- *   `FieldMoves`), and `moved` says how many `entries` were changed,
- *   how many `kept` a value already at the new place, and the `failed`
- *   ones' reasons, by entry id.
- * - `DELETE fields/sets/{name}`: deletes its file (entries keep their
- *   values for its fields); answers `{"deleted"}`.
+ * - `POST fields/library`: `{"field"}`, with its `name`; answers `201`
+ *   with the field as `GET fields/library/{name}` describes it.
+ * - `PATCH fields/library/{name}`: `{"field"}`, the whole field; its key
+ *   stays. Answers with the field, and `moved`: a field put somewhere
+ *   new inside an Object (into one, out of one) has its values moved in
+ *   the entries of every type that carries it (D-780, `FieldMoves`), and
+ *   `moved` says how many `entries` were changed, how many `kept` a value
+ *   already at the new place, and the `failed` ones' reasons, by entry
+ *   id.
+ * - `DELETE fields/library/{name}`: deletes its file and takes it off
+ *   every type's layout (entries keep their values); answers
+ *   `{"deleted"}`.
  *
- * `set` holds the keys to change (`label`, `description`, `targets`, and
- * `fields`; `DataFieldSetWriter`). A change that doesn't fit (an unknown
- * key, a field that isn't one, a field another on a target already has)
- * is a `422` with the reason, and nothing is written.
+ * `field` is the field as the admin's forms send it (`DataFieldWriter`).
+ * A field that doesn't fit (one that isn't a field, or one a type that
+ * carries it already has by its key) is a `422` with the reason, and
+ * nothing is written.
  *
  * As with types (`TypeEditController`), a change is answered from the
  * types it made; compiled types are written again, and the admin then
- * asks for `types/refresh`, since a set's fields are part of the index.
+ * asks for `types/refresh`, since a field's values are part of the index.
  */
-final readonly class FieldSetEditController
+final readonly class FieldEditController
 {
 	/**
 	 * @param Closure(): ContentTypeLoader $loader
 	 */
 	public function __construct(
-		private DataFieldSetWriter $writer,
-		private FieldSetsController $sets,
+		private DataFieldWriter $writer,
+		private FieldsController $fields,
 		private ContentTypeCache $cache,
 		private ContentVersion $version,
 		private AppConfig $app,
@@ -82,16 +85,13 @@ final readonly class FieldSetEditController
 			return $this->forbidden();
 		}
 
-		$input = self::input($request);
-		$name  = $input['name'] ?? null;
-		$set   = $input['set'] ?? [];
+		$field = self::input($request)['field'] ?? null;
 
-		if (! is_string($name) || ! is_array($set) || ($set !== [] && array_is_list($set))) {
-			return self::error('Send a "name" and "set" (keys to values).', Status::BadRequest);
+		if (! is_array($field) || ! is_string($field['name'] ?? null)) {
+			return self::error('Send a "field" with its "name".', Status::BadRequest);
 		}
 
-		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $set), $name, Status::Created);
+		return $this->changed(fn (): ContentTypes => $this->writer->create($field), $field['name'], Status::Created);
 	}
 
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
@@ -100,34 +100,33 @@ final readonly class FieldSetEditController
 			return $this->forbidden();
 		}
 
-		$set = self::input($request)['set'] ?? [];
+		$field = self::input($request)['field'] ?? null;
 
-		if (! is_array($set) || ($set !== [] && array_is_list($set))) {
-			return self::error('Send "set" (keys to values).', Status::BadRequest);
+		if (! is_array($field)) {
+			return self::error('Send the "field".', Status::BadRequest);
 		}
 
-		// The set as saved now, read again: types loaded earlier may be
+		// The field as saved now, read again: types loaded earlier may be
 		// from before another change.
 		try {
-			$before = ($this->loader)()->load()->sets->find($name)?->schema->fields ?? [];
+			$before = ($this->loader)()->load()->library->find($name)?->field;
 		} catch (InvalidContentType $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
 
 		$account = $request->getAttribute(Account::class);
 
-		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, then: function (ContentTypes $types) use ($name, $before, $account): array {
-			$after = $types->sets->find($name);
+		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $field), $name, then: function (ContentTypes $types) use ($name, $before, $account): array {
+			$after = $types->library->find($name);
 
-			if ($after === null || ! $account instanceof Account) {
+			if ($after === null || $before === null || ! $account instanceof Account) {
 				return [];
 			}
 
 			$moved = $this->moves->apply(
 				Actor::admin($account),
-				$after->namesOf('type', array_keys($types->all())),
-				FieldMoves::between($before, $after->schema->fields)
+				array_map(static fn (ContentType $type): string => $type->name, FieldsController::typesWith($types, $name)),
+				FieldMoves::between([$before], [$after->field])
 			);
 
 			return ['moved' => [
@@ -157,7 +156,7 @@ final readonly class FieldSetEditController
 	}
 
 	/**
-	 * Makes a change, then compiles the types and answers with the set.
+	 * Makes a change, then compiles the types and answers with the field.
 	 *
 	 * @param Closure(): ContentTypes                         $change
 	 * @param ?Closure(ContentTypes): array<string, mixed>    $then   What's done once it's changed, and more to answer with.
@@ -166,7 +165,7 @@ final readonly class FieldSetEditController
 	{
 		try {
 			$types = $change();
-			$set   = $types->sets->find($name) ?? throw new InvalidContentType((string) $this->messages->t('admin.field_set_edit_controller.shadowed', 'The "{name}" field set was saved, but a set of that name from elsewhere is used.', name: $name));
+			$field = $types->library->find($name) ?? throw new InvalidContentType((string) $this->messages->t('admin.field_edit_controller.not_read', 'The "{name}" field was saved, but the field library isn\'t read (FieldConfig "library").', name: $name));
 
 			$this->compile();
 		} catch (InvalidContentType $error) {
@@ -177,7 +176,7 @@ final readonly class FieldSetEditController
 
 		$this->version->bump();
 
-		return Response::json([...$this->sets->detail($types, $set), ...$more], $status, ['Cache-Control' => 'no-store']);
+		return Response::json([...$this->fields->detail($types, $field), ...$more], $status, ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -217,7 +216,7 @@ final readonly class FieldSetEditController
 
 	private function forbidden(): ResponseInterface
 	{
-		return self::error($this->messages->t('admin.field_set_edit_controller.forbidden', 'You aren\'t allowed to change field sets.'), Status::Forbidden);
+		return self::error($this->messages->t('admin.field_edit_controller.forbidden', 'You aren\'t allowed to change the field library.'), Status::Forbidden);
 	}
 
 	private static function error(string|Text $message, Status $status): ResponseInterface

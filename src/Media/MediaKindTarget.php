@@ -15,12 +15,13 @@ namespace Blush\Media;
 
 use Override;
 use Blush\Field\Field;
+use Blush\Field\FieldLayout;
 use Blush\Field\FieldTarget;
 use Blush\Field\Schema;
 use Blush\Translation\Messages;
 
 /**
- * A kind of media file as a place field sets attach to (D-341):
+ * A kind of media file as a place fields go on (D-341):
  * `media:image`, `media:video`, `media:audio`, or `media:file`. Its own
  * fields are the built-in ones (`MediaSchemas::builtIn()`). A metadata
  * file holds any value front matter can, so it takes every field.
@@ -82,5 +83,16 @@ final readonly class MediaKindTarget implements FieldTarget
 	public function schema(): Schema
 	{
 		return MediaSchemas::builtIn($this->kind, $this->messages);
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * None yet: a kind of media gets a layout with its screen (D-858).
+	 */
+	#[Override]
+	public function layout(): FieldLayout
+	{
+		return new FieldLayout();
 	}
 }

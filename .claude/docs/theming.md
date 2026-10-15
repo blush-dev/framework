@@ -211,7 +211,7 @@ The template API (kept deliberately small; D-103):
 | `block($name, ...$props)` | Render a block, as content would; `->content($html)` fills it (D-532) |
 | `t($key, ...$params)` | Translate from the theme chain's domains, child first (D-028, D-107, D-451) |
 | `setting($key, $default)` | A theme setting's value |
-| `site($key, $default)` | A site setting a field set adds to the Settings screens (D-343), through its field, or its default |
+| `site($key, $default)` | A site setting a plugin registers on a Settings screen (D-343, D-858), through its field, or its default |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
 | `inline($path)` | A servable theme asset's contents, such as an SVG (D-151) |
 | `widont($text)` | Escaped text with its last two words joined by `&nbsp;` (1.x's `runt()`, D-153) |

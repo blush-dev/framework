@@ -560,8 +560,8 @@ They have two tabs:
   Then the **Authors**, each type of terms it's filed under (see
   [Choosing terms and authors](#choosing-terms-and-authors)), and the
   content type's other fields (a few kinds show their value read-only);
-  each [field set](content-types.md#field-sets) added to the type, under
-  its label, in the order of the sets' positions (see
+  each [section](content-types.md#a-types-fields) the type arranges its
+  fields in, under its heading, in the type's order (see
   [Fields on the Document tab](#fields-on-the-document-tab)); **Advanced**, with the page's **Stylesheet**
   and **Class** (the page's classes on one line, apart by spaces),
   folded away until you open it, or open when one of them is set; and
@@ -718,13 +718,13 @@ The relation's settings shape the picker too:
 
 ### Fields on the Document tab
 
-A type's own fields and its [field sets](content-types.md#field-sets)
-are groups on the Document tab, each field drawn by its control. Each
-field set is its own group, ordered by the sets' **Position**, then
-their labels. A set's group is folded until you open it, and opens by
-itself when one of its fields has an error or a warning to show. Its
-heading counts its fields, with a red count of the required ones still
-empty beside it.
+A type's fields are groups on the Document tab, each field drawn by its
+control: those outside any [section](content-types.md#a-types-fields)
+under the type's name ("Recipe Fields"), then each section as a group of
+its own, in the type's order. A section's group is folded until you open
+it, and opens by itself when one of its fields has an error or a
+warning to show. Its heading counts its fields, with a red count of the
+required ones still empty beside it.
 
 A value saved in the file that doesn't fit its field (only possible
 when the file was edited by hand) shows a warning under the field,
@@ -743,14 +743,14 @@ warning goes once you change the field.
   **Choose**. Each opens the media library on its kind.
 - An **icon** opens the site's icons, and a **date** without a time
   picks only the day.
-- A **group** is its heading with its fields under it.
-- A **repeating group** lists its items, one line each, summed up by
+- An **Object** is its heading with its fields under it.
+- A **List** lists its items, one line each, summed up by
   the fields it names (or its first fields). A list of plain values
-  (text, numbers, dates) is a repeating group too, each item one box. Click one to open it and
+  (text, numbers, dates) is a List too, each item one box. Click one to open it and
   fill it in, move it up or down, or remove it; **Add** (with the item's
   name, such as **Add Ingredient**) adds one and opens it.
 
-A group or repeating group inside another is a row saying what's in it
+An Object or List inside another is a row saying what's in it
 ("2 of 3 fields filled in", "4 ingredients") that opens a level down, in
 place of the tab, with the path back at the top; Escape goes back too.
 Any depth works this way.
@@ -1215,22 +1215,25 @@ under; later pages need
 can't fill, is refused with the reason. Changing an address moves those
 pages, so add [redirects](#redirects) for the old ones.
 
-In **Fields**, open a field to change its
-label, key, type, help, whether it's required, its default, and its
-type's options (a number's limits and whole numbers, a choice's options,
-a list's item type, a reference's type and whether it takes more than
-one), move fields up or down, or remove one; **Add Field** adds one.
-Groups of fields (`object`) are kept as written; edit those in the file.
-A field whose type can be edited more than one way has **Edited with**:
-a choice as a menu or radio buttons, text on one line, several, or in
-code type, a list of choices as checkboxes (see
-[How the admin edits a field](content-types.md#how-the-admin-edits-a-field)).
-The field types offered include ones plugins add. Changes wait in the
-**save bar** at the bottom, which counts them: **Save Changes** writes
-them, and **Revert** puts them back.
-
-**Field Sets** lists the [field sets](#fields) added to the type, each
-linking to its screen, where the types it's added to are chosen.
+**Fields** lists the [library fields](#fields) the type carries, in its
+[sections](content-types.md#a-types-fields), as a tree. Each row is a
+field's control, its label as this type asks for it, its key, and
+**Required** when it's required to publish, or a section's heading with
+its fields under it. **Add Field** picks a field from the library, or
+makes a **New Field** there, on a screen of its own that comes back
+with it ([Fields](#fields)); the new type wizard only picks. **Add Section**
+adds a heading. A field goes into a section by indenting it under one
+(⌥→, or drag it onto the section), and out by outdenting it (⌥←).
+Open a field's row to change only how this type asks for it: its
+**Label**, its **Help**, and **Required to publish**, each the field's
+own until you change it (the row then says **Changed Here**); the field
+itself, its key and settings, is edited in the library, which the row
+links to. Open a section's row to change its heading and help. Removing
+a section keeps its fields. A type from a plugin may have fields of its
+own, listed above, read only. Every type has this panel, the built-in
+pages and the profiles type too. Changes wait in the **save bar** at
+the bottom, which counts them: **Save Changes** writes them, and
+**Revert** puts them back.
 
 Only the options you change are written, and nothing at its default:
 the rest of the file stays as you wrote it, comments included. A change
@@ -1360,77 +1363,64 @@ status.
 
 ## Fields
 
-With `site.settings`, **Structure → Fields** lists the site's
-[field sets](content-types.md#field-sets): groups of fields added to the
-entries of content types, beside their own, made here (in
-`user/data/fields`). Fields Blush and plugins register aren't sets and
-aren't listed. Each row says the set's label and key, the types it's
-used on (**All content types** for a set on every type, **Type Is Off**
-for one the site doesn't have, and **Left Off** when a key it declares
-is declared there already, which its screen explains), and how many
-fields it has; its menu opens it, opens its settings, or deletes it.
+With `site.settings`, **Structure → Fields** is the site's
+[field library](content-types.md#custom-fields): every field the site
+makes, one at a time, kept in `user/data/fields`. Each content type
+chooses which of them it carries, on its own screen (see
+[Content types](#content-types)); a field never chooses its types.
+Fields Blush and plugins register aren't in the library and aren't
+listed. Each row says the field's label and key, how it's entered, and
+the types that have it (**Left Off** when a type already declares its
+key, which its screen explains); its menu opens it or deletes it.
 
-**New Field Set** asks for a label (heading the set's fields in the
-editor), a key (made from the label; it's the file's name, so it can't
-change later), help shown under the label, the content types it's used
-on (or **All content types**, every type including ones added later),
-and its **position**: where it sits among a type's sets in the
-editor's panel, lowest first, then by label. **Create** writes
-`user/data/fields/{key}.json` and opens it.
+**New Field** opens a screen of its own, which asks how the field is
+entered first (choose a control from its sections, or search them),
+then for the field itself, as a field's screen has it below. Its key is
+made from the label until you type one; it's the file's name, and fixed
+once the field is made (`new` is the admin's own). **Create** writes
+`user/data/fields/{key}.json` and opens it. **New Field** on a type's
+screen opens the same screen, and **Create** goes back to the type with
+the field added to it, to save with the type's other changes.
 
-### A set's screen
+### A field's screen
 
-Its facts sit under the title: key, how many fields, the types it's used
-on, and its position. **Settings** changes the label, help, types, and
-position. Below them are its fields, as a tree:
+Its facts sit under the title: its key, its control, and the types that
+have it, each a link to the type's screen. Below them is the field:
 
-- Each row is a field's control, its label, and **Required** when it's
-  required to publish. A group's row counts its fields; open it, and its
-  form holds them in a box, as rows of their own that move, drag, open,
-  and come out of the group from their menu, with **Add Field** at the
-  box's foot (a field added there is selected, not opened). A field
-  without a key yet says **No Key** on its row. Fields nest one level here: a group's fields can't be
-  groups (a set written by hand may nest deeper).
-- A row's buttons move it up or down (or press ⌥↑ or ⌥↓, or drag it),
-  and its menu adds a field above or below it (inside it, for a group),
-  moves it into a group beside it (or out of the group it's in),
-  duplicates it, or removes it, with Undo. Removing a field
-  entries have values for asks first; their files keep the values.
-- A group keeps its fields' values together under its key (a
-  `details` group's `servings` is `details.servings` in an entry's
-  file). So moving a field into or out of a group moves its values
-  too: the move says how many entries have one, and saving the set
-  moves them in every entry of its types, each change listed in Tools →
-  Activity with Undo. An entry that already has a value at the new
-  place keeps it, and the save says so.
-- **Add Field** asks how the field is entered first: choose a control
-  from its sections, or search them.
-- Open a row (its pencil, a double click, or F2) to edit it under the
-  row: its label, its key (made from the label until you type one), its
-  control (a saved field changes only to a control that stores the same
-  value, such as Select Dropdown and Radio Buttons), a default, a
-  placeholder for a box, help, and whether it's required to publish. A
-  choice lists its options, each a label and a key (the key is what
-  entries keep, so a label can be reworded); a number has its lowest,
-  highest, and step, and whole numbers only; a date whether it has a
-  time; a repeating group what each item is called, the fewest and most
-  items, and the fields that sum an item up. **Advanced** lists older
-  keys the field still reads. What you change applies as you type, so
-  closing the row keeps it; **Cancel** puts back what the field was when
-  you opened it, and **Done** closes it. Nothing is written until you
-  save. Changing the key of a field entries have
-  values for asks, and keeps reading them from the old key unless you
-  say not to.
+- Its label, its key (fixed), and its control (a saved field changes
+  only to a control that stores the same value, such as Select Dropdown
+  and Radio Buttons), a default, a placeholder for a box, help, and
+  whether it's required to publish. A choice lists its options, each a
+  label and a key (the key is what entries keep, so a label can be
+  reworded); a number has its lowest, highest, and step, and whole
+  numbers only; a date whether it has a time; a List what each item is
+  called, the fewest and most items, and the fields that sum an item
+  up. **Advanced** lists older keys the field still reads.
+- An **Object**, or a List of Objects, holds its fields in a box, as
+  rows that move, drag, and open, with **Add Field** at the box's foot
+  (a field added there is selected, not opened). A field without a key
+  yet says **No Key** on its row. Fields nest one level here: an
+  Object's fields can't be Objects (a file written by hand may nest
+  deeper). Removing a field entries have values for asks first; their
+  files keep the values. Changing the key of a field inside it that
+  entries have values for asks, and keeps reading them from the old key
+  unless you say not to.
+- An Object keeps its fields' values together under its key (an `seo`
+  Object's `title` is `seo.title` in an entry's file).
+
+The same field has the same key and settings on every type that has
+it; a type changes only its label, help, and whether it's required.
 
 Changes are saved together with **Update** (it says **Saved** when
-there's nothing to save); only what changed is written, and the rest of
-the file stays as you wrote it. The menu beside it has **Revert
-changes** and **Delete field set**, which removes its file; entries
-keep their values, shown as other front matter. A set can't use a field
-key a type it's used on already has: that's refused with the reason, and
-the file is left as it was.
-
-A content type's own fields are edited the same way on its screen.
+there's nothing to save). Saving moves the values of an Object's fields
+put somewhere new in every entry of the types that have it, each change
+listed in Tools → Activity with Undo; an entry that already has a value
+at the new place keeps it, and the save says so. The menu beside it has
+**Revert changes** and **Delete field**, which removes its file and
+takes it off every type that has it; entries keep their values, shown
+as other front matter. A field can't use a key a type that has it
+already declares: that's refused with the reason, and the file is left
+as it was.
 
 ## Menus
 
@@ -1628,11 +1618,6 @@ screens (and [Redirects](#redirects), with its own capability):
   whether it's on, with a link to the AI screen, where it's set.
 - **System:** shown only: where content types come from, caching, and
   publishing and previews.
-
-Settings [field sets](content-types.md#field-sets) add come after a
-screen's own, a panel for each set under its label. They have no config
-file behind them: a saved one has **Clear it** instead (see
-[Your own settings](themes.md#your-own-settings)).
 
 Change something and a bar at the bottom counts your unsaved changes,
 with **Revert** and **Save Changes**; leaving the screen with changes
@@ -2409,7 +2394,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE email-change/{for}` | End a change of email address that waits, so its link stops working: `account` (your own) or `site` (needs `site.settings`); answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET themes` | The installed themes: `{"active", "chain", "problem", "fallback", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active", "authors", "license", "licenses", "links", "funding", "keywords", "running", "requirements", "conflicts", "replaces", "provides", "blocked", "requiredBy", "abandoned", "replacement", "suggests", "conflictedBy", "replacedBy", "providedBy", "stops"}], "invalid": [{"where", "reason"}]}`. `fallback` says why the active theme doesn't run (its requirements, or those of a theme it falls back to, aren't met, so the default theme shows), or is `null`; `running` is whether a theme is in the chain that runs; `requirements`, `conflicts`, and `replaces` are checked as if it were active; `blocked` says why it can't be activated, or is `null`; `requirements` and `requiredBy` are as `GET plugins` has them. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, then the themes it builds on; `invalid` names where each broken theme was found (`extensions/{vendor}/{name}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`; `licenses`, `links`, `funding`, `keywords`, `abandoned`, `replacement`, `provides`, `suggests`, `conflictedBy`, `replacedBy`, `providedBy`, and `stops` (what activating it would stop) are as `GET plugins` has them. Needs `extensions.themes.view` |
-| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. A shown one may add a `link` (`{"label", "href"}`, a page on the site) or `links` (`{"label", "to"}`, admin paths). The screens are `general`, `reading`, `search`, `ai`, and `system`. Secrets are never sent. Needs `site.settings` |
+| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. A shown one may add a `link` (`{"label", "href"}`, a page on the site) or `links` (`{"label", "to"}`, admin paths). The screens are `general`, `reading`, `search`, `ai`, and `system`. Secrets are never sent. Needs `site.settings` |
 | `GET settings/date-format` | How a date or time format reads now: `format`, `kind` (`date` or `time`), and the `locale` to read it in (the site's by default). Answers `{"text"}`, or a `422` saying what's wrong with the format. Needs `site.settings` |
 | `GET plugins` | Every installed plugin, by label: `{"plugins": [{"name", "label", "namespace", "version", "description", "authors", "license", "licenses", "links", "funding", "keywords", "source", "path", "folder", "enabled", "running", "requirements", "conflicts", "replaces", "provides", "blocked", "requiredBy", "abandoned", "replacement", "suggests", "conflictedBy", "replacedBy", "providedBy", "stops", "deletable"}], "saved", "config"}`. `licenses` is the license's parts, `{"text", "url", "operator"}`: each license it names, with `url` linking a common one's text (or `null`), and the `or`, `and`, or `with` between them; `links` is its homepage and support links in order, `{"kind", "url"}` (`kind` is `homepage`, `docs`, `source`, `issues`, `forum`, `chat`, `wiki`, `irc`, `rss`, `security`, or `email`, whose `url` is `mailto:`); `funding` is `{"type", "url"}`; `keywords` is its list of [keywords](extending.md#plugins); `source` is `local` or `composer`; `path` is from the site's root, and `folder` is its folder in `extensions/` (`null` for Composer); `enabled` is whether it's turned on, and `running` whether it runs (it doesn't when its requirements aren't met); each of `requirements` is `{"name", "constraint", "kind", "met", "note", "label", "metBy"}` (`kind` is `blush`, `php`, `extension`, `plugin`, `theme`, `icon-pack`, `library` for a package Composer installed, `composer` for what only Composer checks, such as `lib-icu`, `missing` for a name that isn't installed, or `unknown`), checked as if it were on for one that's off; `conflicts` are its [conflicts](extending.md#conflicts) in the same shape, each `met` when it doesn't conflict with what's on, and `replaces` what it [replaces](extending.md#replacing-another-extension), each `met` when that isn't on (its `constraint` is the versions it stands in for, `self.version` resolved); `provides` what it [provides](extending.md#providing-a-package), each `{"name", "constraint"}`; `conflictedBy`, `replacedBy`, and `providedBy` the extensions whose `conflict` hits it, that replace it, and that provide it, and `stops` what turning it on would stop, each `{"name", "label", "kind"}`; a requirement met by an extension replacing or providing what it names, or a conflict with one, has that extension's name in `metBy` and its kind in `kind` (otherwise `metBy` is empty); `blocked` says why it can't run, or is `null`; `requiredBy` lists the extensions of every kind that require it or a package it replaces or provides, `{"name", "label", "kind"}`; `abandoned` is `false`, `true`, or the package to use instead, and `replacement` that package when it's an installed extension, `{"name", "label", "kind"}`, or `null`; each of `suggests` is `{"name", "reason", "extension", "loaded"}`, `extension` being the suggested extension when it's installed (`{"name", "label", "kind"}`, or `null`), `loaded` whether a suggested PHP extension (`ext-{name}`) is loaded (`null` for anything else); `deletable` is a folder plugin that isn't running. `saved` is whether the admin has saved its own list; `config` is whether `config/plugins.php` exists. Needs `extensions.plugins.view` |
 | `PUT plugins/{vendor}/{name}` | Turns a plugin on or off: send `{"enabled": true}` or `false`. Saves `plugins.enabled` in `user/data/settings/plugins.json`: every plugin that's on, Composer's included, starting from what's on by default. Answers `{"enabled", "started", "stopped", "refresh"}`: the labels of other extensions, of any kind, that start or stop with it, and that `POST settings/refresh` should follow. A plugin `config/plugins.php`'s `enabled` list leaves out is a `409`; one whose requirements aren't met a `422`. Needs `extensions.plugins.activate` |
@@ -2427,9 +2412,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `date` or `position`; `null` for other kinds), `workflow` (its workflow's name) and `statuses` (that workflow's statuses, which its list's tabs show). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`), and `workflows` (each one it may use: `{"name", "label"}`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
-| `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `GET types/{name}` | One type, with the `ownFields` its code gives it (as forms take them), its `fields` (the library fields it carries, in sections, as its file writes them), `fieldsEditable`, the field `library` (each field's `{"name", "label", "description", "required", "type", "control"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`), and `workflows` (each one it may use: `{"name", "label"}`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
+| `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields` (the library fields it carries); `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. Any type, the built-in pages and profiles too, takes `fields`, `position`, and `under` alone. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
 | `GET workflows` | The Workflows screen (with `site.settings`): `{"workflows", "statuses", "problems"}`. Each workflow is `{"name", "label", "statuses", "initial", "transitions", "subject", "source", "over", "types", "editable", "customize"}` (`source` and `over` each `{"kind", "label"}`, `kind` being `core`, `plugin`, or `site`; `over` is what a site record replaces, or `null`); each status adds `source`, `over`, the `workflows` using it, and whether it may be relabeled (`relabel`), edited (`edit`), or deleted (`delete`). `GET workflows/{name}` is one, with `counts`, how many entries of its types are stored with each status. `PUT workflows/{name}` saves `{"label", "statuses", "initial", "transitions"}` as the site's, `POST workflows/{name}/customize` copies Blush's or a plugin's into it, and `DELETE workflows/{name}` deletes it (`{"deleted": true}`) or reverts a copy (the workflow). `PUT statuses/{name}` saves `{"label", "plural", "tone", "live", "active"}` and `DELETE statuses/{name}` deletes or reverts one, each answering `GET workflows`. What can't be saved is a `422`, saying why |
 | `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
@@ -2440,11 +2425,11 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/controls` | The controls and field types definitions can use: `{"controls": [{"value", "label", "description", "section", "type", "implies", "options"}], "types": [{"type", "label", "description", "controls", "options"}]}`. A control's `section` is the picker's (`{"value", "label"}`, or `null` for one the picker doesn't offer), `type` the value type it stores (`null` for one that edits several), and `implies` the type options it writes. A type's `controls` are `{"value", "label"}`, the ones that store it without implying options, its default first. `options` are definition keys as JSON Schemas |
-| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "position", "editable", "file", "targets", "fields", "problems"}], "create", "targets"}`: the site's sets in `user/data/fields` only; `problems` says why a set is left off places (a key declared there already); each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it), with `"every": true` on one for every place of its kind (`type:*`, labeled "All content types"); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
-| `GET fields/sets/{name}` | One set, with its `fields` as forms take them (each with its `control`, and a choice's option labels as `choices`), `counts` (how many entries have a value for each field, by name, and for a group's fields by both keys, such as `details.servings`), `options`, every place it can be added to, and `kinds` |
-| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, `position`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
-| `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set, and `moved`: a field put somewhere new (into a group, out of one) has its values moved in the entries of the set's types, and `moved` gives how many `entries` changed, how many `kept` a value already at the new place, and the `failed` ones' reasons by entry id. A field a target already has is a `422` with the reason |
-| `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
+| `GET fields/library` | The field library: `{"fields": [{"name", "label", "description", "required", "type", "control", "editable", "file", "types", "problems"}], "create"}`: the site's fields in `user/data/fields` only; `control` is the one it's drawn with; `types` are the types that have it (`{"name", "label"}`); `problems` says why it's left off a type (a key declared there already); `create` is whether fields can be made here |
+| `GET fields/library/{name}` | One field, with the `field` as forms take it (with its `control`, and a choice's option labels as `choices`), and `counts` (how many entries of the types that have it have a value for it, and for an Object's fields by both keys, such as `seo.title`) |
+| `POST fields/library` | Make a field in `user/data/fields`: `{"field"}`, a definition with its `name` and its `control` (as forms send it); answers `201` with the field. Needs `site.settings` |
+| `PATCH fields/library/{name}` | Change a field: `{"field"}`, the whole definition; its key stays. Answers with the field, and `moved`: an Object's field put somewhere new has its values moved in the entries of the types that have it, and `moved` gives how many `entries` changed, how many `kept` a value already at the new place, and the `failed` ones' reasons by entry id. A key a type that has it already declares is a `422` with the reason |
+| `DELETE fields/library/{name}` | Delete a field's file, and take it off every type that has it; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
@@ -2654,8 +2639,7 @@ its `values` (read from its EXIF, IPTC, and XMP: `title`,
 `genre`, `duration` (seconds), `artwork`, `width`, and `height`,
 whichever it has) and `location`, whether
 it carries one (never where). It also adds the file's details: the `fields` its kind has
-(described as a content type's are), the field `sets` on its kind
-(`{"name", "label", "description", "fields"}`, the field names), their `values`, keys its metadata
+(described as a content type's are), their `values`, keys its metadata
 file keeps that aren't fields (`extra`), `violations` for what
 doesn't fit, its `uploader` (`{"username", "name"}`, or `null`), what
 the account `may` do to it (`{"edit", "delete", "addArtwork"}`), and the entries
@@ -2779,8 +2763,10 @@ entries/{id}` answers with:
   file changed meanwhile, the change is refused with a 409, so no one's
   edit is lost. `modified` is when the file was last written (ISO 8601),
   or `null` if that isn't known.
-- `type`: the type's name, kind, whether it's dated, and a description
-  of each field (name, type, label, and options).
+- `type`: the type's name, kind, whether it's dated, a description
+  of each field (name, type, label, and options), and its `sections`
+  (each `{"label", "description", "fields"}`, the field names under
+  it).
 - `slug`: the last part of its key.
 - `language`: the code of the language it's written in.
 - `can`: whether the account may edit, publish, rename, delete, and

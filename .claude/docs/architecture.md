@@ -100,8 +100,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   also a field on its screen (`Setting::field()`, `SettingsScreen`,
   D-343): general, reading, writing, media, search, ai (D-398), and
   api (D-764), and the editable
-  screens are field set targets (`settings:{screen}`, `SettingsTargets`;
-  plugins' AI settings go on `settings:ai`, D-397); a set's settings are saved
+  screens are field targets (`settings:{screen}`, `SettingsTargets`;
+  plugins' AI settings go on `settings:ai`, D-397); registered settings fields' values are saved
   raw in the `site` group and read through their fields by
   `SiteSettings` (`$site->setting()`).
 - **Errors** (`Blush\Error`, D-059):
@@ -235,7 +235,7 @@ accounts move onto it in later steps; roles are on it now.
   D-032's JSON or YAML and its parser registry); the only YAML Blush
   reads is front matter. `loadAll()` reads a whole directory.
 - **The data area is tables** (D-668 to D-682): settings groups,
-  types, relations, field sets, menus, redirects, and media metadata,
+  types, relations, the field library, menus, redirects, and media metadata,
   each read through its repository; `DataStore` (D-642), which kept
   records by name, is gone (D-682). `DataKeys::apply()` sets and
   removes a record's top-level keys in place.
@@ -520,93 +520,85 @@ Implemented in M3 (D-073 to D-077).
   `/{code}`, ahead of the default's (`ContentRoutes::localized()`).
 - **Not yet:** a base path for subdirectory installs (open question).
 
-## Fields (D-337 to D-348, D-766 to D-770)
-The value layer is `Blush\Field` (see Content → Types and schemas). Four
-terms (D-766): a **field** is a value's definition (its type is the
-authority on values), a **field set** groups fields for a place, a
-**control** is how one value is entered, and a **form** draws fields
-with controls (D-795: `FormField`, `FieldControls` by path, and
+## Fields (D-337 to D-348, D-766 to D-770, D-858, D-859)
+The value layer is `Blush\Field` (see Content → Types and schemas). The
+terms (D-766, D-858): a **field** is a value's definition (its type is
+the authority on values), the **field library** is the fields the site
+makes, which **places** carry (a type lists them in its `fields`,
+D-863; held as a `FieldLayout`, in **sections**, only presentation), a **control** is how one value is entered, and a **form** draws
+fields with controls (D-795: `FormField`, `FieldControls` by path, and
 `ControlDefaults`, the control layer's default for a field type; a
-field holds no control). Controls (stage 1 of the plan in
-`roadmap.md`, built): `Control` is the abstract base of a Type enum +
+field holds no control). There are no field sets (D-858).
+
+Controls (built): `Control` is the abstract base of a Type enum +
 Registry + Factory + Registrar (`ControlType`, `ControlRegistry`,
 `ControlFactory`, `ControlRegistrar`; core only for 2.x), with final
-classes in `Controls\*`. A control describes itself as data (`name()`,
-`label()`, `description()`, its picker `section()`, the value `type()`
-it stores, the type options it `implies()`, its own options and
-`definitionSchema()`), says whether it `fits()` a field, and `complete()`s
-a definition that names only it. A field set's or data type's file
-writes each field's control as an object beside it (`"control":
-{"name": "radios"}`); `FieldFactory::withControls()` parts them
-(`ControlFactory::split()`, a control naming its type when the field
-names none, D-769) and checks each fits its field (or is its type's
-default), and `FieldControls::definitions()` writes them back; the
-admin's forms send the flat shape, which the writers `nest()`.
-`FieldFactory::fromArray()` refuses a `control`. `FieldSet` and
-`ContentType` hold their `controls`; `ContentTypes::controls()` adds
-core's (`EntryFields::controls()`) and the type's sets', and
-`Setting::control()` chooses the Settings screens'. Checks a control implies are type options: `TextField`'s
-`format` (`TextFormat`), `DateField`'s `time`, `NumberField`'s `step`,
-`ListField`'s `min` and `max`. There's no reference field type (D-767):
-`ReferenceField` is only the field a relation adds to a schema and a
-collection's `parent`. The admin (stages 2 and 3, D-772, D-774):
-`FieldControl` draws a field by its control, groups and repeating
-groups included (levels past the first open a level down, D-768);
-Structure → Fields and a type's own fields are `FieldTree` (over the
-shared `ItemTree`, which Menus uses too) with `FieldForm` under a row,
-`ControlPicker`, and `FieldSetSettings`. Media fields store ids
-(`MediaValues`, D-773). Built earlier
-(D-338): field types describe themselves (`typeLabel()`,
-`typeDescription()`); `FormField::toArray()` for the admin's forms,
-with the control's options (once `Field::toForm()`); `GET fields/controls`,
-the catalog (D-766); definitions as a list or a map
-(`FieldFactory::definitions()`); and config types and media fields in
-array form built with the container's registry. Field sets on content
-types are built (D-339): `FieldSet`, `FieldTarget`, `ContentTypeTarget`,
-`FieldSetLoader` (extensions, `config/fields.php`, the `field_sets` table
-kept as `user/data/fields`, D-678),
-`FieldSets`, sets in `ContentTypes::schema()` and its compiled array,
-`FieldSetCheck` in `content:lint`, and a group per set in the editor.
-Structure → Fields is built too (D-340): `DataFieldSetWriter`, the
-`fields/sets` API, and the list, set, and New Field Set screens. Targets
-are generic (D-341): each consumer tags a `FieldTargetSource`
-(`FieldTargets` collects them), a target gives its own schema, and
-`FieldSets::schemaFor()` adds its sets' fields; content types
-(`type:{name}`), media kinds (`media:{kind}`), and the Settings screens
-(`settings:{screen}`, D-343) are the consumers. A source can also report
-conflicts across its targets (`conflicts()`; settings share one store),
-and `FieldTargets::problems()` gathers every target's clashes and every
-source's conflicts for lint and the set writer. A set's targets are
-all one kind (D-347), and its `slot` names one of the slots that kind
-declares (`FieldTargetSource::slots()`, `FieldSlot`; every kind offers
-only `details` for now, D-348), falling back to the kind's default
-(`FieldTargets::slotFor()`). Each admin screen maps slots to places; the
-entry editor keeps every set in its document panel, out of the writing
-area. The Fields API paused at D-348 and was picked up again (D-766).
-The design, with content types the only consumer until the API is
-right:
+classes in `Controls\*` (`ObjectControl` and `ListControl` for `object`
+and `list`, since those can't name PHP classes). A control describes
+itself as data (`name()`, `label()`, `description()`, its picker
+`section()`, the value `type()` it stores, the type options it
+`implies()`, its own options and `definitionSchema()`), says whether it
+`fits()` a field, and `complete()`s a definition that names only it. A
+library field's file writes its control as an object beside it
+(`"control": {"name": "radios"}`); `FieldFactory::withControls()` parts
+them (`ControlFactory::split()`, a control naming its type when the
+field names none, D-769) and checks each fits its field (or is its
+type's default), and `FieldControls::definitions()` writes them back;
+the admin's forms send the flat shape, which the writers `nest()`.
+`FieldFactory::fromArray()` refuses a `control`. Checks a control
+implies are type options: `TextField`'s `format` (`TextFormat`),
+`DateField`'s `time`, `NumberField`'s `step`, `ListField`'s `min` and
+`max`. There's no reference field type (D-767): `ReferenceField` is
+only the field a relation adds to a schema and a collection's `parent`.
+Media fields store ids (`MediaValues`, D-773).
 
-- **`FieldSet`:** a named, labeled, ordered list of fields with
-  `targets` (`type:post`, all of one kind, D-347), attached from the
-  set's side. From extension
-  `FieldSetSource`s, `config/fields.php`, and the `field_sets` table
-  (`user/data/fields/*`, D-678), a
-  later set replacing an earlier one with its name. A type's own inline
-  `fields` are its own set.
-- **`FieldTarget`:** a place fields attach to. It says which fields it
-  accepts (all, by default), so field types stay unaware of where
-  they're used. A missing target is a notice. Content types' target is
-  in `Content\Type`.
-- **A type's schema:** entry fields, its own fields, then its sets'
-  fields by set name; a name used twice is a load error.
-- **`Control`:** how a value is entered, as classes (D-766, above);
-  core only for 2.x, the registry shaped so extensions can add
-  controls later.
-- **The catalog:** controls and field classes describe themselves,
-  served as `GET fields/controls` for the admin's editors.
-- **The admin:** Structure → Fields lists and edits sets (data sets
-  only), a type's screen lists its sets, and the editor shows each set
-  as a document panel group.
+The library and places (D-858, D-859):
+
+- **`LibraryField`:** one field and its `FieldControls`, named by its
+  key (`NAME_PATTERN`, the admin's rule). **`FieldLibrary`** holds them by
+  name with the `RegisteredFields` code registers (D-790);
+  **`FieldLibraryLoader`** reads core's and extensions' `FieldSource`s
+  and the `fields` table (`user/data/fields/{name}.json`,
+  `FieldConfig::$library`). `DataFieldWriter` makes, changes (the key
+  fixed), and deletes them for the admin, deleting one off every data
+  type's layout, each change checked in a transaction against every
+  place (`FieldTargets::problems()`).
+- **`FieldTarget`:** a place: `type:{name}` (`ContentTypeTarget`),
+  `media:{kind}`, `settings:{screen}` (D-341, D-343), from tagged
+  `FieldTargetSource`s (`FieldTargets`). A target gives its own schema,
+  what it `accepts()`, and its `layout()`: a type's own; none yet for
+  media kinds and Settings screens, which take only registered fields
+  until their screens get layouts (D-858). Target keys and `type:*` are
+  `TargetKey`. A source's `slots()` (`FieldSlot`, D-347) name places
+  on its screens for a later panels API.
+- **`FieldLayout`:** what a place carries, in order: `PlacedField`s (a
+  library field's name, with the place's `label`, `description`, and
+  `required`, applied by `apply()`) and `FieldSection`s (a heading,
+  help, and placed fields, one level). A content type's is its
+  definition's `fields` (D-863; `ContentType::$layout`); a code type's
+  own fields are `ownFields` in a definition, which only code and the
+  compiled types write. A data file may set `fields` over any type (`ContentType::OVERLAY`, `overlaidBy()`), and
+  `user/data/types` can't define `fields` (`ContentTypeLoader` refuses
+  them; a code type's own fields stay `ContentType::$schema`).
+- **A place's schema** (`FieldLibrary::schemaFor()`): its own fields
+  (core's first, for a type), then fields extensions register, then its
+  layout's library fields in order, each as the place asks for it; one
+  that would declare a key again is left off and reported by name
+  (`clashes()`, D-789). `drawn()` leaves out extensions' registered
+  fields for forms (D-791, D-799). `ContentTypes::controls()` adds
+  core's, the type's own, and its layout's fields' controls.
+- **Lint and checks:** `FieldLibraryCheck` (`Linter::lintFields()`): a
+  layout naming a field the library doesn't have (a notice) and fields
+  left off (errors, by the file to fix); `SiteChecks` (`fields`).
+- **The admin:** Structure → Fields is the library (`FieldsController`,
+  `FieldEditController`; `GET fields/library` and `fields/library/{name}`;
+  `FieldsView`, `FieldView` (also New Field, `/fields/new`), `LibraryFieldForm` over
+  `FieldForm` with `page`); a type's Fields panel is `TypeFields` (over
+  `ItemTree`, with `LibraryFieldPicker`), on its screen and in the new
+  type wizard, built on `type-fields.ts`; the editor draws each section as a
+  folding group (`EntryController` sends `sections`). Values of an
+  Object's fields moved inside it move in every entry of the types that
+  carry it (`FieldMoves`, D-780).
 
 ## Content
 
@@ -1260,8 +1252,8 @@ Implemented in M4c (D-099), apart from image derivatives.
   Still planned: when rendering, a value set where the media is used
   wins, then the metadata file, then embedded metadata.
 - **Ids (D-487):** every original has a UUIDv7 `id`, last in its
-  metadata file (`MediaMetadata::ID`, not a field, like `owner`; a
-  field set can't claim either). Uploads write it with the owner;
+  metadata file (`MediaMetadata::ID`, not a field, like `owner`; no
+  field can claim either). Uploads write it with the owner;
   `MediaIds` (report, `assignMissing`, `keep`, as `EntryIds`) backs
   `media:ids` and Content health's `health/media-ids[/keep]`;
   `MediaMetadataCheck` reports missing, malformed, and shared ids, by
@@ -2117,7 +2109,7 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
 - **Blush ships:**
   - `GET counts` (`CountsController`, D-371) gives the section panel's
     counts: each editable type's entries as its list counts them, and
-    media files, accounts, roles, content types, field sets, themes, and
+    media files, accounts, roles, content types, the field library, themes, and
     extensions where the account may see them (D-372); the admin reloads it on every change of screen.
   - A root `.htaccess` (forward into `public/`) and `public/.htaccess`
     (front controller, only `index.php` runs as PHP; cache headers for
@@ -2182,7 +2174,7 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
     `core/health-check` (`HealthCheckJob`, D-625): 200 files a run
     through `Linter::lintFile()`, then media details files 200 a run
     (`MediaMetadataCheck::checkSome()`), then `lintSite()` from the
-    index's snapshot, `checkLibrary()`, formats, and field sets (D-626).
+    index's snapshot, `checkLibrary()`, formats, and the field library (D-626, D-858).
   - The media index reads a bounded batch when the library catches up
     (`MediaIndexer::index(limit:)`, the snapshot's `pending` and
     `rejected`), the rest as `core/media-index` (`MediaIndexJob`,

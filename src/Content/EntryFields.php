@@ -25,7 +25,7 @@ use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\ReferenceField;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
-use Blush\Field\FieldSet;
+use Blush\Field\TargetKey;
 use Blush\Field\FieldSource;
 use Blush\Field\RegisteredField;
 use Blush\Field\Schema;
@@ -72,7 +72,7 @@ final class EntryFields implements FieldSource
 	public function fields(): iterable
 	{
 		foreach (self::schema($this->messages)->fields as $field) {
-			yield new RegisteredField(RegisteredField::CORE, $field, ['type:' . FieldSet::EVERY]);
+			yield new RegisteredField(RegisteredField::CORE, $field, ['type:' . TargetKey::EVERY]);
 		}
 	}
 

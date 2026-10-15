@@ -909,7 +909,7 @@ final readonly class EntryEditor
 	 */
 	private function missing(Entry $entry): ?Text
 	{
-		$empty = IndexPage::is($entry) ? [] : array_filter($entry->type->schema->fields, static function (Field $field) use ($entry): bool {
+		$empty = IndexPage::is($entry) ? [] : array_filter($this->types->carried($entry->type->name), static function (Field $field) use ($entry): bool {
 			$value = $field->name === 'title' ? $entry->title : $entry->field($field->name);
 
 			return $field->required

@@ -79,37 +79,21 @@ stylesheet: /media/zine.css  # an extra stylesheet
 
 ## Your own settings
 
-A site can add settings to the admin's **Settings** screens with a
-[field set](content-types.md#field-sets) aimed at one: `settings:general`, `settings:reading`,
-`settings:writing`, `settings:media`, `settings:search`, `settings:ai`,
-or `settings:api`.
-
-`user/data/fields/brand.json`:
-
-```json
-{
-	"label": "Brand",
-	"targets": ["settings:general"],
-	"fields": {
-		"tagline": { "label": "Tagline" },
-		"accent": { "type": "enum", "options": ["red", "blue"], "default": "blue" }
-	}
-}
-```
-
-The set's fields show as a panel of their own on that screen, and what's
-saved goes in `user/data/settings/site.json`. Read them in a
-template with `$site->setting()`:
+`$site->setting()` reads a setting of the site's own, kept in
+`user/data/settings/site.json`:
 
 ```php
 <p class="tagline"><?= e((string) $site->setting('tagline')) ?></p>
 ```
 
+A plugin declares such a setting by
+[registering a field](extending.md#fields-from-a-plugin) on a Settings
+screen (`settings:general`, `settings:reading`, `settings:writing`,
+`settings:media`, `settings:search`, `settings:ai`, or `settings:api`).
 It returns the saved value, read through its field (a date is a date),
 or the field's `default`, or the second argument when there's neither:
 `$site->setting('accent', 'red')`. Settings share one name space across
-the screens, so two sets can't both add a `tagline`; `bin/blush
-content:lint` says so.
+the screens. The Settings screens don't show these fields yet.
 
 ## Overriding templates
 
@@ -491,7 +475,7 @@ Every template gets four objects besides `$template`:
 
 | Variable | What it is |
 |---|---|
-| `$site` | The site: `name`, `url`, `description`, `locale`, `lang`, and `dir`, and `$site->setting('name')` for a site setting a field set adds ([Your own settings](#your-own-settings)) |
+| `$site` | The site: `name`, `url`, `description`, `locale`, `lang`, and `dir`, and `$site->setting('name')` for a setting of the site's own ([Your own settings](#your-own-settings)) |
 | `$theme` | Your theme and its parents: `$theme->setting('name')` for a theme setting, `$theme->asset('app.js')` for a file's URL (versioned), `$theme->inline('svg/logo.svg')` for a file's contents (such as an SVG to print with `raw()`), each found in a child theme first; and its `name` |
 | `$media` | The media library: `$media->find($value)` (see [Media](#media)) |
 | `$messages` | Your text: `$messages->t('key', 'Text', ...)`, with its text for when no catalog has it ([Translations](#translations)) |

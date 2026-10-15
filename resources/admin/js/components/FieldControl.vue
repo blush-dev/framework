@@ -57,8 +57,8 @@ const described = computed(() => [help(props.field) === '' && slots.help === und
 </script>
 
 <template>
-	<template v-if="kind === 'group' || kind === 'repeater'">
-		<FieldGroup v-if="kind === 'group'" v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
+	<template v-if="kind === 'object' || kind === 'list'">
+		<FieldGroup v-if="kind === 'object'" v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
 		<FieldRepeater v-else v-model="model" :field="field" :id-prefix="idPrefix" :error="error" :pickable="pickable" :narrow="narrow" :nest="nest ?? 0" :at="where" @pick="(target, steps) => emit('pick', target, steps)" />
 		<slot v-if="$slots.help" name="help" :id="`${id}-help`" />
 	</template>

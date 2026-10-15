@@ -1356,3 +1356,38 @@ built from the admin's own pieces, with these departures:
   already at the new place). The sketch has no such step.
 - **No layout-only group:** the sketch has none either; if one comes,
   it's named for layout (Section), never Group.
+
+## The field library (D-858, D-859)
+
+The fields sketch is built on field sets, which D-858 replaces with a
+field library that types place. The sections above are kept as the
+history of what carried over; where they say set, read this:
+
+- **Structure → Fields lists fields, not sets** (`FieldsView`): a row
+  per field with its label and key, its control, and the types that
+  have it, with Edit and Delete. **New Field** is a screen of its own
+  (`FieldView` at `/fields/new`, the author's call, D-861): the
+  sketch's control picker, then the field's form, with Cancel and
+  Create in the header. From a type's screen (`?type=`), Create goes
+  back to it with the field added (`?add=`), unsaved; the wizard, with
+  no type yet, only picks.
+- **A field's screen** (`FieldView`) is the set screen's frame (facts
+  under the title: key, control, the types that have it as links;
+  Update/Saved and a menu with Revert and Delete) over the sketch's
+  form, drawn on the panel (`FieldForm`'s `page`: no Done or Cancel,
+  the key fixed once saved). An Object's fields are the sketch's box of
+  rows inside it (`LibraryFieldForm`); they can't move out, since the
+  field has nothing beside it.
+- **A type's Fields panel** (`TypeFields`) is a tree of the library
+  fields it carries and its **Sections**, over `ItemTree` (not flat: a
+  field goes into a section by indenting, out by outdenting), with Add
+  Field (`LibraryFieldPicker`, the library pickers' shell, with New
+  Field at its foot, opening the New Field screen) and Add Section. A field's row form holds only
+  what a type changes (Label, Help, Required to publish), each the
+  field's until changed (**Changed Here**), and links to the field. No
+  Duplicate (`ItemTree`'s `copy` is optional): a field is placed once.
+- **Group is Object and Repeating Group is List** in the picker and
+  the forms (D-858); D-780's Section is the type's heading.
+- **The editor's sidebar** draws each section as the set's collapsible
+  group did; a type's library fields outside any section join its own
+  ("{Type} Fields").

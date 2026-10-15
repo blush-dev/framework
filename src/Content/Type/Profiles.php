@@ -17,6 +17,7 @@ use Override;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
+use Blush\Field\FieldLayout;
 use Blush\Translation\Messages;
 
 /**
@@ -65,6 +66,7 @@ final readonly class Profiles extends ContentType
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
 	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
+	 * @param  FieldLayout     $layout      The library fields it carries, in sections (D-858).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -86,11 +88,12 @@ final readonly class Profiles extends ContentType
 		?string $workflow = null,
 		bool $expires = false,
 		bool $visibility = true,
-		Messages $messages = new Messages()
+		Messages $messages = new Messages(),
+		FieldLayout $layout = new FieldLayout()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Profiles, $name, $messages);
 
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $visibility, $messages);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $visibility, $messages, $layout);
 	}
 
 	/**

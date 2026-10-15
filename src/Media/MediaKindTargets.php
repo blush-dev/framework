@@ -14,13 +14,12 @@ declare(strict_types=1);
 namespace Blush\Media;
 
 use Override;
-use Blush\Field\FieldSets;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
 use Blush\Translation\Messages;
 
 /**
- * The kinds of media file as places field sets attach to (D-341),
+ * The kinds of media file as places fields go on (D-341),
  * `media:{kind}`.
  */
 final readonly class MediaKindTargets implements FieldTargetSource
@@ -64,14 +63,5 @@ final readonly class MediaKindTargets implements FieldTargetSource
 	public function slots(): array
 	{
 		return [new FieldSlot('details', (string) $this->messages->t('media.media_kind_targets.details', 'Details'), (string) $this->messages->t('media.media_kind_targets.details_description', 'Facts about each file, beside its built-in ones.'))];
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function conflicts(FieldSets $sets): array
-	{
-		return [];
 	}
 }

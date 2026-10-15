@@ -8,8 +8,8 @@
  * and which credit is its byline, D-602), Relationships (`TypeRelations`,
  * saved on their own, D-593), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
- * (`FieldTree`, with the field sets added to it below, D-337;
- * read-only when the code's fields are classes of its own), saved
+ * (`TypeFields`: the library fields it carries, in sections, D-858,
+ * with a code type's own fields listed, read only), saved
  * together from the save bar, which counts the changes (D-508), with
  * **Save changes** (`PATCH types/{name}`, only what changed) or put back
  * with **Revert**; leaving with changes unsaved asks first. A
@@ -27,18 +27,16 @@ import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import DangerZone from './DangerZone.vue';
 import MessageText from './MessageText.vue';
-import FieldTree from './FieldTree.vue';
 import SaveBar from './SaveBar.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
-import TypeFieldSets from './TypeFieldSets.vue';
+import TypeFields from './TypeFields.vue';
 import TypeMenuFields from './TypeMenuFields.vue';
 import AdminSelect from './AdminSelect.vue';
 import TypeRelations from './TypeRelations.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
 import { entryRoute, request, type ContentTypeDetail } from '../api';
 import { useAction } from '../action';
-import { label } from '../fields';
 import { t } from '../messages';
 import { changesOf, formOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
@@ -224,21 +222,7 @@ guardLeave(() => changed.value);
 			</div>
 		</section>
 
-		<FieldTree v-if="type.fieldsEditable" v-model="form.fields" heading-id="fields-heading" :hint="t('type_editor.fields_hint', 'Beside the title, slug, status, dates, and body every entry has')" id-prefix="field-" :noun="type.labels.plural.toLowerCase()" />
-		<section v-else class="panel" aria-labelledby="fields-heading">
-			<header class="panel__header">
-				<h2 id="fields-heading">{{ t('type_editor.fields', 'Fields') }}</h2>
-				<p class="panel__hint">{{ t('type_editor.fields_hint', 'Beside the title, slug, status, dates, and body every entry has') }}</p>
-			</header>
-			<div class="panel__body">
-				<ul class="type-editor__fields">
-					<li v-for="field in type.fields" :key="field.name">{{ label(field) }} <span class="mono">{{ field.type }}</span></li>
-				</ul>
-				<p class="field__help">{{ t('type_editor.fields_in_code', 'Some of its fields are field classes its plugin defines, so they\'re changed there.') }}</p>
-			</div>
-		</section>
-
-		<TypeFieldSets :type="type" />
+		<TypeFields v-model="form.fields" :type="type.name" :library="type.library" :own="type.ownFields" :locked="!type.fieldsEditable" heading-id="fields-heading" id-prefix="type-field-" :noun="type.labels.plural.toLowerCase()" />
 
 		<DangerZone v-if="code" :error="removal">
 			{{ type.overridden ? t('type_editor.removes_file', 'Removes {file}, so every setting is as its plugin has it.', { file }) : t('type_editor.nothing_changed', 'Nothing has changed it here yet.') }} {{ t('type_editor.defined_in_code', 'It\'s defined in code, so it can\'t be deleted here.') }}
@@ -252,10 +236,3 @@ guardLeave(() => changed.value);
 		<SaveBar :count="count" :failure="failure" :saving="saving" @revert="revert" />
 	</form>
 </template>
-
-<style scoped>
-.type-editor__fields {
-	margin: 0;
-	padding-left: 1.2em;
-}
-</style>

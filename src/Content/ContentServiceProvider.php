@@ -69,8 +69,8 @@ use Blush\Field\ControlRegistry;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
-use Blush\Field\FieldSetLoader;
-use Blush\Field\FieldSets;
+use Blush\Field\FieldLibrary;
+use Blush\Field\FieldLibraryLoader;
 use Blush\Field\FieldSource;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
@@ -146,7 +146,7 @@ final class ContentServiceProvider extends ServiceProvider
 	 */
 	protected const array TRANSIENTS = [
 		ContentTypeLoader::class,
-		FieldSetLoader::class,
+		FieldLibraryLoader::class,
 		Linter::class,
 		ContentRoutes::class,
 		PageRoutes::class,
@@ -238,20 +238,21 @@ final class ContentServiceProvider extends ServiceProvider
 			static fn (Container $container): Relations => new RelationCompiler($container->make(Messages::class))->compile($container->make(ContentTypes::class))
 		);
 
-		// Field sets load, and compile, with the types (D-339).
+		// The field library loads, and compiles, with the types (D-339,
+		// D-858).
 		$this->container->singleton(
-			FieldSets::class,
-			static fn (Container $container): FieldSets => $container->make(ContentTypes::class)->sets
+			FieldLibrary::class,
+			static fn (Container $container): FieldLibrary => $container->make(ContentTypes::class)->library
 		);
 
-		// The site's types, relations, and field sets are tables (D-672,
-		// D-678), kept on files as folders under `user/data`, each file
+		// The site's types, relations, and field library are tables
+		// (D-672, D-859), kept on files as folders under `user/data`, each file
 		// named for its record; its redirects are one file of them all.
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {
 				$tables->register(DefinitionTables::typesTable());
 				$tables->register(DefinitionTables::relationsTable());
-				$tables->register(FieldSetLoader::table());
+				$tables->register(FieldLibraryLoader::table());
 				$tables->register(DataRedirects::table());
 			}
 		});
@@ -262,7 +263,7 @@ final class ContentServiceProvider extends ServiceProvider
 
 				$layouts->register(DefinitionTables::TYPES, FileLayout::folder("{$data}/" . DefinitionTables::TYPES, keyInName: true));
 				$layouts->register(DefinitionTables::RELATIONS, FileLayout::folder("{$data}/" . DefinitionTables::RELATIONS, keyInName: true));
-				$layouts->register(FieldSetLoader::TABLE, FileLayout::folder("{$data}/" . FieldSetLoader::DATA_DIRECTORY, keyInName: true));
+				$layouts->register(FieldLibraryLoader::TABLE, FileLayout::folder("{$data}/" . FieldLibraryLoader::DATA_DIRECTORY, keyInName: true));
 				$layouts->register(DataRedirects::TABLE, DataRedirects::layout($resolver->make(Paths::class)));
 			}
 		});

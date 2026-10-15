@@ -36,8 +36,8 @@ user/data/settings/admin-themes.json  {"enabled": ["blush/library", "blush/neutr
 (Feeds' full content is saved as `fullContent`, though `config/feed.php`
 calls it `content`, which a saved record keeps for itself.) Only those
 keys are allowed in core's groups. Another group,
-`site.json`, holds the settings [field sets](content-types.md#field-sets)
-add to the Settings screens (`{"tagline": "Notes from the field"}`; see
+`site.json`, holds the site's own settings, which plugins declare
+(`{"tagline": "Notes from the field"}`; see
 [Your own settings](themes.md#your-own-settings)), and themes and plugins
 keep groups of their own, named for them (`acme__gallery.json` for
 `acme/gallery`). A file gains an `"id"` at its end when the admin saves
@@ -177,7 +177,7 @@ driver must be one built into Blush (`filesystem` or `sqlite`).
 
 | Option | Default | What it does |
 |---|---|---|
-| `dataSets` | `true` | Whether sets in `user/data/fields/` are read |
+| `library` | `true` | Whether the [field library](content-types.md#custom-fields) in `user/data/fields/` is read |
 
 ### Theme
 

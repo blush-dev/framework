@@ -36,7 +36,7 @@ use Blush\Content\Type\Profiles;
 use Blush\Field\ControlDefaults;
 use Blush\Field\FormField;
 use Blush\Field\Field;
-use Blush\Field\FieldSet;
+use Blush\Field\LibraryField;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Translation\Messages;
@@ -61,15 +61,20 @@ use Blush\Workflow\Workflows;
  * credit profiles. Each also has its `origin` (`built-in`,
  * `extension`, or `data`), its `folder` (`_` and its name, D-683), its
  * URL `prefix` (a tree in a folder's own, `null` for one without URLs),
- * and how many `fields` it defines (D-250).
+ * and how many `fields` it has of its own and from the library (D-250,
+ * D-858).
  * Term types and the profiles type come last. Beside them, `authors`
  * names the authors type, which accounts' authors belong to and the
  * admin lists under Users rather than content, or `null` when the site
  * has none.
  *
- * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
- * (as forms take them, `Field::toForm()`, each with its control), the field `sets` attached to it (`name`,
- * `label`, and how many `fields`, D-337), the `taxonomies` (term types)
+ * `GET {path}/api/types/{name}` (`show()`) adds the fields its code
+ * gives it (`ownFields`, as forms take them, each with its control), its
+ * `fields` (the library fields it carries, in sections, as its
+ * definition writes them, D-858, D-863), whether they're
+ * `fieldsEditable` (any type's, when data types are read), the field `library` (each
+ * field's `name`, `label`, `description`, whether it's `required`, its
+ * `type`, and its `control`), the `taxonomies` (term types)
  * that file it, its `relations` (every relation definition from or to
  * it, as `RelationsController` describes them, D-593), whether it's
  * `public`, has a `feed`, is in the `sitemap` and `llms.txt` (`llms`,
@@ -78,8 +83,7 @@ use Blush\Workflow\Workflows;
  * otherwise editable, when data types are read), and is `editable` (types
  * in `user/data/types`, D-311, and collections from code,
  * through a file there, D-349), whether it's `overridden` (a code type a
- * file changes) and the options that file sets (`overrides`), whether
- * its `fieldsEditable` (none is a field class of the code's own), its
+ * file changes) and the options that file sets (`overrides`), its
  * `dateArchives`, its own file name pattern (`filename`, D-511, D-514), its folder pattern (`folders`, D-629, `null` for none), the prefix it has without one of its own, its name (`defaultPrefix`, D-683), the data
  * `file` it's defined or changed in (`null` for the rest), its `routes`
  * (each route key it answers at, with its `path` and `default` relative
@@ -176,11 +180,10 @@ final readonly class TypesController
 			'placeable'    => ! $type instanceof Profiles && $this->config->dataTypes,
 			'overridden'   => $types->isOverridden($name),
 			'overrides'    => $types->isOverridden($name) ? $this->overrides($name) : [],
-			'fieldsEditable' => $data || $this->writer->fieldsEditable($type),
 			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
 			'relations'    => array_values(array_map(fn (Relation $relation): array => RelationsController::describe($types, $relation, $this->config->dataTypes), $relations)),
-			'fields'       => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($type->schema, $type->controls, $this->defaults)),
+			'ownFields'    => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($type->schema, $type->controls, $this->defaults)),
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
 			'folders'      => $type->folders?->pattern,
@@ -195,11 +198,16 @@ final readonly class TypesController
 				'word'     => (string) ($relation->inverse === false ? $relation->name : $relation->inverse->archive),
 				'page'     => $this->page($type, RelatedController::word($relation), $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label)
 			], $types->relationArchives($type))),
-			'sets'         => array_map(static fn (FieldSet $set): array => [
-				'name'   => $set->name,
-				'label'  => $set->label,
-				'fields' => count($set->schema->fields)
-			], $types->setsFor($name))
+			'fields'       => $type->layout->toArray(),
+			'fieldsEditable' => $this->config->dataTypes,
+			'library'      => array_values(array_map(fn (LibraryField $field): array => [
+				'name'        => $field->name(),
+				'label'       => $field->field->label,
+				'description' => $field->field->description,
+				'required'    => $field->field->required,
+				'type'        => $field->field->type(),
+				'control'     => FormField::of($field->field, $field->controls, $this->defaults)->control::name()
+			], $types->library->all()))
 		];
 	}
 
@@ -344,7 +352,7 @@ final readonly class TypesController
 				$type instanceof Tree && ! $type->atRoot()    => '/' . $type->pagePath(),
 				default                                       => null
 			},
-			'fields'      => count($type->schema->fields)
+			'fields'      => count($type->schema->fields) + count($type->layout->names())
 		];
 	}
 }

@@ -148,21 +148,25 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame([2, 'movie'], [$cast->position, $cast->under]);
 		$this->assertSame(['position' => 2, 'under' => 'movie'], array_intersect_key($cast->toArray(), array_flip(ContentType::PLACEMENT)));
 
-		$page = BuiltInType::Page->type()->placedBy(['position' => 0], $this->fields, new Messages());
+		$page = BuiltInType::Page->type()->overlaidBy(['position' => 0], $this->fields, new Messages());
 		$this->assertInstanceOf(Tree::class, $page);
 		$this->assertSame([0, true], [$page->position, $page->atRoot()], 'Placing the site\'s pages keeps them as they are (D-726).');
 
-		$this->assertTrue(ContentType::onlyPlaces(['under' => 'movie']));
-		$this->assertFalse(ContentType::onlyPlaces(['under' => 'movie', 'icon' => 'film']));
-		$this->assertFalse(ContentType::onlyPlaces([]));
+		$profile = BuiltInType::Profile->type()->overlaidBy(['fields' => ['website']], $this->fields, new Messages());
+		$this->assertSame(['website'], $profile->layout->names(), 'Any type takes library fields (D-858).');
+
+		$this->assertTrue(ContentType::onlyOverlays(['under' => 'movie']));
+		$this->assertTrue(ContentType::onlyOverlays(['fields' => ['website']]));
+		$this->assertFalse(ContentType::onlyOverlays(['under' => 'movie', 'icon' => 'film']));
+		$this->assertFalse(ContentType::onlyOverlays([]));
 
 		$refused = [
 			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => -1], $this->fields, new Messages()), '0 or more'],
 			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 1.5], $this->fields, new Messages()), 'whole number'],
 			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'under' => 'cast'], $this->fields, new Messages()), 'under itself'],
 			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'under' => 'movie'], $this->fields, new Messages()), 'unknown options: under'],
-			[fn (): ContentType => BuiltInType::Profile->type()->placedBy(['position' => 1], $this->fields, new Messages()), 'listed with people'],
-			[fn (): ContentType => BuiltInType::Page->type()->placedBy(['icon' => 'file'], $this->fields, new Messages()), 'only be placed']
+			[fn (): ContentType => BuiltInType::Profile->type()->overlaidBy(['position' => 1], $this->fields, new Messages()), 'listed with people'],
+			[fn (): ContentType => BuiltInType::Page->type()->overlaidBy(['icon' => 'file'], $this->fields, new Messages()), 'only be placed']
 		];
 
 		foreach ($refused as [$build, $message]) {
@@ -262,7 +266,7 @@ final class ContentTypeTest extends TestCase
 			'sitemap'      => false,
 			'llms'         => false,
 			'dateArchives' => 'month',
-			'fields'       => [['name' => 'subtitle', 'type' => 'text']],
+			'ownFields'       => [['name' => 'subtitle', 'type' => 'text']],
 			'closed'       => true
 		], $type->toArray());
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields, new Messages()));
@@ -282,7 +286,7 @@ final class ContentTypeTest extends TestCase
 
 		$pages = new Tree(fields: [new TextField('subtitle')]);
 
-		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
+		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'ownFields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
 		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields, new Messages()));
 
 		$profiles = new Profiles(folders: '{initial}', urls: new TypeUrls('team'), feed: new TypeFeed(), public: false);
@@ -411,7 +415,7 @@ final class ContentTypeTest extends TestCase
 			'urls'         => ['prefix' => 'on', 'single' => '{year}/{name}', 'collection' => 'all'],
 			'listing'      => ['orderBy' => 'date', 'order' => 'desc', 'perPage' => 5, 'query' => ['offset' => 1]],
 			'dateArchives' => 'hour',
-			'fields'       => [['name' => 'venue', 'type' => 'text', 'required' => true]],
+			'ownFields'    => [['name' => 'venue', 'type' => 'text', 'required' => true]],
 			'feed'         => ['categories' => 'topic', 'listing' => ['perPage' => 50]]
 		], $this->fields, new Messages());
 
@@ -509,7 +513,8 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'post', 'listing' => ['order' => 'sideways']], 'Content type "post" listing "order" must be "asc" or "desc".'],
 			[['name' => 'post', 'listing' => ['perPage' => 2.5]], 'Content type "post" listing "perPage" must be a whole number.'],
 			[['name' => 'post', 'listing' => ['query' => ['nope' => 1]]], 'Listing is invalid: Unknown query arguments: nope.'],
-			[['name' => 'post', 'fields' => [['name' => 'x', 'type' => 'nope']]], 'Field "x" has an unknown type "nope".'],
+			[['name' => 'post', 'ownFields' => [['name' => 'x', 'type' => 'nope']]], 'Field "x" has an unknown type "nope".'],
+			[['name' => 'post', 'fields' => [['name' => 'x', 'type' => 'text']]], 'Content type "post": its "fields" list library fields by key'],
 			[['name' => 'post', 'filename' => '{slug}.{date}'], 'Content type "post": The file name pattern "{slug}.{date}" must end in {slug}.'],
 			[['name' => 'page', 'kind' => 'tree', 'filename' => '{date}/x.{slug}'], 'Content type "page": The file name pattern "{date}/x.{slug}" may use only']
 		];

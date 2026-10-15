@@ -589,7 +589,8 @@ final class AdminEditingTest extends TestCase
 
 	public function testBulkChangesSkipWhatCantChange(): void
 	{
-		$this->writeTemporaryFile('user/data/types/review.json', '{"urls": {"prefix": "reviews"}, "fields": [{"name": "rating", "type": "number", "required": true, "label": "Rating"}]}');
+		$this->writeTemporaryFile('user/data/types/review.json', '{"urls": {"prefix": "reviews"}, "fields": ["rating"]}');
+		$this->writeTemporaryFile('user/data/fields/rating.json', '{"type": "number", "required": true, "label": "Rating"}');
 		$this->writeTemporaryFile('user/content/_review/rated.md', "---\ntitle: Rated\nauthors: jane\nrating: 4\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_review/unrated.md', "---\ntitle: Unrated\nauthors: jane\nstatus: draft\n---\n");
 		$this->site(['author'], credits: ['post', 'review']);
@@ -782,17 +783,17 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'parent' => ''])->getStatusCode(), 'Only a tree\'s pages move.');
 	}
 
-	public function testDescribesTheFieldSetsAttachedToTheType(): void
+	public function testDescribesTheSectionsOfTheTypesLayout(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/feelings.json', '{"description": "How it felt to write.", "targets": ["type:post"], "fields": {"mood": {"type": "enum", "options": ["hopeful", "glum"], "control": {"name": "radios"}}}}');
-		$this->site();
+		$this->writeTemporaryFile('user/data/fields/mood.json', '{"type": "enum", "options": ["hopeful", "glum"], "control": {"name": "radios"}}');
+		$this->site(types: ['post' => ['date_archives' => true, 'routing' => ['prefix' => 'archives'], 'fields' => [['section' => 'Feelings', 'description' => 'How it felt to write.', 'fields' => ['mood', 'missing']]]]]);
 
 		$entry = $this->load(self::FLAME);
 		$type  = is_array($entry['type'] ?? null) ? $entry['type'] : [];
 
-		$this->assertSame([['name' => 'feelings', 'label' => 'Feelings', 'description' => 'How it felt to write.', 'slot' => 'details', 'fields' => ['mood']]], $type['sets'] ?? null);
+		$this->assertSame([['label' => 'Feelings', 'description' => 'How it felt to write.', 'fields' => ['mood']]], $type['sections'] ?? null, 'A field the library doesn\'t have is left out (D-858).');
 		$this->assertSame('radios', array_column(is_array($type['fields'] ?? null) ? $type['fields'] : [], 'control', 'name')['mood'] ?? null);
-		$this->assertSame('hopeful', is_array($entry['values'] ?? null) ? $entry['values']['mood'] ?? null : null, 'A set\'s field is a value, not other front matter.');
+		$this->assertSame('hopeful', is_array($entry['values'] ?? null) ? $entry['values']['mood'] ?? null : null, 'A library field\'s value, not other front matter.');
 		$this->assertSame([], $entry['extra'] ?? null);
 	}
 

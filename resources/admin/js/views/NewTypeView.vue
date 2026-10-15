@@ -4,7 +4,8 @@
  * wizard is its own screen): Basics (a collection, a taxonomy (D-856), or a tree,
  * D-386; names, key, description, icon), Behavior
  * (`TypeBehaviorFields`, and for a taxonomy the types it files), and Fields
- * (`FieldTree`), with What Gets Created beside them, updating as
+ * (`TypeFields`: fields from the library, or new ones made there, D-858),
+ * with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
  * `user/data/types/{key}.json` (`POST types`), adds the index page when
  * asked, and opens the type's screen. A taxonomy is a collection ordered by
@@ -22,21 +23,28 @@ import { computed, ref, watch } from 'vue';
 import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import FieldTree from '../components/FieldTree.vue';
+import TypeFields from '../components/TypeFields.vue';
 import MessageText from '../components/MessageText.vue';
 import TypeBasicsFields from '../components/TypeBasicsFields.vue';
 import TypeBehaviorFields from '../components/TypeBehaviorFields.vue';
-import { request, type ContentTypeDetail } from '../api';
+import { request, type ContentTypeDetail, type LibraryFieldList, type LibraryFieldOption } from '../api';
 import { useAction } from '../action';
-import { label as fieldLabel } from '../fields';
+import { humanize } from '../fields';
 import { t } from '../messages';
-import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
+import { changesOf, DATE_ARCHIVES, emptyForm, folderOf, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
 import { profileType, canCreateTypes, loadTypes, refreshTypes, typeFiles, typeUrls, types } from '../types';
 
 const router = useRouter();
 
 loadTypes().catch(() => undefined);
+
+// The field library, to add fields from (D-858).
+const library = ref<LibraryFieldOption[]>([]);
+
+void request<LibraryFieldList>('GET', '/fields/library').then((list) => {
+	library.value = list.fields.map((field) => ({ name: field.name, label: field.label, description: field.description, required: field.required, type: field.type, control: field.control }));
+}).catch(() => undefined);
 
 const STEPS = [t('new_type_view.step_basics', 'Basics'), t('new_type_view.step_behavior', 'Behavior'), t('new_type_view.step_fields', 'Fields')];
 
@@ -47,7 +55,7 @@ const choice        = ref<TypeKind | 'taxonomy'>('collection');
 const kind          = computed<TypeKind>(() => choice.value === 'taxonomy' ? 'collection' : choice.value);
 // The types a new taxonomy files; none for every type.
 const files         = ref<string[]>([]);
-const form          = ref<TypeForm>({ ...emptyForm(), fields: [{ ...FEATURED }] });
+const form          = ref<TypeForm>(emptyForm());
 const key           = ref('');
 const keyTouched    = ref(false);
 const index         = ref(true);
@@ -74,12 +82,7 @@ watch(() => form.value.plural, (plural) => {
 	previous.value = plural;
 });
 
-// Taxonomies and trees have no featured image; a collection starts with one.
 watch(choice, (value) => {
-	if (value !== 'collection' && hasFeatured(form.value)) {
-		form.value.fields = form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
-	}
-
 	// Collections credit authors by default; taxonomies don't (D-329).
 	form.value.authors = value === 'collection';
 
@@ -112,7 +115,14 @@ const keyError = computed(() => {
 
 const basicsDone = computed(() => form.value.plural.trim() !== '' && keyError.value === '');
 const prefix     = computed(() => (form.value.prefix || key.value).replace(/^\/+|\/+$/g, ''));
-const dirty      = computed(() => !created.value && (form.value.plural.trim() !== '' || form.value.fields.length > 1));
+// The fields it'll carry, by their labels, for What Gets Created.
+const placedLabels = computed(() => form.value.fields.flatMap((item) => typeof item === 'object' && 'section' in item ? item.fields : [item]).map((placed) => {
+	const name = typeof placed === 'string' ? placed : placed.field;
+
+	return (typeof placed === 'object' ? placed.label : undefined) || library.value.find((field) => field.name === name)?.label || humanize(name);
+}));
+
+const dirty      = computed(() => !created.value && (form.value.plural.trim() !== '' || form.value.fields.length > 0));
 
 function next(): void {
 	if (step.value === 0 && !basicsDone.value) {
@@ -226,8 +236,8 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 			</div>
 
 			<div v-else>
-				<p class="panel__body field__help">{{ t('new_type_view.fields_help', 'Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.') }}</p>
-				<FieldTree v-model="form.fields" heading-id="new-fields-heading" id-prefix="new-field-" bare />
+				<p id="new-fields-heading" class="panel__body field__help">{{ t('new_type_view.fields_help', 'Every entry already has a title, a slug, a status, dates, a featured image, and a Markdown body. Add fields from the library, or make new ones there; you can add more later.') }}</p>
+				<TypeFields v-model="form.fields" :library="library" heading-id="new-fields-heading" id-prefix="new-type-field-" :noun="(form.plural || t('new_type_view.entries', 'entries')).toLowerCase()" bare />
 			</div>
 
 			<p v-if="failure" class="panel__body field__error" role="alert">{{ failure }}</p>
@@ -260,7 +270,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 				<div><dt>{{ t('new_type_view.index_page', 'Index page') }}</dt><dd>{{ index ? t('new_type_view.index_created', 'Created and pinned') : t('new_type_view.none', 'None') }}</dd></div>
 				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ form.authors ? t('new_type_view.credited', 'Credited, through the authors relationship') : t('new_type_view.not_credited', 'Not credited') }}</dd></div>
 				<div v-if="kind !== 'tree'"><dt>{{ t('new_type_view.feed', 'Feed') }}</dt><dd>{{ form.feed ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
-				<div><dt>{{ t('new_type_view.fields', 'Fields') }}</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : t('new_type_view.none_yet', 'None yet') }}</dd></div>
+				<div><dt>{{ t('new_type_view.fields', 'Fields') }}</dt><dd>{{ placedLabels.length ? placedLabels.join(', ') : t('new_type_view.none_yet', 'None yet') }}</dd></div>
 			</dl>
 		</section>
 	</div>

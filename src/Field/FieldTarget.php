@@ -16,16 +16,17 @@ namespace Blush\Field;
 use Blush\Translation\Text;
 
 /**
- * A place field sets attach to (D-337), such as a content type. Field
- * types know nothing about where they're used; a target says which fields
- * it takes, so one that can't store a kind of value (a settings screen
- * with no index for a reference to read, say) refuses it.
+ * A place fields go on (D-337), such as a content type: the fields code
+ * registers for it, and the library fields its layout places (D-858).
+ * Field types know nothing about where they're used; a target says which
+ * fields it takes, so one that can't store a kind of value (a settings
+ * screen with no index for a reference to read, say) refuses it.
  */
 interface FieldTarget
 {
 	/**
-	 * Returns the key sets name it by: a kind, a colon, and a name, such
-	 * as `type:post`.
+	 * Returns the key it's named by: a kind, a colon, and a name, such as
+	 * `type:post` (`TargetKey`).
 	 */
 	public function key(): string;
 
@@ -41,10 +42,16 @@ interface FieldTarget
 	public function accepts(Field $field): bool;
 
 	/**
-	 * Returns the target's own fields, before any set's: the schema
-	 * `FieldSets::schemaFor()` adds the attached sets' fields to.
+	 * Returns the target's own fields, before any it's given: the schema
+	 * `FieldLibrary::schemaFor()` adds registered and library fields to.
 	 *
 	 * @throws InvalidSchema When the target's own fields don't fit together.
 	 */
 	public function schema(): Schema;
+
+	/**
+	 * Returns the library fields it carries (D-858), in its sections;
+	 * none for a place without a layout of its own yet.
+	 */
+	public function layout(): FieldLayout;
 }

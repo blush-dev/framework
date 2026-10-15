@@ -643,19 +643,28 @@ prefix.
 
 ## Custom fields
 
-Declare the fields a type's entries use, and Blush checks them when it
-indexes your content and in `bin/blush content:lint`. In
+Fields are made once, in the site's **field library**, and each type
+chooses which of them it carries. A field's key, type, and settings are
+the same on every type that has it. In the admin, the library is
+**Structure → Fields**, and a type's fields are on its own screen
+([Fields](admin.md#fields)). On files, each field is
+`user/data/fields/{key}.json`, named for its key, and a type lists it
+in its `fields`.
+
+`user/data/fields/servings.json`:
+
+```json
+{ "type": "number", "integer": true, "label": "Servings" }
+```
+
 `user/data/types/recipe.json`:
 
 ```json
-{
-	"fields": [
-		{ "name": "servings", "type": "number", "integer": true, "required": true },
-		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "default": "easy" },
-		{ "name": "ingredients", "type": "list" }
-	]
-}
+{ "fields": ["servings", "difficulty", "ingredients"] }
 ```
+
+Blush checks the values when it indexes your content and in
+`bin/blush content:lint`.
 
 Field types:
 
@@ -670,12 +679,16 @@ Field types:
 | `list`      | Several values         | `item` (a field definition for each value; text by default), `min` and `max` (the fewest and most items)            |
 | `media`     | A media file, by its id | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug`      | A URL-safe name        |                                                                                                                     |
-| `object`    | A group of fields, kept together under its key (`details: {servings: 4}`) | `fields`, `closed`                                                                     |
+| `object`    | Several fields, kept together under its key (`details: {servings: 4}`) | `fields` (a list of definitions with names, or a map of names to definitions), `closed` |
 
 Every field also takes `required` (a value is needed to publish),
 `default`, `aliases` (other keys it's read from), `label`,
 `description`, and `control`. There's no type for links to other
 entries: use a [relation](#linking-entries-to-other-entries).
+
+An `object` is how several fields travel together: an `seo` field with
+`title` and `description` inside it is one field to add to each type,
+and an entry keeps its values as `seo.title` and `seo.description`.
 
 A `media` field holds the id of a file in the media library, as the
 featured `image` and a profile's `avatar` do, so the file can be
@@ -684,17 +697,53 @@ one by its path (`/media/2026/10/photo.jpg`); it's still read, and
 `content:lint` and Site Health list it until `bin/blush
 content:media-ids --write` rewrites it to the file's id.
 
-`fields` can also be a map of names to definitions, which some people
-find easier to read:
+### A type's fields
+
+A type's `fields` lists the library fields it carries, in the order the
+editor shows them. Each is the field's key, or an object naming the
+`field` with what this type changes about how it's asked for: its
+`label`, its help (`description`), and whether it's `required` to
+publish. Anything left out is the field's own. Nothing about the value
+changes per type, and only a field at the top changes, never one inside
+an `object`.
+
+A **section** is a heading over some of the fields, for the editor's
+sidebar: `section` is the heading, `description` a line under it, and
+`fields` the fields under it, as above. Sections are only presentation: they
+save nothing to entries, and they're one level deep. Fields outside any
+section are shown with the type's own.
 
 ```json
 {
-	"fields": {
-		"servings": { "type": "number", "integer": true },
-		"difficulty": { "type": "enum", "options": ["easy", "medium", "hard"] }
-	}
+	"fields": [
+		"difficulty",
+		{ "field": "servings", "required": true },
+		{
+			"section": "Timing",
+			"description": "In minutes.",
+			"fields": ["prep_time", { "field": "cook_time", "label": "Cook time (oven)" }]
+		}
+	]
 }
 ```
+
+- Any type can be given library fields: the built-in pages, the
+  profiles type, and types from plugins too. A file in `user/data/types`
+  that sets only `fields` (and the type's [place in the menu](#where-a-type-sits-in-the-admins-menu))
+  gives them library fields and changes nothing else about them.
+- A type in `user/data/types` can't define fields of its own: its
+  `fields` list library fields by key, and a definition there is
+  refused, since fields are the library's. A plugin's type may (`new Collection('recipe', fields:
+  [new TextField('cuisine')])`); the admin shows them, read only, and the
+  type can still add library fields.
+- Each key is declared once on a type. A library field can't use a key
+  (or alias) that the type, the built-in fields (which every type starts
+  with), or a plugin's registered fields already use, nor `id` or
+  `refs`. Such a field is left off that type, and the site keeps
+  running. Site Health, `bin/blush content:lint`, and Structure → Fields
+  (**Left Off**) say which field and key.
+- A key the library doesn't have is skipped, and
+  `bin/blush content:lint` notes it.
 
 ### How a field is entered
 
@@ -703,13 +752,12 @@ someone enters it in the admin. A field without a `control` uses its
 type's default. Some types can use another control instead: set
 `control` to an object naming it (`"control": {"name": "radios"}`),
 beside the field's own keys. The control's options go inside it, so a
-type's or field set's file holds how each field is entered with the
-field.
+library field's file holds how it's entered with the field.
 
 | Control       | Stores                                  | Is                                                        |
 |---------------|-----------------------------------------|-----------------------------------------------------------|
-| `group`       | `object`                                | A few fields kept together, their values under its key    |
-| `repeater`    | `list` of `object` items, or of values that fit on a line | A list of items, each with the same fields, or each one box (the default for both) |
+| `object`      | `object`                                | An Object: several fields, their values together under its key |
+| `list`        | `list` of `object` items, or of values that fit on a line | A List: items, each with the same fields, or each one box (the default for both) |
 | `text`        | `text`                                  | One line (the default)                                    |
 | `textarea`    | `text`                                  | Several lines                                             |
 | `markdown`    | `markdown`                              | Formatted text (the default)                              |
@@ -730,105 +778,50 @@ field.
 
 Text-box controls (`text`, `textarea`, `markdown`, `link`, `email`,
 `number`) take a `placeholder`, a prompt shown while the box is empty:
-`"control": {"name": "text", "placeholder": "Salt"}`. A `repeater` takes
+`"control": {"name": "text", "placeholder": "Salt"}`. A `list` takes
 `itemLabel` (what each item is called, for "Add Ingredient") and
-`summary` (the keys that sum up an item in one line). A group's fields
+`summary` (the keys that sum up an item in one line). An object's fields
 and a list's item take a `control` of their own.
 
-You can name only the control, and the field gets the control's type:
+You can name only the control, and the field gets the control's type.
+`user/data/fields/diets.json`:
 
 ```json
-{
-	"fields": [
-		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "control": { "name": "radios" } },
-		{ "name": "diets", "control": { "name": "checkboxes" }, "options": ["vegetarian", "vegan", "gluten-free"] },
-		{ "name": "website", "control": { "name": "link", "placeholder": "https://" } },
-		{ "name": "cover", "control": { "name": "image" } }
-	]
-}
+{ "control": { "name": "checkboxes" }, "options": ["vegetarian", "vegan", "gluten-free"] }
 ```
 
-`diets` is a `list` of `enum` items, `website` a `text` field with
-`format: url`, and `cover` a `media` field of images. A control that
-doesn't store its field's type is an error. A list's items need to fit
-on one line to be repeated a box each, so a list of `markdown` is shown
+`diets` is a `list` of `enum` items; a field naming only
+`{"name": "link"}` is a `text` field with `format: url`, and one naming
+`{"name": "image"}` a `media` field of images. A control that doesn't
+store its field's type is an error. A list's items need to fit on one
+line to be repeated a box each, so a list of `markdown` is shown
 read-only. For text written freely, use a `text` field with `textarea`.
 
-Only declared keys are read: a type's fields, Blush's built-in ones, a
-plugin's or theme's [registered fields](extending.md#fields-from-a-plugin),
-and the site's [field sets](#field-sets). A key nothing declares stays
-in its file (and a save in the admin keeps it), but templates, queries,
-the admin, and the [API](api.md) never see it. `content:lint --strict`
-and Site Health (**Fields Nothing Reads**, which can remove them) list
-them. Set `closed: true` on the type to make them errors instead.
+Only declared keys are read: Blush's built-in fields, a plugin's type's
+own, a plugin's or theme's
+[registered fields](extending.md#fields-from-a-plugin), and the library
+fields the type lists. A key nothing declares stays in its
+file (and a save in the admin keeps it), but templates, queries, the
+admin, and the [API](api.md) never see it. `content:lint --strict` and
+Site Health (**Fields Nothing Reads**, which can remove them) list them.
+Set `closed: true` on the type to make them errors instead.
 
-## Field sets
+### The field library's files
 
-A field set is a group of fields you can add to several types at once:
-SEO fields for posts and pages, say. Put each set in its own file in
-`user/data/fields/`, named for the set, and list the types it's for in
-`targets`, as `type:` and the type's name. `user/data/fields/seo.json`:
+The admin's **Structure → Fields** makes and edits the fields in
+`user/data/fields/` ([Fields](admin.md#fields)). A field's key is its
+file's name, fixed once it's made, since every type that has it reads it
+by that key. Deleting one takes it off every type that has it; entries
+keep their values in their files.
 
-```json
-{
-	"label": "SEO",
-	"description": "How the entry appears in search results.",
-	"targets": ["type:post", "type:page"],
-	"fields": {
-		"meta_title": { "type": "text", "label": "Title for search engines" },
-		"noindex": { "type": "bool", "label": "Hide from search engines" }
-	}
-}
-```
+The library is only made there: `config/fields.php` configures fields
+but doesn't add them, and plugins
+[register fields](extending.md#fields-from-a-plugin) of their own
+instead, which aren't in the library. Set `library: false` in
+`config/fields.php` to ignore `user/data/fields/`.
 
-`fields` takes the same field definitions as a type's, as a list or a
-map. `label` heads the set's fields in the admin's editor, where each set
-has its own group after the type's own fields (its name, made readable,
-when it has no label), and `description` is shown under it.
-
-`type:*` adds a set to every type, including types added later:
-`"targets": ["type:*"]`.
-
-A set's targets are all one kind of place: content types, kinds of
-media file, or Settings screens. A field means one thing on an entry and
-another in the site's settings, so make a set for each.
-
-In the admin's editor, each set is a group of its own in the document
-panel beside the text, after the type's own fields, by `position`
-(lowest first; 10 when it's left out), then by label.
-
-- A type's fields come first, then each set's, with the sets in name
-  order.
-- Each key is declared once on a type. A set can't use a field name (or
-  alias) that the type, the built-in fields (which every type starts
-  with), a plugin's registered fields, or another of its sets already
-  uses, nor `id` or `refs`. Such a set is left off that type, whole, and the
-  site keeps running: the first set by name keeps the key. Site Health,
-  `bin/blush content:lint`, and Structure → Fields (**Left Off**) say
-  which set and key; rename the field in one of them.
-- A target the site doesn't have, such as a type that's turned off, is
-  skipped. `bin/blush content:lint` notes it.
-
-Profiles are a content type too, so a set aimed at `type:profile` adds
-fields to every profile, such as a website or a pronoun line.
-
-Sets can also add details to media files: target `media:image`,
-`media:video`, `media:audio`, `media:document`, or `media:file` (see
-[Details about a file](media.md#details-about-a-file)). And they can add
-settings to the admin's Settings screens: target `settings:general`,
-`settings:reading`, `settings:writing`, `settings:media`,
-`settings:search`, `settings:ai`, or `settings:api` (see
-[Your own settings](themes.md#your-own-settings)).
-
-The admin's **Structure → Fields** creates and edits the sets in
-`user/data/fields/` ([Fields](admin.md#fields)). Sets are only made
-there: `config/fields.php` configures fields but doesn't add them, and
-plugins [register fields](extending.md#fields-from-a-plugin) of their
-own instead, which aren't sets and aren't listed. Set `dataSets: false`
-in `config/fields.php` to ignore `user/data/fields/`.
-
-Editors that read JSON Schema can check a set's file: start it with
-`"$schema": "../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json"`.
+Editors that read JSON Schema can check a field's file: start it with
+`"$schema": "../../../vendor/blush-dev/framework/resources/schemas/field.schema.json"`.
 A relation's file in `user/data/relations` can name
 `relation.schema.json` the same way; the admin keeps a file's
 `"$schema"` when it saves the relation.
@@ -900,7 +893,8 @@ Every kind takes these:
 | `public`            | `true`                                                         | Whether the type is visible on the site at all                   |
 | `sitemap`           | `true`                                                         | Whether entries appear in the sitemap                            |
 | `llms`              | `true` for collections and trees, `false` for profiles         | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
-| `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
+| `fields`            |                                                                | The library fields it carries ([A type's fields](#a-types-fields)) |
+| `closed`            | `false`                                                        | Whether front matter no field declares is an error ([Custom fields](#custom-fields)) |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
 | `expires`           | `false`                                                        | Whether its entries can have an `expires` date ([Expiry](#expiry)) |
 | `visibility`        | `true`                                                         | Whether its entries choose a visibility ([Visibility](#visibility)) |
@@ -1148,17 +1142,15 @@ admin's **Addresses** panel on a type's screen edits these paths too
 
 ## Giving pages fields
 
-To declare fields for pages, redefine the built-in `page` type in
-`user/data/types/page.json`:
+To give pages fields, place library fields on the built-in `page` type
+in `user/data/types/page.json`, which changes nothing else about it:
 
 ```json
-{
-	"kind": "tree",
-	"fields": [{ "name": "subtitle", "type": "text" }]
-}
+{ "fields": ["mood"] }
 ```
 
-A plugin can do the same with `new Tree(fields: [new TextField('subtitle')])`.
+A plugin's tree can have fields of its own in code:
+`new Tree('doc', fields: [new TextField('edition')])`.
 
 ## Crediting people
 

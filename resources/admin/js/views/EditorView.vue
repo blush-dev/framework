@@ -244,20 +244,21 @@ function fieldsOf(detail: EntryDetail | NewEntryDetail | null): FieldDescription
 
 const fields    = computed(() => fieldsOf(entry.value));
 
-// The field sets attached to the type (D-337), each a group of its own in
-// the document panel under its label, with its fields in the set's order,
-// in the order the server sends the sets (by position, then label; D-768);
-// fields stay out of the writing area (D-348). Their fields stay out of
-// the panel's other groups. Each folds (D-779), closed until it's opened
-// or has something to show, its header counting its fields and the
-// required ones left empty.
-const setGroups = computed(() => (entry.value?.type.sets ?? []).map((set) => ({
-	...set,
-	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
-})).filter((set) => set.fields.length > 0));
+// The sections the type arranges its library fields in (D-858), each a
+// group of its own in the document panel under its heading, with its
+// fields in the type's order, in the order the type has them; fields stay
+// out of the writing area (D-348). Their fields stay out of the panel's
+// other groups; the type's other library fields are with its own. Each
+// folds (D-779), closed until it's opened or has something to show, its
+// header counting its fields and the required ones left empty.
+const sectionGroups = computed(() => (entry.value?.type.sections ?? []).map((section, index) => ({
+	...section,
+	key: `section-${index}`,
+	fields: section.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
+})).filter((section) => section.fields.length > 0));
 
-const inSets    = computed(() => new Set((entry.value?.type.sets ?? []).flatMap((set) => set.fields)));
-const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
+const inSections = computed(() => new Set((entry.value?.type.sections ?? []).flatMap((section) => section.fields)));
+const ownFields  = computed(() => fields.value.filter((field) => !inSections.value.has(field.name)));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'date'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 // A relation archive's page (D-602) is its list page ("cooks page") or the
@@ -654,14 +655,14 @@ const missing = computed(() => {
 	return found;
 });
 
-// How many of a set's required fields are left empty, for its header.
-function setMissing(set: { fields: FieldDescription[] }): number {
-	return set.fields.filter((field) => missing.value.some((item) => item.name === field.name)).length;
+// How many of a section's required fields are left empty, for its header.
+function sectionMissing(section: { fields: FieldDescription[] }): number {
+	return section.fields.filter((field) => missing.value.some((item) => item.name === field.name)).length;
 }
 
-// A set opens to show an error or a warning in it.
-function setOpen(set: { fields: FieldDescription[] }): boolean {
-	return set.fields.some((field) => errorFor(field.name) !== undefined || misfit(field) !== undefined);
+// A section opens to show an error or a warning in it.
+function sectionOpen(section: { fields: FieldDescription[] }): boolean {
+	return section.fields.some((field) => errorFor(field.name) !== undefined || misfit(field) !== undefined);
 }
 
 // The values, as last saved, that don't fit their fields (D-779), only
@@ -3389,13 +3390,13 @@ function fieldKey(field: FieldDescription): string {
 								</FieldControl>
 							</OptionsGroup>
 
-							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label" collapsible :open="setOpen(set)">
+							<OptionsGroup v-for="section in sectionGroups" :key="section.key" :heading="section.label" collapsible :open="sectionOpen(section)">
 								<template #hint>
-									<span v-if="setMissing(set)" class="pill pill--danger">{{ setMissing(set) }}<span class="visually-hidden"> {{ t('editor_view.sets.required_left', '{count, plural, one {required field left empty} other {required fields left empty} }', { count: setMissing(set) }) }}</span></span>
-									<span class="mono">{{ set.fields.length }}<span class="visually-hidden"> {{ t('editor_view.sets.fields', '{count, plural, one {field} other {fields} }', { count: set.fields.length }) }}</span></span>
+									<span v-if="sectionMissing(section)" class="pill pill--danger">{{ sectionMissing(section) }}<span class="visually-hidden"> {{ t('editor_view.sections.required_left', '{count, plural, one {required field left empty} other {required fields left empty} }', { count: sectionMissing(section) }) }}</span></span>
+									<span class="mono">{{ section.fields.length }}<span class="visually-hidden"> {{ t('editor_view.sections.fields', '{count, plural, one {field} other {fields} }', { count: section.fields.length }) }}</span></span>
 								</template>
-								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
-								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
+								<p v-if="section.description" class="editor__group-note">{{ section.description }}</p>
+								<FieldControl v-for="field in section.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" :warn="misfit(field) !== undefined" pickable narrow @update:model-value="form[field.name] = $event" @pick="(target, steps) => pickForField(target, field.name, steps)">
 									<template v-if="misfit(field) !== undefined" #help="{ id }"><FieldMisfit :id="id" :label="label(field)" :message="misfit(field) ?? ''" /></template>
 								</FieldControl>
 							</OptionsGroup>

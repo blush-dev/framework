@@ -79,8 +79,8 @@ use Blush\Workflow\Workflows;
  * reads (`.html`, `.json`, and the like; `FormatCheck`, D-501), and
  * checks the media metadata files under `user/data/media`
  * (`MediaMetadataCheck`, D-293): ones that can't be read or whose values
- * don't fit, and ones whose media file is gone; and notes field set
- * targets that attach to nothing (`FieldSetCheck`, D-337).
+ * don't fit, and ones whose media file is gone; and notes library
+ * fields left off the places that carry them (`FieldLibraryCheck`, D-858).
  */
 final readonly class Linter
 {
@@ -96,7 +96,7 @@ final readonly class Linter
 		private RouteTable $routes,
 		private VariantCheck $variants,
 		private MediaMetadataCheck $media,
-		private FieldSetCheck $sets,
+		private FieldLibraryCheck $fields,
 		private FormatCheck $formats,
 		private AppConfig $app,
 		private Relations $relations,
@@ -214,7 +214,7 @@ final readonly class Linter
 	/**
 	 * Lints what isn't an entry: formats Blush no longer reads in
 	 * `user/content`, media metadata files (by their path from the site
-	 * root, D-293), and field sets. Returns the violations by path and
+	 * root, D-293), and the field library. Returns the violations by path and
 	 * how many media metadata files were checked.
 	 *
 	 * @return array{array<string, list<Violation>>, int}
@@ -223,7 +223,7 @@ final readonly class Linter
 	{
 		[$metadata, $described] = $this->media->check();
 
-		return [[...$this->lintFormats(), ...$described, ...$this->lintFieldSets(), ...$this->lintWorkflows()], $metadata];
+		return [[...$this->lintFormats(), ...$described, ...$this->lintFields(), ...$this->lintWorkflows()], $metadata];
 	}
 
 	/**
@@ -252,13 +252,13 @@ final readonly class Linter
 	}
 
 	/**
-	 * Lints the field sets (`FieldSetCheck`, D-337).
+	 * Lints the field library and the layouts that place it (`FieldLibraryCheck`, D-858).
 	 *
 	 * @return array<string, list<Violation>>
 	 */
-	public function lintFieldSets(): array
+	public function lintFields(): array
 	{
-		return $this->sets->check();
+		return $this->fields->check();
 	}
 
 	/**

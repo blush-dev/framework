@@ -18,10 +18,9 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * Every place field sets can attach to on the site (D-337), from the
- * tagged `FieldTargetSource`s, by kind and by key. Read when they're
- * first needed: lint, the admin's set screens, and the set writer's
- * checks.
+ * Every place fields go on (D-337), from the tagged
+ * `FieldTargetSource`s, by kind and by key. Read when they're first
+ * needed: lint, the site's checks, and the field library's screens.
  */
 final class FieldTargets
 {
@@ -103,27 +102,20 @@ final class FieldTargets
 	}
 
 	/**
-	 * Returns why sets and registered fields don't fit the targets, by
-	 * set name or field owner: each target's clashes
-	 * (`FieldSets::clashes()`), then each kind's conflicts across its
-	 * targets (`FieldTargetSource::conflicts()`).
+	 * Returns why registered and library fields are left off the targets,
+	 * by library field name or registered field owner
+	 * (`FieldLibrary::clashes()`).
 	 *
-	 * @return array<string, list<string|Text>>
+	 * @return array<string, list<Text>>
 	 * @throws InvalidSchema When a target's own fields don't fit.
 	 */
-	public function problems(FieldSets $sets): array
+	public function problems(FieldLibrary $library): array
 	{
 		$problems = [];
 
 		foreach ($this->all() as $target) {
-			foreach ($sets->clashes($target, $this->messages) as $name => $messages) {
+			foreach ($library->clashes($target, $this->messages) as $name => $messages) {
 				$problems[$name] = [...$problems[$name] ?? [], ...$messages];
-			}
-		}
-
-		foreach ($this->sources() as $source) {
-			foreach ($source->conflicts($sets) as $name => $message) {
-				$problems[$name][] = $message;
 			}
 		}
 
@@ -140,20 +132,6 @@ final class FieldTargets
 	public function slots(string $kind): array
 	{
 		return ($this->sources()[$kind] ?? null)?->slots() ?? [];
-	}
-
-	/**
-	 * Returns the slot a set is shown in (D-347): the one it names, when
-	 * its kind offers it, or else the kind's default; `null` for a set
-	 * with no targets the site has a kind for.
-	 *
-	 * @throws InvalidSchema
-	 */
-	public function slotFor(FieldSet $set): ?FieldSlot
-	{
-		$slots = $this->slots($set->kind() ?? '');
-
-		return array_find($slots, static fn (FieldSlot $slot): bool => $slot->name === $set->slot) ?? $slots[0] ?? null;
 	}
 
 	/**

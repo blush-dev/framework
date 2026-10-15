@@ -48,10 +48,15 @@ const props = defineProps<{
 	count: number;
 	// The fields inside it, for a repeating group's summary.
 	inside: { name: string; label: string }[];
-	// Inside a group, where it can't be a group itself (D-770).
+	// Inside an Object, where it can't be an Object itself (D-770).
 	nested?: boolean;
 	locked?: boolean;
 	idPrefix: string;
+	// Drawn as a screen's or a dialog's form (a library field, D-858):
+	// what holds it saves, so it has no Done or Cancel, and a saved key
+	// is fixed, since every type that carries the field reads it by its
+	// key (D-859).
+	page?: boolean;
 }>();
 
 const emit = defineEmits<{ update: [field: FieldDescription]; done: []; closed: []; remove: [] }>();
@@ -284,12 +289,24 @@ function choose(key: string): void {
 	draft.value   = withControl(draft.value, key);
 }
 
-async function finish(): Promise<void> {
+// Whether the field can be kept: a key no field beside it has, and a
+// choice's options. Focuses what's wrong when it can't.
+function check(): boolean {
 	tried.value = true;
 
 	if (keyError.value !== '' || optionsError.value !== '') {
 		document.getElementById(id(keyError.value !== '' ? 'key' : 'options'))?.focus();
 
+		return false;
+	}
+
+	return true;
+}
+
+defineExpose({ check });
+
+async function finish(): Promise<void> {
+	if (!check()) {
 		return;
 	}
 
@@ -320,7 +337,7 @@ async function finish(): Promise<void> {
 </script>
 
 <template>
-	<div class="field-form">
+	<div class="field-form" :class="{ 'field-form--page': page }">
 		<div class="field-form__ident">
 			<div class="field">
 				<label :for="id('label')">{{ t('field_form.label', 'Label') }}</label>
@@ -328,9 +345,9 @@ async function finish(): Promise<void> {
 			</div>
 			<div class="field">
 				<label :for="id('key')">{{ t('field_form.key', 'Key') }}</label>
-				<input :id="id('key')" v-model="draft.name" class="mono" autocomplete="off" spellcheck="false" placeholder="prep_time" :readonly="locked" :aria-invalid="tried && keyError !== '' ? 'true' : undefined" :aria-describedby="id('key-help')" @input="keyed = true">
+				<input :id="id('key')" v-model="draft.name" class="mono" autocomplete="off" spellcheck="false" placeholder="prep_time" :readonly="locked || (page && saved !== null)" :aria-invalid="tried && keyError !== '' ? 'true' : undefined" :aria-describedby="id('key-help')" @input="keyed = true">
 				<p v-if="(tried || keyed) && keyError" :id="id('key-help')" class="field__error">{{ keyError }}</p>
-				<p v-else :id="id('key-help')" class="field__help">{{ holds ? t('field_form.key_help', 'How it\'s saved in each entry. Follows the label until you change it.') : t('field_form.key_help_group', 'The group\'s name in this set. Its fields are saved under their own keys.') }}</p>
+				<p v-else :id="id('key-help')" class="field__help">{{ page && saved !== null ? t('field_form.key_help_fixed', 'How it\'s saved in each entry. Fixed, since every type that has it reads it by this key.') : (holds ? t('field_form.key_help', 'How it\'s saved in each entry. Follows the label until you change it.') : t('field_form.key_help_object', 'Its fields\' values are saved together under this key. Follows the label until you change it.')) }}</p>
 			</div>
 			<div class="field">
 				<span :id="id('control-label')" class="field__label">{{ t('field_form.control', 'Control') }}</span>
@@ -366,18 +383,18 @@ async function finish(): Promise<void> {
 		</div>
 
 		<div v-if="holdsFields(control) && $slots.inside" class="field">
-			<span :id="`${idPrefix}inside-label`" class="field__label">{{ control === 'repeater' ? t('field_form.each_item_has', 'Each item has') : t('field_form.its_fields', 'Its fields') }}</span>
+			<span :id="`${idPrefix}inside-label`" class="field__label">{{ control === 'list' ? t('field_form.each_item_has', 'Each item has') : t('field_form.its_fields', 'Its fields') }}</span>
 			<slot name="inside" />
-			<p class="field__help">{{ control === 'repeater' ? t('field_form.inside_help_repeater', 'Every item in the list has these, in this order.') : t('field_form.inside_help_group', 'These are saved under their own keys, next to the set\'s other fields.') }}</p>
+			<p class="field__help">{{ control === 'list' ? t('field_form.inside_help_repeater', 'Every item in the list has these, in this order.') : t('field_form.inside_help_object', 'Their values are saved together under its key.') }}</p>
 		</div>
 
-		<p v-if="control === 'group'" class="field-form__note"><AdminIcon name="info" /><span>{{ t('field_form.group_note', 'A group holds no value of its own. Defaults, Required to publish, and older keys belong to the fields inside it.') }}</span></p>
+		<p v-if="control === 'object'" class="field-form__note"><AdminIcon name="info" /><span>{{ t('field_form.object_note', 'An Object is its fields\' values together. Defaults, Required to publish, and older keys belong to the fields inside it.') }}</span></p>
 		<ToggleSwitch v-else :checked="required" :label="t('field_form.required', 'Required to publish')" form :locked="locked" @change="required = $event">
 			{{ t('field_form.required', 'Required to publish') }}
-			<small>{{ control === 'repeater' ? t('field_form.required_help_repeater', 'A draft still saves. Publishing needs at least one item.') : t('field_form.required_help', 'A draft still saves. Publishing names the field.') }}</small>
+			<small>{{ control === 'list' ? t('field_form.required_help_repeater', 'A draft still saves. Publishing needs at least one item.') : t('field_form.required_help', 'A draft still saves. Publishing names the field.') }}</small>
 		</ToggleSwitch>
 
-		<section v-if="isChoice(control) || ['number', 'date', 'repeater'].includes(control)" class="field-form__section" :aria-labelledby="id('section')">
+		<section v-if="isChoice(control) || ['number', 'date', 'list'].includes(control)" class="field-form__section" :aria-labelledby="id('section')">
 			<h3 :id="id('section')" class="eyebrow field-form__section-head"><AdminIcon :name="controlIcon(control)" />{{ catalogControl(control)?.label ?? controlLabel(control) }}</h3>
 
 			<div v-if="isChoice(control)" :id="id('options')" tabindex="-1">
@@ -409,7 +426,7 @@ async function finish(): Promise<void> {
 				<small>{{ t('field_form.time_help', 'Without one, only the day is kept.') }}</small>
 			</ToggleSwitch>
 
-			<template v-if="control === 'repeater'">
+			<template v-if="control === 'list'">
 				<div class="field-form__row field-form__row--three">
 					<div class="field">
 						<label :for="id('item')">{{ t('field_form.item_label', 'Call each item') }}</label>
@@ -435,7 +452,7 @@ async function finish(): Promise<void> {
 			</template>
 		</section>
 
-		<details v-if="control !== 'group'" class="field-form__more">
+		<details v-if="control !== 'object'" class="field-form__more">
 			<summary><AdminIcon name="chevron-right" />{{ t('field_form.advanced', 'Advanced') }}</summary>
 			<div class="field">
 				<label :for="id('aliases')">{{ t('field_form.aliases', 'Older keys') }}</label>
@@ -444,7 +461,7 @@ async function finish(): Promise<void> {
 			</div>
 		</details>
 
-		<div class="field-form__actions">
+		<div v-if="!page" class="field-form__actions">
 			<button v-if="!locked" type="button" class="button button--ghost button--danger button--small" @click="emit('remove')">{{ t('field_form.remove', 'Remove Field') }}</button>
 			<span class="field__help">{{ locked ? t('field_form.locked', 'From code, so it\'s shown here.') : t('field_form.unsaved', 'Nothing is written until you save.') }}</span>
 			<button type="button" class="button button--small" @click="locked ? emit('done') : cancel()">{{ locked ? t('common.close', 'Close') : t('common.cancel', 'Cancel') }}</button>
@@ -456,22 +473,6 @@ async function finish(): Promise<void> {
 </template>
 
 <style scoped>
-.field-form {
-	display: grid;
-	gap: var(--s-4);
-	padding: var(--s-4) var(--padding-inline) var(--s-5) calc(var(--padding-inline) + var(--tree-indent, 0px));
-	border-top: 1px solid var(--border-color);
-	background: var(--color-surface-subtle);
-}
-
-.field-form__ident,
-.field-form__row {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-	gap: var(--s-4);
-	align-items: start;
-}
-
 /* The control box follows the drawn select (`AdminSelect`): the whole
    box is the hit area, and it says it changes. */
 .field-form__control {
@@ -586,17 +587,6 @@ async function finish(): Promise<void> {
 
 .field-form__more[open] > .field {
 	margin-top: var(--s-3);
-}
-
-.field-form__actions {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.field-form__actions > .field__help {
-	margin-right: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

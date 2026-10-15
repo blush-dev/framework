@@ -269,12 +269,11 @@ final class ThemeSystemTest extends TestCase
 	{
 		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts']]], 'home' => 'post']);
 		$this->writeTemporaryFile('user/content/_post/hello.md', "---\nid: b12471fd-d907-a48f-cf04-4812e1eea8d8\ntitle: Hello\n---\nThe excerpt text.");
-		$this->writeTemporaryFile('user/data/fields/brand.json', '{"targets":["settings:general"],"fields":{"tagline":{"default":"Plain tagline"}}}');
-		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
+		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Field\\\\TaglineProvider"}');
 		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$site->setting('tagline')) ?>|<?= e((string) \$site->setting('missing', 'none')) ?></p>");
 		$this->activeTheme('acme/noted');
 
-		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');
+		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A registered field\'s default, then the fallback.');
 
 		// The admin's save moves the content version on, so cached pages go.
 		$this->writeSettings('{"site": {"tagline": "Saved tagline"}}');

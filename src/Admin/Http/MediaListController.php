@@ -29,7 +29,6 @@ use Blush\Core\Paths;
 use Blush\Field\ControlDefaults;
 use Blush\Field\FormField;
 use Blush\Field\Field;
-use Blush\Field\FieldSet;
 use Blush\Field\FieldContext;
 use Blush\Field\Violation;
 use Blush\Http\Response;
@@ -589,12 +588,6 @@ final readonly class MediaListController
 			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes), $record === null ? '' : $this->artworks->url($record)),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
 			'fields'     => array_map(static fn (FormField $field): array => $field->toArray(), FormField::all($drawn, $this->schemas->controls(MediaKind::fromMime($file->mime)), $this->defaults)),
-			'sets'       => array_map(static fn (FieldSet $set): array => [
-				'name'        => $set->name,
-				'label'       => $set->label,
-				'description' => $set->description,
-				'fields'      => array_keys($set->schema->fields)
-			], $this->schemas->setsFor(MediaKind::fromMime($file->mime))),
 			'values'     => $values,
 			'extra'      => $result->extra,
 			'violations' => array_map(static fn (Violation $violation): array => [

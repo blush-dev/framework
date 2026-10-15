@@ -1,81 +1,29 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title": "Blush Framework field set",
-	"description": "A field set: fields added to each place it targets, such as content types. It's named after its file.",
-	"type": "object",
-	"additionalProperties": false,
-	"properties": {
-		"$schema": {
-			"type": "string",
-			"description": "The JSON Schema editors check this file with."
+	"title": "Blush Framework field",
+	"description": "A field in the site's field library, which content types place by their layout. Its key is its file's name.",
+	"allOf": [
+		{
+			"$ref": "#/definitions/field"
 		},
-		"name": {
-			"type": "string",
-			"pattern": "^[a-z0-9][a-z0-9_-]*$",
-			"description": "The set's name, which must match its file's."
-		},
-		"label": {
-			"type": "string",
-			"description": "The set's name for people, heading its fields in the admin. Its name, made readable, by default."
-		},
-		"description": {
-			"type": "string",
-			"description": "Help text, shown under the label in the admin."
-		},
-		"targets": {
-			"description": "Where the fields are added, all of one kind (type:, media:, or settings:).",
-			"anyOf": [
-				{
+		{
+			"properties": {
+				"$schema": {
 					"type": "string",
-					"pattern": "^[a-z]+:(?:\\*|[a-z0-9][a-z0-9_-]*)$",
-					"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
+					"description": "The JSON Schema editors check this file with."
 				},
-				{
-					"type": "array",
-					"items": {
-						"type": "string",
-						"pattern": "^[a-z]+:(?:\\*|[a-z0-9][a-z0-9_-]*)$",
-						"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
-					}
-				}
-			]
-		},
-		"slot": {
-			"type": "string",
-			"pattern": "^[a-z0-9][a-z0-9_-]*$",
-			"description": "The slot its places show it in, from the ones their kind offers; every kind has details, its default. Left out, the kind's default."
-		},
-		"fields": {
-			"description": "The fields: a list of definitions with names, or a map of names to definitions.",
-			"anyOf": [
-				{
-					"type": "array",
-					"items": {
-						"allOf": [
-							{
-								"$ref": "#/definitions/field"
-							},
-							{
-								"required": [
-									"name"
-								]
-							}
-						]
-					}
+				"name": {
+					"type": "string",
+					"pattern": "^[a-z_][a-z0-9_]*$",
+					"description": "The field's key, which must match its file's name."
 				},
-				{
-					"type": "object",
-					"additionalProperties": {
-						"$ref": "#/definitions/field"
-					}
+				"id": {
+					"type": "string",
+					"description": "The field's id, written when it's saved."
 				}
-			]
-		},
-		"id": {
-			"type": "string",
-			"description": "The set's id, written when it's saved."
+			}
 		}
-	},
+	],
 	"definitions": {
 		"field": {
 			"type": "object",
@@ -167,12 +115,12 @@
 						"name": {
 							"anyOf": [
 								{
-									"const": "group",
-									"description": "Group"
+									"const": "object",
+									"description": "Object"
 								},
 								{
-									"const": "repeater",
-									"description": "Repeating Group"
+									"const": "list",
+									"description": "List"
 								},
 								{
 									"const": "text",
@@ -536,7 +484,7 @@
 								"properties": {
 									"name": {
 										"enum": [
-											"repeater",
+											"list",
 											"checkboxes",
 											"multiselect",
 											"readonly"
@@ -654,7 +602,7 @@
 								"properties": {
 									"name": {
 										"enum": [
-											"group",
+											"object",
 											"readonly"
 										]
 									}

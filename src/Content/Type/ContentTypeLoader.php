@@ -23,7 +23,7 @@ use Blush\Content\Relation\RelationLoader;
 use Blush\Content\Relation\RelationOrigin;
 use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
-use Blush\Field\FieldSetLoader;
+use Blush\Field\FieldLibraryLoader;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\RecordException;
 use Blush\Support\RequestMemo;
@@ -43,9 +43,11 @@ use Blush\Translation\Messages;
  *    collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
  *    and the type keeps its origin. One named for a code pages or profiles
- *    type is an error. One that sets only `position` and `under` places
- *    a type from code in the admin's menu, built-in types too, and
- *    changes nothing else (D-726).
+ *    type is an error. One that sets only `position`, `under`, and
+ *    `fields` places a type from code in the admin's menu and gives it
+ *    library fields, built-in types too, and changes nothing else (D-726,
+ *    D-858). A data type's `fields` lists library fields (D-863); only
+ *    code gives a type fields of its own (`ownFields`).
  *
  * The relation definitions load with them (`RelationLoader`, D-593). A
  * data type still in the taxonomy form is read as the collection and
@@ -72,7 +74,7 @@ final readonly class ContentTypeLoader
 		private DefinitionTables $tables,
 		private FieldFactory $fields,
 		private Container $container,
-		private FieldSetLoader $sets,
+		private FieldLibraryLoader $library,
 		private RelationLoader $relations,
 		private Messages $messages,
 		private RequestMemo $memo = new RequestMemo()
@@ -120,11 +122,22 @@ final readonly class ContentTypeLoader
 				$named[]    = $name;
 			}
 
-			// A file that only places a type in the admin's menu lays over
-			// any type from code, built-in ones too, without changing it
-			// otherwise (D-726).
-			if ($origin !== null && ContentType::onlyPlaces($definition)) {
-				$types[$name] = $types[$name]->placedBy($definition, $this->fields, $this->messages);
+			// A type's fields are the library's, which its `fields` lists
+			// (D-858, D-863); only code gives a type fields of its own.
+			if (array_key_exists(ContentType::OWN_FIELDS, $definition)) {
+				throw new InvalidContentType((string) $this->messages->t(
+					'content.content_type_loader.own_fields',
+					'user/data/types/{name} sets "{option}", which only code writes; a type\'s fields are made in the field library (Structure → Fields, user/data/fields) and listed in its "fields".',
+					name: $name,
+					option: ContentType::OWN_FIELDS
+				));
+			}
+
+			// A file that only places a type in the admin's menu or gives
+			// it library fields lays over any type from code, built-in ones
+			// too, without changing it otherwise (D-726, D-858).
+			if ($origin !== null && ContentType::onlyOverlays($definition)) {
+				$types[$name] = $types[$name]->overlaidBy($definition, $this->fields, $this->messages);
 				continue;
 			}
 
@@ -139,7 +152,7 @@ final readonly class ContentTypeLoader
 		}
 
 		try {
-			$sets = $this->sets->load();
+			$library = $this->library->load();
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
@@ -157,7 +170,7 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named, $this->messages);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $library, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named, $this->messages);
 		$this->check($resolved);
 
 		return $resolved;

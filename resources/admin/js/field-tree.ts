@@ -30,7 +30,7 @@ function nodeId(): string {
  * groups (one of plain values holds a value an item, D-777).
  */
 export function isContainer(node: FieldNode): boolean {
-	return holdsFields(node.field.control ?? '') && !(node.field.control === 'repeater' && node.field.item !== undefined && node.field.item.type !== 'object');
+	return holdsFields(node.field.control ?? '') && !(node.field.control === 'list' && node.field.item !== undefined && node.field.item.type !== 'object');
 }
 
 /**
@@ -40,13 +40,13 @@ export function isContainer(node: FieldNode): boolean {
 export function toFieldNodes(definitions: FieldDescription[], depth = 0): FieldNode[] {
 	return definitions.map((definition) => {
 		const control = definition.control ?? '';
-		const inside  = control === 'group' ? definition.fields : (control === 'repeater' ? definition.item?.fields : undefined);
+		const inside  = control === 'object' ? definition.fields : (control === 'list' ? definition.item?.fields : undefined);
 		const field   = { ...definition };
 
 		// Deeper than a level, a group's fields stay in its definition.
-		if (depth === 0 && control === 'group') {
+		if (depth === 0 && control === 'object') {
 			delete field.fields;
-		} else if (depth === 0 && control === 'repeater' && field.item !== undefined) {
+		} else if (depth === 0 && control === 'list' && field.item !== undefined) {
 			field.item = { ...field.item };
 			delete field.item.fields;
 		}
@@ -63,11 +63,11 @@ export function toDefinitions(nodes: FieldNode[]): FieldDescription[] {
 		const field = clean(node.field);
 		const kids  = node.children.map((child) => clean(child.field));
 
-		if (field.control === 'group' && (node.children.length > 0 || field.fields === undefined)) {
+		if (field.control === 'object' && (node.children.length > 0 || field.fields === undefined)) {
 			return { ...field, fields: node.children.length ? toDefinitions(node.children) : kids };
 		}
 
-		if (field.control === 'repeater' && isContainer(node) && (node.children.length > 0 || field.item?.fields === undefined)) {
+		if (field.control === 'list' && isContainer(node) && (node.children.length > 0 || field.item?.fields === undefined)) {
 			return { ...field, item: { ...(field.item ?? { name: '' }), type: 'object', fields: toDefinitions(node.children) } };
 		}
 

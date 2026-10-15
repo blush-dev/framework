@@ -183,7 +183,7 @@ final class HealthCheckJob extends Job
 			$media[$path] = [...$media[$path] ?? [], ...$violations];
 		}
 
-		$this->health->checkFiles(lint: new LintReport($checked, [...$files, ...$this->linter->lintFormats(), ...$media, ...$this->linter->lintFieldSets()], $described));
+		$this->health->checkFiles(lint: new LintReport($checked, [...$files, ...$this->linter->lintFormats(), ...$media, ...$this->linter->lintFields()], $described));
 
 		return JobResult::done($this->messages->t(
 			'admin.health_check_job.done',

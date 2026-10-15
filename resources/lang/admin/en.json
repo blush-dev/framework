@@ -22,16 +22,6 @@
 	"field_types": {
 		"list_of": "{name} of {item}"
 	},
-	"field_tree": {
-		"copy_label": "{label} copy",
-		"heading": "Fields",
-		"noun": "entries",
-		"count": "{count, plural, one {# field} other {# fields} }",
-		"add": "Add Field",
-		"empty": "No Fields Yet",
-		"empty_locked": "It has no fields.",
-		"empty_text": "Add the first field, and every one of the {noun} gets it."
-	},
 	"blocks": {
 		"categories": {
 			"text": "Text",
@@ -117,7 +107,9 @@
 			"confirm_email": "Confirm Email Address",
 			"workflows": "Workflows",
 			"new_workflow": "New Workflow",
-			"workflow": "Workflow"
+			"workflow": "Workflow",
+			"field": "Field",
+			"new_field": "New Field"
 		},
 		"admin": "Admin",
 		"document_title": "{title} · {site}"
@@ -478,9 +470,6 @@
 		"archives_note": "Each relationship's archives are set under Relationships, below. A page written for one entry's archive is kept on that entry's screen (a profile's, for credits).",
 		"addresses": "Addresses",
 		"under": "Under {prefix}",
-		"fields_hint": "Beside the title, slug, status, dates, and body every entry has",
-		"fields": "Fields",
-		"fields_in_code": "Some of its fields are field classes its plugin defines, so they're changed there.",
 		"removes_file": "Removes {file}, so every setting is as its plugin has it.",
 		"nothing_changed": "Nothing has changed it here yet.",
 		"defined_in_code": "It's defined in code, so it can't be deleted here.",
@@ -616,7 +605,6 @@
 		"llms": "Listed in {file}",
 		"feed": "Has a feed (RSS, Atom, and JSON)",
 		"hierarchical": "Entries can nest under a parent, as categories do",
-		"featured": "Has a featured image",
 		"index_page": "Its index page: {link}, the landing page at its prefix. It's an entry, edited like one.",
 		"index_wanted": "Has an index page",
 		"index_created": "An entry is created for the landing page at {address}, titled with the plural name, and pinned at the top of its list.",
@@ -650,7 +638,6 @@
 		"remove_body": "{count, plural, one {# entry has} other {# entries have}} a value for it. Their files keep it, listed as other front matter once the field is gone.",
 		"remove_field": "Remove Field",
 		"taken_group": "The {group} group",
-		"taken_set": "This set",
 		"moved_into": "Moved {field} into {group}",
 		"moved_into_values": "Moved {field} into {group}. Saving moves its values in {count, plural, one {# entry} other {# entries}} into it too",
 		"moved_out": "Moved {field} out of {group}",
@@ -670,7 +657,8 @@
 		"add_below": "Add field below",
 		"removed_with": "Removed {name} and its {count, plural, one {# field} other {# fields}}",
 		"show_under": "Show the fields under {name}",
-		"hide_under": "Hide the fields under {name}"
+		"hide_under": "Hide the fields under {name}",
+		"taken_top": "These fields"
 	},
 	"conflict_bar": {
 		"heading": "This {noun} changed while you were editing",
@@ -1126,7 +1114,7 @@
 	"control_picker": {
 		"choose": "Choose a Control",
 		"change": "Change the Control",
-		"flat_hint": "This one sits inside a group, so it can't be a group itself.",
+		"flat_hint": "This one sits inside an Object, so it can't be one itself.",
 		"same_value_hint": "These store the same value, so what entries have is kept.",
 		"search_placeholder": "Search controls…",
 		"search_label": "Search controls",
@@ -1615,7 +1603,6 @@
 		"label_placeholder": "Prep time",
 		"key": "Key",
 		"key_help": "How it's saved in each entry. Follows the label until you change it.",
-		"key_help_group": "The group's name in this set. Its fields are saved under their own keys.",
 		"control": "Control",
 		"change": "Change",
 		"default": "Default",
@@ -1629,8 +1616,6 @@
 		"each_item_has": "Each item has",
 		"its_fields": "Its fields",
 		"inside_help_repeater": "Every item in the list has these, in this order.",
-		"inside_help_group": "These are saved under their own keys, next to the set's other fields.",
-		"group_note": "A group holds no value of its own. Defaults, Required to publish, and older keys belong to the fields inside it.",
 		"required": "Required to publish",
 		"required_help_repeater": "A draft still saves. Publishing needs at least one item.",
 		"required_help": "A draft still saves. Publishing names the field.",
@@ -1654,36 +1639,15 @@
 		"aliases_help": "Other names this field still reads, so a renamed field keeps its values.",
 		"remove": "Remove Field",
 		"locked": "From code, so it's shown here.",
-		"unsaved": "Nothing is written until you save."
+		"unsaved": "Nothing is written until you save.",
+		"key_help_fixed": "How it's saved in each entry. Fixed, since every type that has it reads it by this key.",
+		"key_help_object": "Its fields' values are saved together under this key. Follows the label until you change it.",
+		"inside_help_object": "Their values are saved together under its key.",
+		"object_note": "An Object is its fields' values together. Defaults, Required to publish, and older keys belong to the fields inside it."
 	},
 	"toggle_switch": {
 		"on": "On",
 		"off": "Off"
-	},
-	"field_set_settings": {
-		"key_required": "Give the set a key.",
-		"key_invalid": "A key uses lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.",
-		"key_taken": "Another set already uses “{name}”.",
-		"new_title": "New Field Set",
-		"settings_title": "Field Set Settings",
-		"saved_with": "Saved with the fields when you press Update.",
-		"label": "Label",
-		"label_placeholder": "Recipe Details",
-		"label_required": "Give the set a label.",
-		"label_help": "Heads its fields in the editor.",
-		"key": "Key",
-		"key_help_fresh": "Its file's name in {folder}. Fixed once it's created.",
-		"key_help": "Its file's name in {folder}.",
-		"help": "Help",
-		"help_help": "Shown under the label in the editor.",
-		"used_on": "Used on",
-		"all_types": "All content types",
-		"not_on_site": "(not on this site)",
-		"used_on_help": "Its fields are added to every entry of these types. A set can't use a key one of them already has.",
-		"position": "Position",
-		"position_help": "Where it sits among a type's sets in the editor's panel: lowest first, then by label.",
-		"creating": "Creating…",
-		"create": "Create"
 	},
 	"pick_modal": {
 		"title_none": "No {noun} to Link",
@@ -1763,13 +1727,6 @@
 		"restore": "Restore as a draft",
 		"preview": "Preview",
 		"delete_permanently": "Delete permanently"
-	},
-	"type_field_sets": {
-		"heading": "Field Sets",
-		"hint": "Fields added after its own",
-		"fields": "{count, plural, one {# field} other {# fields} }",
-		"none": "None. A set chooses its types on its screen, under {link}.",
-		"fields_link": "Fields"
 	},
 	"bulk_bar": {
 		"selected": "{count} selected",
@@ -2271,7 +2228,7 @@
 		"files": "Files",
 		"files_none": "None chosen, so it files every type.",
 		"files_some": "Entries of these types can be filed under it. Change it later under Relationships.",
-		"fields_help": "Every entry already has a title, a slug, a status, dates, and a Markdown body. Fields add structured data beside them; you can add more later.",
+		"fields_help": "Every entry already has a title, a slug, a status, dates, a featured image, and a Markdown body. Add fields from the library, or make new ones there; you can add more later.",
 		"next": "Next",
 		"creating": "Creating…",
 		"create": "Create Type",
@@ -2298,7 +2255,8 @@
 		"fields": "Fields",
 		"none_yet": "None yet",
 		"taxonomy": "Taxonomy",
-		"taxonomy_text": "Entries that file other entries, like topics or tags."
+		"taxonomy_text": "Entries that file other entries, like topics or tags.",
+		"entries": "entries"
 	},
 	"admin_theme_view": {
 		"errors": {
@@ -2437,38 +2395,6 @@
 		"email_help_mail": "Every account needs one.",
 		"email_help_no_mail": "Every account needs one. This site sends no email, so the password link is yours to send.",
 		"send_link": "Email them a link to choose a password"
-	},
-	"field_sets_view": {
-		"load_failed": "The field sets couldn't be loaded.",
-		"create_failed": "The field set couldn't be created.",
-		"created": "Created {label}",
-		"delete_title": "Delete {label}?",
-		"delete_body": "Its file in user/data/fields is removed, and its fields leave the types it's used on.",
-		"delete_keep": "Entries keep their values in their files.",
-		"delete_confirm": "Delete Field Set",
-		"deleted": "Deleted {label}",
-		"delete_failed": "{label} couldn't be deleted.",
-		"title": "Fields",
-		"hint": "Sets of fields added to content types. Every entry of a type gets its sets' fields.",
-		"new_field_set": "New Field Set",
-		"field_sets": "Field Sets",
-		"sets_count": "{count, plural, one {# set} other {# sets} }",
-		"field_set": "Field set",
-		"used_on": "Used on",
-		"fields": "Fields",
-		"loading": "Loading the field sets…",
-		"empty_heading": "No Field Sets Yet",
-		"empty_text": "A set adds the same fields to several content types: a recipe's details, or search engine settings for posts and pages.",
-		"actions": "Actions",
-		"no_type": "The site has no {type}",
-		"type_off": "Type Is Off",
-		"nowhere": "Nowhere yet",
-		"left_off": "Left Off",
-		"actions_for": "Actions for {label}",
-		"edit_fields": "Edit fields",
-		"open": "Open",
-		"settings": "Settings",
-		"delete_field_set": "Delete field set"
 	},
 	"relation_view": {
 		"choose_type": "Choose a type",
@@ -3615,10 +3541,6 @@
 		"make_homepage": "Make homepage",
 		"author": "Author",
 		"authors": "Authors",
-		"sets": {
-			"required_left": "{count, plural, one {required field left empty} other {required fields left empty} }",
-			"fields": "{count, plural, one {field} other {fields} }"
-		},
 		"show_notices": "{count, plural, one {Show # notice} other {Show # notices} }",
 		"drill": {
 			"archive": "Archive Page",
@@ -3653,6 +3575,10 @@
 		"none": {
 			"heading": "Nothing Selected",
 			"text": "The cursor isn't in the text. Click anywhere in it, and this panel follows what it's in."
+		},
+		"sections": {
+			"required_left": "{count, plural, one {required field left empty} other {required fields left empty} }",
+			"fields": "{count, plural, one {field} other {fields} }"
 		}
 	},
 	"tools_view": {
@@ -3755,7 +3681,7 @@
 	},
 	"type_view": {
 		"load_failed": "The content type couldn't be loaded.",
-		"place_failed": "Its place in the menu couldn't be saved.",
+		"place_failed": "The changes couldn't be saved.",
 		"saved": "Saved {label}",
 		"origin_built_in": "Built in",
 		"origin_plugin": "A plugin",
@@ -3794,14 +3720,6 @@
 		"credited_by": "Credited By",
 		"no_credits": "No type credits authors yet.",
 		"profiles_note": "Profiles are the public side of accounts, so they're under Users in the navigation.",
-		"fields": "Fields",
-		"field_count": "{count, plural, one {# field} other {# fields} } of its own",
-		"col_field": "Field",
-		"col_type": "Type",
-		"col_required": "Required",
-		"list_of": "of {type}",
-		"no_fields": "None of its own.",
-		"every_entry": "Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships.",
 		"taxonomy": "Taxonomy"
 	},
 	"icon_packs_view": {
@@ -3958,39 +3876,6 @@
 		"discard": "Discard",
 		"not_editable": "This menu can't be edited here until it's fixed.",
 		"fix_in": "Fix it in {file}, then reload."
-	},
-	"field_set_view": {
-		"load_failed": "The field set couldn't be loaded.",
-		"entries": "entries",
-		"entries_of_types": "entries of its types",
-		"saved": "Saved {label}",
-		"moved": "Moved values in {count, plural, one {# entry} other {# entries}}",
-		"kept": "{count, plural, one {# entry} other {# entries}} already had a value at the new place, so the old one stays",
-		"failed": "{count, plural, one {# entry} other {# entries}} couldn't be changed: {reason}",
-		"save_failed": "The field set couldn't be saved.",
-		"reverted": "Changes reverted",
-		"delete_title": "Delete {label}?",
-		"delete_body": "Its file in user/data/fields is removed, and its fields leave the types it's used on.",
-		"delete_values": "Entries keep their values in their files.",
-		"delete_confirm": "Delete Field Set",
-		"deleted": "Deleted {label}",
-		"delete_failed": "The field set couldn't be deleted.",
-		"leave": "The fields and settings you changed haven't been saved.",
-		"back": "All field sets",
-		"title": "Field Set",
-		"fields": "{count, plural, one {# field} other {# fields} }",
-		"no_types": "No types",
-		"position": "Position {position}",
-		"read_only": "Read only",
-		"settings": "Settings",
-		"saving": "Saving…",
-		"update": "Update",
-		"saved_button": "Saved",
-		"more": "More actions",
-		"revert": "Revert changes",
-		"delete": "Delete field set",
-		"problem": "{problem} It's left off there until one of them is renamed.",
-		"locked": "{config} turns off sets in {folder}, so its fields can't be changed here."
 	},
 	"menus_view": {
 		"load_failed": "The menus couldn't be loaded.",
@@ -4793,5 +4678,125 @@
 		"to": "To",
 		"capability": "Needs a capability of its own",
 		"capability_help": "Roles give it on each type, under its sections. Without one, editing is enough, and publishing for what's live."
+	},
+	"library_field_picker": {
+		"title": "Add a Field",
+		"hint": "From the field library. A field keeps its key and settings on every type that has it.",
+		"search_placeholder": "Search fields…",
+		"search_label": "Search fields",
+		"none": "The library has no field this type doesn't have yet. Make a new one.",
+		"no_match": "No field matches that.",
+		"new_field": "New Field",
+		"none_wizard": "The library has no field this type doesn't have yet. Make new ones under Structure → Fields, or on the type's screen once it's created."
+	},
+	"library_field_form": {
+		"untitled": "Untitled field"
+	},
+	"fields_view": {
+		"load_failed": "The field library couldn't be loaded.",
+		"created": "Made {label}",
+		"delete_title": "Delete {label}?",
+		"delete_types": "It comes off {types}.",
+		"delete_no_types": "No type has it.",
+		"delete_keep": "Its file in user/data/fields is removed. Entries keep their values in their files.",
+		"delete_confirm": "Delete Field",
+		"deleted": "Deleted {label}",
+		"delete_failed": "{label} couldn't be deleted.",
+		"title": "Fields",
+		"hint": "The field library. Each content type chooses which of these it has, on its own screen.",
+		"new_field": "New Field",
+		"library": "Field Library",
+		"count": "{count, plural, one {# field} other {# fields} }",
+		"field": "Field",
+		"control": "Control",
+		"used_on": "Used on",
+		"loading": "Loading the field library…",
+		"empty_heading": "No Fields Yet",
+		"empty_text": "Make a field once, and give it to every type that needs it: a recipe's cook time, or an Object of search engine settings for posts and pages.",
+		"actions": "Actions",
+		"nowhere": "No type yet",
+		"left_off": "Left Off",
+		"actions_for": "Actions for {label}",
+		"edit": "Edit field",
+		"open": "Open",
+		"delete": "Delete field"
+	},
+	"field_view": {
+		"load_failed": "The field couldn't be loaded.",
+		"title": "Field",
+		"saved": "Saved {label}",
+		"moved": "Moved values in {count, plural, one {# entry} other {# entries}}",
+		"kept": "{count, plural, one {# entry} other {# entries}} already had a value at the new place, so the old one stays",
+		"failed": "{count, plural, one {# entry} other {# entries}} couldn't be changed: {reason}",
+		"save_failed": "The field couldn't be saved.",
+		"reverted": "Changes reverted",
+		"delete_title": "Delete {label}?",
+		"delete_types": "It comes off {types}.",
+		"delete_no_types": "No type has it.",
+		"delete_keep": "Its file in user/data/fields is removed. Entries keep their values in their files.",
+		"delete_confirm": "Delete Field",
+		"deleted": "Deleted {label}",
+		"delete_failed": "The field couldn't be deleted.",
+		"leave": "The changes to this field haven't been saved.",
+		"back": "All fields",
+		"no_types": "No type has it yet",
+		"read_only": "Read only",
+		"saving": "Saving…",
+		"update": "Update",
+		"saved_button": "Saved",
+		"more": "More actions",
+		"revert": "Revert changes",
+		"delete": "Delete field",
+		"problem": "{problem} It's left off there until one of them is renamed.",
+		"field": "Field",
+		"hint": "The same on every type that has it. A type can change its label, help, and whether it's required.",
+		"locked": "{config} turns off the field library in {folder}, so it can't be changed here.",
+		"the_library": "The field library",
+		"new_title": "New Field",
+		"created": "Made {label}",
+		"create_failed": "The field couldn't be made.",
+		"back_to_type": "Back to the type",
+		"creating": "Creating…",
+		"create": "Create",
+		"new_hint": "Made once, in the field library. Each type that needs it adds it on its own screen."
+	},
+	"field_tree": {
+		"copy_label": "{label} copy"
+	},
+	"type_fields": {
+		"noun": "entries",
+		"under": "{count, plural, one {# field} other {# fields}}",
+		"added": "Added a field.",
+		"added_at": "Added a field {place, select, above {above} below {after} other {inside}} {name}.",
+		"add_above": "Add field above",
+		"add_below": "Add field below",
+		"removed_with": "Removed {name} and its {count, plural, one {# field} other {# fields}}",
+		"show_under": "Show the fields under {name}",
+		"hide_under": "Hide the fields under {name}",
+		"untitled_section": "Untitled section",
+		"new_section": "New Section",
+		"heading": "Fields",
+		"hint": "{count, plural, one {# field} other {# fields} } from the library{sections, plural, =0 {} one {, in # section} other {, in # sections} }",
+		"add_section": "Add Section",
+		"add_field": "Add Field",
+		"own": "Its plugin gives it {fields}, changed in code.",
+		"empty": "No Fields Yet",
+		"empty_locked": "It has no fields from the library.",
+		"empty_text": "Add a field from the library, or make a new one, and every one of the {noun} has it.",
+		"section": "Section",
+		"not_in_library": "Not in the Library",
+		"required": "Required",
+		"changed_here": "Changed Here",
+		"section_heading": "Heading",
+		"section_placeholder": "Timing",
+		"help": "Help",
+		"section_help": "A heading over its fields in the editor's sidebar. It saves nothing to entries, and removing it keeps its fields.",
+		"label": "Label",
+		"required_label": "Required to publish",
+		"required_own": "As the field has it.",
+		"required_changed": "Changed for these {noun}; the field has it {on, select, true {on} other {off} }.",
+		"field_help": "Empty, each is the field's own. Only how these {noun} ask for it changes; its key and settings are the same on every type.",
+		"edit_field": "Edit the field in the library",
+		"unsaved": "Nothing is written until you save."
 	}
 }

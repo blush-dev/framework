@@ -16,16 +16,15 @@ namespace Blush\Settings;
 use Override;
 use Blush\Content\Type\ContentTypes;
 use Blush\Field\Field;
-use Blush\Field\FieldSets;
+use Blush\Field\FieldLibrary;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
 use Blush\Translation\Messages;
 
 /**
- * The Settings screens as places field sets attach to (D-343),
+ * The Settings screens as places fields go on (D-343),
  * `settings:{screen}`. Their settings share one store, keyed by field
- * name, so two sets can't use one name on different screens
- * (`conflicts()`).
+ * name.
  */
 final readonly class SettingsTargets implements FieldTargetSource
 {
@@ -72,52 +71,21 @@ final readonly class SettingsTargets implements FieldTargetSource
 		return [new FieldSlot('details', (string) $this->messages->t('settings.settings_targets.details.label', 'Details'), (string) $this->messages->t('settings.settings_targets.details.description', 'Settings of the site\'s own, beside the screen\'s.'))];
 	}
 
-	/**
-	 * @inheritDoc
-	 *
-	 * A set on several screens has its fields on each, which is one
-	 * setting; two sets using one name aren't.
-	 */
-	#[Override]
-	public function conflicts(FieldSets $sets): array
-	{
-		$owners    = [];
-		$conflicts = [];
-
-		foreach (SettingsScreen::cases() as $screen) {
-			foreach ($sets->for(SettingsTarget::keyFor($screen)) as $set) {
-				foreach ($set->schema->fields as $field) {
-					foreach ([$field->name, ...$field->aliases] as $key) {
-						$owner = $owners[$key] ?? null;
-
-						if ($owner !== null && $owner !== $set->name) {
-							$conflicts[$set->name] ??= (string) $this->messages->t('settings.settings_targets.conflict', 'Field sets "{first}" and "{second}" both add a "{setting}" setting; settings share one store, so rename one.', first: $owner, second: $set->name, setting: $key);
-						}
-
-						$owners[$key] ??= $set->name;
-					}
-				}
-			}
-		}
-
-		return $conflicts;
-	}
 
 	/**
-	 * Returns every field sets add to the Settings screens, by name, each
-	 * once, screen by screen: the store `SiteSettings` reads.
+	 * Returns every field extensions register on the Settings screens, by
+	 * name, each once, screen by screen: the store `SiteSettings` reads.
+	 * The site's own fields reach the screens with their editor (D-858).
 	 *
 	 * @return array<string, Field>
 	 */
-	public static function fields(FieldSets $sets): array
+	public static function fields(FieldLibrary $library): array
 	{
 		$fields = [];
 
 		foreach (SettingsScreen::cases() as $screen) {
-			foreach ($sets->for(SettingsTarget::keyFor($screen)) as $set) {
-				foreach ($set->schema->fields as $name => $field) {
-					$fields[$name] ??= $field;
-				}
+			foreach ($library->registered->for(SettingsTarget::keyFor($screen)) as $registered) {
+				$fields[$registered->field->name] ??= $registered->field;
 			}
 		}
 

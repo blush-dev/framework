@@ -6,7 +6,7 @@
  * that's blank or back at its default is simply sent.
  */
 
-import type { ContentTypeDetail, FieldDescription } from './api';
+import type { ContentTypeDetail, TypeFieldItem } from './api';
 import { t } from './messages';
 
 export type TypeKind = 'collection' | 'tree';
@@ -43,7 +43,8 @@ export interface TypeForm {
 	// whether entries are newest published first or by `position`.
 	hierarchical: boolean;
 	order: 'date' | 'position';
-	fields: FieldDescription[];
+	// The library fields it carries, in sections (D-858, D-863).
+	fields: TypeFieldItem[];
 	// Its place in the content menu (D-726): its position, `''` for none,
 	// and the type it sits under, `''` for the top level.
 	position: string;
@@ -58,11 +59,6 @@ export interface TypeForm {
 	// default.
 	paths: Record<string, string>;
 }
-
-/**
- * The field a featured image is (D-281): a media field named `image`.
- */
-export const FEATURED: FieldDescription = { name: 'image', type: 'media', control: 'image', label: 'Featured image', kind: 'image' };
 
 /**
  * A new type's form.
@@ -110,13 +106,6 @@ export function formOf(type: ContentTypeDetail): TypeForm {
  */
 export function copy<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value)) as T;
-}
-
-/**
- * Whether the form's fields include a featured image.
- */
-export function hasFeatured(form: TypeForm): boolean {
-	return form.fields.some((field) => field.name === FEATURED.name && field.type === FEATURED.type);
 }
 
 /**

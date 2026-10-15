@@ -13,8 +13,8 @@ import type { IconName } from './icons';
 
 // Each core control's tile, from the admin's icons.
 const ICONS: Record<string, IconName> = {
-	group: 'group',
-	repeater: 'rows-3',
+	object: 'group',
+	list: 'rows-3',
 	text: 'type',
 	textarea: 'text',
 	markdown: 'pilcrow',
@@ -33,7 +33,6 @@ const ICONS: Record<string, IconName> = {
 	file: 'file',
 	icon: 'shapes',
 	code: 'code',
-	list: 'list-ordered',
 	reference: 'link',
 	readonly: 'lock'
 };
@@ -99,10 +98,10 @@ export function switchesTo(key: string): string[] {
 }
 
 /**
- * Whether a control holds other fields: a group, or a repeating group.
+ * Whether a control holds other fields: an Object, or a List (D-858).
  */
 export function holdsFields(key: string): boolean {
-	return key === 'group' || key === 'repeater';
+	return key === 'object' || key === 'list';
 }
 
 export function isChoice(key: string): boolean {
@@ -166,7 +165,7 @@ export function blankField(key: string): FieldDescription {
 		field.options = [];
 	} else if (MANY_CHOICE.includes(key)) {
 		field.item = { name: '', type: 'enum', options: [] };
-	} else if (key === 'repeater') {
+	} else if (key === 'list') {
 		field.item = { name: '', type: 'object' };
 	}
 

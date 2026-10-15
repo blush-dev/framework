@@ -3,8 +3,8 @@
  * How a content type behaves (D-311), for the type editor and the
  * new-type wizard: its URL prefix, whether it's public, whether its
  * entries choose a visibility (D-855), in the sitemap
- * and `llms.txt` (D-398, D-401), and has a feed; a collection's date archives, featured image (an
- * `image` media field), nesting by a `parent`, and order (D-593); file
+ * and `llms.txt` (D-398, D-401), and has a feed; a collection's date
+ * archives, nesting by a `parent`, and order (D-593); file
  * names, for every kind (D-511, D-514), and folders, for every kind but a
  * tree (D-629), both only when content is kept in files (D-683); and the
  * index page (D-255), which a type gets once and keeps.
@@ -20,7 +20,7 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { entryRoute } from '../api';
 import AdminSelect from './AdminSelect.vue';
-import { DATE_ARCHIVES, FEATURED, FILENAMES, FOLDERS, ORDERS, hasFeatured, type TypeForm, type TypeKind } from '../type-form';
+import { DATE_ARCHIVES, FILENAMES, FOLDERS, ORDERS, type TypeForm, type TypeKind } from '../type-form';
 import { typeFiles } from '../types';
 import { t } from '../messages';
 import MessageText from './MessageText.vue';
@@ -44,15 +44,6 @@ const props = defineProps<{
 const form        = defineModel<TypeForm>({ required: true });
 const indexWanted = defineModel<boolean>('index', { default: false });
 const pageWanted  = defineModel<boolean>('pageWanted', { default: false });
-
-const featured = computed({
-	get: () => hasFeatured(form.value),
-	set: (on: boolean) => {
-		form.value.fields = on
-			? [...form.value.fields, { ...FEATURED }]
-			: form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
-	}
-});
 
 // The patterns offered, with a pattern from config that isn't one of
 // them as itself.
@@ -94,7 +85,6 @@ const folders = computed(() => FOLDERS.some((option) => option.value === form.va
 			<label class="checkbox"><input v-model="form.llms" type="checkbox" :disabled="!form.public"> <MessageText :text="t('type_behavior_fields.llms', 'Listed in {file}')"><template #file><code>llms.txt</code></template></MessageText></label>
 			<label v-if="kind !== 'tree'" class="checkbox"><input v-model="form.feed" type="checkbox"> {{ t('type_behavior_fields.feed', 'Has a feed (RSS, Atom, and JSON)') }}</label>
 			<label v-if="kind === 'collection'" class="checkbox"><input v-model="form.hierarchical" type="checkbox"> {{ t('type_behavior_fields.hierarchical', 'Entries can nest under a parent, as categories do') }}</label>
-			<label v-if="kind === 'collection'" class="checkbox"><input v-model="featured" type="checkbox"> {{ t('type_behavior_fields.featured', 'Has a featured image') }}</label>
 			<template v-if="indexPage">
 				<p class="field__help"><MessageText :text="t('type_behavior_fields.index_page', 'Its index page: {link}, the landing page at its prefix. It\'s an entry, edited like one.')"><template #link><RouterLink :to="entryRoute(indexPage)">{{ indexPage.title }}</RouterLink></template></MessageText></p>
 			</template>

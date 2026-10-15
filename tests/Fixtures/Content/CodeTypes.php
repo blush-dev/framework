@@ -35,6 +35,12 @@ final readonly class CodeTypes implements ContentTypeSource
 	public function types(): iterable
 	{
 		foreach ($this->definitions('types') as $name => $definition) {
+			// A plugin's `fields` here are its own, as code defines them.
+			if (array_key_exists('fields', $definition)) {
+				$definition[ContentType::OWN_FIELDS] = $definition['fields'];
+				unset($definition['fields']);
+			}
+
 			yield ContentType::fromArray(['name' => $name, ...$definition], $this->fields, new Messages());
 		}
 	}

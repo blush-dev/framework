@@ -39,9 +39,10 @@ const props = withDefaults(defineProps<{
 	words: ItemTreeWords;
 	// What labels the tree.
 	labelledBy: string;
-	// A node to add, and a copy of one, with new page ids.
+	// A node to add, and a copy of one, with new page ids; without
+	// `copy`, nodes aren't duplicated (a type's placed fields, D-858).
 	blank: () => T;
-	copy: (node: T) => T;
+	copy?: (node: T) => T;
 	accepts?: Accepts<T>;
 	locked?: boolean;
 	// What to focus when a row's fields open, by the node.
@@ -276,7 +277,7 @@ async function remove(id: string): Promise<void> {
 function duplicate(id: string): void {
 	const placed = find(props.nodes, id);
 
-	if (placed === undefined) {
+	if (placed === undefined || props.copy === undefined) {
 		return;
 	}
 
@@ -522,8 +523,10 @@ defineExpose({ add, remove, toggleAll, edit, select, closed, parents, total });
 						<button type="button" class="menu-item" @click="add('above', placed.node.id)"><AdminIcon name="arrow-up" />{{ words.addAbove }}</button>
 						<button type="button" class="menu-item" @click="add('below', placed.node.id)"><AdminIcon name="arrow-down" />{{ words.addBelow }}</button>
 						<slot name="menu" :placed="placed" />
-						<div class="menu-divider" />
-						<button type="button" class="menu-item" @click="duplicate(placed.node.id)"><AdminIcon name="copy" />{{ t('item_tree.duplicate', 'Duplicate') }}</button>
+						<template v-if="copy">
+							<div class="menu-divider" />
+							<button type="button" class="menu-item" @click="duplicate(placed.node.id)"><AdminIcon name="copy" />{{ t('item_tree.duplicate', 'Duplicate') }}</button>
+						</template>
 						<div class="menu-divider" />
 						<button type="button" class="menu-item menu-item--danger" @click="remove(placed.node.id)"><AdminIcon name="trash-2" />{{ t('common.remove', 'Remove') }}</button>
 					</MenuButton>

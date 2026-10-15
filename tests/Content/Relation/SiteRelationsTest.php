@@ -251,7 +251,7 @@ final class SiteRelationsTest extends TestCase
 
 	public function testRefsIsReserved(): void
 	{
-		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts'], 'fields' => [['name' => 'refs', 'type' => 'text']]]]]);
+		$this->codeConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts'], 'fields' => [['name' => 'refs', 'type' => 'text']]]]]);
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('reserved for the ids of the entry\'s links');

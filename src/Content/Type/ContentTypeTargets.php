@@ -14,14 +14,13 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
-use Blush\Field\FieldSets;
 use Blush\Field\FieldSlot;
 use Blush\Field\FieldTargetSource;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * The site's content types as places field sets attach to (D-337),
+ * The site's content types as places fields go on (D-337),
  * `type:{name}`, by plural name.
  */
 final readonly class ContentTypeTargets implements FieldTargetSource
@@ -78,14 +77,5 @@ final readonly class ContentTypeTargets implements FieldTargetSource
 			$this->messages->t('content.content_type_targets.details', 'Details'),
 			$this->messages->t('content.content_type_targets.details_description', 'Facts about each entry, such as notes or search engine settings.')
 		)];
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function conflicts(FieldSets $sets): array
-	{
-		return [];
 	}
 }

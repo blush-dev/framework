@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Repeating group control.
+ * List control.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -25,15 +25,16 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * A list of items, each with the same fields: a list field whose items
- * are a group, or whose items are one value each that fits on a line
+ * A List (D-858): a list field whose items are Objects, each with the
+ * same fields, or whose items are one value each that fits on a line
  * (text, a number, a date; D-777), each item then one box. A definition
  * that names only the control may write the fields on the field
  * (`fields`); they become its item's. What each item
  * is called (`itemLabel`, for "Add Ingredient") and the keys that sum an
- * item up in one line when it's closed (`summary`) are its own.
+ * item up in one line when it's closed (`summary`) are its own. Named
+ * for its field type, since `list` can't name a PHP class.
  */
-final class Repeater extends Control
+final class ListControl extends Control
 {
 	/**
 	 * @param list<string> $summary
@@ -49,7 +50,7 @@ final class Repeater extends Control
 	#[Override]
 	public static function name(): string
 	{
-		return 'repeater';
+		return 'list';
 	}
 
 	/**
@@ -58,7 +59,7 @@ final class Repeater extends Control
 	#[Override]
 	public static function label(Messages $messages): Text
 	{
-		return $messages->t('field.repeater.label', 'Repeating Group');
+		return $messages->t('field.list.label', 'List');
 	}
 
 	/**
@@ -67,7 +68,7 @@ final class Repeater extends Control
 	#[Override]
 	public static function description(Messages $messages): Text
 	{
-		return $messages->t('field.repeater.description', 'A list of items, each with the same fields.');
+		return $messages->t('field.list.description', 'A list of values, or of Objects, each item the same.');
 	}
 
 	/**

@@ -19,6 +19,7 @@ use Blush\Content\ContentConfig;
 use Blush\Content\Relation\Relation;
 use Blush\Data\DataKeys;
 use Blush\Field\FieldFactory;
+use Blush\Field\FieldLayout;
 use Blush\Field\InvalidSchema;
 use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\RecordException;
@@ -37,7 +38,8 @@ use Blush\Translation\Messages;
  * `paths` for route keys' paths (`null` or `''` for a key's default,
  * D-350), `public`, `sitemap`, `llms` (D-398), `feed`, `byline` (D-602),
  * `dateArchives`, `filename` (D-511), `folders` for the folder pattern
- * (`{year}`, D-629), `hierarchical`, `order` (D-593), and `fields`);
+ * (`{year}`, D-629), `hierarchical`, `order` (D-593), and `fields`, the
+ * library fields it carries, D-858);
  * `null` removes one. A type is kept in `_` and its name (D-683), so no
  * folder is written. They're applied to the file's own
  * data (or, for a code type, to the type as the code and the file make
@@ -51,9 +53,10 @@ use Blush\Translation\Messages;
  * file keeps its other keys. Types are JSON files (D-490, D-631).
  *
  * A type's place in the admin's menu (D-726), `position` and `under`, is
- * changed like any option, and on any type but the profiles type: on one
- * the admin can't otherwise change (the built-in pages, say), a file of
- * its name holds only those two, and changes nothing else about it.
+ * changed like any option, and on any type but the profiles type; its
+ * `fields` (D-858, D-863) on any type at all. On one the admin can't otherwise
+ * change (the built-in pages, say), a file of its name holds only those
+ * (`ContentType::OVERLAY`), and changes nothing else about it.
  *
  * Types are records in the `types` table (`DefinitionTables`, D-672).
  * Each change is checked against every other type before it's kept: in
@@ -180,11 +183,12 @@ final readonly class DataTypeWriter
 
 		if ($type !== null && array_intersect_key($changes, array_flip(ContentType::PLACEMENT)) !== []) {
 			$this->checkPlacement($types, $type, array_key_exists('under', $changes) ? $changes['under'] : $type->under);
+		}
 
-			// A type the admin can't otherwise change is only placed.
-			if (! $types->isEditable($name) && ContentType::onlyPlaces($changes)) {
-				return $this->placeOnly($types, $type, $changes);
-			}
+		// A type the admin can't otherwise change is only placed, and given
+		// library fields.
+		if ($type !== null && ! $types->isEditable($name) && ContentType::onlyOverlays($changes)) {
+			return $this->overlayOnly($type, $changes);
 		}
 
 		$code = $this->codeType($name);
@@ -224,8 +228,9 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.nothing_changes', 'Nothing in user/data/types changes "{name}".', name: $name));
 		}
 
-		// Its place in the menu isn't one of the code's options, so it stays.
-		$placement = array_intersect_key($this->data($name), array_flip(ContentType::PLACEMENT));
+		// Its place in the menu and its library fields aren't the code's
+		// options, so they stay.
+		$placement = array_intersect_key($this->data($name), array_flip(ContentType::OVERLAY));
 
 		return $this->checked(function () use ($name, $placement): void {
 			if ($placement === []) {
@@ -282,15 +287,16 @@ final readonly class DataTypeWriter
 	}
 
 	/**
-	 * Places a type the admin can't otherwise change (D-726): the built-in
-	 * pages, or a type from code a file can't override.
+	 * Places a type the admin can't otherwise change (D-726), the built-in
+	 * pages, say, or a type from code a file can't override, and gives it
+	 * library fields (D-858).
 	 *
-	 * @param  array<string, mixed> $changes Only `position` and `under`.
+	 * @param  array<string, mixed> $changes Only `position`, `under`, and `fields`.
 	 * @throws InvalidContentType
 	 */
-	private function placeOnly(ContentTypes $types, ContentType $type, array $changes): ContentTypes
+	private function overlayOnly(ContentType $type, array $changes): ContentTypes
 	{
-		if ($type instanceof Profiles) {
+		if ($type instanceof Profiles && array_intersect_key($changes, array_flip(ContentType::PLACEMENT)) !== []) {
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.profiles_not_placed', '{types} are listed with people, so they aren\'t placed in the content menu.', types: $type->labels->plural));
 		}
 
@@ -301,21 +307,28 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_position', '"position" must be a whole number, 0 or more, or null.'));
 		}
 
+		try {
+			$layout = array_key_exists('fields', $changes) ? FieldLayout::fromArray($changes['fields'], $type->labels->plural) : $type->layout;
+		} catch (InvalidSchema $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
+		}
+
 		$under  = is_string($under) && trim($under) !== '' ? trim($under) : null;
 		[$code] = ($this->loader)()->codeTypes();
 
-		return $this->checked(function () use ($type, $position, $under, $code): void {
-			$this->place($type->name, ['position' => $position, 'under' => $under], $code[$type->name] ?? null);
+		return $this->checked(function () use ($type, $position, $under, $layout, $code): void {
+			$this->overlay($type->name, ['position' => $position, 'under' => $under, 'fields' => $layout->toArray()], $code[$type->name] ?? null);
 		});
 	}
 
 	/**
-	 * Writes a type's place in the menu: into a data type's record, or,
-	 * over a type from code, only what differs from the code's.
+	 * Writes a type's place in the menu and its layout: into a data type's
+	 * record, or, over a type from code, only what differs from the
+	 * code's.
 	 *
-	 * @param array{position: ?int, under: ?string} $values
+	 * @param array{position: ?int, under: ?string, fields: list<string|array<string, mixed>>} $values
 	 */
-	private function place(string $name, array $values, ?ContentType $code): void
+	private function overlay(string $name, array $values, ?ContentType $code): void
 	{
 		$table  = $this->table();
 		$record = $table->find($name) ?? [];
@@ -323,11 +336,12 @@ final readonly class DataTypeWriter
 		if ($code !== null) {
 			$values = [
 				'position' => $values['position'] === $code->position ? null : $values['position'],
-				'under'    => $values['under'] === $code->under ? null : ($values['under'] ?? ($code->under === null ? null : ''))
+				'under'    => $values['under'] === $code->under ? null : ($values['under'] ?? ($code->under === null ? null : '')),
+				'fields'   => $values['fields'] === $code->layout->toArray() ? null : $values['fields']
 			];
 		}
 
-		$record = DataKeys::apply($record, $values);
+		$record = DataKeys::apply($record, [...$values, 'fields' => $values['fields'] === [] ? null : $values['fields']]);
 
 		if ($code !== null && $record === []) {
 			if ($table->has($name)) {
@@ -370,29 +384,6 @@ final readonly class DataTypeWriter
 		}
 
 		return $type;
-	}
-
-	/**
-	 * Returns whether the admin can write a type's fields: each is the
-	 * class its type names in the field registry, so the file can name it
-	 * by type. A code type's own field classes stay in code.
-	 */
-	public function fieldsEditable(ContentType $type): bool
-	{
-		foreach ($type->schema->fields as $field) {
-			// Built again by type, it's the same field, down to a list's item.
-			try {
-				$rebuilt = $this->fields->fromArray(array_diff_key($field->toArray(), ['class' => true]));
-			} catch (InvalidSchema) {
-				return false;
-			}
-
-			if ($rebuilt->toArray() !== $field->toArray()) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 
 	/**
@@ -448,10 +439,6 @@ final readonly class DataTypeWriter
 		$paths   = [];
 		$tree    = ($code?->kind() ?? TypeKind::tryFrom(is_string($merged['kind'] ?? null) ? $merged['kind'] : '')) === TypeKind::Tree;
 
-		if ($code !== null && array_key_exists('fields', $changes) && ! $this->fieldsEditable($code)) {
-			throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.code_fields', 'Its fields include field classes from code, so they\'re changed in code.'));
-		}
-
 		foreach ($changes as $key => $value) {
 			if ($key === 'folders' && $value !== null && ! is_string($value)) {
 				throw new InvalidContentType((string) $this->messages->t('content.data_type_writer.bad_folders', '"folders" must be a folder pattern, such as \'{year}\', or null.'));
@@ -470,14 +457,6 @@ final readonly class DataTypeWriter
 				$value = $this->labels($merged, $value);
 			} elseif ($key === 'feed' && $value === true && is_array($merged['feed'] ?? null)) {
 				$value = $merged['feed'];
-			} elseif ($key === 'fields' && is_array($value) && $value !== []) {
-				// The admin's forms send a control by its key; the file keeps
-				// each as an object (D-795).
-				try {
-					$value = $this->fields->nest($value);
-				} catch (InvalidSchema $error) {
-					throw new InvalidContentType($error->getMessage(), previous: $error);
-				}
 			}
 
 			if (! array_key_exists($key, self::OPTIONS)) {
@@ -791,8 +770,8 @@ final readonly class DataTypeWriter
 			return $field;
 		};
 
-		if (isset($data['fields']) && is_array($data['fields'])) {
-			$data['fields'] = array_map($strip, $data['fields']);
+		if (isset($data[ContentType::OWN_FIELDS]) && is_array($data[ContentType::OWN_FIELDS])) {
+			$data[ContentType::OWN_FIELDS] = array_map($strip, $data[ContentType::OWN_FIELDS]);
 		}
 
 		return $data;

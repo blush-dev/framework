@@ -29,7 +29,7 @@ use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Field\ControlType;
-use Blush\Field\FieldSet;
+use Blush\Field\LibraryField;
 use Blush\Field\FieldType;
 use Blush\Field\Schema;
 use Blush\Media\MediaMetadata;
@@ -100,7 +100,7 @@ final readonly class JsonSchemas
 		return [
 			'admin-theme.schema.json' => $this->adminTheme(),
 			'entry.schema.json'       => $this->entry(),
-			'field-set.schema.json'   => $this->fieldSet(),
+			'field.schema.json'       => $this->libraryField(),
 			'icons.schema.json'       => $this->iconPack(),
 			'media.schema.json'       => $this->media(),
 			'menu.schema.json'        => $this->menu(),
@@ -579,51 +579,29 @@ final readonly class JsonSchemas
 	}
 
 	/**
-	 * Returns the schema for a field set file, `user/data/fields/{name}`
-	 * (D-337): its label, help, targets, and fields, as a list of named
-	 * definitions or a map of names to them.
+	 * Returns the schema for a library field's file,
+	 * `user/data/fields/{name}` (D-858): one field definition, with the
+	 * control it's drawn with, named after its file.
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function fieldSet(): array
+	public function libraryField(): array
 	{
-		$field  = ['$ref' => '#/definitions/field'];
-		$target = [
-			'type'        => 'string',
-			'pattern'     => trim(FieldSet::TARGET_PATTERN, '/'),
-			'description' => 'A place the set\'s fields are added: a kind and a name, such as type:post for the post content type.'
-		];
-
 		return [
-			'$schema'              => self::DRAFT,
-			'title'                => sprintf('%s field set', Framework::NAME),
-			'description'          => 'A field set: fields added to each place it targets, such as content types. It\'s named after its file.',
-			'type'                 => 'object',
-			'additionalProperties' => false,
-			'properties'           => [
-				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
-				'name'        => ['type' => 'string', 'pattern' => trim(FieldSet::NAME_PATTERN, '/'), 'description' => 'The set\'s name, which must match its file\'s.'],
-				'label'       => ['type' => 'string', 'description' => 'The set\'s name for people, heading its fields in the admin. Its name, made readable, by default.'],
-				'description' => ['type' => 'string', 'description' => 'Help text, shown under the label in the admin.'],
-				'targets'     => [
-					'description' => 'Where the fields are added, all of one kind (type:, media:, or settings:).',
-					'anyOf'       => [$target, ['type' => 'array', 'items' => $target]]
-				],
-				'slot'        => [
-					'type'        => 'string',
-					'pattern'     => trim(FieldSet::NAME_PATTERN, '/'),
-					'description' => 'The slot its places show it in, from the ones their kind offers; every kind has details, its default. Left out, the kind\'s default.'
-				],
-				'fields'      => [
-					'description' => 'The fields: a list of definitions with names, or a map of names to definitions.',
-					'anyOf'       => [
-						['type' => 'array', 'items' => ['allOf' => [$field, ['required' => ['name']]]]],
-						['type' => 'object', 'additionalProperties' => $field]
+			'$schema'     => self::DRAFT,
+			'title'       => sprintf('%s field', Framework::NAME),
+			'description' => 'A field in the site\'s field library, which content types place by their layout. Its key is its file\'s name.',
+			'allOf'       => [
+				['$ref' => '#/definitions/field'],
+				[
+					'properties' => [
+						'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+						'name'    => ['type' => 'string', 'pattern' => trim(LibraryField::NAME_PATTERN, '/'), 'description' => 'The field\'s key, which must match its file\'s name.'],
+						'id'      => ['type' => 'string', 'description' => 'The field\'s id, written when it\'s saved.']
 					]
-				],
-				'id'          => ['type' => 'string', 'description' => 'The set\'s id, written when it\'s saved.']
+				]
 			],
-			'definitions'          => [
+			'definitions' => [
 				'field' => $this->field()
 			]
 		];
@@ -808,7 +786,7 @@ final readonly class JsonSchemas
 	/**
 	 * Returns the schema for a field definition: the shared keys, and each
 	 * built-in type's own keys when `type` names it (editors offer those
-	 * once `type` is set). A field set's (`$controls`) chooses each
+	 * once `type` is set). A library field's (`$controls`) chooses each
 	 * field's control too (D-795); a theme's settings and menu fields
 	 * take none.
 	 *

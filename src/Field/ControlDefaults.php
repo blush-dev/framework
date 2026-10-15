@@ -19,14 +19,14 @@ use Blush\Field\Controls\Code;
 use Blush\Field\Controls\Date;
 use Blush\Field\Controls\Email;
 use Blush\Field\Controls\File;
-use Blush\Field\Controls\Group;
 use Blush\Field\Controls\Icon;
 use Blush\Field\Controls\Image;
 use Blush\Field\Controls\Link;
+use Blush\Field\Controls\ListControl;
 use Blush\Field\Controls\Markdown;
 use Blush\Field\Controls\Number;
+use Blush\Field\Controls\ObjectControl;
 use Blush\Field\Controls\Reference;
-use Blush\Field\Controls\Repeater;
 use Blush\Field\Controls\Select;
 use Blush\Field\Controls\Text;
 use Blush\Field\Controls\Toggle;
@@ -93,7 +93,7 @@ final class ControlDefaults
 			$field instanceof EnumField      => new Select(),
 			$field instanceof MarkdownField  => new Markdown(),
 			$field instanceof NumberField    => new Number(),
-			$field instanceof ObjectField    => new Group(),
+			$field instanceof ObjectField    => new ObjectControl(),
 			$field instanceof SlugField      => new Code(),
 			$field instanceof ReferenceField => $field->to === '' ? new Code() : new Reference(),
 			$field instanceof MediaField     => match ($field->kind) {
@@ -110,7 +110,7 @@ final class ControlDefaults
 			},
 			$field instanceof ListField      => match (true) {
 				$field->item instanceof EnumField => new Checkboxes(),
-				new Repeater()->fits($field)      => new Repeater(),
+				new ListControl()->fits($field)      => new ListControl(),
 				default                           => new ViewOnly()
 			},
 			default                          => null

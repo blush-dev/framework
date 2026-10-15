@@ -534,16 +534,19 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// it, and the options that file sets.
 	overridden: boolean;
 	overrides: string[];
-	// Whether its fields can be changed here (none is a field class from
-	// code).
-	fieldsEditable: boolean;
 	// The route keys it answers at (D-350).
 	routes: TypeRoute[];
 	// The term types that file it (D-593), and every relation definition
 	// from or to it.
 	taxonomies: string[];
 	relations: RelationInfo[];
-	fields: FieldDescription[];
+	// The fields its code gives it (D-858), shown read-only.
+	ownFields: FieldDescription[];
+	// The library fields it carries, in sections (D-858, D-863), whether
+	// they can be changed here, and the field library to add from.
+	fields: TypeFieldItem[];
+	fieldsEditable: boolean;
+	library: LibraryFieldOption[];
 	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
 	dateArchives: string;
 	// Its own file name pattern (D-511, D-514), or `null` for the
@@ -563,8 +566,6 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	byline: string | null;
 	credits: string[];
 	archivePages: ArchivePageInfo[];
-	// The field sets attached to it (D-337), with how many fields each has.
-	sets: { name: string; label: string; fields: number }[];
 }
 
 /**
@@ -1280,93 +1281,85 @@ export interface InheritedValues {
 }
 
 /**
- * A place a field set can attach to (`type:post`), by its name for
- * people.
+ * A library field a type's `fields` list (D-858, D-863): its key alone,
+ * or with the label, help, and required the type gives it.
  */
-export interface FieldSetTargetOption {
-	key: string;
-	label: string;
-	// The kind of place, in the list of every place ("Content types",
-	// "Media files", D-341), and its key (`type`).
-	group?: string;
-	kind?: string;
-}
+export type PlacedField = string | { field: string; label?: string; description?: string; required?: boolean };
 
 /**
- * A kind of place sets attach to, with the slots it offers (D-347), the
- * first being its default.
+ * A section of a type's fields: a heading over some of them.
  */
-export interface FieldKindDescription {
-	kind: string;
-	label: string;
-	slots: { name: string; label: string; description: string }[];
+export interface TypeFieldSection {
+	section: string;
+	description?: string;
+	fields: PlacedField[];
 }
 
+export type TypeFieldItem = PlacedField | TypeFieldSection;
+
 /**
- * A field set (`GET fields/sets`, D-337): where it's from, whether it's
- * edited here, its file, the places it's added to (`found` false for one
- * that doesn't exist), and how many fields it has.
+ * A field in the library, as a type's screen offers it to add (D-858).
  */
-export interface FieldSetSummary {
+export interface LibraryFieldOption {
 	name: string;
 	label: string;
 	description: string;
-	// The kind of place its targets are (`type`), and the slot it's in.
-	kind: string | null;
-	slot: string | null;
-	// Where it sits among a type's sets in the editor (D-768).
-	position: number;
-	// False while `config/fields.php` turns off `dataSets`.
+	required: boolean;
+	type: string;
+	control: string;
+}
+
+/**
+ * A field in the library (`GET fields/library`, D-858): whether it's
+ * edited here, its file, and the types that carry it.
+ */
+export interface LibraryFieldSummary {
+	name: string;
+	label: string;
+	description: string;
+	required: boolean;
+	type: string;
+	control: string;
+	// False while `config/fields.php` turns off the `library`.
 	editable: boolean;
 	file: string | null;
-	// A target's `every` is all places of its kind (`type:*`, D-786).
-	targets: (FieldSetTargetOption & { found: boolean; every?: boolean })[];
-	fields: number;
-	// Why it's left off places it's attached to: a key declared there
+	types: { name: string; label: string }[];
+	// Why it's left off a type that carries it: a key declared there
 	// already (D-786).
 	problems: string[];
 }
 
 /**
- * One field set (`GET fields/sets/{name}`): its fields as definitions,
- * and every place it could be added to.
+ * One library field (`GET fields/library/{name}`), as forms take it.
  */
-export interface FieldSetDetail extends Omit<FieldSetSummary, 'fields'> {
-	// As forms take them, each with its control (D-769).
-	fields: FieldDescription[];
-	// How many entries have a value for each field, by name, and a
-	// group's fields by both keys (`details.servings`, D-780).
+export interface LibraryFieldDetail extends LibraryFieldSummary {
+	// With its control (D-769).
+	field: FieldDescription;
+	// How many entries have a value for it, and for an Object's fields by
+	// both keys (`details.servings`, D-780).
 	counts: Record<string, number>;
-	options: FieldSetTargetOption[];
-	kinds: FieldKindDescription[];
-	// After a save, the values moved with fields put somewhere new
-	// (D-780): how many entries changed, how many kept a value already at
-	// the new place, and why any failed, by entry id.
+	// After a save, the values moved with fields put somewhere new in an
+	// Object (D-780): how many entries changed, how many kept a value
+	// already at the new place, and why any failed, by entry id.
 	moved?: { entries: number; kept: number; failed: Record<string, string> };
 }
 
 /**
- * The field sets (`GET fields/sets`): whether sets can be created here,
- * and every place one could be added to.
+ * The field library (`GET fields/library`): whether fields can be made
+ * here.
  */
-export interface FieldSetList {
-	sets: FieldSetSummary[];
+export interface LibraryFieldList {
+	fields: LibraryFieldSummary[];
 	create: boolean;
-	targets: FieldSetTargetOption[];
-	kinds: FieldKindDescription[];
 }
 
 /**
- * A field set attached to an entry's type (D-337): its name, its label
- * and help, and its fields' names.
+ * A section of an entry's type (D-858): its heading and help, and its
+ * fields' names, which the editor groups under it.
  */
-export interface FieldSetGroup {
-	name: string;
+export interface FieldSectionGroup {
 	label: string;
 	description: string;
-	// The slot it's in (D-347), such as `details` or `content`; the screen
-	// decides where a slot shows. Media and Settings screens leave it out.
-	slot?: string;
 	fields: string[];
 }
 
@@ -1511,9 +1504,8 @@ export interface EntryDetail {
 		visibility: boolean;
 		dated: boolean;
 		fields: FieldDescription[];
-		// The field sets attached to the type (D-337), with the names of
-		// their fields, which the editor groups under each set's label.
-		sets: FieldSetGroup[];
+		// The sections its layout arranges library fields in (D-858).
+		sections: FieldSectionGroup[];
 	};
 	values: Record<string, unknown>;
 	extra: Record<string, unknown>;
@@ -1718,8 +1710,6 @@ export interface MediaSize {
 export interface MediaDetail extends MediaItem {
 	kind: 'image' | 'video' | 'audio' | 'document' | 'file';
 	fields: FieldDescription[];
-	// The field sets attached to its kind (D-341), grouped on its screen.
-	sets: FieldSetGroup[];
 	values: Record<string, unknown>;
 	extra: Record<string, unknown>;
 	violations: { field: string; message: string; severity: 'error' | 'warning' | 'notice' }[];

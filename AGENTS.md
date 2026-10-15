@@ -258,7 +258,10 @@ was paused as a baseline (D-348) and is picked up again from the
 fields sketch (`.claude/docs/admin-design/blush-fields.html`): fields,
 field sets, controls (core only for 2.x), and forms as four terms
 (D-766), with the sketch's answers (D-767 to D-769) and a staged plan
-in `roadmap.md`.
+in `roadmap.md`; field sets are since replaced by a field library that
+types list in their `fields` (D-863), in sections (Structure → Fields makes
+fields one at a time; a type changes only a field's label, help, and
+required; Group is Object, Repeating Group is List; D-858 to D-860).
 Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.

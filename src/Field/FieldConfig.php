@@ -19,18 +19,18 @@ use Blush\Config\ConfigValues;
 
 /**
  * The site's field settings, from `config/fields.php` (D-337). Fields
- * aren't made here (D-791): `config/` configures, and field sets are the
- * site's, made in the admin (`user/data/fields`), read unless `dataSets`
- * is off:
+ * aren't made here (D-791): `config/` configures, and the field library
+ * is the site's, made in the admin (`user/data/fields`, D-858), read
+ * unless `library` is off:
  *
- *     return new FieldConfig(dataSets: false);
+ *     return new FieldConfig(library: false);
  */
 final readonly class FieldConfig implements Config
 {
 	/**
-	 * @param bool $dataSets Whether `user/data/fields` is read.
+	 * @param bool $library Whether the field library (`user/data/fields`) is read.
 	 */
-	public function __construct(public bool $dataSets = true)
+	public function __construct(public bool $library = true)
 	{}
 
 	/**
@@ -40,9 +40,9 @@ final readonly class FieldConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['dataSets']);
+		$values->assertKnownKeys(['library']);
 
-		return new static($values->bool('dataSets', true));
+		return new static($values->bool('library', true));
 	}
 
 	/**
@@ -51,6 +51,6 @@ final readonly class FieldConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['dataSets' => $this->dataSets];
+		return ['library' => $this->library];
 	}
 }

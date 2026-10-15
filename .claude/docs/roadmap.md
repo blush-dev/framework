@@ -1049,6 +1049,61 @@ at any depth (stage 4), but Structure → Fields' tree stays one level
 deep (a group's fields can't be groups) until a new sketch designs
 deeper nesting.
 
+### The field library (D-858, D-859): built (D-860)
+
+Field sets give way to a library of fields that types place (D-858).
+Structure → Fields makes fields one at a time; a type's screen chooses
+which it carries, in sections, changing a field's label, help, or
+required there. Group is Object, Repeating Group is List. Each stage
+ends with `composer check`, `npm run admin:build`, the jtcom trial's
+files rewritten (no migration, D-859), and `docs/`.
+
+**Stage 1. The server.** Built (D-860).
+- `FieldLibrary` (the site's fields by name, with the registered
+  fields) in place of `FieldSets`; its loader reads the `fields` table
+  (`user/data/fields/{name}.json`) in place of `field_sets`.
+- `FieldLayout` (placed fields with a type's label, help, and
+  required, and sections) on `ContentType` as `layout`; data types
+  can't define `fields`. A type's schema adds its layout's library
+  fields after the registered ones; clashes are left off and reported
+  by field.
+- The site's sets on media kinds and Settings screens go
+  (`MediaSchemas`, `SiteSettings`, the target sources' `conflicts()`);
+  registered fields still reach them.
+- Controls `group` and `repeater` become `object` and `list`.
+- Lint and Site Health check library fields and layouts (a layout
+  naming a field the library doesn't have, a field left off for a
+  clash); JSON Schemas for a library field and a type's `layout`.
+- `FieldMoves` moves an Object's values across every type with the
+  field.
+
+**Stage 2. Structure → Fields as the library.** Built (D-860).
+- `GET/POST fields`, `GET/PATCH/DELETE fields/{name}`: a field, the
+  types it's on, and its entry counts.
+- The list: Field (label and key), Control, Used On (types), and a row
+  menu (Edit, Delete, which names the types it comes off).
+- A field's screen: the field's form (`FieldForm`) and, for an Object,
+  its fields' tree; Used On as links to the types. New Field opens the
+  control picker, then the screen.
+
+**Stage 3. A type's Fields.** Built (D-860).
+- The type screen's Fields panel edits its layout: rows of placed
+  fields and sections (`ItemTree`), Add Field (from the library, or
+  New Field, made in the library and placed), Add Section, and each
+  placed field's form: Label, Help, and Required, each the field's
+  until changed, with a link to the field. A section's form: its label
+  and help; removing a section keeps its fields.
+- A code type's own fields are listed read-only above its layout.
+- The new-type wizard's Fields step is the same editor; a collection
+  starts with the featured image as before.
+- `TypeFieldSets` goes.
+
+**Stage 4. The editor and the words.** Built (D-860).
+- The editor's sidebar draws sections in place of sets.
+- Object and List in the control picker, `FieldForm`, and the editor's
+  text; the field sketch's departures in `departures.md`.
+- `docs/`: fields, types, and front matter rewritten for the library.
+
 ### Declared front matter (D-786): planned
 
 **Reshaped by D-790 to D-792 (built):** fields are registered in code

@@ -23,13 +23,13 @@ use Blush\Field\Controls\Checkboxes;
 use Blush\Field\Controls\ChoiceList;
 use Blush\Field\Controls\Code;
 use Blush\Field\Controls\File;
-use Blush\Field\Controls\Group;
 use Blush\Field\Controls\Image;
 use Blush\Field\Controls\Link;
+use Blush\Field\Controls\ListControl;
 use Blush\Field\Controls\Markdown;
+use Blush\Field\Controls\ObjectControl;
 use Blush\Field\Controls\Radios;
 use Blush\Field\Controls\Reference;
-use Blush\Field\Controls\Repeater;
 use Blush\Field\Controls\Select;
 use Blush\Field\Controls\Text;
 use Blush\Field\Controls\TextBox;
@@ -64,7 +64,7 @@ use Blush\Translation\Messages;
 #[CoversClass(ControlRegistrar::class)]
 #[CoversClass(ControlRegistry::class)]
 #[CoversClass(ChoiceList::class)]
-#[CoversClass(Repeater::class)]
+#[CoversClass(ListControl::class)]
 #[CoversClass(TextBox::class)]
 #[CoversClass(Field::class)]
 #[CoversClass(FieldFactory::class)]
@@ -109,13 +109,13 @@ final class ControlTest extends TestCase
 			[Markdown::class, new MarkdownField('bio')],
 			[Select::class, new EnumField('size', ['s', 'm'])],
 			[Toggle::class, new BoolField('featured')],
-			[Repeater::class, new ListField('tags')],
+			[ListControl::class, new ListField('tags')],
 			[Checkboxes::class, new ListField('days', new EnumField('', ['mon', 'tue']))],
-			[Repeater::class, new ListField('steps', new ObjectField('', new Schema([new TextField('text')])))],
+			[ListControl::class, new ListField('steps', new ObjectField('', new Schema([new TextField('text')])))],
 			[ViewOnly::class, new ListField('bios', new MarkdownField())],
 			[Image::class, new MediaField('cover', MediaKind::Image)],
 			[File::class, new MediaField('download')],
-			[Group::class, new ObjectField('rights')],
+			[ObjectControl::class, new ObjectField('rights')],
 			[Code::class, new SlugField('handle')],
 			[Reference::class, new ReferenceField('parent', 'page')],
 			[Code::class, new ReferenceField('parent')],
@@ -161,7 +161,7 @@ final class ControlTest extends TestCase
 
 		$this->assertSame([$source], $controls->definitions($fields));
 
-		[$steps, $controls] = $this->fields->withControls([['name' => 'ingredients', 'control' => ['name' => 'repeater', 'itemLabel' => 'Ingredient', 'summary' => ['amount', 'name']], 'fields' => [['name' => 'amount', 'type' => 'number'], ['name' => 'name']]]]);
+		[$steps, $controls] = $this->fields->withControls([['name' => 'ingredients', 'control' => ['name' => 'list', 'itemLabel' => 'Ingredient', 'summary' => ['amount', 'name']], 'fields' => [['name' => 'amount', 'type' => 'number'], ['name' => 'name']]]]);
 
 		$this->assertInstanceOf(ListField::class, $steps[0]);
 		$this->assertInstanceOf(ObjectField::class, $steps[0]->item);
@@ -233,17 +233,17 @@ final class ControlTest extends TestCase
 	{
 		$defaults = new ControlDefaults();
 
-		[[$rights], $controls] = $this->fields->withControls([['name' => 'rights', 'control' => ['name' => 'group'], 'fields' => [['name' => 'holder'], ['name' => 'license', 'control' => ['name' => 'radios'], 'type' => 'enum', 'options' => ['cc', 'all']]]]]);
+		[[$rights], $controls] = $this->fields->withControls([['name' => 'rights', 'control' => ['name' => 'object'], 'fields' => [['name' => 'holder'], ['name' => 'license', 'control' => ['name' => 'radios'], 'type' => 'enum', 'options' => ['cc', 'all']]]]]);
 		$group                 = FormField::of($rights, $controls, $defaults)->toArray();
 
-		[[$list], $controls] = $this->fields->withControls([['name' => 'steps', 'control' => ['name' => 'repeater'], 'fields' => [['name' => 'done', 'type' => 'bool']]]]);
+		[[$list], $controls] = $this->fields->withControls([['name' => 'steps', 'control' => ['name' => 'list'], 'fields' => [['name' => 'done', 'type' => 'bool']]]]);
 		$steps               = FormField::of($list, $controls, $defaults)->toArray();
 
-		$this->assertSame('group', $group['control'] ?? null);
+		$this->assertSame('object', $group['control'] ?? null);
 		$this->assertSame(['text', 'radios'], array_column(is_array($group['fields'] ?? null) ? $group['fields'] : [], 'control'));
-		$this->assertSame('repeater', $steps['control'] ?? null);
+		$this->assertSame('list', $steps['control'] ?? null);
 		$item = is_array($steps['item'] ?? null) ? $steps['item'] : [];
-		$this->assertSame('group', $item['control'] ?? null);
+		$this->assertSame('object', $item['control'] ?? null);
 		$this->assertSame(['toggle'], array_column(is_array($item['fields'] ?? null) ? $item['fields'] : [], 'control'));
 	}
 

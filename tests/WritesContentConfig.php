@@ -28,7 +28,9 @@ trait WritesContentConfig
 	/**
 	 * Writes a content setup: `types` and `relations` (each a list of
 	 * named definitions or a map of names to them) as data files, and the
-	 * rest as `ContentConfig::fromArray()`.
+	 * rest as `ContentConfig::fromArray()`. A type's `fields` given as
+	 * definitions are written to the field library, and its `fields` list
+	 * their keys (D-863).
 	 *
 	 * @param array<string, mixed> $config
 	 */
@@ -54,6 +56,10 @@ trait WritesContentConfig
 					continue;
 				}
 
+				if ($key === 'types') {
+					$definition = $this->libraryFields($definition);
+				}
+
 				$this->writeTemporaryFile("user/data/{$key}/{$name}.json", json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 			}
 		}
@@ -73,6 +79,50 @@ trait WritesContentConfig
 
 			return ContentConfig::fromArray({$source});
 			PHP);
+	}
+
+	/**
+	 * Writes a data type's `fields` as library fields
+	 * (`user/data/fields/{name}.json`) and places them by its `layout`
+	 * (D-858), since a data type defines none of its own.
+	 *
+	 * @param  array<array-key, mixed> $definition
+	 * @return array<array-key, mixed>
+	 */
+	private function libraryFields(array $definition): array
+	{
+		$fields = $definition['fields'] ?? null;
+
+		if (! is_array($fields) || $fields === []) {
+			return $definition;
+		}
+
+		$placed = [];
+
+		foreach ($fields as $key => $field) {
+			// Already a library field's key, a changed one, or a section.
+			if (is_int($key) && (is_string($field) || (is_array($field) && (isset($field['field']) || isset($field['section']))))) {
+				$placed[] = $field;
+
+				continue;
+			}
+
+			if (! is_array($field)) {
+				continue;
+			}
+
+			$name = is_string($key) ? $key : $field['name'] ?? null;
+			unset($field['name']);
+
+			if (! is_string($name)) {
+				continue;
+			}
+
+			$this->writeTemporaryFile("user/data/fields/{$name}.json", json_encode($field, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+			$placed[] = $name;
+		}
+
+		return [...$definition, 'fields' => $placed];
 	}
 
 	/**
@@ -96,7 +146,7 @@ trait WritesContentConfig
 	{
 		$root = $this->temporaryDirectory();
 
-		foreach (['user/data/types', 'user/data/relations'] as $folder) {
+		foreach (['user/data/types', 'user/data/relations', 'user/data/fields'] as $folder) {
 			foreach (glob("{$root}/{$folder}/*") ?: [] as $file) {
 				unlink($file);
 			}

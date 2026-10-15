@@ -658,7 +658,8 @@ final class AdminContentTest extends TestCase
 
 	public function testDescribesOneContentType(): void
 	{
-		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"], "fields": [{"name": "color", "type": "text"}]}');
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"], "fields": ["color"]}');
+		$this->writeTemporaryFile('user/data/fields/color.json', '{"type": "text"}');
 		$this->site(['author']);
 
 		$page = self::json($this->send('GET', '/types/page'));
@@ -671,7 +672,9 @@ final class AdminContentTest extends TestCase
 		$genre = self::json($this->send('GET', '/types/genre'));
 
 		$this->assertTrue($genre['editable'] ?? null, 'Types in user/data/types will be editable.');
-		$this->assertSame(['color'], array_column(is_array($genre['fields'] ?? null) ? $genre['fields'] : [], 'name'));
+		$this->assertSame(['color'], $genre['fields'] ?? null, 'The library fields it places (D-858).');
+		$this->assertSame(['color'], array_column(is_array($genre['library'] ?? null) ? $genre['library'] : [], 'name'));
+		$this->assertTrue($genre['fieldsEditable'] ?? null);
 		$this->assertSame(404, $this->send('GET', '/types/missing')->getStatusCode());
 	}
 

@@ -18,6 +18,7 @@ use Blush\Content\Entry\Position;
 use Blush\Storage\Record\Order;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
+use Blush\Field\FieldLayout;
 use Blush\Translation\Messages;
 
 /**
@@ -63,6 +64,7 @@ final readonly class Tree extends ContentType
 	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
 	 * @param  bool            $visibility  Whether its entries choose a visibility (D-855); off, every entry is public.
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
+	 * @param  FieldLayout     $layout      The library fields it carries, in sections (D-858).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -84,11 +86,12 @@ final readonly class Tree extends ContentType
 		?string $workflow = null,
 		bool $expires = false,
 		bool $visibility = true,
-		Messages $messages = new Messages()
+		Messages $messages = new Messages(),
+		FieldLayout $layout = new FieldLayout()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Tree, $name, $messages);
 
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $visibility, $messages);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $visibility, $messages, $layout);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

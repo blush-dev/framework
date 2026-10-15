@@ -55,9 +55,9 @@ use Blush\Workflow\Workflows;
  *   theme whose chain falls back to the default theme (`theme`), and
  *   plugins (`plugins`) and icon packs (`icon-packs`) that are on but
  *   don't run; content types and relations two plugins define by one
- *   name (`clashes`, D-597), the first kept; field sets left off a type
- *   because a key they declare is declared already (`field-sets`,
- *   D-786); or one pass when everything that's on runs.
+ *   name (`clashes`, D-597), the first kept; library and registered
+ *   fields left off a place because their key is declared already
+ *   (`fields`, D-786, D-858); or one pass when everything that's on runs.
  * - `accounts`: a site with accounts but no owner (D-500), as `owner`.
  *
  * Within an area, a check's key says what it's about where that's one
@@ -352,16 +352,16 @@ final readonly class SiteChecks
 		}
 
 		try {
-			$problems = $this->targets->problems($this->types->sets);
+			$problems = $this->targets->problems($this->types->library);
 		} catch (InvalidSchema) {
 			$problems = [];
 		}
 
 		if ($problems !== []) {
-			$results['field-sets'] = CheckResult::warning(
-				$this->messages->t('setup.site_checks.field_sets', 'Field sets left off'),
+			$results['fields'] = CheckResult::warning(
+				$this->messages->t('setup.site_checks.fields', 'Fields left off'),
 				$this->sentences(array_merge(...array_values($problems))),
-				$this->messages->t('setup.site_checks.field_sets_hint', 'Rename the field in one of the sets, or turn off the plugin that adds one. Run "{command}" to see each.', command: Framework::BINARY . ' content:lint')
+				$this->messages->t('setup.site_checks.fields_hint', 'Change the field\'s key in the field library, or turn off the plugin that registers the other. Run "{command}" to see each.', command: Framework::BINARY . ' content:lint')
 			);
 		}
 

@@ -2825,8 +2825,45 @@ button.lnk {
 	padding: 0;
 }
 
+/* A row's form under it in an item tree (D-509): a field's, in an
+   Object or a type's layout (D-858), on the tinted band under its row,
+   its inputs in a grid and its buttons at its foot. A screen's or a
+   dialog's form (`--page`) sits on what holds it. */
+.field-form {
+	display: grid;
+	gap: var(--s-4);
+	padding: var(--s-4) var(--padding-inline) var(--s-5) calc(var(--padding-inline) + var(--tree-indent, 0px));
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+}
+
+.field-form--page {
+	padding: 0;
+	border-top: 0;
+	background: none;
+}
+
+.field-form__ident,
+.field-form__row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+	gap: var(--s-4);
+	align-items: start;
+}
+
+.field-form__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+}
+
+.field-form__actions > .field__help {
+	margin-right: auto;
+}
+
 /* What a tree's row shows (`ItemTree`'s `pick` slot, D-509): a kind
-   tile, a title, and pills, as menus and field sets draw them. */
+   tile, a title, and pills, as menus and fields draw them. */
 .item-tree__kind {
 	display: grid;
 	flex: none;

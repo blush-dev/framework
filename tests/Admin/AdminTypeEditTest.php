@@ -160,6 +160,8 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testCreatesATypeWithFieldsAndAnIndexPage(): void
 	{
+		$this->writeTemporaryFile('user/data/fields/servings.json', '{"type": "number", "integer": true}');
+		$this->writeTemporaryFile('user/data/fields/difficulty.json', '{"type": "enum", "options": ["easy", "hard"], "default": "easy"}');
 		$this->site();
 
 		$answer = $this->write('POST', '/types', [
@@ -171,11 +173,7 @@ final class AdminTypeEditTest extends TestCase
 				'description' => 'Dishes we cook at home.',
 				'icon'        => 'book-open',
 				'public'      => true,
-				'fields'      => [
-					['name' => 'servings', 'type' => 'number', 'integer' => true, 'required' => true],
-					['name' => 'difficulty', 'type' => 'enum', 'options' => ['easy', 'hard'], 'default' => 'easy'],
-					['name' => 'image', 'type' => 'media', 'label' => 'Featured image']
-				]
+				'fields'      => [['field' => 'servings', 'required' => true], ['section' => 'Cooking', 'fields' => ['difficulty']]]
 			]
 		]);
 
@@ -189,11 +187,7 @@ final class AdminTypeEditTest extends TestCase
 				'labels'      => ['newItem' => 'Add a recipe'],
 				'description' => 'Dishes we cook at home.',
 				'icon'        => 'book-open',
-				'fields'      => [
-					['name' => 'servings', 'type' => 'number', 'required' => true, 'integer' => true],
-					['name' => 'difficulty', 'type' => 'enum', 'default' => 'easy', 'options' => ['easy', 'hard']],
-					['name' => 'image', 'type' => 'media', 'label' => 'Featured image']
-				]
+				'fields'      => [['field' => 'servings', 'required' => true], ['section' => 'Cooking', 'fields' => ['difficulty']]]
 			],
 			$this->data('user/data/types/recipe.json'),
 			'Defaults (the singular and plural a recipe type gets, public) are left out.'
@@ -205,6 +199,9 @@ final class AdminTypeEditTest extends TestCase
 		$next = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test']);
 		$next->boot();
 		$this->assertTrue($next->container()->make(ContentTypes::class)->has('recipe'), 'The next request has it.');
+
+		$schema = $next->container()->make(ContentTypes::class)->schema('recipe');
+		$this->assertSame([true, 'easy'], [$schema->field('servings')?->required, $schema->field('difficulty')?->default], 'Its library fields, servings required on it (D-858).');
 	}
 
 	public function testEditsOnlyWhatChangedAndKeepsTheRest(): void
@@ -262,9 +259,13 @@ final class AdminTypeEditTest extends TestCase
 		$this->writeTemporaryFile('user/data/types/recipe.json', '{"urls": {"prefix": "recipes"}}');
 		$this->site();
 
-		$badField = $this->write('PATCH', '/types/recipe', ['set' => ['fields' => [['name' => 'x', 'type' => 'colour']]]]);
-		$this->assertSame(422, $badField->getStatusCode());
-		$this->assertStringContainsString('colour', self::error($badField));
+		$fields = $this->write('PATCH', '/types/recipe', ['set' => ['fields' => [['name' => 'x', 'type' => 'text']]]]);
+		$this->assertSame(422, $fields->getStatusCode());
+		$this->assertStringContainsString('defined in the field library', self::error($fields), 'Fields are the library\'s (D-858).');
+
+		$badLayout = $this->write('PATCH', '/types/recipe', ['set' => ['fields' => [['section' => ' ', 'fields' => []]]]]);
+		$this->assertSame(422, $badLayout->getStatusCode());
+		$this->assertStringContainsString('needs a heading', self::error($badLayout));
 		$this->assertSame(['urls' => ['prefix' => 'recipes']], $this->data('user/data/types/recipe.json'));
 
 		$reserved = $this->write('POST', '/types', ['name' => 'system']);
@@ -355,8 +356,11 @@ final class AdminTypeEditTest extends TestCase
 		$this->codeConfig(['types' => ['movie' => ['urls' => ['prefix' => 'films'], 'description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]]]);
 		$this->site();
 
+		$this->writeTemporaryFile('user/data/fields/year.json', '{"type": "number"}');
+
 		$before = self::json($this->send('GET', '/types/movie'));
-		$this->assertSame([true, false, null, [], true], [$before['editable'] ?? null, $before['overridden'] ?? null, $before['file'] ?? null, $before['overrides'] ?? null, $before['fieldsEditable'] ?? null]);
+		$this->assertSame([true, false, null, []], [$before['editable'] ?? null, $before['overridden'] ?? null, $before['file'] ?? null, $before['overrides'] ?? null]);
+		$this->assertSame(['rating'], array_column(is_array($before['ownFields'] ?? null) ? $before['ownFields'] : [], 'name'), 'Its code\'s own fields.');
 
 		$answer = $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.', 'feed' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
@@ -365,10 +369,10 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['description' => 'Movies.', 'feed' => false], $this->data('user/data/types/movie.json'), 'Only what differs from the code, with a default the code doesn\'t have written out (D-349).');
 		$this->assertSame('/films', $type['prefix'] ?? null);
 
-		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['fields' => [['name' => 'rating', 'type' => 'number'], ['name' => 'year', 'type' => 'number']]]])->getStatusCode());
-		$this->assertSame([['name' => 'rating', 'type' => 'number'], ['name' => 'year', 'type' => 'number']], $this->data('user/data/types/movie.json')['fields'] ?? null, 'Fields are the whole list.');
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['fields' => ['year']]])->getStatusCode());
+		$this->assertSame(['year'], $this->data('user/data/types/movie.json')['fields'] ?? null, 'Library fields placed over code (D-858).');
 
-		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]])->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Films.', 'feed' => true, 'fields' => null]])->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.json', 'Back at the code\'s values, the file goes.');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['labels' => ['plural' => 'Pictures']]])->getStatusCode());
@@ -422,15 +426,15 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/doc.json');
 	}
 
-	public function testLeavesCodeFieldClassesAndThePagesTypeAlone(): void
+	public function testLeavesCodeFieldsAndThePagesTypeAlone(): void
 	{
 		$this->codeConfig(['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => ColorField::class]]]]]);
+		$this->writeTemporaryFile('user/data/fields/note.json', '{"type": "text"}');
 		$this->site();
 
-		$this->assertFalse(self::json($this->send('GET', '/types/swatch'))['fieldsEditable'] ?? null);
-		$fields = $this->write('PATCH', '/types/swatch', ['set' => ['fields' => []]]);
+		$fields = $this->write('PATCH', '/types/swatch', ['set' => ['ownFields' => []]]);
 		$this->assertSame(422, $fields->getStatusCode());
-		$this->assertStringContainsString('field classes from code', self::error($fields));
+		$this->assertStringContainsString('"ownFields" isn\'t an option', self::error($fields), 'A code type\'s own fields stay in code (D-858).');
 		$this->assertSame(200, $this->write('PATCH', '/types/swatch', ['set' => ['description' => 'Colors.']])->getStatusCode(), 'The rest can change.');
 		$this->assertSame(['description' => 'Colors.'], $this->data('user/data/types/swatch.json'), 'Its fields stay in code.');
 
@@ -438,6 +442,13 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertStringContainsString('isn\'t defined in user/data/types', self::error($this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])), 'A built-in type isn\'t changed here.');
 		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])->getStatusCode());
 		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['editable'] ?? null);
+
+		$placed = $this->write('PATCH', '/types/page', ['set' => ['fields' => ['note']]]);
+		$this->assertSame(200, $placed->getStatusCode(), (string) $placed->getBody());
+		$this->assertSame(['fields' => ['note']], $this->data('user/data/types/page.json'), 'Any type takes library fields (D-858).');
+		$this->assertSame(200, $this->write('PATCH', '/types/profile', ['set' => ['fields' => ['note']]])->getStatusCode(), 'The profiles type too.');
+		$this->assertSame(200, $this->write('PATCH', '/types/page', ['set' => ['fields' => []]])->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/page.json', 'Back at the code\'s, the file goes.');
 	}
 
 	public function testMovesARelationsArchives(): void

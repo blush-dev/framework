@@ -29,8 +29,8 @@ const AccountsView = () => import('./views/AccountsView.vue');
 const AuthorizeView = () => import('./views/AuthorizeView.vue');
 const EditorView = () => import('./views/EditorView.vue');
 const EntriesView = () => import('./views/EntriesView.vue');
-const FieldSetView = () => import('./views/FieldSetView.vue');
-const FieldSetsView = () => import('./views/FieldSetsView.vue');
+const FieldView = () => import('./views/FieldView.vue');
+const FieldsView = () => import('./views/FieldsView.vue');
 const ForgotPasswordView = () => import('./views/ForgotPasswordView.vue');
 const HealthView = () => import('./views/HealthView.vue');
 const AdminThemeView = () => import('./views/AdminThemeView.vue');
@@ -106,8 +106,9 @@ export const router = createRouter({
 		{ path: '/workflows/:name([a-z][a-z0-9_]*)', name: 'workflow', component: WorkflowView, meta: { title: t('router.titles.workflow', 'Workflow'), capability: 'site.settings', area: 'structure', parent: 'workflows' } },
 		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: t('router.titles.menus', 'Menus'), capability: 'menus.edit', area: 'structure' } },
 		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: t('router.titles.menu', 'Menu'), capability: 'menus.edit', area: 'structure', parent: 'menus' } },
-		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: t('router.titles.fields', 'Fields'), capability: 'site.settings', area: 'structure' } },
-		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: t('router.titles.field_set', 'Field Set'), capability: 'site.settings', area: 'structure', parent: 'fields' } },
+		{ path: '/fields', name: 'fields', component: FieldsView, meta: { title: t('router.titles.fields', 'Fields'), capability: 'site.settings', area: 'structure' } },
+		{ path: '/fields/new', name: 'field-new', component: FieldView, meta: { title: t('router.titles.new_field', 'New Field'), capability: 'site.settings', area: 'structure', parent: 'fields' } },
+		{ path: '/fields/:name', name: 'field', component: FieldView, meta: { title: t('router.titles.field', 'Field'), capability: 'site.settings', area: 'structure', parent: 'fields' } },
 		// The direction's Appearance, named Themes (D-327).
 		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: t('router.titles.themes', 'Themes'), capability: 'extensions.themes.view', area: 'extend' } },
 		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: t('router.titles.theme', 'Theme'), capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },

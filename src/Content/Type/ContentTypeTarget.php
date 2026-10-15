@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use Override;
 use Blush\Field\Field;
+use Blush\Field\FieldLayout;
 use Blush\Field\FieldTarget;
 use Blush\Field\InvalidSchema;
 use Blush\Content\EntryFields;
@@ -22,7 +23,7 @@ use Blush\Content\Relation\Refs;
 use Blush\Field\Schema;
 
 /**
- * A content type as a place field sets attach to (D-337): `type:{name}`.
+ * A content type as a place fields go on (D-337): `type:{name}`.
  * Entries store any value front matter can hold and the index reads
  * references, so a type takes every field.
  */
@@ -89,5 +90,16 @@ final readonly class ContentTypeTarget implements FieldTarget
 		} catch (InvalidContentType $e) {
 			throw new InvalidSchema($e->getMessage(), previous: $e);
 		}
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * The type's own (D-858).
+	 */
+	#[Override]
+	public function layout(): FieldLayout
+	{
+		return $this->type->layout;
 	}
 }

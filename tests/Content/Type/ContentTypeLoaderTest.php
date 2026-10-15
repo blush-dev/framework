@@ -78,7 +78,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$application = $this->scratchApplication();
 		$application->container()->make(FieldRegistry::class)->register('color', ColorField::class);
 
-		$this->assertInstanceOf(ColorField::class, $this->types($application)->get('swatch')->schema->field('accent'));
+		$this->assertInstanceOf(ColorField::class, $this->types($application)->schema('swatch')->field('accent'));
 	}
 
 	public function testLoadsJtcomsTypesAndResolvesFiles(): void
@@ -182,14 +182,15 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testLoadsDataTypes(): void
 	{
-		$this->writeTemporaryFile('user/data/types/movie.json', '{"path": "movies", "fields": [{"name": "rating", "type": "number"}]}');
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"path": "movies", "fields": ["rating"]}');
+		$this->writeTemporaryFile('user/data/fields/rating.json', '{"type": "number"}');
 		$this->writeTemporaryFile('user/data/types/profile.json', '{"path": "people", "kind": "profiles"}');
 
 		$types = $this->types();
 
 		$this->assertSame(TypeOrigin::Data, $types->origin('movie'));
 		$this->assertTrue(TypeOrigin::Data->isEditable());
-		$this->assertSame('number', $types->get('movie')->schema->fields['rating']->type());
+		$this->assertSame('number', $types->schema('movie')->fields['rating']->type(), 'A library field its layout places (D-858).');
 		$this->assertSame('_profile', $types->get('profile')->folder, 'Kept in _ and its name until it\'s moved (D-683).');
 		$this->assertSame(['_movie', 'movies'], [$types->get('movie')->folder, $types->get('movie')->prefix()]);
 		$this->assertSame(['movie', 'profile'], $types->namedFolders);
@@ -323,10 +324,7 @@ final class ContentTypeLoaderTest extends TestCase
 			[['types' => ['page' => ['path' => 'pages']]], 'No content type claims the content root'],
 			[['home' => 'post'], 'ContentConfig "home" names "post", which isn\'t a content type.'],
 			[['types' => ['title' => []], 'relations' => ['title' => ['kind' => 'classify', 'to' => ['title']]]], 'Content type "page" has clashing fields: Schema key "title"'],
-			[['types' => ['post' => ['fields' => ['refs' => ['type' => 'text']]]]], 'Content type "post" has a field (or alias) named "refs", which is reserved'],
 			[['types' => ['person' => ['kind' => 'profiles']]], 'A site has one profiles type, but "profile", "person" are all profiles types.'],
-			[['types' => ['post' => ['fields' => ['id' => ['type' => 'text']]]]], 'Content type "post" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.'],
-			[['types' => ['post' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]]], 'Content type "post" has a field (or alias) named "id"']
 		];
 
 		foreach ($cases as [$config, $message]) {
@@ -335,6 +333,26 @@ final class ContentTypeLoaderTest extends TestCase
 
 			try {
 				$this->types();
+				$this->fail($message);
+			} catch (InvalidContentType $e) {
+				$this->assertStringStartsWith($message, $e->getMessage());
+			}
+		}
+
+		// A code type's own fields (a data type has none, D-858).
+		$this->clearContentConfig();
+
+		$code = [
+			[['note' => ['fields' => ['refs' => ['type' => 'text']]]], 'Content type "note" has a field (or alias) named "refs", which is reserved'],
+			[['note' => ['fields' => ['id' => ['type' => 'text']]]], 'Content type "note" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.'],
+			[['note' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]], 'Content type "note" has a field (or alias) named "id"']
+		];
+
+		foreach ($code as [$types, $message]) {
+			$this->codeConfig(['types' => $types]);
+
+			try {
+				$this->types()->schema('note');
 				$this->fail($message);
 			} catch (InvalidContentType $e) {
 				$this->assertStringStartsWith($message, $e->getMessage());

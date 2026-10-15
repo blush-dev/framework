@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use Blush\Field\FieldContext;
-use Blush\Field\FieldSets;
+use Blush\Field\FieldLibrary;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 use Blush\Field\SchemaResult;
@@ -37,7 +37,7 @@ final class SiteSettings
 	private ?array $values = null;
 
 	public function __construct(
-		private readonly FieldSets $sets,
+		private readonly FieldLibrary $library,
 		private readonly SettingGroups $groups,
 		private readonly FieldContext $context
 	) {}
@@ -90,9 +90,9 @@ final class SiteSettings
 	public function schema(): Schema
 	{
 		try {
-			return $this->schema ??= new Schema(SettingsTargets::fields($this->sets));
+			return $this->schema ??= new Schema(SettingsTargets::fields($this->library));
 		} catch (InvalidSchema) {
-			// Two sets alias one name: `content:lint` and the admin say so.
+			// Two registered fields alias one name: `content:lint` says so.
 			return $this->schema = new Schema();
 		}
 	}

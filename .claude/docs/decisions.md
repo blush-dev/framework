@@ -27358,3 +27358,183 @@ decision, add a new entry that supersedes it and mark the old one
     account's admin theme is a preference (`Preferences::$adminTheme`,
     D-827), so it's removed from the list.
 - **Status:** Built (2026-10-15).
+
+### D-858: Fields as a library that types place, with no field sets
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-790's and D-792's field sets as the way people make
+  fields in the admin; D-337's sets attached from their own side; D-768's
+  set position; D-780's names (Group, Repeating Group) and its set as the
+  layout unit; D-311's and D-774's fields of a type's own, edited on its
+  screen; D-343's and D-341's sets on Settings screens and media kinds,
+  for the site.
+- **The author's decisions,** after finding the two ways to make fields
+  (a type's own, on its screen; field sets, on Structure → Fields, which
+  chose their types) too hard to follow, and comparing other systems
+  (fields on the type; a field library placed from the type; groups
+  with location rules; a mix of fields on the type and imported sets).
+  Blush takes the library placed from the type:
+  - **Structure → Fields is the library:** every field the site makes,
+    one field at a time. A field's key is the same wherever it's used.
+  - **A type decides what it carries.** On its screen, a type adds
+    fields from the library, or makes a new one there, which goes into
+    the library. One field on several types is that field added to
+    each. Placement goes one way: the type pulls fields in; a field
+    never chooses its types.
+  - **No field sets.** A shared bundle of fields is one structured
+    field, such as `seo` with `seo.title` and `seo.description`, added
+    to each type.
+  - **Group is called Object,** a field made of other fields, saved
+    together under its key; **Repeating Group is a List.** "Group"
+    sounds like layout, and these are data.
+  - **The field owns its value; the type may change how it's asked
+    for.** Key, field type, choices, default, an Object's fields, and
+    rules are the field's, the same on every type. A type may change
+    its label, its help, and whether it's required (required to
+    publish, D-767), each starting as the field's own. Only a
+    top-level field is changed per type, never one inside an Object.
+  - **Sections are the type's.** A type arranges its fields in
+    **Sections**, headings in the editor's sidebar that are only
+    layout and save nothing to entries. They're optional, and a field
+    doesn't know its section. An Object already draws as its own block
+    under its label. "Slot" stays D-347's word for a place code
+    offers.
+  - **Code is separate** (D-790): core's fields, fields extensions
+    register, and a code type's own fields stay in code and are never
+    in the library.
+  - **Types only, for now.** The library's fields go on content types.
+    Media kinds and Settings screens get a layout when their own
+    screens do (D-767); until then the site's sets for them are gone.
+    Fields code registers still reach them.
+- **Why:** placement in two directions (a type defining fields, and a
+  set choosing types) was the confusion. One library and one place
+  that decides is one model to learn.
+- **Status:** Accepted; see D-859 and the plan in `roadmap.md`.
+
+### D-859: The field library and type layouts, as planned
+
+- **Date:** 2026-10-15
+- **Builds:** D-858. Decided for the author, who asked to get to work
+  on it.
+- **Decision:**
+  - **The library** is the `fields` table (`user/data/fields/{name}.json`
+    on files), one field a record, written as a set's fields were (its
+    control an object, D-795). Its name is the field's key
+    (`^[a-z_][a-z0-9_]*$`, the admin's rule). It replaces the
+    `field_sets` table (D-678).
+  - **A type's layout** is its definition's `layout`: a list of a
+    library field's name, a field with what the type changes
+    (`{"field": "cook_time", "label": "Cook time", "required": true}`,
+    with `description` for help), or a section
+    (`{"section": "Timing", "description": "…", "fields": [ … ]}`), one
+    level deep. `fields` in a definition is a code type's own fields
+    only; `user/data/types` can't define fields. A file over a code type
+    (D-349) gives it a layout, and its own fields stay read-only.
+  - **A type's schema:** its own (core's fields first, then relations,
+    a parent, a position, and a code type's own fields), then fields
+    extensions register, then its layout's library fields in layout
+    order, each with the type's changes. One that would declare a key
+    again is left off and reported, as sets were (D-789).
+  - **The editor's sidebar:** the layout's fields outside any section
+    in the "{Type} Fields" group, then each section as a collapsible
+    group in layout order (as sets were, D-779).
+  - **Moving an Object's fields moves values** (D-780) in every entry
+    of every type that has the field.
+  - **Deleting a library field** asks first, naming the types that have
+    it; it comes off their layouts, and entries keep their values.
+  - **Control keys follow the names:** `group` is `object`, `repeater`
+    is `list`.
+  - **No migration.** There are no 2.x sites (D-658); the trial site's
+    sets and type fields are rewritten as library fields and layouts.
+- **Status:** Built (D-860).
+
+### D-860: The field library, as built
+
+- **Date:** 2026-10-15
+- **Builds:** D-858 and D-859, all four stages of the plan in
+  `roadmap.md`. Decided while building, for the author:
+  - **Any type takes a layout**, the built-in pages and the profiles
+    type too: `layout` joins `position` and `under` as what a data file
+    may set over any type (`ContentType::OVERLAY`, `overlaidBy()`,
+    replacing `placedBy()`; `DataTypeWriter::overlayOnly()`). `reset()`
+    keeps a code type's layout with its place in the menu.
+  - **No "Has a featured image" switch.** Core registers `image` on
+    every type (D-792), so the switch only added a type's own copy of
+    it, which `user/data/types` can't define now.
+  - **A library field's key is fixed in the admin** (as a type's is):
+    its file's name, read by every type that has it. Older keys are
+    still added under Advanced.
+  - **Routes are `fields/library`**, so `fields/controls` keeps its
+    place. `FieldConfig`'s `dataSets` is `library`.
+  - **Media kinds and Settings screens** keep their targets for
+    registered fields; `SettingsTargets::fields()` gathers those for
+    `SiteSettings`, and the Settings screens and a media file's screen
+    no longer draw set groups. `FieldTargetSource::conflicts()` and
+    `FieldTargets::slotFor()` go; `slots()` stays for a panels API.
+  - **Shared pieces:** `.field-form` and its rows and actions moved to
+    `admin.css` (a row's form in any item tree), `ItemTree`'s `copy` is
+    optional (no Duplicate without it), `FieldNodeTree` takes `alone`,
+    and `FieldForm` a `page` mode with `check()`.
+- **Status:** Built.
+
+### D-861: New Field is a screen of its own
+
+- **Date:** 2026-10-15
+- **Refines:** D-860 (New Field as a modal).
+- **Decision:** The author's call: making a field is a screen of its
+  own, as editing one is. `/fields/new` is `FieldView` in a create mode:
+  the control picker first (unless `?control=` names one), then the
+  field's form, with Cancel and **Create** in the header; Create opens
+  the field. A type's **New Field** opens the same screen with
+  `?type=`, and Create goes back to the type with `?add=`, which adds
+  the field to its layout, unsaved, to save with the type's other
+  changes. The new type wizard, with no type to come back to, only picks
+  from the library. `NewFieldDialog` goes, and `new` is a reserved key
+  (`LibraryField::RESERVED`).
+- **Status:** Built.
+
+### D-862: The content types brief is a reference of the data
+
+- **Date:** 2026-10-15
+- **Refines:** D-856 (the brief for content types).
+- **Decision:** The author's call: the design team needs the full
+  picture of what the code allows, not a summary. The brief
+  (`.claude/docs/admin-design/content-types-brief.md`) is now a
+  reference of every option a content type holds, read from the code:
+  key, value, default, rules, and kinds, with the route keys and their
+  placeholders, the layout and the field library's types and controls,
+  every relationship option, what making a type adds, who can change
+  what, and a matrix of options by kind. The flows and the design
+  questions are left out; it says nothing about screens.
+- **Status:** Built.
+
+### D-863: A type's library fields are its `fields`
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-859's `layout` key, and its `fields` as a code
+  type's own fields in a definition.
+- **Decision:** The author's call: "layout" didn't say what the key
+  holds, which is the fields a type carries (with a publishing rule,
+  `required`, in it), and it read as a design word. A type's definition
+  lists its library fields, keys or changed fields and sections, under
+  `fields`:
+
+  ```json
+  { "fields": ["difficulty", { "field": "servings", "required": true }, { "section": "Timing", "fields": ["prep_time"] }] }
+  ```
+
+  - **A code type's own fields** are `ownFields` in a definition array,
+    which only code and the compiled types write; a file in
+    `user/data/types` that sets it is refused. A plugin still gives
+    them as PHP objects (`new Collection(fields: [...])`).
+  - **A definition in `fields`** (an object with `name` or `type`, as
+    types once had) is refused with the reason: fields are the
+    library's.
+  - **The admin's API:** a type's `fields` are its library fields,
+    `ownFields` its code's, and `fieldsEditable` whether they can be
+    changed. The admin's pieces are `TypeFields` and `type-fields.ts`.
+  - **Inside, the names stay:** `FieldLayout` and `ContentType::$layout`
+    hold them, written as `fields`. `OVERLAY` is `position`, `under`,
+    and `fields`.
+  - The brief, `docs/`, and the trial site's file use `fields`.
+- **Status:** Built.

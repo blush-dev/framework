@@ -48,7 +48,10 @@ const props = withDefaults(defineProps<{
 	taken?: Record<string, string>;
 	// The group this level is inside, for what's said.
 	group?: string;
-}>(), { depth: 0, locked: false, counts: () => ({}), at: null, taken: () => ({}), group: '' });
+	// Whether the group has nothing beside it (a library field's own
+	// fields, D-858), so its fields can't move out of it.
+	alone?: boolean;
+}>(), { depth: 0, locked: false, counts: () => ({}), at: null, taken: () => ({}), group: '', alone: false });
 
 const emit = defineEmits<{ change: []; out: [node: FieldNode] }>();
 
@@ -118,7 +121,7 @@ async function confirmRemove(node: FieldNode): Promise<boolean> {
 // Keys a field can't take: the others' at its level, and at the top, the
 // ones the set's types already use.
 function takenFor(placed: Placed<FieldNode>): Record<string, string> {
-	const beside = Object.fromEntries(keysBeside(placed.list, placed.node).map((key) => [key, props.group ? t('field_node_tree.taken_group', 'The {group} group', { group: props.group }) : t('field_node_tree.taken_set', 'This set')]));
+	const beside = Object.fromEntries(keysBeside(placed.list, placed.node).map((key) => [key, props.group ? t('field_node_tree.taken_group', 'The {group} group', { group: props.group }) : t('field_node_tree.taken_top', 'These fields')]));
 
 	return { ...props.taken, ...beside };
 }
@@ -202,7 +205,7 @@ defineExpose({ add });
 				<template v-if="depth === 0 && !isContainer(placed.node)">
 					<button v-for="group in nodes.filter((node) => isContainer(node))" :key="group.id" type="button" class="menu-item" @click="moveInto(placed, group)"><AdminIcon name="indent-increase" />{{ t('field_node_tree.move_into', 'Move into {group}', { group: name(group) }) }}</button>
 				</template>
-				<button v-if="depth > 0" type="button" class="menu-item" @click="emit('out', placed.node)"><AdminIcon name="indent-decrease" />{{ t('field_node_tree.move_out', 'Move out of {group}', { group: group || t('field_node_tree.the_group', 'the group') }) }}</button>
+				<button v-if="depth > 0 && !alone" type="button" class="menu-item" @click="emit('out', placed.node)"><AdminIcon name="indent-decrease" />{{ t('field_node_tree.move_out', 'Move out of {group}', { group: group || t('field_node_tree.the_group', 'the group') }) }}</button>
 			</template>
 			<template #fields="{ placed, done: close }">
 				<FieldForm

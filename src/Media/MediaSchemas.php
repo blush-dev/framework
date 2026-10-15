@@ -16,8 +16,7 @@ namespace Blush\Media;
 use Blush\Config\InvalidConfig;
 use Blush\Field\Field;
 use Blush\Field\FieldControls;
-use Blush\Field\FieldSet;
-use Blush\Field\FieldSets;
+use Blush\Field\FieldLibrary;
 use Blush\Field\Fields\MarkdownField;
 use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidSchema;
@@ -26,11 +25,11 @@ use Blush\Translation\Messages;
 
 /**
  * The metadata fields each kind of media file has (D-238, D-287, D-341),
- * as a schema: the built-in fields (`builtIn()`), then the fields of the
- * field sets attached to the kind (`media:image`, and so on), in set name
- * order (`FieldSets::schemaFor()`). A set's field can't reuse a built-in
- * field's name, or claim `id`, `owner`, `uploaded`, `renditions`, or
- * `artwork`, which aren't fields (D-407, D-487, D-488, D-581, D-709).
+ * as a schema: the built-in fields (`builtIn()`), then the fields
+ * extensions register on the kind (`media:image`, and so on;
+ * `FieldLibrary::schemaFor()`). None can reuse a built-in field's name,
+ * or claim `id`, `owner`, `uploaded`, `renditions`, or `artwork`, which
+ * aren't fields (D-407, D-487, D-488, D-581, D-709).
  */
 final class MediaSchemas
 {
@@ -40,7 +39,7 @@ final class MediaSchemas
 	private array $schemas = [];
 
 	public function __construct(
-		private readonly FieldSets $sets,
+		private readonly FieldLibrary $library,
 		private readonly Messages $messages
 	) {}
 
@@ -84,7 +83,7 @@ final class MediaSchemas
 	/**
 	 * Returns a kind's schema.
 	 *
-	 * @throws InvalidConfig When a set's fields don't fit the kind.
+	 * @throws InvalidConfig When a field doesn't fit the kind.
 	 */
 	public function schema(MediaKind $kind): Schema
 	{
@@ -93,7 +92,7 @@ final class MediaSchemas
 		}
 
 		try {
-			$schema = $this->sets->schemaFor(new MediaKindTarget($kind, $this->messages));
+			$schema = $this->library->schemaFor(new MediaKindTarget($kind, $this->messages));
 		} catch (InvalidSchema $e) {
 			throw new InvalidConfig($e->getMessage(), previous: $e);
 		}
@@ -102,7 +101,7 @@ final class MediaSchemas
 			if ($schema->field($key) !== null) {
 				throw new InvalidConfig((string) $this->messages->t(
 					'media.media_schemas.reserved',
-					'A field set for {kind} media has a field (or alias) named "{field}", which is reserved for the file\'s {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.',
+					'A field for {kind} media has a field (or alias) named "{field}", which is reserved for the file\'s {field, select, owner {uploader} uploaded {upload date} other {{field}}}; rename it.',
 					kind: $kind->value,
 					field: $key
 				));
@@ -120,32 +119,16 @@ final class MediaSchemas
 	 */
 	public function formSchema(MediaKind $kind): Schema
 	{
-		return $this->sets->drawn($this->schema($kind), MediaKindTarget::keyFor($kind));
+		return $this->library->drawn($this->schema($kind), MediaKindTarget::keyFor($kind));
 	}
 
 	/**
-	 * Returns the controls a kind's fields are drawn with (D-795): each of
-	 * its field sets'.
+	 * Returns the controls a kind's fields are drawn with (D-795): its
+	 * layout's library fields', none until a kind has a layout (D-858).
 	 */
 	public function controls(MediaKind $kind): FieldControls
 	{
-		$controls = [];
-
-		foreach ($this->setsFor($kind) as $set) {
-			$controls = [...$controls, ...$set->controls->controls];
-		}
-
-		return new FieldControls($controls);
-	}
-
-	/**
-	 * Returns the field sets attached to a kind, in name order.
-	 *
-	 * @return list<FieldSet>
-	 */
-	public function setsFor(MediaKind $kind): array
-	{
-		return $this->sets->for(MediaKindTarget::keyFor($kind));
+		return $this->library->controls(new MediaKindTarget($kind, $this->messages)->layout());
 	}
 
 	/**

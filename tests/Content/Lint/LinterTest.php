@@ -15,7 +15,7 @@ namespace Blush\Tests\Content\Lint;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Lint\FieldSetCheck;
+use Blush\Content\Lint\FieldLibraryCheck;
 use Blush\Content\Lint\FormatCheck;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
@@ -25,7 +25,7 @@ use Blush\Field\Violation;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(Linter::class)]
-#[CoversClass(FieldSetCheck::class)]
+#[CoversClass(FieldLibraryCheck::class)]
 #[CoversClass(FormatCheck::class)]
 #[CoversClass(LintReport::class)]
 #[CoversClass(VariantCheck::class)]
@@ -193,52 +193,28 @@ final class LinterTest extends TestCase
 		], $messages['_post/2009-01-01.credits.md'] ?? null, 'A term or profile is its file (D-584).');
 	}
 
-	public function testNotesFieldSetTargetsThatAttachToNothing(): void
+	public function testNotesALayoutFieldTheLibraryDoesntHave(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/data/fields/shop.json', '{"targets": ["type:post", "type:product"], "fields": [{"name": "price", "type": "number"}]}');
-		$this->writeTemporaryFile('user/data/fields/nav.json', '{"targets": ["menu:primary"], "fields": [{"name": "badge"}]}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"collection": {"order": "desc"}, "date_archives": true, "routing": {"prefix": "archives"}, "fields": ["price", "missing"]}');
+		$this->writeTemporaryFile('user/data/fields/price.json', '{"type": "number"}');
 
 		$report  = $this->site()->container()->make(Linter::class)->lint();
 		$notices = self::messages($report, Severity::Notice);
 
-		$this->assertSame(['notice targets: "shop" names type:product, which the site doesn\'t have, so it isn\'t used there.'], $notices['user/data/fields/shop.json'] ?? null);
-		$this->assertSame(['notice targets: "nav" names menu:primary, but fields can\'t attach to a "menu" yet.'], $notices['user/data/fields/nav.json'] ?? null);
+		$this->assertSame(['notice fields: Posts place the "missing" field, which the field library doesn\'t have, so it isn\'t shown.'], $notices['user/data/types/post.json'] ?? null);
 		$this->assertSame(['_post/hello/index.md'], array_keys(self::messages($report, Severity::Error)), 'Only the standard posts\' folder entry (D-514).');
 	}
 
-	public function testReportsASetThatDoesntFitAMediaKind(): void
+	public function testReportsALibraryFieldLeftOffAType(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/data/fields/strict.json', '{"targets": ["media:image"], "fields": [{"name": "alt"}]}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"collection": {"order": "desc"}, "date_archives": true, "routing": {"prefix": "archives"}, "fields": ["authors"]}');
+		$this->writeTemporaryFile('user/data/fields/authors.json', '{"type": "text"}');
 
 		$errors = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Error);
 
-		$this->assertStringStartsWith('error targets: media:image can\'t take field set "strict"', $errors['user/data/fields/strict.json'][0] ?? '');
-	}
-
-	public function testReportsTwoSetsUsingOneSettingName(): void
-	{
-		$this->standardContent();
-		$this->writeTemporaryFile('user/data/fields/brand.json', '{"targets": ["settings:general"], "fields": [{"name": "tagline"}]}');
-		$this->writeTemporaryFile('user/data/fields/reading.json', '{"targets": ["settings:reading"], "fields": [{"name": "tagline"}]}');
-		$this->writeTemporaryFile('user/data/fields/both.json', '{"targets": ["settings:general", "settings:search"], "fields": [{"name": "motto"}]}');
-
-		$errors = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Error);
-
-		$this->assertSame(['error targets: Field sets "brand" and "reading" both add a "tagline" setting; settings share one store, so rename one.'], $errors['user/data/fields/reading.json'] ?? null);
-		$this->assertArrayNotHasKey('user/data/fields/both.json', $errors, 'One set on two screens is one setting.');
-	}
-
-	public function testNotesASlotItsKindDoesntOffer(): void
-	{
-		$this->standardContent();
-		$this->writeTemporaryFile('user/data/fields/gallery.json', '{"targets": ["type:post"], "slot": "hero", "fields": [{"name": "photos", "type": "list"}]}');
-
-		$report = $this->site()->container()->make(Linter::class)->lint();
-
-		$this->assertContains('notice slot: "gallery" has the slot "hero", which content types don\'t offer, so it\'s in "details".', self::messages($report, Severity::Notice)['user/data/fields/gallery.json'] ?? []);
-		$this->assertArrayNotHasKey('user/data/fields/gallery.json', self::messages($report, Severity::Error));
+		$this->assertSame(['error fields: type:post can\'t take the "authors" field: "authors" is already one of its own fields.'], $errors['user/data/fields/authors.json'] ?? null, 'Keyed by the field\'s file (D-858).');
 	}
 
 	public function testReportsIdsThatAreMissingNotUuidsOrShared(): void

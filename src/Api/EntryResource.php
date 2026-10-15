@@ -167,7 +167,7 @@ final readonly class EntryResource
 			}
 		}
 
-		return array_filter($type->schema->fields, static fn (string $name): bool => ! isset($skip[$name]), ARRAY_FILTER_USE_KEY);
+		return array_filter($this->types->carried($type->name), static fn (string $name): bool => ! isset($skip[$name]), ARRAY_FILTER_USE_KEY);
 	}
 
 	/**

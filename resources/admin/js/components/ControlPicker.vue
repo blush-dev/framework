@@ -9,8 +9,8 @@
  * under the pointer or the focus is for, beside **Cancel**.
  *
  * A saved field (`current`) is offered only the controls that store the
- * same value (D-768); a field inside a group isn't offered a group
- * (`flat`, D-770), which the heading says. Choosing one closes it
+ * same value (D-768); a field inside an Object isn't offered the
+ * Structure controls (`flat`, D-770), which the heading says. Choosing one closes it
  * (`choose`); Escape, **Cancel**, the close button, or a click outside
  * it leave it.
  */
@@ -66,7 +66,7 @@ function choose(key: string): void {
 		<div class="panel__header">
 			<div class="control-picker__title">
 				<h2 id="control-picker-heading">{{ current === undefined ? t('control_picker.choose', 'Choose a Control') : t('control_picker.change', 'Change the Control') }}</h2>
-				<p v-if="flat" class="panel__hint">{{ t('control_picker.flat_hint', 'This one sits inside a group, so it can\'t be a group itself.') }}</p>
+				<p v-if="flat" class="panel__hint">{{ t('control_picker.flat_hint', 'This one sits inside an Object, so it can\'t be one itself.') }}</p>
 				<p v-else-if="current !== undefined" class="panel__hint">{{ t('control_picker.same_value_hint', 'These store the same value, so what entries have is kept.') }}</p>
 			</div>
 			<div class="panel__actions">

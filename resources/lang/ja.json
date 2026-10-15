@@ -1479,10 +1479,6 @@
 		"site_health_controller": {
 			"not_allowed": "サイトヘルスを表示する権限がありません。"
 		},
-		"field_sets_controller": {
-			"not_found": "「{name}」というフィールドセットはありません。",
-			"every": "すべての{places}"
-		},
 		"job_controller": {
 			"no_job": "そのようなジョブはありません。",
 			"retry_failed_only": "再試行できるのは失敗したジョブだけです。",
@@ -1539,7 +1535,6 @@
 		"settings_controller": {
 			"not_allowed": "サイトの設定を表示する権限がありません。",
 			"no_screen": "その設定画面はありません。",
-			"field_set_hint": "フィールドセット「{set}」から",
 			"groups": {
 				"site": {
 					"title": "サイト",
@@ -1809,10 +1804,6 @@
 			"named_by_config": "config/plugins.php が名前を指定して{label}を有効にしています。削除する前に、そのファイルの \"enabled\" リストから外してください。",
 			"not_deleted": "{where}を削除できませんでした。Web サーバーに変更が許可されているか確認してください。"
 		},
-		"field_set_edit_controller": {
-			"shadowed": "フィールドセット「{name}」は保存されましたが、別の場所にある同じ名前のセットが使用されます。",
-			"forbidden": "フィールドセットを変更する権限がありません。"
-		},
 		"themes_controller": {
 			"forbidden": "サイトのテーマを表示する権限がありません。"
 		},
@@ -1946,8 +1937,7 @@
 			"details": {
 				"label": "詳細",
 				"description": "画面の設定に加える、サイト独自の設定。"
-			},
-			"conflict": "フィールドセット「{first}」と「{second}」の両方が「{setting}」設定を追加しています。設定は1つの保存先を共有するため、どちらかの名前を変更してください。"
+			}
 		},
 		"settings_screen": {
 			"general": "一般",
@@ -2555,8 +2545,6 @@
 			"clashes": "重複して定義された名前",
 			"clash": "2つのプラグインが{kind, select, type {コンテンツタイプ} other {リレーション}}「{name}」を定義しています。{kept}のものが使われ、{dropped}のものは除外されています。",
 			"clashes_hint": "どちらかを無効にするか、その作者に定義したものの名前を変更するよう依頼してください。",
-			"field_sets": "除外されたフィールドセット",
-			"field_sets_hint": "いずれかのセットのフィールド名を変更するか、それを追加しているプラグインを無効にしてください。それぞれを確認するには「{command}」を実行してください。",
 			"extensions": "拡張機能",
 			"extensions_run": "有効なものはすべて実行できます。",
 			"sentences": "{sentence}{next}",
@@ -2667,12 +2655,6 @@
 			"parent_loop": "ループになっています：{chain}。",
 			"route_answers": "{address}にありますが、そこでは{route}ルートが応答するため、ページにアクセスできません。ページを移動するか、タイプのプレフィックスを変更してください。",
 			"missing_target": "「{slug}」という{item}エントリーがないため、サイトでは除外されます。エントリーを追加するか、content:terms を実行してください。"
-		},
-		"field_set_check": {
-			"unknown_kind": "「{set}」は{target}を指定していますが、フィールドはまだ「{kind}」に追加できません。",
-			"unknown_target": "「{set}」はサイトにない{target}を指定しているため、そこでは使われません。",
-			"slot": "「{set}」には{kind}にないスロット「{slot}」があるため、「{in}」に配置されます。",
-			"registered": "{extension}が登録するフィールド"
 		},
 		"format_check": {
 			"markdown": "読み込まれません：エントリーは .md ファイルです。.md に名前を変更してください。",
@@ -2924,15 +2906,6 @@
 			"not_with_role": "あなたのロールでは{list}を追加できません。保存するには削除してください。",
 			"never": "{list}は追加できません。保存するには削除してください。"
 		},
-		"data_field_set_writer": {
-			"bad_name": "「{name}」はフィールドセット名として使えません：英小文字・数字・「_」・「-」を使ってください。",
-			"already_data": "user/data/fields ですでに「{name}」が定義されています。",
-			"not_data_change": "「{name}」は user/data/fields で定義されていないため、ここでは変更できません。",
-			"fix_by_hand": "{reason}先に手動で修正してください。",
-			"not_data_delete": "「{name}」は user/data/fields で定義されていないため、ここでは削除できません。",
-			"unknown_option": "「{option}」は管理画面でフィールドセットに対して変更できる項目ではありません。",
-			"data_sets_off": "FieldConfig の「dataSets」が無効のため、user/data/fields のフィールドセットは読み込まれません。"
-		},
 		"file_name": {
 			"no_slug": "ファイル名パターン「{pattern}」は'{slug}'で終わる必要があります。",
 			"no_dot": "ファイル名パターン「{pattern}」では、スラッグの始まりを示す'{slug}'の前に「.」が必要です。",
@@ -2986,7 +2959,6 @@
 			"delete_code": "「{name}」はコードで定義されているため、ここでは削除できません。ここでの変更を取り消すにはリセットしてください。",
 			"not_data_delete": "「{name}」は user/data/types で定義されていないため、ここでは削除できません。",
 			"named_by_relations": "{relations}{count, plural, one {リレーション} other {リレーション}}が{name}を指定しています。先にそのリレーションを削除してください。",
-			"code_fields": "フィールドにコードのフィールドクラスが含まれているため、コードで変更します。",
 			"bad_folders": "「folders」は'{year}'のようなフォルダーパターンか null である必要があります。",
 			"unknown_option": "「{option}」は管理画面で変更できるオプションではありません。",
 			"no_urls_prefix": "このタイプには独自の URL がないため、変更するプレフィックスがありません。",
@@ -3022,7 +2994,6 @@
 			"listing_subject": "コンテンツタイプ「{name}」の一覧",
 			"bad_order": "コンテンツタイプ「{name}」の「order」は{orders}のいずれかである必要があります。",
 			"kind_changed": "user/data/types/{name} ではタイプの種類を変更できません。エントリーは種類に基づいて保存されています。",
-			"only_placed": "ここでは「{name}」は「position」と「under」でメニューに配置することしかできません。",
 			"profiles_not_placed": "「{name}」タイプはユーザーと一緒に表示されるため、コンテンツメニューには配置されません。",
 			"named_folder": "コンテンツタイプ「{name}」はフォルダー（「{folder}」）を指定していますが、現在すべてのタイプは _{name} に保存されます。ファイルをそこへ移動し、アドレスがフォルダーに基づいていた場合は URL プレフィックスを指定してください。user/data/types のタイプなら、content:type-folders --write（またはサイトヘルス）で両方を行えます。",
 			"named_folder_option": "コンテンツタイプ「{name}」は（「folder」で）フォルダーを指定していますが、現在すべてのタイプは _{name} に保存されます。ファイルをそこへ移動し、アドレスがフォルダーに基づいていた場合は URL プレフィックスを指定してください。user/data/types のタイプなら、content:type-folders --write（またはサイトヘルス）で両方を行えます。",
@@ -3223,15 +3194,6 @@
 			"email": "メールアドレス",
 			"icon": "スペースを含まないアイコン名"
 		},
-		"field_sets": {
-			"registered_field": "{owner}のフィールド「{field}」",
-			"field_set": "フィールドセット「{set}」",
-			"not_taken": "{target}は{what}を受け付けられません：「{field}」という名前のフィールドを受け付けていません。",
-			"own_field": "{target}は{what}を受け付けられません：「{name}」はすでに独自のフィールドの1つです。",
-			"core_key": "{target}は{what}を受け付けられません：「{name}」は Blush 自体のキーのため、ほかでは宣言できません。",
-			"declared": "{target}は{what}を受け付けられません：{owner}がすでにそこで「{name}」を宣言しており、キーの宣言は1回だけです。",
-			"invalid": "{target}は{what}を受け付けられません：{problem}"
-		},
 		"control_section": {
 			"structure": "構造",
 			"text": "テキスト",
@@ -3267,10 +3229,6 @@
 			"label": "数値",
 			"description": "ボックスに入力する数値。"
 		},
-		"group": {
-			"label": "グループ",
-			"description": "まとめて扱う複数のフィールド。値はグループのキーの下に保存されます。"
-		},
 		"checkboxes": {
 			"label": "チェックボックス",
 			"description": "すべての選択肢を表示し、その中からいくつでも選択。"
@@ -3286,10 +3244,6 @@
 		"reference": {
 			"label": "エントリー選択",
 			"description": "一覧から選んだエントリー。"
-		},
-		"repeater": {
-			"label": "繰り返しグループ",
-			"description": "それぞれ同じフィールドを持つ項目のリスト。"
 		},
 		"date": {
 			"label": "日付と時刻",

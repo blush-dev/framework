@@ -19,16 +19,16 @@ use Blush\Field\Controls\Code;
 use Blush\Field\Controls\Date;
 use Blush\Field\Controls\Email;
 use Blush\Field\Controls\File;
-use Blush\Field\Controls\Group;
 use Blush\Field\Controls\Icon;
 use Blush\Field\Controls\Image;
 use Blush\Field\Controls\Link;
+use Blush\Field\Controls\ListControl;
 use Blush\Field\Controls\Markdown;
 use Blush\Field\Controls\MultiSelect;
 use Blush\Field\Controls\Number;
+use Blush\Field\Controls\ObjectControl;
 use Blush\Field\Controls\Radios;
 use Blush\Field\Controls\Reference;
-use Blush\Field\Controls\Repeater;
 use Blush\Field\Controls\Select;
 use Blush\Field\Controls\Text;
 use Blush\Field\Controls\Textarea;
@@ -45,8 +45,8 @@ use Blush\Field\Controls\ViewOnly;
  */
 enum ControlType: string
 {
-	case Group       = 'group';
-	case Repeater    = 'repeater';
+	case Object      = 'object';
+	case List        = 'list';
 	case Text        = 'text';
 	case Textarea    = 'textarea';
 	case Markdown    = 'markdown';
@@ -76,8 +76,8 @@ enum ControlType: string
 	public function className(): string
 	{
 		return match ($this) {
-			self::Group       => Group::class,
-			self::Repeater    => Repeater::class,
+			self::Object      => ObjectControl::class,
+			self::List        => ListControl::class,
 			self::Text        => Text::class,
 			self::Textarea    => Textarea::class,
 			self::Markdown    => Markdown::class,

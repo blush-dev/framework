@@ -111,40 +111,6 @@
       "css/FieldInput.css"
     ]
   },
-  "_FieldSetSettings.css": {
-    "file": "css/FieldSetSettings.css",
-    "src": "_FieldSetSettings.css"
-  },
-  "_FieldSetSettings.js": {
-    "file": "js/FieldSetSettings.js",
-    "name": "FieldSetSettings",
-    "imports": [
-      "js/admin.ts",
-      "_type-form.js"
-    ],
-    "css": [
-      "css/FieldSetSettings.css"
-    ]
-  },
-  "_FieldTree.css": {
-    "file": "css/FieldTree.css",
-    "src": "_FieldTree.css"
-  },
-  "_FieldTree.js": {
-    "file": "js/FieldTree.js",
-    "name": "FieldTree",
-    "imports": [
-      "js/admin.ts",
-      "_AdminSelect.js",
-      "_ToggleSwitch.js",
-      "_FieldInput.js",
-      "_type-form.js",
-      "_ItemTree.js"
-    ],
-    "css": [
-      "css/FieldTree.css"
-    ]
-  },
   "_IconField.css": {
     "file": "css/IconField.css",
     "src": "_IconField.css"
@@ -350,8 +316,11 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
+      "_ToggleSwitch.js",
       "_IconField.js",
-      "_type-form.js"
+      "_controls.js",
+      "_type-form.js",
+      "_ItemTree.js"
     ],
     "css": [
       "css/TypeBehaviorFields.css"
@@ -363,6 +332,13 @@
     "imports": [
       "js/admin.ts",
       "_extensions.js"
+    ]
+  },
+  "_controls.js": {
+    "file": "js/controls.js",
+    "name": "controls",
+    "imports": [
+      "js/admin.ts"
     ]
   },
   "_density.js": {
@@ -536,8 +512,8 @@
       "js/views/AuthorizeView.vue",
       "js/views/EditorView.vue",
       "js/views/EntriesView.vue",
-      "js/views/FieldSetView.vue",
-      "js/views/FieldSetsView.vue",
+      "js/views/FieldView.vue",
+      "js/views/FieldsView.vue",
       "js/views/ForgotPasswordView.vue",
       "js/views/HealthView.vue",
       "js/views/AdminThemeView.vue",
@@ -723,30 +699,36 @@
       "css/EntriesView.css"
     ]
   },
-  "js/views/FieldSetView.vue": {
-    "file": "js/FieldSetView.js",
-    "name": "FieldSetView",
-    "src": "js/views/FieldSetView.vue",
+  "js/views/FieldView.vue": {
+    "file": "js/FieldView.js",
+    "name": "FieldView",
+    "src": "js/views/FieldView.vue",
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
+      "_AdminSelect.js",
+      "_ToggleSwitch.js",
+      "_FieldInput.js",
+      "_controls.js",
       "_type-form.js",
-      "_FieldSetSettings.js",
-      "_FieldTree.js"
+      "_ItemTree.js"
+    ],
+    "css": [
+      "css/FieldView.css"
     ]
   },
-  "js/views/FieldSetsView.vue": {
-    "file": "js/FieldSetsView.js",
-    "name": "FieldSetsView",
-    "src": "js/views/FieldSetsView.vue",
+  "js/views/FieldsView.vue": {
+    "file": "js/FieldsView.js",
+    "name": "FieldsView",
+    "src": "js/views/FieldsView.vue",
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
       "_SkeletonTable.js",
-      "_FieldSetSettings.js"
+      "_controls.js"
     ],
     "css": [
-      "css/FieldSetsView.css"
+      "css/FieldsView.css"
     ]
   },
   "js/views/ForgotPasswordView.vue": {
@@ -905,7 +887,6 @@
     "imports": [
       "js/admin.ts",
       "_type-form.js",
-      "_FieldTree.js",
       "_TypeBehaviorFields.js"
     ],
     "css": [
@@ -1153,7 +1134,6 @@
       "_AdminSelect.js",
       "_DangerZone.js",
       "_type-form.js",
-      "_FieldTree.js",
       "_SaveBar.js",
       "_TypeBehaviorFields.js",
       "_relations.js"

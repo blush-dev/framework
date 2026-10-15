@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Field set loader.
+ * Field library loader.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -24,17 +24,17 @@ use Blush\Storage\StorageArea;
 /**
  * Loads the fields code registers (D-790): core's (`FieldSource::CORE_TAG`,
  * owned by `core`), then extensions' (`FieldSource::TAG`); and the site's
- * field sets, from the `field_sets` table (D-678; on files
- * `user/data/fields/*.json`, a set named after its file) unless
- * `FieldConfig::$dataSets` is off. Sets are only the site's: neither
- * code nor `config/` makes them (D-791).
+ * field library (D-858), from the `fields` table (D-859; on files
+ * `user/data/fields/*.json`, a field named after its file) unless
+ * `FieldConfig::$library` is off. The library is only the site's:
+ * neither code nor `config/` adds to it (D-791).
  */
-final readonly class FieldSetLoader
+final readonly class FieldLibraryLoader
 {
 	/**
-	 * The table of the sets the site defines in data (D-678).
+	 * The table of the site's library fields (D-859).
 	 */
-	public const string TABLE = 'field_sets';
+	public const string TABLE = 'fields';
 
 	/**
 	 * The folder under `user/data` that keeps the table on files.
@@ -50,8 +50,8 @@ final readonly class FieldSetLoader
 	) {}
 
 	/**
-	 * The data sets' table: keyed by `name`, a record's other fields the
-	 * set's definition as written.
+	 * The library's table: keyed by `name`, a record's other fields the
+	 * field's definition as written.
 	 */
 	public static function table(): Table
 	{
@@ -59,7 +59,7 @@ final readonly class FieldSetLoader
 	}
 
 	/**
-	 * The data sets, by name.
+	 * The library's records, by name.
 	 */
 	public function records(): KeyedTable
 	{
@@ -67,11 +67,11 @@ final readonly class FieldSetLoader
 	}
 
 	/**
-	 * Loads the registered fields and the sets.
+	 * Loads the registered fields and the library.
 	 *
-	 * @throws InvalidSchema When a field or a set can't be read or isn't valid.
+	 * @throws InvalidSchema When a field can't be read or isn't valid.
 	 */
-	public function load(): FieldSets
+	public function load(): FieldLibrary
 	{
 		$fields = [];
 
@@ -91,13 +91,13 @@ final readonly class FieldSetLoader
 			$fields[] = $field;
 		}
 
-		$sets = [];
+		$library = [];
 
-		foreach ($this->dataSets() as $set) {
-			$sets[$set->name] = $set;
+		foreach ($this->libraryFields() as $field) {
+			$library[$field->name()] = $field;
 		}
 
-		return new FieldSets($sets, new RegisteredFields($fields));
+		return new FieldLibrary($library, new RegisteredFields($fields));
 	}
 
 	/**
@@ -124,14 +124,14 @@ final readonly class FieldSetLoader
 	}
 
 	/**
-	 * Returns the data-defined sets, when the config allows them.
+	 * Returns the library's fields, when the config allows them.
 	 *
-	 * @return list<FieldSet>
+	 * @return list<LibraryField>
 	 * @throws InvalidSchema
 	 */
-	private function dataSets(): array
+	private function libraryFields(): array
 	{
-		if (! $this->config->dataSets) {
+		if (! $this->config->library) {
 			return [];
 		}
 
@@ -143,16 +143,16 @@ final readonly class FieldSetLoader
 			throw new InvalidSchema($e->getMessage(), previous: $e);
 		}
 
-		$sets = [];
+		$fields = [];
 
 		foreach ($definitions as $name => $definition) {
 			try {
-				$sets[] = FieldSet::fromArray(['name' => $name, ...$definition], $this->fields);
+				$fields[] = LibraryField::fromArray([...$definition, 'name' => $name], $this->fields);
 			} catch (InvalidSchema $e) {
 				throw new InvalidSchema(sprintf('%s: %s', $records->location($name), $e->getMessage()), previous: $e);
 			}
 		}
 
-		return $sets;
+		return $fields;
 	}
 }

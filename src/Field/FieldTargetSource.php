@@ -16,10 +16,10 @@ namespace Blush\Field;
 use Blush\Translation\Text;
 
 /**
- * Supplies the places field sets can attach to, of one kind (D-337):
- * content types, kinds of media file. Each subsystem that takes sets
- * tags its source with `FieldTargetSource::TAG`; an extension with places
- * of its own can too.
+ * Supplies the places fields go on, of one kind (D-337): content types,
+ * kinds of media file, Settings screens. Each subsystem with places tags
+ * its source with `FieldTargetSource::TAG`; an extension with places of
+ * its own can too.
  */
 interface FieldTargetSource
 {
@@ -48,22 +48,11 @@ interface FieldTargetSource
 	public function fieldTargets(): iterable;
 
 	/**
-	 * Returns the slots the kind's places offer sets (D-347), the first
-	 * being the default: where a set naming none, or one the kind doesn't
-	 * have, goes. Every kind has at least one.
+	 * Returns the slots the kind's places offer (D-347), the places on
+	 * their screens that code names, the first being the default. Every
+	 * kind has at least one.
 	 *
 	 * @return non-empty-list<FieldSlot>
 	 */
 	public function slots(): array;
-
-	/**
-	 * Returns why sets don't fit the kind's targets taken together, by set
-	 * name, beyond each target's own schema (`FieldSets::schemaFor()`):
-	 * for a kind whose places share one store, such as the settings
-	 * screens, two sets using one name on different targets. Most kinds
-	 * have none. Each is written with `t()` (D-836).
-	 *
-	 * @return array<string, string|Text>
-	 */
-	public function conflicts(FieldSets $sets): array;
 }
