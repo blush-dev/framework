@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Index;
 
 use Blush\Content\Source\SourceFile;
-use Blush\Content\Status;
 use Blush\Content\Visibility;
+use Blush\Workflow\Status;
 
 /**
  * What the index knows about one entry: everything a query filters or
@@ -118,7 +118,7 @@ final readonly class IndexRecord
 		public string $directory,
 		public string $locale,
 		public bool $landing,
-		public Status $status,
+		public string $status,
 		public Visibility $visibility,
 		public ?int $published,
 		public int $updated,
@@ -148,23 +148,6 @@ final readonly class IndexRecord
 	}
 
 	/**
-	 * Returns the status at a time: a published entry whose date is still
-	 * to come is scheduled.
-	 */
-	public function statusAt(int $now): Status
-	{
-		return self::effectiveStatus($this->status->value, $this->published, $now);
-	}
-
-	/**
-	 * Returns the status a record array has at a time.
-	 */
-	public static function effectiveStatus(string $status, ?int $published, int $now): Status
-	{
-		return Status::at($status, $published, $now);
-	}
-
-	/**
 	 * Rebuilds a record from `toArray()`'s output.
 	 *
 	 * @param RecordArray $data
@@ -179,7 +162,7 @@ final readonly class IndexRecord
 			directory: $data['directory'],
 			locale: $data['locale'],
 			landing: $data['landing'],
-			status: Status::tryFrom($data['status']) ?? Status::Published,
+			status: $data['status'] === '' ? Status::PUBLISHED : $data['status'],
 			visibility: Visibility::tryFrom($data['visibility']) ?? Visibility::Public,
 			published: $data['published'],
 			updated: $data['updated'],
@@ -261,7 +244,7 @@ final readonly class IndexRecord
 			'directory'    => $this->directory,
 			'locale'       => $this->locale,
 			'landing'      => $this->landing,
-			'status'       => $this->status->value,
+			'status'       => $this->status,
 			'visibility'   => $this->visibility->value,
 			'published'    => $this->published,
 			'updated'      => $this->updated,

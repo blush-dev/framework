@@ -79,7 +79,7 @@ needed in practice. The built-in keys:
 | `slug` | The URL name, instead of the file name |
 | `published` | The publish date, such as `2026-09-26 09:00:00 -05:00`. A date in the future schedules the entry. (`date` works too.) |
 | `updated` | When it last changed; defaults to `published`, then the file's modified time. Every save and bulk change in the admin sets it |
-| `status` | `published` (the default), `draft`, or `trash`. The admin's **Move to trash** sets `trash`, which takes the entry off your site |
+| `status` | `published` (the default), `draft`, or `trash`, or a status a plugin adds (see [Statuses from a plugin](extending.md#statuses-from-a-plugin)). The admin's **Move to trash** sets `trash`, which takes the entry off your site. A status the site doesn't have keeps the entry off the site, and `content:lint` warns about it |
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words of the content's paragraphs and lists are used. (`excerpt` works too.) |

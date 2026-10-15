@@ -25,7 +25,6 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -82,7 +81,7 @@ final readonly class ApiEntries
 	 * Returns an entry by id when a token asking for some statuses may
 	 * see it: of a public type, with one of them, and its to edit.
 	 *
-	 * @param  list<Status> $statuses
+	 * @param  list<string> $statuses
 	 * @throws AuthException For a token whose capabilities aren't names.
 	 */
 	public function findEditable(string $id, Token $token, Account $account, array $statuses): ?Entry
@@ -90,7 +89,7 @@ final readonly class ApiEntries
 		$entry = $this->content->find($id);
 
 		return $entry !== null
-			&& in_array($entry->status, $statuses, true)
+			&& in_array($entry->status->name, $statuses, true)
 			&& isset($this->types()[$entry->type->name])
 			&& $this->permissions->limitedTo($token->capabilities)->can($account, ContentAction::Edit, $entry)
 			? $entry
@@ -121,7 +120,7 @@ final readonly class ApiEntries
 	 * of the public types, whatever their visibility, without listings'
 	 * landing pages.
 	 *
-	 * @param  list<Status> $statuses
+	 * @param  list<string> $statuses
 	 * @throws AuthException For a token whose capabilities aren't names.
 	 */
 	public function editable(Token $token, Account $account, array $statuses): Query
@@ -159,7 +158,7 @@ final readonly class ApiEntries
 	public function query(): Query
 	{
 		return $this->content->query()
-			->status(Status::Published)
+			->live()
 			->visibility(Visibility::Public)
 			->withLanding(false)
 			->type(...array_keys($this->types()));
@@ -235,7 +234,7 @@ final readonly class ApiEntries
 		return $this->cache->remember(CacheNamespace::Fragments, 'api addresses', function (): array {
 			$entries = $this->content->query()
 				->any()
-				->status(Status::Published)
+				->live()
 				->visibility(Visibility::Public, Visibility::Unlisted)
 				->type(...array_keys($this->types()))
 				->get();

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Admin\Http;
 
-use Blush\Extension\ExtensionText;
 use JsonException;
 use stdClass;
 use Psr\Http\Message\ResponseInterface;
@@ -24,11 +23,11 @@ use Blush\Auth\Permissions;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
+use Blush\Extension\ExtensionText;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Menu\Link\LinksEntry;
@@ -46,6 +45,7 @@ use Blush\Theme\ThemeResolver;
 use Blush\Translation\LocaleMap;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * The Menus screens' API (from the menus sketch), for accounts with
@@ -321,7 +321,7 @@ final readonly class MenusController
 		foreach ($groups as $order => $names) {
 			$entries = $this->content->query()
 				->type(...$names)
-				->status(EntryStatus::Published, EntryStatus::Draft, EntryStatus::Scheduled)
+				->anyStatus()
 				->search($search === '' ? null : $search)
 				->limit($search === '' ? self::LINKS : self::CANDIDATES)
 				->get();
@@ -649,9 +649,9 @@ final readonly class MenusController
 	private static function state(Entry $entry): string
 	{
 		return match (true) {
-			$entry->status === EntryStatus::Trash     => 'trash',
-			$entry->status === EntryStatus::Draft     => 'draft',
-			$entry->status === EntryStatus::Scheduled => 'scheduled',
+			$entry->status->is(EntryStatus::TRASH)     => 'trash',
+			$entry->status->is(EntryStatus::SCHEDULED) => 'scheduled',
+			! $entry->isPublished()                 => 'draft',
 			$entry->visibility === Visibility::Hidden => 'hidden',
 			default                                   => 'live'
 		};

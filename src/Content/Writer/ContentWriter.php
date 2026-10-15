@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Writer;
 
 use DateTimeInterface;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
+use Blush\Workflow\Status;
 
 /**
  * Changes content (D-013, D-228): what a storage driver gives `Entries`
@@ -148,7 +148,7 @@ interface ContentWriter
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	public function restore(string $id, ?string $version = null, ?Status $status = Status::Draft): string;
+	public function restore(string $id, ?string $version = null, ?string $status = Status::DRAFT): string;
 
 	/**
 	 * Deletes an entry for good.

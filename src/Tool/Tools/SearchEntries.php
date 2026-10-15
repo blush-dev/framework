@@ -21,18 +21,18 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
-use Blush\Tool\ToolContext;
-use Blush\Tool\ToolEntries;
-use Blush\Tool\Tool;
-use Blush\Tool\ToolError;
-use Blush\Tool\ToolResult;
 use Blush\Storage\Record\Order;
 use Blush\Support\Uuid;
+use Blush\Tool\Tool;
+use Blush\Tool\ToolContext;
+use Blush\Tool\ToolEntries;
+use Blush\Tool\ToolError;
+use Blush\Tool\ToolResult;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Statuses;
 
 /**
  * `search_entries` (D-755): the API's filters (D-740) as typed input,
@@ -52,7 +52,8 @@ final class SearchEntries extends Tool
 		private readonly Relations $relations,
 		private readonly ContentTypes $types,
 		private readonly AppConfig $app,
-		private readonly Messages $messages
+		private readonly Messages $messages,
+		private readonly Statuses $statuses
 	) {}
 
 	#[Override]
@@ -77,7 +78,7 @@ final class SearchEntries extends Tool
 			'properties'           => [
 				'search'           => ['type' => 'string', 'description' => 'Words the entries have.', 'maxLength' => 200],
 				'type'             => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Types to search, by name.'],
-				'status'           => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['published', 'draft', 'scheduled', 'trash']], 'description' => 'Statuses to find; every one but trash when left out.'],
+				'status'           => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => array_keys($this->statuses->all())], 'description' => 'Statuses to find; every one but trash when left out.'],
 				'related'          => ['type' => 'object', 'description' => 'Relationships to filter by, by name, each to a list of the related entries\' slugs or ids, such as {"tags": ["baking"]}. Entries linked to any of them are found.', 'additionalProperties' => ['type' => 'array', 'items' => ['type' => 'string']]],
 				'parent'           => ['type' => 'string', 'description' => 'The id of a page whose pages to find.'],
 				'published_after'  => $date,
@@ -107,8 +108,8 @@ final class SearchEntries extends Tool
 	#[Override]
 	public function handle(array $input, ToolContext $context): ToolResult
 	{
-		$statuses = array_map(Status::from(...), self::strings($input, 'status'));
-		$search   = $this->entries->query($context, $statuses === [] ? ToolEntries::DEFAULT_STATUSES : $statuses);
+		$statuses = self::strings($input, 'status');
+		$search   = $this->entries->query($context, $statuses === [] ? null : $statuses);
 		$types    = self::strings($input, 'type');
 
 		foreach ($types as $type) {

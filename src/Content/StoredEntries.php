@@ -45,6 +45,7 @@ use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Refs;
 use Blush\Support\RequestMemo;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * The default `Entries` (D-654), on records (D-649), the same for every
@@ -488,7 +489,7 @@ final class StoredEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry
+	public function restore(Entry|string $entry, ?string $version = null, ?string $status = Status::DRAFT): Entry
 	{
 		$id = $this->writer()->restore($this->id($entry), $version, $status);
 
@@ -522,7 +523,7 @@ final class StoredEntries implements Entries
 			$above = ltrim("{$above}/{$segment}", '/');
 
 			if ($this->named($type->name, $above) === null) {
-				$this->writer()->createAt($type, $above, new EntryChanges(set: ['title' => self::titleOf($segment), 'status' => Status::Draft->value]));
+				$this->writer()->createAt($type, $above, new EntryChanges(set: ['title' => self::titleOf($segment), 'status' => Status::DRAFT]));
 				$this->locations->refresh();
 			}
 		}
@@ -619,9 +620,9 @@ final class StoredEntries implements Entries
 	 */
 	private function key(Record $record): string
 	{
-		$status = Status::at(EntryRecords::text($record, 'status'), EntryTable::timestamp($record->fields['published'] ?? null), $this->now());
+		$status = $this->hydrator->status($record);
 
-		return "entry|{$record->id}|" . ($record->version ?? '') . "|{$status->value}";
+		return "entry|{$record->id}|" . ($record->version ?? '') . "|{$status->name}";
 	}
 
 	/**

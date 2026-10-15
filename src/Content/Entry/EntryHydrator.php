@@ -20,7 +20,6 @@ use Psr\Clock\ClockInterface;
 use Blush\Asset\AssetCollector;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
@@ -28,6 +27,8 @@ use Blush\Field\FieldContext;
 use Blush\Markdown\MarkdownParser;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Turns `entries` records (D-649) into entries, the same for every
@@ -49,6 +50,7 @@ final class EntryHydrator
 		private readonly MarkdownParser $markdown,
 		private readonly ClockInterface $clock,
 		private readonly AppConfig $app,
+		private readonly Statuses $statuses,
 		private readonly ?BodyCache $cache = null,
 		private readonly ?AssetCollector $collector = null,
 		private readonly ?EntryGraph $graph = null
@@ -95,7 +97,7 @@ final class EntryHydrator
 			slug: $slug === '' ? 'index' : $slug,
 			key: $key,
 			title: EntryRecords::text($record, 'title'),
-			status: Status::at(EntryRecords::text($record, 'status'), $published, $this->clock->now()->getTimestamp()),
+			status: $this->statuses->at(EntryRecords::text($record, 'status'), $published, $this->clock->now()->getTimestamp()),
 			visibility: Visibility::tryFrom(EntryRecords::text($record, 'visibility')) ?? Visibility::Public,
 			published: $published === null ? null : $this->date($published),
 			updated: $this->date($updated),
@@ -135,6 +137,15 @@ final class EntryHydrator
 		}
 
 		return $links;
+	}
+
+	/**
+	 * Returns an entry's status now, from its record (D-850): a live
+	 * status whose time is still to come is scheduled.
+	 */
+	public function status(Record $record): Status
+	{
+		return $this->statuses->at(EntryRecords::text($record, 'status'), EntryTable::timestamp($record->fields['published'] ?? null), $this->clock->now()->getTimestamp());
 	}
 
 	/**

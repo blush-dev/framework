@@ -29,20 +29,20 @@ use Blush\Auth\Tokens;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status;
-use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\BuiltInType;
+use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
+use Blush\Storage\Record\Order;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Answers `GET {path}/api/dashboard` (D-538): the site, and the entries
@@ -119,7 +119,7 @@ final readonly class DashboardController
 				'environment' => $this->site->environment->value,
 				'version'     => $this->version->current()
 			],
-			'published' => $this->content->query()->status(Status::Published)->count(),
+			'published' => $this->content->query()->live()->count(),
 			'resume'    => $resume === null ? null : $this->describe($resume, $account),
 			'yours'     => $profiles === null || $own === null ? null : $this->groups($base->whereTerm($profiles, $own), $account, $except),
 			'everyone'  => $this->groups($base, $account, $except),
@@ -159,7 +159,7 @@ final readonly class DashboardController
 		$entry = $id === null ? null : $this->content->find($id);
 
 		return $entry !== null
-			&& $entry->status !== Status::Trash
+			&& ! $entry->status->is(Status::TRASH)
 			&& $this->permissions->can($account, ContentAction::Edit, $entry)
 			? $entry
 			: null;
@@ -179,9 +179,9 @@ final readonly class DashboardController
 		};
 
 		return [
-			'draft'     => $take($query->status(Status::Draft)->orderBy('updated', Order::Desc)),
-			'scheduled' => $take($query->status(Status::Scheduled)->orderBy('published', Order::Asc)),
-			'published' => $take($query->status(Status::Published)->orderBy('published', Order::Desc))
+			'draft'     => $take($query->status(Status::DRAFT)->orderBy('updated', Order::Desc)),
+			'scheduled' => $take($query->status(Status::SCHEDULED)->orderBy('published', Order::Asc)),
+			'published' => $take($query->status(Status::PUBLISHED)->orderBy('published', Order::Desc))
 		];
 	}
 
@@ -265,7 +265,7 @@ final readonly class DashboardController
 			'handle'    => $this->handles->of($entry),
 			'title'     => $entry->title,
 			'type'      => $entry->type->name,
-			'status'    => $entry->status->value,
+			'status'    => $entry->status->name,
 			'url'       => $this->urls->entry($entry),
 			'published' => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),

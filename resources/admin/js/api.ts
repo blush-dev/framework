@@ -241,10 +241,11 @@ export interface EntrySummary {
 	continued: boolean;
 }
 
-// Every status an entry has (D-484). `trash` is set by Move to Trash
-// and taken off by Restore, and `scheduled` by a future date, so a status
-// control offers neither as such.
-export type EntryStatus = 'draft' | 'scheduled' | 'published' | 'trash';
+// An entry's status, by name (D-484, D-850): core's, or one a plugin
+// registers (`statuses.ts` has their labels). `trash` is set by Move to
+// Trash and taken off by Restore, and `scheduled` by a future date, so a
+// status control offers neither as such.
+export type EntryStatus = 'draft' | 'scheduled' | 'published' | 'trash' | (string & {});
 
 // What "any status" means: every status but the trash.
 export type ActiveStatus = Exclude<EntryStatus, 'trash'>;

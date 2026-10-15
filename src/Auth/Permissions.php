@@ -18,9 +18,10 @@ use Blush\Container\Attributes\NoAutowire;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Relation;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\MediaKind;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Answers whether an account may do something (D-217). An account can do
@@ -58,6 +59,7 @@ final readonly class Permissions
 		private Capabilities $capabilities,
 		private ContentTypes $types,
 		private AccountProfiles $profiles,
+		private Statuses $statuses,
 		#[NoAutowire] private ?Role $limit = null
 	) {}
 
@@ -91,7 +93,7 @@ final readonly class Permissions
 
 		if ($capability instanceof ContentAction) {
 			return match (true) {
-				$on instanceof Entry => in_array($on->status, $this->statuses($account, $on->type->name, $capability, others: $capability->isOthers() || ! $this->owns($account, $on)), true),
+				$on instanceof Entry => self::allows($this->statuses($account, $on->type->name, $capability, others: $capability->isOthers() || ! $this->owns($account, $on)), $on),
 				is_string($on)       => $this->statuses($account, $on, $capability, others: $capability->isOthers()) !== [],
 				default              => array_any(array_keys($this->types->all()), fn (string $type): bool => $this->statuses($account, $type, $capability, others: $capability->isOthers()) !== [])
 			};
@@ -144,17 +146,17 @@ final readonly class Permissions
 			$others = $this->statuses($account, $type, $action, others: true);
 			$own    = $this->statuses($account, $type, $action, others: false);
 
-			$everything = $everything && $others === Status::cases();
+			$everything = $everything && $others === null;
 
 			if ($others !== []) {
-				$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$others);
+				$alternatives[] = static fn (Query $condition): Query => self::withStatuses($condition->type($type), $others);
 			}
 
 			if ($own !== [] && $author !== null && $authors !== null) {
-				$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$own)->whereTerm($authors, $author);
+				$alternatives[] = static fn (Query $condition): Query => self::withStatuses($condition->type($type), $own)->whereTerm($authors, $author);
 
 				if ($type === $authors) {
-					$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$own)->names($author);
+					$alternatives[] = static fn (Query $condition): Query => self::withStatuses($condition->type($type), $own)->names($author);
 				}
 			}
 		}
@@ -164,14 +166,15 @@ final readonly class Permissions
 
 	/**
 	 * Returns the statuses of a type's entries the account may use a
-	 * content action on: its own entries', or others'. Others' need the
-	 * action's `.others` form. When acting changes the live site (editing
-	 * or deleting), entries that aren't drafts (or in the trash) also
-	 * need publishing for them.
+	 * content action on, by name, or `null` for every status: its own
+	 * entries', or others'. Others' need the action's `.others` form.
+	 * When acting changes the live site (editing or deleting), entries
+	 * of a live status (scheduled ones too) also need publishing for
+	 * them; the rest, and the trash, don't.
 	 *
-	 * @return list<Status>
+	 * @return ?list<string>
 	 */
-	private function statuses(Account $account, string $type, ContentAction $action, bool $others): array
+	private function statuses(Account $account, string $type, ContentAction $action, bool $others): ?array
 	{
 		$base = $action->base();
 
@@ -182,8 +185,28 @@ final readonly class Permissions
 		$changesLive = $base === ContentAction::Edit || $base === ContentAction::Delete;
 
 		return ! $changesLive || $this->statuses($account, $type, ContentAction::Publish, $others) !== []
-			? Status::cases()
-			: [Status::Draft, Status::Trash];
+			? null
+			: [...$this->statuses->offline(), Status::TRASH];
+	}
+
+	/**
+	 * Whether an entry has one of some statuses (`null` for every one).
+	 *
+	 * @param ?list<string> $statuses
+	 */
+	private static function allows(?array $statuses, Entry $entry): bool
+	{
+		return $statuses === null || in_array($entry->status->name, $statuses, true);
+	}
+
+	/**
+	 * Returns a condition limited to some statuses (`null` for every one).
+	 *
+	 * @param ?list<string> $statuses
+	 */
+	private static function withStatuses(Query $condition, ?array $statuses): Query
+	{
+		return $statuses === null ? $condition->allStatuses() : $condition->status(...$statuses);
 	}
 
 	/**

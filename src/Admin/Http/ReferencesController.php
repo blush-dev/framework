@@ -18,23 +18,23 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Editing\ErrorPage;
 use Blush\Content\Entries;
+use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\Position;
 use Blush\Content\Relation\EntryLinks;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Status;
-use Blush\Content\Entry\Entry;
-use Blush\Content\Entry\Position;
-use Blush\Storage\Record\Order;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
-use Blush\Content\Editing\ErrorPage;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Media\MediaValues;
+use Blush\Storage\Record\Order;
 use Blush\Support\Slug;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Answers `GET {path}/api/references/{type}` (D-242's picker, D-281):
@@ -294,7 +294,7 @@ final readonly class ReferencesController
 	 */
 	private function unlisted(string $type, string $slug, array $items, array $counts, bool $taxonomy): array
 	{
-		$trashed = $this->content->query()->any()->status(Status::Trash)->type($type)->names($slug)->first();
+		$trashed = $this->content->query()->any()->status(Status::TRASH)->type($type)->names($slug)->first();
 
 		if ($trashed !== null) {
 			return $this->describe($trashed, $counts, $taxonomy);
@@ -464,7 +464,7 @@ final readonly class ReferencesController
 		return [
 			'slug'    => $entry->key,
 			'title'   => $entry->title,
-			'status'  => $entry->status->value,
+			'status'  => $entry->status->name,
 			'parent'  => $this->content->parentKey($entry->type->name, $entry->key),
 			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,

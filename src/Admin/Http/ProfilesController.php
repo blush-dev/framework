@@ -119,7 +119,7 @@ final readonly class ProfilesController
 		$listed = [];
 
 		foreach ($this->content->query()->any()->type($profiles->name)->limit(null)->get() as $entry) {
-			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $entry->id === null ? null : $linked[$entry->id] ?? null, 'linkable' => $entry->field('linkable') !== false];
+			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->name, 'account' => $entry->id === null ? null : $linked[$entry->id] ?? null, 'linkable' => $entry->field('linkable') !== false];
 		}
 
 		$listed = array_values($listed);
@@ -147,7 +147,7 @@ final readonly class ProfilesController
 				'title'    => $profile->title,
 				'subtitle' => self::text($profile->field('subtitle')),
 				'avatar'   => $this->media->address($profile->field('avatar')),
-				'status'   => $profile->status->value,
+				'status'   => $profile->status->name,
 				'path'     => $profile->path,
 				'id'       => $profile->id,
 				'type'     => $profiles->name,
@@ -317,7 +317,7 @@ final readonly class ProfilesController
 					'label'     => $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label,
 					'entries'   => $this->content->query()->type($type->name)->whereTerm((string) $relation->termKey(), $profile->slug)->count(),
 					'archive'   => $this->urls->related($type, $relation, $profile->slug),
-					'page'      => $page === null ? null : ['path' => $page->path, 'id' => $page->id, 'type' => $page->type->name, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->value]
+					'page'      => $page === null ? null : ['path' => $page->path, 'id' => $page->id, 'type' => $page->type->name, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->name]
 				];
 			}
 		}

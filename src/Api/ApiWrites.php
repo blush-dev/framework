@@ -26,13 +26,13 @@ use Blush\Cache\CacheException;
 use Blush\Content\Editing\EditRefused;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Status;
 use Blush\Http\RateLimiter;
 use Blush\Http\Status as HttpStatus;
 use Blush\Media\MediaException;
 use Blush\Support\Uuid;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolContexts;
+use Blush\Workflow\Status;
 
 /**
  * What the API's writes share (D-762): a token, always; a write counted
@@ -167,7 +167,7 @@ final readonly class ApiWrites
 
 		$sees = $entry !== null
 			&& isset($this->entries->types()[$entry->type->name])
-			&& $context->can($entry->status === Status::Trash ? ContentAction::Delete : ContentAction::Edit, $entry);
+			&& $context->can($entry->status->is(Status::TRASH) ? ContentAction::Delete : ContentAction::Edit, $entry);
 
 		return $sees ? $entry : throw ApiError::notFound(sprintf('No entry has the id "%s" that this token may change.', $id));
 	}

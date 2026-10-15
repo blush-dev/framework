@@ -120,7 +120,7 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
 		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000003\n---\n");
 		$this->writeTemporaryFile('user/content/live.md', "---\ntitle: Live\nauthors: jane\nid: " . self::LIVE . "\n---\n");
-		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nsurprise: yes\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
+		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nvisibility: nowhere\nsurprise: yes\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
 
 		$this->boot(roles: $roles, environment: $environment, ids: $ids);
 		$this->login();
@@ -345,7 +345,7 @@ final class AdminContentTest extends TestCase
 		$this->assertEqualsCanonicalizing(["Jane's draft", "Sam's draft", 'Soon', 'Live', 'Broken'], array_column($list['entries'], 'title'));
 
 
-		$this->assertEqualsCanonicalizing(['Live', 'Broken'], array_column($this->listed('?status=published'), 'title'));
+		$this->assertEqualsCanonicalizing(['Live'], array_column($this->listed('?status=published'), 'title'), 'A status nothing registers isn\'t live (D-735).');
 	}
 
 	public function testListsAnAuthorsOwnEntries(): void
@@ -401,7 +401,7 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['Broken', "Jane's draft", 'Live', "Sam's draft", 'Soon'], array_column($this->listed('?type=page&sort=title'), 'title'));
 		$this->assertSame(['Soon', "Sam's draft", 'Live', "Jane's draft", 'Broken'], array_column($this->listed('?type=page&sort=title&dir=desc'), 'title'));
-		$this->assertSame(['draft', 'draft', 'scheduled', 'published', 'published'], array_column($this->listed('?type=page&sort=status'), 'status'), 'By the status kept: a scheduled entry is a published one whose time is to come (D-649), in the order entries were made.');
+		$this->assertSame(['draft', 'draft', 'pending', 'scheduled', 'published'], array_column($this->listed('?type=page&sort=status'), 'status'), 'By the status kept: a scheduled entry is a published one whose time is to come (D-649), in the order entries were made; one nothing registers is kept as written (D-735).');
 		$first = $this->listed('?type=page&sort=author&dir=desc')[0] ?? [];
 
 		$this->assertSame(['sam'], $first['authors'] ?? null, 'Authors sort by their slug.');

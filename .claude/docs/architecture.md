@@ -734,16 +734,41 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   **typed entry fields**, and **admin forms** (D-233). Field sets,
   controls, and the field type catalog are planned (D-337; see Fields).
 
+### Statuses
+Stage 1 of D-850 built (D-732 to D-735).
+
+- `Blush\Workflow\Status`: a definition by name (`[a-z][a-z0-9_]*`),
+  with `label`, `plural`, `live`, `active`, `subject` (`Subject::Entries`
+  or `Responses`), `tone` (`Tone`, one of the admin's pill kinds), and
+  `known`. Core's names are constants: `DRAFT`, `PUBLISHED`, and core's
+  own `TRASH` and `SCHEDULED` (`CORE`), never registered.
+- `StatusSource` (tag `workflow.statuses`) supplies statuses; core's
+  `CoreStatuses` (draft, published) comes first. `Statuses` reads them,
+  memoized (`workflow|statuses`): `all()`, `registered()` (without
+  core's own), `find()`, `get()` (`Status::unknown()` for a name
+  nothing registers: not live, active, `known` false), `live()`,
+  `offline()`, `inactive()`, `at()` (a live status with a future
+  `published` is scheduled), and `clashes()` (a name registered twice,
+  or a core name: the first kept, D-597).
+- Files keep the status as written, lowercased (`RecordBuilder`); front
+  matter's `status` is a text field so an unregistered name isn't
+  dropped (and read as published). Lint warns of one (`Linter::checkStatus()`).
+- Queries hold names or a `Query\StatusScope` (`Live`, the default;
+  `Active`, `any()` and `anyStatus()`; `All`, `allStatuses()` and
+  `condition()`); `QueryCompiler` resolves them with `Statuses`.
+- `Permissions`: without publishing, editing and deleting reach only
+  entries of a status that isn't live (`offline()`) and the trash.
+- The admin's shell config has `statuses` (`toArray()`, in the
+  account's language); `statuses.ts` and `StatusPill` read them.
+
 ### Entry
 Implemented in M4b (D-088).
 
 - `Content\Entry\Entry`, a readonly value object: `path` (the source
   path; every entry is a file, D-584), `id` (the entry's UUIDv7 from its
   `id` front matter, `null` without a valid one; D-477, D-480), `type`, `slug`, `key` (the slug with any folders below the type's),
-  `title`, `status` (`Published | Draft | Scheduled | Trash`; D-484:
-  `Status::selectable()` is what status controls offer, and
-  `Status::active()`, every one but `Trash`, is what `Query::any()`
-  finds), `visibility`
+  `title`, `status` (a `Blush\Workflow\Status` definition, D-850: see
+  Statuses below), `visibility`
   (`Public | Unlisted | Hidden`, D-082), `published`/`updated`
   (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
   schema), `extra` (undeclared keys), `terms`, `landing`, and `source`

@@ -17,13 +17,13 @@ use Uri\Rfc3986\Uri;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\RedirectRow;
-use Blush\Content\Status as EntryStatus;
 use Blush\Http\Status;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
 use Blush\Routing\RoutePattern;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * Follows addresses through the site's redirects the way the router
@@ -721,9 +721,9 @@ final class RedirectReview
 		}
 
 		$text = match (true) {
-			$entry->status === EntryStatus::Trash     => $this->messages->t('admin.redirect_review.gone.trash', '{title} is in the trash', title: Message::slot(0)),
-			$entry->status === EntryStatus::Draft     => $this->messages->t('admin.redirect_review.gone.draft', '{title} is a draft', title: Message::slot(0)),
-			$entry->status === EntryStatus::Scheduled => $this->messages->t('admin.redirect_review.gone.scheduled', '{title} isn\'t published yet', title: Message::slot(0)),
+			$entry->status->is(EntryStatus::TRASH)     => $this->messages->t('admin.redirect_review.gone.trash', '{title} is in the trash', title: Message::slot(0)),
+			$entry->status->is(EntryStatus::DRAFT)     => $this->messages->t('admin.redirect_review.gone.draft', '{title} is a draft', title: Message::slot(0)),
+			$entry->status->is(EntryStatus::SCHEDULED) => $this->messages->t('admin.redirect_review.gone.scheduled', '{title} isn\'t published yet', title: Message::slot(0)),
 			default                                   => $this->messages->t('admin.redirect_review.gone.hidden', '{title} isn\'t on the site', title: Message::slot(0))
 		};
 

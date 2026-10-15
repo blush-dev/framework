@@ -19,11 +19,12 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * The entries linking to an entry, for what the admin says before the
@@ -44,7 +45,8 @@ final readonly class Referrers
 		private Entries $content,
 		private Relations $relations,
 		private ContentTypes $types,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -121,6 +123,7 @@ final readonly class Referrers
 	public function linkedIn(string $type): array
 	{
 		$now     = EntryTable::time($this->clock->now()->getTimestamp());
+		$live    = $this->statuses->live();
 		$tree    = $this->types->find($type) instanceof Tree;
 		$links   = array_filter($this->links->all(), static fn (Link $link): bool => $link->targetType === $type);
 		$records = $this->records->findMany(array_values(array_unique(array_map(static fn (Link $link): string => $link->source, $links))));
@@ -134,8 +137,8 @@ final readonly class Referrers
 				continue;
 			}
 
-			// Live: published, and not still to come.
-			if (EntryRecords::text($source, 'status') === Status::Published->value && EntryRecords::text($source, 'published') <= $now) {
+			// Live: of a live status, and not still to come.
+			if (in_array(EntryRecords::text($source, 'status'), $live, true) && EntryRecords::text($source, 'published') <= $now) {
 				$sources[$link->target][$link->source] = true;
 			}
 		}

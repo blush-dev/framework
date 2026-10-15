@@ -17,10 +17,10 @@ use DateTimeImmutable;
 use Exception;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Blush\Activity\Activity;
 use Blush\Activity\ActivityAction;
 use Blush\Activity\ActivityException;
 use Blush\Activity\ActivityLog;
-use Blush\Activity\Activity;
 use Blush\Activity\Actor;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
@@ -36,7 +36,6 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\RedirectOrigin;
 use Blush\Content\Routing\RedirectWriter;
-use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
@@ -54,6 +53,8 @@ use Blush\Storage\Record\RecordException;
 use Blush\Support\Slug;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status as EntryStatus;
+use Blush\Workflow\Statuses;
 
 /**
  * The one write path for entries (D-756): every rule a save follows, for
@@ -113,7 +114,8 @@ final readonly class EntryEditor
 		private RedirectWriter $redirects,
 		private ActivityLog $activity,
 		private LoggerInterface $logger,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -212,7 +214,7 @@ final readonly class EntryEditor
 			// A trashed entry keeps its address until it's deleted (D-484).
 			$holder = $this->content->named($type->name, $parent === null ? $slug : "{$parent->key}/{$slug}");
 
-			throw EditRefused::unprocessable($holder?->status === EntryStatus::Trash
+			throw EditRefused::unprocessable($holder?->status->is(EntryStatus::TRASH) === true
 				? $this->messages->t('content.entry_editor.address_in_trash', '“{title}” in the trash has this address; restore it, or delete it permanently, first.', title: $this->titleOf($holder))
 				: $e->getMessage(), previous: $e);
 		}
@@ -241,7 +243,7 @@ final readonly class EntryEditor
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
 
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
@@ -405,7 +407,7 @@ final readonly class EntryEditor
 	 */
 	public function setStatus(Actor $actor, Entry $entry, string $status, ?string $revision = null, ?string $published = null): Entry
 	{
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
@@ -441,7 +443,7 @@ final readonly class EntryEditor
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_delete', 'You aren\'t allowed to delete that entry.'));
 		}
 
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.already_trashed', '"{title}" is already in the trash; delete it permanently, or restore it.', title: $entry->title));
 		}
 
@@ -477,9 +479,9 @@ final readonly class EntryEditor
 	 *
 	 * @throws EditRefused
 	 */
-	public function restore(Actor $actor, Entry $entry, ?EntryStatus $status = EntryStatus::Draft, ?string $revision = null): Entry
+	public function restore(Actor $actor, Entry $entry, ?string $status = EntryStatus::DRAFT, ?string $revision = null): Entry
 	{
-		if ($entry->status !== EntryStatus::Trash) {
+		if (! $entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::notFound($this->messages->t('content.entry_editor.not_trashed', 'That isn\'t in the trash.'));
 		}
 
@@ -487,15 +489,15 @@ final readonly class EntryEditor
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_restore', 'You aren\'t allowed to restore that entry.'));
 		}
 
-		if ($status === EntryStatus::Trash || $status === EntryStatus::Scheduled) {
-			throw EditRefused::unprocessable('An entry is restored as "draft", "published", or `null` (no status, so published).');
+		if ($status !== null && ! array_key_exists($status, $this->statuses->registered())) {
+			throw EditRefused::unprocessable('An entry is restored with a registered status\'s name, or `null` (no status, so published).');
 		}
 
-		if ($status !== EntryStatus::Draft && $revision === null) {
+		if ($status !== EntryStatus::DRAFT && $revision === null) {
 			throw EditRefused::revisionRequired('Send the "revision" moving it to the trash answered, so it\'s put back only as it was.');
 		}
 
-		if ($status !== EntryStatus::Draft && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
+		if (($status === null || $this->statuses->get($status)->live) && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.restore_as_draft', 'You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.'));
 		}
 
@@ -528,7 +530,7 @@ final readonly class EntryEditor
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_duplicate', 'You aren\'t allowed to duplicate that entry.'));
 		}
 
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::unprocessable($this->inTrash($entry));
 		}
 
@@ -594,7 +596,7 @@ final readonly class EntryEditor
 		$actor = $actor->undoing($activity);
 
 		$undone = match ($activity->action) {
-			ActivityAction::EntryTrash   => $this->restore($actor, $entry, self::statusFrom($before['status'] ?? null), $file->version),
+			ActivityAction::EntryTrash   => $this->restore($actor, $entry, $this->statusFrom($before['status'] ?? null), $file->version),
 			ActivityAction::EntryRestore => $this->trash($actor, $entry, $file->version)[0],
 			default                      => $this->putBack($actor, $entry, $file, $before)
 		};
@@ -704,12 +706,12 @@ final readonly class EntryEditor
 		if ($edit->isStatusOnly()) {
 			$when = $now->published?->format('Y-m-d H:i');
 
-			return match ($now->status) {
-				EntryStatus::Published => $this->messages->t('content.entry_editor.summary.published', 'Published “{title}”', title: $title),
-				EntryStatus::Scheduled => $when === null
+			return match ($now->status->name) {
+				EntryStatus::PUBLISHED => $this->messages->t('content.entry_editor.summary.published', 'Published “{title}”', title: $title),
+				EntryStatus::SCHEDULED => $when === null
 					? $this->messages->t('content.entry_editor.summary.scheduled', 'Scheduled “{title}” for later', title: $title)
 					: $this->messages->t('content.entry_editor.summary.scheduled_for', 'Scheduled “{title}” for {when}', title: $title, when: $when),
-				EntryStatus::Draft     => $this->messages->t('content.entry_editor.summary.drafted', 'Moved “{title}” to draft', title: $title),
+				EntryStatus::DRAFT     => $this->messages->t('content.entry_editor.summary.drafted', 'Moved “{title}” to draft', title: $title),
 				default                => $this->messages->t('content.entry_editor.summary.status', 'Changed the status of “{title}”', title: $title)
 			};
 		}
@@ -908,9 +910,9 @@ final readonly class EntryEditor
 		$folder ??= dirname($entry->key);
 		$key      = ($folder === '.' ? '' : "{$folder}/") . $slug;
 
-		return match ($this->content->named($entry->type->name, $key)?->status) {
+		return match ($this->content->named($entry->type->name, $key)?->status->name) {
 			null              => null,
-			EntryStatus::Trash => $this->messages->t('content.entry_editor.slug_in_trash', 'A {item} in the trash has the slug "{slug}"; restore it, or delete it permanently, to use it.', item: $entry->type->labels->item, slug: $slug),
+			EntryStatus::TRASH => $this->messages->t('content.entry_editor.slug_in_trash', 'A {item} in the trash has the slug "{slug}"; restore it, or delete it permanently, to use it.', item: $entry->type->labels->item, slug: $slug),
 			default           => $this->messages->t('content.entry_editor.slug_taken', 'Another {item} already has the slug "{slug}".', item: $entry->type->labels->item, slug: $slug)
 		};
 	}
@@ -1037,7 +1039,7 @@ final readonly class EntryEditor
 			return false;
 		}
 
-		return $entry->status === EntryStatus::Draft;
+		return $entry->status->is(EntryStatus::DRAFT);
 	}
 
 	/**
@@ -1109,11 +1111,12 @@ final readonly class EntryEditor
 	}
 
 	/**
-	 * Returns a status kept for an Undo: `null` for none in the file.
+	 * Returns a status kept for an Undo: `null` for none in the file,
+	 * and a draft for one nothing registers now.
 	 */
-	private static function statusFrom(mixed $value): ?EntryStatus
+	private function statusFrom(mixed $value): ?string
 	{
-		return is_string($value) ? EntryStatus::tryFrom($value) ?? EntryStatus::Draft : null;
+		return is_string($value) ? (array_key_exists($value, $this->statuses->registered()) ? $value : EntryStatus::DRAFT) : null;
 	}
 
 	/**

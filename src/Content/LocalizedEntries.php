@@ -22,6 +22,7 @@ use Blush\Content\Query\Query;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\EntryChanges;
+use Blush\Workflow\Status;
 
 /**
  * A repository whose default language is a page's (D-458): what a
@@ -257,7 +258,7 @@ final readonly class LocalizedEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry
+	public function restore(Entry|string $entry, ?string $version = null, ?string $status = Status::DRAFT): Entry
 	{
 		return $this->content->restore($entry, $version, $status);
 	}

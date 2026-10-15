@@ -267,7 +267,7 @@ final class AccountsTest extends TestCase
 
 		$this->assertSame('sam-smith', $new?->key, 'An account is never linked to nothing (D-668).');
 		$this->assertSame('Sam Smith', $new->title);
-		$this->assertSame('draft', $new->status->value);
+		$this->assertSame('draft', $new->status->name);
 		$this->assertSame($new->id, $sam->profile);
 	}
 

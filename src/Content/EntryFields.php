@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Content;
 
+use Override;
 use Blush\Field\Controls\Reference;
 use Blush\Field\Controls\Text;
 use Blush\Field\FieldControls;
-use Blush\Field\FieldSet;
-use Blush\Field\FieldSource;
 use Blush\Field\Fields\DateField;
 use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\MarkdownField;
@@ -26,11 +25,12 @@ use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\ReferenceField;
 use Blush\Field\Fields\SlugField;
 use Blush\Field\Fields\TextField;
+use Blush\Field\FieldSet;
+use Blush\Field\FieldSource;
 use Blush\Field\RegisteredField;
 use Blush\Field\Schema;
 use Blush\Media\MediaKind;
 use Blush\Translation\Messages;
-use Override;
 
 /**
  * The front matter every entry understands (D-027, D-045, D-078), before a
@@ -97,7 +97,7 @@ final class EntryFields implements FieldSource
 			new SlugField('slug')->labeled($messages->t('content.entry_fields.slug.label', 'Slug'))->described($messages->t('content.entry_fields.slug.description', 'The URL name, instead of the file name.')),
 			new DateField('published')->labeled($messages->t('content.entry_fields.published.label', 'Published'))->aliases('date')->described($messages->t('content.entry_fields.published.description', 'The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.')),
 			new DateField('updated')->labeled($messages->t('content.entry_fields.updated.label', 'Updated'))->described($messages->t('content.entry_fields.updated.description', 'When it last changed; defaults to published, then the file\'s modified time.')),
-			new EnumField('status', Status::writable())->labeled($messages->t('content.entry_fields.status.label', 'Status'))->described($messages->t('content.entry_fields.status.description', 'published (the default), draft, or trash.')),
+			new TextField('status')->labeled($messages->t('content.entry_fields.status.label', 'Status'))->described($messages->t('content.entry_fields.status.description', 'published (the default), draft, trash, or another status the site registers.')),
 			new DateField(self::TRASHED)->labeled($messages->t('content.entry_fields.trashed.label', 'Trashed'))->described($messages->t('content.entry_fields.trashed.description', 'When the entry was moved to the trash, set with status: trash.')),
 			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->labeled($messages->t('content.entry_fields.visibility.label', 'Visibility'))->described($messages->t('content.entry_fields.visibility.description', 'public (the default), unlisted, or hidden.')),
 			new MarkdownField('summary')->labeled($messages->t('content.entry_fields.summary.label', 'Summary'))->aliases('excerpt')->described($messages->t('content.entry_fields.summary.description', 'A short Markdown summary for listings and feeds. Without one, the first 50 words are used.')),

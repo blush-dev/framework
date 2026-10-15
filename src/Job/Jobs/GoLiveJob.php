@@ -20,7 +20,6 @@ use Blush\Cache\ContentVersion;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Events\EntriesWentLive;
-use Blush\Content\Status;
 use Blush\Event\Dispatcher;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
@@ -28,6 +27,7 @@ use Blush\Job\JobResult;
 use Blush\Job\JobStore;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status;
 
 /**
  * Moves the content version on when a scheduled entry's time has come
@@ -78,7 +78,7 @@ final class GoLiveJob extends Job
 
 		$scheduled = array_map(
 			self::keyOf(...),
-			$this->content->query()->any()->anyLanguage()->status(Status::Scheduled)->get()->all()
+			$this->content->query()->any()->anyLanguage()->status(Status::SCHEDULED)->get()->all()
 		);
 
 		$this->store->saveState(self::STATE, ['scheduled' => $scheduled, 'checked' => $now->getTimestamp()]);
@@ -91,7 +91,7 @@ final class GoLiveJob extends Job
 
 		$live = array_values(array_filter(
 			array_map($this->entry(...), array_values(array_diff($seen, $scheduled))),
-			static fn (?Entry $entry): bool => $entry?->status === Status::Published
+			static fn (?Entry $entry): bool => $entry?->isPublished() === true
 		));
 
 		if ($live !== []) {

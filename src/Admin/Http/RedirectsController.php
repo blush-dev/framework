@@ -33,7 +33,6 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\RedirectRow;
 use Blush\Content\Routing\Redirects;
-use Blush\Content\Status as EntryStatus;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
@@ -44,6 +43,7 @@ use Blush\Routing\RedirectSource;
 use Blush\Storage\Record\RecordException;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * The Redirects screen's API (D-686), for accounts with
@@ -521,9 +521,9 @@ final readonly class RedirectsController
 	private static function state(Entry $entry): string
 	{
 		return match (true) {
-			$entry->status === EntryStatus::Trash        => 'trash',
-			$entry->status === EntryStatus::Draft        => 'draft',
-			$entry->status === EntryStatus::Scheduled    => 'scheduled',
+			$entry->status->is(EntryStatus::TRASH)     => 'trash',
+			$entry->status->is(EntryStatus::SCHEDULED) => 'scheduled',
+			! $entry->isPublished()                 => 'draft',
 			$entry->visibility === Visibility::Hidden    => 'hidden',
 			default                                      => 'live'
 		};

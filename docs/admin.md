@@ -2385,7 +2385,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash: `{"trashed": id, "restore": {"status", "revision"}}`, where `restore` is what an Undo sends to `POST entries/{id}/restore` (`status` is what its file named, or `null` for none). A `422` for one that's there already |
 | `DELETE entries/{id}?permanently=1` | Delete an entry that's in the trash for good: `{"deleted": id}`. A `422` for one that isn't |
-| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}`. For an Undo, send `{"status", "revision"}` as moving it to the trash answered: `"published"` or `null` puts it back published (`null` leaving no `status` in its file) and needs permission to publish; a `428` without the revision, and a `409` if it changed since |
+| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}`. For an Undo, send `{"status", "revision"}` as moving it to the trash answered: a status's name puts it back with that status, and `null` puts it back published, leaving no `status` in its file; a live status (`"published"`) or `null` needs permission to publish; a `428` without the revision, and a `409` if it changed since |
 | `POST entries/empty-trash` | Delete everything in the trash the account may delete, for good (`{"type"}` for one type): `{"deleted"}`, how many |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
@@ -2415,7 +2415,7 @@ or everyone's for an editor. Narrow it with:
 
 | Parameter | What it does |
 |---|---|
-| `status` | `draft`, `scheduled`, `published`, `any` (the default: every status but the trash), or `trash` (the entries in the trash the account may delete, most recently trashed first, each with its `trashed` time) |
+| `status` | `draft`, `scheduled`, `published`, a status a plugin adds, `any` (the default: every status but the trash), or `trash` (the entries in the trash the account may delete, most recently trashed first, each with its `trashed` time) |
 | `type` | A content type's name |
 | `search` | Text the title or slug must contain, in any case |
 | `author` | An author's slug the entries must credit |

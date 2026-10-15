@@ -28,7 +28,6 @@ use Blush\Content\Editing\EntryEdit;
 use Blush\Content\Editing\NewEntry;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Writer\WriteException;
 use Blush\Field\Fields\ListField;
@@ -37,6 +36,7 @@ use Blush\Http\Status as HttpStatus;
 use Blush\Media\MediaException;
 use Blush\Support\Uuid;
 use Blush\Tool\ToolContext;
+use Blush\Workflow\Status;
 
 /**
  * Answers the API's writes to entries (D-762), over the one write path
@@ -130,7 +130,7 @@ final readonly class EntryWritesController
 
 			$status = ApiWrites::text($input, 'status');
 
-			if ($entry->status === Status::Trash) {
+			if ($entry->status->is(Status::TRASH)) {
 				return $this->responses->written($this->item($this->restore($context, $entry, $input, $status, $revision), $body));
 			}
 
@@ -196,7 +196,7 @@ final readonly class EntryWritesController
 			throw ApiError::refused(EditRefused::unprocessable(sprintf('"%s" is in the trash; restore it first by sending "status" alone, as "draft" or "published".', $entry->title), 'status'));
 		}
 
-		return $context->entries->restore($context->actor, $entry, Status::from($status), $revision);
+		return $context->entries->restore($context->actor, $entry, $status, $revision);
 	}
 
 	/**

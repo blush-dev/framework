@@ -17,10 +17,9 @@ use DateTimeImmutable;
 use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Record\EntryTerms;
 use Blush\Content\Relation\Refs;
 use Blush\Content\Source\SourceFile;
-use Blush\Content\Status;
-use Blush\Content\Record\EntryTerms;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -32,6 +31,7 @@ use Blush\Field\ViolationKind;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Turns one content file into an index record, applying 1.x's file
@@ -265,17 +265,18 @@ final readonly class RecordBuilder
 	}
 
 	/**
-	 * Returns the declared status: front matter, or draft inside a
-	 * `_drafts` folder.
+	 * Returns the declared status's name: front matter's, in lowercase
+	 * (one nothing registers isn't live, D-735), or draft inside a
+	 * `_drafts` folder, else published.
 	 *
 	 * @param array<string, mixed> $values
 	 * @param list<string>         $segments
 	 */
-	private function status(array $values, array $segments): Status
+	private function status(array $values, array $segments): string
 	{
-		$declared = is_string($values['status'] ?? null) ? Status::tryFrom($values['status']) : null;
+		$declared = is_string($values['status'] ?? null) && trim($values['status']) !== '' ? strtolower(trim($values['status'])) : null;
 
-		return $declared ?? (in_array(self::DRAFTS, $segments, true) ? Status::Draft : Status::Published);
+		return $declared ?? (in_array(self::DRAFTS, $segments, true) ? Status::DRAFT : Status::PUBLISHED);
 	}
 
 	/**

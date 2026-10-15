@@ -1113,12 +1113,31 @@ admin changed, and `docs/`.
 - **The Fields API (D-766 to D-769):** see "The Fields API, picked up
   again" above.
 
-- **The status API and workflows (D-732, D-733; for the 2.x launch):**
-  statuses registered once by name, workflows of statuses and
-  transitions named by each type, `expired` from a per-type `expires`
-  date, a capability per transition, room for pending changes, the
-  same machinery for responses, and a Workflows screen under
-  Structure. See `open-questions.md` → Status API.
+- **The status API and workflows (D-732 to D-735, D-850; for the 2.x
+  launch):** statuses registered once by name, workflows of statuses
+  and transitions named by each type, `expired` from a per-type
+  `expires` date, a capability per transition, room for pending
+  changes, the same machinery for responses, and a Workflows screen
+  under Structure. In five stages (D-850), each ending with `composer
+  check`, the admin built where it changed, and `docs/`:
+  1. **Statuses registered by name** (built): `Blush\Workflow\Status`,
+     `StatusSource`, `Statuses`, core's `draft` and `published`, read
+     by name everywhere (queries, permissions, the index, the API,
+     MCP, the admin's pills), unknown ones not live and linted.
+  2. **Workflows and transitions:** `Workflow`, `Transition`,
+     `WorkflowSource`, `Workflows::for($type)`, `workflow:` on types,
+     core's `standard`; the `Transitions` service with `StatusChanging`
+     and `StatusChanged`, which the editor, `EntryEditor::setStatus()`,
+     the API, and MCP go through; a capability per transition
+     (`content.{type}.transition.{name}`, D-734's rules); list tabs
+     from the type's workflow.
+  3. **Expiry:** `expires:` on types, the `expires` date, `expired`
+     worked out as `scheduled` is, and a job moving the content version.
+  4. **The site's own:** `statuses` and `workflows` tables (labels only
+     over an extension's status), and a Site Health check mapping
+     statuses a type's new workflow lacks; clashes shown where types'
+     and relations' are.
+  5. **The Workflows screen** under Structure, from existing pieces.
 
 - **The editor's Template (D-728; built, D-783):** a row under the
   Publish group's rows, of the templates the active theme declares for

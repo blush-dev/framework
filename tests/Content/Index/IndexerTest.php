@@ -17,20 +17,20 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Events\ContentIndexed;
 use Blush\Content\Index\ContentIndex;
+use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexReport;
-use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
 use Blush\Content\Index\PhpIndex;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Source\SourceFile;
-use Blush\Content\Status;
 use Blush\Content\Visibility;
 use Blush\Core\Application;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Workflow\Status;
 
 #[CoversClass(Indexer::class)]
 #[CoversClass(IndexReport::class)]
@@ -128,7 +128,7 @@ final class IndexerTest extends TestCase
 		$this->assertSame(Visibility::Hidden, $this->record('_private.md')->visibility);
 		$this->assertSame(Visibility::Hidden, $this->record('__drafts/idea.md')->visibility);
 		$this->assertSame(Visibility::Hidden, $this->record('_post/_drafts/soon.md')->visibility);
-		$this->assertSame(Status::Draft, $this->record('_post/_drafts/soon.md')->status);
+		$this->assertSame(Status::DRAFT, $this->record('_post/_drafts/soon.md')->status);
 		$this->assertSame(Visibility::Unlisted, $this->record('_post/visible.md')->visibility);
 		$this->assertSame(Visibility::Public, $this->record('_post/2003-04-15.welcome.md')->visibility);
 	}

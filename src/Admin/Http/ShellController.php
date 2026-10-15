@@ -21,8 +21,8 @@ use Blush\Admin\AdminApp;
 use Blush\Admin\AdminConfig;
 use Blush\Admin\AdminLanguages;
 use Blush\Admin\Theme\AdminThemes;
-use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
+use Blush\Auth\AuthException;
 use Blush\Auth\ColorScheme;
 use Blush\Auth\Preferences;
 use Blush\Core\AppConfig;
@@ -30,14 +30,16 @@ use Blush\Core\Language;
 use Blush\Extension\ExtensionText;
 use Blush\Http\Response;
 use Blush\Http\Status;
-use Blush\Markdown\Html\HtmlRules;
 use Blush\Mail\MailTransport;
+use Blush\Markdown\Html\HtmlRules;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Session\SessionReader;
 use Blush\Translation\CurrentLocale;
 use Blush\Translation\Messages;
 use Blush\Translation\Translator;
+use Blush\Workflow\Status as EntryStatus;
+use Blush\Workflow\Statuses;
 
 /**
  * Serves the page the admin app runs in, at `{path}` and every screen
@@ -81,7 +83,8 @@ final readonly class ShellController
 		private AdminLanguages $languages,
 		private Translator $translator,
 		private CurrentLocale $locale,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -142,6 +145,9 @@ final readonly class ShellController
 			// The languages content is written in (D-455), the default
 			// first, for the editor's Language (D-728).
 			'languages'   => array_values(array_map(static fn (Language $language): array => ['code' => $language->code, 'label' => $language->name()], $this->site->languages->all())),
+			// Entries' statuses, core's own included, each with its label
+			// and tone in the account's language (D-850).
+			'statuses'    => $this->locale->in($language, fn (): array => array_values(array_map(static fn (EntryStatus $status): array => $status->toArray(), $this->statuses->all()))),
 			'html'        => [
 				'allowed'           => HtmlRules::ALLOWED,
 				'global'            => HtmlRules::GLOBAL,

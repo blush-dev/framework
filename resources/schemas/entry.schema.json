@@ -62,12 +62,11 @@
 			"description": "Updated: When it last changed; defaults to published, then the file's modified time."
 		},
 		"status": {
-			"enum": [
-				"published",
-				"draft",
-				"trash"
+			"type": [
+				"string",
+				"number"
 			],
-			"description": "Status: published (the default), draft, or trash."
+			"description": "Status: published (the default), draft, trash, or another status the site registers."
 		},
 		"trashed": {
 			"anyOf": [

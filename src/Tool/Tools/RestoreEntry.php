@@ -16,14 +16,14 @@ namespace Blush\Tool\Tools;
 use Override;
 use Blush\Auth\ContentAction;
 use Blush\Content\Editing\EditRefused;
-use Blush\Content\Status;
-use Blush\Tool\ToolContext;
-use Blush\Tool\ToolEntries;
 use Blush\Tool\Tool;
 use Blush\Tool\ToolAnnotations;
+use Blush\Tool\ToolContext;
+use Blush\Tool\ToolEntries;
 use Blush\Tool\ToolResult;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status;
 
 /**
  * `restore_entry` (D-756): brings an entry back from the trash as a
@@ -77,7 +77,7 @@ final class RestoreEntry extends Tool
 		$entry = $this->entries->find($context, self::text($input, 'id'));
 
 		try {
-			$restored = $context->entries->restore($context->actor, $entry, Status::Draft);
+			$restored = $context->entries->restore($context->actor, $entry, Status::DRAFT);
 		} catch (EditRefused $refused) {
 			throw Fields::refused($refused, $this->messages);
 		}

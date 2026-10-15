@@ -186,7 +186,7 @@ final readonly class UsersJson
 			'handle' => $this->handles->of($entry),
 			'slug'   => $entry->key,
 			'title'  => $entry->title,
-			'status' => $entry->status->value,
+			'status' => $entry->status->name,
 			'url'    => $this->urls->entry($entry),
 			'uses'   => $this->content->termCounts($entry->type->name)[$entry->key] ?? 0
 		];

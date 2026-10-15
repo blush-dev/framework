@@ -26994,3 +26994,56 @@ decision, add a new entry that supersedes it and mark the old one
     email.
 - **Status:** Built (2026-10-14). `composer check`; the admin rebuilt;
   `lang:extract core` wrote the new messages.
+
+### D-850: The status API's open points, and how it's built, in five stages
+
+- **Date:** 2026-10-14
+- **Builds:** D-732 to D-735. **Refines:** D-735 (where the core
+  names live). **Answers:** `open-questions.md` → Status API's open
+  points.
+- **The author's go:** "let's get to work on status and workflows",
+  then answers to Claude's four questions.
+- **Decision:**
+  - **`Blush\Workflow`** is the namespace, since responses will share
+    it (the author's pick).
+  - **A site's status replaces only an extension's labels** (label,
+    plural, tone) when it has the same name, never `live` or
+    `active`, so no entry goes on or off the site unnoticed (the
+    author's pick). A site's own new statuses set everything.
+  - **A status has a tone**, one of the admin's pill kinds
+    (`neutral`, the default, `good`, `warn`, `danger`, `accent`), so
+    admin themes keep the colors (the author's pick).
+  - **The Workflows screen is built from the admin's existing
+    pieces**; no sketch is coming (the author's pick).
+  - **One `Status` type** (Claude's call, refining D-735): an entry's
+    `status` is its `Blush\Workflow\Status` definition, and the
+    names core needs are constants on it (`Status::DRAFT`,
+    `PUBLISHED`, `TRASH`, `SCHEDULED`, and `EXPIRED` once expiry is
+    in), not a smaller `Blush\Content\Status` enum beside a class of
+    the same name. The enum goes. An entry whose stored status isn't
+    registered gets a definition made for it (its name as its label,
+    not live, active, neutral, `known` false).
+  - **Queries name statuses as strings** and scopes as a
+    `StatusScope` (`Live`, the default, `Active`, `All`), so a query
+    needn't know what's registered: the compiler resolves both with
+    `Statuses`. A named live status finds entries whose time has
+    come; `scheduled`, entries of a live status whose time is still
+    to come.
+  - **The stages,** each ending with `composer check`, the admin
+    built where it changed, and `docs/`: (1) statuses registered by
+    name (`Status`, `StatusSource`, `Statuses`, core's `draft` and
+    `published`) and read by name everywhere; (2) workflows and the
+    `Transitions` service, with a capability per transition; (3)
+    expiry; (4) the site's statuses and workflows as tables, and a
+    Site Health check for statuses a type's new workflow lacks; (5)
+    the Workflows screen under Structure.
+- **Status:** Stage 1 built (2026-10-14): `Blush\Workflow\Status`,
+  `Subject`, `Tone`, `StatusSource`, `CoreStatuses`, `Statuses`, and
+  `Query\StatusScope` (`live()`, `anyStatus()`, `allStatuses()`);
+  `Blush\Content\Status` removed. Front matter `status` became a text
+  field (an enum dropped unregistered names, which then read as
+  published), kept lowercased, with a lint warning for a name nothing
+  registers. Public listings (the API, `llms.txt`, Markdown pages,
+  tools' "anyone" condition, the dashboard's count) find every live
+  status. The admin's shell config sends `statuses`, which the status
+  pill reads. Stages 2 to 5 to come.

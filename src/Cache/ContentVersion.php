@@ -21,10 +21,10 @@ use Psr\Clock\ClockInterface;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Core\Paths;
 use Blush\Storage\Record\Operator;
 use Blush\Support\Filesystem;
+use Blush\Workflow\Statuses;
 
 /**
  * One stored value that changes whenever what the site shows might have:
@@ -61,7 +61,8 @@ final class ContentVersion
 	public function __construct(
 		private readonly Paths $paths,
 		private readonly ClockInterface $clock,
-		#[Defer(EntryRecords::class)] private readonly Closure $records
+		#[Defer(EntryRecords::class)] private readonly Closure $records,
+		private readonly Statuses $statuses
 	) {}
 
 	/**
@@ -128,13 +129,13 @@ final class ContentVersion
 	}
 
 	/**
-	 * Returns the earliest publish time still to come of an entry that
-	 * isn't a draft, or `null` when nothing is scheduled (D-128).
+	 * Returns the earliest publish time still to come of an entry of a
+	 * live status, or `null` when nothing is scheduled (D-128).
 	 */
 	private function nextScheduled(): ?int
 	{
 		$next = ($this->records)()->entries()
-			->where('status', Operator::Equal, Status::Published->value)
+			->where('status', Operator::In, $this->statuses->live())
 			->where('published', Operator::Greater, EntryTable::time($this->now()))
 			->min('published');
 

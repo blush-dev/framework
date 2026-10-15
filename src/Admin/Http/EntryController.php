@@ -19,6 +19,10 @@ use JsonException;
 use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Activity\ActivityException;
+use Blush\Activity\ActivityLog;
+use Blush\Activity\Actor;
+use Blush\Activity\Via;
 use Blush\Admin\EntryHandles;
 use Blush\Admin\EntryTemplates;
 use Blush\Admin\Homepage;
@@ -28,6 +32,13 @@ use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Editing\ArchivePages;
+use Blush\Content\Editing\EditRefused;
+use Blush\Content\Editing\EntryEdit;
+use Blush\Content\Editing\EntryEditor;
+use Blush\Content\Editing\ErrorPage;
+use Blush\Content\Editing\IndexPage;
+use Blush\Content\Editing\NewEntry;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
@@ -41,7 +52,6 @@ use Blush\Content\Relation\TranslationRule;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\RedirectWriter;
-use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
@@ -50,29 +60,19 @@ use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
-use Blush\Content\Editing\IndexPage;
-use Blush\Content\Editing\ErrorPage;
-use Blush\Activity\ActivityException;
-use Blush\Activity\ActivityLog;
-use Blush\Activity\Actor;
-use Blush\Activity\Via;
-use Blush\Content\Editing\ArchivePages;
-use Blush\Content\Editing\EditRefused;
-use Blush\Content\Editing\EntryEdit;
-use Blush\Content\Editing\EntryEditor;
-use Blush\Content\Editing\NewEntry;
 use Blush\Core\AppConfig;
 use Blush\Field\ControlDefaults;
-use Blush\Field\FormField;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldTargets;
+use Blush\Field\FormField;
 use Blush\Field\Violation;
 use Blush\Http\Response;
-use Blush\Media\MediaValues;
 use Blush\Http\Status;
+use Blush\Media\MediaValues;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * The admin's editing API (D-229), over `Entries`' writes by id (D-654):
@@ -283,7 +283,7 @@ final readonly class EntryController
 			'revision'    => null,
 			'modified'    => null,
 			'title'       => '',
-			'status'      => EntryStatus::Draft->value,
+			'status'      => EntryStatus::DRAFT,
 			'own'         => true,
 			'url'         => null,
 			'type'        => $this->typeOf($type, $fields),
@@ -319,7 +319,7 @@ final readonly class EntryController
 	private function edit(ServerRequestInterface $request, Entry $entry): ResponseInterface
 	{
 		$account = self::account($request);
-		$action  = $entry->status === EntryStatus::Trash ? ContentAction::Delete : ContentAction::Edit;
+		$action  = $entry->status->is(EntryStatus::TRASH) ? ContentAction::Delete : ContentAction::Edit;
 
 		if (! $this->permissions->can($account, $action, $entry)) {
 			return self::error($this->messages->t('admin.entry_controller.cannot_edit', 'You aren\'t allowed to edit that entry.'), Status::Forbidden);
@@ -538,7 +538,7 @@ final readonly class EntryController
 			]]);
 		}
 
-		if ($entry->status !== EntryStatus::Trash) {
+		if (! $entry->status->is(EntryStatus::TRASH)) {
 			return self::error($this->messages->t('admin.entry_controller.not_trashed', '"{title}" isn\'t in the trash; move it there first.', title: $entry->title), Status::UnprocessableContent);
 		}
 
@@ -586,14 +586,14 @@ final readonly class EntryController
 		return self::json([
 			'count'      => count($found),
 			'live'       => Referrers::live($found),
-			'drafts'     => count(array_filter($found, static fn (Entry $referrer): bool => in_array($referrer->status, [EntryStatus::Draft, EntryStatus::Scheduled], true))),
+			'drafts'     => count(array_filter($found, static fn (Entry $referrer): bool => ! $referrer->isPublished() && ! $referrer->status->is(EntryStatus::TRASH))),
 			'editable'   => count(array_filter($found, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))),
 			'uncredited' => $this->referrers->soleCredits($entry),
 			'entries'    => array_map(static fn (array $source): array => [
 				'id'        => $source['entry']->id,
 				'title'     => $source['entry']->title,
 				'type'      => $source['entry']->type->labels->singular,
-				'status'    => $source['entry']->status->value,
+				'status'    => $source['entry']->status->name,
 				'relations' => array_map(self::relationLabel(...), $source['relations'])
 			], array_slice(array_values($listed), 0, self::LISTED))
 		]);
@@ -648,9 +648,9 @@ final readonly class EntryController
 
 		// No `status` is a draft; `null` is none in the file, so published.
 		$status = match (true) {
-			! array_key_exists('status', $input) => EntryStatus::Draft,
+			! array_key_exists('status', $input) => EntryStatus::DRAFT,
 			$input['status'] === null            => null,
-			is_string($input['status'])          => EntryStatus::tryFrom($input['status']) ?? false,
+			is_string($input['status'])          => $input['status'],
 			default                              => false
 		};
 
@@ -659,7 +659,7 @@ final readonly class EntryController
 		}
 
 		if ($status === false) {
-			return self::error('An entry is restored as "draft", "published", or `null` (no status, so published).', Status::UnprocessableContent);
+			return self::error('An entry is restored with a status\'s name, or `null` (no status, so published).', Status::UnprocessableContent);
 		}
 
 		try {
@@ -683,7 +683,7 @@ final readonly class EntryController
 			return self::error($this->messages->t('admin.entry_controller.unknown_type', 'There is no such content type.'), Status::BadRequest);
 		}
 
-		$query   = $this->content->query()->any()->status(EntryStatus::Trash)->limit(null);
+		$query   = $this->content->query()->any()->status(EntryStatus::TRASH)->limit(null);
 		$query   = $type === null ? $query : $query->type($type);
 		$deleted = 0;
 
@@ -706,7 +706,7 @@ final readonly class EntryController
 	{
 		$trashed = $entry->field(EntryFields::TRASHED);
 
-		return $entry->status === EntryStatus::Trash && $trashed instanceof DateTimeInterface ? $trashed->format(DateTimeInterface::ATOM) : null;
+		return $entry->status->is(EntryStatus::TRASH) && $trashed instanceof DateTimeInterface ? $trashed->format(DateTimeInterface::ATOM) : null;
 	}
 
 	/**
@@ -752,7 +752,7 @@ final readonly class EntryController
 	 */
 	private function bulkChange(Account $account, Entry $entry, string $action): string|Text|null
 	{
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			return $this->messages->t('admin.entry_controller.bulk.trashed', 'It\'s in the trash already; restore it to change it.');
 		}
 
@@ -827,7 +827,7 @@ final readonly class EntryController
 		$error  = ErrorPage::status($entry);
 		$home   = $this->homepage->describe($entry);
 		$fields = $this->types->formSchema($entry->type->name)->fields;
-		$live   = $entry->status !== EntryStatus::Trash;
+		$live   = ! $entry->status->is(EntryStatus::TRASH);
 
 		// An index page describes the type's archive, not one of its
 		// entries, so the type's fields don't apply; its title and status
@@ -872,7 +872,7 @@ final readonly class EntryController
 			'revision'    => $file->version,
 			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'       => $entry->title,
-			'status'      => $entry->status->value,
+			'status'      => $entry->status->name,
 			'trashed'     => self::trashed($entry),
 			'own'         => $this->permissions->owns($account, $entry),
 			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
@@ -1018,7 +1018,7 @@ final readonly class EntryController
 		$groups = [];
 
 		foreach ($this->referrers->grouped($entry) as $group) {
-			$entries = array_values(array_filter($group['entries'], static fn (Entry $source): bool => $source->status !== EntryStatus::Trash));
+			$entries = array_values(array_filter($group['entries'], static fn (Entry $source): bool => ! $source->status->is(EntryStatus::TRASH)));
 			$count   = count($entries);
 
 			if ($count === 0) {
@@ -1036,7 +1036,7 @@ final readonly class EntryController
 				'entries'  => array_map(fn (Entry $source): array => [
 					'id'     => $source->id,
 					'title'  => $source->title,
-					'status' => $source->status->value,
+					'status' => $source->status->name,
 					'type'   => $source->type->labels->singular,
 					'date'   => $source->published?->format('Y-m-d'),
 					'image'  => $this->media->address($source->field('image'))
@@ -1098,7 +1098,7 @@ final readonly class EntryController
 	private function introduces(Entry $entry, bool $index): ?array
 	{
 		$type    = $entry->type;
-		$waiting = [EntryStatus::Draft, EntryStatus::Scheduled];
+		$waiting = [EntryStatus::DRAFT, EntryStatus::SCHEDULED];
 
 		if ($index) {
 			$query = $this->content->query()->type($type->name)->withLanding(false)

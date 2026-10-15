@@ -16,13 +16,13 @@ namespace Blush\Content\Editing;
 use Blush\Activity\Actor;
 use Blush\Content\Entries;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Field\Field;
 use Blush\Field\Fields\ObjectField;
 use Blush\Storage\Record\RecordException;
 use Blush\Storage\Record\RecordStores;
+use Blush\Workflow\Status;
 
 /**
  * Moves the values of fields a set has put somewhere new (D-780): into a
@@ -184,7 +184,7 @@ final readonly class FieldMoves
 		}
 
 		try {
-			if ($entry->status === Status::Trash) {
+			if ($entry->status->is(Status::TRASH)) {
 				$this->content->change($entry, new EntryChanges($set, $remove), $file->version);
 			} else {
 				$this->editor->update($actor, $entry, new EntryEdit($set, $remove), $file->version);

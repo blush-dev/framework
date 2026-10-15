@@ -18,16 +18,16 @@ use Blush\Api\ApiEntries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Relation\Referrers;
 use Blush\Content\Relation\Relation;
-use Blush\Content\Status;
 use Blush\Core\AppConfig;
+use Blush\Routing\RouteTable;
+use Blush\Tool\Tool;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolEntries;
-use Blush\Tool\Tool;
 use Blush\Tool\ToolError;
 use Blush\Tool\ToolResult;
-use Blush\Routing\RouteTable;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status;
 
 /**
  * `get_entry` (D-755): one entry in full, by id or by its address (people
@@ -125,7 +125,7 @@ final class GetEntry extends Tool
 		$linked = [];
 
 		foreach ($this->referrers->sources($entry) as $source) {
-			if ($source['entry']->status === Status::Trash || ! $this->entries->sees($context, $source['entry'])) {
+			if ($source['entry']->status->is(Status::TRASH) || ! $this->entries->sees($context, $source['entry'])) {
 				continue;
 			}
 

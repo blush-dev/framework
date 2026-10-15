@@ -17,7 +17,6 @@ use DateTimeInterface;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 
@@ -90,7 +89,7 @@ final readonly class MarkdownPages
 			return [];
 		}
 
-		$entries = $this->content->query()->any()->status(Status::Published)->visibility(Visibility::Public, Visibility::Unlisted)->get();
+		$entries = $this->content->query()->any()->live()->visibility(Visibility::Public, Visibility::Unlisted)->get();
 
 		return array_values(array_filter([...$entries], fn (Entry $entry): bool => $this->url($entry) !== null));
 	}

@@ -15,7 +15,6 @@ namespace Blush\Content\Relation;
 
 use Blush\Content\Entries;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Storage\Record\Operator;
@@ -23,6 +22,8 @@ use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Changing a relation that entries use (D-600), for the admin's form and
@@ -47,7 +48,8 @@ final readonly class RelationChanges
 	public function __construct(
 		private RecordStores $stores,
 		private Entries $content,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -366,8 +368,9 @@ final readonly class RelationChanges
 	private function live(array $uses): array
 	{
 		$records = $this->records();
+		$live    = $this->statuses->live();
 
-		return array_filter($uses, static fn (string $id): bool => ($records[$id]->fields['status'] ?? null) === Status::Published->value, ARRAY_FILTER_USE_KEY);
+		return array_filter($uses, static fn (string $id): bool => in_array($records[$id]->fields['status'] ?? null, $live, true), ARRAY_FILTER_USE_KEY);
 	}
 
 	/**
@@ -378,9 +381,10 @@ final readonly class RelationChanges
 	{
 		$uses  = $this->uses($relation);
 		$count = 0;
+		$live  = $this->statuses->live();
 
 		foreach ($this->records() as $id => $record) {
-			if ($relation->isFrom(self::type($record)) && ($record->fields['status'] ?? null) === Status::Published->value && ! isset($uses[$id])) {
+			if ($relation->isFrom(self::type($record)) && in_array($record->fields['status'] ?? null, $live, true) && ! isset($uses[$id])) {
 				$count++;
 			}
 		}
@@ -402,7 +406,7 @@ final readonly class RelationChanges
 			$source = $ref->fields['source_id'] ?? null;
 			$target = $ref->fields['target_id'] ?? null;
 
-			if (is_string($source) && is_string($target) && isset($records[$source]) && ($records[$source]->fields['status'] ?? null) !== Status::Trash->value) {
+			if (is_string($source) && is_string($target) && isset($records[$source]) && ($records[$source]->fields['status'] ?? null) !== Status::TRASH) {
 				$counts[$target] = ($counts[$target] ?? 0) + 1;
 			}
 		}

@@ -18,12 +18,12 @@ use Override;
 use Blush\Content\FileNames;
 use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\IndexRecord;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
-use Blush\Translation\Messages;
 use Blush\Support\Slug;
+use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * The filesystem driver's content writer (D-654): entries by id, each
@@ -221,7 +221,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(string $id, ?string $version = null, ?Status $status = Status::Draft): string
+	public function restore(string $id, ?string $version = null, ?string $status = Status::DRAFT): string
 	{
 		return $this->idAt($this->files->restore($this->path($id), $version, $status)->path);
 	}

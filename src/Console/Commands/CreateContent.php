@@ -29,7 +29,6 @@ use Blush\Content\Editing\NewEntry;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Source\ContentFiles;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
@@ -173,7 +172,7 @@ final readonly class CreateContent
 		if ($parent === null) {
 			$options = ['' => 'None: at the top'];
 
-			foreach ($this->content->query()->type($type->name)->status(Status::Published, Status::Draft, Status::Scheduled)->limit(null)->orderBy('title')->get()->all() as $page) {
+			foreach ($this->content->query()->type($type->name)->anyStatus()->limit(null)->orderBy('title')->get()->all() as $page) {
 				$options[$page->key] = "{$page->title} ({$page->key})";
 			}
 

@@ -105,7 +105,7 @@ final readonly class EntryResource
 			'title'     => $entry->title,
 			'subtitle'  => $entry->subtitle(),
 			'slug'      => $entry->slug,
-			'status'    => $entry->status->value,
+			'status'    => $entry->status->name,
 			'published' => ApiValues::date($entry->published),
 			'updated'   => ApiValues::date($entry->updated),
 			...($this->entries->hasUrls($type) ? ['url' => $this->entries->url($entry)] : []),

@@ -19,19 +19,19 @@ use PHPUnit\Framework\TestCase;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Entries;
 use Blush\Content\Index\RecordBuilder;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\AssignedIds;
-use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
 use Blush\Content\Writer\WriteResult;
 use Blush\Core\Application;
 use Blush\Support\Uuid;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Workflow\Status;
 
 #[CoversClass(FilesystemWriter::class)]
 #[CoversClass(DocumentEditor::class)]
@@ -112,7 +112,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame(RecordBuilder::hash($this->file($id)), $result->version);
 		$this->assertContains($id, $result->index->changed);
 		$this->assertNotSame($version, $this->app->container()->make(ContentVersion::class)->current());
-		$this->assertSame(Status::Draft, $this->entryAt($id, $this->app)?->status);
+		$this->assertSame(Status::DRAFT, $this->entryAt($id, $this->app)?->status->name);
 	}
 
 	public function testLeavesTheIdToTheWriter(): void
@@ -518,8 +518,8 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertStringContainsString("status: trash\n", $file, 'It stays where it is, marked (D-484).');
 		$this->assertStringContainsString("trashed: 2026-06-01 12:00:00 -05:00\n", $file, 'With when, in the site\'s timezone.');
 		$this->assertSame($path, $entry?->path, 'It keeps its id.');
-		$this->assertSame(Status::Trash, $entry->status);
-		$this->assertSame(1, $this->content()->query()->any()->status(Status::Trash)->count(), 'Asked for by name, the trash is found.');
+		$this->assertSame(Status::TRASH, $entry->status->name);
+		$this->assertSame(1, $this->content()->query()->any()->status(Status::TRASH)->count(), 'Asked for by name, the trash is found.');
 		$this->assertSame(0, $this->content()->query()->any()->names('rekindling-the-flame')->count(), 'Any status means every one but the trash.');
 	}
 
@@ -534,7 +534,7 @@ final class FilesystemWriterTest extends TestCase
 
 		$this->assertStringContainsString("category  : [life]\nstatus: draft\n", $file, 'The rest of the file is as it was.');
 		$this->assertStringNotContainsString('trashed', $file);
-		$this->assertSame(Status::Draft, $this->entryAt($path, $this->app)?->status);
+		$this->assertSame(Status::DRAFT, $this->entryAt($path, $this->app)?->status->name);
 	}
 
 	public function testDeletesForGood(): void

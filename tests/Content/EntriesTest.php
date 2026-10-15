@@ -24,14 +24,14 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\SnapshotRecords;
-use Blush\Content\StoredEntries;
 use Blush\Content\Query\EntryCollection;
-use Blush\Content\Record\QueryCompiler;
-use Blush\Storage\Record\Order;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
-use Blush\Content\Status;
+use Blush\Content\Record\QueryCompiler;
+use Blush\Content\StoredEntries;
 use Blush\Content\Visibility;
+use Blush\Storage\Record\Order;
+use Blush\Workflow\Status;
 
 #[CoversClass(StoredEntries::class)]
 #[CoversClass(QueryCompiler::class)]
@@ -93,8 +93,8 @@ final class EntriesTest extends TestCase
 	{
 		$post = $this->content->query()->type('post');
 
-		$this->assertSame(['future'], self::slugs($post->status(Status::Scheduled)->get()));
-		$this->assertSame(['unfinished'], self::slugs($post->status(Status::Draft)->get()));
+		$this->assertSame(['future'], self::slugs($post->status(Status::SCHEDULED)->get()));
+		$this->assertSame(['unfinished'], self::slugs($post->status(Status::DRAFT)->get()));
 		$this->assertSame(['rainy'], self::slugs($post->visibility(Visibility::Unlisted)->get()));
 		$this->assertSame(['hello', 'spring', 'welcome', 'index'], self::slugs($post->withLanding()->get()));
 		$this->assertSame(['future', 'unfinished', 'hello', 'rainy', 'spring', 'welcome', 'index'], self::slugs($post->any()->get()));
@@ -147,14 +147,14 @@ final class EntriesTest extends TestCase
 	public function testEitherMatchesAnyAlternative(): void
 	{
 		$posts = $this->content->query()->type('post')->any();
-		$draft = static fn (Query $query): Query => $query->status(Status::Draft);
+		$draft = static fn (Query $query): Query => $query->status(Status::DRAFT);
 		$art   = static fn (Query $query): Query => $query->whereTerm('category', 'art');
 
 		$this->assertSame(['unfinished', 'rainy', 'spring'], self::slugs($posts->either($draft, $art)->get()));
 		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->search('spring')->get()), 'The query\'s own conditions still hold.');
 		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->either(static fn (Query $query): Query => $query->whereAuthor('guest'))->get()), 'Each group must match.');
 		$this->assertSame([], self::slugs($posts->either()->get()), 'No alternatives match nothing.');
-		$this->assertSame([], self::slugs($this->content->query()->type('post')->either(static fn (Query $query): Query => $query->status(Status::Scheduled))->get()), 'Alternatives narrow the query; they never widen it (it finds only published entries).');
+		$this->assertSame([], self::slugs($this->content->query()->type('post')->either(static fn (Query $query): Query => $query->status(Status::SCHEDULED))->get()), 'Alternatives narrow the query; they never widen it (it finds only published entries).');
 		$this->assertSame(1, $posts->either($draft)->count());
 	}
 
@@ -263,7 +263,7 @@ final class EntriesTest extends TestCase
 		$this->assertSame('about/index.md', $this->content->named('page', 'about')?->path);
 		$this->assertSame('Home', $this->content->named('page', '')?->title);
 		$this->assertSame('Blog', $this->content->named('post', '')?->title);
-		$this->assertSame(Status::Draft, $this->content->named('post', 'unfinished')?->status);
+		$this->assertSame(Status::DRAFT, $this->content->named('post', 'unfinished')?->status->name);
 		$this->assertNull($this->content->named('post', 'unfinished', 'fr_FR'));
 	}
 

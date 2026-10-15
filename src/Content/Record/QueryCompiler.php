@@ -18,9 +18,9 @@ use DateTimeImmutable;
 use Blush\Content\Entry\Position;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
+use Blush\Content\Query\StatusScope;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationKind;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
@@ -28,14 +28,16 @@ use Blush\Storage\Record\Order;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\Subquery;
 use Blush\Support\Slug;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Turns content's `Query` into a `RecordQuery` over the `entries` table
  * (D-649), so any driver answers it, and answers it alike:
  *
- * - **Status:** "published" is a published entry whose `published` time
- *   has come (or that has none), "scheduled" one whose time is still to
- *   come, at the time given.
+ * - **Status:** a live status (`Statuses`) finds entries whose
+ *   `published` time has come (or that have none), "scheduled" those of
+ *   a live status whose time is still to come, at the time given.
  * - **Terms** (`whereTerm()`, 1.x `author`): entries referring to a term
  *   of the relation's types with the slug (refs), or writing the slug
  *   under the relation's front matter keys.
@@ -65,7 +67,8 @@ final readonly class QueryCompiler
 
 	public function __construct(
 		private ContentTypes $types,
-		private AppConfig $app
+		private AppConfig $app,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -221,29 +224,39 @@ final readonly class QueryCompiler
 	}
 
 	/**
-	 * Adds statuses, "published" and "scheduled" told apart by time.
+	 * Adds statuses (D-850): a live status finds entries whose time has
+	 * come, and `scheduled` those of a live status whose time is still to
+	 * come.
 	 *
-	 * @param list<Status> $statuses
+	 * @param StatusScope|list<string> $statuses
 	 */
-	private function statuses(RecordQuery $records, array $statuses, int $now): RecordQuery
+	private function statuses(RecordQuery $records, StatusScope|array $statuses, int $now): RecordQuery
 	{
-		if ($statuses === []) {
-			return $records->whereAny();
-		}
-
-		if (count(array_unique(array_map(static fn (Status $status): string => $status->value, $statuses))) === count(Status::cases())) {
+		if ($statuses === StatusScope::All) {
 			return $records;
 		}
 
-		$time = EntryTable::time($now);
+		if ($statuses === StatusScope::Active) {
+			$inactive = $this->statuses->inactive();
 
-		return $records->whereAny(...array_map(static fn (Status $status): Closure => match ($status) {
-			Status::Published => static fn (RecordQuery $q): RecordQuery => $q->where('status', '=', Status::Published->value)->whereAny(
-				static fn (RecordQuery $q): RecordQuery => $q->where('published', 'null'),
-				static fn (RecordQuery $q): RecordQuery => $q->where('published', '<=', $time)
-			),
-			Status::Scheduled => static fn (RecordQuery $q): RecordQuery => $q->where('status', '=', Status::Published->value)->where('published', '>', $time),
-			default           => static fn (RecordQuery $q): RecordQuery => $q->where('status', '=', $status->value)
+			return $inactive === [] ? $records : $records->where('status', 'not in', $inactive);
+		}
+
+		$time = EntryTable::time($now);
+		$live = $this->statuses->live();
+		$come = static fn (RecordQuery $q): RecordQuery => $q->whereAny(
+			static fn (RecordQuery $q): RecordQuery => $q->where('published', 'null'),
+			static fn (RecordQuery $q): RecordQuery => $q->where('published', '<=', $time)
+		);
+
+		if ($statuses === StatusScope::Live) {
+			return $live === [] ? $records->whereAny() : $come($records->where('status', 'in', $live));
+		}
+
+		return $records->whereAny(...array_map(static fn (string $status): Closure => match (true) {
+			$status === Status::SCHEDULED     => static fn (RecordQuery $q): RecordQuery => $live === [] ? $q->whereAny() : $q->where('status', 'in', $live)->where('published', '>', $time),
+			in_array($status, $live, true)    => static fn (RecordQuery $q): RecordQuery => $come($q->where('status', '=', $status)),
+			default                           => static fn (RecordQuery $q): RecordQuery => $q->where('status', '=', $status)
 		}, $statuses));
 	}
 

@@ -60,6 +60,7 @@ use Blush\Storage\StorageServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
 use Blush\Translation\TranslationServiceProvider;
 use Blush\View\ViewServiceProvider;
+use Blush\Workflow\WorkflowServiceProvider;
 
 /**
  * Wires a project together around a dependency injection container and a set
@@ -89,6 +90,7 @@ class Application implements Bootable
 		StorageServiceProvider::class,
 		DataServiceProvider::class,
 		MarkdownServiceProvider::class,
+		WorkflowServiceProvider::class,
 		ContentServiceProvider::class,
 		MediaServiceProvider::class,
 		SettingsServiceProvider::class,

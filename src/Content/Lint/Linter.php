@@ -18,11 +18,11 @@ use DateMalformedStringException;
 use DateTimeImmutable;
 use Blush\Content\EntryFields;
 use Blush\Content\EntryFolders;
-use Blush\Content\MediaFieldIds;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
 use Blush\Content\Index\RecordBuilder;
+use Blush\Content\MediaFieldIds;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Query\InvalidQuery;
@@ -33,22 +33,23 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChecker;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
+use Blush\Content\Routing\PageRoutes;
 use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\UnreadableSource;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
-use Blush\Content\Routing\PageRoutes;
 use Blush\Core\AppConfig;
 use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
-use Blush\Routing\RouteTable;
 use Blush\Media\MediaException;
 use Blush\Media\MediaMetadataCheck;
+use Blush\Routing\RouteTable;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Checks every content file, as `content:lint` reports it. It reads the
@@ -98,7 +99,8 @@ final readonly class Linter
 		private AppConfig $app,
 		private Relations $relations,
 		private MediaFieldIds $mediaFields,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -120,7 +122,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 			}
@@ -267,10 +269,31 @@ final readonly class Linter
 			$contents = $this->contentFiles->source()->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 		}
+	}
+
+	/**
+	 * Warns of a status nothing registers (D-735), such as one a plugin
+	 * that's off registered: the entry isn't live, and keeps it as
+	 * written.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkStatus(IndexRecord $record): array
+	{
+		if ($record->status === Status::TRASH || array_key_exists($record->status, $this->statuses->registered())) {
+			return [];
+		}
+
+		return [new Violation('status', $this->messages->t(
+			'content.linter.unknown_status',
+			'"{status}" isn\'t a status the site has, so the entry isn\'t on the site. Use one of: {statuses}.',
+			status: $record->status,
+			statuses: implode(', ', array_keys($this->statuses->registered()))
+		), Severity::Warning, ViolationKind::Value)];
 	}
 
 	/**
@@ -550,7 +573,7 @@ final readonly class Linter
 			if ($record['id'] !== null) {
 				$entries[$record['id']] = $record['type'];
 
-				if ($record['status'] === Status::Trash->value) {
+				if ($record['status'] === Status::TRASH) {
 					$trashed[] = $record['id'];
 				}
 			}

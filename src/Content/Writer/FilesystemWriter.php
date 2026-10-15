@@ -21,15 +21,14 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
-use Blush\Content\Index\RecordBuilder;
+use Blush\Content\EntryFields;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexReport;
 use Blush\Content\Index\IndexSnapshot;
-use Blush\Content\EntryFields;
-use Blush\Content\Status;
+use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Relation\LinkBuilder;
@@ -42,11 +41,12 @@ use Blush\Content\Type\Tree;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
-use Blush\Support\Progress;
 use Blush\Support\FilesystemException;
+use Blush\Support\Progress;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Writes content files in `user/content` (D-228), by path: the
@@ -643,7 +643,7 @@ final readonly class FilesystemWriter
 	public function trash(string $path, ?string $version = null): WriteResult
 	{
 		return $this->update($path, new EntryChanges([
-			'status'              => Status::Trash->value,
+			'status'              => Status::TRASH,
 			EntryFields::TRASHED => $this->clock->now()->format('Y-m-d H:i:s P')
 		]), $version);
 	}
@@ -654,11 +654,11 @@ final readonly class FilesystemWriter
 	 *
 	 * @throws WriteException
 	 */
-	public function restore(string $path, ?string $version = null, ?Status $status = Status::Draft): WriteResult
+	public function restore(string $path, ?string $version = null, ?string $status = Status::DRAFT): WriteResult
 	{
 		return $this->update($path, $status === null
 			? new EntryChanges([], ['status', EntryFields::TRASHED])
-			: new EntryChanges(['status' => $status->value], [EntryFields::TRASHED]), $version);
+			: new EntryChanges(['status' => $status], [EntryFields::TRASHED]), $version);
 	}
 
 	/**

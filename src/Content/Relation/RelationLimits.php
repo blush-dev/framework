@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Relation;
 
 use Blush\Content\Record\EntryRecords;
-use Blush\Content\Status;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Checks one entry's relations against their limits before it's
@@ -116,7 +116,7 @@ final readonly class RelationLimits
 
 			$taken[$target] = count(array_filter(
 				$sources,
-				static fn (string $id): bool => isset($records[$id]) && EntryRecords::text($records[$id], 'status') !== Status::Trash->value
+				static fn (string $id): bool => isset($records[$id]) && EntryRecords::text($records[$id], 'status') !== Status::TRASH
 			));
 		}
 

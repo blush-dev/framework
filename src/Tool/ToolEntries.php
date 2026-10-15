@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tool;
 
+use LogicException;
 use Blush\Admin\AdminLinks;
 use Blush\Api\ApiEntries;
 use Blush\Api\ApiIncludes;
@@ -21,7 +22,6 @@ use Blush\Auth\ContentAction;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -31,7 +31,7 @@ use Blush\Media\MediaException;
 use Blush\Preview\PreviewLinks;
 use Blush\Support\Uuid;
 use Blush\Translation\Messages;
-use LogicException;
+use Blush\Workflow\Status;
 
 /**
  * What tools see of entries (D-755): every status the account may see
@@ -44,13 +44,6 @@ use LogicException;
  */
 final readonly class ToolEntries
 {
-	/**
-	 * The statuses found unless others are asked for: all but the trash.
-	 *
-	 * @var list<Status>
-	 */
-	public const array DEFAULT_STATUSES = [Status::Published, Status::Draft, Status::Scheduled];
-
 	public function __construct(
 		private Entries $content,
 		private ContentTypes $types,
@@ -91,17 +84,18 @@ final readonly class ToolEntries
 	}
 
 	/**
-	 * Returns a query for the entries of some statuses a context sees,
-	 * without listings' landing pages.
+	 * Returns a query for the entries of some statuses a context sees
+	 * (`null` for every active one: all but the trash), without listings'
+	 * landing pages.
 	 *
-	 * @param list<Status> $statuses
+	 * @param ?list<string> $statuses
 	 */
-	public function query(ToolContext $context, array $statuses = self::DEFAULT_STATUSES): Query
+	public function query(ToolContext $context, ?array $statuses = null): Query
 	{
 		$types  = array_keys($this->types($context));
 		$public = array_keys(array_filter($this->types($context), static fn (ContentType $type): bool => $type->public));
-		$query  = $this->content->query()
-			->status(...$statuses)
+		$query  = $this->content->query()->any();
+		$query  = ($statuses === null ? $query : $query->status(...$statuses))
 			->visibility(...Visibility::cases())
 			->withLanding(false)
 			->type(...$types);
@@ -112,7 +106,7 @@ final readonly class ToolEntries
 			return $query;
 		}
 
-		$anyone = $public === [] ? [] : [static fn (Query $condition): Query => $condition->type(...$public)->status(Status::Published)->visibility(Visibility::Public, Visibility::Unlisted)];
+		$anyone = $public === [] ? [] : [static fn (Query $condition): Query => $condition->type(...$public)->live()->visibility(Visibility::Public, Visibility::Unlisted)];
 
 		return $query->either(...$anyone, ...$own);
 	}
@@ -150,7 +144,7 @@ final readonly class ToolEntries
 			return false;
 		}
 
-		if ($entry->status === Status::Trash) {
+		if ($entry->status->is(Status::TRASH)) {
 			return $context->can(ContentAction::Delete, $entry);
 		}
 
@@ -170,7 +164,7 @@ final readonly class ToolEntries
 			'id'        => $entry->id,
 			'type'      => $entry->type->name,
 			'title'     => $entry->title,
-			'status'    => $entry->status->value,
+			'status'    => $entry->status->name,
 			'url'       => $entry->isPublished() ? $this->api->url($entry) : null,
 			'published' => $entry->published?->format(DATE_ATOM),
 			'updated'   => $entry->updated->format(DATE_ATOM),
@@ -195,7 +189,7 @@ final readonly class ToolEntries
 			throw new ToolError((string) $this->messages->t('tool.tool_entries.unreadable', '“{title}” can\'t be read: {problem}', title: $entry->title, problem: $error->getMessage()));
 		}
 
-		$item['status'] = $entry->status->value;
+		$item['status'] = $entry->status->name;
 		$item['url']    = $entry->isPublished() ? $this->api->url($entry) : null;
 
 		if ($editing && $context->can(ContentAction::Edit, $entry)) {

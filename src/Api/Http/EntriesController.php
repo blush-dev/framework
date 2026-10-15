@@ -28,11 +28,11 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Status;
 use Blush\Core\AppConfig;
 use Blush\Routing\RouteTable;
 use Blush\Storage\Record\Order;
 use Blush\Support\Uuid;
+use Blush\Workflow\Statuses;
 
 /**
  * Answers `/entries` and `/entries/{id}` (D-737 to D-740).
@@ -76,7 +76,8 @@ final readonly class EntriesController
 		private EntryResource $resource,
 		private Relations $relations,
 		private RouteTable $routes,
-		private AppConfig $app
+		private AppConfig $app,
+		private Statuses $statuses
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -155,7 +156,7 @@ final readonly class EntriesController
 	 * account, or `null` when it isn't asked (D-745). Asking needs a
 	 * token.
 	 *
-	 * @return ?array{Token, Account, list<Status>}
+	 * @return ?array{Token, Account, list<string>}
 	 * @throws ApiError For a request without a token, or a status that isn't one.
 	 */
 	private function statuses(ServerRequestInterface $request, ApiQuery $query): ?array
@@ -174,10 +175,10 @@ final readonly class EntriesController
 		$statuses = [];
 
 		foreach ($query->list('status') as $value) {
-			$statuses[] = Status::tryFrom($value) ?? throw ApiError::invalidQuery(sprintf('"status" is one or more of: %s.', implode(', ', array_column(Status::cases(), 'value'))));
+			$statuses[] = $this->statuses->find($value)->name ?? throw ApiError::invalidQuery(sprintf('"status" is one or more of: %s.', implode(', ', array_keys($this->statuses->all()))));
 		}
 
-		return $statuses === [] ? throw ApiError::invalidQuery('"status" needs a status.') : [$token, $account, array_values(array_unique($statuses, SORT_REGULAR))];
+		return $statuses === [] ? throw ApiError::invalidQuery('"status" needs a status.') : [$token, $account, array_values(array_unique($statuses))];
 	}
 
 	/**

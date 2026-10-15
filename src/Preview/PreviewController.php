@@ -16,13 +16,13 @@ namespace Blush\Preview;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\Entries;
-use Blush\Content\Status as EntryStatus;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * Shows an entry, whatever its status but the trash, to anyone with a genuine,
@@ -65,7 +65,7 @@ final readonly class PreviewController
 		$entry = $valid ? $this->content->find($id) : null;
 
 		// The trash is never shown, even by a genuine link (D-484).
-		$entry = $entry?->status === EntryStatus::Trash ? null : $entry;
+		$entry = $entry?->status->is(EntryStatus::TRASH) === true ? null : $entry;
 
 		if ($entry === null) {
 			return Response::text(

@@ -29,7 +29,6 @@ use Blush\Content\Relation\Refs;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -46,6 +45,7 @@ use Blush\Storage\Record\Table;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * Writes entries as records (D-662), for every driver that keeps content
@@ -345,7 +345,7 @@ final readonly class RecordContentWriter implements ContentWriter
 	public function trash(string $id, ?string $version = null): string
 	{
 		return $this->update($id, new EntryChanges([
-			'status'             => Status::Trash->value,
+			'status'             => Status::TRASH,
 			EntryFields::TRASHED => $this->clock->now()->format('Y-m-d H:i:s P')
 		]), $version);
 	}
@@ -354,11 +354,11 @@ final readonly class RecordContentWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(string $id, ?string $version = null, ?Status $status = Status::Draft): string
+	public function restore(string $id, ?string $version = null, ?string $status = Status::DRAFT): string
 	{
 		return $this->update($id, $status === null
 			? new EntryChanges([], ['status', EntryFields::TRASHED])
-			: new EntryChanges(['status' => $status->value], [EntryFields::TRASHED]), $version);
+			: new EntryChanges(['status' => $status], [EntryFields::TRASHED]), $version);
 	}
 
 	/**
@@ -446,7 +446,7 @@ final readonly class RecordContentWriter implements ContentWriter
 		$values    = $result->values;
 		$published = is_int($values['published'] ?? null) ? $values['published'] : null;
 		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : ($published ?? $this->clock->now()->getTimestamp());
-		$status    = is_string($values['status'] ?? null) ? Status::tryFrom($values['status']) : null;
+		$status    = is_string($values['status'] ?? null) && trim($values['status']) !== '' ? strtolower(trim($values['status'])) : null;
 		$key       = $this->keyOf($place);
 		$hidden    = array_any(explode('/', $key), static fn (string $part): bool => str_starts_with($part, '_'));
 		$declared  = is_string($values['visibility'] ?? null) ? Visibility::tryFrom($values['visibility']) : null;
@@ -460,7 +460,7 @@ final readonly class RecordContentWriter implements ContentWriter
 				$place['parent_id'],
 				$place['slug'],
 				$place['original_id'],
-				($status ?? Status::Published)->value,
+				$status ?? Status::PUBLISHED,
 				($hidden ? Visibility::Hidden : $declared ?? Visibility::Public)->value,
 				$published,
 				$updated,

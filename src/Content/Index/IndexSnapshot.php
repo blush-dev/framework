@@ -16,10 +16,10 @@ namespace Blush\Content\Index;
 use Blush\Content\EntryFields;
 use Blush\Content\Relation\LinkReport;
 use Blush\Content\Relation\RelationGraph;
-use Blush\Content\Status;
 use Blush\Support\Uuid;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status;
 
 /**
  * The whole content index at one moment: every record, plus lookups
@@ -179,7 +179,9 @@ final readonly class IndexSnapshot
 				$labels[$taxonomy] = ($labels[$taxonomy] ?? []) + $termLabels;
 			}
 
-			if ($record['status'] === Status::Published->value && $record['published'] !== null && $record['published'] > $built) {
+			// Any status that may be live counts: a time too early only
+			// checks again sooner.
+			if (! in_array($record['status'], [Status::DRAFT, Status::TRASH], true) && $record['published'] !== null && $record['published'] > $built) {
 				$scheduled = min($scheduled ?? PHP_INT_MAX, $record['published']);
 			}
 		}

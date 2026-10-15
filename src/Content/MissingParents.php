@@ -23,6 +23,7 @@ use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Support\Progress;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * A tree's page is under its parent page by what its record says
@@ -137,7 +138,7 @@ final readonly class MissingParents
 			try {
 				$created["{$type->name}/{$key}"] = $this->content->createAt($type, $key, new EntryChanges(set: [
 					'title'  => $title,
-					'status' => Status::Draft->value
+					'status' => Status::DRAFT
 				]))->path;
 			} catch (WriteException $e) {
 				$failed["{$type->name}/{$key}"] = $e->getMessage();

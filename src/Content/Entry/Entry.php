@@ -19,7 +19,6 @@ use Override;
 use Blush\Content\Relation\RelatedEntries;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationKind;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Visibility;
@@ -31,6 +30,7 @@ use Blush\View\HtmlAttributes;
 use Blush\View\InvalidHtmlAttribute;
 use Blush\View\SafeHtml;
 use Blush\View\TrustedHtml;
+use Blush\Workflow\Status;
 
 /**
  * One piece of content, as templates and controllers see it. Its front
@@ -436,9 +436,9 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns whether the entry is live: its status is published and its
-	 * date has come. A draft, an entry scheduled for later, and one in
-	 * the trash aren't. This is about time and status only: a published
+	 * Returns whether the entry is live: its status is a live one (D-850)
+	 * and its date has come. A draft, an entry scheduled for later, and
+	 * one in the trash aren't. This is about time and status only: a published
 	 * entry can still be hidden (see `isRoutable()`). Queries find only
 	 * published entries unless they ask for others; what an entry leads
 	 * to (`related()`, `parent()`, and the rest) isn't
@@ -446,7 +446,7 @@ final readonly class Entry implements Stringable
 	 */
 	public function isPublished(): bool
 	{
-		return $this->status === Status::Published;
+		return $this->status->live;
 	}
 
 	/**

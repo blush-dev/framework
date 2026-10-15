@@ -20,8 +20,8 @@ use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
+use Blush\Workflow\Statuses;
 
 /**
  * Lists the indexed entries, whatever their status or visibility, in file
@@ -32,7 +32,8 @@ final readonly class ListContent
 {
 	public function __construct(
 		private Entries $content,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private Statuses $statuses
 	) {}
 
 	/**
@@ -41,7 +42,7 @@ final readonly class ListContent
 	public function __invoke(
 		Output $output,
 		#[Option('Only entries of this type.')] ?string $type = null,
-		#[Option('Only entries with this status.')] ?Status $status = null
+		#[Option('Only entries with this status.')] ?string $status = null
 	): ExitCode {
 		$query = $this->content->query()->any()->limit(null);
 
@@ -54,6 +55,10 @@ final readonly class ListContent
 		}
 
 		if ($status !== null) {
+			if ($this->statuses->find($status) === null) {
+				throw new InvalidInput(sprintf('There is no "%s" status; the statuses are %s.', $status, implode(', ', array_keys($this->statuses->all()))));
+			}
+
 			$query = $query->status($status);
 		}
 
@@ -71,7 +76,7 @@ final readonly class ListContent
 				$entry->type->name,
 				$entry->landing ? '(landing)' : $entry->key,
 				$entry->title,
-				$entry->status->value,
+				$entry->status->name,
 				$entry->visibility->value,
 				$entry->published?->format('Y-m-d H:i') ?? ''
 			], $entries->all())

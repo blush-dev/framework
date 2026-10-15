@@ -16,11 +16,11 @@ namespace Blush\Tests\Content\Query;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Query\InvalidQuery;
-use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
+use Blush\Content\Query\StatusScope;
 use Blush\Content\Type\Collection;
-use Blush\Content\Status;
 use Blush\Content\Visibility;
+use Blush\Storage\Record\Order;
 
 #[CoversClass(Query::class)]
 #[CoversClass(Order::class)]
@@ -35,7 +35,7 @@ final class QueryTest extends TestCase
 		$this->assertNull($query->limit);
 		$this->assertSame('published', $query->orderBy, 'Newest first, never by file (D-516).');
 		$this->assertSame(Order::Desc, $query->order);
-		$this->assertSame([Status::Published], $query->statuses);
+		$this->assertSame(StatusScope::Live, $query->statuses);
 		$this->assertSame([Visibility::Public], $query->visibilities());
 		$this->assertFalse($query->findsLanding());
 	}
@@ -50,7 +50,7 @@ final class QueryTest extends TestCase
 		$this->assertSame([], $query->alternatives);
 		$this->assertCount(1, $either->alternatives);
 		$this->assertSame(['post'], $either->alternatives[0][0]->types);
-		$this->assertSame(Status::cases(), $either->alternatives[0][0]->statuses, 'Alternatives start from a condition that matches everything.');
+		$this->assertSame(StatusScope::All, $either->alternatives[0][0]->statuses, 'Alternatives start from a condition that matches everything.');
 		$this->assertTrue(Query::condition()->findsLanding());
 		$this->assertSame([[]], $query->either()->alternatives);
 	}
@@ -72,8 +72,10 @@ final class QueryTest extends TestCase
 		$this->assertSame('writing/forms', $query->in('/writing/forms/')->directory);
 		$this->assertSame(['year' => 2008, 'month' => 4], $query->date(year: 2008, month: 4)->date);
 		$this->assertSame([['author', ['a']], ['author', ['b']]], $query->whereAuthor('a', 'b')->terms);
-		$this->assertSame(Status::active(), $query->any()->statuses, 'Every status but the trash (D-484).');
-		$this->assertSame(Status::cases(), Query::condition()->statuses);
+		$this->assertSame(StatusScope::Active, $query->any()->statuses, 'Every status but the trash (D-484).');
+		$this->assertSame(StatusScope::Live, $query->statuses, 'Live entries by default.');
+		$this->assertSame(['draft'], $query->status('draft', 'draft')->statuses);
+		$this->assertSame(StatusScope::All, Query::condition()->statuses);
 		$this->assertTrue($query->any()->findsLanding());
 		$this->assertSame(['category', 'art'], [$query->where('category', 'art')->metaKey, $query->where('category', 'art')->metaValue]);
 	}
@@ -123,7 +125,7 @@ final class QueryTest extends TestCase
 
 		$this->assertNull($query->limit);
 		$this->assertSame([['category', ['art', 'life']], ['era', ['college']]], $query->terms);
-		$this->assertSame([Status::Published, Status::Scheduled], $query->statuses);
+		$this->assertSame(['published', 'scheduled'], $query->statuses, 'Statuses by name; what\'s registered is the compiler\'s to know (D-850).');
 		$this->assertSame([Visibility::Unlisted], $query->visibilities());
 		$this->assertSame('fr_FR', $query->locale);
 		$this->assertSame(Query::DEFAULT_NUMBER, Query::fromArray([])->limit);
@@ -148,7 +150,7 @@ final class QueryTest extends TestCase
 			['order' => 'sideways'],
 			['noindex' => 'yes'],
 			['terms' => ['art']],
-			['status' => 'lost'],
+			['status' => 'Not a status!'],
 			['visibility' => 'invisible']
 		];
 

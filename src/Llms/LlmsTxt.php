@@ -16,7 +16,6 @@ namespace Blush\Llms;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -127,7 +126,7 @@ final readonly class LlmsTxt
 	 */
 	private function entries(ContentType $type): array
 	{
-		$query = $this->content->query()->any()->type($type->name)->status(Status::Published)->visibility(Visibility::Public);
+		$query = $this->content->query()->any()->type($type->name)->live()->visibility(Visibility::Public);
 
 		$query = $query->orderBy(...$type->order());
 

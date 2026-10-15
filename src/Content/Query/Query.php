@@ -16,7 +16,6 @@ namespace Blush\Content\Query;
 use Closure;
 use NoDiscard;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Visibility;
 use Blush\Storage\Record\Order;
@@ -33,7 +32,7 @@ use Blush\Storage\Record\Order;
  * or from 1.x query arguments (D-078) with `fromArray()`, as written in a
  * type's `collection` option or a page's `collection` front matter.
  *
- * By default a query finds published, public entries of every type,
+ * By default a query finds live, public entries of every type,
  * leaving out landing pages (a type folder's `index` file), in file-name
  * order. Naming entries also finds unlisted and hidden ones, as 1.x did,
  * and naming `index` finds landing pages.
@@ -43,7 +42,7 @@ use Blush\Storage\Record\Order;
  * match at least one of them:
  *
  *     $query->either(
- *         static fn (Query $q): Query => $q->status(Status::Draft),
+ *         static fn (Query $q): Query => $q->status('draft'),
  *         static fn (Query $q): Query => $q->whereTerm('author', 'jane')
  *     );
  *
@@ -105,7 +104,7 @@ final readonly class Query
 	 * @param ?string                          $metaKey       A field entries must have.
 	 * @param ?string                          $metaValue     A value (compared as a slug) the field must hold.
 	 * @param array<string, int>               $date          Published date parts to match, in the site timezone.
-	 * @param list<Status>                     $statuses      Statuses to find.
+	 * @param StatusScope|list<string>         $statuses      Statuses to find, by name, or a scope (D-850).
 	 * @param ?list<Visibility>                $visibilities  Visibilities to find; `null` for the default.
 	 * @param bool                             $landing       Whether landing pages are found.
 	 * @param ?string                          $locale        A locale to limit entries to.
@@ -131,7 +130,7 @@ final readonly class Query
 		public ?string $metaKey = null,
 		public ?string $metaValue = null,
 		public array $date = [],
-		public array $statuses = [Status::Published],
+		public StatusScope|array $statuses = StatusScope::Live,
 		public ?array $visibilities = null,
 		public bool $landing = false,
 		public ?string $locale = null,
@@ -153,7 +152,7 @@ final readonly class Query
 	 */
 	public static function condition(): self
 	{
-		return clone(new self()->any(), ['statuses' => Status::cases()]);
+		return clone(new self()->any(), ['statuses' => StatusScope::All]);
 	}
 
 	/**
@@ -257,8 +256,9 @@ final readonly class Query
 
 		if (isset($arguments['status'])) {
 			$query = $query->status(...array_map(
-				static fn (string $status): Status => Status::tryFrom($status)
-					?? throw new InvalidQuery(sprintf('Query argument "status" has an unknown status "%s".', $status)),
+				static fn (string $status): string => preg_match('/^[a-z][a-z0-9_]*$/', $status) === 1
+					? $status
+					: throw new InvalidQuery(sprintf('Query argument "status" has "%s", which isn\'t a status\'s name.', $status)),
 				self::strings($arguments['status'], 'status')
 			));
 		}
@@ -469,12 +469,46 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns a copy that finds entries with these statuses.
+	 * Returns a copy that finds entries with these statuses, by name
+	 * (`'draft'`). A live status finds entries whose time has
+	 * come, and `scheduled` those of a live status whose time is
+	 * still to come.
 	 */
 	#[NoDiscard]
-	public function status(Status ...$statuses): self
+	public function status(string ...$statuses): self
 	{
-		return clone($this, ['statuses' => array_values(array_unique($statuses, SORT_REGULAR))]);
+		return clone($this, ['statuses' => array_values(array_unique($statuses))]);
+	}
+
+	/**
+	 * Returns a copy that finds only entries on the site (the default):
+	 * those of a live status whose time has come.
+	 */
+	#[NoDiscard]
+	public function live(): self
+	{
+		return clone($this, ['statuses' => StatusScope::Live]);
+	}
+
+	/**
+	 * Returns a copy that finds entries of every active status: all but
+	 * the trash and statuses that aren't active, as `any()` does, without
+	 * changing visibilities or landing pages.
+	 */
+	#[NoDiscard]
+	public function anyStatus(): self
+	{
+		return clone($this, ['statuses' => StatusScope::Active]);
+	}
+
+	/**
+	 * Returns a copy that finds entries of every status, the trash
+	 * included.
+	 */
+	#[NoDiscard]
+	public function allStatuses(): self
+	{
+		return clone($this, ['statuses' => StatusScope::All]);
 	}
 
 	/**
@@ -489,12 +523,13 @@ final readonly class Query
 	/**
 	 * Returns a copy that finds entries whatever their status and
 	 * visibility, landing pages included, but those in the trash, which
-	 * a query finds only by asking for `Status::Trash` (D-484).
+	 * a query finds only by asking for `trash` (D-484), and
+	 * statuses that aren't active.
 	 */
 	#[NoDiscard]
 	public function any(): self
 	{
-		return clone($this, ['statuses' => Status::active(), 'visibilities' => Visibility::cases(), 'landing' => true]);
+		return clone($this, ['statuses' => StatusScope::Active, 'visibilities' => Visibility::cases(), 'landing' => true]);
 	}
 
 	/**

@@ -29,11 +29,11 @@ use Blush\Content\Editing\EntryEditor;
 use Blush\Content\Editing\Refusal;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Status;
 use Blush\Core\Application;
 use Blush\Media\MediaEditor;
 use Blush\Media\MediaMetadataStore;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Workflow\Status;
 
 #[CoversClass(ActivityLog::class)]
 #[CoversClass(Activity::class)]
@@ -144,7 +144,7 @@ final class ActivityTest extends TestCase
 
 		$this->editor()->undo(Actor::admin($this->jane), $trashed);
 
-		$this->assertSame(Status::Published, $this->mine()->status, 'Put back as it was, not as a draft.');
+		$this->assertSame(Status::PUBLISHED, $this->mine()->status->name, 'Put back as it was, not as a draft.');
 	}
 
 	public function testRecordsAndUndoesMediaDetails(): void

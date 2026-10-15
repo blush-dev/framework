@@ -36,6 +36,7 @@ use Blush\Media\MediaKind;
 use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Tests\BootsScratchSite;
 use Blush\Translation\Messages;
+use Blush\Workflow\Statuses;
 
 #[CoversClass(Permissions::class)]
 #[CoversClass(Capabilities::class)]
@@ -179,7 +180,8 @@ final class PermissionsTest extends TestCase
 			]), new ArrayRecordStore(), new SystemClock(), new Messages()),
 			$this->app->container()->make(Capabilities::class),
 			$this->app->container()->make(ContentTypes::class),
-			$this->app->container()->make(AccountProfiles::class)
+			$this->app->container()->make(AccountProfiles::class),
+			$this->app->container()->make(Statuses::class)
 		);
 
 		$this->assertFalse($permissions->can($this->account('blind'), 'extensions.plugins.delete'), 'Deleting needs seeing (D-389).');
@@ -222,7 +224,8 @@ final class PermissionsTest extends TestCase
 			]), new ArrayRecordStore(), new SystemClock(), new Messages()),
 			$this->app->container()->make(Capabilities::class),
 			$this->app->container()->make(ContentTypes::class),
-			$this->app->container()->make(AccountProfiles::class)
+			$this->app->container()->make(AccountProfiles::class),
+			$this->app->container()->make(Statuses::class)
 		);
 
 		$content  = $this->app->container()->make(Entries::class);

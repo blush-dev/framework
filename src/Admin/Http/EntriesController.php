@@ -26,31 +26,32 @@ use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Editing\ArchivePages;
+use Blush\Content\Editing\ErrorPage;
+use Blush\Content\Editing\IndexPage;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
-use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Referrers;
-use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationChanges;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Status;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
-use Blush\Content\Editing\IndexPage;
-use Blush\Content\Editing\ErrorPage;
-use Blush\Content\Editing\ArchivePages;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
+use Blush\Storage\Record\Order;
 use Blush\Translation\Messages;
 use Blush\View\ThemedErrorPages;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * Answers `GET {path}/api/entries` (D-225, D-230): the entries the
@@ -159,7 +160,8 @@ final readonly class EntriesController
 		private Referrers $referrers,
 		private Relations $relations,
 		private RelationChanges $changes,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -172,13 +174,13 @@ final readonly class EntriesController
 
 		$params = $request->getQueryParams();
 		$value  = $params['status'] ?? 'any';
-		$status = is_string($value) ? Status::tryFrom($value) : null;
+		$status = is_string($value) ? $this->statuses->find($value)?->name : null;
 
 		if ($status === null && $value !== 'any') {
-			return self::json(['error' => '"status" must be draft, scheduled, published, trash, or any.'], HttpStatus::BadRequest);
+			return self::json(['error' => sprintf('"status" must be any, or one of: %s.', implode(', ', array_keys($this->statuses->all())))], HttpStatus::BadRequest);
 		}
 
-		$trash = $status === Status::Trash;
+		$trash = $status === Status::TRASH;
 
 		$type = $params['type'] ?? null;
 
@@ -289,8 +291,8 @@ final readonly class EntriesController
 		$by          = match (true) {
 			$sort !== ''                                         => $sort,
 			$trash                                               => EntryFields::TRASHED,
-			$status === Status::Scheduled                        => 'published',
-			$status === Status::Published                        => 'published',
+			$status === Status::SCHEDULED                        => 'published',
+			$status === Status::PUBLISHED                        => 'published',
 			$status === null && $positioned                      => 'position',
 			$status === null && $contentType instanceof Profiles => 'title',
 			$status === null && $contentType !== null            => 'published',
@@ -300,7 +302,7 @@ final readonly class EntriesController
 		$query = match (true) {
 			$sort === 'author'            => $authors === '' ? $query : $query->orderBy($authors, $order),
 			$sort !== ''                  => $query->orderBy($sort, $order),
-			$status === Status::Scheduled => $query->orderBy('published', Order::Asc),
+			$status === Status::SCHEDULED => $query->orderBy('published', Order::Asc),
 			$by === 'position'            => $query->orderBy('position', Order::Asc),
 			$by === 'title'               => $query->orderBy('title', Order::Asc),
 			default                       => $query->orderBy($by, Order::Desc)
@@ -354,7 +356,7 @@ final readonly class EntriesController
 		}
 
 		return self::json([
-			'status'      => $status->value ?? 'any',
+			'status'      => $status ?? 'any',
 			'type'        => $type,
 			'search'      => trim($search),
 			'author'      => $author,
@@ -644,7 +646,7 @@ final readonly class EntriesController
 			'handle'      => $this->handles->of($entry),
 			'title'       => $entry->title,
 			'type'        => $entry->type->name,
-			'status'      => $entry->status->value,
+			'status'      => $entry->status->name,
 			'trashed'     => EntryController::trashed($entry),
 			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),

@@ -33,8 +33,25 @@ export interface AdminConfig {
 	// The languages content is written in, by code, the default first
 	// (D-455, D-728).
 	languages: { code: string; label: string }[];
+	// Entries' statuses, core's own (scheduled, trash) included, by
+	// name, in the account's language (D-850).
+	statuses: StatusDefinition[];
 	// What raw HTML each level may add (`HtmlRules`, D-495).
 	html: HtmlRules;
+}
+
+export interface StatusDefinition {
+	name: string;
+	label: string;
+	// What a list tab of them is called.
+	plural: string;
+	// Whether entries with it are on the site once their time comes.
+	live: boolean;
+	// Whether "any status" finds it.
+	active: boolean;
+	// Its pill's kind.
+	tone: 'neutral' | 'good' | 'warn' | 'danger' | 'accent';
+	known: boolean;
 }
 
 export interface AdminThemeChoice {

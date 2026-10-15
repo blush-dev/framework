@@ -22,12 +22,12 @@ use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\Entries;
-use Blush\Content\Status as EntryStatus;
-use Blush\Preview\PreviewConfig;
-use Blush\Preview\PreviewLinks;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Preview\PreviewConfig;
+use Blush\Preview\PreviewLinks;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status as EntryStatus;
 
 /**
  * Answers `POST {path}/api/previews` with `{"entry": id}`: a signed
@@ -69,7 +69,7 @@ final readonly class PreviewLinkController
 			return self::json(['error' => $this->messages->t('admin.preview_link_controller.not_found', 'There\'s no entry with the id "{id}".', id: $id)], Status::NotFound);
 		}
 
-		if ($entry->status === EntryStatus::Trash) {
+		if ($entry->status->is(EntryStatus::TRASH)) {
 			return self::json(['error' => $this->messages->t('admin.preview_link_controller.trashed', 'That entry is in the trash, so it has no preview; restore it first.')], Status::UnprocessableContent);
 		}
 

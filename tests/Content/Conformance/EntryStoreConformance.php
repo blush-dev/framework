@@ -26,7 +26,6 @@ use Blush\Content\Record\QueryCompiler;
 use Blush\Content\Record\RecordLocations;
 use Blush\Content\Relation\EntryTargets;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Status;
 use Blush\Content\StoredEntries;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -51,6 +50,8 @@ use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
+use Blush\Workflow\Statuses;
 
 /**
  * What every store that keeps content must answer, and answer alike
@@ -120,7 +121,7 @@ abstract class EntryStoreConformance extends TestCase
 		$entries   = null;
 
 		$entries = new StoredEntries(
-			new EntryHydrator($types, $container->make(FieldContext::class), $stores, $container->make(MarkdownParser::class), $clock, $config),
+			new EntryHydrator($types, $container->make(FieldContext::class), $stores, $container->make(MarkdownParser::class), $clock, $config, $container->make(Statuses::class)),
 			$types,
 			$config,
 			$clock,
@@ -232,8 +233,8 @@ abstract class EntryStoreConformance extends TestCase
 	{
 		$post = $this->query()->type('post');
 
-		$this->assertSame(['future'], $this->found($post->status(Status::Scheduled)));
-		$this->assertSame(['unfinished'], $this->found($post->status(Status::Draft)));
+		$this->assertSame(['future'], $this->found($post->status(Status::SCHEDULED)));
+		$this->assertSame(['unfinished'], $this->found($post->status(Status::DRAFT)));
 		$this->assertSame(['rainy'], $this->found($post->visibility(Visibility::Unlisted)));
 		$this->assertSame(['hello', 'spring', 'welcome', 'index'], $this->found($post->withLanding()));
 		$this->assertSame(['future', 'unfinished', 'hello', 'rainy', 'spring', 'welcome', 'index', 'justintadlock'], $this->found($post->any()));
@@ -241,7 +242,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->clock->set('2027-01-01');
 
 		$this->assertSame(['future', 'hello', 'spring', 'welcome'], $this->found($post), 'Scheduled is a time, compared with now.');
-		$this->assertSame(Status::Published, $this->named('post', 'future')->status);
+		$this->assertSame(Status::PUBLISHED, $this->named('post', 'future')->status->name);
 	}
 
 	public function testNames(): void
@@ -295,7 +296,7 @@ abstract class EntryStoreConformance extends TestCase
 	public function testAlternatives(): void
 	{
 		$posts = $this->query()->type('post')->any();
-		$draft = static fn (Query $query): Query => $query->status(Status::Draft);
+		$draft = static fn (Query $query): Query => $query->status(Status::DRAFT);
 		$art   = static fn (Query $query): Query => $query->whereTerm('category', 'art');
 
 		$this->assertSame(['unfinished', 'rainy', 'spring'], $this->found($posts->either($draft, $art)));
@@ -341,7 +342,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('spring', $spring->key);
 		$this->assertSame('en', $spring->language);
 		$this->assertSame('en_US', $spring->locale);
-		$this->assertSame(Status::Published, $spring->status);
+		$this->assertSame(Status::PUBLISHED, $spring->status->name);
 		$this->assertSame(Visibility::Public, $spring->visibility);
 		$this->assertSame('2008-04-05 09:00', $spring->published?->format('Y-m-d H:i'), 'In the site\'s timezone.');
 		$this->assertSame(['art', 'book-reviews'], $spring->slugs('category'));
@@ -454,7 +455,7 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertNotNull($parent);
 		$this->assertSame('Cooks', $parent->title, 'Its missing parent, written first (D-656)…');
-		$this->assertSame(Status::Draft, $parent->status, '…as a draft.');
+		$this->assertSame(Status::DRAFT, $parent->status->name, '…as a draft.');
 
 		$changed = $this->content->change($jane, new EntryChanges(set: ['title' => 'Jane Doe']), $jane->version);
 
@@ -471,7 +472,7 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertNotNull($fresh->id);
 		$this->assertSame('fresh', $fresh->key);
-		$this->assertSame(Status::Published, $fresh->status);
+		$this->assertSame(Status::PUBLISHED, $fresh->status->name);
 		$this->assertNotNull($fresh->published, 'Dated now (D-514).');
 		$this->assertSame(['art'], $fresh->slugs('category'));
 		$this->assertSame(['guest'], $fresh->slugs('authors'));
@@ -585,8 +586,8 @@ abstract class EntryStoreConformance extends TestCase
 		$spring  = $this->named('post', 'spring');
 		$trashed = $this->content->trash($spring, $spring->version);
 
-		$this->assertSame(Status::Trash, $trashed->status);
-		$this->assertSame(Status::Draft, $this->content->restore($trashed, $trashed->version)->status);
+		$this->assertSame(Status::TRASH, $trashed->status->name);
+		$this->assertSame(Status::DRAFT, $this->content->restore($trashed, $trashed->version)->status->name);
 
 		$this->content->delete((string) $spring->id);
 

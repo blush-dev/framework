@@ -20,7 +20,6 @@ use Override;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\EntryFields;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Content\Writer\ContentWriter;
@@ -50,6 +49,7 @@ use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 use Blush\Translation\Messages;
+use Blush\Workflow\Status;
 
 /**
  * The filesystem driver's content tables (D-653): `entries` and `refs`
@@ -462,10 +462,10 @@ final readonly class IndexStore implements RecordStore
 		$was = $old['status'] ?? null;
 		$is  = $new['status'] ?? null;
 
-		if ($is !== $was && ($is === Status::Trash->value || $was === Status::Trash->value)) {
-			$id = $is === Status::Trash->value
+		if ($is !== $was && ($is === Status::TRASH || $was === Status::TRASH)) {
+			$id = $is === Status::TRASH
 				? $writer->trash($id, $version)
-				: $writer->restore($id, $version, Status::tryFrom(is_string($is) ? $is : '') ?? Status::Draft);
+				: $writer->restore($id, $version, is_string($is) && $is !== '' ? $is : Status::DRAFT);
 			$version = null;
 		}
 
@@ -568,7 +568,7 @@ final readonly class IndexStore implements RecordStore
 
 		$status = $new['status'] ?? null;
 
-		if (array_key_exists('status', $new) && $status !== ($old['status'] ?? null) && $status !== Status::Trash->value && ($old['status'] ?? null) !== Status::Trash->value) {
+		if (array_key_exists('status', $new) && $status !== ($old['status'] ?? null) && $status !== Status::TRASH && ($old['status'] ?? null) !== Status::TRASH) {
 			$set['status'] = $status;
 		}
 

@@ -21,7 +21,7 @@ use Blush\Console\Testing\CommandTester;
 use Blush\Content\CreatedEntries;
 use Blush\Content\Entries;
 use Blush\Content\MissingParents;
-use Blush\Content\Status;
+use Blush\Workflow\Status;
 
 #[CoversClass(MissingParents::class)]
 #[CoversClass(CreatedEntries::class)]
@@ -57,7 +57,7 @@ final class MissingParentsTest extends TestCase
 
 		$this->assertSame(['page/guide/setup'], array_keys($created->created), 'One row; its own missing parent is written with it.');
 		$this->assertSame([], $created->failed);
-		$this->assertSame(Status::Draft, $content->named('page', 'guide')?->status);
+		$this->assertSame(Status::DRAFT, $content->named('page', 'guide')?->status->name);
 		$this->assertSame('Setup', $content->named('page', 'guide/setup')?->title);
 		$this->assertSame('guide/setup/install', $content->named('page', 'guide/setup/install')?->key, 'Back at its address.');
 		$this->assertSame([], $app->container()->make(MissingParents::class)->report());

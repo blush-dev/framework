@@ -22,6 +22,7 @@ use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
+use Blush\Workflow\Status;
 
 /**
  * The one place the rest of the framework gets and changes content
@@ -235,7 +236,7 @@ interface Entries extends QueryRunner
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry;
+	public function restore(Entry|string $entry, ?string $version = null, ?string $status = Status::DRAFT): Entry;
 
 	/**
 	 * Deletes an entry for good.

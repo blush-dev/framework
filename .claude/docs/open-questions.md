@@ -93,12 +93,9 @@ Move each item to `decisions.md` once it's answered.
     change goes through, with `StatusChanging` (can refuse) and
     `StatusChanged`. Recorded as the direction in D-735, to pick up
     later.
-  - Open: the namespace (`Blush\Workflow`, as responses share it, or
-    under `Blush\Content`); whether a site record may change an
-    extension's status entirely, `live` included, or only its labels
-    (flipping `live` on someone else's status seems risky); whether
-    statuses carry a tone for the admin's chips or custom ones share a
-    neutral one.
+  - Answered in D-850: `Blush\Workflow`; a site's status replaces only
+    an extension's labels; statuses have a tone from the admin's pill
+    kinds.
 
 - **"Views" or "templates" for a theme's folder** (discussed
   2026-10-08; kept open by the author). The folder is `views/` and the

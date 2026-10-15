@@ -98,6 +98,7 @@ import { confirmAction } from '../confirm';
 import { confirmLeaving } from '../referrers';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
+import { statusOf } from '../statuses';
 import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type ContentTypeSummary, type EntryStatus, type LinkedGroup, type NewEntryDetail, type FieldDescription, type EntryTemplateOption, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownBlockOptions from '../components/MarkdownBlockOptions.vue';
@@ -1066,12 +1067,18 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 // The Status value's menu: what each status does, in a sentence, and
 // only the ones this account can move it to. Choosing one saves. The
 // trash is never offered (D-484): Move to Trash sets it.
-const statusNames: Record<EntryStatus, { label: string; icon: IconName }> = {
+const coreStatusNames: Record<string, { label: string; icon: IconName }> = {
 	published: { label: t('editor_view.statuses.published', 'Published'), icon: 'circle-check' },
 	scheduled: { label: t('editor_view.statuses.scheduled', 'Scheduled'), icon: 'calendar-clock' },
 	draft: { label: t('editor_view.statuses.draft', 'Draft'), icon: 'file-pen-line' },
 	trash: { label: t('editor_view.statuses.trash', 'Trash'), icon: 'trash-2' }
 };
+
+// A status's label and icon: core's own, or a registered one's label
+// (D-850).
+function statusLook(status: EntryStatus): { label: string; icon: IconName } {
+	return coreStatusNames[status] ?? { label: statusOf(status).label, icon: 'circle-dot' };
+}
 
 const statusOptions = computed(() => {
 	const detail = entry.value;
@@ -1091,7 +1098,7 @@ const statusOptions = computed(() => {
 	}
 
 	if (detail.status !== 'trash' && !options.some((option) => option.status === detail.status)) {
-		options.push({ status: detail.status, ...statusNames[detail.status], text: detail.status === 'scheduled' ? t('editor_view.statuses.overdue_text', 'Its date has passed, so it goes live the next time it is published.') : t('editor_view.statuses.published_text', 'On the site, for anyone to read.') });
+		options.push({ status: detail.status, ...statusLook(detail.status), text: detail.status === 'scheduled' ? t('editor_view.statuses.overdue_text', 'Its date has passed, so it goes live the next time it is published.') : t('editor_view.statuses.published_text', 'On the site, for anyone to read.') });
 	}
 
 	return options;
@@ -3169,9 +3176,9 @@ function fieldKey(field: FieldDescription): string {
 									<div class="settings__row">
 										<dt>{{ t('editor_view.settings.status', 'Status') }}</dt>
 										<dd>
-											<MenuButton v-if="statusOptions.length > 1" :button-class="`settings__value settings__value--${entry.status}`" :label="t('editor_view.settings.status_value', 'Status: {value}', { value: statusNames[entry.status].label })" align="start" floating>
+											<MenuButton v-if="statusOptions.length > 1" :button-class="`settings__value settings__value--${entry.status}`" :label="t('editor_view.settings.status_value', 'Status: {value}', { value: statusLook(entry.status).label })" align="start" floating>
 												<template #button>
-													<AdminIcon :name="statusNames[entry.status].icon" /><span class="settings__text">{{ statusNames[entry.status].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
+													<AdminIcon :name="statusLook(entry.status).icon" /><span class="settings__text">{{ statusLook(entry.status).label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
 												<button v-for="option in statusOptions" :key="option.status" type="button" class="menu-item menu-item--described" :aria-current="option.status === entry.status ? 'true' : undefined" :disabled="option.status !== entry.status && blocked" @click="option.status === entry.status || save(option.status)">
 													<AdminIcon :name="option.icon" />
@@ -3181,7 +3188,7 @@ function fieldKey(field: FieldDescription): string {
 													</span>
 												</button>
 											</MenuButton>
-											<span v-else class="settings__static" :class="`settings__value--${entry.status}`"><AdminIcon :name="statusNames[entry.status].icon" />{{ statusNames[entry.status].label }}</span>
+											<span v-else class="settings__static" :class="`settings__value--${entry.status}`"><AdminIcon :name="statusLook(entry.status).icon" />{{ statusLook(entry.status).label }}</span>
 										</dd>
 									</div>
 									<div v-if="visibilityField" class="settings__row">

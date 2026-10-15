@@ -80,7 +80,7 @@ final readonly class PreviewContent
 		$output->comment(sprintf(
 			'Works until %s (%s).',
 			DateTimeImmutable::createFromTimestamp($link->expires)->setTimezone($this->app->timezone())->format('Y-m-d H:i T'),
-			$entry->status->value
+			$entry->status->name
 		));
 
 		return ExitCode::Success;
