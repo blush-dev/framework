@@ -305,7 +305,7 @@ $post = $this->content->change($post, new EntryChanges(
 
 - **Only what you change changes.** Other front matter keeps its order,
   comments, and spacing, and a key the file writes by an older name
-  (`date` for `published`) is updated under that name.
+  (`excerpt` for `summary`) is updated under that name.
 - **Values** are plain data: text, numbers, `true`/`false`, `null`, and
   lists or maps of them. Write dates as text, such as
   `2026-09-29 09:00:00 -05:00`.
@@ -1749,7 +1749,7 @@ final class ContentTypes implements ContentTypeSource
 		yield new Collection(
 			'recipe',
 			urls: new TypeUrls(prefix: 'recipes'),
-			listing: new Listing(orderBy: 'published', order: Order::Desc)
+			listing: new Listing(orderBy: 'date', order: Order::Desc)
 		);
 
 		// Cuisines are terms: ordered by position.
@@ -1816,8 +1816,8 @@ to change.
 ### Statuses from a plugin
 
 An entry's `status` is a name that Blush or a plugin registers. Blush
-has `draft` and `published`, plus `trash` and `scheduled`, which it
-sets itself. A plugin adds more with a class that implements
+has `draft` and `published`, plus `trash`, `scheduled`, and `expired`,
+which it sets itself. A plugin adds more with a class that implements
 `StatusSource`:
 
 ```php
@@ -1856,7 +1856,7 @@ it's what files write (`status: acme_in_review`). It also has:
 |---|---|
 | `label` | What the admin calls it ("In Review") |
 | `plural` | What a list of them is called; the label when not given |
-| `live` | Whether entries with it are on the site once their `published` date comes; `false` by default. A live status with a date still to come is scheduled, as `published` is |
+| `live` | Whether entries with it are on the site once their `date` comes; `false` by default. A live status with a date still to come is scheduled, as `published` is |
 | `active` | Whether lists and queries for "any status" include it; `true` by default. Only the trash is left out among Blush's own |
 | `tone` | How the admin colors its pill: `Tone::Neutral` (the default), `Good`, `Warn`, `Danger`, or `Accent` |
 
@@ -1868,6 +1868,148 @@ left out, so give yours a prefix of your own. An entry whose status
 nothing registers, such as one from a plugin that's turned off, isn't
 on the site. It keeps its status as written, and `content:lint` warns
 about it.
+
+### Workflows from a plugin
+
+A workflow is the statuses a type's entries move through, and the
+transitions between them. Blush has one, `standard`: `draft` and
+`published`, with Publish and Unpublish. A type uses it unless it names
+another with `workflow` (see [Content](content.md)). A plugin adds
+workflows with a class that implements `WorkflowSource`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Review;
+
+use Blush\Workflow\Status;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Workflow;
+use Blush\Workflow\WorkflowSource;
+
+final class Workflows implements WorkflowSource
+{
+	public function workflows(): iterable
+	{
+		yield new Workflow('acme_review', 'Review', [Status::DRAFT, 'acme_in_review', Status::PUBLISHED], Status::DRAFT, [
+			new Transition('submit', 'Submit for Review', [Status::DRAFT], 'acme_in_review'),
+			new Transition('publish', 'Publish', ['acme_in_review'], Status::PUBLISHED, capability: false),
+			new Transition('send_back', 'Send Back', ['acme_in_review'], Status::DRAFT),
+			new Transition('unpublish', 'Unpublish', [Status::PUBLISHED], Status::DRAFT, capability: false)
+		]);
+	}
+}
+```
+
+Tag it in the plugin's provider, beside its statuses:
+
+```php
+protected const array TAGS = [
+	StatusSource::TAG   => [Statuses::class],
+	WorkflowSource::TAG => [Workflows::class]
+];
+```
+
+A workflow has a name, a label, its statuses (registered ones, by
+name), the status new entries start at (`initial`), and its
+transitions, in the order the admin offers them. A transition has a
+name, a label in Title Case, the statuses it moves from (none for any
+of the workflow's), and the status it moves to.
+
+Moving an entry from one status to another needs a transition between
+them. An entry whose status isn't in its type's workflow is offered the
+transitions from `initial`, and can be moved to `initial` itself. Its
+status still decides whether it's on the site, and `content:lint` warns
+about it. Making a transition needs:
+
+- Edit access to the entry.
+- The transition's capability, `content.{type}.transition.{name}`
+  (`content.post.transition.submit`), or `content.*.transition.{name}`
+  for every type. A transition with `capability: false` has none of its
+  own. The administrator and editor roles have every transition's.
+- Publishing the entry, when it moves into or out of a live status.
+
+The trash isn't part of any workflow: an entry in any status can be
+moved there, and is restored at its workflow's `initial`. New and
+copied entries start there too.
+
+When two plugins register a workflow by the same name, the first one is
+kept. A workflow that names a status nothing registers, or whose
+`initial` or transitions name statuses it doesn't list, is left out,
+and its types use `standard`. `content:lint` lists both.
+
+Every change of status dispatches two events, whether a transition,
+Move to Trash, Restore, or Undo made it (`transition` is `null` for
+those):
+
+| Event | When |
+|---|---|
+| `Blush\Workflow\StatusChanging` | Before the change is saved. A listener can call `refuse($reason)` to stop it, and the person or app is told the reason |
+| `Blush\Workflow\StatusChanged` | Once it's saved |
+
+Each has the `actor` (who made it, and how), the `entry`, the statuses
+it moves `from` and `to` (`published`, never `scheduled`), and the
+`transition`.
+
+```php
+use Blush\Event\Listener\ListenerRegistry;
+use Blush\Workflow\Status;
+use Blush\Workflow\StatusChanging;
+
+$this->container->get(ListenerRegistry::class)->listen(StatusChanging::class, function (StatusChanging $event): void {
+	if ($event->to === Status::PUBLISHED && $event->entry->field('reviewed_by') === null) {
+		$event->refuse('A reviewer has to sign off first.');
+	}
+});
+```
+
+### The site's own statuses and workflows
+
+A site can have statuses and workflows of its own, without a plugin.
+**Structure → Workflows** in the admin makes and edits them (see
+[Workflows](admin.md#workflows)); they're JSON files in
+`user/data/statuses` and `user/data/workflows`, each named for its
+status or workflow. `user/data/statuses/in_review.json`:
+
+```json
+{ "label": "In Review", "plural": "In Review", "tone": "warn" }
+```
+
+`user/data/workflows/standard.json`:
+
+```json
+{
+	"label": "Reviewed",
+	"statuses": ["draft", "in_review", "published"],
+	"initial": "draft",
+	"transitions": [
+		{ "name": "submit", "label": "Submit for Review", "from": ["draft"], "to": "in_review" },
+		{ "name": "publish", "label": "Publish", "from": ["in_review"], "to": "published", "capability": false },
+		{ "name": "unpublish", "label": "Unpublish", "from": ["published"], "to": "draft", "capability": false }
+	]
+}
+```
+
+A status takes `label`, `plural`, `tone`, `live`, and `active`, as a
+plugin's does. One named for a status Blush or a plugin has (`published`)
+changes only its `label`, `plural`, and `tone`, never whether entries
+with it are on the site: `{ "label": "Live" }` renames Published. The
+names Blush works out itself (`trash`, `scheduled`, `expired`) can't be
+changed.
+
+A workflow takes what a plugin's does, and replaces one by its name,
+`standard` too, which every type without a workflow of its own uses. A
+transition needs a capability of its own unless it says
+`"capability": false`.
+
+A file that can't be read, or a workflow that names statuses nothing
+registers, is left out, and the one it would replace stays. Site
+Health's **Statuses and workflows left out** and `content:lint` list
+them. When a type's workflow changes, entries keep their status;
+Site Health's **Statuses Outside Their Workflow** lists those the new
+one doesn't use, and **Reset** moves them to its first status.
 
 ### Fields from a plugin
 
@@ -1905,7 +2047,7 @@ reads them. It isn't shown in the admin; a way for plugins to add
 panels and controls comes later.
 
 Each key is registered once on a type. If yours is already one of the
-type's fields, Blush's own (`title`, `published`, and the rest), or
+type's fields, Blush's own (`title`, `date`, and the rest), or
 another plugin's, your field is left off that type and the site says
 so (Site Health and `bin/blush content:lint`), so prefer keys unlikely
 to clash, or keep several under one group (`seo: { title, description }`).
@@ -2252,6 +2394,7 @@ Blush announces what it's doing through events you can listen for, such as
 [Scripts and styles](#scripts-and-styles)),
 `Blush\Content\Events\ContentIndexed` (content changed),
 `Blush\Content\Events\EntriesWentLive` (scheduled entries went live; see
+below), `Blush\Content\Events\EntriesExpired` (entries expired; see
 below),
 `Blush\Publish\Events\ContentPublished`, and
 `Blush\Cache\Events\CacheCleared` (the cache store was emptied by
@@ -2277,8 +2420,12 @@ the entries that were scheduled when it last looked and are published
 now, so you can send a webhook, purge a CDN, or post to a social site
 when a scheduled post goes live. An entry published as it's saved isn't
 in it. Without cron, the next runner catches up, so `since` (when it
-last looked) can be long before `at`; check an entry's `published` if
+last looked) can be long before `at`; check an entry's `date` if
 you only want fresh news.
+
+`EntriesExpired` comes from the same task: its `entries` are those that
+expired since it last looked (their `expires` date came, in a type with
+[expiry](content-types.md#expiry)), with the same `since` and `at`.
 
 ## Debugging
 

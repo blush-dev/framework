@@ -311,7 +311,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], $this->found($posts->orderBy('title')));
 		$this->assertSame(['welcome', 'spring', 'hello'], $this->found($posts->orderBy('title', Order::Desc)));
 		$this->assertSame(['spring', 'welcome', 'hello'], $this->found($posts->orderBy('author')), 'By the slugs written for the relation (D-648).');
-		$this->assertSame($this->found($posts->orderBy('published')), $this->found($posts->orderBy('tag')), 'Nothing declares `tag`, so they go by date (D-786).');
+		$this->assertSame($this->found($posts->orderBy('date')), $this->found($posts->orderBy('tag')), 'Nothing declares `tag`, so they go by date (D-786).');
 		$this->assertSame(['art', 'book-reviews', 'old-posts'], $this->found($this->query()->type('category')->orderBy('position')), 'Positions, then titles.');
 
 		$page = $posts->limit(1)->offset(1)->get();
@@ -344,7 +344,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('en_US', $spring->locale);
 		$this->assertSame(Status::PUBLISHED, $spring->status->name);
 		$this->assertSame(Visibility::Public, $spring->visibility);
-		$this->assertSame('2008-04-05 09:00', $spring->published?->format('Y-m-d H:i'), 'In the site\'s timezone.');
+		$this->assertSame('2008-04-05 09:00', $spring->date?->format('Y-m-d H:i'), 'In the site\'s timezone.');
 		$this->assertSame(['art', 'book-reviews'], $spring->slugs('category'));
 		$this->assertSame(['justintadlock', 'guest'], $spring->slugs('authors'));
 		$this->assertNull($spring->field('tag'), 'What nothing declares isn\'t read (D-786).');
@@ -413,7 +413,7 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertSame('Spring is here.', trim((string) $spring->content));
 		$this->assertSame('spring', $spring->fields['title'] ?? null);
-		$this->assertSame('2008-04-05T14:00:00Z', $spring->fields['published'] ?? null, 'Times as ISO 8601 text in UTC.');
+		$this->assertSame('2008-04-05T14:00:00Z', $spring->fields['date'] ?? null, 'Times as ISO 8601 text in UTC.');
 		$this->assertSame([$spring->id], array_keys($this->store->findMany(EntryTable::table(), [$spring->id])));
 	}
 
@@ -426,7 +426,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertEqualsCanonicalizing(['art', 'book-reviews'], array_map(static fn (Record $record): string => EntryRecords::text($record, 'slug'), array_values($terms)));
 		$this->assertSame(2, $this->store->count(Ref::table(StorageArea::Content), new RecordQuery()->where('source_id', '=', $spring->id)->where('relation', '=', 'category')));
 		$this->assertSame([['value' => 'category', 'count' => 4], ['value' => 'post', 'count' => 8]], $this->store->countBy(EntryTable::table(), new RecordQuery()->where('type', 'in', ['post', 'category']), 'type'));
-		$this->assertSame('2026-12-25T14:00:00Z', $this->store->aggregate(EntryTable::table(), new RecordQuery()->where('type', '=', 'post'), Aggregate::Max, 'published'));
+		$this->assertSame('2026-12-25T14:00:00Z', $this->store->aggregate(EntryTable::table(), new RecordQuery()->where('type', '=', 'post'), Aggregate::Max, 'date'));
 	}
 
 	public function testRecordWritesAreQueriedAndCheckedByVersion(): void
@@ -473,7 +473,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertNotNull($fresh->id);
 		$this->assertSame('fresh', $fresh->key);
 		$this->assertSame(Status::PUBLISHED, $fresh->status->name);
-		$this->assertNotNull($fresh->published, 'Dated now (D-514).');
+		$this->assertNotNull($fresh->date, 'Dated now (D-514).');
 		$this->assertSame(['art'], $fresh->slugs('category'));
 		$this->assertSame(['guest'], $fresh->slugs('authors'));
 		$this->assertSame('Fresh text.', trim($this->content->editable($fresh)->body));

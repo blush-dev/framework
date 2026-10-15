@@ -75,7 +75,7 @@ final readonly class MediaMetadata
 	public const string UPLOADED = 'uploaded';
 
 	/**
-	 * The form the date is written in, as an entry's `published` is,
+	 * The form the date is written in, as an entry's `date` is,
 	 * always in UTC (`utc()`, D-711).
 	 */
 	public const string DATE_FORMAT = 'Y-m-d H:i:s P';

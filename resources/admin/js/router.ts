@@ -50,6 +50,8 @@ const ProfileDetailView = () => import('./views/ProfileDetailView.vue');
 const RedirectsView = () => import('./views/RedirectsView.vue');
 const RelationView = () => import('./views/RelationView.vue');
 const RelationsView = () => import('./views/RelationsView.vue');
+const WorkflowsView = () => import('./views/WorkflowsView.vue');
+const WorkflowView = () => import('./views/WorkflowView.vue');
 const RoleView = () => import('./views/RoleView.vue');
 const RolesView = () => import('./views/RolesView.vue');
 const SetPasswordView = () => import('./views/SetPasswordView.vue');
@@ -99,6 +101,9 @@ export const router = createRouter({
 		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: t('router.titles.relationships', 'Relationships'), capability: 'site.settings', area: 'structure' } },
 		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: t('router.titles.new_relationship', 'New Relationship'), capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
 		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: t('router.titles.relationship', 'Relationship'), capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
+		{ path: '/workflows', name: 'workflows', component: WorkflowsView, meta: { title: t('router.titles.workflows', 'Workflows'), capability: 'site.settings', area: 'structure' } },
+		{ path: '/workflows/new', name: 'workflow-new', component: WorkflowView, meta: { title: t('router.titles.new_workflow', 'New Workflow'), capability: 'site.settings', area: 'structure', parent: 'workflows' } },
+		{ path: '/workflows/:name([a-z][a-z0-9_]*)', name: 'workflow', component: WorkflowView, meta: { title: t('router.titles.workflow', 'Workflow'), capability: 'site.settings', area: 'structure', parent: 'workflows' } },
 		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: t('router.titles.menus', 'Menus'), capability: 'menus.edit', area: 'structure' } },
 		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: t('router.titles.menu', 'Menu'), capability: 'menus.edit', area: 'structure', parent: 'menus' } },
 		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: t('router.titles.fields', 'Fields'), capability: 'site.settings', area: 'structure' } },

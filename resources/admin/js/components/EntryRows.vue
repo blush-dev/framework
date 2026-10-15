@@ -42,7 +42,7 @@ function sub(entry: DashboardEntry, credits: boolean): string {
 }
 
 function when(entry: DashboardEntry): string {
-	return formatWhen(entry.status === 'draft' ? entry.updated : (entry.published ?? entry.updated));
+	return formatWhen(entry.status === 'draft' ? entry.updated : (entry.date ?? entry.updated));
 }
 </script>
 

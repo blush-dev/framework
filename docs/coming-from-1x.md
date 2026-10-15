@@ -16,13 +16,13 @@ Copy your `user/` folder across as it is. In particular:
   tags), but they no longer set the order: collections list newest
   published first, and terms and pages by `position`, then title. Give
   terms a `position` to keep an order such as `01.` to `07.`.
-  `orderby: filename` is read as `published`. Pages still work with a
+  `orderby: filename` is read as `date`. Pages still work with a
   prefix, but `content:lint` reports it: rename `01.about.md` to
   `about.md`.
 - `index.md` landing pages, `_`-prefixed hidden files, and `_drafts/`
   folders work as before.
-- The 1.x front matter names still work: `date` (now `published`),
-  `author` (now `authors`), `excerpt` (now `summary`), and `view` (now
+- `date` is still the entry's date. The other 1.x front matter names
+  still work: `author` (now `authors`), `excerpt` (now `summary`), and `view` (now
   `template`). You don't need to rename anything. Authors are credited
   through the `authors` [credit relation](content-types.md#crediting-people)
   (the skeleton's `user/data/relations/authors.json`); add each type

@@ -85,6 +85,8 @@ final readonly class DataTypeWriter
 		'order'        => [],
 		'position'     => [],
 		'under'        => [],
+		'workflow'     => [],
+		'expires'      => [],
 		'fields'       => []
 	];
 
@@ -592,9 +594,11 @@ final readonly class DataTypeWriter
 			'folders'      => '',
 			'prefix'       => $type->name,
 			'hierarchical' => false,
-			'order'        => TypeOrder::Published->value,
+			'order'        => TypeOrder::Date->value,
 			'position'     => null,
 			'under'        => '',
+			'workflow'     => '',
+			'expires'      => false,
 			default        => []
 		};
 	}

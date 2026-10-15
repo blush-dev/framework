@@ -128,7 +128,7 @@ final class ThemedRenderingTest extends TestCase
 			],
 			'home' => 'post'
 		]);
-		$this->entry('_post/2008-04-10.showers.md', "title: Showers\npublished: 2008-04-10 09:00:00");
+		$this->entry('_post/2008-04-10.showers.md', "title: Showers\ndate: 2008-04-10 09:00:00");
 
 		$app  = $this->site();
 		$home = $this->body('/page/2', $app);

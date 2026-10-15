@@ -139,9 +139,8 @@ final class IndexerTest extends TestCase
 
 		$welcome = $this->record('_post/2003-04-15.welcome.md');
 
-		$this->assertSame(strtotime('2003-04-15 17:39:00 -05:00'), $welcome->published);
-		$this->assertSame($welcome->published, $welcome->updated);
-		$this->assertSame('20030415173900', $welcome->date);
+		$this->assertSame(strtotime('2003-04-15 17:39:00 -05:00'), $welcome->date);
+		$this->assertSame($welcome->date, $welcome->updated);
 		$this->assertSame('Welcome', $welcome->title);
 		$this->assertSame('en_US', $welcome->locale);
 		$this->assertSame(['old-posts'], $welcome->terms['category']);
@@ -152,11 +151,10 @@ final class IndexerTest extends TestCase
 		$this->assertSame(['art', 'book-reviews'], $spring->terms['category']);
 		$this->assertSame(['book-reviews' => 'Book Reviews'], $spring->labels['category']);
 		$this->assertSame(['tag' => 'flowers'], $spring->extra);
-		$this->assertSame('20080405090000', $spring->date);
 
 		$home = $this->record('index.md');
 
-		$this->assertNull($home->published);
+		$this->assertNull($home->date);
 		$this->assertSame($home->modified, $home->updated);
 	}
 
@@ -188,7 +186,7 @@ final class IndexerTest extends TestCase
 
 		$path = $this->temporaryDirectory() . '/user/content/_post/2003-04-15.welcome.md';
 		touch($path, time() + 10);
-		$this->entry('_post/2008-04-05.spring.md', "title: Spring Again\npublished: 2008-04-05 09:00:00");
+		$this->entry('_post/2008-04-05.spring.md', "title: Spring Again\ndate: 2008-04-05 09:00:00");
 		touch($this->temporaryDirectory() . '/user/content/_post/2008-04-05.spring.md', time() + 20);
 		$this->entry('_post/new.md', 'title: New');
 		unlink($this->temporaryDirectory() . '/user/content/_category/art.md');

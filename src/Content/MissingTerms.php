@@ -132,7 +132,7 @@ final readonly class MissingTerms
 			try {
 				$created["{$type->name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
 					'title'     => $title,
-					'published' => $now->format('Y-m-d H:i:s P')
+					'date'      => $now->format('Y-m-d H:i:s P')
 				]), null, $now)->path;
 			} catch (WriteException $e) {
 				$failed["{$type->name}/{$slug}"] = $e->getMessage();

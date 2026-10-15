@@ -136,7 +136,7 @@ function key(event: KeyboardEvent): void {
 </script>
 
 <template>
-	<div :id="id" class="menu-fields" role="group" :aria-label="t('menu_item_fields.edit_item', 'Edit {name}', { name: label || node.link?.title || t('menu_item_fields.item', 'item') })" @keydown="key">
+	<div :id="id" class="item-fields menu-fields" role="group" :aria-label="t('menu_item_fields.edit_item', 'Edit {name}', { name: label || node.link?.title || t('menu_item_fields.item', 'item') })" @keydown="key">
 		<div class="field-pair">
 			<div class="field">
 				<label :for="`${id}-link`">{{ t('menu_item_fields.link', 'Link') }}</label>
@@ -191,7 +191,7 @@ function key(event: KeyboardEvent): void {
 			</div>
 		</div>
 
-		<div class="menu-fields__foot">
+		<div class="item-fields__foot">
 			<span class="field__help">{{ t('menu_item_fields.saves_with_menu', 'Changes save with the menu.') }}</span>
 			<button type="button" class="button button--small" @click="emit('done')">{{ t('common.done', 'Done') }}</button>
 		</div>
@@ -199,14 +199,6 @@ function key(event: KeyboardEvent): void {
 </template>
 
 <style scoped>
-.menu-fields {
-	display: grid;
-	gap: var(--s-4);
-	padding: var(--s-4) var(--padding-inline) var(--s-4) calc(var(--padding-inline) + var(--tree-indent, 0px));
-	border-top: 1px solid var(--border-color);
-	background: var(--color-surface-subtle);
-}
-
 .menu-fields .field-pair {
 	align-items: start;
 }
@@ -228,14 +220,4 @@ function key(event: KeyboardEvent): void {
 	color: var(--color-warning);
 }
 
-.menu-fields__foot {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--s-3);
-}
-
-.menu-fields__foot .field__help {
-	margin: 0;
-}
 </style>

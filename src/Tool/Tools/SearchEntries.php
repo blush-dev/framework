@@ -81,8 +81,8 @@ final class SearchEntries extends Tool
 				'status'           => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => array_keys($this->statuses->all())], 'description' => 'Statuses to find; every one but trash when left out.'],
 				'related'          => ['type' => 'object', 'description' => 'Relationships to filter by, by name, each to a list of the related entries\' slugs or ids, such as {"tags": ["baking"]}. Entries linked to any of them are found.', 'additionalProperties' => ['type' => 'array', 'items' => ['type' => 'string']]],
 				'parent'           => ['type' => 'string', 'description' => 'The id of a page whose pages to find.'],
-				'published_after'  => $date,
-				'published_before' => $date,
+				'date_after'  => $date,
+				'date_before' => $date,
 				'updated_after'    => $date,
 				'sort'             => ['type' => 'string', 'enum' => array_merge(...array_map(static fn (string $key): array => [$key, "-{$key}"], EntriesController::SORTS)), 'description' => 'What to sort by, with - first for newest or last first; one type\'s own order, else newest published first, when left out.'],
 				'limit'            => ['type' => 'integer', 'minimum' => 1, 'maximum' => self::MOST, 'description' => sprintf('How many to answer; %d when left out.', self::LIMIT)],
@@ -138,15 +138,15 @@ final class SearchEntries extends Tool
 
 		$limit  = is_int($input['limit'] ?? null) ? $input['limit'] : self::LIMIT;
 		$page   = $this->page($input['cursor'] ?? null);
-		$after  = $this->date($input, 'published_after');
-		$before = $this->date($input, 'published_before');
+		$after  = $this->date($input, 'date_after');
+		$before = $this->date($input, 'date_before');
 
 		if ($after === null && $before === null) {
 			$paginator = $search->paginate($limit, $page);
 			$found     = $paginator->all();
 			$total     = $paginator->total();
 		} else {
-			$all   = array_values(array_filter([...$search->get()], static fn (Entry $entry): bool => $entry->published !== null && ($after === null || $entry->published >= $after) && ($before === null || $entry->published < $before)));
+			$all   = array_values(array_filter([...$search->get()], static fn (Entry $entry): bool => $entry->date !== null && ($after === null || $entry->date >= $after) && ($before === null || $entry->date < $before)));
 			$found = array_slice($all, ($page - 1) * $limit, $limit);
 			$total = count($all);
 		}
@@ -186,7 +186,7 @@ final class SearchEntries extends Tool
 
 	/**
 	 * Returns the sort asked for, or the default: one type's own order,
-	 * else newest published first.
+	 * else newest first by date.
 	 *
 	 * @param  array<string, mixed> $input
 	 * @param  list<string>         $types
@@ -202,7 +202,7 @@ final class SearchEntries extends Tool
 
 		$type = count($types) === 1 ? $this->types->find($types[0]) : null;
 
-		return $type === null ? ['published', Order::Desc] : $type->order();
+		return $type === null ? ['date', Order::Desc] : $type->order();
 	}
 
 	/**

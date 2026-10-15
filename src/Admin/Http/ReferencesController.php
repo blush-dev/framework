@@ -469,7 +469,7 @@ final readonly class ReferencesController
 			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,
 			'image'   => $this->media->address($entry->field('image')),
-			'date'    => $entry->published?->format('Y-m-d'),
+			'date'    => $entry->date?->format('Y-m-d'),
 			'depth'   => null,
 			'taken'   => $taken === null ? null : $taken[(string) $entry->id] ?? 0,
 			'missing' => false

@@ -28,7 +28,7 @@ final class MissingTermsTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause, zebra]\nauthors: [justintadlock, nobody]");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\ndate: 2009-01-01\ncategory: [art, Lost Cause, zebra]\nauthors: [justintadlock, nobody]");
 	}
 
 	public function testFindsSlugsWithNoFile(): void
@@ -46,7 +46,7 @@ final class MissingTermsTest extends TestCase
 
 		$this->assertSame(['category/lost-cause' => '_category/lost-cause.md', 'category/zebra' => '_category/zebra.md', 'profile/nobody' => '_profile/nobody.md'], $created->created);
 		$this->assertSame([], $created->failed);
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/_category/lost-cause.md'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\ndate: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/_category/lost-cause.md'));
 
 		$content = $app->container()->make(Entries::class);
 

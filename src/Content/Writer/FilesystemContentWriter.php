@@ -32,7 +32,7 @@ use Blush\Workflow\Status;
  *
  * - **A new slug** is written where the file says it: its `slug` key
  *   when it has one, else its name (D-277).
- * - **A new slug or publish date** renames a file its type names by date
+ * - **A new slug or date** renames a file its type names by date
  *   (D-519), and moves it to the folder its type's folder pattern gives
  *   (D-629): `FileNames::follow()`.
  * - **A tree's page** goes under another by moving into its folder, the
@@ -107,7 +107,7 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	}
 
 	/**
-	 * A new publish date renames and moves the file as its type's patterns
+	 * A new date renames and moves the file as its type's patterns
 	 * name and place it.
 	 *
 	 * @inheritDoc
@@ -116,10 +116,10 @@ final readonly class FilesystemContentWriter implements ContentWriter
 	public function update(string $id, EntryChanges $changes, ?string $version = null): string
 	{
 		$path   = $this->path($id);
-		$before = $this->record($path)?->published;
+		$before = $this->record($path)?->date;
 		$result = $this->files->update($path, $changes, $version);
 
-		if ($this->record($result->path)?->published !== $before) {
+		if ($this->record($result->path)?->date !== $before) {
 			return $this->idAt($this->fileNames->follow($result->path) ?? $result->path);
 		}
 

@@ -25,6 +25,7 @@ use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
 use Blush\Translation\Messages;
+use Blush\Workflow\Workflows;
 
 /**
  * Binds accounts, roles, capabilities, permissions, and API tokens
@@ -73,7 +74,7 @@ final class AuthServiceProvider extends ServiceProvider
 	#[Override]
 	public function register(): void
 	{
-		$this->container->singleton(Capabilities::class, static fn (Container $container): Capabilities => Capabilities::withBuiltIns($container->make(ContentTypes::class), $container->make(Messages::class)));
+		$this->container->singleton(Capabilities::class, static fn (Container $container): Capabilities => Capabilities::withBuiltIns($container->make(ContentTypes::class), $container->make(Messages::class), $container->make(Workflows::class)));
 
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {

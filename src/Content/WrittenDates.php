@@ -25,9 +25,9 @@ use Blush\Core\AppConfig;
 
 /**
  * Reads the date an entry's file and folders are named by (D-512,
- * D-629): its publish date as its file writes it, in the offset written
+ * D-629): its `date` as its file writes it, in the offset written
  * there (`2013-02-09 00:00:00 -5` is the 9th, wherever the site is), or
- * in the site's time zone without one; without a publish date, its
+ * in the site's time zone without one; without a `date`, its
  * `updated` date the same way.
  */
 final readonly class WrittenDates
@@ -40,7 +40,7 @@ final readonly class WrittenDates
 	) {}
 
 	/**
-	 * Returns an entry's publish date, else its updated date, as its file
+	 * Returns an entry's `date`, else its updated date, as its file
 	 * writes it. A date that isn't on the calendar (a `2007-00-00`
 	 * placeholder, which PHP rolls over) is returned as written, so the
 	 * caller can leave the file alone. `null` when it has neither, or the
@@ -57,7 +57,7 @@ final readonly class WrittenDates
 
 		$schema = $this->types->schema($type);
 
-		foreach (['published', 'updated'] as $name) {
+		foreach (['date', 'updated'] as $name) {
 			$field = $schema->field($name);
 
 			foreach ([$name, ...$field->aliases ?? []] as $key) {

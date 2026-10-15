@@ -22,14 +22,14 @@ use Blush\Translation\Text;
  * list per subject, registered by core and extensions (`StatusSource`),
  * so a name means the same thing in every file.
  *
- * - **Live** ones are on the site once their `published` time comes.
+ * - **Live** ones are on the site once their `date` comes.
  * - **Active** ones are what "any status" finds: lists, counts, and
  *   queries for every status leave the others out unless they ask
  *   for them by name.
  *
  * Core's own names (`CORE`) are never registered: `trash` is set by
- * Move to Trash, and `scheduled` is worked out from a live status's
- * `published` date. They're listed by `Statuses` so tabs and labels
+ * Move to Trash, and `scheduled` and `expired` are worked out from a
+ * live status's `date` and `expires` (D-852). They're listed by `Statuses` so tabs and labels
  * work. Visibility is separate (D-082).
  *
  *     new Status('in_review', 'In Review', 'In Review', tone: Tone::Warn);
@@ -53,17 +53,23 @@ final readonly class Status
 	public const string TRASH = 'trash';
 
 	/**
-	 * Core's scheduled status: a live status whose `published` time is
+	 * Core's scheduled status: a live status whose `date` is
 	 * still to come.
 	 */
 	public const string SCHEDULED = 'scheduled';
+
+	/**
+	 * Core's expired status (D-852): a live status whose `expires` date
+	 * has passed, in a type with expiry. It's off the site, as a draft is.
+	 */
+	public const string EXPIRED = 'expired';
 
 	/**
 	 * The names only core sets, which can't be registered.
 	 *
 	 * @var list<string>
 	 */
-	public const array CORE = [self::TRASH, self::SCHEDULED];
+	public const array CORE = [self::TRASH, self::SCHEDULED, self::EXPIRED];
 
 	/**
 	 * What people call it.

@@ -272,7 +272,7 @@ final class ContentRoutingTest extends TestCase
 
 	public function testRedirectsFromData(): void
 	{
-		$this->entry('_post/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring]");
+		$this->entry('_post/2008-04-05.spring.md', "title: spring\ndate: 2008-04-05 09:00:00\nredirect_from: [/spring]");
 		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}, {"from": "/promo", "to": "https://example.com/sale", "status": 302}]');
 		$this->app = $this->site('development');
 

@@ -40,7 +40,7 @@ use Blush\Support\Slug;
  * with its permissions and its byline, else as the command line, which
  * may do anything.
  * The file is named by the type's pattern from the slug (from the title
- * unless `--slug` is given; D-511), and every entry gets a `published`
+ * unless `--slug` is given; D-511), and every entry gets a `date`
  * date (D-514); `--draft` marks the entry as a draft, and `--parent`
  * puts a tree's page under another (D-408). Existing files are never
  * overwritten. On a terminal it asks for what isn't passed (D-721): the
@@ -97,7 +97,7 @@ final readonly class CreateContent
 				type: $contentType->name,
 				title: $title,
 				slug: $slug,
-				status: $draft ? 'draft' : 'published',
+				status: $draft ? null : 'published',
 				parent: $under?->key
 			));
 		} catch (EditRefused $e) {

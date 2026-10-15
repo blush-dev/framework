@@ -724,6 +724,15 @@
 	vertical-align: middle;
 }
 
+/* A row's text buttons (Edit, Revert): on one line at the right, at the
+   top with the row's other cells, the buttons' own padding taken from
+   the cell's so their words line up with the text beside them. */
+.table .table__buttons {
+	padding-block: calc(var(--padding-row) - 6px);
+	text-align: right;
+	white-space: nowrap;
+}
+
 .row-more {
 	display: inline-grid;
 	place-items: center;
@@ -2773,6 +2782,27 @@ button.lnk {
 }
 
 .form-stack > * {
+	margin: 0;
+}
+
+/* A tree item's fields, open under its row (D-509): a menu's items, a
+   workflow's statuses and transitions (D-854). */
+.item-fields {
+	display: grid;
+	gap: var(--s-4);
+	padding: var(--s-4) var(--padding-inline) var(--s-4) calc(var(--padding-inline) + var(--tree-indent, 0px));
+	border-top: 1px solid var(--border-color);
+	background: var(--color-surface-subtle);
+}
+
+.item-fields__foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--s-3);
+}
+
+.item-fields__foot .field__help {
 	margin: 0;
 }
 

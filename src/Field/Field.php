@@ -26,7 +26,7 @@ use Blush\Translation\Text;
  *
  * Fields are immutable. The shared settings are set with fluent copies:
  *
- *     new DateField('published')->aliases('date')->required()
+ *     new DateField('date')->required()
  *
  * A field's aliases are other keys it's read from, such as the 1.x names
  * (D-078). When the canonical key is present too, it wins.

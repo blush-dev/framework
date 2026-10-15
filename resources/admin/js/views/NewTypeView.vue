@@ -86,7 +86,7 @@ watch(choice, (value) => {
 	// Terms are left out of llms.txt unless they ask (D-401), and are
 	// ordered by position (D-412).
 	form.value.llms  = value !== 'terms';
-	form.value.order = value === 'terms' ? 'position' : 'published';
+	form.value.order = value === 'terms' ? 'position' : 'date';
 });
 
 // The types new terms can file: any but profiles.

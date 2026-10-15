@@ -166,8 +166,9 @@ final readonly class ToolEntries
 			'title'     => $entry->title,
 			'status'    => $entry->status->name,
 			'url'       => $entry->isPublished() ? $this->api->url($entry) : null,
-			'published' => $entry->published?->format(DATE_ATOM),
+			'date'      => $entry->date?->format(DATE_ATOM),
 			'updated'   => $entry->updated->format(DATE_ATOM),
+			...($entry->type->expires ? ['expires' => $entry->expires?->format(DATE_ATOM)] : []),
 			'excerpt'   => trim(strip_tags($entry->excerpt(more: '')))
 		];
 	}

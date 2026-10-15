@@ -82,19 +82,19 @@ final class ContentBench
 	#[Bench\Subject]
 	public function benchHomePage(): void
 	{
-		$this->content->query()->type('post')->orderBy('published', Order::Desc)->paginate(10)->all();
+		$this->content->query()->type('post')->orderBy('date', Order::Desc)->paginate(10)->all();
 	}
 
 	#[Bench\Subject]
 	public function benchDeepPage(): void
 	{
-		$this->content->query()->type('post')->orderBy('published', Order::Desc)->paginate(10, 80)->all();
+		$this->content->query()->type('post')->orderBy('date', Order::Desc)->paginate(10, 80)->all();
 	}
 
 	#[Bench\Subject]
 	public function benchDateArchive(): void
 	{
-		$this->content->query()->type('post')->date(year: 2010, month: 6)->orderBy('published', Order::Desc)->paginate(10)->all();
+		$this->content->query()->type('post')->date(year: 2010, month: 6)->orderBy('date', Order::Desc)->paginate(10)->all();
 	}
 
 	#[Bench\Subject]

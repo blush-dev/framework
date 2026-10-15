@@ -66,7 +66,7 @@ final class MediaItemsTest extends TestCase
 		$this->writeTemporaryFile('user/media/2019/song.mp3', 'ID3');
 		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "id": "' . self::PHOTO . '"}');
 		$this->contentConfig(['types' => ['post' => ['kind' => 'collection']]]);
-		$this->writeTemporaryFile('user/content/_post/hello.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000c1\ntitle: Hello\npublished: 2026-01-01\nimage: " . self::PHOTO . "\n---\nBody");
+		$this->writeTemporaryFile('user/content/_post/hello.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000c1\ntitle: Hello\ndate: 2026-01-01\nimage: " . self::PHOTO . "\n---\nBody");
 
 		$app = $this->scratchApplication();
 		$app->boot();

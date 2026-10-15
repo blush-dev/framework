@@ -189,7 +189,7 @@ On SQLite:
 
 ## Scheduled posts
 
-Give an entry a future `published` date and it goes live at that time,
+Give an entry a future `date` and it goes live at that time,
 with no extra step: the first request after that time updates the site.
 On a quiet site, a visitor might see the new post a little late; cron
 (below) puts it live on time.

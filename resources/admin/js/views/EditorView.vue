@@ -154,7 +154,7 @@ import { useCommands, type Command } from '../commands';
 import { profileType, currentType, labelsOf, loadTypes, types } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
-const PLACED = ['title', 'status', 'published', 'slug'];
+const PLACED = ['title', 'status', 'date', 'slug'];
 
 // The built-in fields the editor leaves out (D-728): `updated` is set by
 // every save, a list's settings and a template are the file's for now.
@@ -258,7 +258,7 @@ const setGroups = computed(() => (entry.value?.type.sets ?? []).map((set) => ({
 
 const inSets    = computed(() => new Set((entry.value?.type.sets ?? []).flatMap((set) => set.fields)));
 const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
-const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
+const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'date'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 // A relation archive's page (D-602) is its list page ("cooks page") or the
 // page written for one target's archive ("archive page").
@@ -399,12 +399,12 @@ watch([entry, labels], () => {
  * The form state an entry the server sent starts from.
  */
 function stateOf(detail: EntryDetail | NewEntryDetail): EditorState {
-	const published = detail.type.fields.find((field) => field.name === 'published');
+	const dated = detail.type.fields.find((field) => field.name === 'date');
 
 	return {
 		title: typeof detail.values.title === 'string' ? detail.values.title : detail.title,
 		body: detail.body,
-		date: published === undefined ? '' : String(toForm(published, detail.values.published)),
+		date: dated === undefined ? '' : String(toForm(dated, detail.values.date)),
 		slug: detail.slug,
 		form: Object.fromEntries(fieldsOf(detail).map((field) => [field.name, toForm(field, detail.values[field.name])]))
 	};
@@ -469,7 +469,7 @@ const future = computed(() => {
 		return false;
 	}
 
-	const offset = splitDate(entry.value?.values.published)?.offset ?? '';
+	const offset = splitDate(entry.value?.values.date)?.offset ?? '';
 	const when   = Date.parse(`${date.value}:00${offset === '' ? '' : offset.replace(/^([+-]\d{2})(\d{2})$/, '$1:$2')}`);
 
 	return !Number.isNaN(when) && when > Date.now();
@@ -641,7 +641,7 @@ const missing = computed(() => {
 
 		if (field.name === 'title' && empty(title.value)) {
 			found.push({ name: field.name, label: t('editor_view.title', 'Title'), control: 'editor-title' });
-		} else if (field.name === 'published' && empty(date.value)) {
+		} else if (field.name === 'date' && empty(date.value)) {
 			found.push({ name: field.name, label: t('editor_view.publish_date', 'Publish date'), control: 'editor-date' });
 		} else if (!PLACED.includes(field.name) && typeof form.value[field.name] !== 'boolean' && empty(form.value[field.name])) {
 			found.push({ name: field.name, label: label(field), control: `field-${field.name}` });
@@ -714,7 +714,11 @@ function fullIn(data: unknown): FullTarget | null {
  * Whether a save with this status makes (or keeps) the entry live.
  */
 function publishes(status: EntryStatus | undefined): boolean {
-	return status === 'published' || status === 'scheduled' || (status === undefined && entry.value !== null && entry.value.status !== 'draft');
+	if (status === undefined) {
+		return entry.value !== null && statusOf(entry.value.stored).live;
+	}
+
+	return status === 'scheduled' || statusOf(status).live;
 }
 
 /**
@@ -734,7 +738,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	}
 
 	// Live entries linking to it stop showing it (D-598).
-	if (detail.id !== null && detail.status === 'published' && (status === 'draft' || status === 'scheduled') && !await confirmLeaving(detail.id, t('editor_view.quoted', '“{title}”', { title: detail.title || t('editor_view.untitled', 'Untitled') }), 'draft')) {
+	if (detail.id !== null && detail.status !== 'scheduled' && statusOf(detail.stored).live && status !== undefined && (status === 'scheduled' || !statusOf(status).live) && !await confirmLeaving(detail.id, t('editor_view.quoted', '“{title}”', { title: detail.title || t('editor_view.untitled', 'Untitled') }), 'draft')) {
 		return;
 	}
 
@@ -778,7 +782,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	}
 
 	if (date.value !== start.date && dateField.value !== undefined) {
-		put('published', fromForm(dateField.value, date.value, detail.values.published));
+		put('date', fromForm(dateField.value, date.value, detail.values.date));
 	}
 
 	for (const field of changedFields.value) {
@@ -811,7 +815,7 @@ async function save(status?: EntryStatus): Promise<void> {
 		change.status = status;
 
 		if (status === 'scheduled' && dateField.value !== undefined) {
-			change.published = fromForm(dateField.value, date.value, detail.values.published);
+			change.date = fromForm(dateField.value, date.value, detail.values.date);
 		}
 	}
 
@@ -839,7 +843,7 @@ async function save(status?: EntryStatus): Promise<void> {
 		if (detail.id === null && saved.status === 'draft') {
 			toast(t('editor_view.toasts.saved_draft', 'Saved as a draft'));
 		} else if (status !== undefined && status !== detail.status) {
-			toast(status === 'published' ? t('editor_view.toasts.published', 'Published') : (status === 'scheduled' ? t('editor_view.toasts.scheduled', 'Scheduled') : t('editor_view.toasts.switched_to_draft', 'Switched to draft')));
+			toast(movedTo(status));
 		}
 	} catch (caught) {
 		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent' || caught.field === 'language' || caught.field === 'template')) {
@@ -873,9 +877,26 @@ async function save(status?: EntryStatus): Promise<void> {
 }
 
 /**
+ * Says what a change of status did, for its toast.
+ */
+function movedTo(status: EntryStatus): string {
+	switch (status) {
+		case 'published':
+			return t('editor_view.toasts.published', 'Published');
+		case 'scheduled':
+			return t('editor_view.toasts.scheduled', 'Scheduled');
+		case 'draft':
+			return t('editor_view.toasts.switched_to_draft', 'Switched to draft');
+		default:
+			return t('editor_view.toasts.moved', 'Moved to {status}', { status: statusOf(status).label });
+	}
+}
+
+/**
  * What creates a new entry (D-229) from a save's changes: its type,
  * title, and slug if one's given, a tree page's parent (D-408), the
- * fields set, the body, and the status (a draft unless publishing).
+ * fields set, the body, and the status (its workflow's first unless
+ * one's chosen, D-851).
  */
 function created(detail: NewEntryDetail, change: Record<string, unknown>, status?: EntryStatus): Record<string, unknown> {
 	const { title: named, ...set } = change.set as Record<string, unknown>;
@@ -884,12 +905,12 @@ function created(detail: NewEntryDetail, change: Record<string, unknown>, status
 		type: detail.type.name,
 		title: named,
 		set,
-		status: status ?? 'draft',
+		...(status === undefined ? {} : { status }),
 		...(change.slug === undefined || change.slug === '' ? {} : { slug: change.slug }),
 		...(treeParent.value && parent.value !== '' ? { parent: parent.value } : {}),
 		...(change.language === undefined ? {} : { language: change.language }),
 		...(change.body === undefined ? {} : { body: change.body }),
-		...(change.published === undefined ? {} : { published: change.published })
+		...(change.date === undefined ? {} : { date: change.date })
 	};
 }
 
@@ -1035,7 +1056,14 @@ async function trash(): Promise<void> {
 	}
 }
 
-// What the primary and secondary buttons do, from the status and date.
+// What the primary and secondary buttons do, from the status, the date,
+// and the transitions the account may make (D-851). A live entry's
+// primary saves (or schedules a new date), and its first transition
+// (Unpublish) is the secondary; any other's primary is its first
+// transition (Publish, or Schedule for a future date; Submit for
+// Review), and a plain save the secondary.
+const plainSave = computed(() => entry.value?.stored === 'draft' ? { label: t('editor_view.save_draft', 'Save Draft') } : { label: t('editor_view.update', 'Update') });
+
 const primary = computed<{ label: string; status?: EntryStatus } | null>(() => {
 	const detail = entry.value;
 
@@ -1043,34 +1071,49 @@ const primary = computed<{ label: string; status?: EntryStatus } | null>(() => {
 		return null;
 	}
 
-	if (!detail.can.publish) {
-		return detail.status === 'draft' ? { label: t('editor_view.save_draft', 'Save Draft') } : { label: t('editor_view.update', 'Update') };
+	const first  = detail.transitions[0];
+	const goLive = detail.transitions.find((transition) => statusOf(transition.to).live);
+
+	if (statusOf(detail.stored).live) {
+		if (!detail.can.publish || !future.value) {
+			return plainSave.value;
+		}
+
+		return detail.status === 'scheduled' && date.value === initial.value?.date ? plainSave.value : { label: t('editor_view.schedule', 'Schedule'), status: 'scheduled' };
 	}
 
-	if (future.value) {
-		return detail.status === 'scheduled' && date.value === initial.value?.date ? { label: t('editor_view.update', 'Update') } : { label: t('editor_view.schedule', 'Schedule'), status: 'scheduled' };
+	if (future.value && goLive !== undefined) {
+		return { label: t('editor_view.schedule', 'Schedule'), status: 'scheduled' };
 	}
 
-	return detail.status === 'published' ? { label: t('editor_view.update', 'Update') } : { label: t('editor_view.publish', 'Publish'), status: 'published' };
+	return first === undefined ? plainSave.value : { label: first.label, status: first.to };
 });
 
 const secondary = computed<{ label: string; status?: EntryStatus } | null>(() => {
 	const detail = entry.value;
 
-	if (detail === null || (!detail.can.publish && detail.status === 'draft')) {
+	if (detail === null) {
 		return null;
 	}
 
-	return detail.status === 'draft' ? { label: t('editor_view.save_draft', 'Save Draft') } : { label: t('editor_view.switch_to_draft', 'Switch to draft'), status: 'draft' };
+	if (statusOf(detail.stored).live) {
+		const first = detail.transitions[0];
+
+		return first === undefined ? null : { label: first.label, status: first.to };
+	}
+
+	return primary.value?.status === undefined ? null : plainSave.value;
 });
 
 // The Status value's menu: what each status does, in a sentence, and
-// only the ones this account can move it to. Choosing one saves. The
-// trash is never offered (D-484): Move to Trash sets it.
+// only the ones this account can move it to, by the transitions it may
+// make (D-851). Choosing one saves. The trash is never offered (D-484):
+// Move to Trash sets it.
 const coreStatusNames: Record<string, { label: string; icon: IconName }> = {
 	published: { label: t('editor_view.statuses.published', 'Published'), icon: 'circle-check' },
 	scheduled: { label: t('editor_view.statuses.scheduled', 'Scheduled'), icon: 'calendar-clock' },
 	draft: { label: t('editor_view.statuses.draft', 'Draft'), icon: 'file-pen-line' },
+	expired: { label: t('editor_view.statuses.expired', 'Expired'), icon: 'calendar-x' },
 	trash: { label: t('editor_view.statuses.trash', 'Trash'), icon: 'trash-2' }
 };
 
@@ -1080,25 +1123,39 @@ function statusLook(status: EntryStatus): { label: string; icon: IconName } {
 	return coreStatusNames[status] ?? { label: statusOf(status).label, icon: 'circle-dot' };
 }
 
+// What a status does, in a sentence.
+function statusText(status: EntryStatus): string {
+	if (status === 'scheduled') {
+		return t('editor_view.statuses.scheduled_text', 'Goes live on its date, on its own.');
+	}
+
+	return statusOf(status).live ? t('editor_view.statuses.published_text', 'On the site, for anyone to read.') : t('editor_view.statuses.draft_text', 'Not on the site. Only people who can edit it see it.');
+}
+
 const statusOptions = computed(() => {
 	const detail = entry.value;
 
-	if (detail === null) {
+	if (detail === null || detail.status === 'trash') {
 		return [];
 	}
 
+	// Where it is now, then where it may go: a live status as Scheduled
+	// while the date is still to come.
 	const options: { status: EntryStatus; label: string; text: string; icon: IconName }[] = [
-		{ status: 'draft', label: t('editor_view.statuses.draft', 'Draft'), text: t('editor_view.statuses.draft_text', 'Not on the site. Only people who can edit it see it.'), icon: 'file-pen-line' }
+		{ status: detail.status, ...statusLook(detail.status), text: detail.status === 'scheduled' && !future.value ? t('editor_view.statuses.overdue_text', 'Its date has passed, so it goes live the next time it is published.') : statusText(detail.status) }
 	];
 
-	if (detail.can.publish && future.value) {
-		options.push({ status: 'scheduled', label: t('editor_view.statuses.scheduled', 'Scheduled'), text: t('editor_view.statuses.scheduled_text', 'Goes live on its date, on its own.'), icon: 'calendar-clock' });
-	} else if (detail.can.publish) {
-		options.push({ status: 'published', label: t('editor_view.statuses.published', 'Published'), text: t('editor_view.statuses.published_text', 'On the site, for anyone to read.'), icon: 'circle-check' });
+	// A live entry is scheduled by a new date still to come.
+	if (statusOf(detail.stored).live && detail.can.publish && future.value && detail.status !== 'scheduled') {
+		options.push({ status: 'scheduled', ...statusLook('scheduled'), text: statusText('scheduled') });
 	}
 
-	if (detail.status !== 'trash' && !options.some((option) => option.status === detail.status)) {
-		options.push({ status: detail.status, ...statusLook(detail.status), text: detail.status === 'scheduled' ? t('editor_view.statuses.overdue_text', 'Its date has passed, so it goes live the next time it is published.') : t('editor_view.statuses.published_text', 'On the site, for anyone to read.') });
+	for (const transition of detail.transitions) {
+		const status = future.value && statusOf(transition.to).live ? 'scheduled' : transition.to;
+
+		if (!options.some((option) => option.status === status)) {
+			options.push({ status, ...statusLook(status), text: statusText(status) });
+		}
 	}
 
 	return options;
@@ -1106,7 +1163,7 @@ const statusOptions = computed(() => {
 
 // What the date means, so nobody has to work it out.
 const dateMeaning = computed(() => {
-	const offset = splitDate(entry.value?.values.published)?.offset ?? '';
+	const offset = splitDate(entry.value?.values.date)?.offset ?? '';
 	const when   = date.value === '' ? Number.NaN : Date.parse(`${date.value}:00${offset === '' ? '' : offset.replace(/^([+-]\d{2})(\d{2})$/, '$1:$2')}`);
 
 	if (Number.isNaN(when)) {
@@ -1210,6 +1267,9 @@ const imageField      = computed(() => ownFields.value.find((field) => field.nam
 const peopleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.to === profileType.value && field.multiple !== false));
 const summaryField    = computed(() => ownFields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
 const subtitleField   = computed(() => ownFields.value.find((field) => field.name === 'subtitle' && field.type === 'text'));
+// When it comes off the site (D-852), in a type with expiry; clearing
+// it, or moving it later, brings an expired entry back.
+const expiresField    = computed(() => entry.value?.type.expires === true ? ownFields.value.find((field) => field.name === 'expires' && field.type === 'date') : undefined);
 // What the theme draws it with (D-728): a layout, a stylesheet, and the
 // body's classes, these last typed on one line, apart by spaces.
 const advancedFields  = computed(() => ownFields.value.filter((field) => ADVANCED.includes(field.name)));
@@ -1222,7 +1282,7 @@ const referenceFields = computed(() => ownFields.value.filter((field) => field.t
 const singleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple === false && field !== parentField.value && field.relation !== undefined));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, subtitleField.value, ...referenceFields.value, ...singleFields.value, ...advancedFields.value];
+	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, subtitleField.value, expiresField.value, ...referenceFields.value, ...singleFields.value, ...advancedFields.value];
 
 	return ownFields.value.filter((field) => !placed.includes(field) && !UNSHOWN.includes(field.name));
 });
@@ -3211,7 +3271,13 @@ function fieldKey(field: FieldDescription): string {
 									<div v-if="dateField" class="settings__row">
 										<dt><label for="editor-date">{{ future ? t('editor_view.settings.goes_live', 'Goes live') : t('editor_view.settings.date', 'Date') }}</label></dt>
 										<dd>
-											<DatePicker id="editor-date" v-model="date" :invalid="Boolean(errorFor('published'))" :described-by="errorFor('published') ? 'editor-publish-help editor-date-error' : 'editor-publish-help'" />
+											<DatePicker id="editor-date" v-model="date" :invalid="Boolean(errorFor('date'))" :described-by="errorFor('date') ? 'editor-publish-help editor-date-error' : 'editor-publish-help'" />
+										</dd>
+									</div>
+									<div v-if="expiresField" class="settings__row">
+										<dt><label for="editor-expires">{{ t('editor_view.settings.expires', 'Expires') }}</label></dt>
+										<dd>
+											<DatePicker id="editor-expires" :model-value="String(form[expiresField.name] ?? '')" clearable :invalid="Boolean(errorFor(expiresField.name))" :described-by="errorFor(expiresField.name) ? 'editor-expires-error' : undefined" @update:model-value="form[expiresField.name] = $event" />
 										</dd>
 									</div>
 									<div v-if="entry.can.rename" class="settings__row">
@@ -3275,7 +3341,8 @@ function fieldKey(field: FieldDescription): string {
 									</div>
 								</dl>
 								<p id="editor-publish-help" class="editor__group-note">{{ publishNote }}</p>
-								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
+								<p v-if="errorFor('date')" id="editor-date-error" class="field__error">{{ errorFor('date') }}</p>
+								<p v-if="expiresField && errorFor(expiresField.name)" id="editor-expires-error" class="field__error">{{ errorFor(expiresField.name) }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
 								<p v-if="parentError" id="editor-parent-error" class="field__error">{{ parentError }}</p>
 								<p v-if="languageError" id="editor-language-error" class="field__error">{{ languageError }}</p>

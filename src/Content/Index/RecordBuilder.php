@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
-use DateTimeImmutable;
 use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
@@ -51,8 +50,8 @@ use Blush\Workflow\Status;
  *   folder and the file, makes the entry hidden, whatever its front
  *   matter says (1.x's private files and page segments). A `_drafts`
  *   folder makes it a draft.
- * - `published` falls back to `date`; `updated` falls back to
- *   `published`, then to the file's modification time.
+ * - `updated` falls back to `date`, then to the file's modification
+ *   time.
  * - On a multilingual site (D-455), a file name whose last `.` part
  *   (before the extension) is a language code is a translation in that
  *   language: `about.fr.md`, `2026-10-04.hello.fr.md`, and
@@ -126,8 +125,9 @@ final readonly class RecordBuilder
 			default                            => self::slugOf($filename)
 		};
 
-		$published = is_int($values['published'] ?? null) ? $values['published'] : null;
-		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : ($published ?? $file->modified);
+		$date    = is_int($values['date'] ?? null) ? $values['date'] : null;
+		$updated = is_int($values['updated'] ?? null) ? $values['updated'] : ($date ?? $file->modified);
+		$expires = $type->expires && is_int($values['expires'] ?? null) ? $values['expires'] : null;
 		[$terms, $labels] = $this->terms($type, $document->frontMatter, $values);
 
 		$record = new IndexRecord(
@@ -140,9 +140,9 @@ final readonly class RecordBuilder
 			landing: $landing,
 			status: $this->status($values, $private),
 			visibility: $this->visibility($values, $filename, $private),
-			published: $published,
+			date: $date,
 			updated: $updated,
-			date: $published === null ? null : DateTimeImmutable::createFromTimestamp($published)->setTimezone($this->context->timezone)->format('YmdHis'),
+			expires: $expires,
 			title: is_string($values['title'] ?? null) ? $values['title'] : '',
 			values: $values,
 			extra: $extra,

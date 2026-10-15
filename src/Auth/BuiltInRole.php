@@ -17,6 +17,7 @@ use Blush\Extension\ExtensionKind;
 use Blush\Media\MediaKind;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Transition;
 
 /**
  * The framework's roles (D-217). `config/auth.php` can redefine any of
@@ -147,8 +148,13 @@ enum BuiltInRole: string
 			ExtensionAction::kinds()
 		));
 
+		// Every transition of every workflow (D-851); authors and
+		// contributors get none until a site gives them some.
+		$transitions = $this === self::Administrator || $this === self::Editor ? [Transition::capabilityName(ContentAction::EVERY, '*')] : [];
+
 		return $this === self::Owner ? [Role::ALL] : [
 			...array_map(static fn (ContentAction $action): string => $action->on(ContentAction::EVERY), $content),
+			...$transitions,
 			...$uploads,
 			...array_map(static fn (Capability $capability): string => $capability->value, $site),
 			...$extensions

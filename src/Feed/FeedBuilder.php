@@ -151,7 +151,7 @@ final readonly class FeedBuilder
 	{
 		$arguments = $type->feed === false ? [] : ($type->feed->listing?->arguments() ?? []);
 
-		return Query::fromArray([...$base, 'order' => 'desc', 'orderby' => 'published', 'number' => $this->config->limit, ...$arguments], $this->content);
+		return Query::fromArray([...$base, 'order' => 'desc', 'orderby' => 'date', 'number' => $this->config->limit, ...$arguments], $this->content);
 	}
 
 	/**
@@ -208,7 +208,7 @@ final readonly class FeedBuilder
 			entry: $entry,
 			title: $entry->title !== '' ? $entry->title : $entry->slug,
 			url: $this->urls->absolute($url),
-			published: $entry->published ?? $entry->updated,
+			published: $entry->date ?? $entry->updated,
 			updated: $entry->updated,
 			content: $this->config->content ? $entry->content() : '',
 			summary: $entry->excerpt(),

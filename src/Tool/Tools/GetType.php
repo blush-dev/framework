@@ -19,7 +19,6 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Editing\EntryEditor;
 use Blush\Field\Field;
 use Blush\Tool\ToolContext;
 use Blush\Tool\ToolEntries;
@@ -27,6 +26,9 @@ use Blush\Tool\Tool;
 use Blush\Tool\ToolResult;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Status;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Workflows;
 
 /**
  * `get_type` (D-755): one content type in full, for writing an entry of
@@ -41,7 +43,8 @@ final class GetType extends Tool
 		private readonly ContentTypes $types,
 		private readonly Relations $relations,
 		private readonly ContentUrls $urls,
-		private readonly Messages $messages
+		private readonly Messages $messages,
+		private readonly Workflows $workflows
 	) {}
 
 	#[Override]
@@ -53,7 +56,7 @@ final class GetType extends Tool
 	#[Override]
 	public function description(): Text
 	{
-		return $this->messages->t('tool.get_type.description', 'Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry\'s fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries\' slugs), and what this connection may do with it. Call it before create_entry or update_entry.');
+		return $this->messages->t('tool.get_type.description', 'Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry\'s fields, the statuses an entry can have and the transitions between them (its workflow), its relationships to other types (such as tags or authors, set by the related entries\' slugs), and what this connection may do with it. Call it before create_entry or update_entry.');
 	}
 
 	#[Override]
@@ -73,6 +76,7 @@ final class GetType extends Tool
 		$type       = $this->entries->type($context, self::text($input, 'name'));
 		$schema     = $this->types->schema($type->name);
 		$collection = $this->urls->collection($type);
+		$workflow   = $this->workflows->for($type);
 
 		return new ToolResult([
 			'name'          => $type->name,
@@ -81,7 +85,17 @@ final class GetType extends Tool
 			'kind'          => $type->kind()->value,
 			'description'   => $type->description,
 			'url'           => $collection === null ? null : $this->urls->absolute($collection),
-			'statuses'      => EntryEditor::STATUSES,
+			'statuses'      => [...$workflow->statuses, Status::SCHEDULED],
+			'workflow'      => [
+				'name'        => $workflow->name,
+				'initial'     => $workflow->initial,
+				'transitions' => array_map(static fn (Transition $transition): array => [
+					'name'  => $transition->name,
+					'label' => (string) $transition->label,
+					'from'  => $transition->from === [] ? $workflow->statuses : $transition->from,
+					'to'    => $transition->to
+				], $workflow->transitions)
+			],
 			'fields'        => array_values(array_map(static fn (Field $field): array => [
 				'name'        => $field->name,
 				'type'        => $field->type(),

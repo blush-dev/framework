@@ -28,7 +28,7 @@ use Blush\Http\NotFound;
 /**
  * Serves a type's date archives (`{type}.collection.year` down to
  * `.second`, and their `.paged` forms): the type's listed entries
- * published in the period, read in the site timezone. A date that
+ * dated in the period, read in the site timezone. A date that
  * doesn't exist, or a period with no entries, is a 404.
  */
 final class DateArchiveController extends ContentController

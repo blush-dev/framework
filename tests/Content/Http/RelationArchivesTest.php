@@ -47,9 +47,9 @@ final class RelationArchivesTest extends TestCase
 			]
 		]);
 
-		$this->entry('_movie/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom]\ndirectors: penny");
-		$this->entry('_movie/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom, daryl]\ndirectors: ron");
-		$this->entry('_movie/draft.md', "title: Draft\npublished: 2026-03-01\nstatus: draft\ndirectors: tom");
+		$this->entry('_movie/big.md', "title: Big\ndate: 2026-01-01\nactors: [tom]\ndirectors: penny");
+		$this->entry('_movie/splash.md', "title: Splash\ndate: 2026-02-01\nactors: [tom, daryl]\ndirectors: ron");
+		$this->entry('_movie/draft.md', "title: Draft\ndate: 2026-03-01\nstatus: draft\ndirectors: tom");
 		$this->entry('_person/tom.md', 'title: Tom');
 		$this->entry('_person/daryl.md', 'title: Daryl');
 		$this->entry('_person/penny.md', 'title: Penny');

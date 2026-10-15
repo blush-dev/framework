@@ -58,6 +58,7 @@ final readonly class Entry implements Stringable
 	 * @param ?string                     $parentId    Its parent's id, in a type that nests.
 	 * @param ?string                     $originalId  The id of the original it's a translation of.
 	 * @param ?EntryGraph                 $graph       What it leads to (D-802); without it, it leads nowhere.
+	 * @param ?DateTimeImmutable          $expires     When it comes off the site (D-852), in a type with expiry; else `null`.
 	 */
 	public function __construct(
 		public string $path,
@@ -67,7 +68,7 @@ final readonly class Entry implements Stringable
 		public string $title,
 		public Status $status,
 		public Visibility $visibility,
-		public ?DateTimeImmutable $published,
+		public ?DateTimeImmutable $date,
 		public DateTimeImmutable $updated,
 		public string $locale,
 		public array $fields,
@@ -79,7 +80,8 @@ final readonly class Entry implements Stringable
 		public ?string $version = null,
 		public ?string $parentId = null,
 		public ?string $originalId = null,
-		private ?EntryGraph $graph = null
+		private ?EntryGraph $graph = null,
+		public ?DateTimeImmutable $expires = null
 	) {}
 
 	/**

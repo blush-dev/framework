@@ -89,7 +89,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 12;
+	public const int VERSION = 14;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
@@ -181,8 +181,13 @@ final readonly class IndexSnapshot
 
 			// Any status that may be live counts: a time too early only
 			// checks again sooner.
-			if (! in_array($record['status'], [Status::DRAFT, Status::TRASH], true) && $record['published'] !== null && $record['published'] > $built) {
-				$scheduled = min($scheduled ?? PHP_INT_MAX, $record['published']);
+			if (! in_array($record['status'], [Status::DRAFT, Status::TRASH], true) && $record['date'] !== null && $record['date'] > $built) {
+				$scheduled = min($scheduled ?? PHP_INT_MAX, $record['date']);
+			}
+
+			// And an expiry still to come (D-852).
+			if (! in_array($record['status'], [Status::DRAFT, Status::TRASH], true) && $record['expires'] !== null && $record['expires'] > $built) {
+				$scheduled = min($scheduled ?? PHP_INT_MAX, $record['expires']);
 			}
 		}
 

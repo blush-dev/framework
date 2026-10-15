@@ -41,8 +41,6 @@ use Blush\Workflow\Status;
  *   D-484); whether a
  *   published entry is scheduled depends on the time, so it's decided
  *   when the record is read.
- * - `date` is the published time in the site timezone as `YmdHis`, for
- *   date archives.
  * - `terms` maps each taxonomy to the term slugs the entry references,
  *   and `labels` keeps how a term was written when that differs from its
  *   slug (`Book Reviews`), for titling a missing term's file (D-584).
@@ -77,9 +75,9 @@ use Blush\Workflow\Status;
  *     landing: bool,
  *     status: string,
  *     visibility: string,
- *     published: ?int,
+ *     date: ?int,
  *     updated: int,
- *     date: ?string,
+ *     expires: ?int,
  *     title: string,
  *     values: array<string, mixed>,
  *     extra: array<string, mixed>,
@@ -109,6 +107,7 @@ final readonly class IndexRecord
 	 * @param ?array{key: string, parent: ?string} $untranslated A translation's key and parent from its path alone, when the index changed them.
 	 * @param ?string                              $id           The entry's id (D-477), or `null` without a valid one.
 	 * @param ?string                              $group        The translation group its `translation_of` links it to (D-511).
+	 * @param ?int                                 $expires      When it expires (D-852), in a type with expiry; else `null`.
 	 */
 	public function __construct(
 		public string $path,
@@ -120,9 +119,8 @@ final readonly class IndexRecord
 		public bool $landing,
 		public string $status,
 		public Visibility $visibility,
-		public ?int $published,
+		public ?int $date,
 		public int $updated,
-		public ?string $date,
 		public string $title,
 		public array $values,
 		public array $extra,
@@ -136,7 +134,8 @@ final readonly class IndexRecord
 		public ?string $original = null,
 		public ?array $untranslated = null,
 		public ?string $id = null,
-		public ?string $group = null
+		public ?string $group = null,
+		public ?int $expires = null
 	) {}
 
 	/**
@@ -164,9 +163,9 @@ final readonly class IndexRecord
 			landing: $data['landing'],
 			status: $data['status'] === '' ? Status::PUBLISHED : $data['status'],
 			visibility: Visibility::tryFrom($data['visibility']) ?? Visibility::Public,
-			published: $data['published'],
-			updated: $data['updated'],
 			date: $data['date'],
+			updated: $data['updated'],
+			expires: $data['expires'],
 			title: $data['title'],
 			values: $data['values'],
 			extra: $data['extra'],
@@ -246,9 +245,9 @@ final readonly class IndexRecord
 			'landing'      => $this->landing,
 			'status'       => $this->status,
 			'visibility'   => $this->visibility->value,
-			'published'    => $this->published,
-			'updated'      => $this->updated,
 			'date'         => $this->date,
+			'updated'      => $this->updated,
+			'expires'      => $this->expires,
 			'title'        => $this->title,
 			'values'       => $this->values,
 			'extra'        => $this->extra,

@@ -27,7 +27,8 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
 /**
- * `create_entry` (D-756): a new entry, always a draft, through the one
+ * `create_entry` (D-756): a new entry, at its workflow's `initial` (a
+ * draft in `standard`, D-851), through the one
  * write path, answering it with its revision and links to its editor and
  * a preview, so the AI can hand the person something to review.
  */
@@ -47,7 +48,7 @@ final class CreateEntry extends Tool
 	#[Override]
 	public function description(): Text
 	{
-		return $this->messages->t('tool.create_entry.description', 'Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries\' slugs), and a Markdown body. It\'s never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site\'s editor and to preview it.');
+		return $this->messages->t('tool.create_entry.description', 'Creates a new entry, a draft unless its type\'s workflow starts elsewhere: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries\' slugs), and a Markdown body. It\'s never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site\'s editor and to preview it.');
 	}
 
 	#[Override]

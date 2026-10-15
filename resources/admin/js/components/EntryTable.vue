@@ -70,7 +70,7 @@ const { terms = false, profiles = false, pinned = [], entries, sortable = false,
 	pinned?: EntrySummary[];
 	labelledby: string;
 	dateLabel: string;
-	dateKey: 'updated' | 'published';
+	dateKey: 'updated' | 'date';
 	terms?: boolean;
 	// Profiles (D-353, D-369): named, beside an avatar (dashed for a
 	// guest), with the account each is linked to (a guest without one)

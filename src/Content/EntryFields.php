@@ -35,8 +35,8 @@ use Blush\Translation\Messages;
 /**
  * The front matter every entry understands (D-027, D-045, D-078), before a
  * type adds its own fields and each taxonomy adds its term field. The 1.x
- * names are aliases: `date` for `published`, `excerpt` for `summary`, and
- * `view` for `template`. (`author` is the author taxonomy's alias.) Core
+ * names are aliases: `excerpt` for `summary`, and `view` for `template`.
+ * The entry's date is `date` (D-852), whatever its status. (`author` is the author taxonomy's alias.) Core
  * registers them on every type (D-790), and each type's own fields start
  * with them.
  */
@@ -95,8 +95,9 @@ final class EntryFields implements FieldSource
 			new TextField('title')->labeled($messages->t('content.entry_fields.title.label', 'Title'))->described($messages->t('content.entry_fields.title.description', 'The entry\'s title.')),
 			new TextField('subtitle')->labeled($messages->t('content.entry_fields.subtitle.label', 'Subtitle'))->described($messages->t('content.entry_fields.subtitle.description', 'A line shown under the title.')),
 			new SlugField('slug')->labeled($messages->t('content.entry_fields.slug.label', 'Slug'))->described($messages->t('content.entry_fields.slug.description', 'The URL name, instead of the file name.')),
-			new DateField('published')->labeled($messages->t('content.entry_fields.published.label', 'Published'))->aliases('date')->described($messages->t('content.entry_fields.published.description', 'The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.')),
-			new DateField('updated')->labeled($messages->t('content.entry_fields.updated.label', 'Updated'))->described($messages->t('content.entry_fields.updated.description', 'When it last changed; defaults to published, then the file\'s modified time.')),
+			new DateField('date')->labeled($messages->t('content.entry_fields.date.label', 'Date'))->described($messages->t('content.entry_fields.date.description', 'The entry\'s date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.')),
+			new DateField('expires')->labeled($messages->t('content.entry_fields.expires.label', 'Expires'))->described($messages->t('content.entry_fields.expires.description', 'When the entry comes off the site, in a type with expiry, such as 2026-12-31 23:59:00 -05:00. Moving or clearing it brings the entry back.')),
+			new DateField('updated')->labeled($messages->t('content.entry_fields.updated.label', 'Updated'))->described($messages->t('content.entry_fields.updated.description', 'When it last changed; defaults to the date, then the file\'s modified time.')),
 			new TextField('status')->labeled($messages->t('content.entry_fields.status.label', 'Status'))->described($messages->t('content.entry_fields.status.description', 'published (the default), draft, trash, or another status the site registers.')),
 			new DateField(self::TRASHED)->labeled($messages->t('content.entry_fields.trashed.label', 'Trashed'))->described($messages->t('content.entry_fields.trashed.description', 'When the entry was moved to the trash, set with status: trash.')),
 			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->labeled($messages->t('content.entry_fields.visibility.label', 'Visibility'))->described($messages->t('content.entry_fields.visibility.description', 'public (the default), unlisted, or hidden.')),

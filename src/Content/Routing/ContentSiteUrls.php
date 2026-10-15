@@ -196,14 +196,14 @@ final readonly class ContentSiteUrls implements UrlSource
 		$seen = [];
 
 		foreach ($this->content->query()->type($type->listedType())->language($language)->get() as $entry) {
-			if ($entry->published === null) {
+			if ($entry->date === null) {
 				continue;
 			}
 
 			$parts = [];
 
 			foreach ($type->dateArchives->levels() as $level) {
-				$parts[$level->value] = (int) $entry->published->format(self::PARTS[$level->value] ?? 'Y');
+				$parts[$level->value] = (int) $entry->date->format(self::PARTS[$level->value] ?? 'Y');
 				$key                  = implode('-', $parts);
 
 				if (isset($seen[$key])) {

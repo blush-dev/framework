@@ -86,7 +86,7 @@ final readonly class EntryRelations
 	 * a key on a source type (`movie.actors`), or a name on any type.
 	 * They're in a language (the entry's by default; a term with no
 	 * translation is in its original's) when they have a translation in it,
-	 * newest published first, then by title (as collections are, D-516;
+	 * newest first by date, then by title (as collections are, D-516;
 	 * an order of its own for the reverse side is open).
 	 *
 	 * Each source is seen as `related()` sees it: an original's link
@@ -116,7 +116,7 @@ final readonly class EntryRelations
 
 		$entries = array_values($entries);
 
-		usort($entries, static fn (Entry $a, Entry $b): int => [$b->published?->getTimestamp(), $a->title] <=> [$a->published?->getTimestamp(), $b->title]);
+		usort($entries, static fn (Entry $a, Entry $b): int => [$b->date?->getTimestamp(), $a->title] <=> [$a->date?->getTimestamp(), $b->title]);
 
 		return $entries;
 	}

@@ -44,8 +44,8 @@ use Blush\Translation\Text;
  *   name (`hello.fr.md` beside `hello.md`), which keep their language
  *   suffixes, so they stay linked. A translation linked by
  *   `translation_of` keeps its name.
- * - **The date** is the entry's publish date as its file writes it
- *   (`WrittenDates`); without a publish date, its `updated` date the
+ * - **The date** is the entry's `date` as its file writes it
+ *   (`WrittenDates`); without one, its `updated` date the
  *   same way, else the file's modified time.
  * - **Folders** are `EntryFolders`' (D-629): a name's rename stays in
  *   the file's folder, and `follow()` moves it to its folder too.
@@ -107,7 +107,7 @@ final readonly class FileNames
 	}
 
 	/**
-	 * Renames one entry to its type's pattern after its publish date
+	 * Renames one entry to its type's pattern after its date
 	 * changed (D-519), when the pattern has a date in it, so the name
 	 * keeps showing the date, then moves it to the folder its type's
 	 * folder pattern gives its date and slug (`EntryFolders::follow()`,

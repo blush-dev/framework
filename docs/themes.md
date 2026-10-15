@@ -411,7 +411,7 @@ $template->layout('base');
 	<h1><?= e($entry->title) ?></h1>
 
 	<?php if ($theme->setting('showDate')) : ?>
-		<p><?= e($template->date($entry->published)) ?></p>
+		<p><?= e($template->date($entry->date)) ?></p>
 	<?php endif ?>
 
 	<?= raw($entry->content()) ?>
@@ -459,9 +459,9 @@ What a template can use:
 | `$template->hasBlock('acme/share')` | Whether a block is registered |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](blocks.md#icons)) |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
-| `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
-| `$template->time($entry->published)` | A time in the site's time format |
-| `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
+| `$template->date($entry->date)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
+| `$template->time($entry->date)` | A time in the site's time format |
+| `$template->datetime($entry->date)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
 | `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
 | `$template->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
@@ -480,7 +480,7 @@ your editor completes it and a typo is an error rather than a pattern:
 
 ```php
 <?php use Blush\Clock\DateStyle; ?>
-<?= e($template->date($entry->published, DateStyle::Short)) ?>
+<?= e($template->date($entry->date, DateStyle::Short)) ?>
 ```
 
 ICU patterns aren't PHP's
@@ -513,7 +513,7 @@ items, it includes the `empty` template, if you gave one:
 <?= $template->each('partials/entry-summary', $entries, as: 'entry', empty: 'partials/no-entries') ?>
 ```
 
-An entry offers `title`, `slug`, `published`, `updated`, `content()`
+An entry offers `title`, `slug`, `date`, `updated`, `content()`
 (its rendered Markdown; `raw()` is the Markdown as written),
 `summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
 (in minutes), and `field('name')` for any declared field in its front

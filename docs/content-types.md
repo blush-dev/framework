@@ -264,7 +264,7 @@ first, with a feed and monthly archives, in `user/data/types/post.json`:
 ```json
 {
 	"urls": { "prefix": "blog" },
-	"listing": { "orderBy": "published", "order": "desc" },
+	"listing": { "orderBy": "date", "order": "desc" },
 	"feed": true,
 	"dateArchives": "month"
 }
@@ -449,7 +449,7 @@ Themes show the tree with `$entry->parent()`,
 its title. `bin/blush content:lint` reports a parent with no file (the
 entry is shown at the top level) and an entry that's its own ancestor.
 
-A collection's `order` sets how it lists its entries: `published`
+A collection's `order` sets how it lists its entries: `date`
 (newest first, the default) or `position`, by the `position` front
 matter (lowest first), then title. A collection that nests or is
 ordered by position has the `position` field. In
@@ -837,13 +837,13 @@ A relation's file in `user/data/relations` can name
 A type's `listing` option sets how its listing page lists entries:
 
 ```php
-new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
+new Listing(orderBy: 'date', order: Order::Desc, perPage: 20)
 ```
 
 | Option    | Default         | What it does                                                           |
 |-----------|-----------------|------------------------------------------------------------------------|
 | `type`    | The type itself | Which type to list                                                     |
-| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's, or a collection's that [nests or is ordered by position](#nesting-and-order), then title), or any field. A collection lists by its `order`: newest published first, or by `position`, then title |
+| `orderBy` | Its type's order | `date`, `updated`, `title`, `author`, `position` (a tree's, or a collection's that [nests or is ordered by position](#nesting-and-order), then title), or any field. A collection lists by its `order`: newest first by date, or by `position`, then title |
 | `order`   | Its type's order | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
 | `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
 | `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |
@@ -852,7 +852,7 @@ Entries are never sorted by file name, so the order holds when file
 names change or content moves to a database. Text sorts without regard
 to case; entries without the value come last, whichever way; and ties
 go by when each entry was made (its id), earliest first. 1.x's
-`orderby: filename` is read as `published`, and `content:lint` warns
+`orderby: filename` is read as `date`, and `content:lint` warns
 where a page still says it.
 
 To list entries on any page, use `collection` in its front matter:
@@ -863,7 +863,7 @@ title: "Latest recipes"
 collection:
   type: recipe
   number: 5
-  orderby: published
+  orderby: date
   order: desc
 ---
 ```
@@ -873,7 +873,7 @@ collection:
 | `type`                    | Which type(s) to list                                                         |
 | `number`                  | How many per page (default 10; `0` or less for all)                           |
 | `offset`                  | Skip this many                                                                |
-| `orderby`                 | `published` (default), `updated`, `title`, `author`, `position`, or any field |
+| `orderby`                 | `date` (default), `updated`, `title`, `author`, `position`, or any field |
 | `order`                   | `desc` with no `orderby`, else `asc` (default), or `desc`                     |
 | `terms`                   | Only entries in these terms, such as `{tag: [php]}`                           |
 | `author`                  | Only entries crediting these profiles, through any credit relation            |
@@ -901,6 +901,8 @@ Every kind takes these:
 | `llms`              | `true` for collections and trees, `false` for profiles         | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
+| `expires`           | `false`                                                        | Whether its entries can have an `expires` date ([Expiry](#expiry)) |
+| `workflow`          | `standard`                                                     | The statuses its entries move through, and the transitions between them, by name. Blush has `standard` (draft and published); plugins add more (see [Workflows from a plugin](extending.md#workflows-from-a-plugin)). A name there isn't uses `standard`, and `content:lint` says so |
 
 Collections and trees also take these:
 
@@ -931,9 +933,24 @@ Only collections take:
 |----------------|-------------|--------------------------------------------------------------------------------------------------|
 | `dateArchives` | `none`      | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second`                             |
 | `hierarchical` | `false`     | Whether an entry may name a `parent` entry ([Nesting and order](#nesting-and-order))             |
-| `order`        | `published` | `published` (newest first) or `position` (lowest first, then title) ([Nesting and order](#nesting-and-order)) |
+| `order`        | `date` | `date` (newest first) or `position` (lowest first, then title) ([Nesting and order](#nesting-and-order)) |
 
-### Naming new files
+### Expiry
+
+A type with `expires: true` (in Type Settings, **Entries can expire**)
+gives each entry an `expires` date. Once it passes, the entry is
+expired: off the site, as a draft is, so its address is a 404 and no
+list, feed, sitemap, or API read shows it. Nothing in its file changes;
+it keeps its status, and moving the date later, or removing it, brings
+it back. The admin lists expired entries under **Expired**, and
+plugins hear of them with `EntriesExpired` (see
+[Events](extending.md#events)).
+
+`expires` has to come after the entry's `date`. Index, archive, and
+error pages, and a folder's landing page, never expire. A type without
+expiry ignores the date, and `content:lint` says so.
+
+## Naming new files
 
 Every type names the files it creates (from the admin, `content:new`,
 or a copy) by its `filename` pattern. Without one, files are named by
@@ -950,7 +967,7 @@ A pattern ends in `{slug}`, with a `.` before it when anything comes
 first. Before it you can use `{date}` (`2026-10-05`), `{time}`
 (`093000`), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`,
 `{second}`, letters, digits, `-`, `_`, and `.`. It can't start with `_`
-or `.`. Dates are the entry's publish date; every new entry gets one.
+or `.`. Dates are the entry's `date`; every new entry gets one.
 
 A pattern names files, never folders (a collection's folders have
 [their own pattern](#folders-for-many-files)). A page's subpages go in a folder
@@ -963,7 +980,7 @@ pattern keep working beside new ones. Renaming an entry keeps whatever
 comes before its slug. Listings never sort by file name, so mixed
 names list in order.
 
-When a type's own pattern has a date in it, a new publish date renames
+When a type's own pattern has a date in it, a new date renames
 the entry's file in the admin: changing the date and saving, or
 publishing an entry that had no date yet. The file is named by the
 pattern, with its translations named after it, the way
@@ -975,7 +992,7 @@ To rename older files to the pattern, run `bin/blush content:filenames`
 to see what would change, then `bin/blush content:filenames --write`
 (add `--type=post` for one type), or use **File Names** on Content
 health in the admin. Each entry's file is renamed, with its translations
-named after it. Dates are each entry's publish date as its file writes
+named after it. Dates are each entry's `date` as its file writes
 it (`2013-02-09 00:00:00 -5` names the 9th, wherever your site is), or
 its `updated` date, or when the file last changed. It leaves alone
 hidden files (`_`-prefixed), entries kept as folders, entries with a
@@ -986,7 +1003,7 @@ No address changes.
 It renames only types that set `filename` themselves. Renaming replaces
 everything before the slug, so check the list first: a same-day counter
 (`2026-10-05-2.hello.md`) is dropped, and a file whose date differs
-from its publish date takes the publish date.
+from its date takes the date.
 
 In the admin, choose it under **File names** on the type's screen.
 
@@ -1050,15 +1067,15 @@ entry's address or how it's found: `_post/2026/hello.md` is the post
 [file name pattern](#naming-new-files) to tell apart posts with the same
 slug in different years.
 
-- **New entries** go in the folder their publish date and slug give
+- **New entries** go in the folder their date and slug give
   them, and so do copies.
 - **A new date or slug moves the file**, as a new date renames a file
-  [named by date](#naming-new-files): changing a post's publish date
+  [named by date](#naming-new-files): changing a post's date
   from 2025 to 2026 moves it from `_post/2025` to `_post/2026`.
 - **Changing the pattern moves nothing.** Older files keep working
   where they are; `content:lint` warns of each file outside the
   pattern's folders. `bin/blush content:folders --write`, or
-  **Collection Folders** on Site Health, moves them, by the publish date
+  **Collection Folders** on Site Health, moves them, by the date
   as the file writes it (else its updated date).
 - **Hidden files stay where they are.** A `_` file (`_post/_authors.md`)
   or a file in a `_` folder (`_post/_drafts/idea.md`) is kept outside

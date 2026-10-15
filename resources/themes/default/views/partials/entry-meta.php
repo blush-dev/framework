@@ -1,7 +1,7 @@
 <?php
 
 /**
- * An entry's byline: its publish date, the profiles its byline credits
+ * An entry's byline: its date, the profiles its byline credits
  * (D-804), and what it's filed under (D-808). What an entry leads to
  * comes back whatever its status (D-802), so only published ones show.
  *
@@ -16,13 +16,13 @@ use Blush\Support\Bem;
 
 $bem = new Bem('entry-meta');
 
-$published = $entry->type->name === 'page' ? null : $entry->published;
+$date = $entry->type->name === 'page' ? null : $entry->date;
 
 ?>
-<?php if ($published !== null || ! $entry->creators()->published()->isEmpty() || ! $entry->classifications()->published()->isEmpty()) : ?>
+<?php if ($date !== null || ! $entry->creators()->published()->isEmpty() || ! $entry->classifications()->published()->isEmpty()) : ?>
 	<p class="<?= attr($bem->block()) ?>">
-		<?php if ($published !== null) : ?>
-			<time datetime="<?= attr($published->format(DATE_ATOM)) ?>"><?= e($template->date($published)) ?></time>
+		<?php if ($date !== null) : ?>
+			<time datetime="<?= attr($date->format(DATE_ATOM)) ?>"><?= e($template->date($date)) ?></time>
 		<?php endif ?>
 
 		<?php if (! $entry->creators()->published()->isEmpty()) : ?>

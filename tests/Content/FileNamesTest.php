@@ -57,10 +57,10 @@ final class FileNamesTest extends TestCase
 	public function testRenamesEntriesToTheirTypesPattern(): void
 	{
 		$this->posts('{date}-{time}.{slug}', 'term.{slug}');
-		$this->entry('_post/_hidden.md', "title: Hidden\npublished: 2009-01-01");
+		$this->entry('_post/_hidden.md', "title: Hidden\ndate: 2009-01-01");
 		$this->entry('_post/undated.md', "title: Undated\nupdated: 2011-02-03 04:05:06");
-		$this->entry('_post/2008-04-20-100000.taken.md', "title: Taken\nslug: taken\npublished: 2001-01-01");
-		$this->entry('_post/2008-04-20-100000.rainy.md', "title: In the Way\npublished: 2008-04-20 10:00:00");
+		$this->entry('_post/2008-04-20-100000.taken.md', "title: Taken\nslug: taken\ndate: 2001-01-01");
+		$this->entry('_post/2008-04-20-100000.rainy.md', "title: In the Way\ndate: 2008-04-20 10:00:00");
 
 		$app    = $this->site();
 		$report = $this->names($app)->report();
@@ -91,7 +91,7 @@ final class FileNamesTest extends TestCase
 	{
 		$this->posts('{date}.{slug}');
 		$this->entry('_post/horace.md', "title: Horace\ndate: 2013-02-09 00:00:00 -5");
-		$this->entry('_post/plain.md', "title: Plain\npublished: 2013-02-09 00:00:00");
+		$this->entry('_post/plain.md', "title: Plain\ndate: 2013-02-09 00:00:00");
 
 		$moves = array_column(array_map(static fn (FileNameRename $rename): array => [$rename->path, $rename->to], $this->names($this->site())->report()->renames()), 1, 0);
 
@@ -150,7 +150,7 @@ final class FileNamesTest extends TestCase
 	public function testLeavesCollectionsWithoutAPatternOfTheirOwn(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2008-04-05-2.second.md', "title: Second\npublished: 2008-04-05 10:00:00");
+		$this->entry('_post/2008-04-05-2.second.md', "title: Second\ndate: 2008-04-05 10:00:00");
 
 		$this->assertTrue($this->names($this->site())->report()->isClean(), 'Automatic states no intent; same-day counters stay.');
 	}

@@ -64,7 +64,7 @@ final class McpTest extends TestCase
 	private function boot(string $config = 'new Blush\\Mcp\\McpConfig(enabled: true)'): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2021-01-01.mine.md', "title: Mine\npublished: 2021-01-01\nstatus: draft\nauthor: justintadlock", "First line.\n\nA typo hree.");
+		$this->entry('_post/2021-01-01.mine.md', "title: Mine\ndate: 2021-01-01\nstatus: draft\nauthor: justintadlock", "First line.\n\nA typo hree.");
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
 		$this->writeTemporaryFile('config/mcp.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn {$config};\n");
 
@@ -326,8 +326,8 @@ final class McpTest extends TestCase
 
 		$this->clock->advance('PT1M');
 
-		$published = $this->data('set_status', ['id' => $id, 'revision' => self::text($edited, 'revision'), 'status' => 'published'], $author);
-		$this->assertSame('published', $published['status'] ?? null);
+		$date = $this->data('set_status', ['id' => $id, 'revision' => self::text($edited, 'revision'), 'status' => 'published'], $author);
+		$this->assertSame('published', $date['status'] ?? null);
 
 		[$log] = $this->app->container()->make(ActivityLog::class)->list(new ActivityFilter(subject: $id));
 

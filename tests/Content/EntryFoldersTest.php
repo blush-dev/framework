@@ -36,7 +36,7 @@ final class EntryFoldersTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2024/old.md', "title: Old\npublished: 2024-01-01");
+		$this->entry('_post/2024/old.md', "title: Old\ndate: 2024-01-01");
 		$this->entry('_post/_drafts/idea.md', 'title: Idea');
 		$this->entry('_post/_drafts/sketch/index.md', 'title: Sketch');
 	}
@@ -117,7 +117,7 @@ final class EntryFoldersTest extends TestCase
 	public function testAPatternPlacesFilesByTheirWrittenDate(): void
 	{
 		$this->byYear();
-		$this->entry('_post/2024/2024-01-01.kept.md', "title: Kept\npublished: 2024-01-01");
+		$this->entry('_post/2024/2024-01-01.kept.md', "title: Kept\ndate: 2024-01-01");
 
 		$folders = $this->site()->container()->make(EntryFolders::class)->report();
 
@@ -171,10 +171,10 @@ final class EntryFoldersTest extends TestCase
 	public function testANewDateMovesAFileToItsYear(): void
 	{
 		$this->byYear();
-		$this->entry('_post/2024/2024-05-01.moving.md', "title: Moving\npublished: 2024-05-01 09:00:00");
+		$this->entry('_post/2024/2024-05-01.moving.md', "title: Moving\ndate: 2024-05-01 09:00:00");
 
 		$app = $this->site();
-		$app->container()->make(FilesystemWriter::class)->update('_post/2024/2024-05-01.moving.md', new EntryChanges(['published' => '2025-02-03 09:00:00']));
+		$app->container()->make(FilesystemWriter::class)->update('_post/2024/2024-05-01.moving.md', new EntryChanges(['date' => '2025-02-03 09:00:00']));
 
 		$this->assertSame('_post/2025/2024-05-01.moving.md', $app->container()->make(FileNames::class)->follow('_post/2024/2024-05-01.moving.md'), 'Its folder follows the date; its name has no pattern of its own to follow.');
 	}

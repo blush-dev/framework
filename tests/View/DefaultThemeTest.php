@@ -136,10 +136,10 @@ final class DefaultThemeTest extends TestCase
 			],
 			'home' => 'post'
 		]);
-		$this->entry('_post/2008-04-05-2.twin.md', "title: Twin\npublished: 2008-04-05 09:00:00\ncategory: art\nauthor: justintadlock", 'Same second as spring.');
+		$this->entry('_post/2008-04-05-2.twin.md', "title: Twin\ndate: 2008-04-05 09:00:00\ncategory: art\nauthor: justintadlock", 'Same second as spring.');
 		$this->entry('_category/news.md', 'title: News');
-		$this->entry('_post/2009-03-03.edited.md', "title: Edited\npublished: 2009-03-03\neditor: sam");
-		$this->entry('_post/2009-03-04.edited-again.md', "title: Edited Again\npublished: 2009-03-04\neditor: sam");
+		$this->entry('_post/2009-03-03.edited.md', "title: Edited\ndate: 2009-03-03\neditor: sam");
+		$this->entry('_post/2009-03-04.edited-again.md', "title: Edited Again\ndate: 2009-03-04\neditor: sam");
 		$this->entry('_profile/sam.md', 'title: Sam', 'Edits things.');
 		$this->entry('_author/justintadlock.md', 'title: Justin Tadlock');
 		$this->entry('_author/guest.md', 'title: Guest');

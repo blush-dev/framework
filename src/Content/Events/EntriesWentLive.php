@@ -23,7 +23,7 @@ use Blush\Content\Entry\Entry;
  * The job runs every minute with cron; without cron, the next runner
  * catches up, so `$since` (the job's last look) may be long before
  * `$at`, and a listener that only wants fresh news can check each
- * entry's `published`.
+ * entry's `date`.
  *
  * An entry published as it's saved (not scheduled first) isn't in it.
  */

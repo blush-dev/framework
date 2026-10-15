@@ -4,6 +4,17 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **The editor's Status menu: every status, or only the reachable
+  ones?** (the author, 2026-10-15, trying a site workflow on Recipes.)
+  Now (D-851) the menu lists where the entry is, then only the statuses
+  a transition the account may make leads to; the rest of the
+  workflow's statuses aren't there, which reads as if they're missing.
+  The option raised: list every status of the workflow, the reachable
+  ones to choose and the rest shown but disabled, each saying why ("No
+  step from Draft", "Your role can't Approve"). Open: whether that's
+  clearer or noisier on a long workflow, and whether the reasons belong
+  in the menu or a tooltip.
+
 - **Inline blocks and Markdown blocks** (D-820). Two naming
   questions left by renaming directives to blocks:
   - **Inline blocks** (`:abbr[…]`, `:kbd[…]`, `:icon[…]`) are blocks of

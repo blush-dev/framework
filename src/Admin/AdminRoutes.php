@@ -66,6 +66,7 @@ use Blush\Admin\Http\ToolController;
 use Blush\Admin\Http\TypeEditController;
 use Blush\Admin\Http\TypesController;
 use Blush\Admin\Http\UsersController;
+use Blush\Admin\Http\WorkflowsController;
 use Blush\Admin\Http\RedirectsController;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
@@ -129,6 +130,11 @@ use Blush\Session\StartSession;
  *     (`RelationsController`, D-593); `POST relations`, and `PATCH` and
  *     `DELETE relations/{name}` edit the ones in `user/data/relations`
  *     (`TypeEditController`).
+ *   - `GET  workflows`: the site's workflows and statuses, and `GET
+ *     workflows/{name}` one; `PUT` and `DELETE workflows/{name}`, `POST
+ *     workflows/{name}/customize`, and `PUT` and `DELETE
+ *     statuses/{name}` edit the site's own (`WorkflowsController`,
+ *     D-854).
  *   - `GET  fields/controls`: the controls and field types definitions
  *     can use (`FieldControlsController`, D-766).
  *   - `GET  fields/sets`: the site's field sets, and `GET
@@ -289,6 +295,13 @@ final readonly class AdminRoutes implements RouteSource
 			Route::put('/menu-locations/{location:[A-Za-z0-9_-]+}', [MenusController::class, 'assign'])->named('menu.assign')->middleware(Authenticate::class),
 			Route::get('/menu-links', [MenusController::class, 'links'])->named('menu.links')->middleware(Authenticate::class),
 			Route::get('/relations', RelationsController::class)->named('relations')->middleware(Authenticate::class),
+			Route::get('/workflows', WorkflowsController::class)->named('workflows')->middleware(Authenticate::class),
+			Route::get('/workflows/{name:[a-z][a-z0-9_]*}', [WorkflowsController::class, 'show'])->named('workflow')->middleware(Authenticate::class),
+			Route::put('/workflows/{name:[a-z][a-z0-9_]*}', [WorkflowsController::class, 'save'])->named('workflow.save')->middleware(Authenticate::class),
+			Route::post('/workflows/{name:[a-z][a-z0-9_]*}/customize', [WorkflowsController::class, 'customize'])->named('workflow.customize')->middleware(Authenticate::class),
+			Route::delete('/workflows/{name:[a-z][a-z0-9_]*}', [WorkflowsController::class, 'delete'])->named('workflow.delete')->middleware(Authenticate::class),
+			Route::put('/statuses/{name:[a-z][a-z0-9_]*}', [WorkflowsController::class, 'saveStatus'])->named('status.save')->middleware(Authenticate::class),
+			Route::delete('/statuses/{name:[a-z][a-z0-9_]*}', [WorkflowsController::class, 'deleteStatus'])->named('status.delete')->middleware(Authenticate::class),
 			Route::post('/relations', [TypeEditController::class, 'createRelation'])->named('relation.create')->middleware(Authenticate::class),
 			Route::post('/relations/{name:[a-z0-9_]+}/check', [TypeEditController::class, 'checkRelation'])->named('relation.check')->middleware(Authenticate::class),
 			Route::get('/relations/{name:[a-z0-9_]+}/uses', [TypeEditController::class, 'relationUses'])->named('relation.uses')->middleware(Authenticate::class),
@@ -339,6 +352,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/media-fields', [HealthController::class, 'rewriteMediaFields'])->named('health.media-fields')->middleware(Authenticate::class),
 			Route::post('/health/undeclared', [HealthController::class, 'removeUndeclared'])->named('health.undeclared')->middleware(Authenticate::class),
+			Route::post('/health/statuses', [HealthController::class, 'resetStatuses'])->named('health.statuses')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
 			Route::post('/health/type-folders', [HealthController::class, 'moveTypeFolders'])->named('health.type-folders')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),

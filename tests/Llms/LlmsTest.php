@@ -71,7 +71,7 @@ final class LlmsTest extends TestCase
 	public function testServesAnEntrysMarkdown(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2009-01-01.quoted.md', "title: \"Say \\\"hi\\\"\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  A *short*\n  summary.", "Some text.\n\n:::figure\n![A photo](/media/photo.jpg)\n:::");
+		$this->entry('_post/2009-01-01.quoted.md', "title: \"Say \\\"hi\\\"\"\ndate: 2009-01-01 10:00:00\nsummary: |\n  A *short*\n  summary.", "Some text.\n\n:::figure\n![A photo](/media/photo.jpg)\n:::");
 		$this->boot();
 
 		$response = $this->get('/archives/quoted.md');
@@ -80,7 +80,7 @@ final class LlmsTest extends TestCase
 		$this->assertSame('text/markdown; charset=UTF-8', $response->getHeaderLine('Content-Type'));
 		$this->assertSame('<http://localhost/archives/quoted>; rel="canonical"', $response->getHeaderLine('Link'));
 		$this->assertMatchesRegularExpression(
-			'#^---\ntitle: "Say \\\\"hi\\\\""\nurl: "http://localhost/archives/quoted"\npublished: "2009-01-01T10:00:00-06:00"\nupdated: "[^"]+"\nsummary: "A \*short\*\\\\nsummary."\n---\n\nSome text.\n\n:::figure\n!\[A photo\]\(http://localhost/media/photo.jpg\)\n:::\n$#',
+			'#^---\ntitle: "Say \\\\"hi\\\\""\nurl: "http://localhost/archives/quoted"\ndate: "2009-01-01T10:00:00-06:00"\nupdated: "[^"]+"\nsummary: "A \*short\*\\\\nsummary."\n---\n\nSome text.\n\n:::figure\n!\[A photo\]\(http://localhost/media/photo.jpg\)\n:::\n$#',
 			(string) $response->getBody(),
 			'Front matter, then the body as written, blocks included, with full URLs (D-396).'
 		);
@@ -139,7 +139,7 @@ final class LlmsTest extends TestCase
 	public function testListsTheSiteInLlmsTxt(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2009-01-01.summed.md', "title: \"Summed [up]\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  Two\n  [lines](/about).");
+		$this->entry('_post/2009-01-01.summed.md', "title: \"Summed [up]\"\ndate: 2009-01-01 10:00:00\nsummary: |\n  Two\n  [lines](/about).");
 		$this->writeSettings('{"app": {"description": "Notes on the web."}}');
 		$this->boot();
 
@@ -211,7 +211,7 @@ final class LlmsTest extends TestCase
 
 		$this->assertSame('text/plain; charset=UTF-8', $response->getHeaderLine('Content-Type'));
 		$this->assertStringStartsWith("# Blush\n\n---\ntitle: \"About\"\nurl: \"http://localhost/about\"\n", $body, 'The heading, then each listed page\'s copy in llms.txt\'s order.');
-		$this->assertStringContainsString("---\ntitle: \"spring\"\nurl: \"http://localhost/archives/spring\"\npublished: ", $body);
+		$this->assertStringContainsString("---\ntitle: \"spring\"\nurl: \"http://localhost/archives/spring\"\ndate: ", $body);
 		$this->assertStringContainsString("\n\nSpring is here.\n\n---\n", $body);
 		$this->assertSame(7, substr_count($body, "\ntitle: "), 'Every page llms.txt lists, and no others.');
 		$this->assertStringNotContainsString('Rainy', $body, 'Not unlisted entries.');

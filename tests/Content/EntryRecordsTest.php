@@ -76,7 +76,7 @@ final class EntryRecordsTest extends TestCase
 		$spring = $posts['spring'] ?? null;
 
 		$this->assertNotNull($spring);
-		$this->assertSame('2008-04-05T14:00:00Z', $spring->fields['published'], 'Times in UTC, as text (the site is in Chicago).');
+		$this->assertSame('2008-04-05T14:00:00Z', $spring->fields['date'], 'Times in UTC, as text (the site is in Chicago).');
 		$this->assertSame('published', $spring->fields['status']);
 		$this->assertSame('public', $spring->fields['visibility']);
 		$this->assertNull($spring->fields['parent_id']);
@@ -110,7 +110,7 @@ final class EntryRecordsTest extends TestCase
 
 	public function testAFileWithoutAnIdHasNoRecord(): void
 	{
-		$this->writeTemporaryFile('user/content/_post/2009-01-01.no-id.md', "---\ntitle: No id\npublished: 2009-01-01\ncategory: art\n---\n");
+		$this->writeTemporaryFile('user/content/_post/2009-01-01.no-id.md', "---\ntitle: No id\ndate: 2009-01-01\ncategory: art\n---\n");
 
 		$content = $this->repository();
 

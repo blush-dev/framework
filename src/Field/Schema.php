@@ -20,7 +20,7 @@ use NoDiscard;
  * against. Resolving:
  *
  * - reads each field from its name or, failing that, its first alias with
- *   a value, so `published` wins over the 1.x `date` (D-078);
+ *   a value, so `summary` wins over the 1.x `excerpt` (D-078);
  * - treats `null` (an empty YAML value), `""`, and `[]` as missing, as 1.x
  *   did (`image: ""` means no image);
  * - normalizes each value, reporting values that don't fit as errors

@@ -54,7 +54,7 @@ final readonly class Listing
 
 	/**
 	 * @param  ?string              $type    The type to list, when not the owner's.
-	 * @param  ?string              $orderBy `published` (a collection's default, newest first), `updated`, `title`, `slug`, `author`, `position`, or a field; never a file name (D-516).
+	 * @param  ?string              $orderBy `date` (a collection's default, newest first), `updated`, `title`, `slug`, `author`, `position`, or a field; never a file name (D-516).
 	 * @param  ?Order               $order   The sort direction.
 	 * @param  ?int                 $perPage Entries per page; `Listing::ALL` for every entry.
 	 * @param  array<string, mixed> $query   Other query arguments, with their 1.x names.

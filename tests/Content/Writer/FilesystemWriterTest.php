@@ -102,7 +102,7 @@ final class FilesystemWriterTest extends TestCase
 		$id      = '_post/2022-03-29.rekindling-the-flame.md';
 		$version = $this->app->container()->make(ContentVersion::class)->current();
 
-		$result = $this->writer()->update($id, new EntryChanges(set: ['status' => 'draft', 'published' => '2022-04-01 09:00:00 -05:00']), $this->writer()->load($id)->version);
+		$result = $this->writer()->update($id, new EntryChanges(set: ['status' => 'draft', 'date' => '2022-04-01 09:00:00 -05:00']), $this->writer()->load($id)->version);
 
 		$this->assertSame(
 			"---\ntitle     : \"Rekindling the Flame\"\nauthor    : justintadlock\ndate      : 2022-04-01 09:00:00 -05:00\nformat    :\ncategory  : [life]\nstatus: draft\nid        : " . self::ID . "\n" . $this->authorRefs() . "---\n\nThe body.\n",
@@ -222,7 +222,7 @@ final class FilesystemWriterTest extends TestCase
 		$id = (string) $this->entryAt($post->path, $this->app)?->id;
 
 		$this->assertTrue(Uuid::isValid($id), 'A new entry has an id (D-477).');
-		$this->assertSame("---\ntitle: \"A Fresh Start\"\nstatus: draft\npublished: 2026-06-01 12:00:00 -05:00\nid: {$id}\n---\n\nHello.\n", $this->file($post->path), 'Its id is last, after a publish date (D-514).');
+		$this->assertSame("---\ntitle: \"A Fresh Start\"\nstatus: draft\ndate: 2026-06-01 12:00:00 -05:00\nid: {$id}\n---\n\nHello.\n", $this->file($post->path), 'Its id is last, after a publish date (D-514).');
 		$this->assertSame('A Fresh Start', $this->content()->find($id)?->title);
 
 		$this->expectException(WriteException::class);
@@ -268,7 +268,7 @@ final class FilesystemWriterTest extends TestCase
 		$page = $this->writer()->createAt($post, '_authors/jane', new EntryChanges(set: ['title' => 'Jane, Blogger']));
 
 		$this->assertSame('_post/_authors/jane.md', $page->path, 'At its key, with no pattern (D-353).');
-		$this->assertSame("---\ntitle: \"Jane, Blogger\"\npublished: 2026-06-01 12:00:00 -05:00\nid: {$this->entryAt($page->path, $this->app)?->id}\n---\n", $this->file($page->path));
+		$this->assertSame("---\ntitle: \"Jane, Blogger\"\ndate: 2026-06-01 12:00:00 -05:00\nid: {$this->entryAt($page->path, $this->app)?->id}\n---\n", $this->file($page->path));
 
 		foreach (['__authors/jane', '_authors/Jane Doe', '../escape', '_authors//jane'] as $key) {
 			try {

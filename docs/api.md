@@ -136,8 +136,9 @@ Every list has the same shape:
 	"subtitle": "",
 	"slug": "hello",
 	"status": "published",
-	"published": "2026-10-01T14:00:00Z",
+	"date": "2026-10-01T14:00:00Z",
 	"updated": "2026-10-02T09:12:00Z",
+	"expires": null,
 	"url": "https://example.com/archives/hello",
 	"excerpt": "The first words of the post…",
 	"image": { "id": "0198…", "url": "https://example.com/media/2026/10/hello.jpg", "alt": "A lake", "width": 1200, "height": 800 },
@@ -151,6 +152,10 @@ Every list has the same shape:
 ```
 
 - **Dates** are in UTC. Your site's time zone is in `/api/v1/site`.
+  **`expires`** is there for types with [expiry](content-types.md#expiry):
+  when the entry comes off the site, or `null`. An expired entry is
+  off the site, so only a token that may edit it reads it
+  (`?status=expired`).
 - **`url`** is there for types whose entries have pages. **`parent`**
   is there for pages and other types that nest: the page above it, or
   `null`.
@@ -197,11 +202,11 @@ What's included has links of its own, but no body.
 | `type` | `?type=post,note` | Entries of those types |
 | `rel:{relationship}` | `?rel:tags=cooking,baking` | Entries linked to any of those, by slug or id |
 | `parent` | `?parent=0199…` | The pages under a page |
-| `published_after`, `published_before` | `?published_after=2026-01-01` | Entries published from, or before, a date |
+| `date_after`, `date_before` | `?date_after=2026-01-01` | Entries dated from, or before, a date |
 | `updated_after` | `?updated_after=2026-10-01T00:00:00Z` | Entries changed since then |
 | `search` | `?search=sourdough` | Entries with those words |
 | `ids` | `?ids=0199…,0198…` | Those entries |
-| `sort` | `?sort=-published` | Sorted by `published`, `updated`, `title`, or `position`; `-` for newest or last first |
+| `sort` | `?sort=-date` | Sorted by `date`, `updated`, `title`, or `position`; `-` for newest or last first |
 
 A list of one type follows that type's own order; a list of several is
 newest first. A list leaves out unlisted entries and the pages
@@ -279,7 +284,7 @@ targets' ids (or slugs). `null` removes a value.
 
 | Request | What it does |
 |---|---|
-| `POST /api/v1/entries` | Makes a draft: `type` and `title`, and any of `subtitle`, `slug`, `published`, `image`, `parent`, `language`, `fields`, `relations`, and `body` (Markdown). Answers `201` with a `Location` |
+| `POST /api/v1/entries` | Makes a draft: `type` and `title`, and any of `subtitle`, `slug`, `date`, `expires`, `image`, `parent`, `language`, `fields`, `relations`, and `body` (Markdown). Answers `201` with a `Location` |
 | `PATCH /api/v1/entries/{id}` | Changes only what it's sent: any of the above but `type` and `language`, and `status` |
 | `DELETE /api/v1/entries/{id}` | Moves it to the trash |
 | `POST /api/v1/media` | Uploads a file, as a form does (`multipart/form-data`, the file as `file`), with `alt`, `caption`, and `title` beside it |
@@ -300,15 +305,21 @@ Each answers what it wrote, as reading it would (`?body=` chooses
   `DELETE`. If someone changed the entry since, the change is refused
   (`412`), never saved over: read it again, and make the change on
   what's there now.
-- **Publishing:** new entries are always drafts. `PATCH` with `status`
-  publishes (`published`), unpublishes (`draft`), or schedules
-  (`scheduled`, with a future `published` date), when the account may
-  publish. A token made to write drafts never can.
+- **Publishing:** new entries start at their workflow's first status,
+  a draft unless the type says otherwise. `PATCH` with `status`
+  publishes (`published`), unpublishes (`draft`), schedules
+  (`scheduled`, with a future `date`), or moves it to another
+  status of its type's workflow, by the transition to it, when the
+  account may make that transition (see
+  [Workflows from a plugin](extending.md#workflows-from-a-plugin)).
+  Going live needs publishing, which a token made to write drafts never
+  can.
 - **Moving:** a new `slug`, or a page's new `parent` (`null` for the
   top), moves an entry; a published one's old address redirects to the
   new one unless you send `redirect: false`.
 - **The trash:** `DELETE` moves an entry to the trash, and a `PATCH`
-  of `status` alone (`draft` or `published`) brings it back. Nothing is
+  of `status` alone (one of its workflow's, such as `draft` or
+  `published`) brings it back. Nothing is
   ever deleted for good, and media is never deleted.
 - **Uploads** follow your Media settings: the kinds and sizes they
   allow, and never SVG.

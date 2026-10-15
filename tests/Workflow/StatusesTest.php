@@ -41,11 +41,11 @@ final class StatusesTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->contentConfig(['types' => ['post' => ['kind' => 'collection']]]);
-		$this->entry('_post/live.md', "title: Live\npublished: 2026-05-01 09:00:00");
+		$this->entry('_post/live.md', "title: Live\ndate: 2026-05-01 09:00:00");
 		$this->entry('_post/rough.md', "title: Rough\nstatus: draft");
 		$this->entry('_post/review.md', "title: Review\nstatus: in_review");
-		$this->entry('_post/featured.md', "title: Featured\nstatus: featured\npublished: 2026-05-02 09:00:00");
-		$this->entry('_post/later.md', "title: Later\nstatus: featured\npublished: 2026-07-01 09:00:00");
+		$this->entry('_post/featured.md', "title: Featured\nstatus: featured\ndate: 2026-05-02 09:00:00");
+		$this->entry('_post/later.md', "title: Later\nstatus: featured\ndate: 2026-07-01 09:00:00");
 		$this->entry('_post/lost.md', "title: Lost\nstatus: Lost");
 		$this->entry('_post/binned.md', "title: Binned\nstatus: trash");
 
@@ -81,7 +81,7 @@ final class StatusesTest extends TestCase
 	{
 		$statuses = $this->statuses();
 
-		$this->assertSame(['draft', 'published', 'in_review', 'featured', 'scheduled', 'trash'], array_keys($statuses->all()));
+		$this->assertSame(['draft', 'published', 'in_review', 'featured', 'scheduled', 'expired', 'trash'], array_keys($statuses->all()));
 		$this->assertSame(['draft', 'published', 'in_review', 'featured'], array_keys($statuses->registered()), 'Core\'s own names aren\'t a workflow\'s to use.');
 		$this->assertSame(['spam'], array_keys($statuses->all(Subject::Responses)), 'Responses have statuses of their own.');
 		$this->assertSame(['published', 'featured'], $statuses->live());

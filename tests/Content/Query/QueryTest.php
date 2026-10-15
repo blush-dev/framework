@@ -33,7 +33,7 @@ final class QueryTest extends TestCase
 
 		$this->assertSame([], $query->types);
 		$this->assertNull($query->limit);
-		$this->assertSame('published', $query->orderBy, 'Newest first, never by file (D-516).');
+		$this->assertSame('date', $query->orderBy, 'Newest first, never by file (D-516).');
 		$this->assertSame(Order::Desc, $query->order);
 		$this->assertSame(StatusScope::Live, $query->statuses);
 		$this->assertSame([Visibility::Public], $query->visibilities());
@@ -105,9 +105,9 @@ final class QueryTest extends TestCase
 		$this->assertSame(['hello'], $query->names);
 		$this->assertSame(['a', 'b'], $query->excludedNames);
 		$this->assertSame([5, 2], [$query->limit, $query->offset]);
-		$this->assertSame(['published', Order::Desc], [$query->orderBy, $query->order]);
+		$this->assertSame(['date', Order::Desc], [$query->orderBy, $query->order]);
 		$this->assertSame([['author', ['justin']]], $query->terms);
-		$this->assertSame(['published', '2008'], [$query->metaKey, $query->metaValue]);
+		$this->assertSame(['date', '2008'], [$query->metaKey, $query->metaValue]);
 		$this->assertSame(['year' => 2008, 'second' => 30], $query->date);
 		$this->assertTrue($query->landing);
 	}
@@ -133,10 +133,10 @@ final class QueryTest extends TestCase
 
 	public function testNeverOrdersByFile(): void
 	{
-		$this->assertSame(['published', Order::Asc], [Query::fromArray(['orderby' => 'filename'])->orderBy, Query::fromArray(['orderby' => 'filename'])->order], '1.x\'s file order is published (D-516).');
-		$this->assertSame('published', Query::fromArray(['orderby' => 'path', 'order' => 'desc'])->orderBy);
-		$this->assertSame('published', new Query()->orderBy('filename')->orderBy);
-		$this->assertSame(['published', Order::Asc], [Query::fromArray(['order' => 'asc'])->orderBy, Query::fromArray(['order' => 'asc'])->order], 'An order alone keeps the default key.');
+		$this->assertSame(['date', Order::Asc], [Query::fromArray(['orderby' => 'filename'])->orderBy, Query::fromArray(['orderby' => 'filename'])->order], '1.x\'s file order is the date (D-516).');
+		$this->assertSame('date', Query::fromArray(['orderby' => 'path', 'order' => 'desc'])->orderBy);
+		$this->assertSame('date', new Query()->orderBy('filename')->orderBy);
+		$this->assertSame(['date', Order::Asc], [Query::fromArray(['order' => 'asc'])->orderBy, Query::fromArray(['order' => 'asc'])->order], 'An order alone keeps the default key.');
 		$this->assertSame(['title', Order::Asc], [Query::fromArray(['orderby' => 'title'])->orderBy, Query::fromArray(['orderby' => 'title'])->order], 'A key alone is ascending, as in 1.x.');
 	}
 

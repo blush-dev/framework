@@ -444,8 +444,9 @@ final readonly class RecordContentWriter implements ContentWriter
 
 		$result    = $schema->resolve($front, $this->context);
 		$values    = $result->values;
-		$published = is_int($values['published'] ?? null) ? $values['published'] : null;
-		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : ($published ?? $this->clock->now()->getTimestamp());
+		$date      = is_int($values['date'] ?? null) ? $values['date'] : null;
+		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : ($date ?? $this->clock->now()->getTimestamp());
+		$expires   = $type->expires && is_int($values['expires'] ?? null) ? $values['expires'] : null;
 		$status    = is_string($values['status'] ?? null) && trim($values['status']) !== '' ? strtolower(trim($values['status'])) : null;
 		$key       = $this->keyOf($place);
 		$hidden    = array_any(explode('/', $key), static fn (string $part): bool => str_starts_with($part, '_'));
@@ -462,12 +463,13 @@ final readonly class RecordContentWriter implements ContentWriter
 				$place['original_id'],
 				$status ?? Status::PUBLISHED,
 				($hidden ? Visibility::Hidden : $declared ?? Visibility::Public)->value,
-				$published,
+				$date,
 				$updated,
 				is_string($values['title'] ?? null) ? $values['title'] : '',
 				$values,
 				$result->extra,
-				$place['archive']
+				$place['archive'],
+				$expires
 			),
 			self::WRITTEN => $kept
 		];
@@ -826,7 +828,7 @@ final readonly class RecordContentWriter implements ContentWriter
 
 	/**
 	 * Returns changes for a new entry: its id (one the changes give, when
-	 * it's a UUID no entry has, D-653; else a new one), and a `published`
+	 * it's a UUID no entry has, D-653; else a new one), and a `date`
 	 * date of now in the site's time zone when neither the changes nor
 	 * the front matter it starts from (a copy's) has one (D-514).
 	 *
@@ -840,8 +842,8 @@ final readonly class RecordContentWriter implements ContentWriter
 			: Uuid::v7($this->clock->now());
 		$set   = self::withoutId($changes)->set;
 
-		if (array_intersect_key([...$frontMatter, ...$set], ['published' => true, 'date' => true]) === []) {
-			$set['published'] = $this->clock->now()->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
+		if (array_intersect_key([...$frontMatter, ...$set], ['date' => true]) === []) {
+			$set['date'] = $this->clock->now()->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
 		}
 
 		return new EntryChanges([...$set, EntryFields::ID => $id], $changes->remove, $changes->body);

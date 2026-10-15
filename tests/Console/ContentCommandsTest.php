@@ -102,12 +102,12 @@ final class ContentCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('#_post/2008-04-05\.spring\.md\n  notice\s+author\s+is read as "authors"\.\n  notice\s+tag\s+is not declared by the schema\.\n#', $strict->output);
 		$this->assertMatchesRegularExpression('/Checked 19 files, \d+ notices/', $strict->output);
 
-		$this->entry('about.md', "title: Old\npublished: soon");
+		$this->entry('about.md', "title: Old\ndate: soon");
 
 		$failed = $tester->run('content:lint');
 
 		$this->assertSame(ExitCode::Failure, $failed->exitCode);
-		$this->assertMatchesRegularExpression('#about\.md\n  error\s+published\s+must be a date#', $failed->output);
+		$this->assertMatchesRegularExpression('#about\.md\n  error\s+date\s+must be a date#', $failed->output);
 		$this->assertMatchesRegularExpression('#  warning\s+file\s+is the same entry as about/index\.md, which wins\.#', $failed->output);
 		$this->assertStringContainsString('Checked 20 files, 1 error, 1 warning', $failed->errors);
 	}
@@ -231,7 +231,7 @@ final class ContentCommandsTest extends TestCase
 	public function testWritesMissingTerms(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: Lost Cause");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\ndate: 2009-01-01\ncategory: Lost Cause");
 		$tester = $this->tester();
 
 		$check = $tester->run('content:terms');
@@ -285,7 +285,7 @@ final class ContentCommandsTest extends TestCase
 		$this->assertTrue($post->isSuccessful());
 		$this->assertMatchesRegularExpression('#\ACreated user/content/_post/hello-world-again\.md\n\nEdit it in the admin: http://localhost/admin/content/post/[0-9a-f-]{36}\n\z#', $post->output, 'With where the admin edits it (D-721).');
 		$this->assertMatchesRegularExpression(
-			'/\A---\ntitle: "Hello, World: Again!"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/',
+			'/\A---\ntitle: "Hello, World: Again!"\ndate: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/',
 			(string) file_get_contents("{$content}/_post/hello-world-again.md"),
 			'With an id, last (D-477).'
 		);
@@ -293,7 +293,7 @@ final class ContentCommandsTest extends TestCase
 
 		$tester->run(['content:new', 'page', 'Colophon', '--slug=credits', '--draft']);
 
-		$this->assertMatchesRegularExpression('/\A---\ntitle: Colophon\npublished: 2026-06-01 12:00:00 -05:00\nstatus: draft\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/', (string) file_get_contents("{$content}/credits.md"));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Colophon\ndate: 2026-06-01 12:00:00 -05:00\nstatus: draft\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/', (string) file_get_contents("{$content}/credits.md"));
 
 		$tester->run(['content:new', 'category', 'Life']);
 

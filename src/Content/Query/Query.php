@@ -26,7 +26,7 @@ use Blush\Storage\Record\Order;
  *     $content->query()
  *         ->type('post')
  *         ->whereTerm('category', 'art')
- *         ->orderBy('published', Order::Desc)
+ *         ->orderBy('date', Order::Desc)
  *         ->paginate(perPage: 10, page: $page);
  *
  * or from 1.x query arguments (D-078) with `fromArray()`, as written in a
@@ -80,7 +80,7 @@ final readonly class Query
 	 * @var list<string>
 	 */
 	/**
-	 * The 1.x `orderby` values that sorted by file, read as `published`
+	 * The 1.x `orderby` values that sorted by file, read as `date`
 	 * (D-516).
 	 */
 	public const array FILE_ORDER = ['filename', 'path'];
@@ -98,7 +98,7 @@ final readonly class Query
 	 * @param list<string>                     $excludedNames Slugs to leave out.
 	 * @param ?int                             $limit         How many entries; `null` for all.
 	 * @param int                              $offset        How many matching entries to skip.
-	 * @param string                           $orderBy       `published` (the default), `updated`, `title`, `slug`, `status`, `author`, `position`, a field, or a taxonomy; never a file name (D-516).
+	 * @param string                           $orderBy       `date` (the default), `updated`, `title`, `slug`, `status`, `author`, `position`, a field, or a taxonomy; never a file name (D-516).
 	 * @param Order                            $order         The sort direction; newest first by default.
 	 * @param list<array{string, list<string>}> $terms        Term type (or people key) and slugs; an entry needs one of the slugs for each.
 	 * @param ?string                          $metaKey       A field entries must have.
@@ -124,7 +124,7 @@ final readonly class Query
 		public array $excludedNames = [],
 		public ?int $limit = null,
 		public int $offset = 0,
-		public string $orderBy = 'published',
+		public string $orderBy = 'date',
 		public Order $order = Order::Desc,
 		public array $terms = [],
 		public ?string $metaKey = null,
@@ -156,22 +156,22 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns the key an `orderby` value sorts by: `date` is `published`,
-	 * and so are 1.x's `filename` and `path`, since entries are never
+	 * Returns the key an `orderby` value sorts by: 1.x's `filename` and
+	 * `path` are `date`, since entries are never
 	 * sorted by where their files are (D-516): a database has no file
 	 * names, and a type's file names may change over time (D-511).
 	 */
 	public static function orderKey(string $orderBy): string
 	{
-		return in_array($orderBy, ['date', ...self::FILE_ORDER], true) ? 'published' : $orderBy;
+		return in_array($orderBy, self::FILE_ORDER, true) ? 'date' : $orderBy;
 	}
 
 	/**
 	 * Builds a query from 1.x query arguments: `type`, `path`, `names` (or
 	 * `slug`), `names_exclude`, `number` (10 by default; zero or less for
 	 * all), `offset`, `order`, `orderby` (`date`, and 1.x's `filename`
-	 * and `path`, mean `published`, D-516; with `orderby` and no `order`,
-	 * ascending; with neither, newest published first),
+	 * and `path`, mean `date`, D-516; with `orderby` and no `order`,
+	 * ascending; with neither, newest first by date),
 	 * `author`, `meta_key` and `meta_value`, `year` through `second`, and
 	 * `noindex`. 2.x adds `status`, `visibility`, `terms` (taxonomy names
 	 * to slugs), `locale`, and `language` (a code, or `*` for every
@@ -235,7 +235,7 @@ final readonly class Query
 
 		if (isset($arguments['meta_key'])) {
 			$key   = self::string($arguments['meta_key'], 'meta_key');
-			$query = $query->where($key === 'date' ? 'published' : $key, isset($arguments['meta_value']) ? self::string($arguments['meta_value'], 'meta_value') : null);
+			$query = $query->where($key, isset($arguments['meta_value']) ? self::string($arguments['meta_value'], 'meta_value') : null);
 		}
 
 		$date = [];
@@ -353,11 +353,11 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns a copy sorted by `published`, `updated`, `title`, `slug`,
+	 * Returns a copy sorted by `date`, `updated`, `title`, `slug`,
 	 * `status` (as it is now, so a scheduled entry sorts as
 	 * `scheduled`), `author`, any field, or else a taxonomy's first term. Entries without the value sort as lowest;
 	 * ties go by id, the order entries were made. `date`, `filename`, and
-	 * `path` mean `published`: entries are never sorted by file (D-516).
+	 * `path` mean `date`: entries are never sorted by file (D-516).
 	 */
 	#[NoDiscard]
 	public function orderBy(string $key, Order $order = Order::Asc): self
@@ -451,7 +451,7 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns a copy limited to entries published in a period, read in the
+	 * Returns a copy limited to entries dated in a period, read in the
 	 * site timezone. Parts left `null` match anything.
 	 */
 	#[NoDiscard]

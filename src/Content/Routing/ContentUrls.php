@@ -39,7 +39,7 @@ use Blush\Support\RequestMemo;
  *   entry: `{name}` is the key (the slug, unless the entry sits in a
  *   subfolder of the type's folder, which a one-segment `{name}` can't
  *   hold, so such entries have no URL), `{year}` … `{second}` come from the
- *   published date, and a term type's name (such as `{author}` or
+ *   date, and a term type's name (such as `{author}` or
  *   `{category}`) is the entry's first term of it.
  * - Terms use `single` with the term's slug, and are paged with
  *   `single.paged`. A hierarchical collection's `{name}` is the entry's
@@ -430,9 +430,9 @@ final readonly class ContentUrls
 	{
 		$values = ['name' => $entry->key];
 
-		if ($entry->published !== null) {
+		if ($entry->date !== null) {
 			foreach (self::DATE_FORMATS as $part => $format) {
-				$values[$part] = $entry->published->format($format);
+				$values[$part] = $entry->date->format($format);
 			}
 		}
 

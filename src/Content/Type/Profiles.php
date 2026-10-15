@@ -61,6 +61,8 @@ final readonly class Profiles extends ContentType
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $llms        Whether profiles are listed in `llms.txt` (D-401).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
+	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
+	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -80,11 +82,13 @@ final readonly class Profiles extends ContentType
 		bool $llms = false,
 		?FileName $filename = null,
 		FieldControls $controls = new FieldControls(),
+		?string $workflow = null,
+		bool $expires = false,
 		Messages $messages = new Messages()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Profiles, $name, $messages);
 
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $messages);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename, null, null, $controls, $workflow, $expires, $messages);
 	}
 
 	/**

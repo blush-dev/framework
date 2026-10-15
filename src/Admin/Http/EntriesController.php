@@ -79,17 +79,17 @@ use Blush\Workflow\Statuses;
  *   entries with more values in it than that, for a relationship change
  *   refused or warned over the entries in the way (D-610); needs
  *   `type`. It's answered as the relation's label and `above`, or `null`.
- * - `sort`: `title`, `status`, `author`, `published`, or `updated`, and
+ * - `sort`: `title`, `status`, `author`, `date`, or `updated`, and
  *   `dir`, `asc` or `desc` (the dates newest first unless `dir` says
  *   otherwise, the rest A to Z).
  * - `page` (from 1) and `per` (20 by default, at most 100).
  *
  * Unsorted, a type's whole list (any status) goes by `position`, then
- * title, for a tree or a positioned collection (D-412), newest published first for a
+ * title, for a tree or a positioned collection (D-412), newest first by date for a
  * collection, and by title for profiles (D-413); drafts, and the list of every type, come most
  * recently changed first, scheduled entries soonest first, and
  * published entries newest first. `by` says which the list is in order
- * of (`position`, `published`, `updated`, or the column sorted by), so
+ * of (`position`, `date`, `updated`, or the column sorted by), so
  * the admin can show the date it goes by. The
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
@@ -138,7 +138,7 @@ final readonly class EntriesController
 	 *
 	 * @var list<string>
 	 */
-	public const array SORTS = ['title', 'status', 'author', 'published', 'updated'];
+	public const array SORTS = ['title', 'status', 'author', 'date', 'updated'];
 
 	/**
 	 * The most days `days` reaches back.
@@ -255,7 +255,7 @@ final readonly class EntriesController
 		}
 
 		$order = match ($params['dir'] ?? '') {
-			''      => $sort === 'updated' || $sort === 'published' ? Order::Desc : Order::Asc,
+			''      => $sort === 'updated' || $sort === 'date' ? Order::Desc : Order::Asc,
 			'asc'   => Order::Asc,
 			'desc'  => Order::Desc,
 			default => null
@@ -284,25 +284,25 @@ final readonly class EntriesController
 		}
 
 		// Unsorted, a type's All tab goes by position, then title, where
-		// its entries have one (D-412), newest published first for a
+		// its entries have one (D-412), newest first by date for a
 		// collection, and by title for profiles (D-413).
 		$contentType = $type === null ? null : $this->types->find($type);
 		$positioned  = $contentType instanceof Tree || ($contentType instanceof Collection && $contentType->isPositioned());
 		$by          = match (true) {
 			$sort !== ''                                         => $sort,
 			$trash                                               => EntryFields::TRASHED,
-			$status === Status::SCHEDULED                        => 'published',
-			$status === Status::PUBLISHED                        => 'published',
+			$status === Status::SCHEDULED                        => 'date',
+			$status === Status::PUBLISHED                        => 'date',
 			$status === null && $positioned                      => 'position',
 			$status === null && $contentType instanceof Profiles => 'title',
-			$status === null && $contentType !== null            => 'published',
+			$status === null && $contentType !== null            => 'date',
 			default                                              => 'updated'
 		};
 
 		$query = match (true) {
 			$sort === 'author'            => $authors === '' ? $query : $query->orderBy($authors, $order),
 			$sort !== ''                  => $query->orderBy($sort, $order),
-			$status === Status::SCHEDULED => $query->orderBy('published', Order::Asc),
+			$status === Status::SCHEDULED => $query->orderBy('date', Order::Asc),
 			$by === 'position'            => $query->orderBy('position', Order::Asc),
 			$by === 'title'               => $query->orderBy('title', Order::Asc),
 			default                       => $query->orderBy($by, Order::Desc)
@@ -648,7 +648,7 @@ final readonly class EntriesController
 			'type'        => $entry->type->name,
 			'status'      => $entry->status->name,
 			'trashed'     => EntryController::trashed($entry),
-			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
+			'date'   => $entry->date?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
 			'url'         => $this->urls->entry($entry),
 			'authors'     => self::credited($entry),

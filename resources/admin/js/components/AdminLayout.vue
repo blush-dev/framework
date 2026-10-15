@@ -147,7 +147,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const library = usesMedia() ? [screen('media', t('admin_layout.nav_media', 'Media'), 'image')] : [];
 
 	const structure = [
-		...(can('site.settings') ? [screen('types', t('admin_layout.nav_types', 'Content Types'), 'layers'), screen('relations', t('admin_layout.nav_relations', 'Relationships'), 'workflow'), screen('fields', t('admin_layout.nav_fields', 'Fields'), 'group')] : []),
+		...(can('site.settings') ? [screen('types', t('admin_layout.nav_types', 'Content Types'), 'layers'), screen('relations', t('admin_layout.nav_relations', 'Relationships'), 'workflow'), screen('workflows', t('admin_layout.nav_workflows', 'Workflows'), 'route'), screen('fields', t('admin_layout.nav_fields', 'Fields'), 'group')] : []),
 		// Menus, with their own capability.
 		...(can('menus.edit') ? [screen('menus', t('admin_layout.nav_menus', 'Menus'), 'menu')] : [])
 	];

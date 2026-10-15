@@ -56,9 +56,9 @@ final class RelationFormsTest extends TestCase
 		$this->entry('about/team.md', 'title: Team');
 		$this->entry('_category/art.md', 'title: Art');
 		$this->entry('_category/painting.md', "title: Painting\nparent: art");
-		$this->entry('_post/a.md', "title: A\npublished: 2026-01-01\ncategory: [Painting, Book Reviews]");
-		$this->entry('_post/b.md', "title: B\npublished: 2026-01-02\ncategory: painting\nsee_also: about/team");
-		$this->entry('_post/c.md', "title: C\npublished: 2026-01-03\ncategory: [" . self::idFor('_category/art.md') . ']');
+		$this->entry('_post/a.md', "title: A\ndate: 2026-01-01\ncategory: [Painting, Book Reviews]");
+		$this->entry('_post/b.md', "title: B\ndate: 2026-01-02\ncategory: painting\nsee_also: about/team");
+		$this->entry('_post/c.md', "title: C\ndate: 2026-01-03\ncategory: [" . self::idFor('_category/art.md') . ']');
 
 		$this->app = $this->site('development');
 	}
@@ -78,7 +78,7 @@ final class RelationFormsTest extends TestCase
 		$result = $this->writer()->update('_post/a.md', new EntryChanges(set: ['title' => 'A, Again']));
 
 		$this->assertSame(
-			"---\nid: " . self::idFor('_post/a.md') . "\ntitle: \"A, Again\"\npublished: 2026-01-01\ncategory: [painting, 'Book Reviews']\nrefs:\n  category:\n    painting: " . self::idFor('_category/painting.md') . "\n---\n",
+			"---\nid: " . self::idFor('_post/a.md') . "\ntitle: \"A, Again\"\ndate: 2026-01-01\ncategory: [painting, 'Book Reviews']\nrefs:\n  category:\n    painting: " . self::idFor('_category/painting.md') . "\n---\n",
 			$this->file('_post/a.md'),
 			'The slug Blush writes, a value naming nothing kept as typed, and the ids of what links (D-596).'
 		);
@@ -98,7 +98,7 @@ final class RelationFormsTest extends TestCase
 		$type   = $this->app->container()->make(ContentTypes::class)->find('post');
 		$result = $this->writer()->create($type ?? self::fail('No post type.'), 'd', new EntryChanges(set: ['title' => 'D', 'category' => 'art']));
 
-		$this->assertStringContainsString("category: art\npublished: ", $this->file($result->path), 'One value written on its own stays on its own.');
+		$this->assertStringContainsString("category: art\ndate: ", $this->file($result->path), 'One value written on its own stays on its own.');
 		$this->assertStringContainsString("\nrefs:\n  category:\n    art: " . self::idFor('_category/art.md') . "\n---", $this->file($result->path), 'Last, after the id (D-801).');
 	}
 

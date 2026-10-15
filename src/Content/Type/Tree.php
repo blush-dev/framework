@@ -59,6 +59,8 @@ final readonly class Tree extends ContentType
 	 * @param  ?string         $prefix      The path a tree in a folder is served under (D-683); its name by default.
 	 * @param  ?int            $position    Its order in the admin's menu (D-726).
 	 * @param  ?string         $under       The type it sits under in the admin's menu (D-726).
+	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
+	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -78,11 +80,13 @@ final readonly class Tree extends ContentType
 		?int $position = null,
 		?string $under = null,
 		FieldControls $controls = new FieldControls(),
+		?string $workflow = null,
+		bool $expires = false,
 		Messages $messages = new Messages()
 	) {
 		$labels ??= BuiltInType::labelsFor(TypeKind::Tree, $name, $messages);
 
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $messages);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $messages);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

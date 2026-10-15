@@ -94,11 +94,11 @@ trait BuildsContentSite
 		$this->entry('__drafts/idea.md', 'title: Idea');
 		$this->entry('_post/index.md', 'title: Blog');
 		$this->entry('_post/2003-04-15.welcome.md', "title: Welcome\ndate: 2003-04-15 17:39:00 -5\ncategory: old-posts\nauthor: justintadlock", 'Hello and welcome to my site.');
-		$this->entry('_post/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\ncategory: [art, Book Reviews]\nauthor: [justintadlock, guest]\ntag: flowers", 'Spring is here.');
-		$this->entry('_post/2008-04-20.rainy.md', "title: Rainy\npublished: 2008-04-20 10:00:00\nvisibility: unlisted\ncategory: art");
-		$this->entry('_post/2026-12-25.future.md', "title: Future\npublished: 2026-12-25 08:00:00");
-		$this->entry('_post/2020-01-01.unfinished.md', "title: Unfinished\npublished: 2020-01-01\nstatus: draft");
-		$this->entry('_post/hello/index.md', "title: Hello Bundle\npublished: 2010-01-01 12:00:00", 'A bundle.');
+		$this->entry('_post/2008-04-05.spring.md', "title: spring\ndate: 2008-04-05 09:00:00\ncategory: [art, Book Reviews]\nauthor: [justintadlock, guest]\ntag: flowers", 'Spring is here.');
+		$this->entry('_post/2008-04-20.rainy.md', "title: Rainy\ndate: 2008-04-20 10:00:00\nvisibility: unlisted\ncategory: art");
+		$this->entry('_post/2026-12-25.future.md', "title: Future\ndate: 2026-12-25 08:00:00");
+		$this->entry('_post/2020-01-01.unfinished.md', "title: Unfinished\ndate: 2020-01-01\nstatus: draft");
+		$this->entry('_post/hello/index.md', "title: Hello Bundle\ndate: 2010-01-01 12:00:00", 'A bundle.');
 		$this->entry('_category/index.md', 'title: Topics');
 		$this->entry('_category/art.md', 'title: Art');
 		$this->entry('_category/book-reviews.md', 'title: Book Reviews');

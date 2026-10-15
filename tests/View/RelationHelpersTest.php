@@ -41,12 +41,12 @@ final class RelationHelpersTest extends TestCase
 			]
 		]);
 
-		$this->entry('_post/a.md', "title: A\npublished: 2026-01-01\nrelated: [b]");
-		$this->entry('_post/b.md', "title: B\npublished: 2026-01-02");
-		$this->entry('_post/c.md', "title: C\npublished: 2026-01-03\nrelated: [b, d]");
-		$this->entry('_post/d.md', "title: D\npublished: 2026-01-04\nstatus: draft");
-		$this->entry('_movie/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom, meg]");
-		$this->entry('_movie/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom]");
+		$this->entry('_post/a.md', "title: A\ndate: 2026-01-01\nrelated: [b]");
+		$this->entry('_post/b.md', "title: B\ndate: 2026-01-02");
+		$this->entry('_post/c.md', "title: C\ndate: 2026-01-03\nrelated: [b, d]");
+		$this->entry('_post/d.md', "title: D\ndate: 2026-01-04\nstatus: draft");
+		$this->entry('_movie/big.md', "title: Big\ndate: 2026-01-01\nactors: [tom, meg]");
+		$this->entry('_movie/splash.md', "title: Splash\ndate: 2026-02-01\nactors: [tom]");
 		$this->entry('_person/tom.md', 'title: Tom');
 		$this->entry('_person/meg.md', 'title: Meg');
 

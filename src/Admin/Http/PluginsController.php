@@ -37,6 +37,8 @@ use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Statuses;
+use Blush\Workflow\Workflows;
 
 /**
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
@@ -89,7 +91,9 @@ final readonly class PluginsController
 		private ExtensionInstaller $installer,
 		private ContentTypes $types,
 		private ExtensionText $text,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses,
+		private Workflows $workflows
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -184,14 +188,15 @@ final readonly class PluginsController
 	{
 		$said = [];
 
-		foreach ($this->types->clashes as $clash) {
+		// Types, relations, statuses, and workflows (D-853) by one name.
+		foreach ([...$this->types->clashes, ...$this->statuses->clashes(), ...$this->workflows->clashes()] as $clash) {
 			if ($this->plugins->owning($clash->dropped)?->name === $name) {
 				$said[] = $this->messages->t(
 					'admin.plugins_controller.clash',
-					'Its "{name}" {kind, select, type {content type} relation {relation} other {{kind}}} is left out: {owner} defines one by that name too.',
+					'Its "{name}" {kind, select, type {content type} relation {relation} status {status} workflow {workflow} other {{kind}}} is left out: {owner} defines one by that name too.',
 					name: $clash->name,
 					kind: $clash->kind,
-					owner: $this->plugins->owning($clash->kept)->label ?? $clash->kept
+					owner: $this->plugins->owning($clash->kept)->label ?? (str_starts_with($clash->kept, 'Blush\\') ? 'Blush' : $clash->kept)
 				);
 			}
 		}

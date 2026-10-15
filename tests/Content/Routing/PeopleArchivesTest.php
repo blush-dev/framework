@@ -365,7 +365,7 @@ final class PeopleArchivesTest extends TestCase
 
 	public function testATypeCreditsPeopleInItsOwnWords(): void
 	{
-		$this->entry('_post/2009-02-02.shots.md', "title: Shots\npublished: 2009-02-02\nauthor: guest\nphotographer: justintadlock");
+		$this->entry('_post/2009-02-02.shots.md', "title: Shots\ndate: 2009-02-02\nauthor: guest\nphotographer: justintadlock");
 
 		$app  = $this->boot(['byline' => 'authors'], authors: ['inverse' => ['archive' => 'writers']], relations: ['photographers' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'multiple' => false, 'aliases' => ['photographer'], 'label' => 'Photographers']]);
 		$body = (string) $this->get($app, '/archives/shots')->getBody();

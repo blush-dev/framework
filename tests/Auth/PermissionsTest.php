@@ -60,7 +60,7 @@ final class PermissionsTest extends TestCase
 		$this->writeTemporaryFile('user/content/my-draft.md', "---\nid: 7c65ba47-3ddc-81a6-9756-9426c6c0bbf0\ntitle: My draft\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/theirs.md', "---\nid: dfa06296-3e2e-c055-9225-577df64507e2\ntitle: Theirs\nauthors: [sam, lee]\n---\n");
 		$this->writeTemporaryFile('user/content/their-draft.md', "---\nid: 132aafcd-1c14-f988-a19f-1d615683b2ed\ntitle: Their draft\nauthors: sam\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\nid: c5fede04-af7c-179c-ec65-0471134715f6\ntitle: My scheduled\nauthors: [sam, jane]\npublished: 2099-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\nid: c5fede04-af7c-179c-ec65-0471134715f6\ntitle: My scheduled\nauthors: [sam, jane]\ndate: 2099-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/nobodys.md', "---\nid: 2a6fa078-34d3-123d-8700-a30179fd7867\ntitle: Nobody's\n---\n");
 		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
 		$this->writeTemporaryFile('user/content/_profile/sam.md', "---\nid: dc24b740-5b4f-dcea-63e7-28c113a2936d\ntitle: Sam\n---\n");

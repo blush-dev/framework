@@ -659,7 +659,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   own `Schema` (`fields`, `closed`). `Collection` adds `dateArchives`
   (`DateArchives`), `hierarchical` (a `parent` relation to its own
   entries, filed as a ref, D-591, D-593), and `order` (`TypeOrder`:
-  `published` or `position`); terms are collections a classify relation
+  `date` or `position`); terms are collections a classify relation
   files entries under (`ContentTypes::classification()`,
   `hasTermPages()`, `termArguments()`, D-593); `Tree` has no URLs, listing, or feed, and its folder
   is the content root for `page` only (`atRoot()`; others are served
@@ -725,7 +725,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   (D-081), and problems are `Violation`s with a `Severity`, never
   exceptions.
 - **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
-  `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
+  `date` (D-852; once `published`), `updated`, `status`, `visibility`, `summary`
   (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
   `stylesheet`, `class`, and
   `collection`, plus the field of each relation the site defines from
@@ -748,7 +748,7 @@ Stage 1 of D-850 built (D-732 to D-735).
   core's own), `find()`, `get()` (`Status::unknown()` for a name
   nothing registers: not live, active, `known` false), `live()`,
   `offline()`, `inactive()`, `at()` (a live status with a future
-  `published` is scheduled), and `clashes()` (a name registered twice,
+  `date` is scheduled), and `clashes()` (a name registered twice,
   or a core name: the first kept, D-597).
 - Files keep the status as written, lowercased (`RecordBuilder`); front
   matter's `status` is a text field so an unregistered name isn't
@@ -761,6 +761,129 @@ Stage 1 of D-850 built (D-732 to D-735).
 - The admin's shell config has `statuses` (`toArray()`, in the
   account's language); `statuses.ts` and `StatusPill` read them.
 
+### Workflows and transitions
+Stage 2a of D-850 built (D-851).
+
+- `Workflow`: `name`, `label`, `statuses` (registered names, in list
+  order), `initial`, `transitions`, `subject`; `has()`, `transition()`,
+  `from()` (an outside status gets `initial`'s), `between()`,
+  `problem()`. `Transition`: `name`, `label`, `from` (none for any of
+  the workflow's), `to`, `capability` (`false` for one `publish` alone
+  allows); `capabilityOn($type)` is `content.{type}.transition.{name}`,
+  and `Transition::parse()` splits one.
+- `WorkflowSource` (tag `workflow.workflows`); core's `CoreWorkflows`
+  (`standard`: draft, published; Publish and Unpublish, no capability
+  of their own) first. `Workflows`, memoized (`workflow|workflows`):
+  `all()`, `find()`, `standard()`, `for($type)` (the type's
+  `workflow`, else `standard`), `typesUsing()`, `problems()` (workflows
+  left out, types naming a missing one), `clashes()`.
+- Types: every kind takes `workflow` (`ContentType::$workflow`, `null`
+  for `standard`), and `DataTypeWriter` writes it.
+- `Transitions`: `stored($frontMatter)` (the stored status, `published`
+  for none), `allowed()`, `between()`, `named()`, `refusal()` (no
+  transition, its capability, `publish` into or out of live),
+  `isMissing()`, and `changing()`/`changed()`, which dispatch
+  `StatusChanging` (stoppable; `refuse()`) and `StatusChanged`. A
+  `RETURN` transition to `initial` is offered to an entry outside its
+  workflow. `withPermissions()` narrows it as `EntryEditor::limitedTo()`
+  does.
+- `EntryEditor`: every save works out the stored status before and
+  after (`storedAfter()`); a change is checked (`checkMove()`) and
+  announced before it's written, and `changed()` after. `create()`
+  starts at `initial` (`NewEntry::$status` `null`), and checks another
+  as a transition from it; `duplicate()` and `restore()` (`''`) use
+  `initial`; `setStatus()` takes a workflow status or `scheduled` (into
+  `liveTarget()`), `transition()` a name. Trash, Restore, and Undo
+  dispatch the events with no transition.
+- `Capabilities` lists each type's workflow's transitions with a
+  capability of their own, and `content.*.transition.{name}`; the
+  administrator and editor roles have `content.*.transition.*`.
+- The admin's entry JSON has `stored`, `workflow`, and the
+  `transitions` the account may make; `set_status` takes `transition`
+  and is offered with `publish` or a transition capability; `get_type`
+  lists the workflow; `content:lint` warns of a status outside the
+  type's workflow and lists `Workflows::problems()` under `workflows`.
+- The admin (2b): the editor's buttons and Status menu come from the
+  entry's `transitions` (`primary`, `secondary`, `statusOptions` in
+  `EditorView`); a list's tabs from its type's `statuses` (`GET
+  types`); Type Settings' Workflow select from `workflows` (`GET
+  types/{name}`); `CapabilitySections` draws `UsersJson`'s transition
+  capabilities (`transition: {name, label}`) in each type's section.
+
+### The site's own statuses and workflows
+Stage 4 of D-850 built (D-853).
+
+- `WorkflowTables`: the `statuses` and `workflows` data tables, keyed by
+  `name` (`user/data/statuses/{name}.json`), registered with the
+  `TableRegistry` by `WorkflowServiceProvider`.
+- `Statuses` reads them after the sources: a record over a registered
+  status (core's `draft` and `published` too) sets only `label`,
+  `plural`, and `tone`; a new one sets everything; core's own names and
+  records that can't be read are left out (`problems()`).
+- `Workflows` reads them after the sources: a valid record replaces a
+  workflow by name, `standard` too; one that isn't is left out, the one
+  it would replace kept (`problems()`).
+- `SiteChecks`: "Names defined twice" lists status and workflow clashes
+  (a core status a plugin redefines, said apart); "Statuses and
+  workflows left out" lists both `problems()`. Each plugin's screen
+  says which of its statuses and workflows clash.
+- Lint's status warnings are `ViolationKind::Status`; Site Health groups
+  them (**Statuses Outside Their Workflow**) with **Reset**:
+  `POST health/statuses` (`HealthFix::Statuses`, `HealthFixJob`) and
+  `StatusRepair` (`report()`, `repair()`), each
+  `EntryEditor::resetStatus()`: `site.health`, the workflow's `initial`,
+  no transition, the events, and the activity log.
+
+### The Workflows screen
+Stage 5 of D-850 built (D-854).
+
+- `WorkflowWriter` writes the site's records: `saveStatus()` (over a
+  registered status, only what differs from it, `registeredBy()`; the
+  site's own, everything), `deleteStatus()` (refused while a workflow
+  uses one of its own), `saveWorkflow()` (`Workflow::fromArray()`,
+  checked by `problem()`), `customize()`, and `deleteWorkflow()`
+  (refused while types use one of its own; a copy reverts). Each
+  forgets the request memo.
+- `Statuses::origin()` and `Workflows::origin()` say where each comes
+  from (`source`: a class, `site`, or `core`; `over`), and
+  `Statuses::define()` builds a record as `load()` reads it.
+- `Admin\Http\WorkflowsController`: `GET workflows` (both tabs and
+  `problems`), `GET`/`PUT`/`DELETE workflows/{name}`, `POST
+  workflows/{name}/customize`, `PUT`/`DELETE statuses/{name}`; a write
+  bumps the content version.
+- Admin: `WorkflowsView` (tabs Workflows and Statuses, `StatusDialog`),
+  `WorkflowView` (General, then Statuses and Transitions as flat
+  `ItemTree`s, fields in the shared `.item-fields`, which Menus' items
+  use too), `setStatuses()` refreshing the pills, the `route` icon.
+
+### Expiry
+Stage 3 of D-850 built (D-852).
+
+- `Status::EXPIRED`, core's own (`Status::CORE`), listed by `Statuses`
+  (neutral, active). `Statuses::at($stored, $date, $now, $expires)`:
+  a live status is scheduled before its date, expired from its
+  expiry.
+- Types take `expires` (`ContentType::$expires`, every kind;
+  `DataTypeWriter` writes it). `expires` is a core date field on every
+  type (`EntryFields`), honoured only on a type with expiry: the
+  `entries` table's `expires` column (`EntryTable::fields()`), from
+  `RecordBuilder` (`IndexRecord::$expires`, `IndexSnapshot::VERSION`
+  14) and `RecordContentWriter`, and `Entry::$expires`.
+- `QueryCompiler`: live means the date has come and `expires` hasn't;
+  `expired` is a live status whose `expires` has come. `Referrers`
+  counts live sources the same way.
+- `ContentVersion` moves on at the next date or expiry, whichever is
+  first; `IndexSnapshot` counts expiries too.
+- `EntryEditor::expiryProblem()`: a type without expiry takes no
+  `expires`, nor do index, archive, error, and landing pages, and it
+  comes after `date` (422, `field: expires`). Lint warns of both.
+- `GoLiveJob` keeps the expired entries it saw too, and dispatches
+  `EntriesExpired` (`Content\Events`) for those expired since.
+- API and MCP send `expires` for a type with expiry, and writes take
+  it. Admin: `type.expires` on entries and types, an Expires row
+  (`DatePicker` `clearable`) under Date, an Expired tab, the
+  `calendar-x` icon, and Type Settings' **Entries can expire**.
+
 ### Entry
 Implemented in M4b (D-088).
 
@@ -769,7 +892,7 @@ Implemented in M4b (D-088).
   `id` front matter, `null` without a valid one; D-477, D-480), `type`, `slug`, `key` (the slug with any folders below the type's),
   `title`, `status` (a `Blush\Workflow\Status` definition, D-850: see
   Statuses below), `visibility`
-  (`Public | Unlisted | Hidden`, D-082), `published`/`updated`
+  (`Public | Unlisted | Hidden`, D-082), `date`/`updated`
   (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
   schema), `extra` (undeclared keys), `terms`, `landing`, and `source`
   (path, mtime, size). Helpers: `field()`, `summary()`, `excerpt()`,
@@ -780,7 +903,7 @@ Implemented in M4b (D-088).
 - An **excerpt** without a summary is the body's prose: the words of its
   paragraphs and list items, leaving out headings and anything set apart,
   hidden, or drawn by a block that isn't text (D-727).
-- **Scheduling:** a future `published` date means `Scheduled`, decided
+- **Scheduling:** a future `date` means `Scheduled`, decided
   against the clock at read time. The index records the next go-live time,
   and the content version moves on by itself when it passes (D-128).
 - Entry URLs come from `ContentUrls` (D-096).
@@ -981,7 +1104,7 @@ Implemented in M4b (D-087, D-090).
   `FilesystemContentWriter`, finds each id's path in the index and
   writes through `FilesystemWriter`, deciding what a write means for a
   file: a new slug goes in a `slug:` key when the file has one, else in
-  its name (D-277), and a new slug or publish date renames and moves the
+  its name (D-277), and a new slug or date renames and moves the
   file by its type's patterns (`FileNames::follow()`, D-519, D-629).
 - **`FilesystemWriter`** (D-228; the filesystem driver's own, by path):
   `load` (raw front matter, body, and a version hash), `create`,
@@ -1016,7 +1139,7 @@ Implemented in M4b (D-089).
 
 - An immutable fluent builder built on `clone()` with properties and marked
   `#[\NoDiscard]`:
-  `$content->query()->type('post')->whereTerm('category', 'art')->orderBy('published', Order::Desc)->paginate(perPage: 10, page: $page)`
+  `$content->query()->type('post')->whereTerm('category', 'art')->orderBy('date', Order::Desc)->paginate(perPage: 10, page: $page)`
 - `Query::fromArray()` reads 1.x query arguments (a type's `collection`,
   a page's `collection` front matter) plus `status`, `visibility`,
   `terms`, `locale`, and `language`.
@@ -1035,7 +1158,7 @@ Implemented in M4b (D-089).
   `ContentPage::pageLinks()` passes the page's URL builder.
 - Compiled by `QueryCompiler` (`Content\Record`, D-652) to a
   `RecordQuery` over the `entries` table (D-649): statuses by
-  `published` against now, terms by refs or the slugs written under a
+  `date` against now, terms by refs or the slugs written under a
   relation's keys, dates as ranges from the year down, the language
   fallback as subqueries, folders and parent keys through the store's
   `EntryLocations` (`IndexLocations` on files; `RecordLocations`, read

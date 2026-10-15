@@ -50,6 +50,7 @@ import TrashTable from '../components/TrashTable.vue';
 import { t } from '../messages';
 import MessageText from '../components/MessageText.vue';
 import { screenTitle } from '../screen';
+import { statusOf } from '../statuses';
 import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
 import { useQueryState } from '../query';
@@ -57,12 +58,19 @@ import { profileType, currentType, findType, labelsOf, loadTypes, types } from '
 
 type Tab = EntryStatus | 'any' | 'mine' | 'trash';
 
-const statusTabs: { status: EntryStatus | 'any'; label: string }[] = [
-	{ status: 'any', label: t('entries_view.tab_all', 'All') },
-	{ status: 'published', label: t('entries_view.tab_published', 'Published') },
-	{ status: 'draft', label: t('entries_view.tab_draft', 'Draft') },
-	{ status: 'scheduled', label: t('entries_view.tab_scheduled', 'Scheduled') }
-];
+// A tab for each status of the type's workflow (D-851), live ones
+// first, then Scheduled.
+const statusTabs = computed<{ status: EntryStatus | 'any'; label: string }[]>(() => {
+	const names = info.value?.statuses ?? ['draft', 'published'];
+
+	return [
+		{ status: 'any', label: t('entries_view.tab_all', 'All') },
+		...[...names.filter((name) => statusOf(name).live), ...names.filter((name) => !statusOf(name).live)].map((name) => ({ status: name, label: statusOf(name).plural })),
+		{ status: 'scheduled', label: statusOf('scheduled').plural },
+		// A type with expiry's expired entries (D-852).
+		...(info.value?.expires === true ? [{ status: 'expired', label: statusOf('expired').plural }] : [])
+	];
+});
 
 // Pages of entries hold this many unless the URL says otherwise, and
 // these are the sizes the pager offers.
@@ -72,7 +80,7 @@ const PER_OPTIONS = [10, 20, 50, 100];
 // How far back the Updated filter reaches, in days.
 const DAYS = [7, 30, 90];
 
-const SORTS: EntrySort[] = ['title', 'status', 'author', 'published', 'updated'];
+const SORTS: EntrySort[] = ['title', 'status', 'author', 'date', 'updated'];
 
 // The most terms or authors a filter offers.
 const OPTION_LIMIT = 100;
@@ -84,9 +92,9 @@ const canTrash = computed(() => canType(type.value, 'delete'));
 // profile, for a type that credits authors and an account with a profile.
 const mineTab  = computed<{ status: Tab; label: string }[]>(() => mine.value === '' ? [] : [{ status: 'mine', label: t('entries_view.tab_mine', 'Mine') }]);
 const tabs     = computed<{ status: Tab; label: string }[]>(() => [
-	statusTabs[0]!,
+	statusTabs.value[0]!,
 	...mineTab.value,
-	...statusTabs.slice(1),
+	...statusTabs.value.slice(1),
 	...(canTrash.value ? [{ status: 'trash' as const, label: t('entries_view.tab_trash', 'Trash') }] : [])
 ]);
 
@@ -282,8 +290,8 @@ function pageLink(to: number): RouteLocationRaw {
 
 // The date the list shows: the one it's in order of (D-413), else when
 // each was last changed.
-const dateColumn = computed<{ key: 'published' | 'updated'; label: string }>(() => list.value?.by === 'published'
-	? { key: 'published', label: t('entries_view.published', 'Published') }
+const dateColumn = computed<{ key: 'date' | 'updated'; label: string }>(() => list.value?.by === 'date'
+	? { key: 'date', label: t('entries_view.date', 'Date') }
 	: { key: 'updated', label: t('entries_view.updated', 'Updated') });
 
 // The rows pinned above the entries: the index page (or Pages' root
@@ -452,7 +460,7 @@ async function load(): Promise<void> {
 			request<EntryList>('GET', `/entries?${params(listParams())}`),
 			canTrash.value ? request<EntryList>('GET', `/entries?${params({ status: 'trash', per: '1' }, false)}`) : Promise.resolve(null),
 			mine.value === '' ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params({ status: 'any', per: '1' }, true)}`),
-			...statusTabs.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' }, false)}`))
+			...statusTabs.value.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' }, false)}`))
 		]);
 
 		// A later load has taken over.
@@ -462,7 +470,7 @@ async function load(): Promise<void> {
 
 		list.value   = answer;
 		counts.value = {
-			...Object.fromEntries(statusTabs.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
+			...Object.fromEntries(statusTabs.value.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
 			...(own === null ? {} : { mine: own.total }),
 			...(trashed === null ? {} : { trash: trashed.total })
 		};

@@ -92,27 +92,28 @@ final class RecordContentWriterTest extends TestCase
 
 	public function testKeepsFrontMatterAsWrittenBesideItsValues(): void
 	{
-		$post = $this->content->create($this->type('post'), 'hello', new EntryChanges(set: ['title' => 'Hello', 'date' => '2020-01-02 03:04:05', 'mood' => 'sunny']));
+		$post = $this->content->create($this->type('post'), 'hello', new EntryChanges(set: ['title' => 'Hello', 'date' => '2020-01-02 03:04:05', 'excerpt' => 'Hi.', 'mood' => 'sunny']));
 		$file = $this->content->editable($post);
 
-		$this->assertSame('2020-01-02 03:04:05', $file->frontMatter['date'] ?? null, 'As written, alias and all.');
-		$this->assertArrayNotHasKey('published', $file->frontMatter, 'No date of now, since `date` is one.');
+		$this->assertSame('2020-01-02 03:04:05', $file->frontMatter['date'] ?? null, 'As written, and no date of now.');
+		$this->assertSame('Hi.', $file->frontMatter['excerpt'] ?? null, 'As written, alias and all.');
 		$this->assertSame('sunny', $file->frontMatter['mood'] ?? null);
 		$this->assertSame($post->id, $file->frontMatter['id'] ?? null);
-		$this->assertSame(2020, (int) $post->published?->format('Y'), 'Read through its type.');
+		$this->assertSame(2020, (int) $post->date?->format('Y'), 'Read through its type.');
 		$this->assertNull($post->field('mood'), 'Nothing declares it, so it isn\'t read (D-786).');
 
 		$post = $this->content->change($post, new EntryChanges(set: ['title' => 'Hello Again']), $post->version);
 
 		$this->assertSame('sunny', $this->content->editable($post)->frontMatter['mood'] ?? null, 'A change keeps it in the file.');
 
-		$changed = $this->content->change($post, new EntryChanges(set: ['published' => '2021-05-06 07:08:09'], remove: ['mood']), $post->version);
+		$changed = $this->content->change($post, new EntryChanges(set: ['date' => '2021-05-06 07:08:09', 'summary' => 'Hello.'], remove: ['mood']), $post->version);
 		$file    = $this->content->editable($changed);
 
-		$this->assertSame('2021-05-06 07:08:09', $file->frontMatter['date'] ?? null, 'Set where its alias is.');
-		$this->assertArrayNotHasKey('published', $file->frontMatter);
+		$this->assertSame('2021-05-06 07:08:09', $file->frontMatter['date'] ?? null);
+		$this->assertSame('Hello.', $file->frontMatter['excerpt'] ?? null, 'Set where its alias is.');
+		$this->assertArrayNotHasKey('summary', $file->frontMatter);
 		$this->assertArrayNotHasKey('mood', $file->frontMatter);
-		$this->assertSame(2021, (int) $changed->published?->format('Y'));
+		$this->assertSame(2021, (int) $changed->date?->format('Y'));
 	}
 
 	public function testRelationsAreRefsLoadedByTheirSlugsNow(): void

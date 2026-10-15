@@ -112,7 +112,7 @@ final readonly class MarkdownPages
 		$fields  = [
 			'title'     => $entry->title,
 			'url'       => $url === null ? null : $this->urls->absolute($url),
-			'published' => $entry->published?->format(DateTimeInterface::ATOM),
+			'date'      => $entry->date?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
 			'summary'   => $summary === null ? null : $this->links->absolute($summary)
 		];

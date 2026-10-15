@@ -17,14 +17,18 @@ use Stringable;
 use Blush\Content\Type\ContentTypes;
 use Blush\Media\MediaKind;
 use Blush\Translation\Messages;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Workflows;
 
 /**
  * Every capability the site knows, with its label and group: the site
  * capabilities (`Capability`), uploading each kind of media
  * (`MediaKind::uploadCapability()`, D-407), each kind of extension's
  * (`ExtensionAction`, D-389), plus any a plugin registers from its
- * provider's `boot()`, and each content type's (`ContentAction`, D-359),
- * which follow the site's types. The owner's `*` (and the
+ * provider's `boot()`, and each content type's (`ContentAction`, D-359,
+ * and a transition's of its workflow that has one of its own,
+ * `content.{type}.transition.{name}`, D-851), which follow the site's
+ * types. The owner's `*` (and the
  * administrator's, until an owner changes it) grants all of them, and
  * the admin lists them by group.
  */
@@ -59,16 +63,17 @@ final class Capabilities
 
 	public function __construct(
 		private readonly ?ContentTypes $types = null,
-		private readonly Messages $messages = new Messages()
+		private readonly Messages $messages = new Messages(),
+		private readonly ?Workflows $workflows = null
 	) {}
 
 	/**
 	 * Builds the registry with the built-in capabilities, and the content
 	 * capabilities of the site's types.
 	 */
-	public static function withBuiltIns(?ContentTypes $types = null, Messages $messages = new Messages()): self
+	public static function withBuiltIns(?ContentTypes $types = null, Messages $messages = new Messages(), ?Workflows $workflows = null): self
 	{
-		$capabilities = new self($types, $messages);
+		$capabilities = new self($types, $messages, $workflows);
 		$media        = $messages->t('auth.capability_group.media', 'Media');
 
 		$capabilities->register(MediaKind::UPLOAD_EVERY, $messages->t('auth.capabilities.upload_every', 'Upload every kind'), $media);
@@ -154,13 +159,35 @@ final class Capabilities
 		}
 
 		$content = [];
+		$every   = [];
 
 		foreach ($groups as $type => $group) {
 			foreach (ContentAction::cases() as $action) {
 				$content[$action->on($type)] = [$this->messages->t('auth.capabilities.content', '{type}: {action}', type: $group, action: $action->label($this->messages)), $group];
 			}
+
+			// Its workflow's transitions with a capability of their own.
+			foreach ($type === ContentAction::EVERY ? [] : $this->ownTransitions($this->workflows?->for($type)->transitions ?? []) as $transition) {
+				$content[$transition->capabilityOn($type)] = [$this->messages->t('auth.capabilities.content', '{type}: {action}', type: $group, action: $transition->label), $group];
+				$every[$transition->name] ??= $transition;
+			}
+		}
+
+		foreach ($every as $transition) {
+			$content[$transition->capabilityOn(ContentAction::EVERY)] = [$this->messages->t('auth.capabilities.content', '{type}: {action}', type: $groups[ContentAction::EVERY], action: $transition->label), $groups[ContentAction::EVERY]];
 		}
 
 		return $this->content = $content;
+	}
+
+	/**
+	 * Returns the transitions with a capability of their own.
+	 *
+	 * @param  list<Transition> $transitions
+	 * @return list<Transition>
+	 */
+	private function ownTransitions(array $transitions): array
+	{
+		return array_values(array_filter($transitions, static fn (Transition $transition): bool => $transition->capability));
 	}
 }

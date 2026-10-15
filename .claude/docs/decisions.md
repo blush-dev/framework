@@ -27047,3 +27047,224 @@ decision, add a new entry that supersedes it and mark the old one
   tools' "anyone" condition, the dashboard's count) find every live
   status. The admin's shell config sends `statuses`, which the status
   pill reads. Stages 2 to 5 to come.
+
+### D-851: Workflows and transitions (stage 2 of D-850), in two parts
+
+- **Date:** 2026-10-15
+- **Builds:** D-850's stage 2. **Refines:** D-735 (whether an entry
+  outside its workflow is live; where `Transitions` sits).
+- **The author's go:** "It all sounds good how you laid it out to
+  build", after Claude's points below.
+- **Decision:**
+  - **Live is the status's alone,** never the type's: an entry whose
+    status isn't in its type's workflow keeps it, and is live when that
+    status is, so a query needn't know each type's workflow. Lint
+    warns of it, and stage 4's Site Health check maps it. This
+    supersedes D-735's "isn't live".
+  - **An entry outside its workflow is offered the transitions from
+    the workflow's `initial`,** and may be moved to `initial` itself,
+    so it can always come back in.
+  - **The editor's buttons:** Update (or Save Draft) saves without a
+    status change; the primary button is the first transition the
+    workflow lists from the current status; the others are in the
+    Status row's menu. With `standard`, the editor looks as it did.
+  - **Going live is checked in `Transitions`' callers** as before, for
+    any move into a live status: required fields and relations' limits.
+  - **Scheduled** is a move into a live status with a future date, as
+    publishing with one is now.
+  - **`set_status`, the API, and the admin** keep naming a status; the
+    one transition from the current status to it is found, and a
+    change with none is refused. `set_status` also takes `transition`.
+  - **Trash, Restore, and Undo aren't transitions** (D-735); they keep
+    their own rules (`delete`, `publish` for what's live). Restore and
+    a copy start at the workflow's `initial`.
+  - **The role screen** lists only transitions with a capability of
+    their own; `standard`'s Publish and Unpublish need `publish` alone
+    (D-734).
+  - **Two parts:** 2a, the PHP side (definitions, `Transitions`,
+    capabilities, the API and MCP); 2b, the admin (the editor's
+    buttons, list tabs, a Workflow select in Type Settings, role
+    sections). Each ends with `composer check` and `docs/`.
+- **Claude's calls, building it:**
+  - **`Transitions` decides and announces; `EntryEditor` writes.**
+    `Transitions::allowed()` lists what an account may do from an
+    entry's status, `between()` finds the transition to a status (or
+    refuses, saying why), and `changing()`/`changed()` dispatch
+    `StatusChanging` (a listener may `refuse()` it, with a reason) and
+    `StatusChanged`. `EntryEditor`, the one write path (D-756), calls
+    them, since a transition's write is a save like any other.
+  - **The events fire for every status change** a person or tool
+    makes, with the `Transition` when there is one (`null` for Trash,
+    Restore, and Undo), so a listener sees an entry going live however
+    it went.
+  - **A transition has a capability of its own unless it says not**
+    (`capability: false`); its name is
+    `content.{type}.transition.{name}`, and
+    `content.*.transition.{name}` for every type. The administrator and
+    editor roles get `content.*.transition.*`; authors and
+    contributors none, until a site gives them some.
+  - **A transition's `from` may be empty,** for any of the workflow's
+    statuses.
+  - **Every kind of type takes `workflow`**, profiles too (in a data
+    type, `"workflow"`); `null` is core's `standard`.
+  - **A workflow that doesn't fit** (a status it names that isn't
+    registered, an `initial` it doesn't list, a transition from or to
+    a status it doesn't list) is left out, its types use `standard`,
+    and `Workflows::problems()` says why; content:lint lists them.
+  - **The editor:** a live entry's main button saves (or schedules),
+    and its first transition is the secondary, so `standard`'s
+    Switch to draft is **Unpublish** now, the transition's label; any
+    other's main button is its first transition (Schedule for one into
+    a live status with a future date), and a plain save the secondary.
+    The Status menu lists where the entry is, then each transition's
+    status.
+  - **List tabs** are the workflow's statuses, live ones first, by
+    their plural (`Drafts`), then Scheduled.
+  - **Type Settings' Workflow** is in Behavior, for a type the screen
+    edits, shown when there's more than `standard` to choose.
+  - **The role screen** lists a type's transitions after its actions,
+    and Every Type every workflow's; `content.*.transition.*` reads as
+    all of them.
+  - **`set_status`** is offered to an account that may edit and either
+    publish or make a transition of its own; `restore_entry` and the
+    admin's Restore use `initial`.
+- **Status:** Built, 2026-10-15: 2a and 2b. The trial site's
+  example/review-status plugin registers `example_review` (Submit for
+  Review, Publish, Send Back, Unpublish); no type uses it yet.
+
+### D-852: Expiry (stage 3 of D-850), after `published` is renamed `date`
+
+- **Date:** 2026-10-15
+- **Builds:** D-732, D-733, D-735's expiry, D-850's stage 3.
+  **Supersedes:** `published` as the entry date's name (`date` was its
+  alias).
+- **The author's answers,** to Claude's questions:
+  - **An expired entry is off the site, like a draft:** a 404, and
+    left out of lists, feeds, the sitemap, the API, and MCP's reads
+    for anyone who can't edit it.
+  - **Moving or clearing its `expires` date brings it back.** Its
+    stored status stays live, so no transition is made; an expired
+    entry's main button is Update.
+  - **Expiring is announced:** `EntriesExpired`, beside
+    `EntriesWentLive`, from the job that watches for it.
+  - **`expires` is a column** of the `entries` table, indexed, beside
+    the date, since every live query checks it (the author's OK to
+    change the settled table).
+  - **The dates are `date`, `updated`, and `expires`.** `published`
+    read as tied to the Published status, though any live status has
+    the date. `updated` stays (`modified` already means the file's
+    time in the admin), and `expires`, not `expired`, which reads as
+    a yes or no and is the status's name.
+  - **`published` goes entirely:** no alias, in front matter, the
+    `entries` column, queries (`orderBy('date')`), `Entry`, templates,
+    the API, MCP, and the admin (D-658). No fixer: the trial site's
+    files are changed by hand.
+  - **Order:** the rename first, then expiry on it.
+- **Claude's calls, agreed with the answers above:**
+  - `expires` on or before the date is refused.
+  - Index, archive, and error pages and the root page take no expiry,
+    as they take no schedule.
+  - `ContentVersion` moves on at the next expiry as well as the next
+    scheduled date.
+  - "Any status" finds expired entries; `?status=expired` works in the
+    admin and the API, as `scheduled` does; `set_status` never takes
+    `expired`.
+  - Admin: an Expires row in the editor's Publish group, an Expired tab
+    after Scheduled, a neutral pill, and an Expiry switch in Type
+    Settings → Behavior. No linking warning for a coming expiry yet.
+- **Renaming, as built:** `date` is the front matter key, the `entries`
+  column, `Entry::$date`, `IndexRecord::$date` (its old `YmdHis`
+  `date`, unused, removed; `IndexSnapshot::VERSION` 13), `EntryEdit`
+  and `NewEntry`'s `date`, `orderBy('date')`, `TypeOrder::Date`
+  (`order: date`), the admin's `date` sort and values, the API's
+  `date`, `date_after`, `date_before`, and `?sort=date`, MCP's `date`
+  (and `set_status`'s), and `llms` Markdown copies' `date`. Feeds keep
+  their own words (`FeedItem::$published`, Atom's `<published>`).
+- **Expiry, as built:** `expires` is a core date field on every type,
+  read only on a type with `expires: true` (so the field set stays
+  core's, and a type's own toggle decides), with lint warning of one a
+  type ignores; Clear in the date picker (`clearable`, shared) empties
+  the editor's Expires row; the go-live job keeps expired entries as
+  it keeps scheduled ones; `Status::EXPIRED` is neutral and active.
+- **Status:** Built (2026-10-15): the rename, then expiry.
+
+### D-853: The site's own statuses and workflows, and a check for statuses outside a workflow (stage 4 of D-850)
+
+- **Date:** 2026-10-15
+- **Builds:** D-735's site records, D-850's stage 4.
+- **The author's answers,** to Claude's questions, and "Build":
+  - **The site may relabel core's `draft` and `published`** (label,
+    plural, tone), as it may an extension's status; core's computed
+    `trash`, `scheduled`, and `expired` it may not touch.
+  - **The site may replace `standard`,** which every type without a
+    workflow of its own uses; its transitions say for themselves
+    whether they need a capability of their own.
+  - **Site Health's fix moves entries to the workflow's `initial`**
+    (usually Draft), never to a live status: one fix, per entry or per
+    group, that can't put anything on the site. A status nothing
+    registers (a plugin that's off) is listed too, saying that turning
+    the plugin on fixes it.
+  - **The fix isn't a transition:** maintenance, as Undo is. It sets the
+    status directly, dispatches `StatusChanging` and `StatusChanged`
+    with no transition, is recorded in the activity log, and needs
+    `site.health`, as Site Health's other fixes do.
+- **Claude's calls:** records that don't fit (a bad name, a core
+  computed name, a workflow naming statuses that don't exist) are left
+  out softly and listed in Site Health, a site workflow that's left out
+  leaving the one it would replace; the tables are data-layer tables
+  like the others (`storage:copy`, SQLite); a site record replacing an
+  extension's by name isn't a clash, two extensions' is (Site Health's
+  "Names defined twice", and each plugin's screen); labels are plain
+  text in the site's language. Lint's status warnings get their own
+  kind (`status`), which Site Health groups as **Statuses Outside
+  Their Workflow** with **Reset** (`POST health/statuses`), run as a
+  job like its other fixes; the site's records aren't gated by
+  `dataTypes`, since the Workflows screen will write them.
+- **Status:** Built (2026-10-15).
+
+### D-854: The Workflows screen (stage 5 of D-850)
+
+- **Date:** 2026-10-15
+- **Builds:** D-733's Workflows screen, D-850's stage 5, from the
+  admin's existing pieces (no sketch).
+- **The author's answers,** to Claude's questions:
+  - **A core or plugin workflow opens read-only, with Customize,**
+    which copies it into a site record (D-853) to edit; **Revert**
+    deletes the copy, as a code collection is changed through a data
+    file (D-349).
+  - **Statuses are a tab on the Workflows screen,** beside Workflows,
+    as Relationships has tabs.
+  - **Transitions are edited as Menus edits its items** (Claude's pick,
+    left to it): a list of rows, each said as a sentence, and the
+    chosen one's fields beside it.
+  - **Removing a status entries still use is allowed,** after a
+    confirmation naming how many keep it; the save points to Site
+    Health's Reset (D-853).
+- **Claude's calls:**
+  - `/workflows` under Structure, for `site.settings`. The Workflows
+    tab: a row each, its label and key, its statuses as pills in
+    order, the types using it (linked), and its source (Core, a plugin,
+    Site, or Site over a plugin). The Statuses tab: a row each, its
+    pill, label and plural, key, whether it's live, source, and the
+    workflows using it; New Status and editing in a dialog (label,
+    plural, tone, live, active; only label, plural, and tone over a
+    registered one). What's left out (D-853) is a notice at the top.
+  - A workflow's screen in Field Sets' and Menus' frame: a back link,
+    the title and facts, Update and a menu (Revert, Delete); a Statuses
+    panel (order, the first status new entries get, add and remove) and
+    a Transitions panel.
+  - Keys of workflows, statuses, and transitions are fixed once saved:
+    files, type settings, and role capabilities name them.
+  - A workflow is given to a type on Type Settings only; its screen
+    links to the types using it.
+  - The server checks every save with stage 4's rules and refuses
+    what would be left out; a status a workflow uses can't be deleted,
+    and the refusal names the workflows.
+  - No flow diagram for now: it would be new UI, not existing pieces.
+  - Building it: both panels are the shared `ItemTree`, flat (a new
+    status row's fields choose which status it is); an item's fields
+    look became the shared `.item-fields` (Menus' items use it too);
+    a relabel keeps only what differs from the status it relabels; a
+    new workflow starts with Draft and Published, Publish and
+    Unpublish; a change bumps the content version.
+- **Status:** Built (2026-10-15).

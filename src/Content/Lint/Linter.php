@@ -50,6 +50,7 @@ use Blush\Routing\RouteTable;
 use Blush\Translation\Messages;
 use Blush\Workflow\Status;
 use Blush\Workflow\Statuses;
+use Blush\Workflow\Workflows;
 
 /**
  * Checks every content file, as `content:lint` reports it. It reads the
@@ -100,7 +101,8 @@ final readonly class Linter
 		private Relations $relations,
 		private MediaFieldIds $mediaFields,
 		private Messages $messages,
-		private Statuses $statuses
+		private Statuses $statuses,
+		private Workflows $workflows
 	) {}
 
 	/**
@@ -122,7 +124,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 			}
@@ -220,7 +222,21 @@ final readonly class Linter
 	{
 		[$metadata, $described] = $this->media->check();
 
-		return [[...$this->lintFormats(), ...$described, ...$this->lintFieldSets()], $metadata];
+		return [[...$this->lintFormats(), ...$described, ...$this->lintFieldSets(), ...$this->lintWorkflows()], $metadata];
+	}
+
+	/**
+	 * Lints the workflows (D-851): one left out, since it doesn't fit the
+	 * registered statuses, and a type naming one there isn't, under
+	 * `workflows`.
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	public function lintWorkflows(): array
+	{
+		$problems = [...$this->statuses->problems(), ...$this->workflows->problems()];
+
+		return $problems === [] ? [] : ['workflows' => array_map(static fn (string $problem): Violation => new Violation('workflow', $problem), $problems)];
 	}
 
 	/**
@@ -269,7 +285,7 @@ final readonly class Linter
 			$contents = $this->contentFiles->source()->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkStatus($parsed->record), ...$this->checkExpiry($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkMedia($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 		}
@@ -278,27 +294,71 @@ final readonly class Linter
 	/**
 	 * Warns of a status nothing registers (D-735), such as one a plugin
 	 * that's off registered: the entry isn't live, and keeps it as
-	 * written.
+	 * written. A registered one its type's workflow doesn't use is
+	 * warned of too (D-851): the entry keeps it, and is live if it is.
 	 *
 	 * @return list<Violation>
 	 */
 	private function checkStatus(IndexRecord $record): array
 	{
-		if ($record->status === Status::TRASH || array_key_exists($record->status, $this->statuses->registered())) {
+		if ($record->status === Status::TRASH) {
+			return [];
+		}
+
+		if (! array_key_exists($record->status, $this->statuses->registered())) {
+			return [new Violation('status', $this->messages->t(
+				'content.linter.unknown_status',
+				'"{status}" isn\'t a status the site has, so the entry isn\'t on the site. A plugin that\'s off may have it: turning it on brings the entry back. Or use one of: {statuses}.',
+				status: $record->status,
+				statuses: implode(', ', array_keys($this->statuses->registered()))
+			), Severity::Warning, ViolationKind::Status)];
+		}
+
+		$type     = $this->types->find($record->type);
+		$workflow = $type === null ? null : $this->workflows->for($type);
+
+		if ($workflow === null || $workflow->has($record->status)) {
 			return [];
 		}
 
 		return [new Violation('status', $this->messages->t(
-			'content.linter.unknown_status',
-			'"{status}" isn\'t a status the site has, so the entry isn\'t on the site. Use one of: {statuses}.',
+			'content.linter.status_outside_workflow',
+			'The status "{status}" isn\'t one {items} use (their workflow is "{workflow}"), though the entry keeps it. Use one of: {statuses}.',
+			items: $type->labels->items,
 			status: $record->status,
-			statuses: implode(', ', array_keys($this->statuses->registered()))
-		), Severity::Warning, ViolationKind::Value)];
+			workflow: $workflow->name,
+			statuses: implode(', ', $workflow->statuses)
+		), Severity::Warning, ViolationKind::Status)];
+	}
+
+	/**
+	 * Warns of an `expires` date (D-852) a type without expiry ignores,
+	 * and of one that doesn't come after the entry's date.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkExpiry(IndexRecord $record): array
+	{
+		$expires = $record->values['expires'] ?? null;
+
+		if (! is_int($expires)) {
+			return [];
+		}
+
+		$type = $this->types->find($record->type);
+
+		if ($type !== null && ! $type->expires) {
+			return [new Violation('expires', $this->messages->t('content.linter.expiry_off', 'Expiry isn\'t on for {items}, so this date is ignored.', items: $type->labels->items), Severity::Warning, ViolationKind::Value)];
+		}
+
+		return $record->date !== null && $expires <= $record->date
+			? [new Violation('expires', $this->messages->t('content.linter.expires_before_date', 'It expires before its date, so it\'s never on the site.'), Severity::Warning, ViolationKind::Value)]
+			: [];
 	}
 
 	/**
 	 * Checks that a `collection` front matter value is a valid query,
-	 * and warns of 1.x's file order, read as `published` (D-516).
+	 * and warns of 1.x's file order, read as `date` (D-516, D-852).
 	 *
 	 * @return list<Violation>
 	 */
@@ -319,7 +379,7 @@ final readonly class Linter
 		$orderBy = $collection['orderby'] ?? null;
 
 		return in_array($orderBy, Query::FILE_ORDER, true)
-			? [new Violation('collection', $this->messages->t('content.linter.file_order', '"orderby: {order}" is read as "published"; entries are never sorted by file. Write "orderby: published".', order: $orderBy), Severity::Warning, ViolationKind::Collection)]
+			? [new Violation('collection', $this->messages->t('content.linter.file_order', '"orderby: {order}" is read as "date"; entries are never sorted by file. Write "orderby: date".', order: $orderBy), Severity::Warning, ViolationKind::Collection)]
 			: [];
 	}
 

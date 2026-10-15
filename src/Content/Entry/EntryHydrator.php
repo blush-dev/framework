@@ -86,8 +86,9 @@ final class EntryHydrator
 		}
 
 		// The fields' times when they're kept as numbers, else the columns'.
-		$published = is_int($values['published'] ?? null) ? $values['published'] : EntryTable::timestamp($record->fields['published'] ?? null);
-		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : EntryTable::timestamp($record->fields['updated'] ?? null) ?? $published ?? 0;
+		$date     = is_int($values['date'] ?? null) ? $values['date'] : EntryTable::timestamp($record->fields['date'] ?? null);
+		$updated  = is_int($values['updated'] ?? null) ? $values['updated'] : EntryTable::timestamp($record->fields['updated'] ?? null) ?? $date ?? 0;
+		$expires  = $type->expires ? EntryTable::timestamp($record->fields['expires'] ?? null) : null;
 		$parent   = EntryRecords::text($record, 'parent_id');
 		$original = EntryRecords::text($record, 'original_id');
 
@@ -97,9 +98,9 @@ final class EntryHydrator
 			slug: $slug === '' ? 'index' : $slug,
 			key: $key,
 			title: EntryRecords::text($record, 'title'),
-			status: $this->statuses->at(EntryRecords::text($record, 'status'), $published, $this->clock->now()->getTimestamp()),
+			status: $this->statuses->at(EntryRecords::text($record, 'status'), $date, $this->clock->now()->getTimestamp(), $expires),
 			visibility: Visibility::tryFrom(EntryRecords::text($record, 'visibility')) ?? Visibility::Public,
-			published: $published === null ? null : $this->date($published),
+			date: $date === null ? null : $this->date($date),
 			updated: $this->date($updated),
 			locale: $this->locale($language),
 			fields: $schema->hydrate($values, $this->context),
@@ -111,7 +112,8 @@ final class EntryHydrator
 			version: $record->version,
 			parentId: $parent === '' ? null : $parent,
 			originalId: $original === '' ? null : $original,
-			graph: $this->graph
+			graph: $this->graph,
+			expires: $expires === null ? null : $this->date($expires)
 		);
 	}
 
@@ -141,11 +143,12 @@ final class EntryHydrator
 
 	/**
 	 * Returns an entry's status now, from its record (D-850): a live
-	 * status whose time is still to come is scheduled.
+	 * status whose time is still to come is scheduled, and one whose
+	 * expiry has come is expired (D-852).
 	 */
 	public function status(Record $record): Status
 	{
-		return $this->statuses->at(EntryRecords::text($record, 'status'), EntryTable::timestamp($record->fields['published'] ?? null), $this->clock->now()->getTimestamp());
+		return $this->statuses->at(EntryRecords::text($record, 'status'), EntryTable::timestamp($record->fields['date'] ?? null), $this->clock->now()->getTimestamp(), EntryTable::timestamp($record->fields['expires'] ?? null));
 	}
 
 	/**

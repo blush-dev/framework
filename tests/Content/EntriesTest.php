@@ -203,8 +203,8 @@ final class EntriesTest extends TestCase
 
 	public function testBreaksTiesById(): void
 	{
-		$this->entry('_post/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\npublished: 2011-01-01");
-		$this->entry('_post/b.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\ntitle: Same\npublished: 2011-01-01");
+		$this->entry('_post/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\ndate: 2011-01-01");
+		$this->entry('_post/b.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\ntitle: Same\ndate: 2011-01-01");
 
 		$posts = $this->repository($this->site('development'))->query()->type('post')->names('a', 'b');
 
@@ -275,7 +275,7 @@ final class EntriesTest extends TestCase
 		$this->assertSame('_post/2008-04-05.spring.md', $entry->path);
 		$this->assertSame('post', $entry->type->name);
 		$this->assertSame('spring', (string) $entry);
-		$this->assertEquals(new DateTimeImmutable('2008-04-05 09:00:00 America/Chicago'), $entry->published);
+		$this->assertEquals(new DateTimeImmutable('2008-04-05 09:00:00 America/Chicago'), $entry->date);
 		$this->assertSame('America/Chicago', $entry->updated->getTimezone()->getName());
 		$this->assertSame(['justintadlock', 'guest'], $entry->field('authors'));
 		$this->assertNull($entry->field('tag'), 'Nothing declares it (D-786).');
@@ -371,7 +371,7 @@ final class EntriesTest extends TestCase
 
 	public function testSlugsWithNoFileAreLeftOut(): void
 	{
-		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause]\nauthors: [justintadlock, nobody]");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\ndate: 2009-01-01\ncategory: [art, Lost Cause]\nauthors: [justintadlock, nobody]");
 		$this->content = $this->repository($this->site('development'));
 
 		$this->assertNull($this->content->term('category', 'lost-cause'), 'A slug with no file isn\'t a term (D-584).');

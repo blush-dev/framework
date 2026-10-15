@@ -26,10 +26,13 @@ use Blush\Storage\StorageArea;
  *   or null), `slug` (`''` for a type's landing page), `original_id` (a
  *   translation's original, or null);
  * - `status` (`draft`, `published`, or `trash`; "scheduled" is a
- *   published entry whose `published` time is still to come),
+ *   live entry whose `date` is still to come, and "expired" one whose
+ *   `expires` has come),
  *   `visibility`;
- * - `published` (or null) and `updated`, as UTC times (`time()`), which
+ * - `date` (or null) and `updated`, as UTC times (`time()`), which
  *   sort and compare as text;
+ * - `expires` (D-852), as a UTC time like `date`; null without one,
+ *   or in a type without expiry;
  * - `title`, `position` (or null);
  * - `archive` (or null): for a page written for one target's relation
  *   archive in a type that doesn't nest (D-602), its place, `_{word}/{slug}`
@@ -57,7 +60,7 @@ final class EntryTable
 	public static function table(): Table
 	{
 		return new Table(self::TABLE, StorageArea::Content, fields: [
-			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'published', 'updated', 'title', 'position', 'archive'
+			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'date', 'updated', 'expires', 'title', 'position', 'archive'
 		]);
 	}
 
@@ -79,12 +82,13 @@ final class EntryTable
 		?string $originalId,
 		string $status,
 		string $visibility,
-		?int $published,
+		?int $date,
 		int $updated,
 		string $title,
 		array $values,
 		array $extra,
-		?string $archive = null
+		?string $archive = null,
+		?int $expires = null
 	): array {
 		$front = [...$extra, ...$values];
 
@@ -96,8 +100,9 @@ final class EntryTable
 			'original_id' => $originalId,
 			'status'      => $status,
 			'visibility'  => $visibility,
-			'published'   => $published === null ? null : self::time($published),
+			'date'   => $date === null ? null : self::time($date),
 			'updated'     => self::time($updated),
+			'expires'     => $expires === null ? null : self::time($expires),
 			'title'       => $title,
 			'position'    => is_int($values['position'] ?? null) ? $values['position'] : null,
 			'archive'     => $archive,

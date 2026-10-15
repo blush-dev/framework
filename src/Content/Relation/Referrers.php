@@ -137,8 +137,11 @@ final readonly class Referrers
 				continue;
 			}
 
-			// Live: of a live status, and not still to come.
-			if (in_array(EntryRecords::text($source, 'status'), $live, true) && EntryRecords::text($source, 'published') <= $now) {
+			// Live: of a live status, not still to come, and not expired
+			// (D-852).
+			$expires = EntryRecords::text($source, 'expires');
+
+			if (in_array(EntryRecords::text($source, 'status'), $live, true) && EntryRecords::text($source, 'date') <= $now && ($expires === '' || $expires > $now)) {
 				$sources[$link->target][$link->source] = true;
 			}
 		}

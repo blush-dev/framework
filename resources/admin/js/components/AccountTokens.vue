@@ -223,7 +223,7 @@ async function revokeAll(): Promise<void> {
 							<span v-if="token.expired" class="pill pill--danger">{{ t('account_tokens.expired', 'Expired') }}</span>
 							<template v-else>{{ token.expires ? when(token.expires, true) : t('account_tokens.never', 'Never') }}</template>
 						</td>
-						<td class="table__actions"><button type="button" class="button button--ghost button--small" :disabled="revoking" @click="revoke(token)">{{ t('account_tokens.revoke', 'Revoke') }}<span class="visually-hidden"> {{ token.name }}</span></button></td>
+						<td class="table__buttons"><button type="button" class="button button--ghost button--small" :disabled="revoking" @click="revoke(token)">{{ t('account_tokens.revoke', 'Revoke') }}<span class="visually-hidden"> {{ token.name }}</span></button></td>
 					</tr>
 				</tbody>
 			</table>

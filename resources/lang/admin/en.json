@@ -114,7 +114,10 @@
 			"choose_a_password": "Choose a Password",
 			"not_found": "Not Found",
 			"reset_your_password": "Reset Your Password",
-			"confirm_email": "Confirm Email Address"
+			"confirm_email": "Confirm Email Address",
+			"workflows": "Workflows",
+			"new_workflow": "New Workflow",
+			"workflow": "Workflow"
 		},
 		"admin": "Admin",
 		"document_title": "{title} · {site}"
@@ -482,7 +485,11 @@
 		"nothing_changed": "Nothing has changed it here yet.",
 		"defined_in_code": "It's defined in code, so it can't be deleted here.",
 		"delete_warning": "Removes its file. Its entries stay on disk, unlisted until a type claims {folder} again. Relationships that name it must be removed first.",
-		"delete_this_type": "Delete This Type"
+		"delete_this_type": "Delete This Type",
+		"workflow": "Workflow",
+		"workflow_help": "The statuses its entries move through, and who may move them. Entries keep their status when it changes.",
+		"expires": "Entries can expire",
+		"expires_help": "Each entry gets an Expires date. Once it passes, the entry is off the site, as a draft is, until the date is moved or cleared."
 	},
 	"attribute_fields": {
 		"classes": "Classes",
@@ -551,7 +558,8 @@
 		"now": "Now",
 		"tomorrow": "Tomorrow",
 		"tomorrow_nine": "Tomorrow, 9 am",
-		"next_monday": "Next Monday"
+		"next_monday": "Next Monday",
+		"clear": "Clear"
 	},
 	"command_palette": {
 		"go_dashboard": "Go to the dashboard",
@@ -593,7 +601,8 @@
 		"hint_move": "{keys} move",
 		"hint_open": "{key} open",
 		"hint_close": "{key} close",
-		"go_email_settings": "Go to Email Settings"
+		"go_email_settings": "Go to Email Settings",
+		"go_workflows": "Go to Workflows"
 	},
 	"type_behavior_fields": {
 		"from_config": "from config",
@@ -901,7 +910,8 @@
 		"spread": "Set each type separately",
 		"spread_text": "Moves these into every type there is now, so one can differ. Types added later get nothing.",
 		"set_by_every": "Set by Every Type",
-		"from_every_type": "every type"
+		"from_every_type": "every type",
+		"transitions": "Can use {list}."
 	},
 	"shown_once": {
 		"copied": "Copied {noun}.",
@@ -1364,7 +1374,8 @@
 		"signing_out": "Signing out…",
 		"sign_out": "Sign out",
 		"offline": "You're offline. Changes you make stay in this browser, and you can save them once the connection is back.",
-		"settings_email": "Email"
+		"settings_email": "Email",
+		"nav_workflows": "Workflows"
 	},
 	"icon_picker": {
 		"count": "{count, plural, one {# icon} other {# icons}}",
@@ -2212,7 +2223,16 @@
 		"count_files": "{count, plural, one {# file} other {# files}}",
 		"count_media_files": "{count, plural, one {# media file} other {# media files}}",
 		"count_types": "{count, plural, one {# type} other {# types}}",
-		"count_images": "{count, plural, one {# image} other {# images}}"
+		"count_images": "{count, plural, one {# image} other {# images}}",
+		"kind_status_name": "Statuses Outside Their Workflow",
+		"kind_status_says": "Each entry keeps the status it has. Resetting moves it to its workflow's first status, such as Draft, which never puts it on the site.",
+		"status_bulk_label": "Reset {count, plural, one {# Status} other {# Statuses}}",
+		"status_bulk_title": "Reset {count, plural, one {# Status} other {# Statuses}}?",
+		"status_bulk_say": "Each entry moves to its workflow's first status, such as Draft.",
+		"status_bulk_after": "Any that are on the site now come off it, until they're published again.",
+		"status_fix_label": "Reset",
+		"status_fix_change": "moved to its workflow's first status",
+		"status_fix_done": "Reset."
 	},
 	"references": {
 		"capped": "{shown} of {total} matches. Keep typing to narrow.",
@@ -3350,7 +3370,8 @@
 			"chose": "Chose {name}",
 			"removed_block": "Removed the {block}",
 			"removed_image": "Removed the image",
-			"duplicated": "Duplicated as a draft: “{title}”"
+			"duplicated": "Duplicated as a draft: “{title}”",
+			"moved": "Moved to {status}"
 		},
 		"save_draft": "Save Draft",
 		"update": "Update",
@@ -3365,7 +3386,8 @@
 			"draft_text": "Not on the site. Only people who can edit it see it.",
 			"scheduled_text": "Goes live on its date, on its own.",
 			"published_text": "On the site, for anyone to read.",
-			"overdue_text": "Its date has passed, so it goes live the next time it is published."
+			"overdue_text": "Its date has passed, so it goes live the next time it is published.",
+			"expired": "Expired"
 		},
 		"date": {
 			"none": "No date yet. It's dated when it's published.",
@@ -3580,7 +3602,8 @@
 			"moves_to_broken": "Saving moves it to {address}, and links to the old address will stop working.",
 			"new_address": "a new address",
 			"redirect": "Redirect the old address here",
-			"slug_help": "The slug is lowercase letters, numbers, and hyphens, and the address ends in it."
+			"slug_help": "The slug is lowercase letters, numbers, and hyphens, and the address ends in it.",
+			"expires": "Expires"
 		},
 		"error_page_404": "The page the site shows for error {code}, when an address doesn't exist: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.",
 		"error_page": "The page the site shows for error {code}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.",
@@ -3757,7 +3780,7 @@
 		"nests_yes": "Yes: an entry can name a parent",
 		"order": "Order",
 		"order_position": "By position, then title",
-		"order_newest": "Newest published first",
+		"order_newest": "Newest first, by date",
 		"dated": "Dated",
 		"credits_authors": "Credits authors",
 		"archives": "{label} archives",
@@ -4315,7 +4338,8 @@
 		"publish": "Publish",
 		"move_draft": "Move to Draft",
 		"move_trash": "Move to Trash",
-		"counted": "{count, plural, one {# {item}} other {# {items}}}"
+		"counted": "{count, plural, one {# {item}} other {# {items}}}",
+		"date": "Date"
 	},
 	"account_view": {
 		"load_failed": "The account couldn't be loaded.",
@@ -4557,7 +4581,8 @@
 		"date_archives_day": "By day",
 		"date_archives_hour": "By hour",
 		"date_archives_minute": "By minute",
-		"date_archives_second": "By second"
+		"date_archives_second": "By second",
+		"order_date": "Newest first, by date"
 	},
 	"player": {
 		"play": "Play",
@@ -4596,5 +4621,175 @@
 		"account_intro": "Make this address your account's email address on {site}.",
 		"confirming": "Confirming…",
 		"submit": "Confirm Email Address"
+	},
+	"status_dialog": {
+		"bad_key": "Use lowercase letters, numbers, and underscores, starting with a letter.",
+		"taken": "There's already a status with this key.",
+		"tones": {
+			"neutral": "Neutral",
+			"good": "Good",
+			"warn": "Warn",
+			"danger": "Danger",
+			"accent": "Accent"
+		},
+		"new_title": "New Status",
+		"edit_title": "Edit {label}",
+		"relabel_title": "Relabel {label}",
+		"not_saved": "The status couldn't be saved.",
+		"relabel_help": "It comes from {source}, which decides what it does. Its label, plural, and tone are the site's to change.",
+		"label": "Label",
+		"key": "Key",
+		"key_help": "What files write, such as status: in_review. It can't change once it's saved.",
+		"plural": "Plural",
+		"plural_help": "What a list's tab of them is called. Left empty, it's the label.",
+		"tone": "Tone",
+		"tone_help": "The color of its pill:",
+		"preview": "Preview",
+		"live": "On the site",
+		"live_help": "Entries with it are on the site once their date comes, as published ones are.",
+		"active": "Found by “any status”",
+		"active_help": "Lists and searches for every status include it. Only the trash is left out among Blush's own.",
+		"saving": "Saving…",
+		"add": "Add Status",
+		"save": "Save Status"
+	},
+	"workflows_view": {
+		"not_loaded": "The workflows couldn't be loaded.",
+		"over": "{site}, over {source}",
+		"workflows": "Workflows",
+		"statuses": "Statuses",
+		"status_added": "Added the status",
+		"status_saved": "Saved {label}",
+		"revert_title": "Revert {label}?",
+		"delete_title": "Delete {label}?",
+		"revert_body": "It goes back to the label and tone {source} gives it.",
+		"delete_body": "Entries that still have it keep it in their files, and Site Health lists them.",
+		"revert": "Revert the Status",
+		"delete": "Delete the Status",
+		"reverted": "Reverted {label}",
+		"deleted": "Deleted {label}",
+		"not_deleted": "The status couldn't be deleted.",
+		"title": "Workflows",
+		"hint": "The statuses entries move through, and who may move them.",
+		"new_workflow": "New Workflow",
+		"new_status": "New Status",
+		"notice": "Workflows and statuses made here live in {workflows} and {statuses}. A type uses one in its Type Settings.",
+		"show": "Show",
+		"workflows_hint": "Each type uses one; Standard unless it says otherwise.",
+		"columns": {
+			"name": "Name",
+			"statuses": "Statuses",
+			"types": "Used By",
+			"source": "Source",
+			"status": "Status",
+			"plural": "Plural",
+			"live": "On the Site",
+			"workflows": "Used In",
+			"actions": "Actions"
+		},
+		"loading": "Loading the workflows…",
+		"no_types": "No types",
+		"statuses_hint": "One list for every type: a status means the same in each file.",
+		"loading_statuses": "Loading the statuses…",
+		"no_statuses": "No Statuses",
+		"no_statuses_text": "Blush's Draft and Published are always here.",
+		"live_yes": "Yes, once dated",
+		"live_no": "No",
+		"no_workflows": "None",
+		"relabel": "Relabel",
+		"revert_button": "Revert"
+	},
+	"workflow_view": {
+		"publish": "Publish",
+		"unpublish": "Unpublish",
+		"not_loaded": "The workflow couldn't be loaded.",
+		"new": "New Workflow",
+		"choose_status": "Choose a status",
+		"any_status": "Any status",
+		"new_transition": "New transition",
+		"problems": {
+			"key": "Its key is lowercase letters, numbers, and underscores, starting with a letter.",
+			"no_status": "It needs at least one status.",
+			"unchosen": "Choose a status for each row, or remove the empty one.",
+			"transition_key": "Each transition's key is lowercase letters, numbers, and underscores, starting with a letter.",
+			"transition_twice": "Two transitions have one key.",
+			"no_to": "Each transition moves to a status."
+		},
+		"status_added": "Added a status.",
+		"add_status_above": "Add status above",
+		"add_status_below": "Add status below",
+		"removed": "Removed {name}",
+		"transition_added": "Added a transition.",
+		"add_transition_above": "Add transition above",
+		"add_transition_below": "Add transition below",
+		"take_out_title": "Take {status} Out?",
+		"take_out_entries": "{count, plural, one {# entry keeps it} other {# entries keep it}} in their files. Once it's saved, Site Health lists them, and Reset moves them to the first status.",
+		"take_out_moves": "{count, plural, one {The transition to it goes too} other {The # transitions to it go too}}.",
+		"take_out": "Take It Out",
+		"created": "Created {label}",
+		"saved": "Updated {label}",
+		"not_saved": "The workflow couldn't be saved.",
+		"customized": "Copied {label} to the site, to edit",
+		"not_customized": "The workflow couldn't be copied.",
+		"revert_title": "Revert {label}?",
+		"delete_title": "Delete {label}?",
+		"revert_body": "It goes back to {source}'s, and the site's changes to it are gone.",
+		"delete_body": "Its file in user/data/workflows is removed.",
+		"revert": "Revert the Workflow",
+		"delete": "Delete the Workflow",
+		"deleted": "Deleted {label}",
+		"reverted": "Reverted {label}",
+		"not_deleted": "The workflow couldn't be deleted.",
+		"back": "All workflows",
+		"title": "Workflow",
+		"status_count": "{count, plural, one {# status} other {# statuses} }",
+		"transition_count": "{count, plural, one {# transition} other {# transitions} }",
+		"no_types": "No types",
+		"over": "{site}, over {source}",
+		"read_only": "Read only",
+		"customize": "Customize",
+		"saving": "Saving…",
+		"create": "Create Workflow",
+		"update": "Update",
+		"saved_button": "Saved",
+		"more": "More actions",
+		"discard": "Revert changes",
+		"revert_to": "Revert to {source}'s",
+		"delete_menu": "Delete workflow",
+		"locked": "{source} defines it. Customize copies it to the site to edit; reverting the copy later brings back theirs.",
+		"left": "{count, plural, one {# entry keeps a status} other {# entries keep statuses} } it no longer uses. {link} moves them to its first status.",
+		"site_health": "Site Health",
+		"general": "General",
+		"label": "Label",
+		"key": "Key",
+		"key_help": "What a type's settings name. It can't change once it's saved.",
+		"statuses": "Statuses",
+		"statuses_hint": "In the order lists show them. New entries start at the first.",
+		"add_status": "Add Status",
+		"new_status": "New status",
+		"first": "First",
+		"entries": "{count, plural, one {# entry} other {# entries} }",
+		"edit_status": "Edit the status",
+		"status": "Status",
+		"first_label": "New entries start here",
+		"first_help": "And copied ones, and those restored from the trash.",
+		"saves_with": "Changes save with the workflow.",
+		"statuses_note": "New statuses are made on the {statuses} tab.",
+		"transitions": "Transitions",
+		"transitions_hint": "The editor's buttons, in this order. Moving into or out of a live status also needs publishing.",
+		"add_transition": "Add Transition",
+		"sentence": "{from} to {to}",
+		"own_capability": "Own Capability",
+		"edit_transition": "Edit {name}",
+		"button_label": "Label",
+		"button_label_help": "Its button's words, in Title Case.",
+		"transition_key": "Key",
+		"key_fixed": "Fixed: roles name its capability by it.",
+		"transition_key_help": "Roles name its capability by it, so it can't change once it's saved.",
+		"from": "From",
+		"from_help": "None for any of its statuses.",
+		"to": "To",
+		"capability": "Needs a capability of its own",
+		"capability_help": "Roles give it on each type, under its sections. Without one, editing is enough, and publishing for what's live."
 	}
 }

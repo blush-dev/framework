@@ -73,6 +73,10 @@ use Blush\Media\MediaValues;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
 use Blush\Workflow\Status as EntryStatus;
+use Blush\Workflow\Statuses;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Transitions;
+use Blush\Workflow\Workflows;
 
 /**
  * The admin's editing API (D-229), over `Entries`' writes by id (D-654):
@@ -99,7 +103,7 @@ use Blush\Workflow\Status as EntryStatus;
  *   parent kept as a file becomes its folder's page, keeping its
  *   address. A parent that isn't there is a 422 with `field: "parent"`.
  * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
- *   `remove`, `body`, `status`, `published`, `slug`, `redirect`). A new
+ *   `remove`, `body`, `status`, `date`, `slug`, `redirect`). A new
  *   `slug` renames it (D-277): its `slug` key when the file has one,
  *   else the file, first, so a slug that's refused (not a slug, another
  *   entry's, or a landing page's) changes nothing; the refusal is a 422
@@ -111,7 +115,7 @@ use Blush\Workflow\Status as EntryStatus;
  *   page already at the new place, is a 422 with `field: "parent"`. When
  *   a tree's page moves or is renamed with `redirect: true`, each
  *   published page under it gets a redirect from its old address too.
- *   A new publish date renames a file its type's own pattern names by
+ *   A new date renames a file its type's own pattern names by
  *   date (`FileNames::follow()`, D-519); bulk publishing an undated
  *   entry does too.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash (D-484):
@@ -181,7 +185,7 @@ use Blush\Workflow\Status as EntryStatus;
  *
  * `status` is a shortcut: `draft` sets `status: draft`; `published`
  * clears it and dates the entry now if it has no date or a future one;
- * `scheduled` clears it and sets `published` (a future date, required).
+ * `scheduled` clears it and sets `date` (a future date, required).
  *
  * **A type's index page** (`IndexPage`, D-274) is edited without the
  * type's fields: only its title and status are, and everything else in its
@@ -233,7 +237,10 @@ final readonly class EntryController
 		private MediaValues $media,
 		private EntryTemplates $templates,
 		private ControlDefaults $defaults,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses,
+		private Workflows $workflows,
+		private Transitions $transitions
 	) {}
 
 	/**
@@ -283,7 +290,8 @@ final readonly class EntryController
 			'revision'    => null,
 			'modified'    => null,
 			'title'       => '',
-			'status'      => EntryStatus::DRAFT,
+			'status'      => $this->workflows->for($type)->initial,
+			...$this->workflowOf($account, $type, $this->workflows->for($type)->initial),
 			'own'         => true,
 			'url'         => null,
 			'type'        => $this->typeOf($type, $fields),
@@ -352,8 +360,8 @@ final readonly class EntryController
 				slug: is_string($input['slug'] ?? null) ? $input['slug'] : null,
 				set: self::map($input, 'set'),
 				body: self::stringOr($input, 'body', ''),
-				status: self::stringOr($input, 'status', 'draft'),
-				published: is_string($input['published'] ?? null) ? $input['published'] : null,
+				status: is_string($input['status'] ?? null) ? $input['status'] : null,
+				date: is_string($input['date'] ?? null) ? $input['date'] : null,
 				parent: self::parentOf($input),
 				language: is_string($input['language'] ?? null) ? $input['language'] : null
 			));
@@ -405,7 +413,7 @@ final readonly class EntryController
 				remove: self::list($input, 'remove'),
 				body: is_string($body) ? $body : null,
 				status: $status === null ? null : (is_string($status) ? $status : ''),
-				published: is_string($input['published'] ?? null) ? $input['published'] : null,
+				date: is_string($input['date'] ?? null) ? $input['date'] : null,
 				slug: is_string($input['slug'] ?? null) ? $input['slug'] : null,
 				parent: $parent,
 				language: is_string($input['language'] ?? null) ? $input['language'] : null,
@@ -646,9 +654,10 @@ final readonly class EntryController
 		$input    = self::input($request);
 		$revision = $input['revision'] ?? null;
 
-		// No `status` is a draft; `null` is none in the file, so published.
+		// No `status` is the workflow's `initial` (D-851); `null` is none
+		// in the file, so published.
 		$status = match (true) {
-			! array_key_exists('status', $input) => EntryStatus::DRAFT,
+			! array_key_exists('status', $input) => '',
 			$input['status'] === null            => null,
 			is_string($input['status'])          => $input['status'],
 			default                              => false
@@ -873,6 +882,7 @@ final readonly class EntryController
 			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'       => $entry->title,
 			'status'      => $entry->status->name,
+			...$this->workflowOf($account, $live && $this->permissions->can($account, ContentAction::Edit, $entry) ? $entry : null, Transitions::stored($file->frontMatter), $entry->type),
 			'trashed'     => self::trashed($entry),
 			'own'         => $this->permissions->owns($account, $entry),
 			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
@@ -906,6 +916,25 @@ final readonly class EntryController
 				'severity' => $violation->severity->value,
 				'kind'     => $violation->kind?->value
 			], $this->linter->lintFile($entry->path))
+		];
+	}
+
+	/**
+	 * Describes where an entry (or a type's new one) is in its workflow
+	 * (D-851): the status it's `stored` with (`published`, never
+	 * `scheduled`), its `workflow`'s name, and the `transitions` the
+	 * account may make from it (none for an entry in the trash, `null`).
+	 *
+	 * @return array{stored: string, workflow: string, transitions: list<array<string, mixed>>}
+	 */
+	private function workflowOf(Account $account, Entry|ContentType|null $on, string $stored, ?ContentType $type = null): array
+	{
+		$type ??= $on instanceof Entry ? $on->type : $on;
+
+		return [
+			'stored'      => $stored,
+			'workflow'    => $type === null ? '' : $this->workflows->for($type)->name,
+			'transitions' => $on === null ? [] : array_map(static fn (Transition $transition): array => $transition->toArray(), $this->transitions->allowed($account, $on, $stored))
 		];
 	}
 
@@ -952,8 +981,13 @@ final readonly class EntryController
 	 */
 	private function typeOf(ContentType $type, array $fields): array
 	{
+		// `expires` is every type's, but only one with expiry uses it
+		// (D-852).
+		$fields = array_filter($fields, static fn (Field $field): bool => $type->expires || $field->name !== 'expires');
+
 		return [
 			'name'   => $type->name,
+			'expires' => $type->expires,
 			'kind'   => $type->kind()->value,
 			'terms'  => $this->types->classification($type->name) !== null,
 			'hierarchical' => $this->types->nestsByParent($type->name),
@@ -1038,7 +1072,7 @@ final readonly class EntryController
 					'title'  => $source->title,
 					'status' => $source->status->name,
 					'type'   => $source->type->labels->singular,
-					'date'   => $source->published?->format('Y-m-d'),
+					'date'   => $source->date?->format('Y-m-d'),
 					'image'  => $this->media->address($source->field('image'))
 				], array_slice($entries, 0, $count <= self::LISTED_WHOLE ? self::LISTED_WHOLE : self::LISTED))
 			];
@@ -1098,7 +1132,7 @@ final readonly class EntryController
 	private function introduces(Entry $entry, bool $index): ?array
 	{
 		$type    = $entry->type;
-		$waiting = [EntryStatus::DRAFT, EntryStatus::SCHEDULED];
+		$waiting = [...$this->statuses->offline(), EntryStatus::SCHEDULED];
 
 		if ($index) {
 			$query = $this->content->query()->type($type->name)->withLanding(false)

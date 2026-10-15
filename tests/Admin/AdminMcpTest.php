@@ -46,7 +46,7 @@ final class AdminMcpTest extends TestCase
 	{
 		$this->contentConfig(['types' => ['post' => ['date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]]]);
 		$this->profiles('jane');
-		$this->writeTemporaryFile('user/content/' . self::POST, "---\ntitle: Rekindling the Flame\nauthors: jane\npublished: 2022-03-29 23:00:00 -06:00\nid: " . self::POST_ID . "\n---\n\nThe body.\n");
+		$this->writeTemporaryFile('user/content/' . self::POST, "---\ntitle: Rekindling the Flame\nauthors: jane\ndate: 2022-03-29 23:00:00 -06:00\nid: " . self::POST_ID . "\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('config/mcp.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Mcp\\McpConfig(enabled: " . ($mcp ? 'true' : 'false') . ");\n");
 
 		$this->boot(roles: $roles);

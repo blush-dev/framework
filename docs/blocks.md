@@ -574,7 +574,7 @@ final class RecentPosts extends Block
 	public function posts(): array
 	{
 		return $this->content->query()->type('post')
-			->orderBy('published', Order::Desc)->limit($this->limit)->get();
+			->orderBy('date', Order::Desc)->limit($this->limit)->get();
 	}
 
 	/**

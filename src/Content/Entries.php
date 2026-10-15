@@ -31,7 +31,7 @@ use Blush\Workflow\Status;
  *
  *     $post  = $content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74');
  *     $about = $content->named('page', 'about');
- *     $posts = $content->query()->type('post')->orderBy('published', Order::Desc)->get();
+ *     $posts = $content->query()->type('post')->orderBy('date', Order::Desc)->get();
  *     $post  = $content->change($post->id, new EntryChanges(set: ['title' => 'Hello']), $post->version);
  *
  * Writes go through the storage driver's `ContentWriter` and answer the
@@ -151,7 +151,7 @@ interface Entries extends QueryRunner
 	 * Creates an entry of a type from a slug, at the top of its type or,
 	 * for a tree's page, under another of its pages (`$parent`, by id,
 	 * D-408), with the changes as its front matter and Markdown. A new
-	 * entry is given an id and, when the changes have none, a `published`
+	 * entry is given an id and, when the changes have none, a `date`
 	 * date of now (D-514); `$date` dates a collection's file name and
 	 * folder patterns (now by default).
 	 *

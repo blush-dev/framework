@@ -42,12 +42,16 @@ export interface TypeForm {
 	// A collection's: whether an entry may name a parent (D-593), and
 	// whether entries are newest published first or by `position`.
 	hierarchical: boolean;
-	order: 'published' | 'position';
+	order: 'date' | 'position';
 	fields: FieldDescription[];
 	// Its place in the content menu (D-726): its position, `''` for none,
 	// and the type it sits under, `''` for the top level.
 	position: string;
 	under: string;
+	// Its workflow's name (D-851), `''` for core's `standard`.
+	workflow: string;
+	// Whether its entries may have an Expires date (D-852).
+	expires: boolean;
 	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
 	// default.
 	paths: Record<string, string>;
@@ -62,7 +66,7 @@ export const FEATURED: FieldDescription = { name: 'image', type: 'media', contro
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'published', fields: [], position: '', under: '', paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'date', fields: [], position: '', under: '', workflow: '', expires: false, paths: {} };
 }
 
 /**
@@ -87,10 +91,12 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		filename: type.filename ?? '',
 		folders: type.folders ?? '',
 		hierarchical: type.hierarchical,
-		order: type.order ?? 'published',
+		order: type.order ?? 'date',
 		fields: copy(type.fields),
 		position: type.position === null ? '' : String(type.position),
 		under: type.under ?? '',
+		workflow: type.workflow === 'standard' ? '' : type.workflow,
+		expires: type.expires,
 		paths: Object.fromEntries(type.routes.map((route) => [route.key, route.path === route.default ? '' : route.path]))
 	};
 }
@@ -137,11 +143,13 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		fields: form.fields,
 		position: String(form.position).trim() === '' ? null : Number(form.position),
 		under: form.under || null,
+		workflow: form.workflow || null,
+		expires: form.expires,
 		filename: form.filename || null,
 		// A tree's folders are its pages' (D-629).
 		...(kind === 'tree' ? {} : { folders: form.folders || null }),
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
-		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'published' ? null : form.order } : {})
+		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'date' ? null : form.order } : {})
 	};
 
 	if (initial === null) {
@@ -226,7 +234,7 @@ export const FOLDERS = [
  * A collection's orders (D-593, `TypeOrder`).
  */
 export const ORDERS = [
-	{ value: 'published', label: t('type_form.order_published', 'Newest published first') },
+	{ value: 'date', label: t('type_form.order_date', 'Newest first, by date') },
 	{ value: 'position', label: t('type_form.order_position', 'By position, then title') }
 ];
 

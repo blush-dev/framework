@@ -9,7 +9,8 @@
  * how it's shown and typed.
  *
  * A `dayOnly` picker (a date field without a time, D-766) has no time:
- * its model is `YYYY-MM-DD`.
+ * its model is `YYYY-MM-DD`. A `clearable` one has **Clear** among its
+ * quick choices, which empties it (an entry's Expires, D-852).
  */
 
 import { computed, nextTick, ref } from 'vue';
@@ -23,6 +24,7 @@ const props = defineProps<{
 	describedBy?: string;
 	invalid?: boolean;
 	dayOnly?: boolean;
+	clearable?: boolean;
 }>();
 
 const model = defineModel<string>({ required: true });
@@ -147,6 +149,11 @@ function quick(which: 'now' | 'tomorrow' | 'monday'): void {
 	syncTime();
 }
 
+function clear(): void {
+	model.value = '';
+	close();
+}
+
 function move(by: number): void {
 	month.value = new Date(month.value.getFullYear(), month.value.getMonth() + by, 1);
 }
@@ -239,6 +246,7 @@ defineExpose({ show });
 				<button type="button" class="button button--small" @click="quick('now')">{{ dayOnly ? t('date_picker.today', 'Today') : t('date_picker.now', 'Now') }}</button>
 				<button type="button" class="button button--small" @click="quick('tomorrow')">{{ dayOnly ? t('date_picker.tomorrow', 'Tomorrow') : t('date_picker.tomorrow_nine', 'Tomorrow, 9 am') }}</button>
 				<button type="button" class="button button--small" @click="quick('monday')">{{ t('date_picker.next_monday', 'Next Monday') }}</button>
+				<button v-if="clearable && model !== ''" type="button" class="button button--small" @click="clear">{{ t('date_picker.clear', 'Clear') }}</button>
 			</div>
 		</div>
 	</Teleport>

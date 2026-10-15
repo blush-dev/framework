@@ -25,18 +25,6 @@
 			],
 			"description": "Slug: The URL name, instead of the file name."
 		},
-		"published": {
-			"anyOf": [
-				{
-					"type": "string",
-					"pattern": "^\\s*\\d{4}-\\d{2}-\\d{2}"
-				},
-				{
-					"type": "integer"
-				}
-			],
-			"description": "Published: The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
-		},
 		"date": {
 			"anyOf": [
 				{
@@ -47,7 +35,19 @@
 					"type": "integer"
 				}
 			],
-			"description": "Same as published. The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+			"description": "Date: The entry's date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+		},
+		"expires": {
+			"anyOf": [
+				{
+					"type": "string",
+					"pattern": "^\\s*\\d{4}-\\d{2}-\\d{2}"
+				},
+				{
+					"type": "integer"
+				}
+			],
+			"description": "Expires: When the entry comes off the site, in a type with expiry, such as 2026-12-31 23:59:00 -05:00. Moving or clearing it brings the entry back."
 		},
 		"updated": {
 			"anyOf": [
@@ -59,7 +59,7 @@
 					"type": "integer"
 				}
 			],
-			"description": "Updated: When it last changed; defaults to published, then the file's modified time."
+			"description": "Updated: When it last changed; defaults to the date, then the file's modified time."
 		},
 		"status": {
 			"type": [

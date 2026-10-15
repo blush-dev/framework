@@ -73,13 +73,13 @@ final class YamlMapTest extends TestCase
 			->with(['empty'], null)
 			->with(['title'], 'Hello: World')
 			->with(['plain'], 'Hello')
-			->with(['published'], '2026-09-29 09:00:00 -05:00')
+			->with(['date'], '2026-09-29 09:00:00 -05:00')
 			->with(['draft'], false)
 			->with(['tags'], [])
 			->with(['notes'], "One\nTwo")
 			->text();
 
-		$this->assertSame("empty:\ntitle: \"Hello: World\"\nplain: Hello\npublished: 2026-09-29 09:00:00 -05:00\ndraft: false\ntags: []\nnotes: |-\n  One\n  Two\n", $text);
+		$this->assertSame("empty:\ntitle: \"Hello: World\"\nplain: Hello\ndate: 2026-09-29 09:00:00 -05:00\ndraft: false\ntags: []\nnotes: |-\n  One\n  Two\n", $text);
 	}
 
 	public function testRemovesKeysAndTheirBlocks(): void

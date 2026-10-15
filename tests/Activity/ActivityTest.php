@@ -56,7 +56,7 @@ final class ActivityTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2021-01-01.mine.md', "title: Mine\npublished: 2021-01-01\nauthor: justintadlock", 'The first body.');
+		$this->entry('_post/2021-01-01.mine.md', "title: Mine\ndate: 2021-01-01\nauthor: justintadlock", 'The first body.');
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
 
 		$this->app  = $this->site();

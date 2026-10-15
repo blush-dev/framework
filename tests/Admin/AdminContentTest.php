@@ -118,7 +118,7 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"' . ($posts ? ', "post"' : '') . '], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000001\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
-		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000003\n---\n");
+		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\ndate: 2099-01-01 09:00:00\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000003\n---\n");
 		$this->writeTemporaryFile('user/content/live.md', "---\ntitle: Live\nauthors: jane\nid: " . self::LIVE . "\n---\n");
 		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nvisibility: nowhere\nsurprise: yes\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
 
@@ -226,8 +226,8 @@ final class AdminContentTest extends TestCase
 		$scheduled = $this->entries('scheduled');
 
 		$this->assertSame(['Soon'], array_column($scheduled, 'title'));
-		$this->assertIsString($scheduled[0]['published'] ?? null);
-		$this->assertStringStartsWith('2099-01-01T09:00:00', $scheduled[0]['published']);
+		$this->assertIsString($scheduled[0]['date'] ?? null);
+		$this->assertStringStartsWith('2099-01-01T09:00:00', $scheduled[0]['date']);
 	}
 
 	public function testPinsATypesArchivePage(): void
@@ -522,8 +522,8 @@ final class AdminContentTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "urls": {"prefix": "moods"}}');
-		$this->writeTemporaryFile('user/content/_post/old.md', "---\ntitle: Old\npublished: 2001-01-01\n---\n");
-		$this->writeTemporaryFile('user/content/_post/new.md', "---\ntitle: New\npublished: 2020-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/_post/old.md', "---\ntitle: Old\ndate: 2001-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/_post/new.md', "---\ntitle: New\ndate: 2020-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/_mood/sad.md', "---\ntitle: Sad\n---\n");
 		$this->writeTemporaryFile('user/content/_mood/glad.md', "---\ntitle: Glad\n---\n");
 		$this->writeTemporaryFile('user/content/_mood/mad.md', "---\ntitle: Mad\nposition: 1\n---\n");
@@ -533,8 +533,8 @@ final class AdminContentTest extends TestCase
 
 		$posts = $this->list('?type=post');
 
-		$this->assertSame(['New', 'Old'], array_column(is_array($posts['entries'] ?? null) ? $posts['entries'] : [], 'title'), 'A collection, newest published first (D-413).');
-		$this->assertSame('published', $posts['by'] ?? null);
+		$this->assertSame(['New', 'Old'], array_column(is_array($posts['entries'] ?? null) ? $posts['entries'] : [], 'title'), 'A collection, newest first by date (D-413).');
+		$this->assertSame('date', $posts['by'] ?? null);
 		$this->assertSame(['Mad', 'Glad', 'Sad'], array_column($this->listed('?type=mood'), 'title'), 'Terms by position, then title.');
 		$this->assertSame('position', $this->list('?type=mood')['by'] ?? null);
 		$this->assertSame(['Abe', 'Zoe'], array_slice(array_column($this->listed('?type=profile'), 'title'), 0, 2), 'Profiles by title.');
@@ -894,7 +894,7 @@ final class AdminContentTest extends TestCase
 	public function testRenamesFilesToTheirTypesPattern(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}, "filename": "{date}.{slug}"}');
-		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
+		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\ndate: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
 		$this->writeTemporaryFile('user/content/_post/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
 		touch($this->temporaryDirectory() . '/user/content/_post/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
 		$this->site(['owner']);

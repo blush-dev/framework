@@ -24,6 +24,7 @@ use Blush\Activity\ActivityLog;
 use Blush\Activity\Actor;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
+use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\Entries;
@@ -55,6 +56,9 @@ use Blush\Translation\Messages;
 use Blush\Translation\Text;
 use Blush\Workflow\Status as EntryStatus;
 use Blush\Workflow\Statuses;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Transitions;
+use Blush\Workflow\Workflows;
 
 /**
  * The one write path for entries (D-756): every rule a save follows, for
@@ -66,7 +70,7 @@ use Blush\Workflow\Statuses;
  * **Permissions come from the change, not only the entry,** and are the
  * entry's type's (D-359, `content.{type}.edit` and so on): editing needs
  * to edit the entry (with D-219's ownership and live-entry rules); a
- * result that isn't a draft needs to publish it; changing the authors so
+ * result that's live needs to publish it; changing the authors so
  * the account's own author isn't among them needs to edit anyone's;
  * creating needs to create entries of the type; trashing needs to delete
  * the entry. Raw HTML a body adds is checked by capability (D-495).
@@ -81,9 +85,15 @@ use Blush\Workflow\Statuses;
  * inverse's `max` is refused with the relation's `field` (and, for that
  * last, `full`: the target, and another with room, D-608).
  *
- * `status` is a shortcut: `draft` sets `status: draft`; `published`
- * clears it and dates the entry now if it has no date or a future one;
- * `scheduled` clears it and sets `published` (a future date, required).
+ * **A change of status is a transition** in the type's workflow (D-851):
+ * `Transitions` says whether the account may make it, and dispatches
+ * `StatusChanging`, which a listener may refuse, and `StatusChanged`.
+ * New, copied, and restored entries start at the workflow's `initial`.
+ *
+ * `status` is a shortcut: a status's name sets it (`published`, a file
+ * without one, clears it), and a live one dates the entry now if it has
+ * no `date` or a future one, or at the `date` given; `scheduled` moves
+ * it into a live status and sets `date` (a future date, required).
  *
  * **A type's index page** (`IndexPage`, D-274) is edited without the
  * type's fields: only its title and status are. It's never scheduled or
@@ -93,11 +103,6 @@ use Blush\Workflow\Statuses;
  */
 final readonly class EntryEditor
 {
-	/**
-	 * The statuses the shortcut takes.
-	 */
-	public const array STATUSES = ['draft', 'published', 'scheduled'];
-
 	public function __construct(
 		private Entries $content,
 		private ContentTypes $types,
@@ -115,7 +120,9 @@ final readonly class EntryEditor
 		private ActivityLog $activity,
 		private LoggerInterface $logger,
 		private Messages $messages,
-		private Statuses $statuses
+		private Statuses $statuses,
+		private Workflows $workflows,
+		private Transitions $transitions
 	) {}
 
 	/**
@@ -130,12 +137,13 @@ final readonly class EntryEditor
 	{
 		$permissions = $this->permissions->limitedTo($capabilities);
 
-		return clone($this, ['permissions' => $permissions, 'html' => $this->html->withPermissions($permissions)]);
+		return clone($this, ['permissions' => $permissions, 'html' => $this->html->withPermissions($permissions), 'transitions' => $this->transitions->withPermissions($permissions)]);
 	}
 
 	/**
-	 * Creates an entry. New entries are drafts unless asked otherwise, and
-	 * credit the account's author. A tree's page may name a `parent`
+	 * Creates an entry. New entries start at their workflow's `initial`
+	 * unless asked otherwise (another status is a transition from it,
+	 * D-851), and credit the account's author. A tree's page may name a `parent`
 	 * (another of its pages, by key) to go under (D-408).
 	 *
 	 * @throws EditRefused
@@ -155,27 +163,33 @@ final readonly class EntryEditor
 			throw EditRefused::invalid('Send a known "type" and a "title".');
 		}
 
-		$slug = $new->slug !== null && $new->slug !== '' ? $new->slug : Slug::from($new->title);
-		$now  = $this->clock->now()->setTimezone($this->app->timezone());
+		$slug    = $new->slug !== null && $new->slug !== '' ? $new->slug : Slug::from($new->title);
+		$now     = $this->clock->now()->setTimezone($this->app->timezone());
+		$initial = $this->workflows->for($type)->initial;
 
 		try {
 			$set = [
 				'title' => $new->title,
-				'published' => self::dateString($now),
+				'date'  => self::dateString($now),
 				...$this->authorDefault($account, $type->name),
 				...$new->set
 			];
 
 			// The editor's body starts at its first line (D-334); the
 			// file has a blank line before it.
-			$changes = $this->withStatus(new EntryChanges(set: $set, body: DocumentEditor::gap($new->body) === '' ? "\n{$new->body}" : $new->body), $new->status, $new->published, null);
+			$changes = $this->withStatus(new EntryChanges(set: $set, body: DocumentEditor::gap($new->body) === '' ? "\n{$new->body}" : $new->body), $new->status ?? $initial, $new->date, null, $type, $initial);
 		} catch (WriteException $e) {
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
 
-		if (! self::isDraft($changes, null) && ! $this->permissions->can($account, ContentAction::Publish, $type->name)) {
+		// A new file without a status is published.
+		$to = Transitions::stored($changes->set);
+
+		if ($this->statuses->get($to)->live && ! $this->permissions->can($account, ContentAction::Publish, $type->name)) {
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.new_must_be_draft', 'You aren\'t allowed to publish, so new entries must be drafts.'));
 		}
+
+		$this->checkMove($account, $type, $initial, $to);
 
 		$html = $this->html->refusal($account, '', $changes->body ?? '');
 
@@ -205,7 +219,13 @@ final readonly class EntryEditor
 			throw EditRefused::unprocessable($problem, 'language');
 		}
 
-		$this->related($account, $type, null, [], $changes);
+		$expiry = $this->expiryProblem($type, null, $changes->set);
+
+		if ($expiry !== null) {
+			throw EditRefused::unprocessable($expiry, 'expires');
+		}
+
+		$this->related($account, $type, null, [], $changes, $this->statuses->get($to)->live);
 
 		try {
 			$entry = $this->content->create($type, $slug, $changes, $parent, $now);
@@ -230,7 +250,7 @@ final readonly class EntryEditor
 	 * With `redirect`, a published entry's old address redirects to it
 	 * (D-680, D-686). A tree's page takes `parent` to move under it
 	 * (D-410), with the pages under it, which get redirects too. A new
-	 * publish date may rename a file its type's pattern names by date
+	 * date may rename a file its type's pattern names by date
 	 * (D-519), the storage driver's to do.
 	 *
 	 * @throws EditRefused
@@ -251,20 +271,27 @@ final readonly class EntryEditor
 			throw EditRefused::revisionRequired('Send the "revision" you loaded, so no one else\'s change is lost.');
 		}
 
+		$file = $this->editable($entry);
+		$current = Transitions::stored($file->frontMatter);
+
 		try {
 			$changes = $this->stamped(new EntryChanges(set: $edit->set, remove: $edit->remove, body: $edit->body));
-			$changes = $edit->status === null ? $changes : $this->withStatus($changes, $edit->status, $edit->published, $entry);
+			$changes = $edit->status === null ? $changes : $this->withStatus($changes, $edit->status, $edit->date, $entry, $entry->type, $current);
 		} catch (WriteException $e) {
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
 
-		$refusal = $this->refusal($account, $entry, $changes);
+		// A change of status is a transition (D-851).
+		$to   = self::storedAfter($changes, $current);
+		$live = $this->statuses->get($to)->live;
+
+		$this->checkMove($account, $entry, $current, $to);
+
+		$refusal = $this->refusal($account, $entry, $changes, $live);
 
 		if ($refusal !== null) {
 			throw EditRefused::forbidden($refusal);
 		}
-
-		$file = $this->editable($entry);
 
 		// Only the HTML the body didn't have counts (D-495).
 		if ($changes->body !== null) {
@@ -333,11 +360,21 @@ final readonly class EntryEditor
 		// The old address can redirect to the new one, once it's saved.
 		$from = $edit->redirect && $moved && $entry->isPublished() ? $this->urls->entry($entry) : null;
 
+		$expiry = $this->expiryProblem($entry->type, $entry, array_diff_key([...$file->frontMatter, ...$changes->set], array_flip($changes->remove)));
+
+		if ($expiry !== null) {
+			throw EditRefused::unprocessable($expiry, 'expires');
+		}
+
 		try {
-			$this->related($account, $entry->type, $entry, $file->frontMatter, $changes);
+			$this->related($account, $entry->type, $entry, $file->frontMatter, $changes, $live);
 		} catch (WriteException $e) {
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
+
+		$transition = $this->transitions->between($entry, $current, $to);
+
+		$this->announce($actor, $entry, $current, $to, $transition);
 
 		try {
 			// Moving and renaming first, so a refused place or name leaves
@@ -369,6 +406,7 @@ final readonly class EntryEditor
 		$action = $edit->isStatusOnly() ? ActivityAction::EntryStatus : ActivityAction::EntryUpdate;
 
 		$this->log($actor, $action, $updated, $this->updateSummary($entry, $updated, $edit, $file), $before);
+		$this->transitions->changed($actor, $updated, $current, $to, $transition);
 
 		return $updated;
 	}
@@ -398,14 +436,15 @@ final readonly class EntryEditor
 	}
 
 	/**
-	 * Publishes, unpublishes, or schedules an entry, at its current
-	 * revision unless one is given (a bulk change's, D-301, loses no
-	 * one's writing). Publishing needs its required fields filled and its
-	 * relations within their limits, and dates an undated entry.
+	 * Moves an entry to a status (or `scheduled`), by the transition to
+	 * it in its workflow (D-851), at its current revision unless one is
+	 * given (a bulk change's, D-301, loses no one's writing). Going live
+	 * needs its required fields filled and its relations within their
+	 * limits, and dates an undated entry.
 	 *
 	 * @throws EditRefused
 	 */
-	public function setStatus(Actor $actor, Entry $entry, string $status, ?string $revision = null, ?string $published = null): Entry
+	public function setStatus(Actor $actor, Entry $entry, string $status, ?string $revision = null, ?string $date = null): Entry
 	{
 		if ($entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::unprocessable($this->inTrash($entry));
@@ -415,11 +454,13 @@ final readonly class EntryEditor
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
 
-		if ($status !== 'draft' && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
-			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_publish', 'You aren\'t allowed to publish that entry; keep it a draft.'));
-		}
+		$file = $this->editable($entry);
+		$from = Transitions::stored($file->frontMatter);
+		$to   = $status === EntryStatus::SCHEDULED ? $this->liveTarget($entry->type, $from) : $status;
 
-		if ($status !== 'draft') {
+		$this->checkMove($actor->account, $entry, $from, $to);
+
+		if ($this->statuses->get($to)->live) {
 			$missing = $this->missing($entry) ?? $this->outOfLimits($entry);
 
 			if ($missing !== null) {
@@ -427,7 +468,79 @@ final readonly class EntryEditor
 			}
 		}
 
-		return $this->update($actor, $entry, new EntryEdit(status: $status, published: $published), $revision ?? $this->editable($entry)->version);
+		return $this->update($actor, $entry, new EntryEdit(status: $status, date: $date), $revision ?? $file->version);
+	}
+
+	/**
+	 * Makes a transition by name (D-851): moves an entry to its status,
+	 * as `setStatus()` does, when the account may make it from the
+	 * entry's status. A `date` still to come schedules it.
+	 *
+	 * @throws EditRefused
+	 */
+	public function transition(Actor $actor, Entry $entry, string $name, ?string $revision = null, ?string $date = null): Entry
+	{
+		$from       = Transitions::stored($this->editable($entry)->frontMatter);
+		$transition = $this->transitions->named($actor->account, $entry, $from, $name);
+
+		if ($transition === null) {
+			$known = $this->workflows->for($entry->type)->transition($name);
+
+			throw $known === null
+				? EditRefused::invalid($this->messages->t('content.entry_editor.no_transition', 'There\'s no "{transition}" transition for {items}.', items: $entry->type->labels->items, transition: $name), 'transition')
+				: EditRefused::forbidden($this->transitions->refusal($actor->account, $entry, $from, $known->to) ?? $this->messages->t('content.entry_editor.transition_not_here', '“{title}” can\'t {transition} from {status}.', title: $this->titleOf($entry), transition: (string) $known->label, status: (string) $this->statuses->get($from)->label), 'transition');
+		}
+
+		return $this->setStatus($actor, $entry, $transition->to, $revision, $date);
+	}
+
+	/**
+	 * Moves an entry whose status isn't in its type's workflow (or that
+	 * nothing registers) to the workflow's `initial` (D-853): Site Health's
+	 * fix, which needs `site.health`. It isn't a transition, as Undo isn't:
+	 * the status is set directly, and the events say so (no transition).
+	 *
+	 * @throws EditRefused
+	 */
+	public function resetStatus(Actor $actor, Entry $entry): Entry
+	{
+		if (! $this->permissions->can($actor->account, Capability::SiteHealth)) {
+			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_reset', 'You aren\'t allowed to fix what Site Health finds.'));
+		}
+
+		if ($entry->status->is(EntryStatus::TRASH)) {
+			throw EditRefused::unprocessable($this->inTrash($entry));
+		}
+
+		$file     = $this->editable($entry);
+		$from     = Transitions::stored($file->frontMatter);
+		$workflow = $this->workflows->for($entry->type);
+		$to       = $workflow->initial;
+
+		if ($workflow->has($from)) {
+			throw EditRefused::unprocessable($this->messages->t('content.entry_editor.in_workflow', '“{title}” already has a status of its workflow.', title: $this->titleOf($entry)), 'status');
+		}
+
+		try {
+			$changes = $this->stamped($to === EntryStatus::PUBLISHED ? new EntryChanges(remove: ['status']) : new EntryChanges(set: ['status' => $to]));
+		} catch (WriteException $e) {
+			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
+		}
+
+		$this->announce($actor, $entry, $from, $to, null);
+
+		try {
+			$updated = $this->content->change($entry, $changes, $file->version);
+		} catch (WriteConflict $e) {
+			throw EditRefused::conflict($e->getMessage(), $e);
+		} catch (WriteException $e) {
+			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
+		}
+
+		$this->log($actor, ActivityAction::EntryStatus, $updated, $this->messages->t('content.entry_editor.summary.moved_to', 'Moved “{title}” to {status}', title: $this->titleOf($updated), status: (string) $updated->status->label), self::before($entry, $file));
+		$this->transitions->changed($actor, $updated, $from, $to, null);
+
+		return $updated;
 	}
 
 	/**
@@ -458,7 +571,11 @@ final readonly class EntryEditor
 		try {
 			$file     = $this->content->editable($entry);
 			$declared = $file->frontMatter['status'] ?? null;
-			$trashed  = $this->content->trash($entry, $revision);
+			$from     = Transitions::stored($file->frontMatter);
+
+			$this->announce($actor, $entry, $from, EntryStatus::TRASH, null);
+
+			$trashed = $this->content->trash($entry, $revision);
 		} catch (WriteConflict $e) {
 			throw EditRefused::conflict($e->getMessage(), $e);
 		} catch (WriteException $e) {
@@ -468,19 +585,24 @@ final readonly class EntryEditor
 		$declared = is_string($declared) ? $declared : null;
 
 		$this->log($actor, ActivityAction::EntryTrash, $trashed, $this->messages->t('content.entry_editor.summary.trashed', 'Moved “{title}” to the trash', title: $this->titleOf($entry)), ['status' => $declared]);
+		$this->transitions->changed($actor, $trashed, $from, EntryStatus::TRASH, null);
 
 		return [$trashed, $declared];
 	}
 
 	/**
-	 * Brings an entry back from the trash as a draft (D-237), or, for an
-	 * Undo, with the status it had (`null` for none, so published), only
-	 * at the revision moving it there wrote (D-525).
+	 * Brings an entry back from the trash at its workflow's `initial`
+	 * (`''`, D-237, D-851), or, for an Undo, with the status it had
+	 * (`null` for none, so published), only at the revision moving it
+	 * there wrote (D-525).
 	 *
 	 * @throws EditRefused
 	 */
-	public function restore(Actor $actor, Entry $entry, ?string $status = EntryStatus::DRAFT, ?string $revision = null): Entry
+	public function restore(Actor $actor, Entry $entry, ?string $status = '', ?string $revision = null): Entry
 	{
+		$initial = $this->workflows->for($entry->type)->initial;
+		$status  = $status === '' ? $initial : $status;
+
 		if (! $entry->status->is(EntryStatus::TRASH)) {
 			throw EditRefused::notFound($this->messages->t('content.entry_editor.not_trashed', 'That isn\'t in the trash.'));
 		}
@@ -493,13 +615,17 @@ final readonly class EntryEditor
 			throw EditRefused::unprocessable('An entry is restored with a registered status\'s name, or `null` (no status, so published).');
 		}
 
-		if ($status !== EntryStatus::DRAFT && $revision === null) {
+		if ($status !== $initial && $revision === null) {
 			throw EditRefused::revisionRequired('Send the "revision" moving it to the trash answered, so it\'s put back only as it was.');
 		}
 
 		if (($status === null || $this->statuses->get($status)->live) && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.restore_as_draft', 'You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.'));
 		}
+
+		$to = $status ?? EntryStatus::PUBLISHED;
+
+		$this->announce($actor, $entry, EntryStatus::TRASH, $to, null);
 
 		try {
 			$restored = $this->content->restore($entry, $revision, $status);
@@ -510,12 +636,14 @@ final readonly class EntryEditor
 		}
 
 		$this->log($actor, ActivityAction::EntryRestore, $restored, $this->messages->t('content.entry_editor.summary.restored', 'Restored “{title}” from the trash', title: $this->titleOf($entry)), ['trash' => true]);
+		$this->transitions->changed($actor, $restored, EntryStatus::TRASH, $to, null);
 
 		return $restored;
 	}
 
 	/**
-	 * Copies an entry as a draft (D-275), titled "… (Copy)", slugged
+	 * Copies an entry at its workflow's `initial` (D-275, D-851), titled
+	 * "… (Copy)", slugged
 	 * `{slug}-copy`, with the same authors, dated now. Needs to create
 	 * entries of its type, and to edit the entry; a landing page can't be
 	 * copied.
@@ -544,16 +672,17 @@ final readonly class EntryEditor
 
 		$now   = $this->clock->now()->setTimezone($this->app->timezone());
 		$title = (string) $this->messages->t('content.entry_editor.copy_title', '{title} (Copy)', title: $this->titleOf($entry));
-		$set   = [
+		$initial = $this->workflows->for($entry->type)->initial;
+		$set     = [
 			'title'     => $title,
-			'status'    => 'draft',
-			'published' => self::dateString($now)
+			'date'      => self::dateString($now),
+			...($initial === EntryStatus::PUBLISHED ? [] : ['status' => $initial])
 		];
 
 		try {
 			// The copy's name is its file's, and the original's old
 			// addresses stay the original's.
-			$copy = $this->content->duplicate($entry, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug']), $now);
+			$copy = $this->content->duplicate($entry, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: $initial === EntryStatus::PUBLISHED ? ['slug', 'status'] : ['slug']), $now);
 		} catch (WriteException $e) {
 			throw EditRefused::unprocessable($e->getMessage(), previous: $e);
 		}
@@ -646,15 +775,18 @@ final readonly class EntryEditor
 		}
 
 		$remove = array_values(array_diff(array_map(strval(...), array_keys($file->frontMatter)), array_keys($set)));
-		$status = $set['status'] ?? null;
+		$from   = Transitions::stored($file->frontMatter);
+		$to     = Transitions::stored($set);
 
-		if ((! is_string($status) || $status !== 'draft') && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
+		if ($this->statuses->get($to)->live && ! $this->permissions->can($actor->account, ContentAction::Publish, $entry)) {
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.undo_needs_publish', 'You aren\'t allowed to publish that entry, so this change can\'t be undone.'));
 		}
 
 		if (! $this->permissions->can($actor->account, ContentAction::Edit, $entry)) {
 			throw EditRefused::forbidden($this->messages->t('content.entry_editor.cannot_edit', 'You aren\'t allowed to edit that entry.'));
 		}
+
+		$this->announce($actor, $entry, $from, $to, null);
 
 		try {
 			$restored = $this->content->change($entry, new EntryChanges(set: $set, remove: $remove, body: $body), $file->version);
@@ -665,6 +797,7 @@ final readonly class EntryEditor
 		}
 
 		$this->log($actor, ActivityAction::EntryUpdate, $restored, $this->messages->t('content.entry_editor.summary.undid', 'Undid a change to “{title}”', title: $this->titleOf($restored)), self::before($entry, $file));
+		$this->transitions->changed($actor, $restored, $from, $to, null);
 
 		return $restored;
 	}
@@ -704,7 +837,7 @@ final readonly class EntryEditor
 		$title = $this->titleOf($now);
 
 		if ($edit->isStatusOnly()) {
-			$when = $now->published?->format('Y-m-d H:i');
+			$when = $now->date?->format('Y-m-d H:i');
 
 			return match ($now->status->name) {
 				EntryStatus::PUBLISHED => $this->messages->t('content.entry_editor.summary.published', 'Published “{title}”', title: $title),
@@ -712,7 +845,7 @@ final readonly class EntryEditor
 					? $this->messages->t('content.entry_editor.summary.scheduled', 'Scheduled “{title}” for later', title: $title)
 					: $this->messages->t('content.entry_editor.summary.scheduled_for', 'Scheduled “{title}” for {when}', title: $title, when: $when),
 				EntryStatus::DRAFT     => $this->messages->t('content.entry_editor.summary.drafted', 'Moved “{title}” to draft', title: $title),
-				default                => $this->messages->t('content.entry_editor.summary.status', 'Changed the status of “{title}”', title: $title)
+				default                => $this->messages->t('content.entry_editor.summary.moved_to', 'Moved “{title}” to {status}', title: $title, status: (string) $now->status->label)
 			};
 		}
 
@@ -722,7 +855,7 @@ final readonly class EntryEditor
 			$parts[] = $this->messages->t('content.entry_editor.summary.body', 'the body');
 		}
 
-		foreach (array_values(array_diff([...array_keys($edit->set), ...$edit->remove], ['updated', 'status', 'published'])) as $field) {
+		foreach (array_values(array_diff([...array_keys($edit->set), ...$edit->remove], ['updated', 'status', 'date'])) as $field) {
 			$parts[] = $field;
 		}
 
@@ -771,7 +904,7 @@ final readonly class EntryEditor
 	 * Says which required fields an entry leaves empty, which keeps it
 	 * from being published (the editor's rule, admin.md §8 Validation),
 	 * or `null` when none are. An index page is edited without the type's
-	 * fields, so it has none; the publish date isn't checked, since
+	 * fields, so it has none; the `date` isn't checked, since
 	 * publishing sets it.
 	 */
 	private function missing(Entry $entry): ?Text
@@ -780,7 +913,7 @@ final readonly class EntryEditor
 			$value = $field->name === 'title' ? $entry->title : $entry->field($field->name);
 
 			return $field->required
-				&& $field->name !== 'published'
+				&& $field->name !== 'date'
 				&& ($value === null || $value === [] || (is_string($value) && trim($value) === ''));
 		});
 
@@ -799,10 +932,11 @@ final readonly class EntryEditor
 	 * as they're typed, before the entry is written.
 	 *
 	 * @param  array<array-key, mixed> $before The entry's front matter, none for a new one.
+	 * @param  bool                    $live   Whether the save leaves the entry live.
 	 * @throws EditRefused When the account may not create and publish entries of a target's type, or a save that leaves the entry live leaves a relation out of its limits.
 	 * @throws WriteException
 	 */
-	private function related(Account $account, ContentType $type, ?Entry $entry, array $before, EntryChanges $changes): void
+	private function related(Account $account, ContentType $type, ?Entry $entry, array $before, EntryChanges $changes, bool $live): void
 	{
 		$after    = array_diff_key([...$before, ...$changes->set], array_flip($changes->remove));
 		$language = $entry->language ?? $this->app->languages->default->code;
@@ -819,7 +953,7 @@ final readonly class EntryEditor
 			}
 		}
 
-		if (! self::isDraft($changes, $entry)) {
+		if ($live) {
 			$problems = $this->limits->check($type->name, $entry?->id, $language, $after);
 
 			if ($problems !== []) {
@@ -890,6 +1024,50 @@ final readonly class EntryEditor
 	}
 
 	/**
+	 * Says what's wrong with an entry's (or a type's new one's) `expires`
+	 * date in its front matter after a change, or `null` (D-852): a type
+	 * without expiry takes none, nor do index, archive, error, and
+	 * landing pages, and it comes after the entry's `date`.
+	 *
+	 * @param array<array-key, mixed> $after
+	 */
+	private function expiryProblem(ContentType $type, ?Entry $entry, array $after): ?Text
+	{
+		$expires = $this->timeOf($after['expires'] ?? null);
+
+		if ($expires === null) {
+			return null;
+		}
+
+		if (! $type->expires) {
+			return $this->messages->t('content.entry_editor.no_expiry', 'Expiry isn\'t on for {items}, so they can\'t have an "expires" date.', items: $type->labels->items);
+		}
+
+		if ($entry !== null && ($entry->landing || IndexPage::is($entry) || $this->archivePages->isList($entry) || $this->archivePages->isTarget($entry) || ErrorPage::status($entry) !== null)) {
+			return $this->messages->t('content.entry_editor.never_expires', '“{title}” can\'t expire: index, archive, error, and landing pages stay as long as their site does.', title: $this->titleOf($entry));
+		}
+
+		$date = $this->timeOf($after['date'] ?? null);
+
+		return $date !== null && $expires <= $date
+			? $this->messages->t('content.entry_editor.expires_before_date', 'The expiry date has to come after the entry\'s date.')
+			: null;
+	}
+
+	/**
+	 * Reads a front matter date as a Unix time, or returns `null`.
+	 */
+	private function timeOf(mixed $value): ?int
+	{
+		return match (true) {
+			is_int($value)                         => $value,
+			$value instanceof DateTimeImmutable    => $value->getTimestamp(),
+			is_string($value)                      => self::date($value, $this->app)?->getTimestamp(),
+			default                                => null
+		};
+	}
+
+	/**
 	 * Returns what's wrong with renaming an entry to a slug, or `null`,
 	 * in the folder of keys it's in, or moving to (`.` for the top).
 	 */
@@ -942,11 +1120,12 @@ final readonly class EntryEditor
 	}
 
 	/**
-	 * Returns why the account may not make a change, or `null`.
+	 * Returns why the account may not make a change that leaves the entry
+	 * live, or not, or `null`.
 	 */
-	private function refusal(Account $account, Entry $entry, EntryChanges $changes): ?Text
+	private function refusal(Account $account, Entry $entry, EntryChanges $changes, bool $live): ?Text
 	{
-		if (! self::isDraft($changes, $entry) && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
+		if ($live && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
 			return $this->messages->t('content.entry_editor.cannot_publish', 'You aren\'t allowed to publish that entry; keep it a draft.');
 		}
 
@@ -976,46 +1155,55 @@ final readonly class EntryEditor
 	}
 
 	/**
-	 * Applies the status shortcut.
+	 * Applies the status shortcut: a status's name, or `scheduled`, for an
+	 * entry (`null` for a new one) of a type, stored with a status now.
 	 *
 	 * @throws EditRefused
 	 * @throws WriteException
 	 */
-	private function withStatus(EntryChanges $changes, string $status, ?string $published, ?Entry $entry): EntryChanges
+	private function withStatus(EntryChanges $changes, string $status, ?string $date, ?Entry $entry, ContentType $type, string $from): EntryChanges
 	{
-		if (! in_array($status, self::STATUSES, true)) {
-			throw EditRefused::invalid(sprintf('"status" must be one of %s.', implode(', ', self::STATUSES)), 'status');
+		$workflow  = $this->workflows->for($type);
+		$scheduled = $status === EntryStatus::SCHEDULED;
+
+		if (! $scheduled && ! $workflow->has($status) && $status !== $from) {
+			throw EditRefused::invalid(sprintf('"status" must be one of %s.', implode(', ', [...$workflow->statuses, EntryStatus::SCHEDULED])), 'status');
 		}
 
 		$set    = $changes->set;
 		$remove = array_values(array_diff($changes->remove, ['status']));
 		$now    = $this->clock->now();
 		$index  = $entry !== null && IndexPage::is($entry);
+		$target = $scheduled ? $this->liveTarget($type, $from) : $status;
+		$live   = $this->statuses->get($target)->live;
 
-		if ($status === 'scheduled' && $index) {
+		if ($scheduled && $index) {
 			throw EditRefused::invalid($this->messages->t('content.entry_editor.index_not_scheduled', 'An index page can\'t be scheduled; publish it or keep it a draft.'), 'status');
 		}
 
 		unset($set['status']);
 
-		if ($status === 'draft') {
-			$set['status'] = 'draft';
-		} else {
+		// A file without a status is published.
+		if ($target === EntryStatus::PUBLISHED) {
 			$remove[] = 'status';
+		} else {
+			$set['status'] = $target;
 		}
 
-		if ($status === 'scheduled') {
-			$when = self::date($published, $this->app);
+		$when = self::date($date, $this->app);
 
+		if ($scheduled) {
 			if ($when === null || $when <= $now) {
-				throw EditRefused::invalid($this->messages->t('content.entry_editor.future_date', 'Scheduling needs a future "published" date.'), 'published');
+				throw EditRefused::invalid($this->messages->t('content.entry_editor.future_date', 'Scheduling needs a future "date".'), 'date');
 			}
 
-			$set['published'] = self::dateString($when);
-		}
-
-		if ($status === 'published' && ! $index && ! isset($set['published']) && ($entry?->published === null || $entry->published > $now)) {
-			$set['published'] = self::dateString($now->setTimezone($this->app->timezone()));
+			$set['date'] = self::dateString($when);
+		} elseif ($live && ! $index && ! isset($set['date'])) {
+			if ($when !== null) {
+				$set['date'] = self::dateString($when);
+			} elseif ($entry?->date === null || $entry->date > $now) {
+				$set['date'] = self::dateString($now->setTimezone($this->app->timezone()));
+			}
 		}
 
 		// A new entry has no file yet, so there's no status key to clear.
@@ -1027,19 +1215,67 @@ final readonly class EntryEditor
 	}
 
 	/**
-	 * Whether an entry stays (or starts as) a draft after the changes.
+	 * Returns the live status scheduling moves an entry of a type into
+	 * from a stored status: that status, when it's live; else the first
+	 * live one a transition from it goes to; else the first live one in
+	 * its workflow; else `published`.
 	 */
-	private static function isDraft(EntryChanges $changes, ?Entry $entry): bool
+	private function liveTarget(ContentType $type, string $from): string
+	{
+		if ($this->statuses->get($from)->live) {
+			return $from;
+		}
+
+		$workflow = $this->workflows->for($type);
+		$live     = fn (string $status): bool => $this->statuses->get($status)->live;
+
+		$transition = array_find($workflow->from($from), static fn (Transition $transition): bool => $live($transition->to));
+
+		return $transition->to ?? array_find($workflow->statuses, $live) ?? EntryStatus::PUBLISHED;
+	}
+
+	/**
+	 * Returns the status an entry is stored with after some changes, from
+	 * the one it's stored with now.
+	 */
+	private static function storedAfter(EntryChanges $changes, string $from): string
 	{
 		if (array_key_exists('status', $changes->set)) {
-			return $changes->set['status'] === 'draft';
+			return Transitions::stored(['status' => $changes->set['status']]);
 		}
 
-		if (in_array('status', $changes->remove, true) || $entry === null) {
-			return false;
-		}
+		return in_array('status', $changes->remove, true) ? EntryStatus::PUBLISHED : $from;
+	}
 
-		return $entry->status->is(EntryStatus::DRAFT);
+	/**
+	 * Refuses moving an entry (or a type's new one) from a stored status
+	 * to another that has no transition in its workflow, or that the
+	 * account may not make (D-851).
+	 *
+	 * @throws EditRefused
+	 */
+	private function checkMove(Account $account, Entry|ContentType $on, string $from, string $to): void
+	{
+		$refusal = $this->transitions->refusal($account, $on, $from, $to);
+
+		if ($refusal !== null) {
+			throw $this->transitions->isMissing($on, $from, $to) ? EditRefused::unprocessable($refusal, 'status') : EditRefused::forbidden($refusal, 'status');
+		}
+	}
+
+	/**
+	 * Dispatches `StatusChanging` for a change about to be written, and
+	 * refuses it with the reason a listener gave.
+	 *
+	 * @throws EditRefused
+	 */
+	private function announce(Actor $actor, Entry $entry, string $from, string $to, ?Transition $transition): void
+	{
+		$reason = $this->transitions->changing($actor, $entry, $from, $to, $transition);
+
+		if ($reason !== null) {
+			throw EditRefused::unprocessable($reason instanceof Text ? $reason : (string) $reason, 'status');
+		}
 	}
 
 	/**

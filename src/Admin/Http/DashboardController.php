@@ -180,8 +180,8 @@ final readonly class DashboardController
 
 		return [
 			'draft'     => $take($query->status(Status::DRAFT)->orderBy('updated', Order::Desc)),
-			'scheduled' => $take($query->status(Status::SCHEDULED)->orderBy('published', Order::Asc)),
-			'published' => $take($query->status(Status::PUBLISHED)->orderBy('published', Order::Desc))
+			'scheduled' => $take($query->status(Status::SCHEDULED)->orderBy('date', Order::Asc)),
+			'published' => $take($query->status(Status::PUBLISHED)->orderBy('date', Order::Desc))
 		];
 	}
 
@@ -267,7 +267,7 @@ final readonly class DashboardController
 			'type'      => $entry->type->name,
 			'status'    => $entry->status->name,
 			'url'       => $this->urls->entry($entry),
-			'published' => $entry->published?->format(DateTimeInterface::ATOM),
+			'date'      => $entry->date?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
 			'authors'   => array_values(array_map(static fn (Entry $profile): string => trim($profile->title) === '' ? $profile->slug : trim($profile->title), $credited)),
 			'yours'     => $account->profile !== null && isset($credited[$account->profile])

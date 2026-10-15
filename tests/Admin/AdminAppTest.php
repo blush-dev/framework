@@ -265,7 +265,7 @@ final class AdminAppTest extends TestCase
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\nupdated: 2026-01-02\n---\n");
 		$this->writeTemporaryFile('user/content/notes.md', "---\ntitle: Notes\nstatus: draft\nauthors: sam\nupdated: 2026-01-01\n---\n");
-		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\n---\n");
+		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\ndate: 2099-01-01 09:00:00\nauthors: jane\n---\n");
 		$this->boot();
 
 		$this->assertSame(401, $this->send('GET', '/dashboard')->getStatusCode());

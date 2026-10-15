@@ -79,8 +79,9 @@ use Blush\Workflow\Status;
  *   linking to it have their ids filed; after, their written values are
  *   rewritten from the ids, so their links follow it.
  *
- * Front matter keys go through the entry's type schema, so setting
- * `published` updates a file's `date` alias in place.
+ * Front matter keys go through the entry's type schema, so setting a
+ * field updates the alias a file wrote it under in place (`excerpt`
+ * for `summary`).
  */
 final readonly class FilesystemWriter
 {
@@ -1023,7 +1024,7 @@ final readonly class FilesystemWriter
 	/**
 	 * Returns changes for a new file: its id (one the changes give, when
 	 * it's a UUID no entry has, as a record saved with its id, D-653;
-	 * else a new one), and a `published` date
+	 * else a new one), and a `date`
 	 * of now in the site's time zone when neither the changes nor the
 	 * front matter it starts from (a copy's) has one (every kind, D-514).
 	 *
@@ -1034,17 +1035,17 @@ final readonly class FilesystemWriter
 		$given   = $changes->set[EntryFields::ID] ?? null;
 		$changes = $this->withId($changes, is_string($given) && Uuid::isValid($given) && $this->index->snapshot()->path(strtolower($given)) === null ? strtolower($given) : null);
 
-		if (array_intersect_key([...$frontMatter, ...$changes->set], ['published' => true, 'date' => true]) !== []) {
+		if (array_intersect_key([...$frontMatter, ...$changes->set], ['date' => true]) !== []) {
 			return $changes;
 		}
 
-		$published = $this->clock->now()->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
+		$date = $this->clock->now()->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
 		$set       = $changes->set;
 		$id        = $set[EntryFields::ID];
 
 		unset($set[EntryFields::ID]);
 
-		return new EntryChanges([...$set, 'published' => $published, EntryFields::ID => $id], $changes->remove, $changes->body);
+		return new EntryChanges([...$set, 'date' => $date, EntryFields::ID => $id], $changes->remove, $changes->body);
 	}
 
 	/**

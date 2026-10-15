@@ -24,7 +24,7 @@ use Blush\Translation\Messages;
  * (`TypeUrls`), and its placeholders are filled as `ContentUrls` fills
  * them:
  *
- * - `single` holds `{name}`, and a collection's may add the published
+ * - `single` holds `{name}`, and a collection's may add the entry's
  *   date's parts (`{year}` … `{second}`) and a term type's name (or the
  *   profiles type's) for the entry's first term of it.
  * - A term type's `single` keys (one a classify relation files entries

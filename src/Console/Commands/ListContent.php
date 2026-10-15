@@ -71,14 +71,14 @@ final readonly class ListContent
 		}
 
 		$output->table(
-			['Type', 'Key', 'Title', 'Status', 'Visibility', 'Published'],
+			['Type', 'Key', 'Title', 'Status', 'Visibility', 'Date'],
 			array_map(static fn (Entry $entry): array => [
 				$entry->type->name,
 				$entry->landing ? '(landing)' : $entry->key,
 				$entry->title,
 				$entry->status->name,
 				$entry->visibility->value,
-				$entry->published?->format('Y-m-d H:i') ?? ''
+				$entry->date?->format('Y-m-d H:i') ?? ''
 			], $entries->all())
 		);
 

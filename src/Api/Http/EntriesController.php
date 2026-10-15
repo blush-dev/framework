@@ -39,8 +39,8 @@ use Blush\Workflow\Statuses;
  *
  * A list is filtered by plain parameters: `type` (commas for several),
  * `rel:{relation}` (targets' ids or slugs, any of them), `parent` (an
- * id), `published_after` and `published_before`, `updated_after`,
- * `search`, and `ids`; sorted by `sort` (`published`, `title`,
+ * id), `date_after` and `date_before`, `updated_after`,
+ * `search`, and `ids`; sorted by `sort` (`date`, `title`,
  * `position`, or `updated`, `-` first for descending; one type's own
  * order by default, else newest first); and paged by `page` and
  * `per_page`. `?url=` finds the entry at a site address instead, with
@@ -61,14 +61,14 @@ final readonly class EntriesController
 	 *
 	 * @var list<string>
 	 */
-	public const array SORTS = ['published', 'title', 'position', 'updated'];
+	public const array SORTS = ['date', 'title', 'position', 'updated'];
 
 	/**
 	 * What a list takes besides `rel:{relation}`.
 	 *
 	 * @var list<string>
 	 */
-	private const array LIST = ['type', 'parent', 'published_after', 'published_before', 'updated_after', 'search', 'ids', 'url', 'sort', 'page', 'per_page', 'body', 'include', 'status'];
+	private const array LIST = ['type', 'parent', 'date_after', 'date_before', 'updated_after', 'search', 'ids', 'url', 'sort', 'page', 'per_page', 'body', 'include', 'status'];
 
 	public function __construct(
 		private ApiResponses $responses,
@@ -250,8 +250,8 @@ final readonly class EntriesController
 		[$key, $order] = $this->sort($query, $types);
 		$search        = $search->orderBy($key, $order);
 
-		$after  = $query->date('published_after', $zone);
-		$before = $query->date('published_before', $zone);
+		$after  = $query->date('date_after', $zone);
+		$before = $query->date('date_before', $zone);
 		$ids    = array_map(strtolower(...), $query->list('ids'));
 
 		foreach ($ids as $id) {
@@ -269,7 +269,7 @@ final readonly class EntriesController
 		$found = array_values(array_filter(
 			[...$search->get()],
 			static fn (Entry $entry): bool => ($ids === [] || in_array(strtolower((string) $entry->id), $ids, true))
-				&& self::within($entry->published, $after, $before)
+				&& self::within($entry->date, $after, $before)
 		));
 
 		return [array_slice($found, ($page - 1) * $perPage, $perPage), count($found)];
@@ -303,7 +303,7 @@ final readonly class EntriesController
 
 	/**
 	 * Returns the sort asked for, or the default: one type's own order,
-	 * else newest published first.
+	 * else newest first by date.
 	 *
 	 * @param  list<string> $types
 	 * @return array{string, Order}
@@ -314,7 +314,7 @@ final readonly class EntriesController
 		$sort = $query->string('sort');
 
 		if ($sort === null) {
-			return count($types) === 1 ? $this->entries->types()[$types[0]]->order() : ['published', Order::Desc];
+			return count($types) === 1 ? $this->entries->types()[$types[0]]->order() : ['date', Order::Desc];
 		}
 
 		$key = ltrim($sort, '-');

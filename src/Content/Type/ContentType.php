@@ -111,6 +111,12 @@ abstract readonly class ContentType
 	public const array PLACEMENT = ['position', 'under'];
 
 	/**
+	 * The name of the workflow its entries move through (D-735, D-851),
+	 * or `null` for core's `standard` (`Workflows::for()`).
+	 */
+	public ?string $workflow;
+
+	/**
 	 * @param  string          $name         Lowercase letters, digits, and underscores; not one of `RESERVED`.
 	 * @param  ?string         $folders      A folder pattern for the folders below the type's (`{year}`, D-629), or `null` for none.
 	 * @param  bool            $public       Whether the type is public at all.
@@ -129,6 +135,8 @@ abstract readonly class ContentType
 	 * @param  ?FileName       $filename     How new files are named (D-511, D-514); the slug alone by default.
 	 * @param  ?int            $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
 	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
+	 * @param  ?string         $workflow     The workflow its entries move through (D-851), or `null` for core's `standard`.
+	 * @param  bool            $expires      Whether its entries may have an `expires` date, after which they're expired (D-852).
 	 * @param  Messages        $messages     Writes why a type is refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -152,6 +160,8 @@ abstract readonly class ContentType
 		public ?int $position = null,
 		?string $under = null,
 		public FieldControls $controls = new FieldControls(),
+		?string $workflow = null,
+		public bool $expires = false,
 		Messages $messages = new Messages()
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
@@ -184,6 +194,7 @@ abstract readonly class ContentType
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
 		$this->byline      = $byline === null || trim($byline) === '' ? null : trim($byline);
 		$this->under       = $under === null || trim($under) === '' ? null : trim($under);
+		$this->workflow    = $workflow === null || trim($workflow) === '' ? null : trim($workflow);
 
 		if ($position !== null && $position < 0) {
 			throw new InvalidContentType((string) $messages->t('content.content_type.negative_position', 'Content type "{name}" "position" must be 0 or more.', name: $name));
@@ -352,14 +363,14 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns how the type's entries are ordered when nothing says
-	 * otherwise, as `Query::orderBy()` takes it: newest published first
+	 * otherwise, as `Query::orderBy()` takes it: newest first by date
 	 * here. Never by file, which a database doesn't have (D-516).
 	 *
 	 * @return array{string, Order}
 	 */
 	public function order(): array
 	{
-		return ['published', Order::Desc];
+		return ['date', Order::Desc];
 	}
 
 	/**
@@ -424,6 +435,8 @@ abstract readonly class ContentType
 				'icon'        => $definition->nullableString('icon'),
 				'filename'    => self::filename($definition, $name, $messages),
 				'controls'    => $controls,
+				'workflow'    => $definition->nullableString('workflow'),
+				'expires'     => $definition->bool('expires'),
 				'messages'    => $messages
 			];
 
@@ -458,7 +471,7 @@ abstract readonly class ContentType
 				'feed'    => self::feed($data['feed'] ?? false, $name, $messages)
 			];
 
-			$order = TypeOrder::tryFrom($definition->nullableString('order') ?? TypeOrder::Published->value)
+			$order = TypeOrder::tryFrom($definition->nullableString('order') ?? TypeOrder::Date->value)
 				?? throw new InvalidContentType((string) $messages->t(
 					'content.content_type.bad_order',
 					'Content type "{name}" "order" must be one of {orders}.',
@@ -599,6 +612,8 @@ abstract readonly class ContentType
 			'filename'    => $this->filename?->pattern,
 			'position'    => $this->position,
 			'under'       => $this->under,
+			'workflow'    => $this->workflow,
+			'expires'     => $this->expires ?: null,
 			...$this->options(),
 			'fields'      => $this->controls->definitions($this->schema->fields),
 			'closed'      => $this->schema->closed ?: null

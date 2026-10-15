@@ -70,6 +70,8 @@ final readonly class Collection extends ContentType
 	 * @param  TypeOrder       $order        How entries are ordered when nothing says otherwise.
 	 * @param  ?int            $position     Its order in the admin's menu (D-726).
 	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726).
+	 * @param  ?string         $workflow    The workflow its entries move through (D-851), or `null` for core's `standard`.
+	 * @param  bool            $expires     Whether its entries may have an `expires` date (D-852).
 	 * @param  Messages        $messages    Writes why it's refused; English without a translator, for a type in code.
 	 * @throws InvalidContentType
 	 */
@@ -91,13 +93,15 @@ final readonly class Collection extends ContentType
 		bool $llms = true,
 		?FileName $filename = null,
 		public bool $hierarchical = false,
-		public TypeOrder $order = TypeOrder::Published,
+		public TypeOrder $order = TypeOrder::Date,
 		?int $position = null,
 		?string $under = null,
 		FieldControls $controls = new FieldControls(),
+		?string $workflow = null,
+		bool $expires = false,
 		Messages $messages = new Messages()
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $messages);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under, $controls, $workflow, $expires, $messages);
 	}
 
 	/**
@@ -178,7 +182,7 @@ final readonly class Collection extends ContentType
 			'dateArchives' => $this->dateArchives === DateArchives::None ? null : $this->dateArchives->value,
 			'byline'       => $this->byline,
 			'hierarchical' => $this->hierarchical ?: null,
-			'order'        => $this->order === TypeOrder::Published ? null : $this->order->value
+			'order'        => $this->order === TypeOrder::Date ? null : $this->order->value
 		];
 	}
 }

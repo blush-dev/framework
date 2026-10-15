@@ -267,7 +267,7 @@ onMounted(() => {
 		<template v-if="clear">
 			<div class="panel">
 				<EmptyState icon="circle-check" :heading="t('dashboard_view.clear_heading', 'Nothing Is Waiting on You')" tag="h2">
-					{{ t('dashboard_view.clear_text', 'No drafts and nothing scheduled.') }}<template v-if="lastPublished">{{ ' ' }}<MessageText :text="t('dashboard_view.last_published', 'The last thing you published was {title}, {when}.', { when: formatWhen(lastPublished.published ?? lastPublished.updated) })"><template #title><strong>{{ lastPublished.title || t('dashboard_view.untitled', 'Untitled') }}</strong></template></MessageText></template>
+					{{ t('dashboard_view.clear_text', 'No drafts and nothing scheduled.') }}<template v-if="lastPublished">{{ ' ' }}<MessageText :text="t('dashboard_view.last_published', 'The last thing you published was {title}, {when}.', { when: formatWhen(lastPublished.date ?? lastPublished.updated) })"><template #title><strong>{{ lastPublished.title || t('dashboard_view.untitled', 'Untitled') }}</strong></template></MessageText></template>
 					<template #actions>
 						<div v-if="firstNew || browsable.length" class="dashboard__clear-actions">
 							<RouterLink v-if="firstNew" class="button button--primary" :to="{ name: 'entry-new', query: { type: firstNew.name } }"><AdminIcon name="plus" />{{ firstNew.labels.newItem }}</RouterLink>

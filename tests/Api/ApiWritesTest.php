@@ -49,7 +49,7 @@ final class ApiWritesTest extends TestCase
 	private function boot(string $config = 'new Blush\\Api\\ApiConfig(enabled: true)'): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2021-01-01.mine.md', "title: Mine\npublished: 2021-01-01\nstatus: draft\nauthor: justintadlock", 'First line.');
+		$this->entry('_post/2021-01-01.mine.md', "title: Mine\ndate: 2021-01-01\nstatus: draft\nauthor: justintadlock", 'First line.');
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
 		$this->writeTemporaryFile('config/api.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn {$config};\n");
 
@@ -168,8 +168,8 @@ final class ApiWritesTest extends TestCase
 
 		$this->clock->advance('PT1M');
 
-		$published = $this->json($this->send('PATCH', "/api/v1/entries/{$id}", $author, ['status' => 'published'], self::text($changed, 'revision')), 200);
-		$this->assertSame('published', $published['status'] ?? null);
+		$date = $this->json($this->send('PATCH', "/api/v1/entries/{$id}", $author, ['status' => 'published'], self::text($changed, 'revision')), 200);
+		$this->assertSame('published', $date['status'] ?? null);
 
 		[$log] = $this->app->container()->make(ActivityLog::class)->list(new ActivityFilter(subject: $id));
 

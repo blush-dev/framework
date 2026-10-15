@@ -33,7 +33,7 @@ final class ContentUrlsTest extends TestCase
 	public function testBuildsUrlsFromTypeRouting(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2019/nested.md', "title: Nested\npublished: 2019-01-01");
+		$this->entry('_post/2019/nested.md', "title: Nested\ndate: 2019-01-01");
 
 		$app     = $this->site();
 		$content = $app->container()->make(Entries::class);

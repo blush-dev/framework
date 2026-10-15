@@ -23,11 +23,11 @@ use Blush\Tool\ToolEntries;
 use Blush\Tool\ToolResult;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
-use Blush\Workflow\Status;
 
 /**
- * `restore_entry` (D-756): brings an entry back from the trash as a
- * draft (D-237), so it's never republished without someone choosing to.
+ * `restore_entry` (D-756): brings an entry back from the trash at its
+ * workflow's `initial` (D-237, D-851), a draft in `standard`, so it's
+ * never republished without someone choosing to.
  */
 final class RestoreEntry extends Tool
 {
@@ -45,7 +45,7 @@ final class RestoreEntry extends Tool
 	#[Override]
 	public function description(): Text
 	{
-		return $this->messages->t('tool.restore_entry.description', 'Brings an entry back from the trash as a draft. search_entries with status ["trash"] finds what\'s there.');
+		return $this->messages->t('tool.restore_entry.description', 'Brings an entry back from the trash at its workflow\'s first status, a draft unless its type says otherwise. search_entries with status ["trash"] finds what\'s there.');
 	}
 
 	#[Override]
@@ -77,11 +77,11 @@ final class RestoreEntry extends Tool
 		$entry = $this->entries->find($context, self::text($input, 'id'));
 
 		try {
-			$restored = $context->entries->restore($context->actor, $entry, Status::DRAFT);
+			$restored = $context->entries->restore($context->actor, $entry);
 		} catch (EditRefused $refused) {
 			throw Fields::refused($refused, $this->messages);
 		}
 
-		return new ToolResult($this->entries->stub($restored), $this->messages->t('tool.restore_entry.restored', 'Restored “{title}” as a draft.', title: $restored->title));
+		return new ToolResult($this->entries->stub($restored), $this->messages->t('tool.restore_entry.restored', 'Restored “{title}” as {status}.', title: $restored->title, status: (string) $restored->status->label));
 	}
 }

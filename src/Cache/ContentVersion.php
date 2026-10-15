@@ -129,15 +129,28 @@ final class ContentVersion
 	}
 
 	/**
-	 * Returns the earliest publish time still to come of an entry of a
+	 * Returns the earliest date still to come of an entry of a
 	 * live status, or `null` when nothing is scheduled (D-128).
 	 */
 	private function nextScheduled(): ?int
 	{
+		$now  = EntryTable::time($this->now());
 		$next = ($this->records)()->entries()
 			->where('status', Operator::In, $this->statuses->live())
-			->where('published', Operator::Greater, EntryTable::time($this->now()))
-			->min('published');
+			->where('date', Operator::Greater, $now)
+			->min('date');
+
+		// Or an expiry (D-852), whichever comes first.
+		$expires = ($this->records)()->entries()
+			->where('status', Operator::In, $this->statuses->live())
+			->where('expires', Operator::Greater, $now)
+			->min('expires');
+
+		$next = match (true) {
+			! is_string($expires) => $next,
+			! is_string($next)    => $expires,
+			default               => min($next, $expires)
+		};
 
 		try {
 			return is_string($next) ? new DateTimeImmutable($next)->getTimestamp() : null;

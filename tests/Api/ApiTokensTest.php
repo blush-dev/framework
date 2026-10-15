@@ -48,7 +48,7 @@ final class ApiTokensTest extends TestCase
 	private function boot(string $config = 'new Blush\\Api\\ApiConfig(enabled: true)'): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2021-01-01.mine.md', "title: Mine\npublished: 2021-01-01\nstatus: draft\nauthor: justintadlock");
+		$this->entry('_post/2021-01-01.mine.md', "title: Mine\ndate: 2021-01-01\nstatus: draft\nauthor: justintadlock");
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
 		$this->writeTemporaryFile('config/api.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn {$config};\n");
 

@@ -1124,20 +1124,26 @@ admin changed, and `docs/`.
      `StatusSource`, `Statuses`, core's `draft` and `published`, read
      by name everywhere (queries, permissions, the index, the API,
      MCP, the admin's pills), unknown ones not live and linted.
-  2. **Workflows and transitions:** `Workflow`, `Transition`,
+  2. **Workflows and transitions** (D-851; built: 2a, the PHP side,
+     and 2b, the admin): `Workflow`, `Transition`,
      `WorkflowSource`, `Workflows::for($type)`, `workflow:` on types,
      core's `standard`; the `Transitions` service with `StatusChanging`
      and `StatusChanged`, which the editor, `EntryEditor::setStatus()`,
      the API, and MCP go through; a capability per transition
      (`content.{type}.transition.{name}`, D-734's rules); list tabs
      from the type's workflow.
-  3. **Expiry:** `expires:` on types, the `expires` date, `expired`
-     worked out as `scheduled` is, and a job moving the content version.
-  4. **The site's own:** `statuses` and `workflows` tables (labels only
+  3. **Expiry** (D-852; built): first, `published` renamed `date`
+     everywhere (no alias; the trial site's files changed);
+     then `expires:` on types, the `expires` date (an `entries`
+     column), `expired` worked out as `scheduled` is, off the site
+     like a draft, `ContentVersion` moving on at the next expiry, and
+     `EntriesExpired` from the job.
+  4. **The site's own** (D-853; built): `statuses` and `workflows` tables (labels only
      over an extension's status), and a Site Health check mapping
      statuses a type's new workflow lacks; clashes shown where types'
      and relations' are.
-  5. **The Workflows screen** under Structure, from existing pieces.
+  5. **The Workflows screen** under Structure, from existing pieces
+     (D-854; built).
 
 - **The editor's Template (D-728; built, D-783):** a row under the
   Publish group's rows, of the templates the active theme declares for

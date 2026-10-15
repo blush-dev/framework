@@ -126,7 +126,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$types  = $this->types();
 		$schema = $types->schema('post');
 
-		foreach (['title', 'published', 'summary', 'category', 'era', 'authors'] as $field) {
+		foreach (['title', 'date', 'summary', 'category', 'era', 'authors'] as $field) {
 			$this->assertTrue($schema->has($field), $field);
 		}
 
@@ -134,7 +134,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertTrue($types->schema('literature')->has('literary_form'));
 
 		$this->assertSame('authors', $schema->field('author')?->name);
-		$this->assertSame('published', $schema->field('date')?->name);
+		$this->assertSame('summary', $schema->field('excerpt')?->name);
 		$this->assertSame($schema, $types->schema('post'));
 		$this->assertFalse($types->schema('page')->has('authors'), 'Only the types with people fields credit people (D-351).');
 		$this->assertFalse($types->schema('category')->has('authors'));

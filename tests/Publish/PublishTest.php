@@ -135,12 +135,12 @@ final class PublishTest extends TestCase
 
 		$this->entry('_post/2009-01-01.fresh.md', 'title: Fresh Post');
 
-		$published = [];
+		$date = [];
 		$events    = [];
 		$listeners = $app->container()->make(ListenerRegistry::class);
 
-		$listeners->listen(ContentPublished::class, static function (ContentPublished $event) use (&$published, &$events): void {
-			$published[] = $event->report;
+		$listeners->listen(ContentPublished::class, static function (ContentPublished $event) use (&$date, &$events): void {
+			$date[] = $event->report;
 			$events[]    = 'published';
 		});
 		$listeners->listen(CacheCleared::class, static function (CacheCleared $event) use (&$events): void {
@@ -156,7 +156,7 @@ final class PublishTest extends TestCase
 		$this->assertSame(['pages', 'bodies', 'fragments'], $report->cleared);
 		$this->assertNotSame($before, $report->version);
 		$this->assertSame($report->version, $app->container()->make(ContentVersion::class)->current());
-		$this->assertCount(1, $published);
+		$this->assertCount(1, $date);
 		$this->assertSame(['cleared: pages, bodies, fragments', 'published'], $events);
 		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/cache/store/pages/*/*') ?: []);
 

@@ -35,6 +35,9 @@ enum ViolationKind: string
 	case Alias = 'alias';
 	// A date that isn't real, read as another.
 	case Date = 'date';
+	// An entry's status nothing registers, or its type's workflow doesn't
+	// use (D-853).
+	case Status = 'status';
 	// An entry's or media file's id: missing, not valid, or shared.
 	case Id = 'id';
 	// A term or profile named with no file.

@@ -32,6 +32,8 @@ use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Workflow\Transition;
+use Blush\Workflow\Workflows;
 
 /**
  * Describes accounts and roles for the admin's Users screens (D-249,
@@ -51,16 +53,19 @@ final readonly class UsersJson
 		private Capabilities $capabilities,
 		private ContentTypes $types,
 		private Avatars $avatars,
-		private EmailChanges $changes
+		private EmailChanges $changes,
+		private Workflows $workflows
 	) {}
 
 	/**
 	 * Describes the site's capabilities, or some of them, as a role's
 	 * screen and an API token's draw them: each its `name`, `label`, and
-	 * `group`, and a content capability's `type` and `action` (D-359).
+	 * `group`, and a content capability's `type` and `action` (D-359), or
+	 * a transition's `type` and `transition`, its `name` and `label`
+	 * (D-851).
 	 *
 	 * @param  ?list<string> $only Only these names, or `null` for all.
-	 * @return list<array<string, ?string>>
+	 * @return list<array<string, string|array{name: string, label: string}|null>>
 	 */
 	public function capabilities(?array $only = null): array
 	{
@@ -71,17 +76,41 @@ final readonly class UsersJson
 				continue;
 			}
 
-			[$type, $action] = ContentAction::parse($name) ?? [null, null];
+			[$type, $action]    = ContentAction::parse($name) ?? [null, null];
+			[$moves, $movement] = Transition::parse($name) ?? [null, null];
+			$transition         = $moves === null ? null : $this->transition($moves, (string) $movement);
 
 			$capabilities[] = [
 				'name'  => $name,
 				'label' => $label,
 				'group' => $this->capabilities->group($name),
-				...($action === null ? [] : ['type' => $type, 'action' => $action->value])
+				...($action === null ? [] : ['type' => $type, 'action' => $action->value]),
+				...($transition === null ? [] : ['type' => $moves, 'transition' => ['name' => $transition->name, 'label' => (string) $transition->label]])
 			];
 		}
 
 		return $capabilities;
+	}
+
+	/**
+	 * Returns a transition by name in a type's workflow, or, for every
+	 * type (`*`), the first workflow's with that name.
+	 */
+	private function transition(string $type, string $name): ?Transition
+	{
+		if ($type !== ContentAction::EVERY) {
+			return $this->workflows->for($type)->transition($name);
+		}
+
+		foreach ($this->workflows->all() as $workflow) {
+			$found = $workflow->transition($name);
+
+			if ($found !== null) {
+				return $found;
+			}
+		}
+
+		return null;
 	}
 
 	/**

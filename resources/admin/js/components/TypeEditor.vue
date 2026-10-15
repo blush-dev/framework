@@ -79,6 +79,9 @@ const file   = computed(() => props.type.file ?? `user/data/types/${props.type.n
 const prefix = computed(() => (form.value.prefix || props.type.defaultPrefix).replace(/^\/+|\/+$/g, ''));
 
 // Which credit is the byline, when it has more than one (D-602).
+// Its workflow (D-851): core's `standard` is `''`.
+const workflowOptions = computed(() => props.type.workflows.map((workflow) => ({ value: workflow.name === 'standard' ? '' : workflow.name, label: workflow.label })));
+
 const bylineOptions = computed(() => [{ value: '', label: t('type_editor.choose_one', 'Choose one') }, ...props.type.credits.map((name) => ({ value: name, label: name }))]);
 
 function wantPage(relation: string, on: boolean): void {
@@ -175,8 +178,17 @@ guardLeave(() => changed.value);
 			<header class="panel__header">
 				<h2 id="behavior-heading">{{ t('type_editor.behavior', 'Behavior') }}</h2>
 			</header>
-			<div class="panel__body">
+			<div class="panel__body form-stack">
 				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :default-prefix="type.defaultPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" />
+				<div v-if="workflowOptions.length > 1" class="field">
+					<label for="type-workflow">{{ t('type_editor.workflow', 'Workflow') }}</label>
+					<AdminSelect id="type-workflow" v-model="form.workflow" :options="workflowOptions" described-by="type-workflow-help" />
+					<p id="type-workflow-help" class="field__help">{{ t('type_editor.workflow_help', 'The statuses its entries move through, and who may move them. Entries keep their status when it changes.') }}</p>
+				</div>
+				<div class="field">
+					<label class="checkbox"><input v-model="form.expires" type="checkbox" aria-describedby="type-expires-help"> {{ t('type_editor.expires', 'Entries can expire') }}</label>
+					<p id="type-expires-help" class="field__help">{{ t('type_editor.expires_help', 'Each entry gets an Expires date. Once it passes, the entry is off the site, as a draft is, until the date is moved or cleared.') }}</p>
+				</div>
 			</div>
 		</section>
 

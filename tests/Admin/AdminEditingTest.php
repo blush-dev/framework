@@ -63,7 +63,7 @@ final class AdminEditingTest extends TestCase
 		$this->profiles('jane', 'sam');
 		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_post/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('user/content/_post/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
+		$this->writeTemporaryFile('user/content/_post/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\ndate: 2021-05-05 09:00:00 -05:00\n---\n");
 
 		$this->boot(roles: $roles);
 		$this->login();
@@ -261,7 +261,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertIsArray($entry['values'] ?? null);
 		$this->assertSame('Rekindling the Flame', $entry['values']['title'] ?? null);
-		$this->assertSame('2022-03-29T23:00:00-06:00', $entry['values']['published'] ?? null, 'The 1.x `date` is the `published` field, as parsed.');
+		$this->assertSame('2022-03-29T23:00:00-06:00', $entry['values']['date'] ?? null, 'The `date` field, as parsed.');
 		$this->assertSame([], $entry['extra'] ?? null, 'Nothing declares `mood`, so it isn\'t shown (D-786).');
 		$this->assertSame("The body.\n", $entry['body'] ?? null);
 		$this->assertIsString($entry['modified'] ?? null, 'When the file was last written, for the editor\'s conflict notice.');
@@ -448,10 +448,10 @@ final class AdminEditingTest extends TestCase
 		$scheduled = $this->call('PATCH', $this->entryPath('_post/index.md'), ['revision' => $this->revision('_post/index.md'), 'status' => 'scheduled', 'published' => '2999-01-01 08:00:00']);
 		$this->assertSame(400, $scheduled->getStatusCode());
 
-		$published = $this->call('PATCH', $this->entryPath('_post/index.md'), ['revision' => $this->revision('_post/index.md'), 'status' => 'published']);
-		$this->assertSame(200, $published->getStatusCode());
-		$this->assertSame('published', self::json($published)['status'] ?? null);
-		$this->assertStringNotContainsString('published', $this->file('_post/index.md'), 'Publishing doesn\'t date it.');
+		$date = $this->call('PATCH', $this->entryPath('_post/index.md'), ['revision' => $this->revision('_post/index.md'), 'status' => 'published']);
+		$this->assertSame(200, $date->getStatusCode());
+		$this->assertSame('published', self::json($date)['status'] ?? null);
+		$this->assertStringNotContainsString('date:', $this->file('_post/index.md'), 'Publishing doesn\'t date it.');
 	}
 
 	public function testDuplicatesAnEntryAsADraft(): void
@@ -516,7 +516,7 @@ final class AdminEditingTest extends TestCase
 		$this->site();
 
 		$revision = $this->revision(self::FLAME);
-		$response = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $revision, 'set' => ['title' => 'The Flame', 'published' => '2022-04-01 08:00:00 -05:00']]);
+		$response = $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $revision, 'set' => ['title' => 'The Flame', 'date' => '2022-04-01 08:00:00 -05:00']]);
 		$saved    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
@@ -536,19 +536,19 @@ final class AdminEditingTest extends TestCase
 		$this->site();
 		$idea = '_post/2023-01-01.idea.md';
 
-		$published = self::json($this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'published']));
+		$date = self::json($this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'published']));
 
-		$this->assertSame('published', $published['status'] ?? null);
+		$this->assertSame('published', $date['status'] ?? null);
 		$this->assertStringNotContainsString('status:', $this->file($idea));
-		$this->assertMatchesRegularExpression('/\npublished: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [-+]\d{2}:\d{2}\n/', $this->file($idea), 'Publishing an undated draft dates it now.');
+		$this->assertMatchesRegularExpression('/\ndate: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [-+]\d{2}:\d{2}\n/', $this->file($idea), 'Publishing an undated draft dates it now.');
 
 		$this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'draft']);
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file($idea));
 
-		$scheduled = self::json($this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'scheduled', 'published' => '2099-01-01 09:00']));
+		$scheduled = self::json($this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'scheduled', 'date' => '2099-01-01 09:00']));
 
 		$this->assertSame('scheduled', $scheduled['status'] ?? null);
-		$this->assertStringContainsString("\npublished: 2099-01-01 09:00:00 ", $this->file($idea));
+		$this->assertStringContainsString("\ndate: 2099-01-01 09:00:00 ", $this->file($idea));
 
 		$this->assertSame(400, $this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'scheduled'])->getStatusCode());
 		$this->assertSame(400, $this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'live'])->getStatusCode());
@@ -571,7 +571,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame([$this->idOf($idea), $this->idOf(self::FLAME)], $answer['done'] ?? null);
 		$this->assertStringNotContainsString('status:', $this->file($idea));
-		$this->assertStringContainsString('published:', $this->file($idea), 'An undated entry is dated as it\'s published.');
+		$this->assertStringContainsString('date:', $this->file($idea), 'An undated entry is dated as it\'s published.');
 		$this->assertStringContainsString('date      : 2022-03-29 23:00:00 -6', $this->file(self::FLAME), 'A dated entry keeps its date.');
 
 		$ideaId = $this->idOf($idea);
@@ -995,7 +995,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$this->site(types: ['post' => ['date_archives' => true, 'routing' => ['prefix' => 'archives'], 'filename' => '{date}.{slug}']]);
 
-		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['published' => '2022-04-02 10:00:00 -05:00']]));
+		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['date' => '2022-04-02 10:00:00 -05:00']]));
 		$path  = '_post/2022-04-02.flame.md';
 
 		$this->assertSame([$path, self::FLAME_ID], [$moved['path'] ?? null, $moved['id'] ?? null], 'Named by its new date (D-519).');
@@ -1004,9 +1004,9 @@ final class AdminEditingTest extends TestCase
 
 		$this->call('DELETE', $this->entryPath($path) . '?revision=' . $this->revision($path));
 		$this->call('POST', $this->entryPath($path) . '/restore');
-		$published = self::json($this->call('PATCH', $this->entryPath($path), ['revision' => $this->revision($path), 'status' => 'published']));
+		$date = self::json($this->call('PATCH', $this->entryPath($path), ['revision' => $this->revision($path), 'status' => 'published']));
 
-		$this->assertSame($path, $published['path'] ?? null, 'Trashing, restoring, and publishing keep its date and name.');
+		$this->assertSame($path, $date['path'] ?? null, 'Trashing, restoring, and publishing keep its date and name.');
 		$this->assertStringContainsString('date      : 2022-04-02 10:00:00 -05:00', $this->file($path));
 
 		$title = self::json($this->call('PATCH', $this->entryPath($path), ['revision' => $this->revision($path), 'set' => ['title' => 'Kept']]));
@@ -1032,7 +1032,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$this->site();
 
-		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['published' => '2022-04-02 10:00:00 -05:00']]));
+		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['date' => '2022-04-02 10:00:00 -05:00']]));
 		$this->assertSame(self::FLAME, $moved['path'] ?? null, 'A type without a pattern of its own is never renamed.');
 	}
 }

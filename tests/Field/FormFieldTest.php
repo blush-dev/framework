@@ -40,7 +40,7 @@ final class FormFieldTest extends TestCase
 		$forms = array_map(static fn (FormField $field): array => $field->toArray(), FormField::all(EntryFields::schema(new Messages()), EntryFields::controls(), new ControlDefaults()));
 
 		$this->assertSame(
-			['text', 'text', 'text', 'date', 'date', 'text', 'date', 'select', 'markdown', 'image', 'text', 'text', 'text', 'reference', 'group'],
+			['text', 'text', 'text', 'date', 'date', 'date', 'text', 'date', 'select', 'markdown', 'image', 'text', 'text', 'text', 'reference', 'group'],
 			array_column($forms, 'control')
 		);
 		$this->assertSame(['public' => 'public', 'unlisted' => 'unlisted', 'hidden' => 'hidden'], array_column($forms, 'choices', 'name')['visibility'] ?? null, 'A choice\'s option labels.');

@@ -77,8 +77,9 @@ needed in practice. The built-in keys:
 | `title` | The entry's title |
 | `subtitle` | A line shown under the title |
 | `slug` | The URL name, instead of the file name |
-| `published` | The publish date, such as `2026-09-26 09:00:00 -05:00`. A date in the future schedules the entry. (`date` works too.) |
-| `updated` | When it last changed; defaults to `published`, then the file's modified time. Every save and bulk change in the admin sets it |
+| `date` | The entry's date, such as `2026-09-26 09:00:00 -05:00`. A date in the future schedules the entry. |
+| `expires` | When the entry comes off the site, in a type with [expiry](content-types.md#expiry). Once it passes, the entry is expired: off the site, as a draft is, until you move or remove the date. It has to come after `date` |
+| `updated` | When it last changed; defaults to `date`, then the file's modified time. Every save and bulk change in the admin sets it |
 | `status` | `published` (the default), `draft`, or `trash`, or a status a plugin adds (see [Statuses from a plugin](extending.md#statuses-from-a-plugin)). The admin's **Move to trash** sets `trash`, which takes the entry off your site. A status the site doesn't have keeps the entry off the site, and `content:lint` warns about it |
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
@@ -103,7 +104,7 @@ A fuller example:
 ---
 title: "Launch day"
 subtitle: "Two years in the making"
-published: 2026-10-01 09:00:00 -05:00
+date: 2026-10-01 09:00:00 -05:00
 authors: jane
 tag: [news, releases]
 summary: "We're live. Here's what's new."
@@ -118,7 +119,8 @@ Today's the day...
 | You want to... | Do this |
 |---|---|
 | Keep an entry unpublished | Add `status: draft`, or put it in a `_drafts/` folder |
-| Publish it later | Set `published` to a future date. It goes live by itself at that time. |
+| Publish it later | Set `date` to a future date. It goes live by itself at that time. |
+| Take it down later | Set `expires`, in a type with expiry. It comes off the site by itself at that time, and comes back if you move or remove the date. |
 | Reach it only by its link | Add `visibility: unlisted`. It has a URL, but no listing, feed, or sitemap shows it. |
 | Hide it completely | Start its file name with `_` (`_notes.md`), or add `visibility: hidden` |
 | Throw it away, but keep it for now | Add `status: trash` (the admin's **Move to trash** does this). It's off your site, and the admin lists it under **Trash** until you restore it or delete it. |
@@ -395,7 +397,7 @@ saves a file that doesn't have it:
 ```yaml
 ---
 title: Hello, World
-published: 2026-10-05 09:00:00 -05:00
+date: 2026-10-05 09:00:00 -05:00
 id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
 ---
 ```

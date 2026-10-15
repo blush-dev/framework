@@ -137,7 +137,7 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 					<div><dt>{{ t('type_view.folder', 'Folder') }}</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 					<div><dt>{{ t('type_view.address', 'Address') }}</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? t('type_view.no_pages', 'No pages of its own') }}</dd></div>
 					<div v-if="type.kind === 'collection'"><dt>{{ t('type_view.nests', 'Nests') }}</dt><dd>{{ type.hierarchical ? t('type_view.nests_yes', 'Yes: an entry can name a parent') : t('common.no', 'No') }}</dd></div>
-					<div v-if="type.kind === 'collection'"><dt>{{ t('type_view.order', 'Order') }}</dt><dd>{{ type.order === 'position' ? t('type_view.order_position', 'By position, then title') : t('type_view.order_newest', 'Newest published first') }}</dd></div>
+					<div v-if="type.kind === 'collection'"><dt>{{ t('type_view.order', 'Order') }}</dt><dd>{{ type.order === 'position' ? t('type_view.order_position', 'By position, then title') : t('type_view.order_newest', 'Newest first, by date') }}</dd></div>
 					<div v-if="!people"><dt>{{ t('type_view.dated', 'Dated') }}</dt><dd>{{ type.dated ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
 					<div v-if="!people"><dt>{{ t('type_view.credits_authors', 'Credits authors') }}</dt><dd>{{ type.authors ? t('common.yes', 'Yes') : t('common.no', 'No') }}</dd></div>
 					<div v-for="archive in type.archivePages" :key="archive.relation"><dt>{{ t('type_view.archives', '{label} archives', { label: archive.label }) }}</dt><dd class="mono">{{ `${(type.prefix ?? '').replace(/\/+$/, '')}/${archive.word}` }}</dd></div>

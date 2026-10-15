@@ -30,6 +30,7 @@ enum HealthFix: string
 	case Refs       = 'refs';
 	case MediaFields = 'media-fields';
 	case Undeclared  = 'undeclared';
+	case Statuses    = 'statuses';
 
 	/**
 	 * Returns the key the fix's changes are answered under.
@@ -43,7 +44,8 @@ enum HealthFix: string
 			self::Terms, self::Parents        => 'created',
 			self::Refs                        => 'filed',
 			self::MediaFields                 => 'rewritten',
-			self::Undeclared                  => 'cleaned'
+			self::Undeclared                  => 'cleaned',
+			self::Statuses                    => 'reset'
 		};
 	}
 
@@ -60,7 +62,8 @@ enum HealthFix: string
 			self::FileNames,
 			self::Folders,
 			self::MediaFields,
-			self::Undeclared => 'entry',
+			self::Undeclared,
+			self::Statuses   => 'entry',
 			self::Terms      => 'term',
 			self::Parents    => 'parent',
 			default          => 'file'

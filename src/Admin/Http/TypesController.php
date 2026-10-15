@@ -40,6 +40,8 @@ use Blush\Field\FieldSet;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Translation\Messages;
+use Blush\Workflow\Workflow;
+use Blush\Workflow\Workflows;
 
 /**
  * Answers `GET {path}/api/types` (D-233, D-234): the site's content types, so
@@ -47,7 +49,7 @@ use Blush\Translation\Messages;
  * is described by its name, its `labels` for display (D-278),
  * its `description` (`''` for none) and `icon` (`null` for its kind's),
  * its kind (`collection`, `tree`, or `profiles`), whether it's dated (its
- * new entries get a publish date and a dated file name), whether its
+ * new entries get a date and a dated file name), whether its
  * entries credit `authors` (D-329), whether they're `terms` (a classify
  * relation files entries under them, D-593), whether they nest by a
  * `parent` (`hierarchical`), their default `order`, and their place in
@@ -107,7 +109,8 @@ final readonly class TypesController
 		private FeedConfig $feeds,
 		private ContentFiles $files,
 		private ControlDefaults $defaults,
-		private Messages $messages
+		private Messages $messages,
+		private Workflows $workflows
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -163,6 +166,8 @@ final readonly class TypesController
 
 		return [
 			...$this->summary($types, $type),
+			// The workflows a type may use (D-851), for its select.
+			'workflows'    => array_values(array_map(static fn (Workflow $workflow): array => ['name' => $workflow->name, 'label' => (string) $workflow->label], $this->workflows->all())),
 			'public'       => $type->public,
 			'feed'         => $type->hasFeed(),
 			'sitemap'      => $type->sitemap,
@@ -321,6 +326,12 @@ final readonly class TypesController
 			'order'       => $type instanceof Collection ? $type->order->value : null,
 			'position'    => $type->position,
 			'under'       => $types->menuParent($type->name),
+			// Its workflow (D-851), and its statuses, which its list's tabs
+			// show.
+			'workflow'    => $this->workflows->for($type)->name,
+			// Whether its entries may expire (D-852).
+			'expires'     => $type->expires,
+			'statuses'    => $this->workflows->for($type)->statuses,
 			...($types->classification($type->name) !== null ? ['types' => $types->classification($type->name)->from] : []),
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,

@@ -249,13 +249,16 @@ a theme, turning a plugin, pack, or admin theme on and off, or choosing
 the site's admin theme needs the kind's `activate`, and deleting its
 `delete`; without them, the buttons aren't shown.
 
-The tabs above a list show all of them, or only published entries,
-drafts, or scheduled ones, with a count on each. For a type that credits
+The tabs above a list show all of them, or only the entries of one
+status of the type's [workflow](extending.md#workflows-from-a-plugin)
+(published ones first, then drafts and any others, such as In
+Review), or scheduled ones, or, for a type with expiry, expired ones,
+with a count on each. For a type that credits
 authors, when your account has a profile, **Mine** beside **All** shows
 the entries crediting you. You see your own
 entries if you're an author or contributor, and everyone's if you're an
 editor; in Profiles, your own profile is marked "You".
-On the **All** tab, a collection's entries come newest published first,
+On the **All** tab, a collection's entries come newest first by date,
 pages and the entries of a collection ordered by position or nesting
 (such as terms) by their **Position** and then by title (those without
 one after the rest), and profiles by name; the date column shows the
@@ -489,20 +492,35 @@ side is what you do to the text, in three groups:
 
 One of these is open at a time: opening a menu, the link form, or a
 picker closes the blocks panel and anything else open. Its right
-side has the settings button, **Save Draft** beside the main button
-while the entry is a draft you can publish, the main button, and a
-**⋮** menu in two parts: **View** (the settings panel,
-the **Outline**, **Focus mode**, and **Preview**, or **View** once it's
-live; a preview shows the entry as last saved) and
-**Entry** (**Switch to draft** once it's scheduled or live, **Copy link** once
-it's live, **Duplicate**, and **Move to trash**), with their shortcuts.
-The main button depends on the entry:
+side has the settings button, **Save Draft** (or **Update**) beside
+the main button while the main button changes the entry's status, the
+main button, and a **⋮** menu in two parts: **View** (the settings
+panel, the **Outline**, **Focus mode**, and **Preview**, or **View**
+once it's live; a preview shows the entry as last saved) and **Entry**
+(**Unpublish** once it's scheduled or live, **Copy link** once it's
+live, **Duplicate**, and **Move to trash**), with their shortcuts.
+
+In a type with [expiry](content-types.md#expiry), an **Expires** row
+under the date sets when the entry comes off the site; its calendar's
+**Clear** removes it. An expired entry's main button is **Update**:
+moving the date later, or clearing it, brings it back.
+
+The buttons follow the type's workflow: the main button is the first
+step it lists from where the entry is, among those your account may
+take. The **Status** row in the settings offers the rest. With the
+standard workflow:
 
 | The entry is... | You can |
 |---|---|
-| A draft | **Save Draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
-| Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
-| Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
+| A draft | **Save Draft**, or **Publish** (or **Schedule**, when the date is in the future) |
+| Scheduled | **Update**, **Publish** once its date is past, or **Unpublish** |
+| Published | **Update** (or **Schedule**, with a future date), or **Unpublish** |
+
+A workflow with a review step works the same way: a writer's main
+button on a draft might be **Submit for Review**, and an editor's on an
+entry in review **Publish**, with **Send Back** under Status. Without a
+step you may take, the main button saves (**Save Draft** or
+**Update**).
 
 The buttons show whether your changes are saved: **Update** and **Save
 draft** stay off until you change something, since there's nothing to
@@ -803,7 +821,7 @@ and the entry's tab (**Index Page**) says what it is. It introduces the
 type's archive rather than being one of its entries, so it leaves out
 what doesn't apply: the type's fields (such as categories or a
 subtitle; any already in the file are kept as they are, though not
-shown), the publish date, and scheduling. It
+shown), the date, and scheduling. It
 can be a draft or published, and publishing doesn't add a date. There's
 only one, so it has no **Move to trash**. Its [**Archive
 Page**](#rows-at-the-end-of-the-document-tab) row says what the archive
@@ -1124,7 +1142,7 @@ Created** beside them:
    collections and trees, off for terms, by default), and has a feed;
    for a collection, date archives, a featured image (an `image` media
    field), whether entries nest under a parent, and its **Order**
-   (newest published first, or by position for terms); for terms,
+   (newest first by date, or by position for terms); for terms,
    **Files**, the types filed under them (none for every type); an
    index page, the type's landing page (on by default); and, when the
    site has profiles, whether entries **credit authors** (on for content,
@@ -1153,7 +1171,12 @@ above), **Archives**, **Relationships**, Addresses, and Fields.
 
 In Behavior, a collection has **Entries can nest under a parent, as
 categories do** (`hierarchical`) and **Order** (`order`; see
-[Nesting and order](content-types.md#nesting-and-order)).
+[Nesting and order](content-types.md#nesting-and-order)). When a plugin
+adds a workflow, every type editable here has **Workflow** (`workflow`):
+the statuses its entries move through. Entries keep their status when
+it changes; `content:lint` lists those whose status the new workflow
+doesn't use. **Entries can expire** (`expires`) gives each entry an
+**Expires** date (see [Expiry](content-types.md#expiry)).
 
 **Relationships** lists every [relation](content-types.md#terms-and-relationships)
 the type takes part in, from either side, each said as a sentence from
@@ -1292,6 +1315,43 @@ does it, with the default the choice that changes no files:
 - **Remove** says how many entries have values, and offers to strip
   them from their files, unchecked at first: kept, adding the
   relationship again brings the links back.
+
+## Workflows
+
+**Structure → Workflows** shows the statuses entries move through and
+the steps between them (see
+[Workflows from a plugin](extending.md#workflows-from-a-plugin)), in
+two tabs. It needs `site.settings`.
+
+- **Workflows** lists each workflow: its statuses, in order, the types
+  that use it, and where it's from (Blush, a plugin, the site, or the
+  site over one of those). A type picks its workflow in its Type
+  Settings.
+- **Statuses** lists each status: its plural, whether it puts entries
+  on the site, the workflows that use it, and where it's from. **New
+  Status** makes one of the site's own, which sets everything. A
+  status from Blush or a plugin can be **Relabeled**: its label,
+  plural, and tone change, never what it does. **Delete** removes the
+  site's own (not while a workflow uses it), and **Revert** takes away
+  a relabel.
+
+A workflow's screen has its statuses, in order, with **First** on the
+one new entries start at, and its transitions: each a button in the
+editor, from some statuses (or any) to one, and whether it needs a
+capability of its own, which roles then give on each type. Open a row
+to change it, and move rows up and down as Menus' items move.
+**Update** saves everything. Keys can't change once saved, since files,
+types, and roles name them.
+
+A workflow from Blush or a plugin opens read-only. **Customize** copies
+it to the site to edit, and **Revert to {source}'s**, in **⋮**, takes
+the copy away. A new workflow starts with Draft and Published, and
+Publish and Unpublish.
+
+Taking a status out of a workflow that entries still have asks first.
+They keep it in their files, and Site Health's **Statuses Outside
+Their Workflow** lists them, with **Reset** to move them to the first
+status.
 
 ## Fields
 
@@ -1983,6 +2043,11 @@ and **Show Keys** shows each capability's key.
   access**; a site group's to everything or nothing.
 - Ticking **anyone's** ticks **their own** too, and unticking their own
   unticks anyone's: one without the other does nothing.
+- A type whose workflow has steps with a capability of their own (such
+  as **Submit for Review**) lists them after its actions, and
+  **Every Type** lists every workflow's. Taking one into or out of a
+  published status also needs publishing. **Publish** and
+  **Unpublish** need publishing alone.
 - Changes wait in the **save bar** at the bottom, which counts them;
   **Save Changes** saves, **Revert** puts them back, and a section with
   unsaved changes says **Changes**.
@@ -2167,7 +2232,12 @@ file), what was found, and what the site does because of it.
   that doesn't fit its field, have **Open in Editor**. A row's menu
   (**…**) opens the entry and copies its file's path. **Remove**, on a
   key nothing declares (**Fields Nothing Reads**), takes every such key
-  out of the entry's file, so it asks first even for one row.
+  out of the entry's file, so it asks first even for one row. **Reset**,
+  on an entry whose status isn't in its type's workflow, or that
+  nothing registers (**Statuses Outside Their Workflow**), moves it to
+  the workflow's first status, such as Draft; it asks first too, since
+  an entry on the site comes off it. A status a plugin that's off
+  registered comes back when you turn the plugin on.
 - **Fixing a group:** when every row in a group would get the same
   kind of change, its heading has a button for all of them, such as
   **Give 12 Files New IDs**. It asks first, listing the files and what
@@ -2302,7 +2372,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`), `adminTheme` (an admin theme's name, of one that's on, or `null` to follow the site's default), `setupSkipped` (`true` or `false`), and `shortcuts` (a list of up to 30 screen ids, such as `"media"`, `"type:post"`, or `"settings:general"`, or `null` for the default), such as `{"colorScheme": "dark"}`; answers `{"preferences"}`, which also has `lastEdited`, the id of the entry the account last saved |
-| `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "published", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes", "media", "others"}`: the pages type, the newest page, whether the site has a type of its own, whether the library has files, and whether another account exists; the last two `false` without the capability to see them) |
+| `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "date", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes", "media", "others"}`: the pages type, the newest page, whether the site has a type of its own, whether the library has files, and whether another account exists; the last two `false` without the capability to see them) |
 | `GET counts` | What the section panel needs counted: `tools` (how many of the Tools screen's buttons the account may use), and, with `site.health`, `health` (how many checks need a look in Site Health's last check) |
 | `GET tools` | The Tools screen's buttons the account may use, as `{"groups": [{"source": {"kind", "label"}, "tools": [{"key", "title", "description", "confirm"}]}]}`; a source's `kind` is `core`, `site`, `plugin`, or `other` |
 | `POST tools/{vendor}/{name}` | Run a tool by its key; the answer is `{"successful", "message", "details"}`, or `{"job"}` for one that runs in the background |
@@ -2351,11 +2421,12 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST themes`, `POST plugins`, `POST icon-packs`, `POST admin-themes` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
 | `POST {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs,admin-themes}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), and `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `date` or `position`; `null` for other kinds), `workflow` (its workflow's name) and `statuses` (that workflow's statuses, which its list's tabs show). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`), and `workflows` (each one it may use: `{"name", "label"}`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
 | `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
+| `GET workflows` | The Workflows screen (with `site.settings`): `{"workflows", "statuses", "problems"}`. Each workflow is `{"name", "label", "statuses", "initial", "transitions", "subject", "source", "over", "types", "editable", "customize"}` (`source` and `over` each `{"kind", "label"}`, `kind` being `core`, `plugin`, or `site`; `over` is what a site record replaces, or `null`); each status adds `source`, `over`, the `workflows` using it, and whether it may be relabeled (`relabel`), edited (`edit`), or deleted (`delete`). `GET workflows/{name}` is one, with `counts`, how many entries of its types are stored with each status. `PUT workflows/{name}` saves `{"label", "statuses", "initial", "transitions"}` as the site's, `POST workflows/{name}/customize` copies Blush's or a plugin's into it, and `DELETE workflows/{name}` deletes it (`{"deleted": true}`) or reverts a copy (the workflow). `PUT statuses/{name}` saves `{"label", "plural", "tone", "live", "active"}` and `DELETE statuses/{name}` deletes or reverts one, each answering `GET workflows`. What can't be saved is a `422`, saying why |
 | `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
 | `POST relations` | Create a relation in `user/data/relations/{name}.json`: its whole definition, with `name` (the keys a data file takes); answers `201` with it, as `GET relations` describes it. A definition that doesn't fit, or a name defined in code, is a `422` with the reason. Needs `site.settings` |
 | `PATCH relations/{name}` | Replace a `user/data/relations` relation with the whole definition sent; answers with it. Needs `site.settings` |
@@ -2377,15 +2448,16 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST health/type-folders` | Move each `user/data/types` type that still names its folder into `_` and its name, as `content:type-folders --write` does: `{"migrated", "failed"}`, how many files and folders moved for each type and why any couldn't be. `GET health`'s `typeFolders` lists the types left, each `{"name", "from", "to"}`. Needs `site.health` and `site.settings` |
 | `POST health/taxonomies` | Migrate each `user/data/types` type still written as a taxonomy to a collection and its classify relation, as `content:taxonomies --write` does: `{"migrated", "failed"}`, the files written for each type and why any couldn't be. `GET health`'s `taxonomies` names the types left. Needs `site.health` and `site.settings` |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one (or only `{"paths"}`): `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
+| `POST health/statuses` | Move the entries whose status isn't in their type's workflow, or that nothing registers (problems of kind `status`), to the workflow's first status (or only `{"ids"}`, entry ids): `{"reset", "failed"}`. It isn't a transition: each change is in the activity log, with Undo |
 | `POST health/media-fields` | Rewrite media fields still written as a path to their files' ids, as `content:media-ids --write` does, in the entries the account may edit (or only `{"ids"}`, entry ids): `{"rewritten", "failed"}`. Content Files lists each such value as a problem of kind `media` |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
-| `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
+| `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"date"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash: `{"trashed": id, "restore": {"status", "revision"}}`, where `restore` is what an Undo sends to `POST entries/{id}/restore` (`status` is what its file named, or `null` for none). A `422` for one that's there already |
 | `DELETE entries/{id}?permanently=1` | Delete an entry that's in the trash for good: `{"deleted": id}`. A `422` for one that isn't |
-| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}`. For an Undo, send `{"status", "revision"}` as moving it to the trash answered: a status's name puts it back with that status, and `null` puts it back published, leaving no `status` in its file; a live status (`"published"`) or `null` needs permission to publish; a `428` without the revision, and a `409` if it changed since |
+| `POST entries/{id}/restore` | Restore an entry from the trash at its workflow's first status (a draft, in the standard workflow): `{"id"}`. For an Undo, send `{"status", "revision"}` as moving it to the trash answered: a status's name puts it back with that status, and `null` puts it back published, leaving no `status` in its file; a live status (`"published"`) or `null` needs permission to publish; a `428` without the revision, and a `409` if it changed since |
 | `POST entries/empty-trash` | Delete everything in the trash the account may delete, for good (`{"type"}` for one type): `{"deleted"}`, how many |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
@@ -2423,17 +2495,17 @@ or everyone's for an editor. Narrow it with:
 | `days` | Entries updated in the last so many days, from 1 |
 | `account` | For profiles: `linked` (an account is linked to them) or `guest` (none is) |
 | `over` | A relation's name, with `above` (0 by default): only the entries with more values in it than that. Needs `type`; answered as `over`, `{"label", "above"}` |
-| `sort` | `title`, `status`, `author`, `published`, or `updated` |
+| `sort` | `title`, `status`, `author`, `date`, or `updated` |
 | `dir` | `asc` or `desc`: by default the dates sort newest first and the rest A to Z |
 | `page` | The page, from 1 |
 | `per` | Entries per page: 20 by default, at most 100 |
 
 Unless `sort` says otherwise, a type's whole list (no `status`) comes by
-`position` and then title for pages and terms, newest published first
+`position` and then title for pages and terms, newest first by date
 for a collection, and by title for profiles; drafts, and the list of
 every type, come most recently changed first, scheduled entries soonest
 first, and published entries newest first. `by` says which the list is
-in order of (`position`, `published`, `title`, `updated`, or the column
+in order of (`position`, `date`, `title`, `updated`, or the column
 sorted by). Sorting by status uses the status as it is now (a
 published entry dated in the future sorts as scheduled), and by author
 the first author's slug. The answer has `status`, `type`, `search`,
@@ -2696,7 +2768,7 @@ the site's language or another file claims the same key. `GET
 entries/{id}` answers with:
 
 - `values`: front matter by field name, read from whichever name the file
-  uses (a 1.x `date` is `published`), and `extra`: anything the type
+  uses, and `extra`: anything the type
   doesn't declare (but the `id`, which is answered on its own).
 - `body`, and `revision`: send the revision back with a change. If the
   file changed meanwhile, the change is refused with a 409, so no one's
@@ -2729,13 +2801,23 @@ entries/{id}` answers with:
 
 A change only touches what it names; the rest of the file stays as it
 was written. `set` takes field names to values, `remove` a list of
-field names, and `body` the whole body. `status` is a shortcut:
+field names, and `body` the whole body. `status` is a shortcut, and a
+change of status is a step of the type's workflow, refused (`422`, with
+`field: status`) when there's none from where the entry is, and (`403`)
+when the account may not take it:
 
 | `status` | What happens |
 |---|---|
-| `draft` | Sets `status: draft` |
-| `published` | Removes `status`, and dates the entry now if it has no date or a future one |
-| `scheduled` | Removes `status` and sets `published` to the given `"published"` date, which must be in the future |
+| `published` | Removes `status`, and dates the entry now if it has no date or a future one, or at `"date"` when that's given |
+| Another of the workflow's (`draft`) | Sets it (`status: draft`); a live one dates the entry as `published` does |
+| `scheduled` | Moves it into a live status (its own, when it's live) and sets `date` to the given `"date"`, which must be in the future |
+
+An entry is described with its stored status (`stored`: `published`,
+never `scheduled`), its type's `workflow`, and the `transitions` the
+account may take from it (`{"name", "label", "from", "to",
+"capability"}`, none in the trash or without edit access), in the
+workflow's order. A new entry starts at the workflow's first status
+when `POST entries` names none.
 
 An index page can't be `scheduled` (a 400), publishing it doesn't date
 it, and deleting it is refused with a 422.
@@ -2760,7 +2842,7 @@ Every change sets `updated` to now, in the site's time zone, and so does
 each entry a bulk **Publish** or **Switch to draft** changes.
 
 New entries are drafts unless `status` says otherwise, credit the
-account's author, and get today's date as their publish date. A new
+account's author, and get today's date. A new
 entry can name its `language` too.
 
 What an account may do follows its [capabilities](accounts.md#capabilities):

@@ -69,6 +69,7 @@ const everywhere = computed<Command[]>(() => {
 		['media', t('command_palette.go_media', 'Go to Media'), 'image', 'media', 'files images library uploads'],
 		['types', t('command_palette.go_types', 'Go to Content Types'), 'layers', 'site.settings'],
 		['relations', t('command_palette.go_relations', 'Go to Relationships'), 'workflow', 'site.settings', 'relations links taxonomies credits terms'],
+		['workflows', t('command_palette.go_workflows', 'Go to Workflows'), 'route', 'site.settings', 'statuses transitions review publish draft'],
 		['fields', t('command_palette.go_fields', 'Go to Fields'), 'group', 'site.settings', 'field sets custom fields'],
 		['themes', t('command_palette.go_themes', 'Go to Themes'), 'paintbrush', 'extensions.themes.view', 'appearance look'],
 		['plugins', t('command_palette.go_plugins', 'Go to Plugins'), 'plug', 'extensions.plugins.view', 'addons extensions'],

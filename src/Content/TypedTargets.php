@@ -110,7 +110,7 @@ final readonly class TypedTargets
 					try {
 						$created["{$name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
 							'title'     => $title,
-							'published' => $now->format('Y-m-d H:i:s P')
+							'date'      => $now->format('Y-m-d H:i:s P')
 						]), null, $now)->path;
 					} catch (WriteException $e) {
 						$failed["{$name}/{$slug}"] = $e->getMessage();

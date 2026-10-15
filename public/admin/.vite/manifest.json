@@ -48,6 +48,13 @@
       "css/CapabilitySections.css"
     ]
   },
+  "_ChoiceChips.js": {
+    "file": "js/ChoiceChips.js",
+    "name": "ChoiceChips",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
   "_DangerZone.css": {
     "file": "css/DangerZone.css",
     "src": "_DangerZone.css"
@@ -96,6 +103,7 @@
       "_AdminSelect.js",
       "_references.js",
       "_ToggleSwitch.js",
+      "_ChoiceChips.js",
       "_IconField.js",
       "_media.js"
     ],
@@ -549,6 +557,8 @@
       "js/views/RedirectsView.vue",
       "js/views/RelationView.vue",
       "js/views/RelationsView.vue",
+      "js/views/WorkflowsView.vue",
+      "js/views/WorkflowView.vue",
       "js/views/RoleView.vue",
       "js/views/RolesView.vue",
       "js/views/SetPasswordView.vue",
@@ -1163,6 +1173,36 @@
     ],
     "css": [
       "css/TypesView.css"
+    ]
+  },
+  "js/views/WorkflowView.vue": {
+    "file": "js/WorkflowView.js",
+    "name": "WorkflowView",
+    "src": "js/views/WorkflowView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_ToggleSwitch.js",
+      "_ChoiceChips.js",
+      "_type-form.js",
+      "_ItemTree.js"
+    ]
+  },
+  "js/views/WorkflowsView.vue": {
+    "file": "js/WorkflowsView.js",
+    "name": "WorkflowsView",
+    "src": "js/views/WorkflowsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_SkeletonTable.js",
+      "_ToggleSwitch.js",
+      "_type-form.js"
+    ],
+    "css": [
+      "css/WorkflowsView.css"
     ]
   }
 }

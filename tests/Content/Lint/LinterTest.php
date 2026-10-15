@@ -54,7 +54,7 @@ final class LinterTest extends TestCase
 		$this->standardContent();
 		$this->entry('about.md', 'title: Old About');
 		$this->entry('broken.md', "title: [unclosed\n");
-		$this->entry('bad-date.md', "title: Bad\npublished: tomorrow\ncollection:\n  number: lots");
+		$this->entry('bad-date.md', "title: Bad\ndate: tomorrow\ncollection:\n  number: lots");
 
 		$progress = 0;
 		$report   = $this->site()->container()->make(Linter::class)->lint(static function () use (&$progress): void {
@@ -71,28 +71,27 @@ final class LinterTest extends TestCase
 
 		$this->assertSame(['_post/hello/index.md', 'about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
 		$this->assertSame(['warning file: is the same entry as about/index.md, which wins.'], $errors['about.md']);
-		$this->assertStringStartsWith('error published: must be a date', $errors['bad-date.md'][0]);
+		$this->assertStringStartsWith('error date: must be a date', $errors['bad-date.md'][0]);
 		$this->assertSame('error collection: Query argument "number" must be a whole number.', $errors['bad-date.md'][1]);
 		$this->assertStringStartsWith('error file: Invalid front matter', $errors['broken.md'][0]);
 
 		$notices = self::messages($report, Severity::Notice);
 
-		$this->assertContains('notice date: is read as "published".', $notices['_post/2003-04-15.welcome.md']);
 		$this->assertContains('notice tag: is not declared by the schema.', $notices['_post/2008-04-05.spring.md']);
 	}
 
 	public function testWarnsOfDatesThatArentOnTheCalendar(): void
 	{
 		$this->standardContent();
-		$this->entry('zeros.md', "title: Zeros\npublished: 2019-00-00 00:00:00 -6");
+		$this->entry('zeros.md', "title: Zeros\ndate: 2019-00-00 00:00:00 -6");
 		$this->entry('alias.md', "title: Alias\ndate: 2019-02-30");
-		$this->entry('leap.md', "title: Leap\npublished: 2024-02-29\nupdated: 2023-02-29");
+		$this->entry('leap.md', "title: Leap\ndate: 2024-02-29\nupdated: 2023-02-29");
 		$this->entry('text.md', "title: 2019-00-00");
 
 		$linter   = $this->site()->container()->make(Linter::class);
 		$messages = self::messages($linter->lint(), Severity::Notice);
 
-		$this->assertSame(['warning published: "2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.'], $messages['zeros.md'] ?? null);
+		$this->assertSame(['warning date: "2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.'], $messages['zeros.md'] ?? null);
 		$this->assertContains('warning date: "2019-02-30" isn\'t a real date, so it\'s read as 2019-03-02.', $messages['alias.md'] ?? [], 'An alias is checked under the name it\'s written with.');
 		$this->assertSame(['warning updated: "2023-02-29" isn\'t a real date, so it\'s read as 2023-03-01.'], $messages['leap.md'] ?? null, 'A leap day is fine in a leap year.');
 		$this->assertArrayNotHasKey('text.md', $messages, 'Only date fields are checked.');
@@ -137,7 +136,7 @@ final class LinterTest extends TestCase
 
 		$warnings = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
 
-		$this->assertSame(['warning collection: "orderby: filename" is read as "published"; entries are never sorted by file. Write "orderby: published".'], $warnings['reading.md'] ?? null);
+		$this->assertSame(['warning collection: "orderby: filename" is read as "date"; entries are never sorted by file. Write "orderby: date".'], $warnings['reading.md'] ?? null);
 	}
 
 	public function testReportsOrderPrefixesOutsideCollections(): void
@@ -184,7 +183,7 @@ final class LinterTest extends TestCase
 	public function testReportsTermsAndProfilesWithoutFiles(): void
 	{
 		$this->standardContent();
-		$this->entry('_post/2009-01-01.credits.md', "title: Credits\npublished: 2009-01-01\nauthors: [justintadlock, Sam Smith]\ncategory: missing");
+		$this->entry('_post/2009-01-01.credits.md', "title: Credits\ndate: 2009-01-01\nauthors: [justintadlock, Sam Smith]\ncategory: missing");
 
 		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Notice);
 

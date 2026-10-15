@@ -207,12 +207,13 @@ final class SnapshotRecords
 			$originalId,
 			$record['status'],
 			$record['visibility'],
-			$record['published'],
+			$record['date'],
 			$record['updated'],
 			$record['title'],
 			$record['values'],
 			$record['extra'],
-			$archive
+			$archive,
+			$record['expires']
 		);
 	}
 

@@ -15,6 +15,10 @@
  * clearing their own clears anyone's. You can't give a capability you
  * don't have, so those are shown but can't be ticked.
  *
+ * A type's section also lists the transitions of its workflow that have
+ * a capability of their own (D-851), after its actions, and Every Type
+ * lists every workflow's; one ticked in Every Type shows fixed in each.
+ *
  * Media (D-407) is one grid, as every section is: uploading by kind
  * (**Upload every kind**, `media.*.upload`, ticks and fixes each), then
  * changing and deleting their own files or anyone's, paired as content
@@ -116,6 +120,15 @@ const has = (name: string): boolean => model.value.includes(name);
 
 // From Every Type, so fixed in each type.
 const inherited = (type: string, action: ContentAction): boolean => type !== EVERY && has(key(EVERY, action));
+
+// A type's (or Every Type's) transitions with a capability of their own
+// (D-851), and whether Every Type grants one by name.
+const transitionsOf = (type: string): CapabilityInfo[] => props.capabilities.filter((capability) => capability.type === type && capability.transition !== undefined);
+// The built-in administrator and editor roles hold every one, as
+// `content.*.transition.*`.
+const ALL_TRANSITIONS = `content.${EVERY}.transition.${EVERY}`;
+const everyTransition = (capability: CapabilityInfo): string => `content.${EVERY}.transition.${capability.transition?.name ?? ''}`;
+const transitionInherited = (type: string, capability: CapabilityInfo): boolean => has(ALL_TRANSITIONS) || (type !== EVERY && has(everyTransition(capability)));
 
 // A type Every Type grants everything on: nothing in it can change.
 const sealed = (type: string): boolean => ACTIONS.every((item) => inherited(type, item.action));
@@ -219,7 +232,10 @@ function typeSentence(type: string): { text: string; none: boolean } {
 	publish === 'none' ? no.push(t('capability_sections.verb_publish', 'publish')) : yes.push(t('capability_sections.publish_scope', 'publish {scope, select, any {anyone\'s} other {their own}}', { scope: publish }));
 	remove === 'none' ? no.push(t('capability_sections.verb_delete', 'delete')) : yes.push(reach('delete', remove));
 
-	return { text: [t('capability_sections.can', 'Can {list}.', { list: join(yes, and) }), ...(no.length ? [t('capability_sections.cannot', 'Cannot {list}.', { list: join(no, or) })] : [])].join(' '), none: false };
+	// The transitions it may make, by their buttons' names.
+	const moves = transitionsOf(type).filter((capability) => has(capability.name) || transitionInherited(type, capability)).map((capability) => capability.transition?.label ?? '');
+
+	return { text: [t('capability_sections.can', 'Can {list}.', { list: join(yes, and) }), ...(no.length ? [t('capability_sections.cannot', 'Cannot {list}.', { list: join(no, or) })] : []), ...(moves.length ? [t('capability_sections.transitions', 'Can use {list}.', { list: join(moves, and) })] : [])].join(' '), none: false };
 }
 
 // "Edit posts and edit pages" is what a plain join says; phrases that
@@ -315,7 +331,7 @@ function changed(names: string[]): boolean {
 	return props.base !== undefined && names.some((name) => model.value.includes(name) !== props.base?.includes(name));
 }
 
-const typeNames = (type: string): string[] => ACTIONS.map((item) => key(type, item.action));
+const typeNames = (type: string): string[] => [...ACTIONS.map((item) => key(type, item.action)), ...transitionsOf(type).map((capability) => capability.name)];
 
 // Open sections, and the toolbar's two switches.
 const open     = ref(new Set<string>());
@@ -476,6 +492,16 @@ function flipAll(): void {
 					:unheld="unheld(key(EVERY, item.action))"
 					@change="(on) => toggle(EVERY, item.action, on)"
 				/>
+				<CapabilityCheck
+					v-for="capability in transitionsOf(EVERY)"
+					:key="capability.name"
+					:name="capability.name"
+					:label="capability.transition?.label ?? capability.label"
+					:checked="has(capability.name) || transitionInherited(EVERY, capability)"
+					:disabled="locked(capability.name) || transitionInherited(EVERY, capability)"
+					:unheld="unheld(capability.name)"
+					@change="(on) => set([capability.name], on)"
+				/>
 			</CapabilitySection>
 			<template v-for="kind in kinds" :key="kind.key">
 				<p class="sections__caption eyebrow">{{ kind.label }}</p>
@@ -506,6 +532,17 @@ function flipAll(): void {
 						:from="inherited(type.name, item.action) ? t('capability_sections.from_every_type', 'every type') : undefined"
 						:unheld="unheld(key(type.name, item.action))"
 						@change="(on) => toggle(type.name, item.action, on)"
+					/>
+					<CapabilityCheck
+						v-for="capability in transitionsOf(type.name)"
+						:key="capability.name"
+						:name="capability.name"
+						:label="capability.transition?.label ?? capability.label"
+						:checked="has(capability.name) || transitionInherited(type.name, capability)"
+						:disabled="locked(capability.name) || transitionInherited(type.name, capability)"
+						:from="transitionInherited(type.name, capability) ? t('capability_sections.from_every_type', 'every type') : undefined"
+						:unheld="unheld(capability.name)"
+						@change="(on) => set([capability.name], on)"
 					/>
 				</CapabilitySection>
 			</template>

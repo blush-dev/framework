@@ -157,7 +157,8 @@ const KINDS: Record<string, { name: string; says: string; notice?: { name: strin
 	details: { name: t('health.kind_details_name', 'Details Not Read'), says: t('health.kind_details_says', 'These details describe a file that isn\'t there or isn\'t allowed, or another file\'s are read in their place.') },
 	artwork: { name: t('health.kind_artwork_name', 'Cover Art That Can\'t Be Found'), says: t('health.kind_artwork_says', 'The file shows no cover art until it\'s chosen again.') },
 	media: { name: t('health.kind_media_name', 'Media Named by Path'), says: t('health.kind_media_says', 'A media field names its file by id, so the file can be renamed or moved. Each path is still read; rewriting it changes nothing on the site.') },
-	alias: { name: t('health.kind_alias_name', 'Older Field Names'), says: t('health.kind_alias_says', 'Each is read as the field it names now. Nothing on the site changes.') }
+	alias: { name: t('health.kind_alias_name', 'Older Field Names'), says: t('health.kind_alias_says', 'Each is read as the field it names now. Nothing on the site changes.') },
+	status: { name: t('health.kind_status_name', 'Statuses Outside Their Workflow'), says: t('health.kind_status_says', 'Each entry keeps the status it has. Resetting moves it to its workflow\'s first status, such as Draft, which never puts it on the site.') }
 };
 
 const OTHER = { name: t('health.other_name', 'Other Problems'), says: t('health.other_says', 'As the check reads them.') };
@@ -234,6 +235,20 @@ function fileGroups(health: Health, area: 'content' | 'media'): HealthGroup[] {
 				};
 			}
 
+			// A status outside its workflow, or one nothing registers, moves
+			// to the workflow's first (D-853), asking first.
+			const reset = kind === 'status' && entry?.id;
+
+			if (reset && group.fix === undefined) {
+				group.fix  = { path: '/health/statuses', body: (rows) => ({ ids: [...new Set(rows.map((row) => row.entry?.id).filter((id): id is string => typeof id === 'string'))] }), noun: entries, ask: true };
+				group.bulk = {
+					label: (count) => t('health.status_bulk_label', 'Reset {count, plural, one {# Status} other {# Statuses}}', { count }),
+					title: (count) => t('health.status_bulk_title', 'Reset {count, plural, one {# Status} other {# Statuses}}?', { count }),
+					say: t('health.status_bulk_say', 'Each entry moves to its workflow\'s first status, such as Draft.'),
+					after: t('health.status_bulk_after', 'Any that are on the site now come off it, until they\'re published again.')
+				};
+			}
+
 			group.rows.push({
 				key: violation.problem ?? `${area}:files:${file.path}:${violation.field}:${violation.message}`,
 				severity: violation.severity,
@@ -242,7 +257,8 @@ function fileGroups(health: Health, area: 'content' | 'media'): HealthGroup[] {
 				entry: entry ? { type: entry.type, id: entry.id } : undefined,
 				...found(violation),
 				...(rewrite ? { fix: { label: t('health.media_fix_label', 'Rewrite as ID'), change: t('health.media_fix_change', 'the path rewritten as its file\'s id'), done: t('health.media_fix_done', 'Rewritten as its id.') } } : {}),
-				...(remove ? { fix: { label: t('common.remove', 'Remove'), change: t('health.undeclared_fix_change', 'every key nothing declares removed'), done: t('health.undeclared_fix_done', 'Removed.') } } : {})
+				...(remove ? { fix: { label: t('common.remove', 'Remove'), change: t('health.undeclared_fix_change', 'every key nothing declares removed'), done: t('health.undeclared_fix_done', 'Removed.') } } : {}),
+				...(reset ? { fix: { label: t('health.status_fix_label', 'Reset'), change: t('health.status_fix_change', 'moved to its workflow\'s first status'), done: t('health.status_fix_done', 'Reset.') } } : {})
 			});
 		});
 	}

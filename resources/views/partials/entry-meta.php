@@ -13,7 +13,7 @@
 
 declare(strict_types=1);
 
-$published = $entry->type->name === 'page' ? null : $entry->published;
+$date = $entry->type->name === 'page' ? null : $entry->date;
 $credits   = [];
 
 // What an entry leads to comes back whatever its status (D-802), so
@@ -40,10 +40,10 @@ foreach ($entry->relations(Blush\Content\Relation\RelationKind::Credit) as $rela
 $terms = array_map(static fn (Blush\Content\Entry\Entry $term): string => (string) $term->link(), $entry->classifications()->published()->all());
 
 ?>
-<?php if ($published !== null || $credits !== [] || $terms !== []) : ?>
+<?php if ($date !== null || $credits !== [] || $terms !== []) : ?>
 	<p>
-		<?php if ($published !== null) : ?>
-			<time datetime="<?= attr($published->format(DATE_ATOM)) ?>"><?= e($template->date($published)) ?></time>
+		<?php if ($date !== null) : ?>
+			<time datetime="<?= attr($date->format(DATE_ATOM)) ?>"><?= e($template->date($date)) ?></time>
 		<?php endif ?>
 
 		<?php foreach ($credits as [$label, $names]) : ?>

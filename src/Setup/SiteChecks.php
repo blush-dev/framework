@@ -37,6 +37,8 @@ use Blush\Secret\SecretStatus;
 use Blush\Secret\SecretStore;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
+use Blush\Workflow\Statuses;
+use Blush\Workflow\Workflows;
 
 /**
  * The checks `doctor` runs and Site Health shows (D-543), by area:
@@ -83,7 +85,9 @@ final readonly class SiteChecks
 		private ExposureCheck $exposure,
 		private FieldTargets $targets,
 		private MailTransport $mail,
-		private Messages $messages
+		private Messages $messages,
+		private Statuses $statuses,
+		private Workflows $workflows
 	) {}
 
 	/**
@@ -310,18 +314,40 @@ final readonly class SiteChecks
 			}
 		}
 
-		if ($this->types->clashes !== []) {
+		// Types, relations, statuses, and workflows (D-853) by one name.
+		$clashes = [...$this->types->clashes, ...$this->statuses->clashes(), ...$this->workflows->clashes()];
+
+		if ($clashes !== []) {
 			$results['clashes'] = CheckResult::warning(
 				$this->messages->t('setup.site_checks.clashes', 'Names defined twice'),
-				$this->sentences(array_map(fn (DefinitionClash $clash): Text => $this->messages->t(
-					'setup.site_checks.clash',
-					'Two plugins define the "{name}" {kind, select, type {content type} other {relation}}: {kept}\'s is used, and {dropped}\'s is left out.',
-					name: $clash->name,
-					kind: $clash->kind,
-					kept: $this->pluginLabel($clash->kept),
-					dropped: $this->pluginLabel($clash->dropped)
-				), $this->types->clashes)),
+				$this->sentences(array_map(fn (DefinitionClash $clash): Text => $clash->kept === Statuses::class
+					? $this->messages->t(
+						'setup.site_checks.core_status_clash',
+						'{dropped} defines the "{name}" status, one of Blush\'s own, so its is left out.',
+						name: $clash->name,
+						dropped: $this->pluginLabel($clash->dropped)
+					)
+					: $this->messages->t(
+						'setup.site_checks.clash',
+						'Two plugins define the "{name}" {kind, select, type {content type} status {status} workflow {workflow} other {relation}}: {kept}\'s is used, and {dropped}\'s is left out.',
+						name: $clash->name,
+						kind: $clash->kind,
+						kept: $this->pluginLabel($clash->kept),
+						dropped: $this->pluginLabel($clash->dropped)
+					), $clashes)),
 				$this->messages->t('setup.site_checks.clashes_hint', 'Turn one of them off, or ask its author to rename what it defines.')
+			);
+		}
+
+		// The site's own statuses and workflows, and those that don't fit
+		// (D-851, D-853).
+		$workflows = [...$this->statuses->problems(), ...$this->workflows->problems()];
+
+		if ($workflows !== []) {
+			$results['workflows'] = CheckResult::warning(
+				$this->messages->t('setup.site_checks.workflows', 'Statuses and workflows left out'),
+				$this->sentences($workflows),
+				$this->messages->t('setup.site_checks.workflows_hint', 'Fix each in user/data/statuses or user/data/workflows, or in the plugin that defines it. Types whose workflow is left out use the standard one.')
 			);
 		}
 

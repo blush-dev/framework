@@ -4,7 +4,7 @@
  * throws an `ApiError` with the server's message.
  */
 
-import { config } from './config';
+import { config, type StatusDefinition } from './config';
 import { t } from './messages';
 import type { AccountProfile } from './people';
 
@@ -157,7 +157,7 @@ export interface DashboardEntry {
 	type: string;
 	status: EntryStatus;
 	url: string | null;
-	published: string | null;
+	date: string | null;
 	updated: string;
 	authors: string[];
 	yours: boolean;
@@ -196,7 +196,7 @@ export interface EntrySummary {
 	status: EntryStatus;
 	// When it was moved to the trash (ISO 8601), for one that's there.
 	trashed: string | null;
-	published: string | null;
+	date: string | null;
 	updated: string;
 	// Its path on the site, where it is or will be once published, if it
 	// has one (D-254).
@@ -247,10 +247,69 @@ export interface EntrySummary {
 // status control offers neither as such.
 export type EntryStatus = 'draft' | 'scheduled' | 'published' | 'trash' | (string & {});
 
+// Where a workflow or status comes from (D-854): Blush, a plugin, or
+// the site's own record.
+export interface DefinitionSource {
+	kind: 'core' | 'plugin' | 'site';
+	label: string;
+}
+
+// A workflow on the Workflows screen (D-854): its definition, where
+// it's from (and what a site record replaces), the types using it, and
+// whether it's the site's to edit or Blush's or a plugin's to customize.
+// One's own screen adds how many entries of those types are stored with
+// each status (`counts`).
+export interface WorkflowInfo {
+	name: string;
+	label: string;
+	statuses: string[];
+	initial: string;
+	transitions: TransitionInfo[];
+	subject: string;
+	source: DefinitionSource;
+	over: DefinitionSource | null;
+	types: { name: string; label: string }[];
+	editable: boolean;
+	customize: boolean;
+	counts?: Record<string, number>;
+}
+
+// A status on the Workflows screen's Statuses tab (D-854): what may be
+// done to it is `relabel` (Blush's or a plugin's: label, plural, and
+// tone), `edit` (the site's own: everything), and `delete` (a site
+// record; over another, it reverts it).
+export interface StatusInfo extends StatusDefinition {
+	subject: string;
+	source: DefinitionSource;
+	over: DefinitionSource | null;
+	workflows: string[];
+	relabel: boolean;
+	edit: boolean;
+	delete: boolean;
+}
+
+export interface WorkflowList {
+	workflows: WorkflowInfo[];
+	statuses: StatusInfo[];
+	problems: string[];
+}
+
+// A move from some statuses to another in a type's workflow (D-851).
+export interface TransitionInfo {
+	name: string;
+	// Its button's label, in Title Case.
+	label: string;
+	// The statuses it moves from; none for any of the workflow's.
+	from: string[];
+	to: string;
+	// Whether it needs a capability of its own.
+	capability: boolean;
+}
+
 // What "any status" means: every status but the trash.
 export type ActiveStatus = Exclude<EntryStatus, 'trash'>;
 
-export type EntrySort = 'title' | 'status' | 'author' | 'published' | 'updated';
+export type EntrySort = 'title' | 'status' | 'author' | 'date' | 'updated';
 
 export interface EntryList {
 	status: EntryStatus | 'any';
@@ -322,7 +381,7 @@ export interface ContentTypeSummary {
 	// collection's default order (`published` or `position`).
 	terms: boolean;
 	hierarchical: boolean;
-	order: 'published' | 'position' | null;
+	order: 'date' | 'position' | null;
 	// A term type's: the types its relation files, empty for every type.
 	// The profiles type's: the types that credit people.
 	types?: string[];
@@ -331,6 +390,12 @@ export interface ContentTypeSummary {
 	// (`null` for the top level).
 	position: number | null;
 	under: string | null;
+	// Its workflow (D-851), and its statuses, in the order its list's
+	// tabs show them.
+	workflow: string;
+	statuses: string[];
+	// Whether its entries may have an Expires date (D-852).
+	expires: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
 	origin: 'built-in' | 'extension' | 'data';
@@ -448,6 +513,8 @@ export interface ArchivePageInfo {
 }
 
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
+	// The workflows it may use (D-851), for its select.
+	workflows: { name: string; label: string }[];
 	public: boolean;
 	feed: boolean;
 	sitemap: boolean;
@@ -1394,6 +1461,13 @@ export interface EntryDetail {
 	modified: string | null;
 	title: string;
 	status: EntryStatus;
+	// The status it's stored with (`published`, never `scheduled`), its
+	// type's workflow, and the transitions this account may make from it
+	// (D-851), in the workflow's order: none in the trash, or without
+	// edit access.
+	stored: string;
+	workflow: string;
+	transitions: TransitionInfo[];
 	// When it was moved to the trash (ISO 8601); `null` unless it's there.
 	// One that's there is looked at, not edited (`can.edit` is false).
 	trashed: string | null;
@@ -1428,6 +1502,8 @@ export interface EntryDetail {
 		hierarchical: boolean;
 		// The byline's field (its type's byline credit, D-602), or `null`.
 		byline: string | null;
+		// Whether its entries may expire (D-852).
+		expires: boolean;
 		dated: boolean;
 		fields: FieldDescription[];
 		// The field sets attached to the type (D-337), with the names of

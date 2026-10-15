@@ -399,6 +399,15 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Moves the entries (by id) whose status isn't in their type's
+	 * workflow to its first status (D-853), as a job.
+	 */
+	public function resetStatuses(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->queue($request, HealthFix::Statuses);
+	}
+
+	/**
 	 * Migrates the data types still written as taxonomies (D-591), for an
 	 * account that may change content types.
 	 */
@@ -457,7 +466,8 @@ final readonly class HealthController
 			HealthFix::Terms   => 'terms',
 			HealthFix::Parents => 'parents',
 			HealthFix::MediaFields,
-			HealthFix::Undeclared  => 'ids',
+			HealthFix::Undeclared,
+			HealthFix::Statuses    => 'ids',
 			default            => 'paths'
 		});
 

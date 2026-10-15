@@ -19,6 +19,9 @@ export interface CapabilityInfo {
 	// A content capability's type (`*` for every type) and action (D-359).
 	type?: string;
 	action?: ContentAction;
+	// A transition's capability (D-851): its type (`*` for every type)
+	// and the transition's name and label.
+	transition?: { name: string; label: string };
 }
 
 // The role an account holds when it holds nothing else, which never has

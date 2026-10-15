@@ -1858,7 +1858,7 @@
 		},
 		"plugins_controller": {
 			"forbidden": "You aren't allowed to see the site's plugins.",
-			"clash": "Its \"{name}\" {kind, select, type {content type} relation {relation} other {{kind}}} is left out: {owner} defines one by that name too."
+			"clash": "Its \"{name}\" {kind, select, type {content type} relation {relation} status {status} workflow {workflow} other {{kind}}} is left out: {owner} defines one by that name too."
 		},
 		"plugin_edit_controller": {
 			"toggle_forbidden": "You aren't allowed to turn plugins on and off.",
@@ -2002,6 +2002,11 @@
 		},
 		"email_change_controller": {
 			"not_allowed": "You aren't allowed to cancel that change."
+		},
+		"workflows_controller": {
+			"not_found": "There's no \"{name}\" workflow.",
+			"site": "Site",
+			"forbidden": "You aren't allowed to change workflows."
 		}
 	},
 	"settings": {
@@ -2647,7 +2652,7 @@
 			"unmet": "{count, plural, one {# {kind, select, plugin {plugin} icon_pack {icon pack} other {admin theme}} is} other {# {kind, select, plugin {plugins} icon_pack {icon packs} other {admin themes}} are}} turned on but can't run: {names}.",
 			"unmet_hint": "Run \"{command}\" to see why.",
 			"clashes": "Names defined twice",
-			"clash": "Two plugins define the \"{name}\" {kind, select, type {content type} other {relation}}: {kept}'s is used, and {dropped}'s is left out.",
+			"clash": "Two plugins define the \"{name}\" {kind, select, type {content type} status {status} workflow {workflow} other {relation}}: {kept}'s is used, and {dropped}'s is left out.",
 			"clashes_hint": "Turn one of them off, or ask its author to rename what it defines.",
 			"field_sets": "Field sets left off",
 			"field_sets_hint": "Rename the field in one of the sets, or turn off the plugin that adds one. Run \"{command}\" to see each.",
@@ -2663,7 +2668,10 @@
 			"mail_fallback": "Email goes out through PHP's own mail, which often lands in spam or is refused.",
 			"mail_fallback_dev": "Email goes out through PHP's own mail; set a transport before the site goes live.",
 			"mail_undelivered": "Email isn't delivered: the transport is {transport}.",
-			"mail_set": "Sent through {transport}."
+			"mail_set": "Sent through {transport}.",
+			"core_status_clash": "{dropped} defines the \"{name}\" status, one of Blush's own, so its is left out.",
+			"workflows": "Statuses and workflows left out",
+			"workflows_hint": "Fix each in user/data/statuses or user/data/workflows, or in the plugin that defines it. Types whose workflow is left out use the standard one."
 		},
 		"setup_checks": {
 			"why": {
@@ -2758,7 +2766,7 @@
 			"duplicate": "is the same entry as {winner}, which wins.",
 			"shared_id": "is also the id of {paths}; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.",
 			"missing": "doesn't exist.",
-			"file_order": "\"orderby: {order}\" is read as \"published\"; entries are never sorted by file. Write \"orderby: published\".",
+			"file_order": "\"orderby: {order}\" is read as \"date\"; entries are never sorted by file. Write \"orderby: date\".",
 			"unreal_date": "\"{date}\" isn't a real date, so it's read as {read}.",
 			"prefix": "has an order prefix, which only collections use; {items} don't. Rename it {path}.",
 			"prefix_beyond_pattern": "has an order prefix, which only collections use; {items} don't, beyond their file name pattern ({pattern}) on files. Rename it {path}.",
@@ -2769,7 +2777,10 @@
 			"parent_loop": "makes a loop: {chain}.",
 			"route_answers": "is at {address}, but the {route} route answers there, so the page can't be reached; move the page or change the type's prefix.",
 			"missing_target": "\"{slug}\" has no {item} entry, so the site leaves it out; add one, or run content:terms.",
-			"unknown_status": "\"{status}\" isn't a status the site has, so the entry isn't on the site. Use one of: {statuses}."
+			"unknown_status": "\"{status}\" isn't a status the site has, so the entry isn't on the site. A plugin that's off may have it: turning it on brings the entry back. Or use one of: {statuses}.",
+			"status_outside_workflow": "The status \"{status}\" isn't one {items} use (their workflow is \"{workflow}\"), though the entry keeps it. Use one of: {statuses}.",
+			"expiry_off": "Expiry isn't on for {items}, so this date is ignored.",
+			"expires_before_date": "It expires before its date, so it's never on the site."
 		},
 		"field_set_check": {
 			"unknown_kind": "\"{set}\" names {target}, but fields can't attach to a \"{kind}\" yet.",
@@ -2977,7 +2988,8 @@
 				"address": "its address",
 				"edited": "Edited “{title}”",
 				"list": "{list}, {item}",
-				"edited_parts": "Edited {changed} of “{title}”"
+				"edited_parts": "Edited {changed} of “{title}”",
+				"moved_to": "Moved “{title}” to {status}"
 			},
 			"cannot_edit": "You aren't allowed to edit that entry.",
 			"cannot_move": "Only a tree's pages move under another; \"{title}\" doesn't.",
@@ -3017,9 +3029,16 @@
 			"taken_in_language": "There's already a {item} at {page} in {language}.",
 			"keep_yourself": "You can add authors, but not take yourself off an entry.",
 			"index_not_scheduled": "An index page can't be scheduled; publish it or keep it a draft.",
-			"future_date": "Scheduling needs a future \"published\" date.",
+			"future_date": "Scheduling needs a future \"date\".",
 			"in_trash": "\"{title}\" is in the trash; restore it to change it.",
-			"untitled": "Untitled"
+			"untitled": "Untitled",
+			"no_transition": "There's no \"{transition}\" transition for {items}.",
+			"transition_not_here": "“{title}” can't {transition} from {status}.",
+			"no_expiry": "Expiry isn't on for {items}, so they can't have an \"expires\" date.",
+			"never_expires": "“{title}” can't expire: index, archive, error, and landing pages stay as long as their site does.",
+			"expires_before_date": "The expiry date has to come after the entry's date.",
+			"cannot_reset": "You aren't allowed to fix what Site Health finds.",
+			"in_workflow": "“{title}” already has a status of its workflow."
 		},
 		"html_guard": {
 			"unreadable": "The body couldn't be read for HTML: {problem}",
@@ -3197,7 +3216,7 @@
 			},
 			"updated": {
 				"label": "Updated",
-				"description": "When it last changed; defaults to published, then the file's modified time."
+				"description": "When it last changed; defaults to the date, then the file's modified time."
 			},
 			"status": {
 				"label": "Status",
@@ -3238,6 +3257,14 @@
 			"collection": {
 				"label": "Collection",
 				"description": "Lists other entries on this page."
+			},
+			"date": {
+				"label": "Date",
+				"description": "The entry's date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+			},
+			"expires": {
+				"label": "Expires",
+				"description": "When the entry comes off the site, in a type with expiry, such as 2026-12-31 23:59:00 -05:00. Moving or clearing it brings the entry back."
 			}
 		},
 		"entry_folders": {
@@ -3682,9 +3709,10 @@
 			"removed": "Removed {tokens, plural, one {# expired token} other {# expired tokens}}, {codes, plural, one {# expired code} other {# expired codes}} and refresh tokens, and {apps, plural, one {# app} other {# apps}} nobody connected."
 		},
 		"go_live_job": {
-			"label": "Put scheduled entries live",
+			"label": "Put scheduled entries live, and take expired ones off",
 			"version": "The content version is {version}.",
-			"went_live": "The content version is {version}. {count, plural, one {# entry} other {# entries}} went live."
+			"went_live": "The content version is {version}. {count, plural, one {# entry} other {# entries}} went live.",
+			"changed": "The content version is {version}. {live, plural, one {# entry} other {# entries}} went live, and {expired, plural, one {# entry} other {# entries}} expired."
 		},
 		"media_index_job": {
 			"label": "Index media files",
@@ -3764,15 +3792,17 @@
 		},
 		"get_type": {
 			"title": "Get a Content Type",
-			"description": "Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry's fields, the statuses an entry can have, its relationships to other types (such as tags or authors, set by the related entries' slugs), and what this connection may do with it. Call it before create_entry or update_entry."
+			"description": "Gets one content type in full: its fields (names, kinds, which are required, what each is for), a JSON Schema of an entry's fields, the statuses an entry can have and the transitions between them (its workflow), its relationships to other types (such as tags or authors, set by the related entries' slugs), and what this connection may do with it. Call it before create_entry or update_entry."
 		},
 		"set_status": {
-			"title": "Publish, Unpublish, or Schedule",
-			"description": "Changes whether an entry is live: \"published\" puts it on the site now, \"draft\" takes it off, and \"scheduled\" puts it on at a future \"published\" date. Only use it when the person asked to publish or unpublish. Needs the revision get_entry answered.",
-			"needs_date": "Scheduling needs a future \"published\" date.",
+			"title": "Change Status",
+			"description": "Changes an entry's status, by a transition of its type's workflow (get_type lists them): send \"status\" (\"published\" puts it on the site now, \"draft\" takes it off, \"scheduled\" puts it on at a future \"date\") or a \"transition\" by name. Only use it when the person asked for the change. Needs the revision get_entry answered.",
+			"needs_date": "Scheduling needs a future \"date\".",
 			"published": "Published “{title}”.",
 			"scheduled": "Scheduled “{title}”.",
-			"draft": "Moved “{title}” to draft."
+			"draft": "Moved “{title}” to draft.",
+			"one_of": "Send a \"status\" or a \"transition\", not both.",
+			"moved": "Moved “{title}” to {status}."
 		},
 		"list_types": {
 			"title": "List Content Types",
@@ -3785,7 +3815,7 @@
 		},
 		"create_entry": {
 			"title": "Create a Draft",
-			"description": "Creates a new entry as a draft: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries' slugs), and a Markdown body. It's never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site's editor and to preview it.",
+			"description": "Creates a new entry, a draft unless its type's workflow starts elsewhere: a type, a title, its fields (by the names get_type gives; relationships such as tags take the related entries' slugs), and a Markdown body. It's never published; set_status does that, when asked. Answers the entry, with its revision and links to review it in the site's editor and to preview it.",
 			"no_status": "New entries are drafts; leave \"status\" out, and use set_status after, when asked to publish.",
 			"created": "Created the draft “{title}”."
 		},
@@ -3844,8 +3874,8 @@
 		},
 		"restore_entry": {
 			"title": "Restore an Entry",
-			"description": "Brings an entry back from the trash as a draft. search_entries with status [\"trash\"] finds what's there.",
-			"restored": "Restored “{title}” as a draft."
+			"description": "Brings an entry back from the trash at its workflow's first status, a draft unless its type says otherwise. search_entries with status [\"trash\"] finds what's there.",
+			"restored": "Restored “{title}” as {status}."
 		},
 		"publish": {
 			"title": "Publish",
@@ -3971,7 +4001,32 @@
 			"draft": "Draft",
 			"drafts": "Drafts",
 			"published": "Published",
-			"published_plural": "Published"
+			"published_plural": "Published",
+			"expired": "Expired",
+			"expired_plural": "Expired"
+		},
+		"workflow": {
+			"standard": "Standard"
+		},
+		"transition": {
+			"publish": "Publish",
+			"unpublish": "Unpublish"
+		},
+		"transitions": {
+			"no_way": "There's no way for {items} to go from {from} to {to}.",
+			"not_in_workflow": "The status {to} isn't one {items} use; use one of: {statuses}.",
+			"not_allowed": "You aren't allowed to {transition} that entry.",
+			"cannot_publish": "You aren't allowed to publish that entry.",
+			"cannot_unpublish": "You aren't allowed to take that entry off the site.",
+			"return": "Move to {status}"
+		},
+		"writer": {
+			"no_status": "The site has no \"{name}\" status of its own.",
+			"status_used": "{count, plural, one {The {workflows} workflow uses it} other {The {workflows} workflows use it}}; take it out of {count, plural, one {it} other {them}} first.",
+			"workflow_problem": "The workflow can't be saved: {problem}.",
+			"not_customizable": "There's no \"{name}\" workflow from Blush or a plugin to customize.",
+			"no_workflow": "The site has no \"{name}\" workflow of its own.",
+			"workflow_used": "{types} {count, plural, one {uses it} other {use it}}; choose another workflow in {count, plural, one {its} other {their}} Type Settings first."
 		}
 	}
 }

@@ -414,7 +414,7 @@ final readonly class IndexStore implements RecordStore
 			$parent !== null && $type instanceof Tree => $writer->create($type, $slug, $changes, $parent),
 			$parent !== null                          => throw new InvalidRecord((string) $this->messages->t('content.index_store.parent_by_place', 'On files, only a tree\'s pages have a parent by place; {types} name theirs in front matter.', types: $type->labels->plural)),
 			$slug === ''                              => $writer->createAt($type, 'index', $changes),
-			default                                   => $writer->create($type, $slug, $changes, null, self::date($fields['published'] ?? null))
+			default                                   => $writer->create($type, $slug, $changes, null, self::date($fields['date'] ?? null))
 		};
 
 		// Written in the default language, then named for its own (D-728).
@@ -543,7 +543,7 @@ final readonly class IndexStore implements RecordStore
 
 	/**
 	 * The columns that changed, as front matter: `title`, `visibility`,
-	 * `position` as they are, `published` and `updated` in the site's
+	 * `position` as they are, `date` and `updated` in the site's
 	 * time zone, and a status other than trash; `null` removes one.
 	 *
 	 * @param  array<string, mixed> $old
@@ -560,7 +560,7 @@ final readonly class IndexStore implements RecordStore
 			}
 		}
 
-		foreach (['published', 'updated'] as $key) {
+		foreach (['date', 'updated'] as $key) {
 			if (array_key_exists($key, $new) && ($new[$key] ?? null) !== ($old[$key] ?? null)) {
 				$set[$key] = self::date($new[$key])?->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
 			}

@@ -204,7 +204,7 @@ final class ApiTest extends TestCase
 		$this->assertSame(['total' => 3, 'page' => 1, 'pages' => 1, 'per_page' => 20, 'next' => null, 'prev' => null], array_diff_key($list, ['items' => true]));
 		$this->assertArrayNotHasKey('body', self::arrayAt($list, 'items', 0), 'Lists leave bodies out (D-739).');
 		$this->assertSame('Hello and welcome to my site.', self::at($list, 'items', 2, 'excerpt'));
-		$this->assertSame('2003-04-15T22:39:00Z', self::at($list, 'items', 2, 'published'), 'Dates are in UTC (D-737).');
+		$this->assertSame('2003-04-15T22:39:00Z', self::at($list, 'items', 2, 'date'), 'Dates are in UTC (D-737).');
 		$this->assertNotContains('private', $this->column('/api/v1/entries?per_page=100', 'slug'), 'Hidden pages never show.');
 		$this->assertNotContains('idea', $this->column('/api/v1/entries?per_page=100', 'slug'));
 	}
@@ -300,14 +300,14 @@ final class ApiTest extends TestCase
 		$this->standardContent();
 		$this->boot();
 
-		$this->assertSame(['spring', 'welcome'], $this->column('/api/v1/entries?type=post&published_before=2009-01-01', 'slug'));
-		$this->assertSame(['hello'], $this->column('/api/v1/entries?type=post&published_after=2009-01-01', 'slug'));
-		$this->assertSame(['welcome', 'spring', 'hello'], $this->column('/api/v1/entries?type=post&sort=published', 'slug'));
+		$this->assertSame(['spring', 'welcome'], $this->column('/api/v1/entries?type=post&date_before=2009-01-01', 'slug'));
+		$this->assertSame(['hello'], $this->column('/api/v1/entries?type=post&date_after=2009-01-01', 'slug'));
+		$this->assertSame(['welcome', 'spring', 'hello'], $this->column('/api/v1/entries?type=post&sort=date', 'slug'));
 		$this->assertSame(['welcome', 'spring', 'hello'], $this->column('/api/v1/entries?type=post&sort=-title', 'slug'), 'Titles sort as written, "spring" lowercase.');
 		$this->assertSame(['welcome'], $this->column('/api/v1/entries?ids=' . self::idFor('_post/2003-04-15.welcome.md') . ',' . self::idFor('_post/2020-01-01.unfinished.md'), 'slug'), 'Ids the site doesn\'t show are left out.');
 		$this->assertSame(['biography'], $this->column('/api/v1/entries?parent=' . self::idFor('about/index.md'), 'slug'));
 
-		foreach (['sort=size', 'per_page=101', 'page=0', 'type=nothing', 'published_after=soon', 'ids=1', 'bogus=1'] as $query) {
+		foreach (['sort=size', 'per_page=101', 'page=0', 'type=nothing', 'date_after=soon', 'ids=1', 'bogus=1'] as $query) {
 			$this->assertSame('invalid_query', self::at($this->json("/api/v1/entries?{$query}", 400), 'error', 'code'), $query);
 		}
 	}
@@ -349,7 +349,7 @@ final class ApiTest extends TestCase
 	{
 		$this->standardContent();
 		$this->withMedia();
-		$this->entry('_post/2011-01-01.photo.md', "title: Photo\npublished: 2011-01-01 10:00:00\nimage: /media/2019/photo.png");
+		$this->entry('_post/2011-01-01.photo.md', "title: Photo\ndate: 2011-01-01 10:00:00\nimage: /media/2019/photo.png");
 		$this->boot();
 
 		$file = $this->json('/api/v1/media/' . self::PHOTO);
@@ -372,7 +372,7 @@ final class ApiTest extends TestCase
 			'types' => ['note' => ['urls' => ['prefix' => 'notes'], 'fields' => [['name' => 'mood', 'type' => 'text'], ['name' => 'cover', 'type' => 'media'], ['name' => 'rating', 'type' => 'number']]]]
 		]);
 		$this->withMedia();
-		$this->entry('_note/2011-01-01.calm.md', "title: Calm\npublished: 2011-01-01 10:00:00\nmood: happy\ncover: /media/2019/photo.png\nweather: rain");
+		$this->entry('_note/2011-01-01.calm.md', "title: Calm\ndate: 2011-01-01 10:00:00\nmood: happy\ncover: /media/2019/photo.png\nweather: rain");
 		$this->boot();
 
 		$this->assertSame(

@@ -108,7 +108,7 @@ final class MultilingualTest extends TestCase
 		$this->entry('about/team/index.md', 'title: Team');
 		$this->entry('about/team/jane.md', 'title: Jane');
 		$this->entry('about/team/jane.fr.md', 'title: Jeanne');
-		$this->entry('_post/2008-04-05.spring.fr.md', "title: Printemps\npublished: 2008-04-05 09:00:00\nslug: printemps\ncategory: art", 'Le printemps est là.');
+		$this->entry('_post/2008-04-05.spring.fr.md', "title: Printemps\ndate: 2008-04-05 09:00:00\nslug: printemps\ncategory: art", 'Le printemps est là.');
 		$this->entry('_post/index.fr.md', 'title: Journal');
 		$this->entry('_category/art.fr.md', "title: L'art\nslug: lart");
 

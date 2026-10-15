@@ -121,7 +121,7 @@ final class IndexStoreTest extends TestCase
 			'slug'      => 'summer',
 			'title'     => 'Summer',
 			'status'    => 'draft',
-			'published' => '2026-07-01T14:00:00Z',
+			'date'      => '2026-07-01T14:00:00Z',
 			'fields'    => ['tag' => 'sun']
 		], "Hot.\n");
 
@@ -130,7 +130,7 @@ final class IndexStoreTest extends TestCase
 		$this->assertSame(self::NEW, $saved->id);
 		$this->assertSame('summer', $saved->fields['slug']);
 		$this->assertSame('draft', $saved->fields['status']);
-		$this->assertSame('2026-07-01T14:00:00Z', $saved->fields['published']);
+		$this->assertSame('2026-07-01T14:00:00Z', $saved->fields['date']);
 
 		$files = glob($this->temporaryDirectory() . '/user/content/_post/*summer.md') ?: [];
 

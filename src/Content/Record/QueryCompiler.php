@@ -36,13 +36,15 @@ use Blush\Workflow\Statuses;
  * (D-649), so any driver answers it, and answers it alike:
  *
  * - **Status:** a live status (`Statuses`) finds entries whose
- *   `published` time has come (or that have none), "scheduled" those of
- *   a live status whose time is still to come, at the time given.
+ *   `date` has come (or that have none) and whose `expires` hasn't,
+ *   "scheduled" those of a live status whose time is still to come,
+ *   and "expired" those whose `expires` has come (D-852), at the time
+ *   given.
  * - **Terms** (`whereTerm()`, 1.x `author`): entries referring to a term
  *   of the relation's types with the slug (refs), or writing the slug
  *   under the relation's front matter keys.
  * - **`meta_key`/`meta_value`:** the value compared as a slug.
- * - **Dates** (`date()`): a range of `published` times in the site's
+ * - **Dates** (`date()`): a range of `date` times in the site's
  *   timezone, from the year down (`year`, then `month`, and so on);
  *   other combinations aren't matched.
  * - **Languages:** a query in a language with a fallback (D-469) finds
@@ -162,7 +164,7 @@ final readonly class QueryCompiler
 		}
 
 		if ($query->date !== []) {
-			$records = $records->where('published', 'between', $this->dateRange($query->date));
+			$records = $records->where('date', 'between', $this->dateRange($query->date));
 		}
 
 		if ($query->updatedSince !== null) {
@@ -244,18 +246,26 @@ final readonly class QueryCompiler
 
 		$time = EntryTable::time($now);
 		$live = $this->statuses->live();
+
+		// On the site now: its date has come (or it has none), and its
+		// expiry hasn't (D-852).
 		$come = static fn (RecordQuery $q): RecordQuery => $q->whereAny(
-			static fn (RecordQuery $q): RecordQuery => $q->where('published', 'null'),
-			static fn (RecordQuery $q): RecordQuery => $q->where('published', '<=', $time)
+			static fn (RecordQuery $q): RecordQuery => $q->where('date', 'null'),
+			static fn (RecordQuery $q): RecordQuery => $q->where('date', '<=', $time)
+		);
+		$kept = static fn (RecordQuery $q): RecordQuery => $q->whereAny(
+			static fn (RecordQuery $q): RecordQuery => $q->where('expires', 'null'),
+			static fn (RecordQuery $q): RecordQuery => $q->where('expires', '>', $time)
 		);
 
 		if ($statuses === StatusScope::Live) {
-			return $live === [] ? $records->whereAny() : $come($records->where('status', 'in', $live));
+			return $live === [] ? $records->whereAny() : $kept($come($records->where('status', 'in', $live)));
 		}
 
 		return $records->whereAny(...array_map(static fn (string $status): Closure => match (true) {
-			$status === Status::SCHEDULED     => static fn (RecordQuery $q): RecordQuery => $live === [] ? $q->whereAny() : $q->where('status', 'in', $live)->where('published', '>', $time),
-			in_array($status, $live, true)    => static fn (RecordQuery $q): RecordQuery => $come($q->where('status', '=', $status)),
+			$status === Status::SCHEDULED     => static fn (RecordQuery $q): RecordQuery => $live === [] ? $q->whereAny() : $q->where('status', 'in', $live)->where('date', '>', $time),
+			$status === Status::EXPIRED       => static fn (RecordQuery $q): RecordQuery => $live === [] ? $q->whereAny() : $come($q->where('status', 'in', $live))->where('expires', '<=', $time),
+			in_array($status, $live, true)    => static fn (RecordQuery $q): RecordQuery => $kept($come($q->where('status', '=', $status))),
 			default                           => static fn (RecordQuery $q): RecordQuery => $q->where('status', '=', $status)
 		}, $statuses));
 	}
@@ -317,7 +327,7 @@ final readonly class QueryCompiler
 	}
 
 	/**
-	 * The range of `published` times a date's parts cover, in the site's
+	 * The range of `date` times a date's parts cover, in the site's
 	 * timezone, as the table keeps times.
 	 *
 	 * @param  array<string, int> $date
@@ -355,12 +365,12 @@ final readonly class QueryCompiler
 		$written   = array_values(array_unique(array_merge(...array_map(static fn (Relation $relation): array => $relation->keys(), $relations))));
 
 		return match (true) {
-			in_array($query->orderBy, ['published', 'updated', 'title', 'slug', 'status'], true) => [[$query->orderBy, $query->order]],
+			in_array($query->orderBy, ['date', 'updated', 'title', 'slug', 'status'], true) => [[$query->orderBy, $query->order]],
 			$query->orderBy === 'name'                                                           => [['slug', $query->order]],
 			$query->orderBy === Position::FIELD                                                  => [['position', $query->order], ['title', Order::Asc]],
 			$written !== []                                                                      => array_map(static fn (string $field): array => ["slugs.{$field}", $query->order], $written),
 			$this->declared($query->orderBy)                                                    => [["fields.{$query->orderBy}", $query->order]],
-			default                                                                              => [['published', $query->order]]
+			default                                                                              => [['date', $query->order]]
 		};
 	}
 

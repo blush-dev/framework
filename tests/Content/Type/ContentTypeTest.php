@@ -87,7 +87,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('', $type->description);
 		$this->assertNull($type->icon);
 		$this->assertFalse($type->hierarchical);
-		$this->assertSame(TypeOrder::Published, $type->order);
+		$this->assertSame(TypeOrder::Date, $type->order);
 	}
 
 	public function testEveryTypeIsKeptInItsNameAndPrefixedByIt(): void
@@ -409,7 +409,7 @@ final class ContentTypeTest extends TestCase
 			'name'         => 'event',
 			'folders'      => '{year}',
 			'urls'         => ['prefix' => 'on', 'single' => '{year}/{name}', 'collection' => 'all'],
-			'listing'      => ['orderBy' => 'published', 'order' => 'desc', 'perPage' => 5, 'query' => ['offset' => 1]],
+			'listing'      => ['orderBy' => 'date', 'order' => 'desc', 'perPage' => 5, 'query' => ['offset' => 1]],
 			'dateArchives' => 'hour',
 			'fields'       => [['name' => 'venue', 'type' => 'text', 'required' => true]],
 			'feed'         => ['categories' => 'topic', 'listing' => ['perPage' => 50]]
@@ -418,7 +418,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['_event', '{year}'], [$type->folder, $type->folders?->pattern]);
 		$this->assertSame('/on/{year}/{name}', $type->routePattern('single'));
 		$this->assertSame('/on/all', $type->routePattern('collection'));
-		$this->assertSame(['offset' => 1, 'orderby' => 'published', 'order' => 'desc', 'number' => 5, 'type' => 'event'], $type->listingArguments());
+		$this->assertSame(['offset' => 1, 'orderby' => 'date', 'order' => 'desc', 'number' => 5, 'type' => 'event'], $type->listingArguments());
 		$this->assertSame(DateArchives::Hour, $type->dateArchives);
 		$this->assertTrue($type->schema->fields['venue']->required);
 		$this->assertEquals(new TypeFeed('topic', new Listing(perPage: 50)), $type->feed);
@@ -433,7 +433,7 @@ final class ContentTypeTest extends TestCase
 			'feed'       => ['taxonomy' => 'topic', 'collection' => ['number' => 50]]
 		], $this->fields, new Messages());
 
-		$this->assertEquals(new Listing(type: 'post', orderBy: 'published', perPage: Listing::ALL, query: ['meta_key' => 'mood']), $type->listing);
+		$this->assertEquals(new Listing(type: 'post', orderBy: 'date', perPage: Listing::ALL, query: ['meta_key' => 'mood']), $type->listing);
 		$this->assertEquals(new TypeFeed('topic', new Listing(perPage: 50)), $type->feed);
 		$this->assertSame(DateArchives::Second, ContentType::fromArray(['name' => 'log', 'time_archives' => true], $this->fields, new Messages())->dateArchives);
 		$this->assertSame(DateArchives::Day, ContentType::fromArray(['name' => 'log', 'date_archives' => true], $this->fields, new Messages())->dateArchives);
@@ -496,7 +496,7 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'doc', 'kind' => 'tree', 'prefix' => '_docs'], 'Content type "doc" has an invalid prefix "_docs".'],
 			[['name' => 'post', 'routes' => []], 'Content type "post" (collection) has unknown options: routes.'],
 			[['name' => 'post', 'types' => ['x']], 'Content type "post" (collection) has unknown options: types.'],
-			[['name' => 'post', 'order' => 'sideways'], 'Content type "post" "order" must be one of published, position.'],
+			[['name' => 'post', 'order' => 'sideways'], 'Content type "post" "order" must be one of date, position.'],
 			[['name' => 'page', 'kind' => 'tree', 'urls' => []], 'Content type "page" (tree) has unknown options: urls.'],
 			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, tree, profiles.'],
 			[['name' => 'post', 'routing' => 'yes'], 'Content type "post" "urls" must be false or a map.'],
@@ -526,7 +526,7 @@ final class ContentTypeTest extends TestCase
 
 	public function testEachKindHasAnOrderNeverByFile(): void
 	{
-		$this->assertSame(['published', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields, new Messages())->order(), 'D-516');
+		$this->assertSame(['date', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields, new Messages())->order(), 'D-516');
 		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields, new Messages())->order());
 		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'order' => 'position'], $this->fields, new Messages())->order());
 		$this->assertSame(['title', Order::Asc], ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields, new Messages())->order());
@@ -534,7 +534,7 @@ final class ContentTypeTest extends TestCase
 		$tag = ContentType::fromArray(['name' => 'tag', 'order' => 'position', 'listing' => ['order' => 'desc']], $this->fields, new Messages());
 
 		$this->assertSame(['position', 'desc'], [$tag->listingArguments()['orderby'] ?? null, $tag->listingArguments()['order'] ?? null], 'Terms list in their order, the listing\'s way.');
-		$this->assertSame('published', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields, new Messages())->listing->orderBy, '1.x\'s file order is published.');
+		$this->assertSame('date', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields, new Messages())->listing->orderBy, '1.x\'s file order is the date.');
 	}
 
 	public function testCollectionsNameFilesByAPattern(): void

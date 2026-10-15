@@ -37,18 +37,22 @@ use Blush\Media\MediaException;
 use Blush\Support\Uuid;
 use Blush\Tool\ToolContext;
 use Blush\Workflow\Status;
+use Blush\Workflow\Workflows;
 
 /**
  * Answers the API's writes to entries (D-762), over the one write path
  * (`EntryEditor`), so it refuses what the admin and MCP refuse:
  *
- * - `POST /entries` makes a draft: `type` and `title`, and any of
- *   `subtitle`, `slug`, `published`, `image`, `parent`, `language`,
+ * - `POST /entries` makes an entry at its workflow's first status (a
+ *   draft, unless the type's workflow says otherwise, D-851): `type` and
+ *   `title`, and any of
+ *   `subtitle`, `slug`, `date`, `image`, `parent`, `language`,
  *   `fields`, `relations`, and `body` (Markdown). `201`, with a
  *   `Location`.
  * - `PATCH /entries/{id}` changes only what it's sent (`null` removes):
- *   `title`, `subtitle`, `slug`, `published`, `status` (`draft`,
- *   `published`, or `scheduled` with a future `published`), `image`,
+ *   `title`, `subtitle`, `slug`, `date`, `status` (one of
+ *   the type's workflow's, or `scheduled` with a future `date`; a
+ *   change of status is a transition in it, D-851), `image`,
  *   `parent`, `fields`, `relations`, and `body`; `redirect: false` keeps
  *   a moved published entry's old address from redirecting. An entry in
  *   the trash takes `status` alone, which restores it.
@@ -67,7 +71,7 @@ final readonly class EntryWritesController
 	 *
 	 * @var list<string>
 	 */
-	private const array COMMON = ['title', 'subtitle', 'slug', 'published', 'image', 'parent', 'fields', 'relations', 'body'];
+	private const array COMMON = ['title', 'subtitle', 'slug', 'date', 'expires', 'image', 'parent', 'fields', 'relations', 'body'];
 
 	public function __construct(
 		private ApiWrites $writes,
@@ -75,7 +79,8 @@ final readonly class EntryWritesController
 		private ApiEntries $entries,
 		private EntryResource $resource,
 		private MediaResource $media,
-		private Entries $content
+		private Entries $content,
+		private Workflows $workflows
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -143,11 +148,11 @@ final readonly class EntryWritesController
 			}
 
 			[$set, $remove] = $this->changes($entry->type, $input);
-			$published      = null;
+			$date      = null;
 
-			if ($status !== null && array_key_exists('published', $set)) {
-				$published = is_string($set['published']) ? $set['published'] : null;
-				unset($set['published']);
+			if ($status !== null && array_key_exists('date', $set)) {
+				$date = is_string($set['date']) ? $set['date'] : null;
+				unset($set['date']);
 			}
 
 			try {
@@ -156,7 +161,7 @@ final readonly class EntryWritesController
 					remove: $remove,
 					body: ApiWrites::text($input, 'body'),
 					status: $status,
-					published: $published,
+					date: $date,
 					slug: ApiWrites::text($input, 'slug'),
 					parent: $this->parent($entry->type, $input, moving: true),
 					redirect: ($input['redirect'] ?? true) === true
@@ -192,8 +197,10 @@ final readonly class EntryWritesController
 	 */
 	private function restore(ToolContext $context, Entry $entry, array $input, ?string $status, string $revision): Entry
 	{
-		if (array_keys($input) !== ['status'] || ! in_array($status, ['draft', 'published'], true)) {
-			throw ApiError::refused(EditRefused::unprocessable(sprintf('"%s" is in the trash; restore it first by sending "status" alone, as "draft" or "published".', $entry->title), 'status'));
+		$workflow = $this->workflows->for($entry->type);
+
+		if (array_keys($input) !== ['status'] || $status === null || ! $workflow->has($status)) {
+			throw ApiError::refused(EditRefused::unprocessable(sprintf('"%s" is in the trash; restore it first by sending "status" alone, as one of: %s.', $entry->title, implode(', ', $workflow->statuses)), 'status'));
 		}
 
 		return $context->entries->restore($context->actor, $entry, $status, $revision);
@@ -201,8 +208,8 @@ final readonly class EntryWritesController
 
 	/**
 	 * Returns the front matter a write sets and removes, from the keys
-	 * reads send: the entry's own (`title`, `subtitle`, `published`,
-	 * `image`), `fields`, and `relations`. A slug, a parent, and a body
+	 * reads send: the entry's own (`title`, `subtitle`, `date`,
+	 * `expires`, `image`), `fields`, and `relations`. A slug, a parent, and a body
 	 * are the write's own.
 	 *
 	 * @param  array<string, mixed> $input
@@ -215,7 +222,7 @@ final readonly class EntryWritesController
 		$set    = [];
 		$remove = [];
 
-		foreach (['title', 'subtitle', 'published'] as $key) {
+		foreach (['title', 'subtitle', 'date', 'expires'] as $key) {
 			if (! array_key_exists($key, $input)) {
 				continue;
 			}
