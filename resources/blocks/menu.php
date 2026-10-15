@@ -26,7 +26,7 @@ $list = static function (array $items, string $trail) use (&$list, $template, $b
 			<li <?= $block->itemAttributes($item) ?>>
 				<<?= $tag ?> <?= $block->linkAttributes($item) ?>>
 					<?php if ($item->icon !== '') : ?>
-						<?= $template->icon($item->icon) ?>
+						<?= $template->block('icon', name: $item->icon) ?>
 					<?php endif ?>
 					<?php if ($item->image !== '') : ?>
 						<img class="<?= attr($block->elementClass('image')) ?>" src="<?= url($item->image) ?>" alt="" loading="lazy" />

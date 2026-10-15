@@ -2190,7 +2190,7 @@ do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
-`:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.
+`:icon[GitHub]{name=brands/github}` or `$template->block('icon', name: 'brands/github')`.
 Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`, and
 the pack's own `label` and `description` are translated under
 `manifest.label` and `manifest.description` (see

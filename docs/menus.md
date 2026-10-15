@@ -251,7 +251,7 @@ For markup of your own, get what a location shows with
 		<?php foreach ($menu->items as $item) : ?>
 			<li class="<?= attr($item->class) ?>">
 				<a href="<?= url($item->url) ?>" <?= $item->ariaCurrent() ?>>
-					<?= $template->icon($item->icon) ?>
+					<?= $template->block('icon', name: $item->icon) ?>
 					<span><?= e($item->label) ?></span>
 				</a>
 			</li>

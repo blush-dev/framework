@@ -874,8 +874,7 @@ of Content Health, with real checks only and a Requirements tab (D-543,
 built); (3)
 editable Shortcuts, kept with the account's preferences (D-547, built).
 Undo on moving to the trash is built (D-525). Smaller admin items
-waiting: the admin theme choice (a second
-account preference, D-235), objects in forms, autosave, and Pages
+waiting: objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
 items). The admin's dates are in the site's date and time formats
 where they read as dates, not in compact columns or pickers (D-446,
@@ -1365,17 +1364,6 @@ Agreed, not scheduled; built when the author says so.
   status and visibility (D-855). Its open points are in
   `open-questions.md` (**Access control**); settle them, then plan the
   stages.
-- **Media blocks from templates, with shortcuts** (D-814, author
-  2026-10-13): a media block's `#[MediaProp]` values (`src`,
-  `poster`, `track`, `art`) are resolved only in Markdown today, so a
-  template passes `$item->url`. Resolve them on the template path too
-  (`PendingBlock`), taking a file's id, an older path, or a
-  `MediaItem`, and add shortcuts over the blocks as `icon()` is:
-  `$template->video($item)`, `$template->audio($item, variant: 'card')`,
-  `$template->file($item)`, each taking the block's props by name.
-  One markup per kind (the block's template, which themes
-  override), and the player's scripts and styles asked for as
-  blocks ask. Images keep `MediaItem::img()`.
 
 ## M7 (Static export): done
 

@@ -263,17 +263,6 @@ final class Template
 	}
 
 	/**
-	 * Returns an icon (D-187), to print: `<?= $template->icon('house') ?>`
-	 * for decoration, or `<?= $template->icon('jtcom/github', 'GitHub') ?>`
-	 * for one named by its label.
-	 */
-	#[ReturnsHtml]
-	public function icon(string $name, string $label = ''): PendingBlock
-	{
-		return $this->block('icon', name: $name, label: $label);
-	}
-
-	/**
 	 * Returns the menu a theme location shows (D-199), with the page's
 	 * item marked current, or `null` when it shows none, for markup of
 	 * the theme's own: the menu the site assigned it, else the theme's

@@ -15,4 +15,4 @@
 declare(strict_types=1);
 
 ?>
-<a <?= $block->attributes() ?> href="<?= url($block->url) ?>"><?php if ($block->showsIconBefore()) : ?><?= $template->icon($block->icon) ?><?php endif ?><?php if ($block->showsText()) : ?><span class="<?= attr($block->elementClass('text')) ?>"><?= raw($block->text()) ?></span><?php endif ?><?php if ($block->showsIconAfter()) : ?><?= $template->icon($block->icon) ?><?php endif ?></a>
+<a <?= $block->attributes() ?> href="<?= url($block->url) ?>"><?php if ($block->showsIconBefore()) : ?><?= $template->block('icon', name: $block->icon) ?><?php endif ?><?php if ($block->showsText()) : ?><span class="<?= attr($block->elementClass('text')) ?>"><?= raw($block->text()) ?></span><?php endif ?><?php if ($block->showsIconAfter()) : ?><?= $template->block('icon', name: $block->icon) ?><?php endif ?></a>

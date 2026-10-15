@@ -27339,3 +27339,22 @@ decision, add a new entry that supersedes it and mark the old one
     design team; it says what screens need, not how they look.
 - **Status:** Built (2026-10-15): the brief, and the admin's labels
   (Taxonomy, Taxonomies) with D-855.
+
+### D-857: No `$template->icon()`, and no media shortcuts on `$template`
+
+- **Date:** 2026-10-15
+- **The author's decisions:**
+  - **`$template->icon()` is removed.** An icon is a block, so a
+    template calls `$template->block('icon', name: 'house')`, with
+    `label:` for a labeled one. Supersedes D-187's and D-533's
+    `$template->icon()`; core's `menu` and `button` blocks, the docs,
+    and the tests call `block('icon', …)`.
+  - **Media blocks from templates aren't built**: no
+    `$template->video()`, `audio()`, or `file()`, and no resolving of
+    `#[MediaProp]` values on the template path. A template that needs a
+    media block calls `block()`; images keep `MediaItem::img()`. The
+    roadmap's backlog item (from D-814) is removed.
+  - The roadmap's "admin theme choice" waiting item was stale: an
+    account's admin theme is a preference (`Preferences::$adminTheme`,
+    D-827), so it's removed from the list.
+- **Status:** Built (2026-10-15).

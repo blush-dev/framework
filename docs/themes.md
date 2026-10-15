@@ -457,7 +457,6 @@ What a template can use:
 | `$template->block('callout', variant: 'tip')` | Render a block, as content would (see [Blocks](blocks.md#using-blocks-in-templates)) |
 | `$template->blockIf('acme/share')` | Render a block only if it's registered |
 | `$template->hasBlock('acme/share')` | Whether a block is registered |
-| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](blocks.md#icons)) |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->date($entry->date)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->date)` | A time in the site's time format |

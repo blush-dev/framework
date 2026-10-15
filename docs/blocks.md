@@ -316,8 +316,9 @@ Blush comes with about 130 icons from [Lucide](https://lucide.dev)
   they fit in headings, links, and buttons alike.
 - An icon Blush doesn't know shows nothing.
 
-In a template, `<?= $template->icon('house') ?>` shows a decorative
-icon, and `<?= $template->icon('rss', 'RSS feed') ?>` a labeled one.
+In a template, `<?= $template->block('icon', name: 'house') ?>` shows a
+decorative icon, and `<?= $template->block('icon', name: 'rss', label: 'RSS feed') ?>`
+a labeled one.
 
 Icons are named like blocks: the built-in ones are `blush/{name}`
 (or just `{name}`), and others are in a theme's, a plugin's, or an
