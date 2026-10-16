@@ -158,6 +158,22 @@ final class StoredEntries implements Entries
 	}
 
 	/**
+	 * Reads only the `updated` and `date` columns of the records found
+	 * (D-912), which a database reads alone and the filesystem's index
+	 * already holds, so no entry is built.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function updatedTimes(Query $query): array
+	{
+		return array_map(
+			static fn (Record $record): ?int => EntryTable::timestamp($record->fields['updated'] ?? null) ?? EntryTable::timestamp($record->fields['date'] ?? null),
+			$this->records($this->compile($query)->only('updated', 'date'))->records
+		);
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	#[Override]

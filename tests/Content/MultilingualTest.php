@@ -590,6 +590,9 @@ final class MultilingualTest extends TestCase
 		];
 
 		$this->assertSame($about, $this->alternates('/about'));
+		$this->assertStringContainsString('<meta property="og:locale" content="fr_FR">', (string) $this->get('/fr/a-propos')->getBody());
+		$this->assertStringContainsString('<meta property="og:locale:alternate" content="en_US">', (string) $this->get('/fr/a-propos')->getBody(), 'The other languages it\'s in (D-910).');
+		$this->assertStringNotContainsString('og:locale:alternate', (string) $this->get('/archives/welcome')->getBody());
 		$this->assertSame($about, $this->alternates('/fr/a-propos'));
 
 		// Lists: in each language that lists entries for them.

@@ -369,6 +369,7 @@ option.
 | `disallow` | `[]` | Paths `robots.txt` asks search engines to skip |
 | `robots` | `null` | Your own `robots.txt`, served exactly as written |
 | `blockAi` | `[]` | Kinds of AI crawler the generated `robots.txt` asks to stay away: `'training'`, `'search'`, `'fetchers'` |
+| `perSitemap` | `50000` | The most addresses in one sitemap, up to 50,000. A type with more is split into pages, `/sitemap/post`, `/sitemap/post/2`, and so on, each listed in `/sitemap` |
 
 `blockAi` takes three kinds of AI crawler, each a list of known bots kept
 up to date with Blush:

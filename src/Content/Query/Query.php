@@ -685,6 +685,19 @@ final readonly class Query
 	}
 
 	/**
+	 * Returns when each matching entry last changed, in order, as Unix
+	 * timestamps, without building them (D-912): for a sitemap's
+	 * `lastmod`, say, over thousands of entries.
+	 *
+	 * @return list<?int>
+	 * @throws InvalidQuery When the query has no runner.
+	 */
+	public function updatedTimes(): array
+	{
+		return $this->runner()->updatedTimes($this);
+	}
+
+	/**
 	 * Returns one page of entries.
 	 *
 	 * @throws InvalidQuery When the query has no runner.

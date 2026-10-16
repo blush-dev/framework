@@ -178,6 +178,23 @@ abstract class EntryStoreConformance extends TestCase
 	}
 
 	/**
+	 * Returns when entries last changed, as Unix timestamps.
+	 *
+	 * @param  iterable<Entry> $entries
+	 * @return list<int>
+	 */
+	private static function times(iterable $entries): array
+	{
+		$times = [];
+
+		foreach ($entries as $entry) {
+			$times[] = $entry->updated->getTimestamp();
+		}
+
+		return $times;
+	}
+
+	/**
 	 * Returns the slugs a query finds.
 	 *
 	 * @return list<string>
@@ -323,6 +340,15 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertSame(['welcome'], self::slugs($second->all()));
 		$this->assertSame(2, $second->pages());
+	}
+
+	public function testWhenEntriesChangedIsReadWithoutBuildingThem(): void
+	{
+		$posts = $this->query()->type('post')->orderBy('date', Order::Asc);
+
+		$this->assertSame(self::times($posts->get()), $posts->updatedTimes(), 'In the query\'s order (D-912).');
+		$this->assertSame(self::times($posts->offset(1)->limit(1)->get()), $posts->offset(1)->limit(1)->updatedTimes(), 'Within the limit and offset.');
+		$this->assertSame([], $this->query()->type('post')->whereTerm('category', 'nothing')->updatedTimes());
 	}
 
 	public function testOneXArguments(): void

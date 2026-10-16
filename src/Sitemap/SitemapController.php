@@ -18,6 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
+use Blush\Http\Status;
 use Blush\Theme\ThemeException;
 use Blush\View\DocumentRenderer;
 use Blush\View\ViewException;
@@ -25,8 +26,10 @@ use Blush\View\ViewException;
 /**
  * Serves the sitemap index (`/sitemap`, with `sitemap-index`) and each
  * type's sitemap (`/sitemap/{type}`, with `sitemap`), rendered by the
- * theme (D-029). Templates get `$sitemaps` or `$urls`, lists of
- * `SitemapUrl`.
+ * theme (D-029), and the later pages of a type split into pages
+ * (`/sitemap/{type}/{page}`, D-911): `/sitemap/{type}/1` redirects to
+ * the first, and a page past the last is a 404. Templates get
+ * `$sitemaps` or `$urls`, lists of `SitemapUrl`.
  */
 final readonly class SitemapController
 {
@@ -41,7 +44,7 @@ final readonly class SitemapController
 	 * @throws ThemeException
 	 * @throws ViewException
 	 */
-	public function __invoke(ServerRequestInterface $request, ?string $type = null): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, ?string $type = null, ?string $page = null): ResponseInterface
 	{
 		if ($type === null) {
 			$sitemaps = array_map(
@@ -54,6 +57,14 @@ final readonly class SitemapController
 
 		$contentType = $this->builder->types()[$type] ?? throw new NotFound(sprintf('There is no "%s" sitemap.', $type));
 
-		return Response::xml($this->documents->render($request, ["sitemap-{$type}", 'sitemap'], ['urls' => $this->builder->urls($contentType)]));
+		$number      = $page === null ? 1 : (int) $page;
+
+		if ($page !== null && $number === 1) {
+			return Response::redirect("/sitemap/{$type}", Status::MovedPermanently);
+		}
+
+		$urls = $this->builder->page($contentType, $number) ?? throw new NotFound(sprintf('The "%s" sitemap has no page %s.', $type, $page));
+
+		return Response::xml($this->documents->render($request, ["sitemap-{$type}", 'sitemap'], ['urls' => $urls]));
 	}
 }

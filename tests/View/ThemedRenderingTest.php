@@ -89,6 +89,12 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<meta name="description" content="Spring is here.">', $single);
 		$this->assertStringContainsString('<meta property="og:description" content="Spring is here.">', $single);
 		$this->assertStringNotContainsString('og:image', $single);
+		$this->assertStringContainsString('<meta property="og:locale" content="en_US">', $single);
+		$this->assertStringContainsString('<meta property="article:published_time" content="2008-04-05T09:00:00-05:00">', $single);
+		$this->assertStringContainsString('<meta property="article:modified_time" content="', $single);
+		$this->assertStringNotContainsString('name="robots"', $single);
+		$this->assertStringContainsString('<meta name="robots" content="noindex">', $this->body('/archives/rainy', $app), 'Unlisted isn\'t indexed (D-910).');
+		$this->assertStringNotContainsString('article:published_time', $this->body('/about/biography', $app), 'A tree\'s page isn\'t an article.');
 
 		$this->assertStringContainsString('<h1 class="archive-header__title">Art</h1>', $this->body('/topics/art', $app));
 		$this->assertStringContainsString('<body class="is-date type-post">', $this->body('/archives/2008/04', $app));
@@ -194,7 +200,10 @@ final class ThemedRenderingTest extends TestCase
 		$this->writeTemporaryFile('user/content/about/remote.md', "---\nid: bb40824a-2574-820b-0d26-5041e81bbe39\ntitle: Remote\nimage: https://cdn.example.com/me.jpg\n---\nBody");
 		$this->writeTemporaryFile('user/content/about/library.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000b2\ntitle: Library\nimage: 0199B6E2-7F3A-7C41-9D2E-0000000000B1\n---\nBody");
 		$this->writeTemporaryFile('user/media/2026/me.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='));
-		$this->writeTemporaryFile('user/data/media/2026/me.png.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-0000000000b1"}');
+		$this->writeTemporaryFile('user/data/media/2026/me.png.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-0000000000b1", "alt": "Me, smiling"}');
+		$this->writeTemporaryFile('user/content/about/sound.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000b4\ntitle: Sound\nimage: 0199B6E2-7F3A-7C41-9D2E-0000000000B3\n---\nBody");
+		$this->writeTemporaryFile('user/media/2026/song.mp3', 'ID3');
+		$this->writeTemporaryFile('user/data/media/2026/song.mp3.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-0000000000b3"}');
 
 		$app   = $this->site();
 		$photo = $this->body('/about/photo', $app);
@@ -203,7 +212,37 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<meta property="og:image" content="http://localhost/user/media/me.jpg">', $photo);
 		$this->assertStringContainsString('<meta name="twitter:card" content="summary_large_image">', $photo);
 		$this->assertStringContainsString('<meta property="og:image" content="https://cdn.example.com/me.jpg">', $this->body('/about/remote', $app));
-		$this->assertMatchesRegularExpression('#<meta property="og:image" content="http://localhost/[^"]*2026/me\.png">#', $this->body('/about/library', $app), 'A media file\'s id is its file\'s address (D-773).');
+		$library = $this->body('/about/library', $app);
+
+		$this->assertMatchesRegularExpression('#<meta property="og:image" content="http://localhost/[^"]*2026/me\.png">#', $library, 'A media file\'s id is its file\'s address (D-773).');
+		$this->assertStringContainsString('<meta property="og:image:width" content="1">', $library);
+		$this->assertStringContainsString('<meta property="og:image:height" content="1">', $library);
+		$this->assertStringContainsString('<meta property="og:image:alt" content="Me, smiling">', $library);
+		$this->assertStringContainsString('<meta name="twitter:image:alt" content="Me, smiling">', $library);
+		$this->assertStringNotContainsString('og:image', $this->body('/about/sound', $app), 'Only an image is shared (D-910).');
+	}
+
+	public function testTheSharingImageIsASizeAtLeast1200PixelsWide(): void
+	{
+		$this->standardContent();
+
+		// Thin, so the suite stays light on memory.
+		foreach (['wide' => [2400, 4], 'wide-600x1' => [600, 1], 'wide-1200x2' => [1200, 2], 'wide-1600x3' => [1600, 3]] as $name => [$width, $height]) {
+			$image = imagecreatetruecolor($width, $height);
+			$this->assertNotFalse($image);
+			$this->writeTemporaryFile("user/media/2026/{$name}.png", '');
+			imagepng($image, $this->temporaryDirectory() . "/user/media/2026/{$name}.png");
+		}
+
+		$this->writeTemporaryFile('user/data/media/2026/wide.png.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-0000000000b5"}');
+		$this->writeTemporaryFile('user/content/about/wide.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-0000000000b6\ntitle: Wide\nimage: 0199b6e2-7f3a-7c41-9d2e-0000000000b5\n---\nBody");
+
+		$wide = $this->body('/about/wide');
+
+		$this->assertMatchesRegularExpression('#<meta property="og:image" content="http://localhost/[^"]*2026/wide-1200x2\.png">#', $wide, 'The smallest size that\'s wide enough (D-910).');
+		$this->assertStringContainsString('<meta property="og:image:width" content="1200">', $wide);
+		$this->assertStringContainsString('<meta property="og:image:height" content="2">', $wide);
+		$this->assertStringNotContainsString('og:image:alt', $wide, 'No alt text, no tag.');
 	}
 
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void

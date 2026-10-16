@@ -189,6 +189,10 @@ A query finds published, listed entries in the site's language, newest
 first, unless it says otherwise (`orderBy()`, `status()`, `language()`).
 A few things to know:
 
+- **`updatedTimes()`** gives when each entry the query finds last
+  changed, in its order, as Unix timestamps, without loading the
+  entries: for a list of thousands, such as a sitemap's dates, where
+  loading every entry would be slow.
 - **`search('grid')`** matches entries whose title or slug contains
   the text, in any case. It doesn't search what an entry says.
 - **`termCounts('category')`** gives how many entries name each term, by

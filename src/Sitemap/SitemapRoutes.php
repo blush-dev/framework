@@ -21,7 +21,8 @@ use Blush\Routing\RouteSource;
 /**
  * The system routes for crawlers: `robots` (`/robots.txt`), and, with
  * sitemaps on, `sitemap` (`/sitemap`, 1.x's path, also answered at
- * `/sitemap.xml`) and `sitemap.type` (`/sitemap/{type}`).
+ * `/sitemap.xml`), `sitemap.type` (`/sitemap/{type}`), and
+ * `sitemap.page` (`/sitemap/{type}/{page}`, D-911).
  */
 final readonly class SitemapRoutes implements RouteSource
 {
@@ -50,6 +51,7 @@ final readonly class SitemapRoutes implements RouteSource
 			$routes[] = Route::get('/sitemap', SitemapController::class)->named('sitemap');
 			$routes[] = Route::get('/sitemap.xml', SitemapController::class)->named('sitemap.xml');
 			$routes[] = Route::get('/sitemap/{type:[a-z0-9][a-z0-9_-]*}', SitemapController::class)->named('sitemap.type');
+			$routes[] = Route::get('/sitemap/{type:[a-z0-9][a-z0-9_-]*}/{page:[0-9]+}', SitemapController::class)->named('sitemap.page');
 		}
 
 		return $routes;

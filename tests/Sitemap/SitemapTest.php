@@ -98,11 +98,11 @@ final class SitemapTest extends TestCase
 
 		$this->assertSame(
 			[
-				'http://localhost/', 'http://localhost/archives/hello', 'http://localhost/archives/spring', 'http://localhost/archives/welcome',
+				'http://localhost/', 'http://localhost/archives/welcome', 'http://localhost/archives/spring', 'http://localhost/archives/hello',
 				'http://localhost/archives/authors', 'http://localhost/archives/authors/guest', 'http://localhost/archives/authors/justintadlock'
 			],
 			$this->locations('/sitemap/post'),
-			'Each people field\'s archives follow the entries, by name (D-351).'
+			'A collection\'s entries oldest first (D-911); each people field\'s archives follow them, by name (D-351).'
 		);
 		$this->assertSame(
 			['http://localhost/topics', 'http://localhost/topics/art', 'http://localhost/topics/book-reviews', 'http://localhost/topics/old-posts'],
@@ -113,6 +113,49 @@ final class SitemapTest extends TestCase
 		$this->assertSame(['http://localhost/about', 'http://localhost/about/biography', 'http://localhost/notes'], $this->locations('/sitemap/page'));
 		$this->assertSame(['http://localhost/profiles/guest', 'http://localhost/profiles/justintadlock'], $this->locations('/sitemap/profile'), 'Each profile has a page of its own (D-351).');
 		$this->assertSame(404, $this->get('/sitemap/nope')->getStatusCode());
+	}
+
+	public function testSplitsALargeTypeIntoPages(): void
+	{
+		$this->standardContent();
+		$this->boot('new Blush\\Sitemap\\SitemapConfig(perSitemap: 3)');
+
+		$index = $this->locations('/sitemap');
+
+		$this->assertSame(
+			['http://localhost/sitemap/page', 'http://localhost/sitemap/profile', 'http://localhost/sitemap/category', 'http://localhost/sitemap/category/2', 'http://localhost/sitemap/post', 'http://localhost/sitemap/post/2', 'http://localhost/sitemap/post/3'],
+			$index,
+			'Each page of a type past the limit (D-911).'
+		);
+		$this->assertSame(['http://localhost/', 'http://localhost/archives/welcome', 'http://localhost/archives/spring'], $this->locations('/sitemap/post'));
+		$this->assertSame(['http://localhost/archives/hello', 'http://localhost/archives/authors', 'http://localhost/archives/authors/guest'], $this->locations('/sitemap/post/2'));
+		$this->assertSame(['http://localhost/archives/authors/justintadlock'], $this->locations('/sitemap/post/3'));
+
+		// Each page's latest change in the index is its latest URL's, read
+		// without building entries (D-912).
+		preg_match_all('#<loc>([^<]+)</loc>\s*<lastmod>([^<]+)</lastmod>#', (string) $this->get('/sitemap')->getBody(), $index, PREG_SET_ORDER);
+
+		foreach ($index as [, $loc, $lastmod]) {
+			preg_match_all('#<lastmod>([^<]+)</lastmod>#', (string) $this->get(substr($loc, strlen('http://localhost')))->getBody(), $dates);
+
+			$times = array_values(array_filter(array_map(strtotime(...), $dates[1]), is_int(...)));
+
+			$this->assertSame($times === [] ? null : max($times), strtotime($lastmod), $loc);
+		}
+		$this->assertSame(404, $this->get('/sitemap/post/4')->getStatusCode());
+		$this->assertSame(404, $this->get('/sitemap/post/0')->getStatusCode());
+		$this->assertSame(404, $this->get('/sitemap/page/2')->getStatusCode());
+
+		$first = $this->get('/sitemap/post/1');
+
+		$this->assertSame(301, $first->getStatusCode());
+		$this->assertSame('/sitemap/post', $first->getHeaderLine('Location'));
+
+		$this->boot('new Blush\\Sitemap\\SitemapConfig()');
+		$this->assertNotContains('http://localhost/sitemap/post/2', $this->locations('/sitemap'), 'One sitemap a type, under the limit.');
+
+		$this->expectException(InvalidConfig::class);
+		SitemapConfig::fromArray(['perSitemap' => 50001]);
 	}
 
 	public function testTypesCanLeaveTheSitemap(): void
@@ -152,7 +195,7 @@ final class SitemapTest extends TestCase
 		$this->boot("new Blush\\Sitemap\\SitemapConfig(robots: \"User-agent: *\\nDisallow: /secret\\n\")");
 
 		$this->assertSame("User-agent: *\nDisallow: /secret\n", (string) $this->get('/robots.txt')->getBody());
-		$this->assertSame(['enabled' => true, 'disallow' => [], 'robots' => "User-agent: *\nDisallow: /secret\n", 'blockAi' => []], $this->app->container()->make(SitemapConfig::class)->toArray());
+		$this->assertSame(['enabled' => true, 'disallow' => [], 'robots' => "User-agent: *\nDisallow: /secret\n", 'blockAi' => [], 'perSitemap' => 50000], $this->app->container()->make(SitemapConfig::class)->toArray());
 	}
 
 	public function testAsksAiCrawlersToStayAway(): void

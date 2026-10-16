@@ -146,7 +146,7 @@ A live entry's visibility then says where it appears:
 | Visibility | Its own address | In lists | |
 |---|---|---|---|
 | `public` (the default) | Yes | Yes | |
-| `unlisted` | Yes | No | Its page, its [Markdown copy](configuration.md#ai), and a read of it by the [API](api.md) or an AI app all work. It's left out of listings, feeds, the sitemap, `llms.txt`, related entries, and the API's lists. Anyone with the link can read it: unlisted isn't private. |
+| `unlisted` | Yes | No | Its page, its [Markdown copy](configuration.md#ai), and a read of it by the [API](api.md) or an AI app all work. It's left out of listings, feeds, the sitemap, `llms.txt`, related entries, and the API's lists. Its page and its Markdown copy ask search engines not to index them. Anyone with the link can read it: unlisted isn't private. |
 | `hidden` | No | No | Your theme can still show it, by asking for it by name. |
 
 Visibility is a [type option](content-types.md#visibility), on by

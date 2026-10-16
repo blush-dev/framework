@@ -36,4 +36,14 @@ interface QueryRunner
 	 * offset.
 	 */
 	public function count(Query $query): int;
+
+	/**
+	 * Returns when each entry a query matches last changed, in its order
+	 * and within its limit and offset, as Unix timestamps, without
+	 * building them (D-912): each one's `updated`, else its `date`, else
+	 * `null`.
+	 *
+	 * @return list<?int>
+	 */
+	public function updatedTimes(Query $query): array;
 }

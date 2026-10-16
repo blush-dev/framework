@@ -455,7 +455,7 @@ final class PeopleArchivesTest extends TestCase
 
 		$sitemap = $app->container()->make(SitemapBuilder::class);
 		$types   = $app->container()->make(ContentTypes::class);
-		$urls    = array_map(static fn ($url): string => $url->loc, $sitemap->urls($types->get('profile')));
+		$urls    = array_map(static fn ($url): string => $url->loc, $sitemap->page($types->get('profile'), 1) ?? []);
 
 		$this->assertSame(['http://localhost/profiles/guest', 'http://localhost/profiles/justintadlock', 'http://localhost/profiles/sam'], $urls);
 	}

@@ -4,6 +4,51 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **A search and sharing base in core** (discussed 2026-10-16). What
+  core does today: the title (`{page} | {site}`), canonical, OpenGraph
+  basics, a description and `og:image` from an entry's summary and
+  `image` (D-109, D-149), sitemaps, `robots.txt`, `hreflang`, Redirects,
+  and `llms.txt`; JSON-LD and breadcrumbs are planned (D-707), and
+  D-707's "no per-entry SEO fields" waited on the Fields API, which is
+  back. jtcom declares its own `og:title`, `og:image`, `social.image`,
+  and `keywords` because core has nowhere for them. Leaning (Claude's):
+  - **One resolved model per page** (`Blush\Seo\PageMeta`, say):
+    title, description, canonical, robots, image, sharing title and
+    description, and schema type, worked out once per request; `Head`
+    and the JSON-LD print from it, the API, MCP, and the editor's
+    preview read it (D-811), and plugins change it through an event
+    rather than racing over head tags.
+  - **Per-entry fields** as a core Supports switch ("Search and
+    Sharing"): an Object field with `title`, `description`, `image` (a
+    media id), `noindex`, and `canonical` (for cross-posts).
+  - **Fallbacks**, so most entries need none: title → the entry's;
+    description → summary → excerpt → site description; image →
+    sharing image → `image` → a type default → the site's default.
+  - **Site settings** on Addresses and Search, beside D-707's
+    Structured Data: a title pattern, a default sharing image, the
+    site's social accounts (`sameAs`), and an X handle
+    (`twitter:site`); a profile's links give `fediverse:creator` and
+    the `Person`'s `sameAs`.
+  - **One "indexable" answer** the robots meta, sitemap, and
+    `llms.txt` share: an entry's `noindex` leaves it out of the
+    sitemap too, and a type option for it.
+  - **Admin:** a Search and Sharing row on the Document tab, with a
+    search result preview and a social card preview drawn from
+    `PageMeta`, and soft length hints; Site Health checks (missing or
+    duplicate descriptions, a sharing image under 1200px, a `noindex`
+    entry linked from a menu, a canonical that redirects).
+  - **Sitemap carry-overs:** image entries (splitting past 50,000
+    is built, D-911).
+  - **Left to plugins:** keyword and readability scoring, generated
+    sharing images (core keeps the slot and fallbacks), posting to
+    social sites, IndexNow and search console pings, analytics.
+  Open: one title and description for search and sharing both, with
+  only the image separate (leaning), or separate sharing text; nested
+  `seo.*` keys (leaning; jtcom's `og:*` keys move) or flat ones;
+  "Search and Sharing" in the admin with `Seo` in code (leaning), or
+  "SEO"; and D-707's JSON-LD built with `PageMeta` (leaning) or first.
+  Fixed ahead of it: D-910.
+
 - **Access control: who may read an entry** (discussed 2026-10-15,
   after D-855; the author: "something we should build for the 2.x
   branch"). A third setting beside status (whether and when) and
@@ -259,6 +304,18 @@ Move each item to `decisions.md` once it's answered.
       larger than its original (small or simple PNGs); animated GIFs
       and transparent PNGs; a cap on the image size an engine decodes;
       and, with Imagick, HEIC uploads (iPhone photos) turned into JPEGs.
+  - **Image optimization as a media setting** (the author, 2026-10-16,
+    after D-910: "we'll want to talk to image optimization later as a
+    media setting"). To discuss with renditions, on the Media settings
+    screen (D-406): what happens to an upload itself, not only its
+    copies. Likely topics: a quality for JPEG and WebP; stripping
+    metadata (GPS) from what's served while the library keeps what it
+    reads (D-289); a largest size, scaling down huge originals on
+    upload (and whether the original is kept); lossless optimizers
+    (`jpegoptim`, `oxipng`) through the same engine interface; and a
+    command and Site Health check for images already uploaded. D-910
+    shares an image at its smallest size at least 1200 pixels wide,
+    which is only as good as the sizes a site has.
     - **Suggested, not agreed:** the engine interface with GD and
       Imagick, copies made by a job after upload, formats per kind in
       Media settings, the command and Site Health check for older
@@ -301,7 +358,10 @@ Move each item to `decisions.md` once it's answered.
   - **The SQLite driver at scale, what's left** (after D-667): lists
     of every entry at once (the sitemap, `llms.txt`, `content:list`)
     hydrate every entry and peak near or past 128 MB at 10,000 entries
-    on either driver, so they need paging or a lighter read (`only()`);
+    on either driver, so they need paging or a lighter read (`only()`;
+    the sitemap does both since D-912, and `Query::updatedTimes()` is
+    the content query's lighter read; `llms.txt` and `content:list`
+    don't yet);
     SQL ordering folds text through `blush_fold` (a PHP function) on
     every row, which costs at scale and isn't needed for dates; term
     counts read every ref (13 ms on the benchmark site, 4 on files).
@@ -1659,6 +1719,21 @@ Move each item to `decisions.md` once it's answered.
   ask, how long it lasts, whether passkeys count, and whether a site
   turns it on in `.env` or it's always on. Secrets wait for it rather
   than asking on their own.
+
+- **Large `llms.txt` and the outdated test sites** (raised 2026-10-16,
+  after D-911 and D-912). `llms.txt` lists every entry and has no
+  limit; leaning (Claude's): cap each type's section at its newest N,
+  with a line linking the type's full list (`/llms/{type}.txt`, paged
+  as sitemaps are), and `Query::updatedTimes()`-style light reads so
+  neither it nor `content:list` builds every entry. `llms-full.txt`
+  stays as D-402 left it, or splits by type the same way. Also found:
+  `../ten-thousand` and `benchmarks/Fixture/JtcomSizedSite.php` are out
+  of date (types named in `config/content.php`, `"path": "_posts"`
+  folders, older option names), so their posts don't load and
+  `composer bench` likely isn't measuring a real site; D-912 was
+  measured on a site generated in the scratchpad instead. The
+  `LlmsTxt` class summary still says "others by file name" (the code
+  follows each type's order, D-516).
 
 ## Later milestones
 - **Signing up** (D-518 has only the settings): the form and route

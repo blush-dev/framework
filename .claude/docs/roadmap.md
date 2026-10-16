@@ -1754,7 +1754,7 @@ Checked on https://blush.ddev.site: `/sitemap` and `/sitemap/page` serve
 XML, and `/robots.txt` disallows everything (it's development). Request
 benchmarks are unchanged (8.5 ms and 8.2 ms).
 
-Carried forward: splitting sitemaps past 50,000 URLs, sitemap image
+Carried forward: splitting sitemaps past 50,000 URLs (done, D-911), sitemap image
 entries, and a way to make feeds and sitemaps readable in a browser.
 jtcom's 1.x feeds used an XSL stylesheet, but major browsers are dropping
 XSLT, so that isn't the solution (D-125; see `open-questions.md`). Feed and sitemap URLs are

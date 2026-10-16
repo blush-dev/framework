@@ -589,10 +589,16 @@ where they stand, unlike your theme's deferred `scripts`. Like
 `inlineStyle()`, the code isn't escaped, so it must be yours.
 
 Blush fills in the `<head>` for you: the title, the canonical URL,
-OpenGraph tags, feed links, `hreflang` links to the page in your
+OpenGraph tags (with `og:locale`, and `og:locale:alternate` for the
+page's other languages), feed links, `hreflang` links to the page in your
 site's other [languages](content.md#translations), and on an entry's page, a description (its
 `summary`, or the start of its text) and, when the entry has an `image`
-field, `og:image` and a Twitter card. Add or replace any tag with
+field, `og:image` and a Twitter card. The image is shared at the smallest
+of its sizes at least 1200 pixels wide (or as it is, when none is), with
+its width, height, and alt text, and a file that isn't an image isn't
+shared. A post in a collection also gets `article:published_time` and
+`article:modified_time`, and an unlisted entry's page asks search
+engines not to index it. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
 `$template->head()->remove('style:' . $theme->asset('style.css'))`.

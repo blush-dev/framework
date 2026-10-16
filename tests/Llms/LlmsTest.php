@@ -79,6 +79,8 @@ final class LlmsTest extends TestCase
 		$this->assertSame(200, $response->getStatusCode());
 		$this->assertSame('text/markdown; charset=UTF-8', $response->getHeaderLine('Content-Type'));
 		$this->assertSame('<http://localhost/archives/quoted>; rel="canonical"', $response->getHeaderLine('Link'));
+		$this->assertFalse($response->hasHeader('X-Robots-Tag'));
+		$this->assertSame('noindex', $this->get('/archives/rainy.md')->getHeaderLine('X-Robots-Tag'), 'An unlisted entry\'s copy isn\'t indexed (D-910).');
 		$this->assertMatchesRegularExpression(
 			'#^---\ntitle: "Say \\\\"hi\\\\""\nurl: "http://localhost/archives/quoted"\ndate: "2009-01-01T10:00:00-06:00"\nupdated: "[^"]+"\nsummary: "A \*short\*\\\\nsummary."\n---\n\nSome text.\n\n:::figure\n!\[A photo\]\(http://localhost/media/photo.jpg\)\n:::\n$#',
 			(string) $response->getBody(),

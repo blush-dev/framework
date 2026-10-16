@@ -16,13 +16,15 @@ namespace Blush\Llms;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Visibility;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
 
 /**
  * Serves a page's Markdown version (`llms.markdown`, any path ending in
  * `.md`), with a `Link` header naming the page as canonical, so search
- * engines index the page rather than its copy.
+ * engines index the page rather than its copy. An unlisted entry's
+ * copy asks not to be indexed, as its page does (D-910).
  */
 final readonly class MarkdownController
 {
@@ -40,10 +42,12 @@ final readonly class MarkdownController
 		$entry = $this->pages->find($path) ?? throw new NotFound(sprintf('There is no Markdown page at "%s".', $path));
 		$url   = $this->urls->entry($entry);
 		$link  = $url === null ? [] : ['Link' => sprintf('<%s>; rel="canonical"', $this->urls->absolute($url))];
+		$index = $entry->visibility === Visibility::Unlisted ? ['X-Robots-Tag' => 'noindex'] : [];
 
 		return Response::text($this->pages->render($entry), headers: [
 			'Content-Type' => MarkdownPages::MEDIA_TYPE . '; charset=UTF-8',
-			...$link
+			...$link,
+			...$index
 		]);
 	}
 }

@@ -28683,3 +28683,94 @@ decision, add a new entry that supersedes it and mark the old one
   considered and set aside as longer for no gain.
 - **Status:** Built: the schema renamed, the enum case, the bundled
   admin themes, the jtcom trial's, the tests, and the docs.
+
+### D-910: Search and sharing fixes ahead of a base
+
+- **Date:** 2026-10-16
+- **Status:** Built. Fixes in what core already prints, ahead of **A
+  search and sharing base in core** (`open-questions.md`), none of
+  which waits on its answers.
+- **Decision:** `ThemedPageRenderer` and `MarkdownController`:
+  - **Unlisted isn't indexed.** An unlisted entry's page gets
+    `<meta name="robots" content="noindex">`, and its Markdown copy
+    `X-Robots-Tag: noindex`. Unlisted is reached only by its link
+    (D-855), and it was already out of the sitemap and `llms.txt`.
+  - **`og:locale`** on every page, the page's language as a locale
+    (`fr_FR`), and `og:locale:alternate` for each other language the
+    page is in (the same pages `hreflang` names).
+  - **Article dates:** a collection entry's page (`PageKind::Single`,
+    already `og:type` `article`) gets `article:published_time` when it
+    has a date and `article:modified_time`.
+  - **The sharing image is an image, at a sharing size:** a library
+    file that isn't an image is no longer shared. An image is shared at
+    its smallest size at least 1200 pixels wide (D-488), or the
+    original when none is, rather than always the original, which can
+    be too large for social sites to fetch; with `og:image:width`,
+    `og:image:height`, and its alt text as `og:image:alt` and
+    `twitter:image:alt`. Older path and remote values print as before.
+- **Why:** the author asked to fix what core already has before the
+  base is designed (2026-10-16). Each is output a search engine or
+  social site reads that core printed wrong or left out.
+
+### D-911: Sitemaps split into pages past 50,000 URLs
+
+- **Date:** 2026-10-16
+- **Status:** Built. Settles a carry-over from M5c (`roadmap.md`).
+- **Decision:**
+  - **`SitemapConfig::$perSitemap`** (`perSitemap` in
+    `config/sitemap.php`), the most URLs one sitemap holds: 50,000 by
+    default, the sitemap protocol's limit, and refused outside 1 to
+    50,000 (`InvalidConfig`).
+  - **A type past it is split into pages:** the first stays at
+    `/sitemap/{type}`, the rest are `/sitemap/{type}/{page}` (the
+    `sitemap.page` route), and the index lists each page with its own
+    latest change. `/sitemap/{type}/1` redirects (301) to
+    `/sitemap/{type}`, as a listing's `/page/1` does, and a page past
+    the last is a 404. Templates are unchanged: each page renders
+    `sitemap` with its `$urls`.
+  - **A collection's entries are listed oldest first** (by `date`,
+    ascending), so a new entry lands on the type's last page and the
+    others keep their URLs and dates; before, they followed the
+    collection's order (newest first), which moved every entry one
+    place down at each post. A tree keeps its order (by position), and
+    the URLs before and after the entries (the homepage, the
+    collection's page, relation archives) stay where they were.
+- **Why:** the author, 2026-10-16: "build it now". Search engines read
+  at most 50,000 URLs from one sitemap.
+
+### D-912: Sitemap pages build only their own entries
+
+- **Date:** 2026-10-16
+- **Status:** Built. Finishes D-911, and the sitemap's part of **The
+  SQLite driver at scale** (`open-questions.md`).
+- **Decision:**
+  - **A type's sitemap is three parts** (`SitemapParts`): the URLs
+    before its entries (the homepage, its collection page, or every
+    profile or term archive), the query for its entries with their
+    count, and the URLs after (relation archives). A page works out
+    which of the three it covers and asks the query for only its own
+    entries (an offset and a limit); the index counts them and builds
+    none. `SitemapBuilder::urls()` is gone (`page()` replaces it).
+  - **`Query::updatedTimes()`** (on `QueryRunner`, so `Entries`): when
+    each matching entry last changed (`updated`, else `date`), in the
+    query's order and within its limit and offset, as Unix timestamps,
+    read with the record layer's `only('updated', 'date')`, so no entry
+    is built: a narrow `SELECT` on SQLite, the loaded index on files.
+    The index reads it once a type and takes each page's latest from
+    its slice, so its `lastmod` matches the page's own. In the content
+    conformance suite, so every driver answers it the same.
+  - **Left as they were:** profiles and term archives are still listed
+    in full (they're built, as before), and a page's count includes
+    entries without URLs, so a page can hold fewer than the limit.
+- **Measured** on a generated 10,000-post site (cache off, a fresh
+  process per request, no opcache):
+  - SQLite: the index takes 177 ms and 46 MB, as an ordinary page
+    does (building all 10,000 entries took 306 ms and 108 MB); a page
+    of 1,000 takes 172 ms and 48 MB; one sitemap of all 10,001 URLs
+    (the default limit) still takes 465 ms and 116 MB.
+  - Files: every request peaks at 165.6 MB, the index's load, which
+    paging can't remove; a page of 1,000 takes about 285 ms against
+    522 ms for all 10,001.
+- **Why:** the author, 2026-10-16: "go ahead and build the paging
+  fix", after D-911 split the files but still built every entry for
+  each page and for the index.

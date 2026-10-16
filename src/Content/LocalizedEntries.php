@@ -78,6 +78,15 @@ final readonly class LocalizedEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function updatedTimes(Query $query): array
+	{
+		return $this->content->updatedTimes($this->localized($query));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function find(string $id): ?Entry
 	{
 		return $this->content->find($id);

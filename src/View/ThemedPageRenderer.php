@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use DateTimeInterface;
 use Override;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -23,13 +24,15 @@ use Blush\Content\Type\Profiles;
 use Blush\Content\Http\PageRenderer;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Data\InvalidData;
 use Blush\Event\Dispatcher;
 use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
 use Blush\Llms\MarkdownPages;
-use Blush\Media\MediaException;
+use Blush\Media\MediaItems;
+use Blush\Media\MediaKind;
 use Blush\Media\MediaValues;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
@@ -44,7 +47,9 @@ use Blush\View\Events\PageRendering;
  * shows an entry, the head also gets its
  * description (its summary, or the start of its body) and its `image`
  * field as `og:image`, with a Twitter card (D-149); a front page
- * without one gets the site's description (D-398). Themes can replace
+ * without one gets the site's description (D-398). Every page names its
+ * language (`og:locale`), an article its dates, and an unlisted entry's
+ * page asks search engines not to index it (D-910). Themes can replace
  * any of them, since a later value for the same tag wins. Then
  * `PageRendering` is dispatched (D-571), for plugins to load assets.
  *
@@ -62,7 +67,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		private ContentUrls $urls,
 		private MarkdownPages $markdown,
 		private Dispatcher $events,
-		private MediaValues $media
+		private MediaItems $media
 	) {}
 
 	/**
@@ -114,8 +119,17 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			})
 			->property('og:url', $canonical);
 
+		$this->describeLocale($head, $page);
+
 		if ($page->kind === PageKind::Single && $page->entry !== null) {
 			$this->describeByline($head, $page->entry);
+			$this->describeDates($head, $page->entry);
+		}
+
+		// Unlisted is reached only by its link (D-855), so search engines
+		// shouldn't list it either (D-910).
+		if ($page->entry?->visibility === Visibility::Unlisted && $page->kind !== PageKind::Home) {
+			$head->meta('robots', 'noindex');
 		}
 
 		if (! $this->describeEntry($head, $page) && $isFront && $this->app->description !== '') {
@@ -153,6 +167,43 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		if ($entries !== null && $entries->page > 1) {
 			$context->addClass('is-paged');
 		}
+	}
+
+	/**
+	 * Adds the page's language as `og:locale` (`fr_FR`), and when the
+	 * page is in other languages too, each of theirs as
+	 * `og:locale:alternate` (D-910).
+	 */
+	private function describeLocale(Head $head, ContentPage $page): void
+	{
+		$languages = $this->app->languages;
+		$current   = $page->language ?? $page->entry->language ?? $languages->default->code;
+		$current   = $current === '' ? $languages->default->code : $current;
+
+		$head->property('og:locale', $languages->find($current)->locale ?? $languages->default->locale);
+
+		if (! $languages->isMultilingual() || $page->alternateUrl === null) {
+			return;
+		}
+
+		foreach ($languages->all() as $code => $language) {
+			if ($code !== $current && $page->alternateUrl($code) !== null) {
+				$head->addProperty('og:locale:alternate', $language->locale);
+			}
+		}
+	}
+
+	/**
+	 * Adds an article's dates (D-910): `article:published_time` when it
+	 * has one, and `article:modified_time`.
+	 */
+	private function describeDates(Head $head, Entry $entry): void
+	{
+		if ($entry->date !== null) {
+			$head->property('article:published_time', $entry->date->format(DateTimeInterface::ATOM));
+		}
+
+		$head->property('article:modified_time', $entry->updated->format(DateTimeInterface::ATOM));
 	}
 
 	/**
@@ -259,18 +310,46 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			$head->meta('description', $description)->property('og:description', $description);
 		}
 
-		// The featured image is a media file's id (D-773); an older value
-		// may still be its path, or an address elsewhere.
-		$image = $entry->field('image');
+		$this->describeImage($head, $entry->field('image'));
 
-		try {
-			$found = $this->media->url($image);
-		} catch (MediaException) {
-			$found = null;
+		return $description !== '';
+	}
+
+	/**
+	 * Adds an entry's `image` as its sharing image, with a Twitter card.
+	 * The value is a media file's id (D-773): an image in the library is
+	 * shared at its smallest size at least 1200 pixels wide (the original
+	 * when none is), with its width, height, and alt text (D-910), and
+	 * any other file isn't shared. An older value may still be a path, or
+	 * an address elsewhere, and is shared as it is.
+	 */
+	private function describeImage(Head $head, mixed $image): void
+	{
+		$item = $this->media->find($image);
+
+		if ($item !== null) {
+			if ($item->kind() !== MediaKind::Image) {
+				return;
+			}
+
+			$size = array_find($item->sizes(), static fn ($size): bool => ($size->width ?? 0) >= 1200) ?? $item->record;
+
+			$head->property('og:image', $this->app->absoluteUrl($size->url));
+
+			if ($size->width !== null && $size->height !== null) {
+				$head->property('og:image:width', (string) $size->width)->property('og:image:height', (string) $size->height);
+			}
+
+			if ($item->alt() !== '') {
+				$head->property('og:image:alt', $item->alt())->meta('twitter:image:alt', $item->alt());
+			}
+
+			$head->meta('twitter:card', 'summary_large_image');
+
+			return;
 		}
 
 		$url = match (true) {
-			$found !== null                                                 => $this->app->absoluteUrl($found),
 			! is_string($image) || $image === '' || MediaValues::isId($image) => null,
 			preg_match('#^https?://#i', $image) === 1                       => $image,
 			default                                                         => $this->app->absoluteUrl($image)
@@ -279,7 +358,5 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		if ($url !== null) {
 			$head->property('og:image', $url)->meta('twitter:card', 'summary_large_image');
 		}
-
-		return $description !== '';
 	}
 }

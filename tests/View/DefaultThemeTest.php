@@ -89,6 +89,7 @@ final class DefaultThemeTest extends TestCase
 		'sitemap'                           => '/sitemap',
 		'sitemap.xml'                       => '/sitemap.xml',
 		'sitemap.type'                      => '/sitemap/post',
+		'sitemap.page'                      => '/sitemap/post/2',
 		'robots'                            => '/robots.txt',
 		'llms'                              => '/llms.txt',
 		'llms.markdown'                     => '/archives/spring.md'
@@ -145,6 +146,7 @@ final class DefaultThemeTest extends TestCase
 		$this->entry('_author/guest.md', 'title: Guest');
 		$this->writeTemporaryFile('extensions/acme/stats/plugin.json', '{"name": "acme/stats", "label": "Stats", "namespace": "stats"}');
 		$this->writeTemporaryFile('extensions/acme/stats/js/stats.js', 'console.log("stats");');
+		$this->writeTemporaryFile('config/sitemap.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Sitemap\\SitemapConfig(perSitemap: 2);\n");
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/stats']);\n");
 		$this->writeTemporaryFile('user/media/pixel.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', true));
 		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());

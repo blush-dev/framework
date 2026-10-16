@@ -1436,7 +1436,12 @@ reusable pieces, from themes, the site, and plugins.
   templates (`feed-{format}`) through `View\DocumentRenderer`; pages link
   them with `<link rel="alternate">`.
 - **Sitemaps** (`Blush\Sitemap`, M5c, D-123): `/sitemap` (an index), one
-  per type at `/sitemap/{type}`, and `robots.txt` (which disallows
+  per type at `/sitemap/{type}`, split into pages at
+  `/sitemap/{type}/{page}` past `SitemapConfig::$perSitemap` (50,000,
+  the protocol's limit; collections oldest first, D-911; a page builds
+  only its own entries and the index none, from `Query::count()` and
+  `Query::updatedTimes()`, D-912), and
+  `robots.txt` (which disallows
   everything outside production, and asks the AI crawlers of each
   `SitemapConfig::$blockAi` group, `AiCrawlerGroup`, to stay away,
   D-398).
