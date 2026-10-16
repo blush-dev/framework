@@ -22,7 +22,8 @@ use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
 
 /**
- * Binds the activity log (D-758) and registers its table and, for files,
+ * Binds the activity log (D-758) and what its changes changed
+ * (`ActivityDiffs`, D-902), and registers its table and, for files,
  * where it's kept (`storage/activity`).
  */
 final class ActivityServiceProvider extends ServiceProvider
@@ -31,7 +32,8 @@ final class ActivityServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
-		ActivityLog::class
+		ActivityLog::class,
+		ActivityDiffs::class
 	];
 
 	#[Override]

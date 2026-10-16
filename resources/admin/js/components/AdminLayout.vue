@@ -45,7 +45,7 @@ import ConfirmHost from './ConfirmHost.vue';
 import ToastHost from './ToastHost.vue';
 import TypeIcon from './TypeIcon.vue';
 
-type Area = 'home' | 'content' | 'structure' | 'extend' | 'people' | 'settings';
+type Area = 'home' | 'content' | 'structure' | 'extend' | 'people' | 'tools' | 'settings';
 
 interface NavLink {
 	key: string;
@@ -96,15 +96,16 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
 
 /**
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
- * own screens (the Dashboard, Site Health, and Tools); its
+ * own screens (the Dashboard and Site Health); its
  * shortcuts are drawn after them (`shortcuts`). **Content**: the content
  * types in the site's order, each with the types that sit under it
  * (`contentMenu()`, D-726), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Structure** (D-704): content types, relationships (D-610), fields,
  * and menus. **Extend**: Themes, Plugins, and Icon Packs (D-327, D-378,
- * D-380). **Settings** (D-325, D-704): its screens, with Redirects after
- * Addresses and Search (D-686).
+ * D-380). **Tools** (D-900): Tools, Jobs, Logs, Activity, and Backups,
+ * once tabs of one Tools screen, with Redirects (D-686) after Activity
+ * (D-901). **Settings** (D-325, D-704): its screens.
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
@@ -113,12 +114,6 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// With what its last report found (D-545).
 	if (can('site.health')) {
 		home.push({ ...screen('health', t('admin_layout.nav_health', 'Site Health'), 'heart-pulse'), count: navCounts.value?.health || undefined });
-	}
-
-	// Tools, with an action the account may run, the jobs, or the log
-	// (D-540, D-621).
-	if ((navCounts.value?.tools ?? 0) > 0 || can('site.logs') || can('site.jobs')) {
-		home.push(screen('tools', t('admin_layout.nav_tools', 'Tools'), 'wrench'));
 	}
 
 	// Your Account is your own account's screen (D-371), so it's current
@@ -151,11 +146,19 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		// Menus, with their own capability.
 		...(can('menus.edit') ? [screen('menus', t('admin_layout.nav_menus', 'Menus'), 'menu')] : [])
 	];
-	// Redirects (D-686) after Addresses and Search, with its own capability.
-	const redirects = can('site.redirects') ? [screen('redirects', t('admin_layout.nav_redirects', 'Redirects'), 'corner-down-right')] : [];
 	const settings  = can('site.settings')
-		? [settingsScreen('general', t('admin_layout.settings_general', 'General'), 'settings-2'), settingsScreen('reading', t('admin_layout.settings_reading', 'Reading'), 'book-open'), settingsScreen('writing', t('admin_layout.settings_writing', 'Writing'), 'pen-line'), settingsScreen('media', t('admin_layout.settings_media', 'Media'), 'image'), settingsScreen('email', t('admin_layout.settings_email', 'Email'), 'mail'), settingsScreen('search', t('admin_layout.settings_search', 'Addresses and Search'), 'globe'), ...redirects, settingsScreen('ai', t('admin_layout.settings_ai', 'AI'), 'bot'), settingsScreen('api', t('admin_layout.settings_api', 'API'), 'braces'), settingsScreen('system', t('admin_layout.settings_system', 'System'), 'settings')]
-		: redirects;
+		? [settingsScreen('general', t('admin_layout.settings_general', 'General'), 'settings-2'), settingsScreen('reading', t('admin_layout.settings_reading', 'Reading'), 'book-open'), settingsScreen('writing', t('admin_layout.settings_writing', 'Writing'), 'pen-line'), settingsScreen('media', t('admin_layout.settings_media', 'Media'), 'image'), settingsScreen('email', t('admin_layout.settings_email', 'Email'), 'mail'), settingsScreen('search', t('admin_layout.settings_search', 'Addresses and Search'), 'globe'), settingsScreen('ai', t('admin_layout.settings_ai', 'AI'), 'bot'), settingsScreen('api', t('admin_layout.settings_api', 'API'), 'braces'), settingsScreen('system', t('admin_layout.settings_system', 'System'), 'settings')]
+		: [];
+	// Tools with a tool the account may run (D-540), and the others by
+	// their capabilities (D-621, D-541, D-758, D-686, D-886).
+	const tools = [
+		...((navCounts.value?.tools ?? 0) > 0 ? [screen('tools', t('admin_layout.nav_tools', 'Tools'), 'wrench')] : []),
+		...(can('site.jobs') ? [screen('jobs', t('admin_layout.nav_jobs', 'Jobs'), 'list-checks')] : []),
+		...(can('site.logs') ? [screen('logs', t('admin_layout.nav_logs', 'Logs'), 'list')] : []),
+		...(can('site.activity') ? [screen('activity', t('admin_layout.nav_activity', 'Activity'), 'clock')] : []),
+		...(can('site.redirects') ? [screen('redirects', t('admin_layout.nav_redirects', 'Redirects'), 'corner-down-right')] : []),
+		...(can('site.backups') ? [screen('backups', t('admin_layout.nav_backups', 'Backups'), 'archive')] : [])
+	];
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [
 		...(can('extensions.themes.view') ? [screen('themes', t('admin_layout.nav_themes', 'Themes'), 'paintbrush')] : []),
@@ -190,6 +193,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		people: groups([{ key: 'people', links: people }]),
 		structure: groups([{ key: 'structure', links: structure }]),
 		extend: groups([{ key: 'extensions', links: extensions }]),
+		tools: groups([{ key: 'tools', links: tools }]),
 		settings: groups([{ key: 'settings', links: settings }])
 	};
 });
@@ -268,7 +272,7 @@ const pinnable = computed<NavLink[]>(() => {
 		visit(item.links ?? []);
 	});
 
-	(['home', 'content', 'structure', 'extend', 'people', 'settings'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
+	(['home', 'content', 'structure', 'extend', 'people', 'tools', 'settings'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
 
 	return [...found.values()];
 });
@@ -340,6 +344,7 @@ const areas = computed(() => ([
 	{ key: 'structure', label: t('admin_layout.area_structure', 'Structure'), icon: 'blocks' },
 	{ key: 'extend', label: t('admin_layout.area_extend', 'Extend'), icon: 'package' },
 	{ key: 'people', label: t('admin_layout.area_people', 'Users'), icon: 'user' },
+	{ key: 'tools', label: t('admin_layout.area_tools', 'Tools'), icon: 'wrench' },
 	{ key: 'settings', label: t('admin_layout.area_settings', 'Settings'), icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
 
@@ -351,7 +356,7 @@ const routeArea = computed<Area>(() => {
 		return 'people';
 	}
 
-	return area === 'content' || area === 'structure' || area === 'extend' || area === 'people' || area === 'settings' ? area : 'home';
+	return area === 'content' || area === 'structure' || area === 'extend' || area === 'people' || area === 'tools' || area === 'settings' ? area : 'home';
 });
 
 // The section the panel shows: the screen's, until another is chosen.
@@ -379,6 +384,10 @@ const panelSub = computed(() => {
 
 	if (area.value === 'extend') {
 		return t('admin_layout.sub_extend', 'Themes, plugins, and icon packs');
+	}
+
+	if (area.value === 'tools') {
+		return t('admin_layout.sub_tools', 'Looking after the site');
 	}
 
 	return area.value === 'settings' ? t('admin_layout.sub_settings', 'How the site reads and runs') : config.site.name;
@@ -456,7 +465,7 @@ function returnTo(to: RouteLocationRaw): RouteLocationRaw {
 	return lastVisits.get(router.resolve(to).path) ?? to;
 }
 
-const sectionLabel = computed(() => ({ home: t('admin_layout.area_home', 'Home'), content: t('admin_layout.area_content', 'Content'), structure: t('admin_layout.area_structure', 'Structure'), extend: t('admin_layout.area_extend', 'Extend'), people: t('admin_layout.area_people', 'Users'), settings: t('admin_layout.area_settings', 'Settings') })[routeArea.value]);
+const sectionLabel = computed(() => ({ home: t('admin_layout.area_home', 'Home'), content: t('admin_layout.area_content', 'Content'), structure: t('admin_layout.area_structure', 'Structure'), extend: t('admin_layout.area_extend', 'Extend'), people: t('admin_layout.area_people', 'Users'), tools: t('admin_layout.area_tools', 'Tools'), settings: t('admin_layout.area_settings', 'Settings') })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
 // A screen read top to bottom, like the dashboard, keeps a narrower

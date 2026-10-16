@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Redirects (D-686; from the redirects sketch), under Settings
- * after Addresses and Search: the `redirects` table's rows, built like
+ * Redirects (D-686; from the redirects sketch), under Tools after
+ * Activity (D-901): the `redirects` table's rows, built like
  * the admin's other lists. Tabs with counts (All, Permanent, Temporary,
  * and Problems while there are some), a search (`/`) and a filter for
  * where they go, compact rows, a page at a time, checkboxes for the bulk

@@ -127,12 +127,35 @@ final class AdminMcpTest extends TestCase
 		$this->assertSame(422, $this->call('POST', "/activity/{$id}/undo")->getStatusCode(), 'Undone once.');
 	}
 
+	public function testShowsAChangeWithWhatItChanged(): void
+	{
+		$this->site();
+		$this->edit('A New Flame');
+
+		$id = self::at(self::json($this->send('GET', '/activity')), 'changes', 0, 'id');
+		$this->assertIsString($id);
+
+		$change = self::json($this->send('GET', "/activity/{$id}"));
+
+		$this->assertSame('Edited', self::at($change, 'actionLabel'));
+		$this->assertSame('shown', self::at($change, 'diff', 'state'));
+		$this->assertSame([['name' => 'title', 'before' => 'Rekindling the Flame', 'after' => 'A New Flame']], self::at($change, 'diff', 'fields'));
+		$this->assertNull(self::at($change, 'diff', 'body'), 'The body didn\'t change.');
+		$this->assertTrue(self::at($change, 'change', 'undo', 'available'));
+		$this->assertSame(404, $this->send('GET', '/activity/0199b6e2-0000-7000-8000-000000000000')->getStatusCode());
+	}
+
 	public function testTheWholeLogTakesItsCapability(): void
 	{
 		$this->site(['author']);
 
 		$this->assertSame(403, $this->send('GET', '/activity')->getStatusCode(), 'site.activity is an editor\'s, not an author\'s (D-758).');
 		$this->assertSame(200, $this->send('GET', '/activity?subject=' . self::POST_ID)->getStatusCode(), 'An entry they may edit.');
+
+		$this->edit('A New Flame');
+		$id = self::at(self::json($this->send('GET', '/activity?subject=' . self::POST_ID)), 'changes', 0, 'id');
+		$this->assertIsString($id);
+		$this->assertSame(200, $this->send('GET', "/activity/{$id}")->getStatusCode(), 'A change to an entry they may edit.');
 	}
 
 	public function testApprovesAnAppAndListsItAsConnected(): void

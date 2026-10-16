@@ -482,7 +482,6 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 		</div>
 	</header>
 
-	<p v-if="screen === 'system'" class="notice"><AdminIcon name="info" /><span><MessageText :text="t('settings_view.system_notice', 'These live in {config} and {env}; each names its file. After changing them on a site you\'ve compiled, run {command} again.')"><template #config><code>config/</code></template><template #env><code>.env</code></template><template #command><code>bin/blush cache:compile</code></template></MessageText></span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<form v-if="groups" class="setting-panels" @submit.prevent="save">

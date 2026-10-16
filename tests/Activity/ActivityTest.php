@@ -17,9 +17,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Activity\Activity;
 use Blush\Activity\ActivityAction;
+use Blush\Activity\ActivityDiffs;
 use Blush\Activity\ActivityFilter;
 use Blush\Activity\ActivityLog;
 use Blush\Activity\Actor;
+use Blush\Activity\DiffState;
+use Blush\Activity\FieldChange;
 use Blush\Activity\Via;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
@@ -30,6 +33,7 @@ use Blush\Content\Editing\Refusal;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Application;
+use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaEditor;
 use Blush\Media\MediaMetadataStore;
 use Blush\Tests\Content\BuildsContentSite;
@@ -38,6 +42,7 @@ use Blush\Workflow\Status;
 #[CoversClass(ActivityLog::class)]
 #[CoversClass(Activity::class)]
 #[CoversClass(Actor::class)]
+#[CoversClass(ActivityDiffs::class)]
 #[CoversClass(EntryEditor::class)]
 #[CoversClass(MediaEditor::class)]
 final class ActivityTest extends TestCase
@@ -71,6 +76,14 @@ final class ActivityTest extends TestCase
 	private function log(): ActivityLog
 	{
 		return $this->app->container()->make(ActivityLog::class);
+	}
+
+	/**
+	 * A diff service with no answers kept yet.
+	 */
+	private function diffs(): ActivityDiffs
+	{
+		return new ActivityDiffs($this->log(), $this->app->container()->make(Entries::class), $this->app->container()->make(MediaLibrary::class), $this->clock);
 	}
 
 	private function mine(): Entry
@@ -176,5 +189,64 @@ final class ActivityTest extends TestCase
 
 		$this->clock->advance('P60D');
 		$this->assertSame([1, 0], $this->log()->prune(), 'The change goes after 90.');
+	}
+
+	public function testDiffsAnEditAgainstWhatCameNext(): void
+	{
+		$id = self::idFor('_post/2021-01-01.mine.md');
+
+		$this->editor()->update(Actor::admin($this->jane), $this->mine(), new EntryEdit(set: ['title' => 'Mine, Renamed'], body: 'The second body.'), $this->revision());
+		$first = $this->log()->latest($id);
+		$this->assertNotNull($first);
+
+		$diffs = $this->app->container()->make(ActivityDiffs::class);
+		$diff  = $diffs->diff($first);
+
+		$this->assertSame(DiffState::Shown, $diff->state, 'Against the entry as it is now.');
+		$this->assertSame([['title', 'Mine', 'Mine, Renamed']], array_map(static fn (FieldChange $field): array => [$field->name, $field->before, $field->after], $diff->fields));
+		$this->assertStringContainsString('The first body.', (string) $diff->bodyBefore);
+		$this->assertStringContainsString('The second body.', (string) $diff->bodyAfter);
+
+		$this->clock->advance('PT1M');
+		$this->editor()->update(Actor::admin($this->jane), $this->mine(), new EntryEdit(body: 'A third body.'), $this->revision());
+
+		$diff = $this->diffs()->diff($first);
+		$this->assertStringContainsString('The second body.', (string) $diff->bodyAfter, 'What it wrote is what the next change replaced, not the entry now.');
+	}
+
+	public function testCantDiffAnEntryChangedOutsideTheAdmin(): void
+	{
+		$this->editor()->update(Actor::admin($this->jane), $this->mine(), new EntryEdit(body: 'The second body.'), $this->revision());
+		$edit = $this->log()->latest(self::idFor('_post/2021-01-01.mine.md'));
+		$this->assertNotNull($edit);
+
+		$this->entry('_post/2021-01-01.mine.md', "title: Mine\ndate: 2021-01-01\nauthor: justintadlock\nid: " . self::idFor('_post/2021-01-01.mine.md'), 'Edited by hand.');
+
+		$this->assertSame(DiffState::Unknown, $this->diffs()->diff($edit)->state);
+	}
+
+	public function testDiffsMediaDetailsAndSaysWhatItCantShow(): void
+	{
+		$media    = $this->app->container()->make(MediaEditor::class);
+		$uploaded = $media->uploadBytes(Actor::admin($this->jane), 'dot.png', (string) base64_decode(self::PIXEL, true));
+		$this->assertNotNull($uploaded->id);
+
+		$this->clock->advance('PT1M');
+		$media->update(Actor::admin($this->jane), $uploaded->relative, ['alt' => 'A dot']);
+		$this->clock->advance('PT1M');
+		$media->update(Actor::admin($this->jane), $uploaded->relative, ['alt' => 'A small dot']);
+
+		[$changes] = $this->log()->list(new ActivityFilter(subject: $uploaded->id));
+		$diffs     = $this->app->container()->make(ActivityDiffs::class);
+
+		$this->assertSame([['alt', null, 'A dot']], array_map(static fn (FieldChange $field): array => [$field->name, $field->before, $field->after], $diffs->diff($changes[1])->fields));
+		$this->assertSame([['alt', 'A dot', 'A small dot']], array_map(static fn (FieldChange $field): array => [$field->name, $field->before, $field->after], $diffs->diff($changes[0])->fields));
+		$this->assertSame(DiffState::New, $diffs->diff($changes[2])->state, 'An upload has no before.');
+
+		$this->clock->advance('P31D');
+		$this->log()->prune();
+		$pruned = $this->log()->find($changes[0]->id);
+		$this->assertNotNull($pruned);
+		$this->assertSame(DiffState::Expired, $this->diffs()->diff($pruned)->state);
 	}
 }

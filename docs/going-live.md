@@ -233,9 +233,10 @@ Restart it after updating Blush or your plugins.
 
 ### Seeing what ran
 
-The admin's **Tools → Jobs** tab (for administrators and owners) lists
-the scheduled tasks, with **Run Now**, and recent jobs, with **Retry**
-for failed ones. It warns when cron isn't running, and shows the line
+The admin's **Tools → Jobs** screen (for administrators and owners) lists
+recent jobs, with **Retry** for failed ones and a screen for each with
+its whole error, and, on its **Schedule** tab, the scheduled tasks, with
+**Run Now**. It warns when cron isn't running, and shows the line
 to add. **Site Health** warns too, and so does `bin/blush doctor`.
 
 From the command line:

@@ -356,6 +356,20 @@
       "js/admin.ts"
     ]
   },
+  "_diff.css": {
+    "file": "css/diff.css",
+    "src": "_diff.css"
+  },
+  "_diff.js": {
+    "file": "js/diff.js",
+    "name": "diff",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/diff.css"
+    ]
+  },
   "_drop.js": {
     "file": "js/drop.js",
     "name": "drop",
@@ -559,6 +573,12 @@
       "js/views/ThemeView.vue",
       "js/views/ThemesView.vue",
       "js/views/ToolsView.vue",
+      "js/views/JobsView.vue",
+      "js/views/JobView.vue",
+      "js/views/LogsView.vue",
+      "js/views/ActivityView.vue",
+      "js/views/ActivityChangeView.vue",
+      "js/views/BackupsView.vue",
       "js/views/TrashedView.vue",
       "js/views/TypeView.vue",
       "js/views/TypesView.vue"
@@ -605,6 +625,31 @@
     ],
     "css": [
       "css/AccountsView.css"
+    ]
+  },
+  "js/views/ActivityChangeView.vue": {
+    "file": "js/ActivityChangeView.js",
+    "name": "ActivityChangeView",
+    "src": "js/views/ActivityChangeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_ActivityRows.js",
+      "_diff.js"
+    ]
+  },
+  "js/views/ActivityView.vue": {
+    "file": "js/ActivityView.js",
+    "name": "ActivityView",
+    "src": "js/views/ActivityView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_ActivityRows.js"
+    ],
+    "css": [
+      "css/ActivityView.css"
     ]
   },
   "js/views/AdminThemeView.vue": {
@@ -657,6 +702,23 @@
       "css/AuthorizeView.css"
     ]
   },
+  "js/views/BackupsView.vue": {
+    "file": "js/BackupsView.js",
+    "name": "BackupsView",
+    "src": "js/views/BackupsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_UploadSlab.js",
+      "_drop.js",
+      "_select.js",
+      "_jobs.js"
+    ],
+    "css": [
+      "css/BackupsView.css"
+    ]
+  },
   "js/views/ConfirmEmailView.vue": {
     "file": "js/ConfirmEmailView.js",
     "name": "ConfirmEmailView",
@@ -678,6 +740,8 @@
       "js/admin.ts",
       "_AdminSelect.js",
       "_references.js",
+      "_ActivityRows.js",
+      "_diff.js",
       "_referrers.js",
       "_homepage.js",
       "_RawValues.js",
@@ -686,8 +750,7 @@
       "_FieldInput.js",
       "_IconField.js",
       "_media.js",
-      "_MediaPicker.js",
-      "_ActivityRows.js"
+      "_MediaPicker.js"
     ],
     "css": [
       "css/EditorView.css"
@@ -705,9 +768,9 @@
       "_SkeletonTable.js",
       "_query.js",
       "_density.js",
+      "_select.js",
       "_referrers.js",
       "_homepage.js",
-      "_select.js",
       "_search-key.js",
       "_ListPager.js"
     ],
@@ -801,6 +864,45 @@
     ],
     "css": [
       "css/IconPacksView.css"
+    ]
+  },
+  "js/views/JobView.vue": {
+    "file": "js/JobView.js",
+    "name": "JobView",
+    "src": "js/views/JobView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_jobs.js"
+    ],
+    "css": [
+      "css/JobView.css"
+    ]
+  },
+  "js/views/JobsView.vue": {
+    "file": "js/JobsView.js",
+    "name": "JobsView",
+    "src": "js/views/JobsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_jobs.js"
+    ],
+    "css": [
+      "css/JobsView.css"
+    ]
+  },
+  "js/views/LogsView.vue": {
+    "file": "js/LogsView.js",
+    "name": "LogsView",
+    "src": "js/views/LogsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/LogsView.css"
     ]
   },
   "js/views/MediaFileView.vue": {
@@ -1105,12 +1207,7 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_AdminSelect.js",
-      "_UploadSlab.js",
-      "_drop.js",
-      "_jobs.js",
-      "_ActivityRows.js",
-      "_select.js"
+      "_jobs.js"
     ],
     "css": [
       "css/ToolsView.css"

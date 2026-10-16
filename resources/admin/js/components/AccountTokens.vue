@@ -243,7 +243,7 @@ async function revokeAll(): Promise<void> {
 						</span>
 					</div>
 					<div class="rows__side">
-						<RouterLink v-if="can('site.activity')" class="button button--ghost button--small" :to="{ name: 'tools', query: { tab: 'activity', client: app.name, account: account.username } }">{{ t('account_tokens.activity', 'Activity') }}</RouterLink>
+						<RouterLink v-if="can('site.activity')" class="button button--ghost button--small" :to="{ name: 'activity', query: { client: app.name, account: account.username } }">{{ t('account_tokens.activity', 'Activity') }}</RouterLink>
 						<button type="button" class="button button--ghost button--small" :disabled="revoking" @click="disconnect(app)">{{ t('account_tokens.disconnect', 'Disconnect') }}<span class="visually-hidden"> {{ app.name }}</span></button>
 					</div>
 				</li>

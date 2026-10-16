@@ -28,7 +28,7 @@ enum Via: string
 	case Api   = 'api';
 
 	/**
-	 * Returns how the Activity tab names it, when no app's name does.
+	 * Returns how the Activity screen names it, when no app's name does.
 	 */
 	public function label(Messages $messages): Text
 	{

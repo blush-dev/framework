@@ -1517,7 +1517,8 @@
 			"retry_failed_only": "Only a failed job can be tried again.",
 			"running": "A running job can't be deleted. Wait for it to finish.",
 			"not_scheduled": "\"{job}\" isn't on the schedule.",
-			"not_allowed": "You aren't allowed to do that."
+			"not_allowed": "You aren't allowed to do that.",
+			"removed_account": "A removed account"
 		},
 		"activity_controller": {
 			"not_allowed": "You aren't allowed to see the activity log.",

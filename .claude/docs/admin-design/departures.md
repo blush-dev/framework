@@ -238,8 +238,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   autosave there are no unpublished changes to live entries), no theme
   button in the top bar (the color scheme is an account preference on Your
   profile), and no site switcher; the site's mark links to the site. The
-  account's menu is in the top bar. Home's panel has the Dashboard,
-  Site Health (D-543), and Tools (D-540), then shortcuts. The rail never navigates, as §6 says.
+  account's menu is in the top bar. Home's panel has the Dashboard and
+  Site Health (D-543), then shortcuts; Tools is a rail section of its
+  own (D-900), between Users and Settings, with Redirects (D-901). The rail never navigates, as §6 says.
   As the decisions log's *The shell* has it (D-317), a rail button
   toggles its panel and the top bar has no collapse button; the trail
   is the section, the screens above (the editor's type, or a detail
@@ -1109,6 +1110,10 @@ D-541). Where the admin differs from the sketch:
 
 ## The Redirects screen (`meridian-redirects.html`, D-686)
 
+- **Under Tools, after Activity** (D-901), where D-686 put it under
+  Settings: it's records added over time, not a setting, with a
+  capability of its own.
+
 - **Built from the admin's own pieces:** the page header, `.status-tabs`
   with counts, the `.toolbar` (`.search-field` with `/`, `AdminSelect`,
   the density `.segmented`), a `.panel` with its `.panel__header` (the
@@ -1227,6 +1232,12 @@ direction, built from the shared pieces until there's a design:
 - **Tools → Activity** is `.rows` (`ActivityRows`) under the
   toolbar's filters (Who, How, Change), with Newer and Older in the
   panel's foot. Apps are told apart by name alone, in a `.tag`.
+  A change's screen (D-902), which no design draws, is built from the
+  admin's pieces: the page header with Open Entry and Undo, notices for
+  why it can't be undone, `.columns` with What Changed (`DiffCompare`,
+  the conflict bar's comparison made shared, before and after in place
+  of theirs and mine) and Other Changes (`ActivityRows`) beside a
+  Details panel of `.fact-rows--panel`.
 - **The editor's note** of an app's latest change is the Document
   tab's Activity row's line (the brief left header or tab open), with
   a bot icon while an app made the latest change.
@@ -1440,8 +1451,14 @@ Built in four stages (making, restoring, the schedule and email, and
 uploading) from the admin's own pieces:
 
 - **A fifth Tools tab, Backups**, after Activity; the sketch's first tab,
-  Actions, is the admin's Tools tab (D-761). Its intro is the tab's
-  notice, as every Tools tab has one, rather than a two-part notice.
+  Actions, is the admin's Tools tab (D-761). Its intro was the tab's
+  notice, rather than a two-part notice, until D-905 took the Tools
+  screens' info notices out: the subtitle says what it is, the docs
+  the rest.
+  Since D-900 the tabs are screens of the Tools section, Backups its
+  own (`/backups`). Since D-903
+  the screen is two `.status-tabs`, Backups and Schedule, where the
+  Schedule was a panel under the list (the author's call).
 - **Figures are `.stats--three`:** Last Backup (or Last Backup Failed,
   `.stat--danger`, with the newest good copy), **Backups Kept** with the
   folder they're in, and Space Used with what's free. Next Backup takes

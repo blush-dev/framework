@@ -47,7 +47,7 @@ enum ActivityAction: string
 	}
 
 	/**
-	 * Returns how the Activity tab's filter names it.
+	 * Returns how the Activity screen's filter names it.
 	 */
 	public function label(Messages $messages): Text
 	{

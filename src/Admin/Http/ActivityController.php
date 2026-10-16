@@ -20,6 +20,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Activity\Activity;
 use Blush\Activity\ActivityAction;
+use Blush\Activity\ActivityDiffs;
 use Blush\Activity\ActivityException;
 use Blush\Activity\ActivityFilter;
 use Blush\Activity\ActivityLog;
@@ -52,6 +53,11 @@ use Blush\Translation\Text;
  *   `client` (an app's name), `action`, `subject` (an entry's or file's
  *   id), and `page`. The whole log takes `site.activity`; one entry's or
  *   file's (`subject`), as its Document tab shows, takes editing it.
+ * - `GET activity/{id}`: one change (D-902), as `describe()` says it,
+ *   with its action's label (`actionLabel`), the changes it undid
+ *   (`undoes`) and that undid it (`undoneBy`), by id, and what it
+ *   changed (`diff`, `ActivityDiff::toArray()`). It takes what the list
+ *   of its entry's or file's changes takes.
  * - `POST activity/{id}/undo`: puts back what a change replaced, as the
  *   account (`EntryEditor::undo()`, `MediaEditor::undo()`), only while
  *   nothing has changed since; the undo is a change of its own.
@@ -65,6 +71,7 @@ final readonly class ActivityController
 
 	public function __construct(
 		private ActivityLog $log,
+		private ActivityDiffs $diffs,
 		private Accounts $accounts,
 		private Permissions $permissions,
 		private Entries $content,
@@ -112,6 +119,37 @@ final readonly class ActivityController
 			'clients'  => $this->clients(),
 			'actions'  => array_map(fn (ActivityAction $action): array => ['value' => $action->value, 'label' => $action->label($this->messages)], ActivityAction::cases()),
 			'via'      => array_map(fn (Via $via): array => ['value' => $via->value, 'label' => $via->label($this->messages)], Via::cases())
+		]);
+	}
+
+	public function show(ServerRequestInterface $request, string $id): ResponseInterface
+	{
+		$account = self::account($request);
+
+		try {
+			$activity = $this->log->find($id);
+
+			if ($activity === null) {
+				return self::json(['error' => $this->messages->t('admin.activity_controller.not_found', 'That change isn\'t in the log.')], Status::NotFound);
+			}
+
+			if (! $this->permissions->can($account, Capability::SiteActivity) && ! $this->mayChange($account, $activity->subject)) {
+				return self::json(['error' => $this->messages->t('admin.activity_controller.not_allowed', 'You aren\'t allowed to see the activity log.')], Status::Forbidden);
+			}
+
+			$diff = $this->diffs->diff($activity);
+		} catch (ActivityException $error) {
+			return self::json(['error' => $error->getMessage()], Status::InternalServerError);
+		}
+
+		$versions = [];
+
+		return self::json([
+			'change'      => $this->describe($account, $activity, $versions),
+			'actionLabel' => $activity->action->label($this->messages),
+			'undoes'      => $activity->undoes,
+			'undoneBy'    => $activity->undone,
+			'diff'        => $diff->toArray()
 		]);
 	}
 

@@ -100,7 +100,10 @@ export interface Job {
 	message: string;
 	details: string[];
 	error: string | null;
+	// The id of the account that queued it, and who that is by name
+	// (D-904); `null` when the schedule did.
 	account: string | null;
+	by: { username: string | null; name: string } | null;
 	// What a finished job handed back (D-624), such as a Site Health
 	// fix's changes and `failed`.
 	result: Record<string, unknown>;
@@ -117,11 +120,13 @@ export interface ScheduledTask {
 
 export type RunnerKind = 'cron' | 'worker' | 'web' | 'admin';
 
-// The Tools screen's Jobs tab: the newest jobs, the schedule, each
+// The Jobs screen: the newest jobs, the schedule, each
 // runner's last run, the cron line to add, and whether visits can run
 // jobs on this server (`afterVisits`).
 export interface JobsOverview {
 	jobs: Job[];
+	// How many jobs there are of each status, whatever's filtered.
+	counts: Record<JobStatus, number>;
 	tasks: ScheduledTask[];
 	runners: Record<RunnerKind, string | null>;
 	mode: 'auto' | 'cron' | 'sync';

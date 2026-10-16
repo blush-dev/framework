@@ -852,7 +852,7 @@ const address = computed(() => {
 					</SettingRow>
 					<SettingRow :label="t('type_view.prefix', 'URL Prefix')" control-id="type-prefix" :changed="changedKey('prefix')">
 						<PatternField id="type-prefix" v-model="form.prefix" lead="/" :placeholder="people ? 'profiles' : (name || 'name')" :label="t('type_view.prefix', 'URL Prefix')" :disabled="!editable || !typeUrls || !routed" />
-						<template #help>{{ !typeUrls ? t('type_view.prefix_locked', 'The site\'s config turns off setting addresses here, so it answers at its name.') : (changedKey('prefix') && type?.entries ? t('type_view.prefix_moves', 'Saving moves {count, plural, one {# page} other {# pages} } to new addresses. Add redirects for the old ones under Settings → Redirects.', { count: type.entries }) : t('type_view.prefix_help', 'Where every address starts. Empty uses its name.')) }}</template>
+						<template #help>{{ !typeUrls ? t('type_view.prefix_locked', 'The site\'s config turns off setting addresses here, so it answers at its name.') : (changedKey('prefix') && type?.entries ? t('type_view.prefix_moves', 'Saving moves {count, plural, one {# page} other {# pages} } to new addresses. Add redirects for the old ones under Tools → Redirects.', { count: type.entries }) : t('type_view.prefix_help', 'Where every address starts. Empty uses its name.')) }}</template>
 					</SettingRow>
 				</template>
 				<SettingRow v-else-if="name !== 'page'" :label="t('type_view.prefix', 'URL Prefix')" control-id="type-prefix" :changed="changedKey('prefix')">

@@ -155,6 +155,30 @@ final readonly class ActivityLog
 	}
 
 	/**
+	 * Returns the changes made to a change's entry or file after it,
+	 * oldest first, up to `$limit`.
+	 *
+	 * @return list<Activity>
+	 * @throws ActivityException When the log can't be read.
+	 */
+	public function later(Activity $activity, int $limit = 100): array
+	{
+		// Ids are made from the time to the millisecond (UUIDv7), so they
+		// order changes more finely than `time`, which is in seconds.
+		$query = new RecordQuery()
+			->where('subject', '=', $activity->subject)
+			->where('time', '>=', $activity->time)
+			->orderBy('id');
+
+		$later = array_filter(
+			array_map($this->activity(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records)),
+			static fn (Activity $other): bool => strcmp($other->id, $activity->id) > 0
+		);
+
+		return array_slice(array_values($later), 0, $limit);
+	}
+
+	/**
 	 * Returns the latest change to an entry or file, or `null`.
 	 *
 	 * @throws ActivityException When the log can't be read.

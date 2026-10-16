@@ -3592,6 +3592,18 @@ button.lnk {
 	white-space: nowrap;
 }
 
+/* A row's title that opens something reads as the tables' titles do
+   (`.entry-title__link`): the text's color, underlined on hover. */
+a.rows__title {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+a.rows__title:hover {
+	color: var(--color-accent);
+	text-decoration: underline;
+}
+
 .rows__sub {
 	color: var(--color-text-muted);
 	font-size: var(--font-size-small);

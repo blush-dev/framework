@@ -42,10 +42,11 @@ version of its own layout (`formatVersion`).
 
 ## Backing up from the admin
 
-With the `site.backups` capability (owners, by default), go to **Home →
-Tools → Backups**. The tab shows when the last backup was made, how many
-are kept, and the space they take, then the list of backups, newest
-first.
+With the `site.backups` capability (owners, by default), go to
+**Tools → Backups**. Its **Backups** tab shows when the last backup
+was made, when the next is, and the space they take, then the list of
+backups, newest first; its **Schedule** tab sets backups to be made for
+you.
 
 1. Choose **Back Up Now**.
 2. Leave every part ticked, or pick some. Each group (Content, Site,
@@ -140,7 +141,7 @@ back.
 
 ## Backing up on a schedule
 
-The **Schedule** panel on Tools → Backups makes backups for you, as a
+The **Schedule** tab on Tools → Backups makes backups for you, as a
 [background job](going-live.md#background-jobs-and-cron) run by cron (or
 by page visits, or while the admin is open, when there's no cron).
 

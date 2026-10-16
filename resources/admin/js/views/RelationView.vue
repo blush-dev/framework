@@ -115,8 +115,6 @@ const stores = computed(() => purpose.value === 'reference' ? (source.value === 
 const referenceKey = computed(() => keyOf(key.value) || (purpose.value === 'credit' ? 'authors' : keyOf(labelsOf(target.value).plural)));
 const writtenKey   = computed(() => purpose.value === 'classify' ? keyOf(key.value) || terms.value : referenceKey.value);
 
-// Its file's name: its own, or, for a new one, the one it will take.
-const fileName   = computed(() => relation.value?.name ?? (purpose.value === 'classify' ? terms.value : (pointsAt.value === '' && key.value === '' ? '' : referenceKey.value)));
 const label      = computed(() => called.value.trim() || (pointsAt.value === '' ? '' : labelsOf(pointsAt.value).plural));
 const oneCalled  = computed(() => singular.value.trim() || (label.value === '' ? '' : (pointsAt.value !== '' && label.value === labelsOf(pointsAt.value).plural ? labelsOf(pointsAt.value).singular : label.value.replace(/s$/, ''))));
 const sentence   = computed(() => sayRelation(purpose.value, stores.value, pointsAt.value, called.value.trim()));
@@ -451,7 +449,6 @@ async function remove(): Promise<void> {
 
 	<template v-else-if="loaded">
 		<p v-if="relation && !relation.editable" class="notice"><AdminIcon name="info" /><span>{{ t('relation_view.defined_in', 'Defined in {source}, so it\'s changed there and shown here.', { source: sourceOf(relation).toLowerCase() }) }}</span></p>
-		<p v-else class="notice"><AdminIcon name="info" /><span><MessageText :text="t('relation_view.saved_in', 'Saved in {file}. Changing it over entries that already use it asks first.')"><template #file><code>user/data/relations{{ fileName ? `/${fileName}.json` : '' }}</code></template></MessageText></span></p>
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 		<form id="relation-page" @submit.prevent="save">

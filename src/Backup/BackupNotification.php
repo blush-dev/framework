@@ -180,10 +180,10 @@ final class BackupNotification extends Notification
 	}
 
 	/**
-	 * Returns the address of Tools → Backups.
+	 * Returns the address of the Backups screen.
 	 */
 	private function url(): string
 	{
-		return $this->app->absoluteUrl("{$this->admin->path}/tools?tab=backups");
+		return $this->app->absoluteUrl("{$this->admin->path}/backups");
 	}
 }

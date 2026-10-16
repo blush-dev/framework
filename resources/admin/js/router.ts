@@ -4,7 +4,7 @@
  * content action on a type, `meta.contentAction`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
- * (`meta.area`: `home`, `content`, `structure`, `extend`, `people`, or `settings`; D-704); the editor fills the
+ * (`meta.area`: `home`, `content`, `structure`, `extend`, `people`, `tools`, or `settings`; D-704, D-900); the editor fills the
  * work area edge to edge (`meta.bleed`), and the Settings screens drop the
  * work area's widest measure (`meta.wide`, D-404). A screen drawn outside
  * the shell even when someone's signed in is `meta.bare`.
@@ -60,6 +60,12 @@ const SiteHealthView = () => import('./views/SiteHealthView.vue');
 const ThemeView = () => import('./views/ThemeView.vue');
 const ThemesView = () => import('./views/ThemesView.vue');
 const ToolsView = () => import('./views/ToolsView.vue');
+const JobsView = () => import('./views/JobsView.vue');
+const JobView = () => import('./views/JobView.vue');
+const LogsView = () => import('./views/LogsView.vue');
+const ActivityView = () => import('./views/ActivityView.vue');
+const ActivityChangeView = () => import('./views/ActivityChangeView.vue');
+const BackupsView = () => import('./views/BackupsView.vue');
 const TrashedView = () => import('./views/TrashedView.vue');
 const TypeView = () => import('./views/TypeView.vue');
 const TypesView = () => import('./views/TypesView.vue');
@@ -90,7 +96,15 @@ export const router = createRouter({
 		{ path: '/health/:area(content)/:check(files|ids|terms|parents|refs|taxonomies|types|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: t('router.titles.site_health', 'Site Health'), capability: 'site.health', area: 'home', parent: 'health' } },
 		{ path: '/health/:area(media)/:check(files|ids|sizes)', name: 'health-media-check', component: HealthView, props: true, meta: { title: t('router.titles.site_health', 'Site Health'), capability: 'site.health', area: 'home', parent: 'health' } },
 		{ path: '/health/:area(content|media)', redirect: (to) => ({ name: to.params.area === 'media' ? 'health-media-check' : 'health-check', params: { area: to.params.area, check: 'files' } }) },
-		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: t('router.titles.tools', 'Tools'), area: 'home' } },
+		// The Tools section (D-900), with Redirects (D-686, D-901).
+		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: t('router.titles.tools', 'Tools'), area: 'tools' } },
+		{ path: '/jobs', name: 'jobs', component: JobsView, meta: { title: t('router.titles.jobs', 'Jobs'), capability: 'site.jobs', area: 'tools' } },
+		{ path: '/jobs/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'job', component: JobView, meta: { title: t('router.titles.job', 'Job'), capability: 'site.jobs', area: 'tools', parent: 'jobs' } },
+		{ path: '/activity', name: 'activity', component: ActivityView, meta: { title: t('router.titles.activity', 'Activity'), capability: 'site.activity', area: 'tools' } },
+		{ path: '/activity/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'activity-change', component: ActivityChangeView, meta: { title: t('router.titles.change', 'Change'), capability: 'site.activity', area: 'tools', parent: 'activity' } },
+		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: t('router.titles.redirects', 'Redirects'), capability: 'site.redirects', area: 'tools' } },
+		{ path: '/backups', name: 'backups', component: BackupsView, meta: { title: t('router.titles.backups', 'Backups'), capability: 'site.backups', area: 'tools' } },
+		{ path: '/logs', name: 'logs', component: LogsView, meta: { title: t('router.titles.logs', 'Logs'), capability: 'site.logs', area: 'tools' } },
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: t('router.titles.media', 'Media'), anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
@@ -113,8 +127,6 @@ export const router = createRouter({
 		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: t('router.titles.theme', 'Theme'), capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
-		// The site's redirects (D-686), listed under Settings.
-		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: t('router.titles.redirects', 'Redirects'), capability: 'site.redirects', area: 'settings' } },
 		{ path: '/settings/:screen(general|reading|writing|media|email|search|ai|api|system)', name: 'settings', component: SettingsView, props: true, meta: { title: t('router.titles.settings', 'Settings'), capability: 'site.settings', area: 'settings', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: t('router.titles.plugins', 'Plugins'), capability: 'extensions.plugins.view', area: 'extend' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: t('router.titles.plugin', 'Plugin'), capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },

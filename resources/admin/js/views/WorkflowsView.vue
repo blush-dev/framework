@@ -23,7 +23,6 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import EmptyState from '../components/EmptyState.vue';
-import MessageText from '../components/MessageText.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import StatusDialog from '../components/StatusDialog.vue';
 import StatusPill from '../components/StatusPill.vue';
@@ -111,7 +110,6 @@ async function remove(status: StatusInfo): Promise<void> {
 		</div>
 	</header>
 
-	<p class="notice"><AdminIcon name="info" /><span><MessageText :text="t('workflows_view.notice', 'Workflows and statuses made here live in {workflows} and {statuses}. A type uses one in its Type Settings.')"><template #workflows><code>user/data/workflows</code></template><template #statuses><code>user/data/statuses</code></template></MessageText></span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<p v-for="problem in list?.problems ?? []" :key="problem" class="notice notice--warn"><AdminIcon name="triangle-alert" /><span>{{ problem }}</span></p>
 

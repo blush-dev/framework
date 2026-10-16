@@ -1484,7 +1484,8 @@
 			"retry_failed_only": "再試行できるのは失敗したジョブだけです。",
 			"running": "実行中のジョブは削除できません。完了するまでお待ちください。",
 			"not_scheduled": "「{job}」はスケジュールにありません。",
-			"not_allowed": "その操作を行う権限がありません。"
+			"not_allowed": "その操作を行う権限がありません。",
+			"removed_account": "削除されたアカウント"
 		},
 		"activity_controller": {
 			"not_allowed": "アクティビティログを表示する権限がありません。",

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Activity;
 
 /**
- * What the Activity tab lists (D-758): changes by an account, made a way
+ * What the Activity screen lists (D-758): changes by an account, made a way
  * (and by an app, by its name), of a kind, or to one entry or file. Each
  * left `null` doesn't narrow.
  */

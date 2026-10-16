@@ -71,3 +71,53 @@ export function loadActivity(query: ActivityQuery = {}): Promise<ActivityPage> {
 export async function undoChange(id: string): Promise<ActivityChange> {
 	return (await request<{ change: ActivityChange }>('POST', `/activity/${encodeURIComponent(id)}/undo`)).change;
 }
+
+// Whether a change's before and after can be shown (D-902).
+export type DiffState = 'shown' | 'new' | 'expired' | 'not-kept' | 'unknown';
+
+// What a change changed: its fields, before and after (`null` where it
+// had none), its body's, and its key when it moved.
+export interface ChangeDiff {
+	state: DiffState;
+	fields: { name: string; before: unknown; after: unknown }[];
+	body: { before: string; after: string } | null;
+	moved: { from: string; to: string } | null;
+}
+
+// One change, for its screen.
+export interface ChangeDetail {
+	change: ActivityChange;
+	actionLabel: string;
+	// The change it undid, and the one that undid it, by id.
+	undoes: string | null;
+	undoneBy: string | null;
+	diff: ChangeDiff;
+}
+
+export function loadChange(id: string): Promise<ChangeDetail> {
+	return request<ChangeDetail>('GET', `/activity/${encodeURIComponent(id)}`);
+}
+
+/**
+ * A field's value as the comparison shows it: text as it is, a list of
+ * plain values joined, anything else as JSON, and nothing as empty.
+ */
+export function shownValue(value: unknown): string {
+	if (value === null || value === undefined) {
+		return '';
+	}
+
+	if (typeof value === 'string') {
+		return value;
+	}
+
+	if (typeof value === 'number' || typeof value === 'boolean') {
+		return String(value);
+	}
+
+	if (Array.isArray(value) && value.every((item) => typeof item === 'string' || typeof item === 'number')) {
+		return value.join(', ');
+	}
+
+	return JSON.stringify(value, null, 2);
+}

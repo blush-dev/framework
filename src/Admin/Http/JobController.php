@@ -19,6 +19,7 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Core\AppConfig;
@@ -32,6 +33,7 @@ use Blush\Job\JobFactory;
 use Blush\Job\JobQueue;
 use Blush\Job\JobRecord;
 use Blush\Job\JobRunner;
+use Blush\Job\JobStatus;
 use Blush\Job\RunnerKind;
 use Blush\Job\Schedule;
 use Blush\Job\Scheduler;
@@ -39,11 +41,13 @@ use Blush\Job\WebRunner;
 use Blush\Translation\Messages;
 
 /**
- * Background jobs in the admin (D-621): the Tools screen's Jobs tab, and
+ * Background jobs in the admin (D-621): the Jobs screen (Tools → Jobs), and
  * the admin as a runner for the jobs a user starts and waits on.
  *
  * - `GET {path}/api/jobs`, with `site.jobs`: the `jobs` (the newest
- *   `LIMIT`, newest first), the scheduled `tasks` (each job's key,
+ *   `LIMIT`, newest first, of a `status` when the query names one, as
+ *   the Jobs tab's filter does, D-904), how many there are of each
+ *   status (`counts`), the scheduled `tasks` (each job's key,
  *   `label`, `frequency` in words, and `last` and `next` runs), the
  *   `runners`' last runs, the `mode`, the `cron` line to add, and whether
  *   the server can run jobs after a page is served (`afterVisits`).
@@ -77,6 +81,7 @@ final readonly class JobController
 		private Scheduler $scheduler,
 		private JobConfig $config,
 		private Permissions $permissions,
+		private Accounts $accounts,
 		private AppConfig $app,
 		private Paths $paths,
 		private ClockInterface $clock,
@@ -106,8 +111,20 @@ final readonly class JobController
 			];
 		}
 
+		$params = $request->getQueryParams();
+		$status = is_string($params['status'] ?? null) ? JobStatus::tryFrom($params['status']) : null;
+		$all    = $this->queue->all();
+		$counts = array_fill_keys(array_map(static fn (JobStatus $case): string => $case->value, JobStatus::cases()), 0);
+
+		foreach ($all as $job) {
+			$counts[$job->status->value]++;
+		}
+
+		$shown = $status === null ? $all : array_filter($all, static fn (JobRecord $job): bool => $job->status === $status);
+
 		return self::json([
-			'jobs'        => array_map($this->describe(...), array_slice(array_reverse($this->queue->all()), 0, self::LIMIT)),
+			'jobs'        => array_map($this->describe(...), array_slice(array_reverse(array_values($shown)), 0, self::LIMIT)),
+			'counts'      => $counts,
 			'tasks'       => $tasks,
 			'runners'     => array_map(fn (?int $time): ?string => $time === null ? null : $this->format(DateTimeImmutable::createFromTimestamp($time)), $this->runner->lastRuns()),
 			'mode'        => $this->config->runner->value,
@@ -256,9 +273,30 @@ final readonly class JobController
 			'details'   => $job->details,
 			'error'     => $job->error,
 			'account'   => $job->account,
+			// Who queued it, by name, or `null` for the schedule (D-904).
+			'by'        => $this->by($job->account),
 			'result'    => $job->result === [] ? (object) [] : $job->result,
 			'due'       => $job->available <= $this->clock->now()->getTimestamp()
 		];
+	}
+
+	/**
+	 * Who queued a job, by an account's id: its username and name, a
+	 * removed account's line, or `null` when the schedule queued it.
+	 *
+	 * @return ?array{username: ?string, name: string}
+	 */
+	private function by(?string $id): ?array
+	{
+		if ($id === null) {
+			return null;
+		}
+
+		$account = $this->accounts->findById($id);
+
+		return $account === null
+			? ['username' => null, 'name' => (string) $this->messages->t('admin.job_controller.removed_account', 'A removed account')]
+			: ['username' => $account->username, 'name' => $account->name ?? $account->username];
 	}
 
 	/**

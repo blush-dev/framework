@@ -2627,8 +2627,19 @@ Move each item to `decisions.md` once it's answered.
   left readable so the list can describe it; Restore and Upload ask for
   it. A lost passphrase is a lost backup. It matters most once copies
   leave the server (`BackupMade`, D-899).
-- **Tools as its own rail section, or Backups as its own screen**
-  (the author, 2026-10-16, to discuss next): Tools → Backups now has a
-  list, four dialogs, and the Schedule panel. Whether Tools leaves Home
-  for a rail section of its own, or Backups becomes a screen of its own
-  (Home → Backups), perhaps with a detail screen per backup.
+- **Workspaces** (the author, 2026-10-16, "not part of this plan, just
+  something to note"): a "space" or "workspace" that cuts back what the
+  admin shows, such as an editorial one and an administrative one. One
+  way: a workspace is a set of rail sections and its own default
+  shortcuts. Home stays the Dashboard, Site Health, and shortcuts
+  (D-900), never a place for the CMS's screens, which keeps this open.
+- **Backups' screens, later** (from D-900): whether making a backup
+  becomes a screen of its own (`/backups/new`, as D-861 has creating
+  things), and a screen for each backup (`/backups/{id}`). The author
+  left Backups as it is for now. The schedule is a tab of its own (D-903).
+- **Tools, held for later** (the author, 2026-10-16, D-906): a tool's
+  screen for a tool with input (`/tools/{key}`, a form from its input
+  schema, so a tool that isn't a button runs from the admin); a filter
+  by level on Logs; and Backups' Space Used measured from the archives
+  on disk (and `.deleted/`, perhaps) rather than summed from each
+  backup's recorded size.

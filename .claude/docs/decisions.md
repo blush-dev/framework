@@ -28407,5 +28407,176 @@ decision, add a new entry that supersedes it and mark the old one
     scheduled or never email.
 - **Still open:** encrypting a backup with a passphrase (kept for
   later, the author's call); Tools as a rail section of its own, or
-  Backups as a screen (to discuss next).
+  Backups as a screen (to discuss next; settled by D-900).
 - **Status:** Built.
+
+### D-900: Tools is a rail section, its tabs screens of their own
+
+- **Date:** 2026-10-16
+- **Settles:** the open question of Tools as a rail section or Backups
+  as a screen (D-899).
+- **Decision:**
+  - **Home isn't for the CMS's screens.** Its panel is the Dashboard
+    and Site Health (the author kept Site Health there), then the
+    shortcuts, which are how someone puts any other screen on Home.
+  - **Tools is a rail section**, between Users and Settings (Home,
+    Content, Structure, Extend, Users, Tools, Settings), with the
+    `wrench` icon and "Looking after the site" under its name. Its
+    screens are the Tools screen's former tabs, in their order, each
+    shown by its capability: **Tools** (`/tools`, with a tool the
+    account may run), **Jobs** (`/jobs`, `site.jobs`), **Logs**
+    (`/logs`, `site.logs`), **Activity** (`/activity`, filters in the
+    address as before, `site.activity`), and **Backups** (`/backups`,
+    `site.backups`). The section is on the rail when one of them is.
+  - **A mechanical move.** Each screen is the tab it was, with a page
+    header and the tab's notice; `BackupsTab` is `BackupsView`, its
+    dialogs and Schedule panel unchanged (the author: leave Backups as
+    it is). No `?tab=` redirects, as no 2.x site has the old addresses;
+    the backup email links to `/backups`. Text keys moved with their
+    screens (`jobs_view`, `logs_view`, `activity_view`,
+    `backups_view`), Japanese translations with them.
+  - **The section's name stays Tools** for now (the author), with a
+    Tools screen inside it as Settings has General.
+  - **The command palette goes to each** (Go to Tools, Jobs, Logs,
+    Activity, Backups), shown as the section's panel shows them, which
+    none of them were as tabs (the author asked, the same day).
+- **Still open:** workspaces (an editorial and an administrative admin,
+  noted only); making a backup as a screen, and a screen per backup
+  (both in `open-questions.md`).
+- **Status:** Built.
+
+### D-901: Redirects is a Tools screen
+
+- **Date:** 2026-10-16
+- **Supersedes:** D-686's place for the Redirects screen, under Settings
+  after Addresses and Search.
+- **Decision:** Redirects is in the Tools section (D-900), after
+  Activity: Tools, Jobs, Logs, Activity, Redirects, Backups. Its address
+  (`/redirects`), its capability (`site.redirects`), and the screen
+  are unchanged. The author: it never fit under Settings. Its rows are
+  records added over time, saying when, by whom, and how, kept up after
+  things move, as Activity's are, not a setting; and with a capability
+  of its own, an account with `site.redirects` and no `site.settings`
+  saw a Settings section holding only Redirects. The command palette
+  has Go to Redirects, as it has the other Tools screens.
+- **Status:** Built.
+
+### D-902: A change in the activity log has a screen of its own
+
+- **Date:** 2026-10-16
+- **Decision:** Tools → Activity's changes each open a screen,
+  `/activity/{id}` (`ActivityChangeView`, with `site.activity`), the
+  first of the Tools screens' subscreens the author asked for:
+  - **What Changed** compares the change's fields and body before and
+    after, as the editor's conflict bar compares theirs and mine; that
+    comparison is now the shared `DiffCompare` component, which both
+    use. A move says where from and to.
+  - **Details** (which entry or file, the change, who, how, when),
+    **Other Changes** to the same entry or file (`ActivityRows`), Open
+    Entry or Open File, and Undo or why it can't be undone, with links
+    between a change and the change that undid it.
+  - With `site.activity`, an `ActivityRows` row's line opens the
+    change's screen, on Activity and an entry's Document tab alike;
+    without it, it opens what changed, as before.
+- **How after is found, with nothing stored.** The log keeps what a
+  change replaced (`before`), not what it wrote. `ActivityDiffs` finds
+  what it wrote where it went next: for an entry, the next logged
+  change's `before`, or, with none, the entry now when its version is
+  the one the change wrote (`revision`); for a media file, per detail,
+  the first later change to that detail's `before`, or its value now.
+  Every write goes through the editors, which log it, so one change's
+  before is the last one's after. A file changed by hand between is the
+  one gap, and for an entry a version that doesn't match says so
+  (`unknown`). No field is added to the `activity` table.
+- **What isn't compared:** a new entry or upload (`new`), a change whose
+  before has expired (`expired`) or wasn't kept, as for a move
+  (`not-kept`), and `unknown`; the screen says which. `updated` and
+  `refs` are left out of an entry's fields, as every save keeps them up.
+- **API:** `GET activity/{id}`: the change as the list describes it,
+  `actionLabel`, `undoes` and `undoneBy` (ids), and `diff` (`state`,
+  `fields`, `body`, `moved`), with what the list of its entry's or
+  file's changes takes. `ActivityLog::later()` lists the changes after
+  one, ordered by id, which is to the millisecond (UUIDv7) where `time`
+  is in seconds.
+- **Not built:** screens under Jobs (one job, with its whole error) and
+  Tools (a tool with input, as a form), which were discussed; Redirects'
+  dialog as screens is the author's call, still open.
+- **Status:** Built.
+
+### D-903: Backups has a Schedule tab
+
+- **Date:** 2026-10-16
+- **Decision:** Tools → Backups is two tabs, **Backups** (the figures
+  and the list) and **Schedule** (`BackupSchedule`), in the address
+  (`?tab=schedule`), as Redirects' tabs are. The schedule's form stays
+  mounted while Backups shows, so unsaved changes survive a switch. The
+  intro and a running restore's notice are above the tabs. No screens
+  for making a backup or for each backup yet (the author: not needed
+  yet; in `open-questions.md`).
+- **Status:** Built.
+
+### D-904: Jobs has Jobs and Schedule tabs, a status filter, and a screen for each job
+
+- **Date:** 2026-10-16
+- **Decision:**
+  - **Two tabs**, as Backups has (D-903): **Jobs** (the default) and
+    **Schedule** (`?tab=schedule`). The cron notice is above them, as
+    it's about both. The Jobs tab counts the failed jobs while there
+    are some.
+  - **A status filter** on the Jobs tab (Any status, Queued, Running,
+    Done, Failed; `?status=failed`), a select rather than tabs inside a
+    tab. The server filters before it takes the newest `LIMIT`, so an
+    older failed job isn't missed: `GET jobs?status=`, with `counts` of
+    every status whatever's filtered.
+  - **The Schedule tab** shows when each task runs next, which the API
+    already said and the screen didn't.
+  - **A screen for each job**, `/jobs/{id}` (`JobView`, with
+    `site.jobs`), opened from a row's line: its progress while it waits
+    or runs, asked again every three seconds; why it failed, whole (or
+    its last error, from an attempt before); what it said (its message
+    and `details`) and handed back (`result`, as JSON); and Details
+    (status, who queued it, queued, started, finished, failed attempts,
+    the next try, its id), with Retry and Delete in the header.
+  - **Who queued a job, by name.** A job's `account` is an account's id
+    (D-668), which the rows printed as it was; the API adds `by`
+    (`username` and `name`, a removed account's line, or `null` for the
+    schedule), and the rows and the screen show it.
+- **Status:** Built.
+
+### D-905: A screen says what it is in its subtitle; no info notices on the Tools screens
+
+- **Date:** 2026-10-16
+- **Decision:** The author: what someone needs to know about a screen
+  is its subtitle under the title, kept short; anything more lives in
+  the docs (`docs/`). Info notices are clutter. The Tools screens'
+  intro notices go (Tools, Jobs, Logs, Activity, Backups), each
+  already said in `docs/admin.md`, `docs/going-live.md`,
+  `docs/backups.md`, or `docs/mcp.md`; their subtitles stay as they
+  were. A change's screen (D-902) loses its state notices (undone,
+  why it can't be undone, what it undid) to rows in its Details panel.
+  Notices that report something happening or gone wrong (cron not
+  running, a restore under way, an error) aren't info notices and stay.
+- **Other screens** (the author, the same day): the notices that only
+  say where things are saved go (Relationships, a relationship's
+  "Saved in", Workflows, and Settings → System's `config/` and `.env`
+  line), each in the docs already. The account screen's notices stay:
+  they say why its controls aren't there (an owner's account, one
+  that's not yours to manage, a token-only account). So does a
+  relationship's "Defined in {source}" for one a plugin defines, which
+  says the same of its missing Save.
+- **Status:** Built.
+
+### D-906: Redirects keeps its dialog; what's held for later on Tools
+
+- **Date:** 2026-10-16
+- **Decision:** The author's calls on what was left of Tools:
+  - **Redirects keeps its dialog** for adding and editing (D-686).
+    D-861's screens for making things are for larger forms; a redirect
+    is three fields checked as they're filled in.
+  - **Held for later** (in `open-questions.md`): a screen for a tool
+    with input; a filter by level on Logs; and Backups' Space Used
+    measured from the archives on disk.
+  - **Not now:** a line on Addresses and Search leading to Redirects,
+    since it moved to Tools (D-901).
+- **Status:** Recorded.
+

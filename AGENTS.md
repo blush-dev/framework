@@ -148,7 +148,7 @@ moving older data types, and profiles without `{initial}` (D-683,
 D-684);
 and, from the redirects sketch
 (`.claude/docs/admin-design/meridian-redirects.html`), the Redirects
-screen under Settings with `site.redirects`: rows that lead to
+screen (under Tools since D-901) with `site.redirects`: rows that lead to
 an entry by id and say when, by whom, and how they were added, problems
 and an address's trace worked out live, and the form checked by the
 server (D-686);
@@ -256,7 +256,17 @@ Tools → Backups and the `backup:` commands: each storage driver's own
 tables in one `.zip` (`Blush\Backup`, apart from Transfer), by part,
 made, restored (the site backed up first), scheduled with email that
 never carries a backup, uploaded, and announced (`BackupMade`) for
-plugins' off-site copies (D-881 to D-899).
+plugins' off-site copies (D-881 to D-899); and Tools as a rail
+section of its own, its tabs screens (Tools, Jobs, Logs, Activity,
+Backups), with Home kept to the Dashboard, Site Health, and shortcuts
+(D-900), and Redirects moved there from Settings (D-901); a screen for
+each change in the activity log, before and after (D-902), and a
+Schedule tab on Backups (D-903), and Jobs and Schedule tabs on Jobs,
+with a status filter and a screen for each job (D-904); a screen says
+what it is in a short subtitle, with no info notices, the rest in the
+docs (D-905); and Redirects keeping its dialog, with a tool's screen,
+a level filter on Logs, and Backups' measured space held for later
+(D-906).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)
@@ -273,9 +283,7 @@ and, from the content types sketch
 switches for core's optional fields (missing is off), the menu's
 `adminPosition` and `adminUnder`, and one page for a type and a new one
 (D-864 to D-866).
-Next: the Backups and Tools screens (Tools as a rail section of its
-own, or Backups as a screen; `open-questions.md`); more
-of media; and more of the Markdown editing experience (live
+Next: more of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens

@@ -226,7 +226,7 @@ final class AdminBackupScheduleTest extends TestCase
 		$this->assertIsString($subject);
 		$this->assertIsString($text);
 		$this->assertStringStartsWith('Backup failed:', $subject);
-		$this->assertStringContainsString('/admin/tools?tab=backups', $text);
+		$this->assertStringContainsString('/admin/backups', $text);
 		$this->assertStringNotContainsString('/download', $text, 'Never a link to a download.');
 	}
 

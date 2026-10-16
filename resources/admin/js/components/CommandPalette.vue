@@ -24,6 +24,7 @@ import { useModalDialog } from '../dialog';
 import { listMove } from '../grid';
 import { t } from '../messages';
 import type { IconName } from '../icons';
+import { navCounts } from '../counts';
 import { can, canAnyType, canType, usesMedia } from '../session';
 import { findType, listRoute, typeIcon, types } from '../types';
 
@@ -76,11 +77,28 @@ const everywhere = computed<Command[]>(() => {
 		['icon-packs', t('command_palette.go_icon_packs', 'Go to Icon Packs'), 'shapes', 'extensions.icon-packs.view', 'icons extensions'],
 		['admin-themes', t('command_palette.go_admin_themes', 'Go to Admin Themes'), 'swatch-book', 'extensions.admin-themes.view', 'admin look skin appearance extensions'],
 		['accounts', t('command_palette.go_accounts', 'Go to Accounts'), 'key-round', 'accounts.view', 'people users sign in'],
-		['roles', t('command_palette.go_roles', 'Go to Roles'), 'shield', 'accounts.view', 'capabilities']
+		['roles', t('command_palette.go_roles', 'Go to Roles'), 'shield', 'accounts.view', 'capabilities'],
+		// The Tools section's screens (D-900), shown as its panel shows them.
+		['tools', t('command_palette.go_tools', 'Go to Tools'), 'wrench', 'tools', 'buttons publish reindex clear caches tasks'],
+		['jobs', t('command_palette.go_jobs', 'Go to Jobs'), 'list-checks', 'site.jobs', 'background queue cron scheduled tasks retry'],
+		['logs', t('command_palette.go_logs', 'Go to Logs'), 'list', 'site.logs', 'log errors warnings debug'],
+		['activity', t('command_palette.go_activity', 'Go to Activity'), 'clock', 'site.activity', 'changes history undo apps'],
+		['redirects', t('command_palette.go_redirects', 'Go to Redirects'), 'corner-down-right', 'site.redirects', 'moved addresses urls 301 302 404 not found'],
+		['backups', t('command_palette.go_backups', 'Go to Backups'), 'archive', 'site.backups', 'backup restore download zip schedule']
 	];
 
+	// Media with a kind the account uploads, and Tools with a tool it
+	// may run; the rest by capability.
+	const shown = (capability: string): boolean => {
+		if (capability === 'media') {
+			return usesMedia();
+		}
+
+		return capability === 'tools' ? (navCounts.value?.tools ?? 0) > 0 : can(capability);
+	};
+
 	for (const [name, label, icon, capability, keywords] of screens) {
-		if (capability === 'media' ? usesMedia() : can(capability)) {
+		if (shown(capability)) {
 			found.push({ id: name, label, icon, keywords, run: go(name) });
 		}
 	}

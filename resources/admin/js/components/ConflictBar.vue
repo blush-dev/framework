@@ -5,18 +5,19 @@
  * theirs**, **Compare**, and **Keep mine**; while the saved version
  * loads, or when it couldn't be, it offers **Try again** instead.
  * **Compare** opens the comparison under it: the fields that differ, as
- * a table, and the body's changed lines with two on each side. The
+ * a table, and the body's changed lines with two on each side
+ * (`DiffCompare`). The
  * editor owns the conflict and works out what differs (`compare`), which
  * is only asked for while the comparison is open.
  */
 
 import { computed, ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
+import DiffCompare from './DiffCompare.vue';
 import type { EntryDetail } from '../api';
 import type { Differences } from '../diff';
 import { siteDateTime } from '../dates';
 import { t } from '../messages';
-import MessageText from './MessageText.vue';
 
 const props = defineProps<{
 	noun: string;
@@ -60,27 +61,7 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 		</div>
 
 		<div v-if="differences" id="conflict-compare" class="compare">
-			<table v-if="differences.rows.length" class="table compare__fields">
-				<thead>
-					<tr>
-						<th scope="col">{{ t('conflict_bar.field', 'Field') }}</th>
-						<th scope="col">{{ t('conflict_bar.theirs', 'Theirs') }}</th>
-						<th scope="col">{{ t('conflict_bar.mine', 'Mine') }}</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="row in differences.rows" :key="row.label">
-						<th scope="row">{{ row.label }}</th>
-						<td>{{ row.theirs }}</td>
-						<td>{{ row.mine }}</td>
-					</tr>
-				</tbody>
-			</table>
-			<div v-if="differences.body" class="compare__body">
-				<p class="compare__label">{{ t('conflict_bar.body', 'Body') }} <span class="compare__key"><MessageText :text="t('conflict_bar.key', '{theirs_mark} theirs {mine_mark} mine')"><template #theirs_mark><span class="compare__mark compare__mark--theirs">−</span></template><template #mine_mark><span class="compare__mark compare__mark--mine">+</span></template></MessageText></span></p>
-				<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ t('conflict_bar.unchanged_lines', '{count, plural, one {# unchanged line} other {# unchanged lines} }', { count: line.count }) }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? t('conflict_bar.theirs_line', 'Theirs: ') : t('conflict_bar.mine_line', 'Mine: ') }}</span>{{ line.text }}</span></template></pre>
-			</div>
-			<p v-if="!differences.rows.length && !differences.body" class="compare__same">{{ t('conflict_bar.same', 'Your changes and theirs match in everything the editor shows.') }}</p>
+			<DiffCompare :differences="differences" :labels="{ field: t('conflict_bar.field', 'Field'), before: t('conflict_bar.theirs', 'Theirs'), after: t('conflict_bar.mine', 'Mine'), body: t('conflict_bar.body', 'Body'), legend: t('conflict_bar.key', '{before_mark} theirs {after_mark} mine'), beforeLine: t('conflict_bar.theirs_line', 'Theirs: '), afterLine: t('conflict_bar.mine_line', 'Mine: '), same: t('conflict_bar.same', 'Your changes and theirs match in everything the editor shows.') }" />
 		</div>
 	</section>
 </template>
@@ -141,96 +122,5 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 	overflow: auto;
 	border-bottom: 1px solid var(--border-color-strong);
 	background: var(--color-surface);
-}
-
-.compare__fields td {
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.compare__body {
-	display: grid;
-	gap: 8px;
-	padding: 12px var(--padding-inline) 16px;
-}
-
-.compare__same {
-	padding: 12px var(--padding-inline);
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-small);
-}
-
-.compare__label {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 8px;
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-xsmall);
-	font-weight: 500;
-	letter-spacing: .06em;
-	text-transform: uppercase;
-}
-
-.compare__key {
-	letter-spacing: normal;
-	text-transform: none;
-}
-
-.compare__mark {
-	font-family: var(--font-mono);
-	font-weight: 600;
-}
-
-.compare__mark--theirs {
-	color: var(--color-danger);
-}
-
-.compare__mark--mine {
-	color: var(--color-success);
-}
-
-.compare__lines {
-	display: grid;
-	margin: 0;
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-medium);
-	background: var(--color-surface-subtle);
-	font-family: var(--font-mono);
-	font-size: var(--font-size-small);
-	line-height: 1.6;
-}
-
-.compare__line {
-	display: block;
-	padding: 0 10px;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.compare__line--theirs {
-	background: var(--color-danger-subtle);
-	color: var(--color-danger);
-}
-
-.compare__line--mine {
-	background: var(--color-success-subtle);
-	color: var(--color-success);
-}
-
-.compare__sign {
-	display: inline-block;
-	width: 1.5ch;
-	user-select: none;
-}
-
-.compare__skip {
-	display: block;
-	padding: 2px 10px;
-	border-block: 1px dashed var(--border-color);
-	color: var(--color-text-muted);
-	font-family: var(--font-family-ui);
-	font-size: var(--font-size-xsmall);
 }
 </style>

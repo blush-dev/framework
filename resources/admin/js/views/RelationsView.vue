@@ -30,7 +30,6 @@ import AdminSelect from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { errorMessage, request, type RelationListed } from '../api';
-import MessageText from '../components/MessageText.vue';
 import { formatNumber } from '../format';
 import { locale, t } from '../messages';
 import { purposeIcon, purposeOf, purposes, relationLabel, sourceOf, type RelationPurpose } from '../relations';
@@ -120,7 +119,6 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 		</div>
 	</header>
 
-	<p class="notice"><AdminIcon name="info" /><span><MessageText :text="t('relations_view.notice', 'Relationships made here live in {folder}. Ones from plugins are shown with their source and edited where they\'re defined.')"><template #folder><code>user/data/relations</code></template></MessageText></span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="!error">

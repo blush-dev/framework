@@ -203,8 +203,9 @@ use Blush\Session\StartSession;
  *     an account's API tokens (`TokensController`, D-749).
  *   - `DELETE accounts/{username}/apps/{id}` disconnects an app
  *     (`TokensController`, D-752).
- *   - `GET activity` and `POST activity/{id}/undo`, the activity log and
- *     Undo (`ActivityController`, D-758).
+ *   - `GET activity`, `GET activity/{id}`, and `POST activity/{id}/undo`,
+ *     the activity log, one change (D-902), and Undo
+ *     (`ActivityController`, D-758).
  *   - `GET` and `POST oauth/authorize`, the Connect an App screen's
  *     (`AuthorizeController`, D-752).
  *   - `GET  themes`: the installed themes (`ThemesController`);
@@ -400,6 +401,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens/{id:[0-9a-f-]+}', [TokensController::class, 'delete'])->named('account.token.delete')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/apps/{id:[0-9a-f-]+}', [TokensController::class, 'disconnect'])->named('account.app.delete')->middleware(Authenticate::class),
 			Route::get('/activity', [ActivityController::class, 'index'])->named('activity')->middleware(Authenticate::class),
+			Route::get('/activity/{id:[0-9a-f-]+}', [ActivityController::class, 'show'])->named('activity.show')->middleware(Authenticate::class),
 			Route::post('/activity/{id:[0-9a-f-]+}/undo', [ActivityController::class, 'undo'])->named('activity.undo')->middleware(Authenticate::class),
 			Route::get('/oauth/authorize', [AuthorizeController::class, 'show'])->named('oauth.authorize')->middleware(Authenticate::class),
 			Route::post('/oauth/authorize', [AuthorizeController::class, 'decide'])->named('oauth.decide')->middleware(Authenticate::class),

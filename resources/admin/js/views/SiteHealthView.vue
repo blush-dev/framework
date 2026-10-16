@@ -160,7 +160,7 @@ function copyReport(): void {
 	void copyText(lines.join('\n'), t('site_health_view.copied_report', 'Copied the report'));
 }
 
-const toolsShown = computed(() => (navCounts.value?.tools ?? 0) > 0 || can('site.logs'));
+const toolsShown = computed(() => (navCounts.value?.tools ?? 0) > 0);
 
 onMounted(() => {
 	void check();

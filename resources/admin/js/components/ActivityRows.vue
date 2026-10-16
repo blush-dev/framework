@@ -5,7 +5,9 @@
  * quiet tag, so an app's changes stand out among a person's own; when;
  * and Undo where it can be undone, or why it can't, in its place. An
  * undo is a change of its own, so the rows are loaded again after one
- * (`changed`). On Tools → Activity and an entry's Document tab.
+ * (`changed`). On Tools → Activity, a change's screen, and an entry's
+ * Document tab. With `site.activity`, a row's line opens the change's
+ * screen (D-902); without it, what it changed.
  */
 
 import { ref } from 'vue';
@@ -13,6 +15,7 @@ import { RouterLink } from 'vue-router';
 import { changedHow, undoChange, type ActivityChange } from '../activity';
 import { errorMessage } from '../api';
 import { formatWhen, formatWhenInline } from '../format';
+import { can } from '../session';
 import { toast } from '../toast';
 import { t } from '../messages';
 
@@ -44,7 +47,8 @@ async function undo(change: ActivityChange): Promise<void> {
 	<ul class="rows">
 		<li v-for="change in changes" :key="change.id" class="rows__item">
 			<div class="rows__main">
-				<RouterLink v-if="change.link" class="rows__title" :to="change.link">{{ change.summary }}</RouterLink>
+				<RouterLink v-if="can('site.activity')" class="rows__title" :to="{ name: 'activity-change', params: { id: change.id } }">{{ change.summary }}</RouterLink>
+				<RouterLink v-else-if="change.link" class="rows__title" :to="change.link">{{ change.summary }}</RouterLink>
 				<span v-else class="rows__title">{{ change.summary }}</span>
 				<span class="rows__sub">
 					{{ change.account.name }}

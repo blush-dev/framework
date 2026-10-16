@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Tools → Backups' Schedule panel (the backups sketch, D-887): a form,
+ * Tools → Backups' Schedule tab (the backups sketch, D-887; a tab of its own, D-903): a form,
  * saved together with Save Schedule, which says Saved in place. How
  * often (off, daily, or weekly on a day), at an hour in the site's time
  * zone, how many of its backups the schedule keeps, the parts each

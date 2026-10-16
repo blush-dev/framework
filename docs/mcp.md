@@ -176,6 +176,14 @@ where it can be undone. Filter by who, how, and what changed.
 - What a change replaced is kept for 30 days; the change stays listed
   for 90.
 
+Choose a change to open its own screen: **What Changed** compares its
+fields and body before and after, with the lines it removed marked −
+and those it added +; **Details** says which entry or file, who, how,
+and when; and **Other Changes** lists the rest of that entry's or
+file's changes. A new entry or upload has nothing before it to compare,
+and a change can't be compared once what it replaced is gone (after 30
+days), or when the file was changed outside the admin since.
+
 An entry's own changes are on its **Document** tab, in the **Activity**
 row, which says when an app made the latest one. Seeing all of the
 activity takes **See activity and undo changes** (`site.activity`),

@@ -119,6 +119,14 @@ final class AdminJobsTest extends TestCase
 		$this->assertIsString($list['cron'] ?? null);
 		$this->assertStringContainsString('schedule:run', $list['cron']);
 		$this->assertSame(['cron' => null, 'worker' => null, 'web' => null, 'admin' => null], $list['runners'] ?? null);
+		$this->assertSame(['queued' => 1, 'running' => 0, 'done' => 0, 'failed' => 1], $list['counts'] ?? null);
+
+		$failing = self::json($this->send('GET', '/jobs?status=failed'));
+		$this->assertSame([$failed->id], array_column(is_array($failing['jobs'] ?? null) ? $failing['jobs'] : [], 'id'), 'Filtered before the newest are taken (D-904).');
+		$this->assertSame(['queued' => 1, 'running' => 0, 'done' => 0, 'failed' => 1], $failing['counts'] ?? null, 'Counted across every status.');
+		$newest = is_array($list['jobs'] ?? null) ? $list['jobs'][0] ?? null : null;
+		$this->assertIsArray($newest);
+		$this->assertNull($newest['by'] ?? null, 'Queued by no one.');
 
 		$retried = self::json($this->send('POST', "/jobs/{$failed->id}/retry", headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
 
@@ -133,6 +141,9 @@ final class AdminJobsTest extends TestCase
 		$this->assertIsArray($now);
 		$this->assertSame('core/prune-jobs', $now['job'] ?? null);
 		$this->assertSame($this->janeId(), $now['account'] ?? null);
+		$by = $now['by'] ?? null;
+		$this->assertIsArray($by);
+		$this->assertSame('jane', $by['username'] ?? null, 'Who queued it, by name.');
 		$this->assertSame(404, $this->send('POST', '/jobs/schedule/test/refuse', headers: ['X-CSRF-Token' => $token])->getStatusCode(), 'It isn\'t on the schedule.');
 	}
 

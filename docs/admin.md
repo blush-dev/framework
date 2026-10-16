@@ -3,8 +3,8 @@
 The admin is where people with an [account](accounts.md) run the site
 from a browser. So far it has a dashboard (what you were editing, and
 the entries waiting on you), a list of each content type's entries, an editor, a content
-health check, and Tools (buttons to publish, reindex, and clear caches,
-background jobs, and the site's log).
+health check, and a Tools section (buttons to publish, reindex, and
+clear caches, background jobs, activity, backups, and the site's log).
 
 > **The admin is early.** The editor edits Markdown as text; a live
 > preview, a form for a block's options, and a media library come
@@ -41,13 +41,14 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has six sections: **Home** (the dashboard,
-Site Health, and tools), **Content** (each content type's entries, with
+The rail at the far left has seven sections: **Home** (the dashboard,
+Site Health, and your shortcuts), **Content** (each content type's entries, with
 the types of terms that file only it under it, the terms several types
 share, and media), **Structure** (content types, relationships, fields,
 and menus), **Extend** (themes, plugins, and icon packs), **Users**
-(your profile, accounts, profiles, and roles), and **Settings** (the
-settings screens and redirects). The panel
+(your profile, accounts, profiles, and roles), **Tools** (tools,
+jobs, logs, activity, redirects, and backups), and **Settings** (the
+settings screens). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -172,8 +173,9 @@ your account.
 
 ## Tools
 
-**Home → Tools** has the tasks you'd otherwise run from the command
-line, as buttons on its **Tools** tab, grouped by where they come from
+The **Tools** section has the work of looking after the site, a screen
+each. Its **Tools** screen has the tasks you'd otherwise run from the
+command line, as buttons, grouped by where they come from
 (Blush, the site, or a plugin). The result of each stays beside its
 button. A tool that asks first says so.
 
@@ -191,16 +193,21 @@ Reindex Content run as [background jobs](going-live.md#background-jobs-and-cron)
 the button shows their progress while they run, and if you leave the
 screen, they finish on their own.
 
-With `site.jobs` (administrators), the **Jobs** tab shows the work done
-in the background. **Scheduled Tasks** lists what runs on a timetable
+With `site.jobs` (administrators), the **Jobs** screen shows the work done
+in the background, in two tabs. **Jobs** lists recent jobs, newest
+first: what each is, who started it, its status, and what it last said,
+with **Retry** for a failed job and **Delete**. Filter it by status;
+the tab counts the failed jobs while there are some. Choose a job to
+open its own screen: its progress while it waits or runs, why it
+failed (the whole error), what it said and handed back, when it was
+queued, started, and finished, its attempts, and who queued it, with
+**Retry** and **Delete**. **Schedule** lists what runs on a timetable
 (putting scheduled posts live, and cleaning out the cache, idle
-sessions, and old jobs), how often, and when each last ran, with **Run
-Now**. **Jobs** lists recent jobs, newest first: what each is, who
-started it, its status, and what it last said, with **Retry** for a
-failed job and **Delete**. Above them, a notice says whether cron is
+sessions, and old jobs), how often, when each last ran and runs next,
+with **Run Now**. Above the tabs, a notice says whether cron is
 running jobs, and if it isn't, the line to add to your server's crontab.
 
-With `site.logs` (administrators), the **Logs** tab shows the last 50
+With `site.logs` (administrators), the **Logs** screen shows the last 50
 entries in the site's log (`storage/logs/site.log` unless
 [`config/log.php`](configuration.md#logging) says otherwise), newest
 first, one line each, with errors and warnings marked. An entry with an
@@ -209,19 +216,24 @@ whole file. It's read only, for when something fails on a host you
 can't reach over SSH. A site that logs to the server's error output, or
 not at all, has no file to show.
 
-With `site.backups` (owners), the **Backups** tab lists the site's
+With `site.backups` (owners), the **Backups** screen lists the site's
 backups and makes them, and with `site.backups.restore`, restores them:
 see [Backups](backups.md).
 
 With `site.activity` (owners, administrators, and editors), the
-**Activity** tab lists every change to entries and media, newest first:
-what happened, linking to what changed, who did it, how (in the admin,
+**Activity** screen lists every change to entries and media, newest first:
+what happened, which opens the change's own screen (what it changed,
+before and after), who did it, how (in the admin,
 by a connected app, named, on the command line, or through the API),
 and when, with **Undo** where it can be undone, or why it can't. Filter
 by who, how, and what changed. See [Activity and Undo](mcp.md#activity-and-undo).
 
-Tools is in the panel when your account can run an action, see the
-jobs, read the log, or see the activity.
+With `site.redirects`, **Redirects** lists the site's redirects and
+adds them: see [Redirects](#redirects).
+
+The Tools section is on the rail when your account can run a tool, see
+the jobs, the activity, the redirects, or the backups, or read the log,
+and each screen is in its panel when your account can use it.
 
 ## Entries
 
@@ -1508,7 +1520,7 @@ the file.
 ## Settings
 
 With `site.settings`, the **Settings** section has eight
-screens (and [Redirects](#redirects), with its own capability):
+screens:
 
 - **General:** the site's name, a one-line description (for
   `llms.txt`, and the homepage and feeds when nothing more specific
@@ -1647,7 +1659,7 @@ you've compiled, run `bin/blush cache:compile` again.
 ## Redirects
 
 With `site.redirects` (administrators and editors), **Redirects** in
-**Settings**, after **Addresses and Search**, lists the site's
+**Tools**, after **Activity**, lists the site's
 [redirects](content.md#redirects): old addresses that send visitors
 somewhere new.
 
