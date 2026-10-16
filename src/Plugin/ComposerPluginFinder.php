@@ -19,6 +19,7 @@ use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionSchema;
 use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
@@ -97,6 +98,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 		$name  = is_string($package['name'] ?? null) ? $package['name'] : '';
 		$extra = is_array($package['extra'] ?? null) ? $package['extra'] : [];
 		$blush = is_array($extra['blush'] ?? null) ? $extra['blush'] : [];
+		$blush = ExtensionSchema::Plugin->upgrade(array_filter($blush, is_string(...), ARRAY_FILTER_USE_KEY), "{$name}'s composer.json", $this->messages);
 
 		return PluginManifest::fromArray([
 			'name'        => $name,

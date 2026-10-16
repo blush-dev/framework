@@ -1454,6 +1454,13 @@ Each stage ends with `composer check`, `npm run admin:build`, the
    the gradient allowlist as a token type.
 3. **The themes** (built): Workbench, Bound, and Walnut on the jtcom trial.
 
+### Versioning extension JSON (D-908): done
+
+`schemaVersion` in every extension manifest and `tokens.json` (under
+`extra.blush` for Composer packages), versioned schema files
+(`theme.v1.schema.json`), upgrades on read, newer versions broken, and
+the check commands' warnings. Built in one stage.
+
 ### Backups (D-881): done
 
 From the backups sketch (`backups-sketch.html`), D-881 to D-887. Each

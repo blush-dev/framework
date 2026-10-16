@@ -361,11 +361,13 @@ manifest broken, like any other key.
 
 Blush ships a JSON Schema for `theme.json`, so editors such as VS Code and
 PhpStorm can suggest keys, show what each one does, and flag mistakes.
-`theme:new` points the manifest at it with a `$schema` key:
+`theme:new` points the manifest at it with a `$schema` key, beside the
+[schema version](extending.md#schema-versions) the file is written to:
 
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "acme/notebook"
 }
 ```

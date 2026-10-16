@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The JSON Schema editors check this file with."
 		},
+		"schemaVersion": {
+			"const": 1,
+			"description": "The version of the schema this file is written to. Without it, it's 1. Blush reads older versions and refuses newer ones; this schema is version 1."
+		},
 		"color": {
 			"type": "object",
 			"additionalProperties": false,

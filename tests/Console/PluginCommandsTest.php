@@ -198,7 +198,8 @@ final class PluginCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertSame(
 			[
-				'$schema'   => '../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json',
+				'$schema'       => '../../../vendor/blush-dev/framework/resources/schemas/plugin.v1.schema.json',
+				'schemaVersion' => 1,
 				'name'      => 'acme/scaffold-test',
 				'label'     => 'Scaffold',
 				'namespace' => 'acme-scaffold-test',

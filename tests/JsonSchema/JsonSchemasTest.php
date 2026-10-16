@@ -192,12 +192,12 @@ final class JsonSchemasTest extends TestCase
 
 	public function testManifestsAcceptASchemaKey(): void
 	{
-		$theme = ThemeManifest::fromArray('/themes/nova', ['$schema' => 'theme.schema.json', 'name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova']);
+		$theme = ThemeManifest::fromArray('/themes/nova', ['$schema' => 'theme.v1.schema.json', 'name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova']);
 
 		$this->assertSame('acme/nova', $theme->name);
 
 		$plugin = PluginManifest::fromArray([
-			'$schema'   => 'plugin.schema.json',
+			'$schema'   => 'plugin.v1.schema.json',
 			'name'      => 'acme/gallery',
 			'label'     => 'Gallery',
 			'namespace' => 'gallery',

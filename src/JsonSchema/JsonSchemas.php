@@ -28,6 +28,7 @@ use Blush\Content\Relation\TranslationRule;
 use Blush\Core\Framework;
 use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
+use Blush\Extension\ExtensionSchema;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Field\ControlType;
 use Blush\Field\LibraryField;
@@ -92,23 +93,26 @@ final readonly class JsonSchemas
 	private const string PATH_INSIDE_PATTERN = '^(?!/)(?!.*\\.\\.).*$';
 
 	/**
-	 * Returns every schema, by file name.
+	 * Returns every schema, by file name. An extension's files are named
+	 * for the current version of their schema (`theme.v1.schema.json`,
+	 * D-908); an older version's file is kept as it was released, never
+	 * written again.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function all(): array
 	{
 		return [
-			'admin-theme.schema.json' => $this->adminTheme(),
-			'entry.schema.json'       => $this->entry(),
-			'field.schema.json'       => $this->libraryField(),
-			'icons.schema.json'       => $this->iconPack(),
-			'media.schema.json'       => $this->media(),
-			'menu.schema.json'        => $this->menu(),
-			'plugin.schema.json'      => $this->plugin(),
-			'relation.schema.json'    => $this->relation(),
-			'theme.schema.json'       => $this->theme(),
-			'tokens.schema.json'      => $this->tokens()
+			ExtensionSchema::AdminTheme->file() => $this->adminTheme(),
+			'entry.schema.json'                 => $this->entry(),
+			'field.schema.json'                 => $this->libraryField(),
+			ExtensionSchema::IconPack->file()   => $this->iconPack(),
+			'media.schema.json'                 => $this->media(),
+			'menu.schema.json'                  => $this->menu(),
+			ExtensionSchema::Plugin->file()     => $this->plugin(),
+			'relation.schema.json'              => $this->relation(),
+			ExtensionSchema::Theme->file()      => $this->theme(),
+			ExtensionSchema::AdminTokens->file()     => $this->tokens()
 		];
 	}
 
@@ -196,6 +200,7 @@ final readonly class JsonSchemas
 			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				ExtensionSchema::KEY => $this->schemaVersion(ExtensionSchema::Theme),
 				...$this->identity('theme'),
 				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the theme is for.'],
@@ -310,6 +315,7 @@ final readonly class JsonSchemas
 			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				ExtensionSchema::KEY => $this->schemaVersion(ExtensionSchema::Plugin),
 				...$this->identity('plugin'),
 				'version'     => ['type' => 'string', 'default' => '0.0.0', 'description' => 'The plugin\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the plugin does.'],
@@ -364,6 +370,7 @@ final readonly class JsonSchemas
 			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				ExtensionSchema::KEY => $this->schemaVersion(ExtensionSchema::IconPack),
 				...$this->identity('icon pack'),
 				'version'     => ['type' => 'string', 'description' => 'The pack\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the icons are.'],
@@ -402,6 +409,7 @@ final readonly class JsonSchemas
 			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				ExtensionSchema::KEY => $this->schemaVersion(ExtensionSchema::AdminTheme),
 				...$identity,
 				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the theme looks like, in a few words, shown beside its swatch.'],
@@ -431,7 +439,11 @@ final readonly class JsonSchemas
 			'description'          => 'What an admin theme changes: colors, fonts, type sizes, radii, and padding. Anything it leaves out is the Neutral theme\'s. Every color is light-dark(light, dark), or one color for both schemes.',
 			'type'                 => 'object',
 			'additionalProperties' => false,
-			'properties'           => ['$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'], ...$this->tokenGroup('')['properties']]
+			'properties'           => [
+				'$schema'            => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				ExtensionSchema::KEY => $this->schemaVersion(ExtensionSchema::AdminTokens),
+				...$this->tokenGroup('')['properties']
+			]
 		];
 	}
 
@@ -888,6 +900,21 @@ final readonly class JsonSchemas
 				['type' => 'string'],
 				['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string', 'minLength' => 1]]
 			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a file's `schemaVersion` (D-908): this
+	 * schema's version, so a file that names one version and points
+	 * `$schema` at another's is caught.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function schemaVersion(ExtensionSchema $schema): array
+	{
+		return [
+			'const'       => $schema->current(),
+			'description' => sprintf('The version of the schema this file is written to. Without it, it\'s 1. Blush reads older versions and refuses newer ones; this schema is version %d.', $schema->current())
 		];
 	}
 

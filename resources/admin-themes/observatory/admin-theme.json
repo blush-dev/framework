@@ -1,5 +1,6 @@
 {
-	"$schema": "../../schemas/admin-theme.schema.json",
+	"$schema": "../../schemas/admin-theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "blush/observatory",
 	"label": "Observatory",
 	"description": "A star chart on paper, the night sky in the dark, a nebula magenta accent",

@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Admin\Theme\AdminTheme;
 use Blush\Admin\Theme\AdminThemeContrast;
 use Blush\Admin\Theme\AdminThemes;
+use Blush\Admin\Theme\AdminTokens;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
@@ -23,8 +24,10 @@ use Blush\Console\Outcome;
 use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\ExtensionText;
+use Blush\Extension\ManifestFile;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -105,10 +108,17 @@ final readonly class CheckAdminThemes
 				$lines[] = new StatusLine(Outcome::Warning, $theme->name, (string) $abandoned);
 			}
 
+			// Files of an older schema version are still read (D-908).
+			$outdated = array_filter([ManifestFile::outdated($theme->path, ExtensionKind::AdminTheme), AdminTokens::outdated($theme->path)]);
+
+			foreach ($outdated as $warning) {
+				$lines[] = new StatusLine(Outcome::Warning, $theme->name, (string) $warning);
+			}
+
 			// A version Composer can't read meets only `*` (D-429, D-430).
 			if ($theme->version !== '' && VersionConstraint::normalize($theme->version) === null) {
 				$lines[] = new StatusLine(Outcome::Warning, $theme->name, sprintf('Its version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".', $theme->version));
-			} elseif ($abandoned === null && $catalogs === [] && $contrast === [] && Requirements::met($checked)) {
+			} elseif ($abandoned === null && $outdated === [] && $catalogs === [] && $contrast === [] && Requirements::met($checked)) {
 				$lines[] = new StatusLine(Outcome::Pass, $theme->name, $theme->version);
 			}
 

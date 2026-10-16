@@ -71,7 +71,8 @@ only (D-631).
 ### `theme.json`
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "acme/nova",
 	"label": "Nova",
 	"namespace": "nova",
@@ -97,8 +98,9 @@ only (D-631).
 	}
 }
 ```
-- Blush ships a JSON Schema (`resources/schemas/theme.schema.json`, D-206)
-  so editors autocomplete and validate it.
+- Blush ships a JSON Schema (`resources/schemas/theme.v1.schema.json`, D-206)
+  so editors autocomplete and validate it, one file per `schemaVersion`
+  (D-908).
 - A page loads the **active** theme's `styles` and `scripts`, each resolved
   through the chain. Ancestors' own lists aren't loaded automatically
   (D-105).

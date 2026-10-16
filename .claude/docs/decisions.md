@@ -28580,3 +28580,106 @@ decision, add a new entry that supersedes it and mark the old one
     since it moved to Tools (D-901).
 - **Status:** Recorded.
 
+
+### D-907: Responses' admin first; threads as Reply To links; a design brief
+
+- **Date:** 2026-10-16
+- **Status:** Planned; nothing built. Builds on the Responses leaning
+  in `open-questions.md` and D-735's statuses.
+- **Decision:** The author's calls:
+  - **The admin first.** The design team gets a brief for the admin's
+    screens only (`admin-design/responses-brief.md`): a Responses
+    screen under Content, with Pending, Approved, Spam, and Trash tabs
+    and rows that act at once with Undo; a screen for each response;
+    and a Responses row in the editor's Document tab, an item on the
+    Dashboard, and a Responses section on Roles. The front end, type
+    and site settings, and spam rules come later.
+  - **Threads in the admin are a "Reply to *Name*" link** on the
+    response that answers another. Lists are always flat; a
+    response's screen lists the replies to it.
+  - **Webmention and reviews:** whether each is in core or a plugin is
+    decided later. The brief leaves room for kinds beyond Comment.
+- **Why:** the author's answers, 2026-10-16. The admin is what needs a
+  design before anything is built.
+
+### D-908: Extension JSON carries `schemaVersion`, against versioned schemas
+
+- **Date:** 2026-10-16
+- **Status:** Built (see **Built** below). Settles the manifest half of
+  **Versioning manifest and schema shapes** and **Versioning every
+  JSON file Blush writes** (`open-questions.md`); data files Blush
+  writes stay open there.
+- **Decision:** The author's calls:
+  - **The files:** `plugin.json`, `theme.json`, `icons.json`,
+    `admin-theme.json`, and `tokens.json` each carry `schemaVersion`,
+    an integer naming the version of the JSON Schema the file is
+    written to. Each file has its own, since each schema changes on
+    its own. Only the JSON's shape is versioned; an extension's PHP
+    side is covered by `require` on `blush-dev/framework`.
+  - **Composer packages** keep it under `extra.blush`, as every Blush
+    key (D-378, D-418). A local manifest never takes it from the
+    `composer.json` beside it.
+  - **Missing means 1.** `plugin:new`, `theme:new`, and the other
+    starters always write it.
+  - **Versioned schemas:** one file per version
+    (`theme.v1.schema.json`), never changed once released, with
+    `schemaVersion` a `const` in each so a file that names one version
+    and points `$schema` at another is caught. Starters point
+    `$schema` at the version they write.
+  - **Older versions are upgraded as they're read:** each kind's
+    reader runs steps (1 to 2, 2 to 3) on the decoded array before
+    building the manifest, and the result is cached with discovery.
+    Blush never rewrites an extension's files.
+  - **Newer versions** than Blush knows make the extension broken
+    ("needs a newer Blush"), listed as broken manifests are (D-394),
+    never read as an older shape.
+  - **The check commands** (`plugin:check`, `theme:check`,
+    `icon-pack:check`, and the admin theme's) warn about an older
+    version and show the upgraded file.
+  - **Support:** every version released in 2.x is read throughout
+    2.x; a major release may drop old ones.
+  - **The name:** `schemaVersion`, not `formatVersion` or
+    `apiVersion`. "Format" is vague for a file someone writes against
+    a published schema; "API" in Blush means `Blush\Api` and the PHP
+    API, and the code isn't what's versioned. `backup.json` keeps
+    `formatVersion` (D-889): it's a layout Blush writes and reads
+    itself, with no published schema, so the two keys name different
+    things.
+- **Why:** the shape of extension JSON will change over time, and
+  Blush needs to know which shape a file is in to read or upgrade it.
+  The author's answers, 2026-10-16.
+- **Built:** `Blush\Extension\ExtensionSchema` (an enum of the five
+  schemas, the tokens one named in D-909: `current()`, `file()`, `version()`, `upgrade()` with no steps
+  yet, and `outdated()`); `ManifestFile::compose()`, which every
+  manifest read goes through (`load()`, `LocalExtension::read()`),
+  upgrading the file and `extra.blush` each by its own version
+  (`ComposerJson::fill()` takes the upgraded `extra.blush`);
+  `ComposerPluginFinder` upgrading a package's `extra.blush`;
+  `AdminTokens::load()` upgrading `tokens.json`; the five schemas
+  renamed `{name}.v1.schema.json` with `schemaVersion` a `const`;
+  `plugin:new` and `theme:new` writing it; the four check commands'
+  warnings (`ManifestFile::outdated()`, `AdminTokens::outdated()`);
+  the bundled themes and admin themes and the jtcom trial's extensions
+  and `.vscode/settings.json` given it; `docs/extending.md` (**Schema
+  versions**), `themes.md`, `admin-themes.md`, and `cli.md`.
+- **Checked:** `composer check`; the trial's `plugin:check`,
+  `icon-pack:check`, `admin-theme:check`, and `theme:check`.
+
+### D-909: The admin theme tokens schema is `admin-tokens`
+
+- **Date:** 2026-10-16
+- **Amends:** D-908's schema file for an admin theme's `tokens.json`.
+- **Decision:** Its schema is `admin-tokens.v1.schema.json`
+  (`ExtensionSchema::AdminTokens`), not `tokens.v1.schema.json`. The
+  file in an admin theme stays `tokens.json`: the manifest beside it
+  says whose tokens they are.
+- **Why:** the author's call, 2026-10-16. A released schema file never
+  changes (D-908), so the name had to be right before 2.0. Plain
+  `tokens` would claim the name for every theme, and if regular themes
+  get tokens again (D-160), theirs are another set with their own
+  schema (`theme-tokens`). `admin-tokens` matches the code
+  (`AdminTokens`, `AdminToken`) and says what they are: the admin's
+  tokens, which an admin theme sets. `admin-theme-tokens` was
+  considered and set aside as longer for no gain.
+- **Status:** Built: the schema renamed, the enum case, the bundled
+  admin themes, the jtcom trial's, the tests, and the docs.

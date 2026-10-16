@@ -15,6 +15,7 @@ namespace Blush\Admin\Theme;
 
 use JsonException;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionSchema;
 use Blush\Translation\Messages;
 use Blush\Translation\Text;
 
@@ -61,7 +62,7 @@ final readonly class AdminTokens
 	 * Reads a theme's `tokens.json`. What's wrong is written with
 	 * `$messages`, and kept with the exception (`ExtensionException::$text`).
 	 *
-	 * @throws ExtensionException When it's missing, can't be parsed, or sets something it can't.
+	 * @throws ExtensionException When it's missing, can't be parsed, sets something it can't, or is of a schema version Blush can't read (D-908).
 	 */
 	public static function load(string $path, Messages $messages = new Messages()): self
 	{
@@ -77,7 +78,26 @@ final readonly class AdminTokens
 			throw new ExtensionException($messages->t('admin.admin_tokens.unreadable', 'its {file} is invalid: {problem}', file: self::FILE, problem: $e->getMessage()), previous: $e);
 		}
 
-		return self::fromArray(is_array($data) ? $data : [], $path, $messages);
+		$data = is_array($data) ? array_filter($data, is_string(...), ARRAY_FILTER_USE_KEY) : [];
+
+		return self::fromArray(ExtensionSchema::AdminTokens->upgrade($data, self::FILE, $messages), $path, $messages);
+	}
+
+	/**
+	 * Returns a warning when a theme's `tokens.json` is written to an
+	 * older schema version than the current (D-908), showing it upgraded.
+	 */
+	public static function outdated(string $path, Messages $messages = new Messages()): ?Text
+	{
+		$file = "{$path}/" . self::FILE;
+
+		try {
+			$data = is_file($file) ? json_decode((string) file_get_contents($file), true, 64, JSON_THROW_ON_ERROR) : null;
+		} catch (JsonException) {
+			return null;
+		}
+
+		return is_array($data) ? ExtensionSchema::AdminTokens->outdated(array_filter($data, is_string(...), ARRAY_FILTER_USE_KEY), self::FILE, $messages) : null;
 	}
 
 	/**

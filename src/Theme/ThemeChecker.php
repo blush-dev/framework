@@ -24,9 +24,12 @@ use Blush\Content\Http\PageKind;
 use Blush\Core\Framework;
 use Blush\Core\ServiceProvider;
 use Blush\Extension\ExtensionAbandoned;
+use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionSchema;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\ExtensionText;
 use Blush\Extension\LocalAutoloader;
+use Blush\Extension\ManifestFile;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -215,6 +218,13 @@ final readonly class ThemeChecker
 		// An abandoned theme still runs, as in Composer (D-433).
 		if ($abandoned !== null) {
 			$problems[] = new Violation('abandoned', $this->messages->t('theme.theme_checker.abandoned', 'The "{theme}" theme: {warning}', theme: $theme->name, warning: $abandoned), Severity::Warning);
+		}
+
+		// A manifest of an older schema version is still read (D-908).
+		$outdated = $theme->path === '' ? null : ManifestFile::outdated($theme->path, ExtensionKind::Theme, $this->messages);
+
+		if ($outdated !== null) {
+			$problems[] = new Violation(ExtensionSchema::KEY, $outdated, Severity::Warning);
 		}
 
 		// A version Composer can't read meets only `*` (D-429, D-430).

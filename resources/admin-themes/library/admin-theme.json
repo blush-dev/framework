@@ -1,5 +1,6 @@
 {
-	"$schema": "../../schemas/admin-theme.schema.json",
+	"$schema": "../../schemas/admin-theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "blush/library",
 	"label": "Library",
 	"description": "Cool parchment, a bottle-green accent, serif titles",

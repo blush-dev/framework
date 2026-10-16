@@ -1109,6 +1109,40 @@ The admin lists them under **Extensions** (Themes, Plugins, and Icon
 Packs), and installs them from a `.zip` (see
 [Installing from a zip](#installing-from-a-zip)).
 
+### Schema versions
+
+The shape of an extension's JSON files can change between Blush
+versions. So that Blush always knows which shape it's reading, each
+file says the version of the schema it's written to, in
+`schemaVersion`:
+
+```json
+{
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/plugin.v1.schema.json",
+	"schemaVersion": 1,
+	"name": "acme/hello"
+}
+```
+
+- It's in `plugin.json`, `theme.json`, `icons.json`, `admin-theme.json`,
+  and an admin theme's `tokens.json`, each with its own version. A
+  Composer package without a manifest file puts it under
+  `extra.blush`. A manifest file's version is never taken from
+  `composer.json`.
+- Without it, a file is version 1. `plugin:new` and `theme:new` always
+  write it.
+- Each version has its own schema file, such as `theme.v1.schema.json`,
+  which never changes once it's released. Point `$schema` at the
+  version your file says.
+- A file written to an older version still works: Blush reads it in
+  the current shape and never changes it. `plugin:check`,
+  `theme:check`, `icon-pack:check`, and `admin-theme:check` warn about
+  it and show the file written for the current version.
+- A file written to a newer version than your Blush reads is broken,
+  and listed as needing a newer Blush.
+- Every version released in 2.x is read throughout 2.x. A later major
+  release may drop old ones.
+
 ## Installing from a zip
 
 **Install Theme**, **Install Plugin**, **Install Icon Pack**, and
@@ -1331,11 +1365,13 @@ a list of strings is an error; in `composer.json`, anything that isn't
 a string is left out.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
-schema Blush ships (the path is relative to `plugin.json`):
+schema Blush ships for your file's [schema version](#schema-versions)
+(the path is relative to `plugin.json`):
 
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/plugin.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "acme/hello"
 }
 ```
@@ -2217,7 +2253,8 @@ then show nowhere. A theme (or a child theme) can restyle one with
 `icons/brands/github.svg` (see [Icons](blocks.md#icons)).
 
 For autocomplete, point `$schema` at
-`vendor/blush-dev/framework/resources/schemas/icons.schema.json`.
+`vendor/blush-dev/framework/resources/schemas/icons.v1.schema.json`,
+the schema for its [schema version](#schema-versions).
 
 **A Composer icon pack** is a package of type `blush-icons`. Its
 manifest is the `icons.json` in the package, or its `composer.json`'s

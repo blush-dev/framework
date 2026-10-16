@@ -24,6 +24,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\ExtensionSchema;
 use Blush\Extension\InstalledExtensions;
 use Blush\Extension\LocalExtensions;
 use Blush\JsonSchema\JsonSchemas;
@@ -96,9 +97,10 @@ final readonly class CreatePlugin
 
 		$label  ??= ucwords(str_replace(['-', '_', '.'], ' ', $short));
 		$class    = self::studly($short) . 'ServiceProvider';
-		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/plugin.schema.json', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY));
+		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/%s', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY, ExtensionSchema::Plugin->file()));
 		$manifest = [
-			'$schema'   => $schema,
+			'$schema'            => $schema,
+			ExtensionSchema::KEY => ExtensionSchema::Plugin->current(),
 			'name'      => $name,
 			'label'     => $label,
 			'namespace' => $namespace,

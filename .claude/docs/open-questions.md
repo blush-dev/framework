@@ -2453,16 +2453,6 @@ Move each item to `decisions.md` once it's answered.
     prints the late point (default layouts always print it, or a theme
     check warns).
 - **Product name** (D-038): the author will decide.
-- **Versioning manifest and schema shapes** (raised 2026-10-04): the
-  author wants a version on JSON manifests (extension and theme
-  manifests, D-418) and on every schema-like file (the editor JSON
-  Schemas, D-206; `user/data/` files such as `settings.json` and
-  `types`), so a future change of shape can be detected and migrated
-  rather than misread. Undecided: the key (a `version`/`schemaVersion`
-  integer, or a versioned `$schema` URL), what a missing version means
-  (version 1), whether loaders migrate old shapes or refuse them, and
-  how this fits Composer-shaped manifests that fall back to
-  `composer.json`, which has no such key.
 - **Schemas for content types and settings** (raised 2026-10-05, after
   D-491; the author: "wait on this for later"): editor JSON Schemas
   (D-206) for `user/data/types/*` and `user/data/settings.json`, so
@@ -2566,9 +2556,12 @@ Move each item to `decisions.md` once it's answered.
     - **Reviews:** visitor reviews only, or also an author reviewing
       something with visitor responses under it; an average and count
       per entry, cached, for templates and `AggregateRating`.
-    - **Moderation in the admin:** a Responses screen under Content
-      (status tabs as the entry lists have), tabs inside each entry, or
-      both.
+    - **Moderation in the admin:** settled in D-907: a Responses
+      screen under Content and a row in the editor's Document tab,
+      with threads as Reply To links; a brief for the design team in
+      `admin-design/responses-brief.md`.
+    - **Webmention and reviews, core or plugin:** decided later
+      (D-907).
     - **Core or plugin overall:** the leaning is the model, storage
       area, per-type setting, moderation, comments, and reviews in core.
 - **Forums and shops** (discussed 2026-10-05; leaning, not decided):
@@ -2615,11 +2608,13 @@ Move each item to `decisions.md` once it's answered.
     `<nav>`'s accessible name; they may need to be separate.
 
 - **Versioning every JSON file Blush writes** (the author, 2026-10-16,
-  "for a different day"): a `formatVersion` key, as `backup.json` has
-  (D-889), in data files, settings, sidecars, and the rest, so a reader
-  knows the layout it's reading and migrations know where to start.
-  Open: which files, whether front matter and extension manifests take
-  part, and what reads an older or newer one.
+  "for a different day"): extension JSON is settled in D-908
+  (`schemaVersion`, against versioned schemas). Still open: data
+  files, settings, sidecars, and the rest Blush writes itself, and
+  whether front matter takes part. The 2026-10-16 discussion leaned
+  toward a version per record table rather than per file (each driver
+  storing it its own way, migrations run once ahead of reads, newer
+  refused), not decided.
 
 - **Encrypting backups** (D-887, kept for later by the author, 2026-10-16):
   an optional passphrase, per backup and on the schedule, never on by

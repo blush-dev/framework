@@ -85,7 +85,8 @@ extensions/acme/harbor/
 
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/admin-theme.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/admin-theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "acme/harbor",
 	"label": "Harbor",
 	"description": "Sea blues and a serif for titles",
@@ -101,7 +102,9 @@ extensions/acme/harbor/
 
 It takes `version`, `authors`, `license`, `require`, `conflict`,
 `replace`, `provide`, `abandoned`, `suggest`, `keywords`, and links as
-every [manifest](extending.md#extensions) does. An admin theme has no
+every [manifest](extending.md#extensions) does. `schemaVersion` is the
+version of the schema the file is written to, and `tokens.json` has
+its own (see [Schema versions](extending.md#schema-versions)). An admin theme has no
 `namespace`: it has no blocks, components, icons, or text of its own.
 
 To publish a theme as a Composer package instead, give its
@@ -115,7 +118,8 @@ the UI font:
 
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/tokens.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/admin-tokens.v1.schema.json",
+	"schemaVersion": 1,
 	"color": {
 		"accent": {
 			"default": "light-dark(#1d4e89, #8fb8e8)",

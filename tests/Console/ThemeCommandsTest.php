@@ -101,7 +101,8 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertSame(
 			[
-				'$schema'   => '../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json',
+				'$schema'       => '../../../vendor/blush-dev/framework/resources/schemas/theme.v1.schema.json',
+				'schemaVersion' => 1,
 				'name'      => 'acme/nova',
 				'label'     => 'Nova Theme',
 				'namespace' => 'acme-nova',

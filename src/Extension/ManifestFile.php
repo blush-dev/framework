@@ -15,6 +15,7 @@ namespace Blush\Extension;
 
 use JsonException;
 use Blush\Translation\Messages;
+use Blush\Translation\Text;
 
 /**
  * Finds and reads an extension's manifest file, for every kind: JSON, as
@@ -40,13 +41,47 @@ final readonly class ManifestFile
 	 * D-432).
 	 *
 	 * @return array<string, mixed>
-	 * @throws ExtensionException When the manifest can't be parsed or isn't a map.
+	 * @throws ExtensionException When the manifest can't be parsed, isn't a map, or is of a schema version Blush can't read.
 	 */
 	public static function load(string $folder, ExtensionKind $kind, Messages $messages = new Messages()): array
 	{
+		return self::compose(self::find($folder, $kind), $folder, $kind, $messages);
+	}
+
+	/**
+	 * Reads a manifest file, or none, filled in from the `composer.json`
+	 * in its folder, each in the current schema version's shape (D-908):
+	 * the file by its own `schemaVersion`, and `extra.blush` by its own,
+	 * never the file's taken from `extra.blush`.
+	 *
+	 * @return array<string, mixed>
+	 * @throws ExtensionException When the manifest can't be parsed, isn't a map, or is of a schema version Blush can't read.
+	 */
+	public static function compose(?string $file, string $folder, ExtensionKind $kind, Messages $messages = new Messages()): array
+	{
+		$schema = ExtensionSchema::of($kind);
+		$blush  = ComposerJson::blush(ComposerJson::read($folder));
+		$data   = $file === null ? [] : $schema->upgrade(self::read($file, $messages), $file, $messages);
+
+		return ComposerJson::fill($data, $folder, $blush === [] ? [] : $schema->upgrade($blush, "{$folder}/composer.json", $messages));
+	}
+
+	/**
+	 * Returns a warning for a folder's manifest, or its `composer.json`'s
+	 * `extra.blush` without one, when it's written to an older schema
+	 * version than the current (D-908), showing it upgraded.
+	 */
+	public static function outdated(string $folder, ExtensionKind $kind, Messages $messages = new Messages()): ?Text
+	{
 		$file = self::find($folder, $kind);
 
-		return ComposerJson::fill($file === null ? [] : self::read($file, $messages), $folder);
+		try {
+			$data = $file === null ? ComposerJson::blush(ComposerJson::read($folder)) : self::read($file, $messages);
+		} catch (ExtensionException) {
+			return null;
+		}
+
+		return ExtensionSchema::of($kind)->outdated($data, $file ?? "{$folder}/composer.json", $messages);
 	}
 
 	/**

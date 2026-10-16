@@ -2405,6 +2405,11 @@
 		"extension_suggest": {
 			"not_object": "\"suggest\" must be an object.",
 			"not_map": "\"suggest\" must map names to why each is suggested."
+		},
+		"extension_schema": {
+			"invalid": "The \"{name}\" in {file} must be a whole number, 1 or more.",
+			"newer": "{file} is written to schema version {version}, and this Blush reads up to version {current}; it needs a newer Blush.",
+			"outdated": "{file} is written to schema version {version}; the current is {current}. Blush still reads it. Written for version {current}, it's:\n{json}"
 		}
 	},
 	"cache": {

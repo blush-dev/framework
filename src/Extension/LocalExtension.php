@@ -55,7 +55,7 @@ final readonly class LocalExtension
 			throw new ExtensionException($this->problem);
 		}
 
-		$data = ComposerJson::fill($this->file === null ? [] : ManifestFile::read($this->file, $this->messages), $this->path);
+		$data = ManifestFile::compose($this->file, $this->path, $this->kind, $this->messages);
 		$name = $data['name'] ?? null;
 
 		// A name that isn't one at all is the manifest's to refuse.

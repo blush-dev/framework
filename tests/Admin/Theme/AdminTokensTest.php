@@ -62,7 +62,7 @@ final class AdminTokensTest extends TestCase
 	public function testReadsTokensAndWritesTheirStylesheet(): void
 	{
 		$tokens = AdminTokens::fromArray([
-			'$schema' => 'tokens.schema.json',
+			'$schema' => 'admin-tokens.v1.schema.json',
 			'color'   => [
 				'background' => 'light-dark(#F6F2EC, #15120e)',
 				'surface'    => '#fff',

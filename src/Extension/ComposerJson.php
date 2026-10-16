@@ -46,14 +46,18 @@ final readonly class ComposerJson
 	 * too (D-437, D-438): Blush checks a `require` or `conflict` naming a
 	 * library against what Composer installed, as Composer does.
 	 *
-	 * @param  array<string, mixed> $data
+	 * `$blush` stands in for its `extra.blush`, when it's been read already
+	 * (in the current schema version's shape, D-908).
+	 *
+	 * @param  array<string, mixed>  $data
+	 * @param  ?array<string, mixed> $blush
 	 * @return array<string, mixed>
 	 */
-	public static function fill(array $data, string $folder): array
+	public static function fill(array $data, string $folder, ?array $blush = null): array
 	{
 		$composer = self::read($folder);
 
-		foreach (self::blush($composer) as $key => $value) {
+		foreach ($blush ?? self::blush($composer) as $key => $value) {
 			if (! array_key_exists($key, $data)) {
 				$data[$key] = $value;
 			}

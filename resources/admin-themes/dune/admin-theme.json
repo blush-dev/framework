@@ -1,5 +1,6 @@
 {
-	"$schema": "../../schemas/admin-theme.schema.json",
+	"$schema": "../../schemas/admin-theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "blush/dune",
 	"label": "Dune",
 	"description": "Sand in late sun, with the twilight indigo of the dunes' shadow side",

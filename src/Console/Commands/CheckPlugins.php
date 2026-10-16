@@ -20,8 +20,10 @@ use Blush\Console\Outcome;
 use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\ExtensionText;
+use Blush\Extension\ManifestFile;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -112,10 +114,17 @@ final readonly class CheckPlugins
 				$lines[] = new StatusLine(Outcome::Warning, $plugin->name, (string) $abandoned);
 			}
 
+			// A manifest of an older schema version is still read (D-908).
+			$outdated = $plugin->path === '' ? null : ManifestFile::outdated($plugin->path, ExtensionKind::Plugin);
+
+			if ($outdated !== null) {
+				$lines[] = new StatusLine(Outcome::Warning, $plugin->name, (string) $outdated);
+			}
+
 			// A version Composer can't read meets only `*` (D-429).
 			if (VersionConstraint::normalize($plugin->version) === null) {
 				$lines[] = new StatusLine(Outcome::Warning, $plugin->name, sprintf('Its version, "%s", isn\'t one Composer can read, so a plugin that requires it is met only by "*".', $plugin->version));
-			} elseif ($abandoned === null && $catalogs === [] && Requirements::met($checked)) {
+			} elseif ($abandoned === null && $outdated === null && $catalogs === [] && Requirements::met($checked)) {
 				$lines[] = new StatusLine(Outcome::Pass, $plugin->name, $plugin->version);
 			}
 

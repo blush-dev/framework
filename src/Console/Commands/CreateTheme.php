@@ -20,6 +20,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Extension\ExtensionSchema;
 use Blush\Extension\ExtensionText;
 use Blush\Console\Prompt;
 use Blush\Console\StatusLine;
@@ -100,9 +101,10 @@ final readonly class CreateTheme
 		$activate      = $activate || $prompt->confirm('Activate it now?');
 
 		$folder   = LocalExtensions::path($this->paths, $name);
-		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/theme.schema.json', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY));
+		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/%s', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY, ExtensionSchema::Theme->file()));
 		$manifest = [
-			'$schema'   => $schema,
+			'$schema'            => $schema,
+			ExtensionSchema::KEY => ExtensionSchema::Theme->current(),
 			'name'      => $name,
 			'label'     => $label,
 			...($description === '' ? [] : ['description' => $description]),

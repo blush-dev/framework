@@ -20,8 +20,10 @@ use Blush\Console\Outcome;
 use Blush\Console\Output;
 use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\ExtensionText;
+use Blush\Extension\ManifestFile;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -93,10 +95,17 @@ final readonly class CheckIconPacks
 				$lines[] = new StatusLine(Outcome::Warning, $pack->name, (string) $abandoned);
 			}
 
+			// A manifest of an older schema version is still read (D-908).
+			$outdated = $pack->path === '' ? null : ManifestFile::outdated($pack->path, ExtensionKind::IconPack);
+
+			if ($outdated !== null) {
+				$lines[] = new StatusLine(Outcome::Warning, $pack->name, (string) $outdated);
+			}
+
 			// A version Composer can't read meets only `*` (D-429, D-430).
 			if ($pack->version !== '' && VersionConstraint::normalize($pack->version) === null) {
 				$lines[] = new StatusLine(Outcome::Warning, $pack->name, sprintf('Its version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".', $pack->version));
-			} elseif ($abandoned === null && $catalogs === [] && Requirements::met($checked)) {
+			} elseif ($abandoned === null && $outdated === null && $catalogs === [] && Requirements::met($checked)) {
 				$lines[] = new StatusLine(Outcome::Pass, $pack->name, $pack->version);
 			}
 

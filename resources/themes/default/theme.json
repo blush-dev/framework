@@ -1,5 +1,6 @@
 {
-	"$schema": "../../schemas/theme.schema.json",
+	"$schema": "../../schemas/theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "blush/default",
 	"label": "Default",
 	"namespace": "default",

@@ -1,5 +1,6 @@
 {
-	"$schema": "../../schemas/admin-theme.schema.json",
+	"$schema": "../../schemas/admin-theme.v1.schema.json",
+	"schemaVersion": 1,
 	"name": "blush/ridgeline",
 	"label": "Ridgeline",
 	"description": "Sunset over the mountains: golden hour, and the ridge in silhouette",
