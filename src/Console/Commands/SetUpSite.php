@@ -15,6 +15,7 @@ namespace Blush\Console\Commands;
 
 use DateTimeZone;
 use Uri\Rfc3986\Uri;
+use Blush\Admin\AdminConfig;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
@@ -28,6 +29,7 @@ use Blush\Console\Prompt;
 use Blush\Core\Environment;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
+use Blush\Env\Env;
 use Blush\Env\EnvException;
 use Blush\Env\EnvFile;
 use Blush\Secret\SecretKeys;
@@ -39,17 +41,20 @@ use Blush\Support\FilesystemException;
  * Sets up a site after it's installed (D-218), and is safe to run again:
  *
  * 1. Creates `.env` from `.env.example` when there's none. In a terminal,
- *    it asks for the site's name, URL, timezone, and environment first.
- *    An existing `.env` is never changed, except to add secrets it lacks.
+ *    it asks for the site's name, URL (DDEV's when it runs there), timezone
+ *    (this computer's to start), and environment first (D-876). An
+ *    existing `.env` is never changed, except to add secrets it lacks.
  * 2. Adds a random `APP_SECRET` when there's none, which signs preview
  *    links (D-226), and a `SECRETS_KEY`, which encrypts stored secrets
- *    (D-715). With `--webhook` (or a yes when asked), also adds a
- *    random `PUBLISH_SECRET`, which turns on the publish webhook. The
- *    webhook stays off otherwise, since it runs publishing on request.
+ *    (D-715). With `--webhook`, also adds a random `PUBLISH_SECRET`,
+ *    which turns on the publish webhook; it isn't asked, and stays off
+ *    otherwise, since it runs publishing on request.
  * 3. Creates the storage folders and reports any Blush can't write to.
  * 4. In a terminal, while there are no accounts, offers to create an
- *    owner (D-217, D-500), and writes its email address to `.env` as
+ *    owner (D-217, D-500): an email address, a name, and a username
+ *    suggested from the email. It writes the email address to `.env` as
  *    `APP_EMAIL`, the site's (D-723), when that isn't set.
+ * 5. Ends with what the site is set up as, and where to go next.
  *
  * The skeleton runs it after `composer create-project`.
  */
@@ -65,7 +70,9 @@ final readonly class SetUpSite
 		private Paths $paths,
 		private Filesystem $filesystem,
 		private Accounts $accounts,
-		private Accounts $manager
+		private Accounts $manager,
+		private Env $env,
+		private AdminConfig $admin
 	) {}
 
 	/**
@@ -106,7 +113,7 @@ final readonly class SetUpSite
 		}
 
 		if (! $file->filled('PUBLISH_SECRET')) {
-			if ($webhook || ($prompt->interactive && $prompt->confirm('Turn on the publish webhook?'))) {
+			if ($webhook) {
 				$file    = $file->with('PUBLISH_SECRET', bin2hex(random_bytes(32)));
 				$changed = true;
 
@@ -126,47 +133,74 @@ final readonly class SetUpSite
 			$output->comment('.env already exists; left as it is.');
 		}
 
-		$code = $this->createStorage($output);
+		$code  = $this->createStorage($output);
+		$owner = null;
 
 		if ($code === ExitCode::Success && $prompt->interactive && $this->accounts->isEmpty()) {
-			$email = $this->offerAccount($output, $prompt);
+			$owner = $this->offerAccount($output, $prompt);
 
-			if ($email !== null) {
-				$this->addSiteEmail($output, $email);
+			if ($owner !== null && $owner->email !== null) {
+				$this->addSiteEmail($output, $owner->email);
 			}
 		}
 
 		if ($code === ExitCode::Success) {
-			$output->success('The site is set up.');
-			$output->next(sprintf('Next: `%1$s doctor` checks it, and `%1$s serve` shows it in a browser.', Framework::BINARY));
+			$this->report($output, $owner);
 		}
 
 		return $code;
 	}
 
 	/**
-	 * Offers to create the first account, the owner (D-500), and returns
-	 * its email address, or `null` when none was made.
+	 * Says the site is set up, what it's set up as from `.env`, and where
+	 * to go next: the admin's sign-in when it's on.
+	 *
+	 * @throws EnvException
+	 */
+	private function report(Output $output, ?Account $owner): void
+	{
+		$file = EnvFile::load("{$this->paths->root}/.env");
+		$url  = (string) $file->get('APP_URL');
+
+		$output->success('The site is set up.');
+		$output->definitions(array_filter([
+			'Name'        => (string) $file->get('APP_NAME'),
+			'URL'         => $url,
+			'Timezone'    => (string) $file->get('APP_TIMEZONE'),
+			'Environment' => (string) $file->get('APP_ENV'),
+			'Owner'       => $owner === null ? '' : $owner->username
+		], static fn (string $value): bool => $value !== ''));
+
+		$output->next($this->admin->enabled && $url !== ''
+			? sprintf('Next: sign in at %2$s, `%1$s doctor` checks the site, and `%1$s serve` shows it in a browser.', Framework::BINARY, rtrim($url, '/') . $this->admin->path)
+			: sprintf('Next: `%1$s doctor` checks the site, and `%1$s serve` shows it in a browser.', Framework::BINARY));
+	}
+
+	/**
+	 * Offers to create the first account, the owner (D-500), asking for
+	 * its email address first, then a name, then a username suggested
+	 * from the email (never `admin`, the first name anyone tries; D-876).
+	 * Returns the account, or `null` when none was made.
 	 *
 	 * @throws InvalidInput
 	 */
-	private function offerAccount(Output $output, Prompt $prompt): ?string
+	private function offerAccount(Output $output, Prompt $prompt): ?Account
 	{
 		if (! $prompt->confirm('Create an owner account for the admin?', true)) {
 			return null;
 		}
 
-		$username = $prompt->ask('Username', 'admin', static function (string $username): ?string {
-			return Account::isValidUsername($username) ? null : 'Use lowercase letters, digits, ".", "_", and "-".';
-		});
-
-		$email = $prompt->ask('Email address', null, static function (string $email): ?string {
+		$email = trim($prompt->ask('Email address', null, static function (string $email): ?string {
 			return Account::isValidEmail(trim($email)) ? null : 'That isn\'t an email address.';
-		});
+		}, 'you@example.com'));
+
+		$name = trim($prompt->ask('Name', '', placeholder: 'What the admin calls you (optional)'));
+
+		$username = $prompt->ask('Username', self::suggestUsername($email), fn (string $username): ?string => $this->manager->usernameProblem($username)?->__toString(), 'jane');
 
 		try {
 			$password = $prompt->newSecret('Password:', 'Password again:', fn (string $password): ?string => $this->manager->passwordProblem($password)?->__toString());
-			$account = $this->manager->create($username, $password, [BuiltInRole::Owner->value], email: $email);
+			$account = $this->manager->create($username, $password, [BuiltInRole::Owner->value], name: $name === '' ? null : $name, email: $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
@@ -175,7 +209,19 @@ final readonly class SetUpSite
 
 		$output->success(sprintf('Created the "%s" account.', $username));
 
-		return $account->email;
+		return $account;
+	}
+
+	/**
+	 * Returns a username made from an email address's name ("Jane.Doe+x"
+	 * is `jane.doe`), or `null` when it doesn't make one.
+	 */
+	private static function suggestUsername(string $email): ?string
+	{
+		$local    = strtolower(strstr($email, '@', true) ?: $email);
+		$username = (string) preg_replace('/[^a-z0-9._-]/', '', explode('+', $local)[0]);
+
+		return Account::isValidUsername($username) ? $username : null;
 	}
 
 	/**
@@ -221,23 +267,23 @@ final readonly class SetUpSite
 	{
 		$name = $prompt->ask('Site name', $file->get('APP_NAME') ?: 'Blush');
 
-		$url = $prompt->ask('Site URL', $file->get('APP_URL') ?: 'http://localhost', static function (string $url): ?string {
+		$url = $prompt->ask('Site URL', $this->env->get('DDEV_PRIMARY_URL') ?: ($file->get('APP_URL') ?: 'http://localhost'), static function (string $url): ?string {
 			return Uri::parse($url) !== null && preg_match('#^https?://#i', $url) === 1
 				? null
 				: 'Enter a full http:// or https:// address.';
 		});
 
-		$timezone = $prompt->ask('Timezone', $file->get('APP_TIMEZONE') ?: 'UTC', static function (string $timezone): ?string {
-			return in_array($timezone, DateTimeZone::listIdentifiers(), true)
-				? null
-				: 'Enter a timezone such as "America/Chicago" or "UTC".';
-		});
+		$timezone = $prompt->find(
+			'Timezone',
+			array_combine(DateTimeZone::listIdentifiers(), DateTimeZone::listIdentifiers()),
+			$this->localTimezone() ?? ($file->get('APP_TIMEZONE') ?: 'UTC'),
+			'Enter a timezone such as "America/Chicago" or "UTC".'
+		);
 
-		$environment = Environment::from($prompt->choice(
-			'Environment',
-			[Environment::Development->value, Environment::Production->value],
-			Environment::Development->value
-		));
+		$environment = Environment::from($prompt->select('Environment', [
+			Environment::Development->value => 'Development: shows errors, for working on this computer',
+			Environment::Production->value  => 'Production: a live site'
+		], Environment::Development->value));
 
 		return $file
 			->with('APP_NAME', $name)
@@ -245,6 +291,24 @@ final readonly class SetUpSite
 			->with('APP_TIMEZONE', $timezone)
 			->with('APP_ENV', $environment->value)
 			->with('APP_DEBUG', $environment->isDevelopment() ? 'true' : 'false');
+	}
+
+	/**
+	 * Returns this computer's timezone, from `TZ` or the zone
+	 * `/etc/localtime` links to, or `null` when neither names one.
+	 */
+	private function localTimezone(): ?string
+	{
+		$link  = @readlink('/etc/localtime');
+		$zones = DateTimeZone::listIdentifiers();
+
+		foreach ([$this->env->get('TZ'), $link === false ? null : preg_replace('#^.*zoneinfo/#', '', $link)] as $zone) {
+			if (is_string($zone) && in_array($zone, $zones, true)) {
+				return $zone;
+			}
+		}
+
+		return null;
 	}
 
 	/**

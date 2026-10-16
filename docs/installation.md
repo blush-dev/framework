@@ -26,15 +26,19 @@ bin/blush init
 ```
 
 `init` sets up the site. It asks for the site's name, address (use
-`http://127.0.0.1:8000` for now), timezone, and environment, and writes
-them to a new `.env` file, with a secret for signing
-[preview links](admin.md#previewing-drafts). It also asks whether to turn on the
-[publish webhook](going-live.md#publishing-without-a-shell), and creates the
+`http://127.0.0.1:8000` for now; under DDEV, its address is offered),
+timezone (your computer's is offered; type to search the list), and
+environment, and writes them to a new `.env` file, with a secret for
+signing [preview links](admin.md#previewing-drafts). It creates the
 `storage/` folders Blush writes to, and offers to create the site's
-owner account for the admin (see [Accounts and roles](accounts.md)), whose
-email address becomes the site's (`APP_EMAIL`). It's safe to run again: it
-never changes a `.env` you already have, except to add missing secrets and
-the site's email address.
+owner account for the admin (see [Accounts and roles](accounts.md)): it
+asks for your email address, your name, and a username (one made from
+your email address is offered). The owner's email address becomes the
+site's (`APP_EMAIL`). It ends with what the site is set up as, and where
+to go next. It's safe to run again: it never changes a `.env` you
+already have, except to add missing secrets and the site's email
+address. The [publish webhook](going-live.md#publishing-without-a-shell)
+isn't asked about; `bin/blush init --webhook` turns it on.
 
 Pick the `development` environment while you build the site. It shows
 content changes right away and gives you detailed error pages. Switch to

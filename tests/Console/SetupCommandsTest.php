@@ -88,7 +88,7 @@ final class SetupCommandsTest extends TestCase
 	{
 		$this->writeTemporaryFile('.env.example', "APP_ENV=production\nAPP_DEBUG=false\nAPP_NAME=\"Blush\"\nAPP_URL=\"http://localhost\"\nAPP_TIMEZONE=\"UTC\"\n");
 
-		$result = $this->command('init', ['My Site', 'not a url', 'https://example.test', 'Nowhere/Town', 'America/Chicago', '1', 'no', 'no']);
+		$result = $this->command('init', ['My Site', 'not a url', 'https://example.test', 'Nowhere/Town', 'America/Chicago', '1', 'no']);
 		$env    = $this->env();
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
@@ -99,6 +99,18 @@ final class SetupCommandsTest extends TestCase
 		$this->assertSame('true', $env->get('APP_DEBUG'));
 		$this->assertFalse($env->filled('PUBLISH_SECRET'));
 		$this->assertStringContainsString('Enter a full http:// or https:// address.', $result->errors);
+		$this->assertStringContainsString('Enter a timezone such as "America/Chicago" or "UTC".', $result->errors, 'A timezone is typed, not picked from a printed list, without a drawn prompt.');
+		$this->assertStringNotContainsString('webhook', $result->output, 'The publish webhook isn\'t asked about (D-876).');
+		$this->assertMatchesRegularExpression('/Name\s+My Site\n\s+URL\s+https:\/\/example\.test\n\s+Timezone\s+America\/Chicago\n\s+Environment\s+development/', $result->output, 'It ends with what the site is set up as.');
+	}
+
+	public function testOffersDdevsAddress(): void
+	{
+		$result = $this->command('init', ['', '', 'UTC', '2', 'no'], environment: ['DDEV_PRIMARY_URL' => 'https://mine.ddev.site']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertSame('https://mine.ddev.site', $this->env()->get('APP_URL'));
+		$this->assertSame('production', $this->env()->get('APP_ENV'));
 	}
 
 	public function testAddsAPublishSecretWhenAsked(): void
@@ -124,7 +136,7 @@ final class SetupCommandsTest extends TestCase
 		$env = "APP_NAME=Mine\nAPP_SECRET=" . str_repeat('a', 64) . "\nSECRETS_KEY=" . SecretKeys::generate() . "\n";
 		$this->writeTemporaryFile('.env', $env);
 
-		$result = $this->command('init', ['no', 'no']);
+		$result = $this->command('init', ['no']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('.env already exists; left as it is.', $result->output);
@@ -192,15 +204,17 @@ final class SetupCommandsTest extends TestCase
 	{
 		$this->writeTemporaryFile('.env', "APP_NAME=Mine\n");
 
-		$result = $this->command('init', ['no', 'yes', '', 'not an email', 'admin@example.test', 'a long enough password', 'a long enough password']);
+		$result = $this->command('init', ['yes', 'not an email', 'Jane.Doe+site@example.test', 'Jane Doe', '', 'a long enough password', 'a long enough password']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('Created the "admin" account.', $result->output);
-		$this->assertFileExists($this->temporaryDirectory() . '/storage/accounts/admin.json');
-		$this->assertStringContainsString('"email": "admin@example.test"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/admin.json'), 'It asks for an email address (D-370).');
-		$this->assertStringContainsString('APP_EMAIL=admin@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'), 'The owner\'s address is the site\'s (D-723).');
+		$this->assertStringContainsString('Created the "jane.doe" account.', $result->output, 'The username is suggested from the email address (D-876).');
+		$this->assertFileExists($this->temporaryDirectory() . '/storage/accounts/jane.doe.json');
+		$this->assertStringContainsString('"email": "Jane.Doe+site@example.test"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.doe.json'), 'It asks for an email address (D-370).');
+		$this->assertStringContainsString('"name": "Jane Doe"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.doe.json'), 'And a name.');
+		$this->assertStringContainsString('APP_EMAIL=Jane.Doe+site@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'), 'The owner\'s address is the site\'s (D-723).');
+		$this->assertMatchesRegularExpression('/Owner\s+jane\.doe/', $result->output);
 
-		$result = $this->command('init', ['no']);
+		$result = $this->command('init', []);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, 'Once there\'s an account, it doesn\'t ask again.');
 	}
@@ -209,7 +223,7 @@ final class SetupCommandsTest extends TestCase
 	{
 		$this->writeTemporaryFile('.env', "APP_NAME=Mine\nAPP_EMAIL=site@example.test\n");
 
-		$result = $this->command('init', ['no', 'yes', '', 'admin@example.test', 'a long enough password', 'a long enough password']);
+		$result = $this->command('init', ['yes', 'admin@example.test', '', 'owner', 'a long enough password', 'a long enough password']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('APP_EMAIL=site@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'));

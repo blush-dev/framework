@@ -139,6 +139,38 @@ final class OutputTest extends TestCase
 		$this->assertSame('Name' . PHP_EOL . '────' . PHP_EOL . 'a' . PHP_EOL, $this->read($this->stdout));
 	}
 
+	public function testWrapsWideTablesToTheTerminal(): void
+	{
+		$output = new Output($this->stdout, $this->stderr, width: 30);
+
+		$output->table(['Name', 'Path'], [['home', '/blog/{year}/{month}/{slug}/feed'], ['about', 'a short path']]);
+
+		$this->assertSame(implode(PHP_EOL, [
+			'Name   Path',
+			'─────  ───────────────────────',
+			'home   /blog/{year}/{month}/{s',
+			'       lug}/feed',
+			'about  a short path'
+		]) . PHP_EOL, $this->read($this->stdout), 'The widest column narrows, and its cells wrap inside it (D-876).');
+	}
+
+	public function testStacksTablesTooWideToWrap(): void
+	{
+		$output = new Output($this->stdout, $this->stderr, width: 20);
+
+		$output->table(['Name', 'Type', 'Status'], [['home', 'page', 'published'], ['about', 'page', 'draft']]);
+
+		$this->assertSame(implode(PHP_EOL, [
+			'  Name    home',
+			'  Type    page',
+			'  Status  published',
+			'',
+			'  Name    about',
+			'  Type    page',
+			'  Status  draft'
+		]) . PHP_EOL, $this->read($this->stdout), 'Each row is its own lines.');
+	}
+
 	public function testWritesSectionsWithBlankLinesBetween(): void
 	{
 		$output = new Output($this->stdout, $this->stderr);

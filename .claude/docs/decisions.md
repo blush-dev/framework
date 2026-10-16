@@ -22370,7 +22370,7 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-717: A quieter, consistent CLI, built in stages
 
 - **Date:** 2026-10-10
-- **Status:** Stages 1 and 2 built (see below); stage 3's prompts built (D-719 to D-722). On hold (the author, 2026-10-10) with three loose ends: `init`'s questions (drawn, never reviewed), wide tables wrapping on narrow terminals, and the unused `Output::style()` and `info()`.
+- **Status:** Stages 1 and 2 built (see below); stage 3's prompts built (D-719 to D-722). On hold (the author, 2026-10-10) with three loose ends: `init`'s questions (drawn, never reviewed), wide tables wrapping on narrow terminals, and the unused `Output::style()` and `info()`. The loose ends are settled and built in D-876 (`style()` and `info()` were already gone).
   Follows D-710's "a prettier CLI is a later
   design pass".
 - **Decision:** commands say what they show, and `Output` says how it
@@ -27768,4 +27768,33 @@ decision, add a new entry that supersedes it and mark the old one
   relation pickers (`ReferencePeople`, and `ReferenceSelect` through
   `AdminSelect`'s `mark`, now a name and an image), and an account's
   profile link picker draw them with `AdminAvatar`.
+- **Status:** Built.
+
+### D-876: `init`'s questions, and tables that fit the terminal
+
+- **Date:** 2026-10-15
+- **Refines:** D-218, D-717, D-719.
+- **Decision:** The author's calls on D-717's loose ends:
+  - `init` doesn't ask about the publish webhook; `--webhook` turns it
+    on.
+  - The timezone is picked from a list typing filters, starting at this
+    computer's (`TZ`, or the zone `/etc/localtime` links to), through
+    `Prompt::find()`: `select()` when drawn, and without a drawn prompt
+    a value or label typed, the many options never printed.
+  - The environments are labeled with what they're for ("Development:
+    shows errors, for working on this computer", "Production: a live
+    site"), Development first.
+  - The URL offered is DDEV's (`DDEV_PRIMARY_URL`) when it runs there.
+  - The owner account asks for the email address first, then a name
+    (optional), then a username suggested from the email's name, never
+    `admin`.
+  - It ends with what the site is set up as (name, URL, timezone,
+    environment, owner) and a Next line with the admin's sign-in when
+    the admin is on.
+  - The site's language isn't asked; it's set on Settings → General.
+  - `Output::table()` fits the terminal: the widest columns narrow (to
+    no less than their header or 10) and their cells wrap inside them,
+    a word longer than its column broken; when even that can't fit,
+    each row is written as `header  value` lines, a blank line between.
+    Piped output keeps full rows.
 - **Status:** Built.

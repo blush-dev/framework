@@ -200,6 +200,30 @@ final readonly class Prompt
 	}
 
 	/**
+	 * Asks the user to pick one of many options (a timezone): values
+	 * mapped to their labels. On a terminal it's a list the arrow keys
+	 * move through and typing filters, as `select()` draws it; elsewhere
+	 * the options aren't listed, and the answer is a value or a label,
+	 * with `$problem` said for any other. Returns the value.
+	 *
+	 * @param  array<string, string> $options
+	 * @throws InvalidInput When no answer can be read.
+	 * @throws PromptCancelled When Ctrl+C is pressed at a drawn prompt.
+	 */
+	public function find(string $question, array $options, ?string $default = null, string $problem = 'That isn\'t one of the choices.'): string
+	{
+		$options = self::options($options);
+
+		if (! $this->interactive || $this->keys !== null) {
+			return $this->select($question, $options, $default);
+		}
+
+		$answer = $this->ask($question, $default, static fn (string $answer): ?string => isset($options[$answer]) || in_array($answer, $options, true) ? null : $problem);
+
+		return isset($options[$answer]) ? $answer : (string) array_search($answer, $options, true);
+	}
+
+	/**
 	 * Asks the user to pick any of several options: values mapped to
 	 * their labels. On a terminal, Space picks and Enter is done;
 	 * elsewhere, numbers or values separated by commas, and nothing keeps

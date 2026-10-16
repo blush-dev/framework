@@ -57,7 +57,9 @@ Implemented in M2 (D-065, D-069).
   says how it looks: `section()` (bold, a blank line before),
   `status()` (`StatusLine` rows: an `Outcome` mark, aligned labels,
   details, dim hints), `definitions()` (aligned key and value),
-  `table()` (bold header, dim rule, no borders), `summary()` (by
+  `table()` (bold header, dim rule, no borders; on a narrow terminal
+  the widest columns narrow and wrap, else each row is stacked as
+  `header  value` lines, D-876), `summary()` (by
   `Outcome`, parts joined with `·`; a failure on the error stream),
   `next()` and `error($text, $fix)` (with `` `code` `` spans in the
   accent), `code()`, `join()`, and `Output::count()`. Colors come from
@@ -136,7 +138,7 @@ Implemented in M2 (D-065, D-069).
 | `jobs:retry [id] [--all]` | Queue a failed job, or every failed job, again (D-622) |
 | `jobs:prune` | Remove finished jobs past `keepDone` and `keepFailed` (D-622) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
-| `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), add an `APP_SECRET` and a `SECRETS_KEY` (D-715) when missing, optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
+| `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal, D-876), add an `APP_SECRET` and a `SECRETS_KEY` (D-715) when missing, add a `PUBLISH_SECRET` with `--webhook` (never asked), create the storage folders, report unwritable ones, offer the owner account (email, name, username from the email), and end with what was set; idempotent (D-218) |
 | `secrets:list` | Declared secrets (and stored ones nothing declares): status, environment variable, when stored; never a value (D-715) |
 | `secrets:set <name>` | Store a declared secret's value, asked for hidden (needs a terminal); refused when the environment sets it (D-715) |
 | `secrets:remove <name>` | Remove a stored value, declared or left behind (D-715) |

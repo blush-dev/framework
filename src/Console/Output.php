@@ -57,6 +57,12 @@ final readonly class Output
 	private const int LABEL_WIDTH = 32;
 
 	/**
+	 * The narrowest a table's column is made to fit a terminal, unless
+	 * its header is wider.
+	 */
+	private const int TABLE_FLOOR = 10;
+
+	/**
 	 * Builds output for the process's standard streams. ANSI is on when
 	 * standard output is a terminal and `NO_COLOR` isn't set in the given
 	 * environment (https://no-color.org). On a terminal, the width is
@@ -419,7 +425,10 @@ final readonly class Output
 
 	/**
 	 * Writes a table: a bold header row with a dim rule under it, and
-	 * columns two spaces apart, padded to their widest cell.
+	 * columns two spaces apart, padded to their widest cell. On a
+	 * terminal too narrow for it, the widest columns narrow and their
+	 * cells wrap inside them (D-876); when even that can't fit, each row
+	 * is written as its own `header  value` lines.
 	 *
 	 * @param list<string>                                  $headers
 	 * @param list<list<string|int|float|bool|null>>        $rows
@@ -448,14 +457,134 @@ final readonly class Output
 			}
 		}
 
-		$rule   = $this->symbols() ? '─' : '-';
+		$fitted = $this->width === null ? $widths : $this->fit($headers, $widths);
 
-		$this->line($this->tableRow($headers, $widths, Tone::Heading), $level);
-		$this->line($this->tone(implode('  ', array_map(static fn (int $width): string => str_repeat($rule, $width), $widths)), Tone::Muted), $level);
+		if ($fitted === null) {
+			$this->stacked($headers, $cells, $level);
+
+			return;
+		}
+
+		$rule = $this->symbols() ? '─' : '-';
+
+		$this->line($this->tableRow($headers, $fitted, Tone::Heading), $level);
+		$this->line($this->tone(implode('  ', array_map(static fn (int $width): string => str_repeat($rule, $width), $fitted)), Tone::Muted), $level);
 
 		foreach ($cells as $row) {
-			$this->line($this->tableRow($row, $widths), $level);
+			$wrapped = [];
+
+			foreach ($fitted as $column => $width) {
+				$wrapped[$column] = $width === $widths[$column] ? [$row[$column] ?? ''] : self::cellLines($row[$column] ?? '', $width);
+			}
+
+			for ($index = 0, $count = max(1, ...array_map(count(...), $wrapped)); $index < $count; $index++) {
+				$this->line($this->tableRow(array_map(static fn (array $lines): string => $lines[$index] ?? '', $wrapped), $fitted), $level);
+			}
 		}
+	}
+
+	/**
+	 * Returns a table's column widths narrowed to fit the terminal, the
+	 * widest first, none narrower than its header or `TABLE_FLOOR`; or
+	 * `null` when they can't fit.
+	 *
+	 * @param  list<string>       $headers
+	 * @param  array<int, int>    $widths
+	 * @return ?array<int, int>
+	 */
+	private function fit(array $headers, array $widths): ?array
+	{
+		$room   = (int) $this->width - 2 * (count($widths) - 1);
+		$floors = [];
+
+		foreach ($widths as $column => $width) {
+			$floors[$column] = min($width, max(mb_strwidth($headers[$column] ?? ''), self::TABLE_FLOOR));
+		}
+
+		if (array_sum($floors) > $room) {
+			return null;
+		}
+
+		while (array_sum($widths) > $room) {
+			$over = array_filter($widths, static fn (int $width, int $column): bool => $width > $floors[$column], ARRAY_FILTER_USE_BOTH);
+
+			if ($over === []) {
+				return null;
+			}
+
+			$widest = (int) array_search(max($over), $over, true);
+
+			$widths[$widest]--;
+		}
+
+		return $widths;
+	}
+
+	/**
+	 * Writes a table too wide for the terminal as each row's own
+	 * `header  value` lines, a blank line between rows.
+	 *
+	 * @param list<string>             $headers
+	 * @param list<array<int, string>> $cells
+	 */
+	private function stacked(array $headers, array $cells, Verbosity $level): void
+	{
+		foreach ($cells as $index => $row) {
+			if ($index > 0) {
+				$this->gap($level);
+			}
+
+			$rows = [];
+
+			foreach ($headers as $column => $header) {
+				$rows[$header] = $row[$column] ?? '';
+			}
+
+			$this->definitions($rows, level: $level);
+		}
+	}
+
+	/**
+	 * Returns a cell's text wrapped to a width, at spaces, and a word
+	 * longer than the width broken across lines.
+	 *
+	 * @return list<string>
+	 */
+	private static function cellLines(string $cell, int $width): array
+	{
+		$lines = [];
+		$line  = '';
+
+		foreach (explode(' ', $cell) as $word) {
+			if (mb_strwidth($word) > $width) {
+				if ($line !== '') {
+					$lines[] = $line;
+				}
+
+				while (mb_strwidth($word) > $width) {
+					$head    = mb_strimwidth($word, 0, $width);
+					$lines[] = $head;
+					$word    = mb_substr($word, mb_strlen($head));
+				}
+
+				$line = $word;
+
+				continue;
+			}
+
+			$next = $line === '' ? $word : "{$line} {$word}";
+
+			if ($line !== '' && mb_strwidth($next) > $width) {
+				$lines[] = $line;
+				$next    = $word;
+			}
+
+			$line = $next;
+		}
+
+		$lines[] = $line;
+
+		return $lines;
 	}
 
 	/**
