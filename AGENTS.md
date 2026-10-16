@@ -250,7 +250,13 @@ screen, tools over one write path for entries and media
 (D-751 to D-759; `docs/mcp.md`); and tools, written once and
 offered to AI apps, as Tools-screen buttons, and by `blush tool`
 (`Blush\Tool`, D-761); and writes in the API, what MCP can change,
-with `If-Match` revisions (D-762, D-763).
+with `If-Match` revisions (D-762, D-763); and, from the backups sketch
+(`.claude/docs/admin-design/backups-sketch.html`), site backups on
+Tools → Backups and the `backup:` commands: each storage driver's own
+tables in one `.zip` (`Blush\Backup`, apart from Transfer), by part,
+made, restored (the site backed up first), scheduled with email that
+never carries a backup, uploaded, and announced (`BackupMade`) for
+plugins' off-site copies (D-881 to D-899).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)
@@ -267,7 +273,8 @@ and, from the content types sketch
 switches for core's optional fields (missing is off), the menu's
 `adminPosition` and `adminUnder`, and one page for a type and a new one
 (D-864 to D-866).
-Next: more
+Next: the Backups and Tools screens (Tools as a rail section of its
+own, or Backups as a screen; `open-questions.md`); more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with

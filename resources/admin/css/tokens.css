@@ -34,7 +34,6 @@
 	--color-surface: light-dark(#ffffff, #13161d);         /* panels, the table, the rail, the top bar */
 	--color-surface-subtle: light-dark(#f0f2f6, #1a1e27);  /* row hover, chips, inset fills */
 	--color-surface-strong: light-dark(#e7eaf0, #222733);  /* pressed, avatar ground */
-	--color-surface-stripe: transparent;                   /* every other table row */
 
 	/* Lines. */
 	--border-color: light-dark(#e2e5ec, #242936);          /* the default hairline */

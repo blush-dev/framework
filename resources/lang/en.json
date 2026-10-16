@@ -2005,6 +2005,19 @@
 		},
 		"fields_controller": {
 			"not_found": "The field library has no \"{name}\" field."
+		},
+		"backups_controller": {
+			"no_note": "Send the note as text.",
+			"not_deleted": "The backup {name} can't be put back.",
+			"not_allowed": "You aren't allowed to see the site's backups.",
+			"missing": "There's no backup named {name}.",
+			"no_restore": "You aren't allowed to restore backups.",
+			"bad_address": "That isn't an email address. Check it for a typo.",
+			"no_mail": "The site can't send email yet. Set up how it sends mail, then try again.",
+			"no_preview": "The email couldn't be previewed.",
+			"no_file": "No file arrived. It may be larger than the server takes.",
+			"too_large": "No file arrived, or it's larger than the server takes (up to {size} MB).",
+			"not_a_backup": "Nothing was added: {reason}"
 		}
 	},
 	"settings": {
@@ -2224,7 +2237,8 @@
 				"from_name_text": "The from name must be text.",
 				"from_name_long": "The from name can be at most {max} characters.",
 				"from_name_line": "The from name can't hold line breaks or control characters.",
-				"from_address_text": "The from address must be text."
+				"from_address_text": "The from address must be text.",
+				"backups": "The backup schedule must be an object: frequency, day, hour, keep, parts, notice, and to."
 			},
 			"format_help": "How themes show dates and times. One from the language follows the site's language; a fixed one keeps its order whatever the language.",
 			"mail_from_name": {
@@ -2234,6 +2248,9 @@
 			"mail_from_address": {
 				"label": "From address",
 				"description": "The address the site's email is sent from, which your mail service must allow. Empty, the site's email address."
+			},
+			"backups": {
+				"label": "Backup schedule"
 			}
 		}
 	},
@@ -2488,7 +2505,9 @@
 			"accounts_delete": "Remove accounts",
 			"roles_manage": "Manage roles",
 			"api_tokens": "Make API tokens for their own account",
-			"api_connect": "Connect apps, such as Claude, to act as them"
+			"api_connect": "Connect apps, such as Claude, to act as them",
+			"site_backups": "Make, download, and delete backups",
+			"site_restore": "Restore backups"
 		},
 		"accounts": {
 			"not_saved": "The account \"{username}\" couldn't be saved: {error}",
@@ -2671,7 +2690,12 @@
 			"workflows": "Statuses and workflows left out",
 			"workflows_hint": "Fix each in user/data/statuses or user/data/workflows, or in the plugin that defines it. Types whose workflow is left out use the standard one.",
 			"fields": "Fields left off",
-			"fields_hint": "Change the field's key in the field library, or turn off the plugin that registers the other. Run \"{command}\" to see each."
+			"fields_hint": "Change the field's key in the field library, or turn off the plugin that registers the other. Run \"{command}\" to see each.",
+			"backups": "Backup email",
+			"backups_always": "Scheduled backups email after each one.",
+			"backups_failures": "Scheduled backups email when one fails.",
+			"backups_no_mail": "Backups are scheduled to email, but the site can't send email, so a failed backup would go unnoticed.",
+			"backups_no_mail_hint": "Set up how the site sends mail (MAIL_DSN in .env), or turn the email off on Tools → Backups."
 		},
 		"setup_checks": {
 			"why": {
@@ -4043,6 +4067,121 @@
 			"not_customizable": "There's no \"{name}\" workflow from Blush or a plugin to customize.",
 			"no_workflow": "The site has no \"{name}\" workflow of its own.",
 			"workflow_used": "{types} {count, plural, one {uses it} other {use it}}; choose another workflow in {count, plural, one {its} other {their}} Type Settings first."
+		}
+	},
+	"backup": {
+		"part": {
+			"content": "Content",
+			"content_description": "Entries and how they're linked",
+			"types": "Types",
+			"types_description": "Content types the site defines",
+			"fields": "Fields",
+			"fields_description": "The field library",
+			"relationships": "Relationships",
+			"relationships_description": "How types and entries connect",
+			"media": "Media Details",
+			"media_description": "Titles, alt text, and captions, not the files",
+			"settings": "Settings",
+			"settings_description": "Site, plugin, and theme settings",
+			"redirects": "Redirects",
+			"redirects_description": "Stored redirects",
+			"menus": "Menus",
+			"menus_description": "Menus and their items",
+			"workflows": "Workflows",
+			"workflows_description": "Statuses and workflows",
+			"jobs": "Jobs",
+			"jobs_description": "Finished jobs and the schedule's state",
+			"activity": "Activity",
+			"activity_description": "Changes made by apps and the API, for Undo",
+			"accounts": "Accounts",
+			"accounts_description": "Accounts that can sign in, with their password hashes",
+			"roles": "Roles",
+			"roles_description": "Roles and the capabilities they give",
+			"access": "API Access",
+			"access_description": "API tokens and connected apps",
+			"other": "Other",
+			"other_description": "Tables plugins keep: {tables}"
+		},
+		"job": {
+			"label": "Back up the site",
+			"describe": "Back up the site ({name})",
+			"no_name": "The job doesn't say which backup to make."
+		},
+		"group": {
+			"content": "Content",
+			"site": "Site",
+			"people": "People",
+			"plugins": "Plugins",
+			"users": "Users"
+		},
+		"maker": {
+			"canceled": "Canceled the backup. Nothing was kept.",
+			"no_parts": "Pick at least one thing to back up.",
+			"unknown_part": "There's no part named \"{part}\" to back up.",
+			"busy": "A backup is being made or restored. Wait for it to finish first.",
+			"copying": "Copying {part}",
+			"done": "Backed up the site."
+		},
+		"restore_job": {
+			"label": "Restore a backup",
+			"describe": "Restore a backup ({name})",
+			"failed_partway": "The restore stopped partway: {reason} To put the site back as it was, restore {safety}."
+		},
+		"restorer": {
+			"not_done": "Only a finished backup can be restored.",
+			"unversioned": "This backup was made before backups said their format, so it can't be restored.",
+			"newer_format": "This backup was made by a newer Blush ({version}). Update Blush to restore it.",
+			"newer_blush": "This backup was made by a newer Blush ({version}). Update Blush to restore it.",
+			"no_parts": "Pick at least one thing to restore.",
+			"not_held": "This backup doesn't hold \"{part}\".",
+			"other_driver": "{part} was backed up from {then}, and the site keeps it in {now} now. Restore it to a site on {then}, then move it with storage:copy.",
+			"busy": "A backup is being made or restored. Wait for it to finish first.",
+			"signs_out": "Restoring accounts signs everyone out, you included. Passwords go back to what they were when the backup was made, and an account made since is gone.",
+			"links": "Content is restored with the types and relationships the site has now. An entry of a type that's gone won't show, and links through a relationship that's gone are dropped.",
+			"missing": "There's no backup named {name}.",
+			"safety_note": "Before restoring {name}",
+			"backing_up": "Backing up the site as it is now",
+			"unzipped": "Opened the backup",
+			"restored_tables": "Restored the backup's records",
+			"restoring": "Restoring {part}",
+			"done": "Restored {parts} from {name}."
+		},
+		"notification": {
+			"label": "Scheduled backups",
+			"done": {
+				"subject": "Backed up: {site}, {when}",
+				"body": "The scheduled backup of {site} finished {when}.",
+				"note": "The backup stays on the server: backups are never sent by email. You get this because the schedule emails after every backup."
+			},
+			"holds": "Size: {size}. Holds: {parts}.",
+			"action": "See Your Backups",
+			"recovered": {
+				"subject": "Backups work again: {site}",
+				"body": "The scheduled backup of {site} worked {when}, after the last one failed."
+			},
+			"failures_note": "You get an email each time a scheduled backup fails, and one when they work again.",
+			"failed": {
+				"subject": "Backup failed: {site}, {when}",
+				"body": "The scheduled backup of {site} failed {when}. Nothing was kept, and no older backup was removed.",
+				"reason": "What happened: {reason}",
+				"none": "There's no good backup of the site yet.",
+				"newest": "The newest good backup is from {when}.",
+				"action": "See What Happened"
+			},
+			"test": {
+				"subject": "A test email about the backups of {site}",
+				"body": "This is a test. When a scheduled backup of {site} fails, or after each one if the schedule asks for it, an email like this comes to this address.",
+				"note": "Backups are never sent by email, and no email links to a download."
+			},
+			"kept": "Kept on the server: {count, plural, one {# scheduled backup} other {# scheduled backups}}.",
+			"everything": "everything",
+			"gigabytes": "{size, number} GB",
+			"megabytes": "{size, number} MB",
+			"kilobytes": "{size, number} KB"
+		},
+		"scheduled_job": {
+			"label": "Back up the site on schedule",
+			"skipped": "Skipped: a backup was being made or restored."
 		}
 	}
 }

@@ -41,8 +41,6 @@ final readonly class AdminThemeContrast
 		[AdminToken::Text, AdminToken::Surface, 4.5],
 		[AdminToken::TextSecondary, AdminToken::Surface, 4.5],
 		[AdminToken::TextMuted, AdminToken::Surface, 3.0],
-		[AdminToken::Text, AdminToken::SurfaceStripe, 4.5],
-		[AdminToken::TextMuted, AdminToken::SurfaceStripe, 3.0],
 		[AdminToken::AccentText, AdminToken::Accent, 4.5],
 		[AdminToken::Accent, AdminToken::Surface, 3.0],
 		[AdminToken::Success, AdminToken::SuccessSubtle, 4.5],

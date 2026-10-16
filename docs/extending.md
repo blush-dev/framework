@@ -2405,7 +2405,8 @@ below),
 `Blush\Publish\Events\ContentPublished`, and
 `Blush\Cache\Events\CacheCleared` (the cache store was emptied by
 `cache:clear`, the admin's Clear caches, a publish, or `cache:compile`;
-its `namespaces` say which, a good moment to purge a CDN).
+its `namespaces` say which, a good moment to purge a CDN), and
+`Blush\Backup\Events\BackupMade` (a backup was made; see below).
 Listen in your provider's `boot()`:
 
 ```php
@@ -2428,6 +2429,15 @@ when a scheduled post goes live. An entry published as it's saved isn't
 in it. Without cron, the next runner catches up, so `since` (when it
 last looked) can be long before `at`; check an entry's `date` if
 you only want fresh news.
+
+`BackupMade` is dispatched once a [backup](backups.md) is made and
+kept, however it was made: by hand, on the schedule, on the command
+line, or before a restore (`$event->backup->kind` says which), with the
+path of its `.zip` as `$event->file`. Not for an uploaded one. It's the
+place to copy backups off the server (to S3, SFTP, and the like), so
+they outlive it. It runs in the job or command that made the backup, so
+queue a [job](#background-jobs) of your own for a slow copy. A backup
+holds password hashes: copy it somewhere as private as the server.
 
 `EntriesExpired` comes from the same task: its `entries` are those that
 expired since it last looked (their `expires` date came, in a type with

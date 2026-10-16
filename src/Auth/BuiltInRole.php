@@ -111,8 +111,8 @@ enum BuiltInRole: string
 		};
 
 		$site = match ($this) {
-			// Site Health is the owner's (D-544).
-			self::Administrator => array_values(array_filter(Capability::cases(), static fn (Capability $capability): bool => $capability !== Capability::SiteHealth)),
+			// Site Health (D-544) and backups (D-884) are the owner's.
+			self::Administrator => array_values(array_filter(Capability::cases(), static fn (Capability $capability): bool => ! in_array($capability, [Capability::SiteHealth, Capability::SiteBackups, Capability::SiteRestore], true))),
 			self::Editor => [
 				Capability::MediaEdit,
 				Capability::MediaEditOthers,

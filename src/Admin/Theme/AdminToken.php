@@ -33,7 +33,6 @@ enum AdminToken: string
 	case Surface                 = 'color.surface.default';
 	case SurfaceSubtle           = 'color.surface.subtle';
 	case SurfaceStrong           = 'color.surface.strong';
-	case SurfaceStripe           = 'color.surface.stripe';
 	case Text                    = 'color.text.default';
 	case TextSecondary           = 'color.text.secondary';
 	case TextMuted               = 'color.text.muted';

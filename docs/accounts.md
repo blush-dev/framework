@@ -322,6 +322,8 @@ The rest are for the whole site:
 | `site.settings` | Changing site settings |
 | `site.logs` | Reading the site's log on the Tools screen |
 | `site.activity` | Seeing every change to entries and media on Tools → Activity, with Undo (owners, administrators, and editors, by default). Anyone sees and undoes the changes to an entry they may edit. |
+| `site.backups` | Seeing, making, downloading, noting, and deleting the site's [backups](backups.md) on Tools → Backups (owners, by default, since backups hold password hashes) |
+| `site.backups.restore` | [Restoring](backups.md#restoring-a-backup) a backup, with `site.backups` (owners, by default) |
 | `site.redirects` | Adding, changing, and deleting redirects on the Redirects screen. Renaming or moving an entry adds its own redirect without it. |
 | `site.jobs` | Seeing every background job and scheduled task on the Tools screen, with Retry, Delete, and Run Now. Anyone can follow the jobs they start. |
 | `site.health` | Seeing Site Health, and its fixes for content and media files (owners only, by default) |

@@ -14,7 +14,9 @@
  * the site's log, read only, with `site.logs` (D-541). **Activity**, with
  * `site.activity`, lists every change to entries and media, by whom and
  * how (the admin, an app, the command line, the API), filtered in the
- * address (`?tab=activity&client=Claude`), with Undo (D-758).
+ * address (`?tab=activity&client=Claude`), with Undo (D-758). **Backups**,
+ * with `site.backups`, lists the site's backups and makes them
+ * (`BackupsTab`, D-886).
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
@@ -22,6 +24,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router';
 import ActivityRows from '../components/ActivityRows.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import BackupsTab from '../components/BackupsTab.vue';
 import EmptyState from '../components/EmptyState.vue';
 import { config } from '../config';
 import { confirmAction } from '../confirm';
@@ -33,7 +36,7 @@ import { loadActivity, type ActivityPage } from '../activity';
 import { can } from '../session';
 import { errorMessage, request, type ToolAnswer, type ToolButton, type ToolGroup, type ToolResult, type Job, type JobsOverview, type LogEntry, type LogTail, type ScheduledTask } from '../api';
 
-type Tab = 'tools' | 'jobs' | 'logs' | 'activity';
+type Tab = 'tools' | 'jobs' | 'logs' | 'activity' | 'backups';
 
 const groups  = ref<ToolGroup[] | null>(null);
 const error   = ref('');
@@ -59,7 +62,8 @@ const tabs = computed(() => [
 	{ key: 'tools' as const, label: t('tools_view.tabs.tools', 'Tools') },
 	...(can('site.jobs') ? [{ key: 'jobs' as const, label: t('tools_view.tabs.jobs', 'Jobs') }] : []),
 	...(can('site.logs') ? [{ key: 'logs' as const, label: t('tools_view.tabs.logs', 'Logs') }] : []),
-	...(can('site.activity') ? [{ key: 'activity' as const, label: t('tools_view.tabs.activity', 'Activity') }] : [])
+	...(can('site.activity') ? [{ key: 'activity' as const, label: t('tools_view.tabs.activity', 'Activity') }] : []),
+	...(can('site.backups') ? [{ key: 'backups' as const, label: t('tools_view.tabs.backups', 'Backups') }] : [])
 ]);
 // The tab is in the address (`?tab=logs`), as the entries list's are.
 const route  = useRoute();
@@ -73,6 +77,10 @@ const tab    = computed<Tab>(() => {
 		return 'activity';
 	}
 
+	if (route.query.tab === 'backups' && can('site.backups')) {
+		return 'backups';
+	}
+
 	return route.query.tab === 'logs' && can('site.logs') ? 'logs' : 'tools';
 });
 
@@ -80,6 +88,7 @@ const NOTES: Record<Tab, string> = {
 	tools: t('tools_view.notes.tools', 'A tool is something the site can do: here, as a button, for anyone without shell access, and for connected apps and the command line too. Blush registers some, and a plugin can register its own. A tool you don\'t have the capability for isn\'t listed.'),
 	jobs: t('tools_view.notes.jobs', 'Work done in the background: tasks on a schedule, and long work someone started, such as a publish. A job that fails is tried again a few times before it\'s marked failed.'),
 	logs: t('tools_view.notes.logs', 'Read only. This is for the moment something says it failed on a host with no way in over SSH.'),
+	backups: t('tools_view.notes.backups', 'A backup is one .zip of what makes the site this site: its content, types, fields, relationships, and media details, its settings, redirects, menus, and jobs, and its accounts. Media files are left out, since they\'re plain files you can copy like any others. Backups are kept on this server and hold password hashes, so download the ones that matter to somewhere private.'),
 	activity: t('tools_view.notes.activity', 'Every change to entries and media, made here, by a connected app, on the command line, or through the API. What a change replaced is kept for 30 days, for Undo; the change is listed for 90.')
 };
 
@@ -476,6 +485,8 @@ onMounted(() => {
 			</p>
 		</section>
 	</template>
+
+	<BackupsTab v-else-if="tab === 'backups'" />
 
 	<section v-else class="panel" aria-labelledby="log-heading">
 			<header class="panel__header">

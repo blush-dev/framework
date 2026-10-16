@@ -48,6 +48,12 @@ use Blush\Translation\Text;
  * token-only account, are `accounts.edit`'s. Anyone may see and revoke
  * their own.
  *
+ * Backups (D-884): seeing, making, downloading, noting, deleting, and
+ * uploading the site's backups, and their schedule (`site.backups`);
+ * restoring one also needs `site.backups.restore`. Backups hold
+ * password hashes, so both are the owner's by default; the
+ * administrator's list leaves them out.
+ *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
  * (`html.unfiltered`; `Markdown\Html\HtmlRules`). Without either, a save
@@ -71,6 +77,8 @@ enum Capability: string
 	case SiteRedirects   = 'site.redirects';
 	case SiteSecrets     = 'site.secrets';
 	case SiteActivity    = 'site.activity';
+	case SiteBackups     = 'site.backups';
+	case SiteRestore     = 'site.backups.restore';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -127,7 +135,8 @@ enum Capability: string
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
 			self::SiteJobs, self::SiteRedirects, self::SiteSecrets,
-			self::SiteActivity                                      => $messages->t('auth.capability_group.site', 'Site'),
+			self::SiteActivity, self::SiteBackups,
+			self::SiteRestore                                       => $messages->t('auth.capability_group.site', 'Site'),
 			default                                                 => $messages->t('auth.capability_group.users', 'Users')
 		};
 	}
@@ -154,6 +163,8 @@ enum Capability: string
 			self::SiteRedirects     => $messages->t('auth.capability.site_redirects', 'Manage redirects'),
 			self::SiteSecrets       => $messages->t('auth.capability.site_secrets', 'Manage secrets'),
 			self::SiteActivity      => $messages->t('auth.capability.site_activity', 'See activity and undo changes'),
+			self::SiteBackups       => $messages->t('auth.capability.site_backups', 'Make, download, and delete backups'),
+			self::SiteRestore       => $messages->t('auth.capability.site_restore', 'Restore backups'),
 			self::AccountsView      => $messages->t('auth.capability.accounts_view', 'See accounts and roles'),
 			self::AccountsCreate    => $messages->t('auth.capability.accounts_create', 'Create accounts'),
 			self::AccountsEdit      => $messages->t('auth.capability.accounts_edit', 'Edit accounts'),

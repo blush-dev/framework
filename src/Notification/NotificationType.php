@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Notification;
 
+use Blush\Backup\BackupNotification;
 use Blush\Notification\Notifications\EmailChangeNotification;
 use Blush\Notification\Notifications\PasswordLinkNotification;
 
@@ -24,6 +25,7 @@ enum NotificationType: string
 {
 	case EmailChange  = 'core/email-change';
 	case PasswordLink = 'core/password-link';
+	case Backup       = 'core/backup';
 
 	/**
 	 * Returns the notification's class.
@@ -34,7 +36,8 @@ enum NotificationType: string
 	{
 		return match ($this) {
 			self::EmailChange  => EmailChangeNotification::class,
-			self::PasswordLink => PasswordLinkNotification::class
+			self::PasswordLink => PasswordLinkNotification::class,
+			self::Backup       => BackupNotification::class
 		};
 	}
 }

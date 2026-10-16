@@ -209,6 +209,10 @@ whole file. It's read only, for when something fails on a host you
 can't reach over SSH. A site that logs to the server's error output, or
 not at all, has no file to show.
 
+With `site.backups` (owners), the **Backups** tab lists the site's
+backups and makes them, and with `site.backups.restore`, restores them:
+see [Backups](backups.md).
+
 With `site.activity` (owners, administrators, and editors), the
 **Activity** tab lists every change to entries and media, newest first:
 what happened, linking to what changed, who did it, how (in the admin,
@@ -2371,6 +2375,18 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST tools/{vendor}/{name}` | Run a tool by its key; the answer is `{"successful", "message", "details"}`, or `{"job"}` for one that runs in the background |
 | `GET logs` | The end of the site's log, with `site.logs`: `{"driver", "file", "size", "entries"}`, its last 50 entries, newest first, each `{"time", "channel", "level", "message", "details"}` (`details` is the lines under it, such as an exception's trace); `file` is `null` unless the driver writes one |
 | `GET logs/download` | The whole log file, to save, with `site.logs` |
+| `GET backups` | The site's [backups](backups.md), with `site.backups`: `{"backups", "parts", "groups", "used", "free", "folder", "restoring", "schedule", "upload"}`. Each backup is `{"name", "file", "status", "kind", "created", "by", "note", "parts", "size", "reason", "job"}`, newest first: `status` is `running`, `done`, or `failed` (with its `reason`), `kind` is `manual`, `scheduled`, `before-restore`, or `uploaded`, `by` the display name of the account that made it (`null` from the command line), and `job` the job making it. Each part is `{"name", "group", "label", "description", "count", "bytes"}`, with what it holds now; `groups` are `{"key", "label"}` in order; `used` and `free` are bytes, `free` `null` when the host won't say |
+| `POST backups` | Starts a backup of `{"parts", "note"}` as a job: `201` with `{"backup"}`. Run it with `POST jobs/{id}/run`. A `409` while one is being made; a `422` for no parts or one that isn't. Needs `site.backups` |
+| `PATCH backups/{name}` | Changes a backup's `{"note"}` (up to 60 characters): `{"backup"}`. Needs `site.backups` |
+| `DELETE backups/{name}` | Deletes a backup, `{"deleted": true}`, or cancels the one being made, `{"canceled": true}`. Needs `site.backups` |
+| `POST backups/{name}/undelete` | Puts back a backup deleted in the last day: `{"backup"}`, or a `404`. Needs `site.backups` |
+| `GET backups/{name}/download` | The backup's `.zip`, to save. Needs `site.backups` |
+| `POST backups/upload` | Adds an [uploaded backup](backups.md#uploading-a-backup), sent as the multipart field `file`: `201` with `{"backup"}`, its `kind` `uploaded`. A `.zip` without a `backup.json`, or holding a path a backup doesn't, is a `422`; one with the name of a kept backup a `409`. Nothing is kept either way. `GET backups` has `upload`: `{"limit"}`, the largest file the server takes in bytes, or `null`. Needs `site.backups` |
+| `PUT backups/schedule` | Saves the [backup schedule](backups.md#backing-up-on-a-schedule), `{"frequency", "day", "hour", "keep", "parts", "notice", "to"}` (`frequency` is `off`, `daily`, or `weekly`; `parts` a list of part names or `null` for every part; `notice` is `failures`, `always`, or `never`; `to` an address or `""` for the site's), as the `backups.schedule` setting: `{"schedule"}`, as `GET backups` has it, with `next` (when it next runs, or `null`), `timezone`, `siteEmail`, and `canMail` (whether the site can send mail). A value that doesn't fit is a `422`. Needs `site.backups` |
+| `POST backups/schedule/test` | Sends the schedule's test email, to `{"to"}` or whoever the schedule emails: `{"sent": true, "to"}`. A `422` when `to` isn't an address or the site can't send mail. Needs `site.backups` |
+| `POST backups/schedule/preview` | An email the schedule would send, `{"stage"}` (`done` or `failed`) to `{"to"}`: `{"email": {"from", "to", "subject", "text"}}`. Needs `site.backups` |
+| `POST backups/{name}/check` | What refuses restoring `{"parts"}` of a backup, and what it will do: `{"problems", "warnings"}`, each a list of sentences. Needs `site.backups` and `site.backups.restore` |
+| `POST backups/{name}/restore` | Starts restoring `{"parts"}` of a backup as a job, the site's parts backed up first: `202` with `{"job"}`. Run it with `POST jobs/{id}/run`; when it's done, its `result` is `{"backup", "parts", "safety", "signedOut"}`, `safety` the backup made first (restore it to undo) and `signedOut` whether every session was ended. A `409` while a backup is being made or restored, a `422` for a problem `check` would name. `GET backups` has the restore running as `restoring`: `{"job", "backup", "parts"}`, or `null`. Needs `site.backups` and `site.backups.restore` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a block's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media` or its id (as media fields name it), with its details (see below) |

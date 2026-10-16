@@ -39,6 +39,7 @@ use Blush\Admin\Http\IconPackEditController;
 use Blush\Admin\Http\IconPacksController;
 use Blush\Admin\Http\IconsController;
 use Blush\Admin\Http\JobController;
+use Blush\Admin\Http\BackupsController;
 use Blush\Admin\Http\LogController;
 use Blush\Admin\Http\MediaListController;
 use Blush\Admin\Http\MediaUploadController;
@@ -112,6 +113,15 @@ use Blush\Session\StartSession;
  *     jobs/schedule/{job}` to run a scheduled task now (D-621).
  *   - `GET  logs`: the end of the site's log, and `GET logs/download`
  *     all of it (D-540, D-541).
+ *   - `GET  backups`: the site's backups and the parts they can hold;
+ *     `POST backups` starts one, `PATCH` and `DELETE backups/{name}`
+ *     change its note and delete (or cancel) it, `POST
+ *     backups/{name}/undelete` puts one back, and `GET
+ *     backups/{name}/download` saves it; `POST backups/{name}/check`
+ *     and `restore` check and restore its parts; `PUT backups/schedule`
+ *     saves the schedule, `POST backups/upload` adds an uploaded backup,
+ *     and `POST backups/schedule/test` and `preview`
+ *     send and show its email (`BackupsController`, D-886, D-887).
  *   - `GET  types`: the site's content types, and `GET types/{name}` one;
  *     `POST types`, `PATCH` and `DELETE types/{name}`, and `POST
  *     types/refresh` edit the ones in `user/data/types`, and change
@@ -275,6 +285,18 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/jobs/{id:[0-9a-f-]+}', [JobController::class, 'delete'])->named('job.delete')->middleware(Authenticate::class),
 			Route::get('/logs', [LogController::class, 'show'])->named('logs')->middleware(Authenticate::class),
 			Route::get('/logs/download', [LogController::class, 'download'])->named('logs.download')->middleware(Authenticate::class),
+			Route::get('/backups', [BackupsController::class, 'index'])->named('backups')->middleware(Authenticate::class),
+			Route::post('/backups/upload', [BackupsController::class, 'upload'])->named('backups.upload')->middleware(Authenticate::class),
+			Route::put('/backups/schedule', [BackupsController::class, 'saveSchedule'])->named('backups.schedule')->middleware(Authenticate::class),
+			Route::post('/backups/schedule/test', [BackupsController::class, 'testEmail'])->named('backups.schedule.test')->middleware(Authenticate::class),
+			Route::post('/backups/schedule/preview', [BackupsController::class, 'previewEmail'])->named('backups.schedule.preview')->middleware(Authenticate::class),
+			Route::post('/backups', [BackupsController::class, 'create'])->named('backup.create')->middleware(Authenticate::class),
+			Route::patch('/backups/{name:[a-z0-9][a-z0-9-]*}', [BackupsController::class, 'update'])->named('backup.update')->middleware(Authenticate::class),
+			Route::delete('/backups/{name:[a-z0-9][a-z0-9-]*}', [BackupsController::class, 'delete'])->named('backup.delete')->middleware(Authenticate::class),
+			Route::post('/backups/{name:[a-z0-9][a-z0-9-]*}/undelete', [BackupsController::class, 'undelete'])->named('backup.undelete')->middleware(Authenticate::class),
+			Route::get('/backups/{name:[a-z0-9][a-z0-9-]*}/download', [BackupsController::class, 'download'])->named('backup.download')->middleware(Authenticate::class),
+			Route::post('/backups/{name:[a-z0-9][a-z0-9-]*}/check', [BackupsController::class, 'check'])->named('backup.check')->middleware(Authenticate::class),
+			Route::post('/backups/{name:[a-z0-9][a-z0-9-]*}/restore', [BackupsController::class, 'restore'])->named('backup.restore')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
 			Route::post('/types', [TypeEditController::class, 'create'])->named('type.create')->middleware(Authenticate::class),
 			Route::post('/types/refresh', [TypeEditController::class, 'refresh'])->named('types.refresh')->middleware(Authenticate::class),

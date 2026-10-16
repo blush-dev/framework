@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Storage;
 
 use Override;
+use Blush\Backup\SqliteTableBackup;
+use Blush\Backup\TableBackup;
 use Blush\Content\Record\EntryLocations;
 use Blush\Content\Record\RecordLocations;
 use Blush\Content\Writer\ContentWriter;
@@ -52,7 +54,8 @@ final readonly class SqliteStorage implements Storage
 			EntryLocations::class => RecordLocations::class,
 			RecordStore::class    => SqliteRecordStore::class,
 			SessionStore::class   => RecordSessionStore::class,
-			JobStore::class       => RecordJobStore::class
+			JobStore::class       => RecordJobStore::class,
+			TableBackup::class    => SqliteTableBackup::class
 		];
 	}
 

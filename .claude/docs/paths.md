@@ -222,6 +222,7 @@ site/
                         bundle, trashed) and the file or bundle folder at user/content/...
                         (D-228, D-237; older folders have no manifest); never cleared
     backups/            {vendor}/{name}/, the version replacing an extension kept, one each
+      site/             the site's backups (D-885): {name}.zip and {name}.json beside it; .work/ while one's made, .deleted/ for a day (BackupConfig::$path moves it)
                         (D-392, D-393, D-418)
   tests/
 ```

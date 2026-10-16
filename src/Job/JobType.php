@@ -15,6 +15,9 @@ namespace Blush\Job;
 
 use Blush\Admin\Health\HealthCheckJob;
 use Blush\Admin\Health\HealthFixJob;
+use Blush\Backup\BackupJob;
+use Blush\Backup\RestoreJob;
+use Blush\Backup\ScheduledBackupJob;
 use Blush\Job\Jobs\GoLiveJob;
 use Blush\Job\Jobs\MediaIndexJob;
 use Blush\Job\Jobs\PruneCacheJob;
@@ -42,6 +45,9 @@ enum JobType: string
 	case HealthCheck   = 'core/health-check';
 	case MediaIndex    = 'core/media-index';
 	case Notify        = 'core/notify';
+	case Backup        = 'core/backup';
+	case Restore       = 'core/restore';
+	case ScheduledBackup = 'core/scheduled-backup';
 
 	/**
 	 * Returns the job's class.
@@ -61,7 +67,10 @@ enum JobType: string
 			self::HealthFix     => HealthFixJob::class,
 			self::HealthCheck   => HealthCheckJob::class,
 			self::MediaIndex    => MediaIndexJob::class,
-			self::Notify        => NotifyJob::class
+			self::Notify        => NotifyJob::class,
+			self::Backup        => BackupJob::class,
+			self::Restore       => RestoreJob::class,
+			self::ScheduledBackup => ScheduledBackupJob::class
 		};
 	}
 

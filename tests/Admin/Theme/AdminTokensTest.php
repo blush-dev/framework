@@ -225,13 +225,11 @@ final class AdminTokensTest extends TestCase
 	public function testReadsAGroundTexture(): void
 	{
 		$tokens = AdminTokens::fromArray([
-			'color'           => ['surface' => ['stripe' => 'light-dark(#f6f7f9, #20242a)']],
 			'backgroundImage' => "radial-gradient(circle,  light-dark(rgb(20 24 29 / 16%), rgb(255 255 255 / 7%)) 1px, transparent 1.4px)",
 			'backgroundSize'  => '20px 20px'
 		], $this->temporaryDirectory());
 
 		$this->assertSame('background-image', AdminToken::BackgroundImage->property());
-		$this->assertSame('color-surface-stripe', AdminToken::SurfaceStripe->property());
 		$this->assertStringContainsString("\t--background-image: radial-gradient(circle, light-dark(rgb(20 24 29 / 16%), rgb(255 255 255 / 7%)) 1px, transparent 1.4px);\n\t--background-size: 20px 20px;\n", $tokens->css(':root'), 'Its spaces collapse.');
 	}
 

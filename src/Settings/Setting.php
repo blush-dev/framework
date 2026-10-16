@@ -19,6 +19,8 @@ use Blush\Api\ApiAccess;
 use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
+use Blush\Backup\BackupConfig;
+use Blush\Backup\BackupSchedule;
 use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\InvalidConfig;
@@ -115,6 +117,7 @@ enum Setting: string
 	case IconPacks        = 'icons.enabled';
 	case AdminThemes      = 'admin-themes.enabled';
 	case AdminThemeDefault = 'admin-themes.default';
+	case Backups          = 'backups.schedule';
 
 	/**
 	 * The most entries a feed may hold.
@@ -157,7 +160,7 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks,
-			self::AdminThemes, self::AdminThemeDefault                    => null,
+			self::AdminThemes, self::AdminThemeDefault, self::Backups     => null,
 			self::Name, self::Description, self::Email, self::Locale, self::Untranslated,
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
@@ -235,7 +238,8 @@ enum Setting: string
 			self::Plugins         => new ListField('enabled')->labeled($messages->t('settings.setting.plugins.label', 'Plugins turned on')),
 			self::IconPacks       => new ListField('enabled')->labeled($messages->t('settings.setting.icon_packs.label', 'Icon packs turned on')),
 			self::AdminThemes     => new ListField('enabled')->labeled($messages->t('settings.setting.admin_themes.label', 'Admin themes turned on')),
-			self::AdminThemeDefault => new TextField('default')->labeled($messages->t('settings.setting.admin_theme_default.label', 'The site\'s admin theme'))
+			self::AdminThemeDefault => new TextField('default')->labeled($messages->t('settings.setting.admin_theme_default.label', 'The site\'s admin theme')),
+			self::Backups         => new ObjectField('schedule')->labeled($messages->t('settings.setting.backups.label', 'Backup schedule'))
 		};
 
 		// A screen's fields are one schema, so a key an earlier setting on
@@ -385,6 +389,7 @@ enum Setting: string
 			'markdown' => MarkdownConfig::class,
 			'embed'   => EmbedConfig::class,
 			'mail'    => MailConfig::class,
+			'backups' => BackupConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -446,6 +451,7 @@ enum Setting: string
 			self::IconPacks       => self::names($value, 'icon_packs', $messages),
 			self::AdminThemes     => self::names($value, 'admin_themes', $messages),
 			self::AdminThemeDefault => self::adminTheme($value, $messages),
+			self::Backups         => self::backupSchedule($value, $messages),
 			self::Embeds          => self::providers($value, $messages),
 			default               => is_bool($value) ? $value : throw self::invalid($messages->t('settings.setting.invalid.bool', '"{setting}" must be true or false.', setting: $this->value))
 		};
@@ -752,6 +758,25 @@ enum Setting: string
 
 		try {
 			return MediaUploads::fromArray($value)->toArray();
+		} catch (InvalidConfig $error) {
+			throw new InvalidSetting($error->getMessage(), previous: $error);
+		}
+	}
+
+	/**
+	 * Checks the backup schedule (D-887), saved from Tools → Backups.
+	 *
+	 * @return array<string, mixed>
+	 * @throws InvalidSetting
+	 */
+	private static function backupSchedule(mixed $value, Messages $messages): array
+	{
+		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
+			throw self::invalid($messages->t('settings.setting.invalid.backups', 'The backup schedule must be an object: frequency, day, hour, keep, parts, notice, and to.'));
+		}
+
+		try {
+			return BackupSchedule::fromArray($value)->toArray();
 		} catch (InvalidConfig $error) {
 			throw new InvalidSetting($error->getMessage(), previous: $error);
 		}

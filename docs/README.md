@@ -34,6 +34,7 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, and webhooks |
+| [Backups](backups.md) | Backing up your site's content, settings, and accounts |
 | [Command line](cli.md) | Every `bin/blush` command |
 | [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins, icon packs, and admin themes |
 | [Coming from Blush 1.x](coming-from-1x.md) | What carries over and what changed |

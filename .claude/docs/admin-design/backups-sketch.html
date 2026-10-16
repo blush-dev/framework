@@ -1,0 +1,1070 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Tools: Backups Sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: the admin shell (rail · section panel · top bar · work area), Tools screen, Backups tab.
+   Tokens are design/tokens.css verbatim: neutral + editorial, light + dark. */
+:root{
+  --bg:#f5f6f9;--surface:#ffffff;--surface-2:#f0f2f6;--surface-3:#e7eaf0;
+  --border:#e2e5ec;--border-strong:#ccd2dd;
+  --fg:#11141b;--fg-2:#535b6b;--fg-3:#858d9d;
+  --accent:#2f5fe0;--accent-hover:#2650c4;--accent-fg:#ffffff;--accent-soft:#e9effc;--accent-line:#bdcdf7;
+  --good:#136b43;--good-soft:#e2f3e9;--good-dot:#1f9d5f;
+  --warn:#8a5806;--warn-soft:#faf0d9;--warn-dot:#cf8d16;
+  --danger:#a92420;--danger-soft:#fbeae9;--danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05),0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09),0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px;--r-2:10px;--r-3:16px;
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:18px;--s-5:26px;--s-6:36px;--s-7:52px;
+  --font-ui:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-title:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --base:13px;--h1:26px;--h1-track:-.024em;--title-size:13.5px;--title-weight:500;--title-track:-.005em;
+  --pad-row:14px;--pad-panel:17px;--pad-x:22px;--ctl:34px;--ctl-sm:30px;--stat-v:30px;
+  --railbar:74px;--rail:262px;--bar:62px;--work-max:1400px;--measure:72ch;
+  --lab-h:40px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0d12;--surface:#13161d;--surface-2:#1a1e27;--surface-3:#222733;--border:#242936;--border-strong:#353c4c;
+  --fg:#e9ebf0;--fg-2:#a3abba;--fg-3:#747d8e;--accent:#7295f7;--accent-hover:#8aa8f9;--accent-fg:#0b0d12;--accent-soft:#182444;--accent-line:#2c3d68;
+  --good:#5ecb92;--good-soft:#102a1e;--good-dot:#35b877;--warn:#e3b360;--warn-soft:#2b2312;--warn-dot:#d69f3c;--danger:#f28d84;--danger-soft:#301917;--danger-dot:#e0655c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.3);--shadow-3:0 10px 28px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0d12;--surface:#13161d;--surface-2:#1a1e27;--surface-3:#222733;--border:#242936;--border-strong:#353c4c;
+  --fg:#e9ebf0;--fg-2:#a3abba;--fg-3:#747d8e;--accent:#7295f7;--accent-hover:#8aa8f9;--accent-fg:#0b0d12;--accent-soft:#182444;--accent-line:#2c3d68;
+  --good:#5ecb92;--good-soft:#102a1e;--good-dot:#35b877;--warn:#e3b360;--warn-soft:#2b2312;--warn-dot:#d69f3c;--danger:#f28d84;--danger-soft:#301917;--danger-dot:#e0655c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.3);--shadow-3:0 10px 28px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3);color-scheme:dark}
+:root[data-admin-theme="editorial"]{
+  --bg:#f6f2ec;--surface:#fffdfa;--surface-2:#f1ece3;--surface-3:#e7e0d4;--border:#e5ded2;--border-strong:#cdc3b3;
+  --fg:#23201b;--fg-2:#5d564c;--fg-3:#8e867a;--accent:#17595e;--accent-hover:#124a4e;--accent-fg:#fffdfa;--accent-soft:#e2eded;--accent-line:#b6d3d5;
+  --good:#4c6d2c;--good-soft:#edf1e2;--good-dot:#6f9b45;--warn:#8a5a14;--warn-soft:#f8eeda;--warn-dot:#c58a2a;--danger:#9c3327;--danger-soft:#f8e7e2;--danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05),0 1px 2px rgba(60,48,32,.04);--shadow-3:0 10px 28px rgba(60,48,32,.09),0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px;--r-2:12px;--r-3:20px;
+  --font-ui:"Karla",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Newsreader",ui-serif,Georgia,"Times New Roman",serif;
+  --font-title:"Newsreader",ui-serif,Georgia,"Times New Roman",serif;
+  --base:13.5px;--h1:32px;--h1-track:-.014em;--title-size:15.5px;--title-weight:500;--title-track:0;
+  --pad-row:16px;--pad-panel:19px;--pad-x:26px;--stat-v:34px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"])[data-admin-theme="editorial"]{
+  --bg:#15120e;--surface:#1d1915;--surface-2:#26211a;--surface-3:#322b22;--border:#302a21;--border-strong:#463e31;
+  --fg:#f0e9dd;--fg-2:#b4a996;--fg-3:#877c6c;--accent:#72bec2;--accent-hover:#8bcccf;--accent-fg:#15120e;--accent-soft:#113032;--accent-line:#1d4a4d;
+  --good:#9cc16b;--good-soft:#1c2413;--good-dot:#84ad55;--warn:#dcae63;--warn-soft:#2c2314;--warn-dot:#c79646;--danger:#e8897b;--danger-soft:#2f1a16;--danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);--shadow-3:0 10px 28px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.34);color-scheme:dark}}
+:root[data-theme="dark"][data-admin-theme="editorial"]{
+  --bg:#15120e;--surface:#1d1915;--surface-2:#26211a;--surface-3:#322b22;--border:#302a21;--border-strong:#463e31;
+  --fg:#f0e9dd;--fg-2:#b4a996;--fg-3:#877c6c;--accent:#72bec2;--accent-hover:#8bcccf;--accent-fg:#15120e;--accent-soft:#113032;--accent-line:#1d4a4d;
+  --good:#9cc16b;--good-soft:#1c2413;--good-dot:#84ad55;--warn:#dcae63;--warn-soft:#2c2314;--warn-dot:#c79646;--danger:#e8897b;--danger-soft:#2f1a16;--danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);--shadow-3:0 10px 28px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.34);color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.num,.mono,td,th,time{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-variant-ligatures:none}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ic-lg{width:20px;height:20px}
+button{font:inherit;color:inherit}
+h1,h2,h3{text-wrap:balance;margin:0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- sketch harness (lab-) ---------- */
+.lab-bar{height:var(--lab-h);display:flex;align-items:center;gap:var(--s-4);padding-inline:16px;background:var(--surface-2);border-bottom:1px dashed var(--border-strong);font-size:12px;color:var(--fg-2);overflow-x:auto;white-space:nowrap}
+.lab-bar b{color:var(--fg);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:11px}
+.lab-grp{display:flex;align-items:center;gap:var(--s-1)}
+.lab-grp>span{margin-right:2px}
+.lab-seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.lab-seg button{border:0;background:none;padding:3px 9px;cursor:pointer;font-size:12px;color:var(--fg-2)}
+.lab-seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.lab-notes{margin-left:auto;border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--r-1);padding:3px 10px;cursor:pointer;font-size:12px}
+
+/* ---------- shell ---------- */
+.app{height:calc(100% - var(--lab-h));display:grid;grid-template-columns:var(--railbar) var(--rail) minmax(0,1fr);grid-template-rows:var(--bar) minmax(0,1fr)}
+.rail{grid-row:1/3;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:var(--s-2);padding-block:var(--s-3)}
+.mark{width:40px;height:40px;border-radius:var(--r-2);background:var(--fg);color:var(--bg);display:grid;place-items:center;font-weight:600;font-family:var(--font-display);margin-bottom:var(--s-3)}
+.rail a{width:62px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 7px;border-radius:var(--r-2);color:var(--fg-2);text-decoration:none;font-size:11.5px}
+.rail a:hover{background:var(--surface-2)}
+.rail a[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.side{grid-row:1/3;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+.side-head{height:var(--bar);padding-inline:var(--pad-x);display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--border)}
+.side-head strong{font-family:var(--font-display);font-size:15px;font-weight:600}
+.side-head span{color:var(--fg-3);font-size:12px}
+.side nav{padding:var(--s-4) var(--s-3);display:flex;flex-direction:column;gap:2px}
+.side nav a{display:flex;align-items:center;gap:var(--s-3);padding:8px 12px;border-radius:var(--r-1);color:var(--fg);text-decoration:none;font-size:13.5px;position:relative}
+.side nav a:hover{background:var(--surface-2)}
+.side nav a .ic{color:var(--fg-2)}
+.side nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.side nav a[aria-current="page"] .ic{color:var(--accent)}
+.side nav a[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--accent)}
+.side nav .cnt{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.side .grp{display:flex;justify-content:space-between;padding:var(--s-5) 12px var(--s-2);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);font-weight:500}
+.top{grid-column:3;display:flex;align-items:center;gap:var(--s-3);padding-inline:var(--s-6) var(--s-4);background:var(--surface);border-bottom:1px solid var(--border);min-width:0}
+.crumb{display:flex;align-items:center;gap:var(--s-2);font-size:13.5px;color:var(--fg-2);min-width:0;white-space:nowrap}
+.crumb a{color:inherit;text-decoration:none}
+.crumb [aria-current]{color:var(--fg);font-weight:500}
+.top .grow{flex:1}
+.search{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl);width:240px;padding-inline:10px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2);color:var(--fg-3);cursor:text}
+.search kbd{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;border:1px solid var(--border-strong);border-radius:4px;padding:0 4px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--surface-3);display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--fg-2);flex:none}
+.icon-btn.menu-btn{display:none}
+.work{grid-column:3;overflow:auto;min-width:0}
+.wrap{max-width:var(--work-max);margin-inline:auto;padding:var(--s-7) var(--s-6) 120px;display:flex;flex-direction:column;gap:var(--s-5)}
+
+/* ---------- controls ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-1);height:var(--ctl);padding-inline:14px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);color:var(--fg);cursor:pointer;white-space:nowrap;text-decoration:none;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn.sm{height:var(--ctl-sm);padding-inline:11px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.danger{color:var(--danger);border-color:var(--border-strong)}
+.btn.danger:hover{background:var(--danger-soft)}
+.btn.danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.icon-btn{width:var(--ctl-sm);height:var(--ctl-sm);display:grid;place-items:center;border:0;background:none;border-radius:var(--r-1);color:var(--fg-2);cursor:pointer}
+.icon-btn:hover{background:var(--surface-3)}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:20px;padding-inline:8px 9px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap;vertical-align:middle;margin-block:-2px}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.good{background:var(--good-soft);color:var(--good)}.pill.good::before{background:var(--good-dot)}
+.pill.danger{background:var(--danger-soft);color:var(--danger)}.pill.danger::before{background:var(--danger-dot)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.warn::before{background:var(--warn-dot)}
+.pill.run{background:var(--accent-soft);color:var(--accent)}.pill.run::before{background:var(--accent);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.chip{display:inline-flex;align-items:center;height:20px;padding-inline:7px;border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--border);color:var(--fg-2);font-size:11.5px;white-space:nowrap}
+
+/* page header + tabs */
+.page-head h1{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.15}
+.page-head p{margin:var(--s-2) 0 0;color:var(--fg-2);font-size:14px}
+.tabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);margin-top:calc(var(--s-1) * -1)}
+.tabs button{border:0;background:none;padding:10px 14px 12px;font-size:14px;color:var(--fg-2);cursor:pointer;position:relative}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);font-weight:500}
+.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+
+.notice{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-4) var(--pad-x);border-radius:var(--r-2);background:var(--surface-2);border:1px solid var(--border);color:var(--fg-2);font-size:13.5px;line-height:1.6}
+.notice .ic{margin-top:3px;color:var(--fg-3)}
+.notice.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn-dot) 40%,transparent);color:var(--warn)}
+.notice.warn .ic{color:var(--warn-dot)}
+.notice.run{background:var(--accent-soft);border-color:var(--accent-line);color:var(--fg)}
+.notice.run .ic{color:var(--accent)}
+.notice .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s-2)}
+.notice strong{color:var(--fg);font-weight:600}
+
+/* stat tiles */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:var(--s-4) var(--pad-x);display:flex;flex-direction:column;gap:6px;min-width:0}
+.stat .lbl{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2);font-weight:500}
+.stat .lbl .ic{width:14px;height:14px}
+.stat .v{font-family:var(--font-display);font-size:var(--stat-v);font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.stat .ctx{color:var(--fg-3);font-size:12.5px}
+.stat.attn{border-color:var(--warn-dot)}
+.stat.attn .lbl{color:var(--warn)}
+.meter{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;margin-top:2px}
+.meter i{display:block;height:100%;background:var(--fg-3);border-radius:3px}
+
+/* panel */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);min-width:0}
+.panel-h{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x)}
+.panel-h h2{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.01em}
+.panel-h .hint{color:var(--fg-3);font-size:12.5px}
+.panel-h .acts{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap}
+.panel-h.flush{border-bottom:1px solid var(--border)}
+
+/* table */
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:860px}
+th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);font-weight:500;padding:10px var(--s-3);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:var(--pad-row) var(--s-3);border-bottom:1px solid var(--border);vertical-align:middle;color:var(--fg-2)}
+th:first-child,td:first-child{padding-left:var(--pad-x)}
+th:last-child,td:last-child{padding-right:var(--s-3)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr.is-run td{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+tbody tr.is-new td{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--accent-soft)}}
+.r{text-align:right}
+.t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap}
+.t .note{font-family:var(--font-ui);font-size:12.5px;color:var(--fg-2);font-weight:400}
+.sub{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub.bad{font-family:var(--font-ui);font-size:12.5px;color:var(--danger);white-space:normal}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:var(--s-2);white-space:nowrap}
+.who .ic{color:var(--fg-3)}
+.row-acts{display:flex;justify-content:flex-end;gap:2px}
+.row-acts .icon-btn{opacity:0}
+tr:hover .row-acts .icon-btn,.row-acts .icon-btn:focus-visible,.row-acts .icon-btn[aria-expanded="true"]{opacity:1}
+.prog{display:flex;flex-direction:column;gap:5px}
+.bar{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .18s ease-out}
+.prog .what{font-size:12px;color:var(--fg-2)}
+.tbl-foot{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);color:var(--fg-3);font-size:12.5px;flex-wrap:wrap}
+.tbl-foot .btn{margin-left:auto}
+.sk{display:block;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--surface-2) 0,var(--surface-3) 40%,var(--surface-2) 80%);background-size:300% 100%;animation:shim 1.4s linear infinite}
+@keyframes shim{from{background-position:100% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s-3);padding:var(--s-7) var(--s-5) calc(var(--s-7) + 8px)}
+.empty .badge{width:52px;height:52px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--fg-2);margin-bottom:var(--s-2)}
+.empty h3{font-family:var(--font-display);font-size:19px;font-weight:600}
+.empty p{max-width:46ch;margin:0;color:var(--fg-2);font-size:13.5px;line-height:1.6}
+.empty .acts{display:flex;gap:var(--s-2);margin-top:var(--s-3);flex-wrap:wrap;justify-content:center}
+
+/* schedule form */
+.sched{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.sched>section{padding:var(--s-2) var(--pad-x) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4);min-width:0}
+.sched>section+section{border-left:1px solid var(--border)}
+.sched h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);font-weight:500}
+.sched>section:nth-child(2){grid-column:2;grid-row:1/3}
+.sched>section.email{grid-column:1;grid-row:2;border-left:0;border-top:1px solid var(--border);padding-top:var(--s-4)}
+.email-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-4)}
+.to-site{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl);flex-wrap:wrap}
+.to-site .addr{display:inline-flex;align-items:center;gap:var(--s-2);padding-inline:11px;height:var(--ctl);border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-1);min-width:0;flex:1}
+.to-site .addr .mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.tag{font-size:11px;color:var(--fg-2);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.to-row{display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap}
+.to-row .inp{flex:1 1 200px;font-size:12.5px}
+.inp.bad{border-color:var(--danger-dot)}
+.err{display:flex;align-items:center;gap:6px;color:var(--danger);font-size:12px;margin-top:6px}
+.err .ic{width:14px;height:14px}
+.safe{display:flex;gap:var(--s-3);align-items:flex-start;color:var(--fg-2);font-size:12.5px;line-height:1.55;max-width:90ch}
+.safe .ic{margin-top:2px;color:var(--fg-3)}
+.email-acts{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.chk-grp{display:flex;flex-direction:column;gap:2px}
+.chk-grp+.chk-grp{margin-top:var(--s-3)}
+.grp-lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);font-weight:500;padding:0 10px 2px}
+.mail-dlg{width:min(600px,calc(100vw - 32px))}
+.mail{border:1px solid var(--border);border-radius:var(--r-2);overflow:hidden}
+.mail-h{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px var(--s-3);margin:0;padding:var(--s-3) var(--s-4);background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12.5px}
+.mail-h dt{color:var(--fg-3)}.mail-h dd{margin:0;color:var(--fg);overflow-wrap:anywhere}
+.mail-b{padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3);color:var(--fg);font-size:13px;line-height:1.6}
+.mail-b p{margin:0}.mail-b .mono{font-size:12px;overflow-wrap:anywhere}
+.quiet{color:var(--fg-3);font-size:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lbl{font-size:12.5px;font-weight:500;color:var(--fg)}
+.field .hint{font-size:11.5px;color:var(--fg-3)}
+.row2{display:flex;gap:var(--s-3);flex-wrap:wrap}
+.row2>.field{flex:1 1 140px}
+.seg{display:inline-flex;height:var(--ctl);border:1px solid var(--border-strong);border-radius:var(--r-1);overflow:hidden;background:var(--surface);align-self:flex-start}
+.seg button{border:0;background:none;padding-inline:14px;cursor:pointer;color:var(--fg-2)}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.xs{position:relative}
+.xs-btn{width:100%;height:var(--ctl);display:flex;align-items:center;gap:var(--s-2);padding-inline:11px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);cursor:pointer;text-align:left}
+.xs-btn span{flex:1}
+.xs-btn .ic{color:var(--fg-3)}
+.inp{width:100%;height:var(--ctl);padding-inline:11px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);color:var(--fg);font:inherit}
+.checks{display:flex;flex-direction:column;gap:2px}
+.chk{display:flex;align-items:flex-start;gap:var(--s-3);padding:8px 10px;border-radius:var(--r-1);cursor:pointer}
+.chk:hover{background:var(--surface-2)}
+.chk input{position:absolute;opacity:0;width:1px;height:1px}
+.chk .box{width:16px;height:16px;flex:none;margin-top:1px;border:1.5px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;background:var(--surface);color:var(--accent-fg)}
+.chk .box .ic{width:12px;height:12px;stroke-width:2.4;opacity:0}
+.chk input:checked+.box{background:var(--accent);border-color:var(--accent)}
+.chk input:checked+.box .ic{opacity:1}
+.chk input:focus-visible+.box{outline:2px solid var(--accent);outline-offset:2px}
+.chk input:disabled~*{opacity:.55}
+.chk .txt{flex:1;display:flex;flex-direction:column;gap:1px;min-width:0}
+.chk .txt b{font-weight:500;color:var(--fg)}
+.chk .txt small{color:var(--fg-3);font-size:12px}
+.chk .size{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px var(--s-4);margin:0;font-size:13px}
+.kv dt{color:var(--fg-3)}
+.kv dd{margin:0;color:var(--fg);min-width:0;overflow-wrap:anywhere}
+.form-foot{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);justify-content:flex-end;flex-wrap:wrap}
+.saved{color:var(--good);font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+.dirty{color:var(--fg-3);font-size:12.5px}
+
+/* menu */
+.menu{position:fixed;z-index:50;min-width:200px;max-width:320px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:var(--s-1);display:flex;flex-direction:column}
+.menu button{display:flex;align-items:center;gap:var(--s-2);border:0;background:none;padding:7px 10px;border-radius:var(--r-1);cursor:pointer;text-align:left;font-size:13px}
+.menu button:hover,.menu button:focus-visible{background:var(--surface-2);outline:none}
+.menu button.on .ic.tick{visibility:visible}
+.menu .ic.tick{visibility:hidden;margin-left:auto;color:var(--accent)}
+.menu button.danger{color:var(--danger)}
+.menu button.danger:hover{background:var(--danger-soft)}
+.menu hr{border:0;border-top:1px solid var(--border);margin:var(--s-1) 0}
+.menu .ic{color:var(--fg-2)}
+.menu button.danger .ic{color:var(--danger)}
+
+/* modal */
+dialog{border:1px solid var(--border);border-radius:var(--r-3);background:var(--surface);color:var(--fg);box-shadow:var(--shadow-3);padding:0;width:min(520px,calc(100vw - 32px));max-height:calc(100% - 48px)}
+dialog::backdrop{background:color-mix(in srgb,var(--fg) 32%,transparent)}
+:root[data-theme="dark"] dialog::backdrop{background:color-mix(in srgb,var(--bg) 70%,transparent)}
+.m-h{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--s-5) var(--s-5) var(--s-2)}
+.m-h h2{font-family:var(--font-display);font-size:19px;font-weight:600;flex:1;line-height:1.3}
+.m-b{padding:var(--s-2) var(--s-5) var(--s-4);display:flex;flex-direction:column;gap:var(--s-4);color:var(--fg-2);font-size:13.5px;line-height:1.6}
+.m-b p{margin:0}
+.m-f{display:flex;justify-content:flex-end;gap:var(--s-2);padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);flex-wrap:wrap}
+.drop{border:1.5px dashed var(--border-strong);border-radius:var(--r-2);padding:var(--s-6) var(--s-4);display:flex;flex-direction:column;align-items:center;gap:var(--s-2);text-align:center;color:var(--fg-2)}
+.drop .ic{width:28px;height:28px;color:var(--fg-3)}
+.drop small{color:var(--fg-3)}
+.notes-dlg{width:min(720px,calc(100vw - 32px))}
+.notes{padding:0 var(--s-5) var(--s-5);color:var(--fg-2);font-size:13.5px;line-height:1.65}
+.notes ol{padding-left:2.4em;margin:0;display:flex;flex-direction:column;gap:var(--s-3)}
+.notes li::marker{font-family:var(--font-mono);font-size:12px;color:var(--fg-3)}
+.notes li b{color:var(--fg)}
+.notes h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);margin:var(--s-5) 0 var(--s-3);font-weight:500}
+.notes ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:var(--s-2)}
+
+/* toasts */
+.toasts{position:fixed;right:var(--s-4);bottom:calc(var(--s-4) + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:var(--s-2);z-index:60;max-width:calc(100vw - 32px)}
+.toast{position:relative;display:flex;align-items:center;gap:var(--s-3);padding:11px 12px 11px 14px;background:var(--surface);border-radius:var(--r-2);box-shadow:var(--shadow-2);width:380px;max-width:100%;font-size:13px;animation:tin .16s ease-out}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+.toast svg.ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.toast svg.ring rect{width:calc(100% - 1px);height:calc(100% - 1px);rx:var(--r-2);fill:none;stroke-width:1}
+.toast .trk{stroke:var(--border)}
+.toast .run{stroke-dasharray:100 100;stroke-dashoffset:0;animation:drain linear forwards}
+@keyframes drain{to{stroke-dashoffset:100}}
+.toast.good .run,.toast.good .k{stroke:var(--good-dot);color:var(--good-dot)}
+.toast.info .run,.toast.info .k{stroke:var(--fg-3);color:var(--fg-3)}
+.toast.warn .run,.toast.warn .k{stroke:var(--warn-dot);color:var(--warn-dot)}
+.toast .msg{flex:1;min-width:0}
+.toast .btn{height:26px;padding-inline:9px}
+.toast:hover .run,.toast:focus-within .run{animation-play-state:paused}
+
+@media (max-width:1100px){.stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.stats .stat:last-child{grid-column:1/-1}.sched{grid-template-columns:minmax(0,1fr)}.sched>section:nth-child(2),.sched>section.email{grid-column:1;grid-row:auto}.sched>section+section{border-left:0;border-top:1px solid var(--border);padding-top:var(--s-4)}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail,.side{position:fixed;top:var(--lab-h);bottom:0;z-index:40;transform:translateX(-100vw);visibility:hidden;transition:transform .16s ease-out,visibility .16s}
+  .app.open .rail,.app.open .side{visibility:visible}
+  .rail{left:0;width:var(--railbar)}
+  .side{left:var(--railbar);width:min(var(--rail),calc(100vw - var(--railbar) - 24px))}
+  .app.open .rail,.app.open .side{transform:none}
+  .app.open::after{content:"";position:fixed;inset:var(--lab-h) 0 0 0;background:color-mix(in srgb,var(--fg) 30%,transparent);z-index:30}
+  .top,.work{grid-column:1}
+  .icon-btn.menu-btn{display:grid}
+  .top{padding-inline:var(--s-2) var(--s-3)}
+}
+@media (max-width:640px){
+  .wrap{padding:var(--s-6) 16px 120px;gap:var(--s-4)}
+  .search{width:var(--ctl);padding:0;justify-content:center}.search span,.search kbd{display:none}
+  .crumb .root,.crumb .sep{display:none}
+  .view-site span{display:none}
+  .stats{grid-template-columns:minmax(0,1fr)}
+  .stats .stat:last-child{grid-column:auto}
+  .panel-h .acts{margin-left:0;width:100%}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-content" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-extend" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-health" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+  <symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-account" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></symbol>
+  <symbol id="i-post" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-backup" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-disk" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+</svg>
+
+<div class="lab-bar" role="toolbar" aria-label="Sketch controls">
+  <b>Sketch</b>
+  <div class="lab-grp"><span>State</span><div class="lab-seg" data-lab="state">
+    <button type="button" data-v="normal" aria-pressed="true">Normal</button>
+    <button type="button" data-v="failed" aria-pressed="false">Last One Failed</button>
+    <button type="button" data-v="empty" aria-pressed="false">None Yet</button>
+    <button type="button" data-v="loading" aria-pressed="false">Loading</button>
+  </div></div>
+  <div class="lab-grp"><span>Theme</span><div class="lab-seg" data-lab="theme">
+    <button type="button" data-v="neutral" aria-pressed="true">Neutral</button>
+    <button type="button" data-v="editorial" aria-pressed="false">Editorial</button>
+  </div></div>
+  <div class="lab-grp"><span>Scheme</span><div class="lab-seg" data-lab="scheme">
+    <button type="button" data-v="system" aria-pressed="true">System</button>
+    <button type="button" data-v="light" aria-pressed="false">Light</button>
+    <button type="button" data-v="dark" aria-pressed="false">Dark</button>
+  </div></div>
+  <button type="button" class="lab-notes" id="lab-notes">Notes</button>
+</div>
+
+<div class="app" id="app">
+  <nav class="rail" aria-label="Sections">
+    <div class="mark" aria-hidden="true">J</div>
+    <a href="#" aria-pressed="true"><svg class="ic ic-lg"><use href="#i-home"/></svg>Home</a>
+    <a href="#" aria-pressed="false"><svg class="ic ic-lg"><use href="#i-content"/></svg>Content</a>
+    <a href="#" aria-pressed="false"><svg class="ic ic-lg"><use href="#i-extend"/></svg>Extend</a>
+    <a href="#" aria-pressed="false"><svg class="ic ic-lg"><use href="#i-user"/></svg>Users</a>
+    <a href="#" aria-pressed="false"><svg class="ic ic-lg"><use href="#i-config"/></svg>Config</a>
+  </nav>
+  <aside class="side" aria-label="Home">
+    <div class="side-head"><strong>Home</strong><span>Justin Tadlock</span></div>
+    <nav>
+      <a href="#"><svg class="ic"><use href="#i-dashboard"/></svg>Dashboard</a>
+      <a href="#"><svg class="ic"><use href="#i-health"/></svg>Site Health<span class="cnt">4</span></a>
+      <a href="#" aria-current="page"><svg class="ic"><use href="#i-tools"/></svg>Tools</a>
+      <div class="grp"><span>Shortcuts</span><span>Edit</span></div>
+      <a href="#"><svg class="ic"><use href="#i-account"/></svg>Your Account</a>
+      <a href="#"><svg class="ic"><use href="#i-post"/></svg>Posts</a>
+      <a href="#"><svg class="ic"><use href="#i-page"/></svg>Pages</a>
+    </nav>
+  </aside>
+  <header class="top">
+    <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open Navigation"><svg class="ic ic-lg"><use href="#i-menu"/></svg></button>
+    <nav class="crumb" aria-label="Breadcrumb"><a class="root" href="#">Home</a><span class="sep" aria-hidden="true">/</span><a href="#">Tools</a><span aria-hidden="true">/</span><span aria-current="page">Backups</span></nav>
+    <div class="grow"></div>
+    <div class="search" role="button" tabindex="0" aria-label="Search or jump to"><svg class="ic"><use href="#i-search"/></svg><span>Search or jump to…</span><kbd>⌘K</kbd></div>
+    <a class="btn view-site" href="#"><svg class="ic"><use href="#i-external"/></svg><span>View Site</span></a>
+    <div class="avatar" aria-label="Justin Tadlock">JT</div>
+  </header>
+
+  <main class="work" id="work">
+    <div class="wrap">
+      <div class="page-head">
+        <h1>Tools</h1>
+        <p>Tasks you run by hand, work done in the background, the log they write to, and copies of the site.</p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Tools">
+        <button role="tab" type="button" aria-selected="false" tabindex="-1">Actions</button>
+        <button role="tab" type="button" aria-selected="false" tabindex="-1">Jobs</button>
+        <button role="tab" type="button" aria-selected="false" tabindex="-1">Logs</button>
+        <button role="tab" type="button" aria-selected="true" tabindex="0">Backups</button>
+      </div>
+
+      <div id="restore-bar" hidden></div>
+
+      <div class="notice" id="intro">
+        <svg class="ic"><use href="#i-info"/></svg>
+        <div class="body"><span>A backup is one .zip of what makes the site this site: its content, types, fields and relationships, its settings, redirects and jobs, and its people. Media is left out, because it is plain files you can copy like any others.</span><span>Backups are kept on this server and hold password hashes, so download the ones that matter to somewhere private. They are never sent by email.</span></div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <section class="panel" aria-labelledby="list-h">
+        <div class="panel-h flush">
+          <h2 id="list-h">Backups</h2>
+          <span class="hint" id="list-hint"></span>
+          <div class="acts">
+            <button class="btn sm" type="button" id="upload-btn"><svg class="ic"><use href="#i-upload"/></svg>Upload a Backup</button>
+            <button class="btn sm primary" type="button" id="now-btn"><svg class="ic"><use href="#i-backup"/></svg>Back Up Now</button>
+          </div>
+        </div>
+        <div id="list"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="sched-h" id="sched-panel">
+        <div class="panel-h">
+          <h2 id="sched-h">Schedule</h2>
+          <span class="hint">Scheduled backups run as a job, in the background.</span>
+        </div>
+        <form class="sched" id="sched-form">
+          <section>
+            <div class="field"><span class="lbl" id="freq-l">How Often</span>
+              <div class="seg" role="radiogroup" aria-labelledby="freq-l" id="freq">
+                <button type="button" role="radio" data-v="off" aria-checked="false">Off</button>
+                <button type="button" role="radio" data-v="daily" aria-checked="true">Daily</button>
+                <button type="button" role="radio" data-v="weekly" aria-checked="false">Weekly</button>
+              </div>
+            </div>
+            <div class="row2" id="when-row">
+              <div class="field" id="day-f" hidden><span class="lbl">Day</span><div class="xs" data-xs="day"></div></div>
+              <div class="field"><span class="lbl">Time</span><div class="xs" data-xs="time"></div><span class="hint">Site time, America/Chicago.</span></div>
+              <div class="field"><span class="lbl">Keep</span><div class="xs" data-xs="keep"></div><span class="hint">The oldest scheduled one goes when a new one finishes.</span></div>
+            </div>
+            <dl class="kv">
+              <dt>Kept in</dt><dd class="mono">storage/backups/</dd>
+              <dt>Set by</dt><dd><span class="mono">backups.path</span> in the site’s config</dd>
+            </dl>
+          </section>
+          <section>
+            <h3>What Each Scheduled Backup Holds</h3>
+            <div class="checks" id="sched-parts"></div>
+          </section>
+          <section class="email" id="email-sec">
+            <h3>Email</h3>
+            <div class="email-grid">
+              <div class="field"><span class="lbl">Send an Email</span><div class="xs" data-xs="notify"></div><span class="hint" id="notify-hint"></span></div>
+              <div class="field" id="to-f">
+                <label for="to-inp">To</label>
+                <div class="to-site" id="to-site"><span class="addr"><span class="mono" id="to-site-addr"></span><span class="tag">Site Email</span></span><button class="btn sm ghost" type="button" id="to-change">Use Another Address</button></div>
+                <div id="to-custom" hidden><div class="to-row"><input class="inp mono" id="to-inp" type="email" multiple autocomplete="email" spellcheck="false" placeholder="ops@example.com"><button class="btn sm ghost" type="button" id="to-reset">Use the Site Email</button></div>
+                  <span class="err" id="to-err" hidden><svg class="ic"><use href="#i-alert"/></svg>That isn’t an email address. Check it for a typo.</span></div>
+                <span class="hint">The site email is set under Config › Settings › General. Separate several addresses with commas.</span>
+              </div>
+            </div>
+            <div class="safe"><svg class="ic"><use href="#i-lock"/></svg><span>The email says whether the backup worked, when, its size and what it holds, and links to this screen. It never attaches the backup or links to a download: a backup holds password hashes and sessions, and email is not a safe place for either.</span></div>
+            <div class="email-acts"><button class="btn sm" type="button" id="test-btn">Send a Test Email</button><button class="btn sm ghost" type="button" id="preview-btn">Preview the Email</button></div>
+          </section>
+        </form>
+        <div class="form-foot"><span id="sched-state" class="dirty"></span><button class="btn primary" type="button" id="sched-save" disabled>Save Schedule</button></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="off"></div>
+<div class="vh" role="status" id="announce"></div>
+
+<dialog id="dlg-now" aria-labelledby="now-h">
+  <form method="dialog" id="now-form">
+    <div class="m-h"><h2 id="now-h">Back Up Now</h2><button class="icon-btn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="m-b">
+      <p>Pick what goes in. Before changing a theme or a plugin, Settings on its own is often enough.</p>
+      <div class="checks" id="now-parts"></div>
+      <div class="field"><label for="now-note">Note</label><input class="inp" id="now-note" maxlength="60" placeholder="Before switching to Woad" autocomplete="off"><span class="hint">Optional. Backups you make yourself are never removed by the schedule.</span></div>
+    </div>
+    <div class="m-f"><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="go" id="now-go">Back Up 1.42 GB</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-restore" aria-labelledby="rs-h">
+  <form method="dialog" id="rs-form">
+    <div class="m-h"><h2 id="rs-h">Restore This Backup?</h2><button class="icon-btn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="m-b">
+      <p id="rs-lead"></p>
+      <div class="checks" id="rs-parts"></div>
+      <div class="notice" style="padding:var(--s-3) var(--s-4)"><svg class="ic"><use href="#i-check"/></svg><div class="body"><span>Blush backs up the site as it is right now before replacing anything, so a restore can be undone.</span></div></div>
+      <div class="notice warn" id="rs-acct" hidden style="padding:var(--s-3) var(--s-4)"><svg class="ic"><use href="#i-alert"/></svg><div class="body"><span>Restoring accounts signs everyone out, you included. Passwords go back to what they were on that day.</span></div></div>
+      <div class="notice warn" id="rs-sess" hidden style="padding:var(--s-3) var(--s-4)"><svg class="ic"><use href="#i-alert"/></svg><div class="body"><span>Restoring sessions brings back sign-ins that have ended since this backup, including any someone ended on purpose. Leave it out unless you are moving the site to a new server.</span></div></div>
+    </div>
+    <div class="m-f"><button class="btn" value="cancel">Cancel</button><button class="btn danger-fill" value="go" id="rs-go">Restore</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-delete" aria-labelledby="del-h">
+  <form method="dialog">
+    <div class="m-h"><h2 id="del-h">Delete This Backup?</h2></div>
+    <div class="m-b"><p id="del-lead"></p></div>
+    <div class="m-f"><button class="btn" value="cancel">Keep It</button><button class="btn danger-fill" value="go">Delete Backup</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-upload" aria-labelledby="up-h">
+  <form method="dialog">
+    <div class="m-h"><h2 id="up-h">Upload a Backup</h2><button class="icon-btn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="m-b">
+      <p>Bring in a backup from another server or from your own computer. It joins the list, and nothing changes until you restore it.</p>
+      <div class="drop"><svg class="ic"><use href="#i-upload"/></svg><span>Drop a .zip here</span><button class="btn sm" type="button" id="up-choose">Choose a File</button><small>A .zip made by Blush 1.0 or later, up to 200 MB.</small></div>
+    </div>
+    <div class="m-f"><button class="btn" value="cancel">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-note" aria-labelledby="note-h">
+  <form method="dialog">
+    <div class="m-h"><h2 id="note-h">Edit Note</h2></div>
+    <div class="m-b"><div class="field"><label for="note-inp">Note</label><input class="inp" id="note-inp" maxlength="60" autocomplete="off"><span class="hint">Shown beside the date. A note does not change when the backup is removed.</span></div></div>
+    <div class="m-f"><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="go">Save Note</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-mail" class="mail-dlg" aria-labelledby="mail-h">
+  <form method="dialog">
+    <div class="m-h"><h2 id="mail-h">Preview the Email</h2><button class="icon-btn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  </form>
+  <div class="m-b">
+    <div class="seg" role="radiogroup" aria-label="Which email" id="mail-tabs"><button type="button" role="radio" data-v="ok" aria-checked="true">Backup Worked</button><button type="button" role="radio" data-v="bad" aria-checked="false">Backup Failed</button></div>
+    <div class="mail" id="mail-ok">
+      <dl class="mail-h"><dt>From</dt><dd class="mono">Blush &lt;backups@justintadlock.com&gt;</dd><dt>To</dt><dd class="mono mail-to"></dd><dt>Subject</dt><dd><b>Backed up: Justin Tadlock, Oct 9 at 3:00 a.m.</b></dd></dl>
+      <div class="mail-b">
+<p>The scheduled backup of Justin Tadlock (justintadlock.com) finished at 3:01 a.m. on Friday, October 9.</p>
+<p>Size: 6.1 MB<br>Holds: everything (content, types, fields, relationships, settings, redirects, jobs, accounts, roles and sessions)<br>Kept on the server: 14 scheduled backups, the oldest from September 26</p>
+<p>See your backups (you’ll be asked to sign in):<br><span class="mono">https://justintadlock.com/admin/tools/backups</span></p>
+<p class="quiet">The backup stays on the server. Blush never sends a backup by email. You get this because Tools › Backups › Email is set to After Every Backup.</p>
+      </div>
+    </div>
+    <div class="mail" id="mail-bad" hidden>
+      <dl class="mail-h"><dt>From</dt><dd class="mono">Blush &lt;backups@justintadlock.com&gt;</dd><dt>To</dt><dd class="mono mail-to"></dd><dt>Subject</dt><dd><b>Backup failed: Justin Tadlock, Oct 9 at 3:00 a.m.</b></dd></dl>
+      <div class="mail-b">
+<p>The scheduled backup of Justin Tadlock (justintadlock.com) failed at 3:02 a.m. on Friday, October 9. Nothing was kept, and no older backup was removed.</p>
+<p>What happened: the folder storage/backups/ is not writable, so the backup stopped while copying redirects.</p>
+<p>Your newest good backup is from Thursday, October 8 at 3:00 a.m. The next try is tonight at 3:00 a.m.</p>
+<p>See what happened and try again (you’ll be asked to sign in):<br><span class="mono">https://justintadlock.com/admin/tools/backups</span></p>
+<p class="quiet">You’ll get one email each day a backup fails, and one more when they work again. You get this because Tools › Backups › Email is set to Only When a Backup Fails.</p>
+      </div>
+    </div>
+    <p class="quiet" style="margin:0">Plain text, no images and no tracking. Nothing in it would help someone who isn’t signed in.</p>
+  </div>
+</dialog>
+
+<dialog id="dlg-notes" class="notes-dlg" aria-labelledby="notes-h">
+  <form method="dialog">
+    <div class="m-h"><h2 id="notes-h">Backups: Sketch Notes</h2><button class="icon-btn" value="cancel" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  </form>
+  <div class="notes">
+    <p style="margin:0 0 var(--s-4)">A fourth tab on Tools, beside Actions, Jobs and Logs. Everything here is the admin’s own pieces: page head, underlined tabs, a boxed notice, three stat tiles, a panel with a table, row menus, modals and toasts. Data is invented. The rules, numbered so they can be argued with:</p>
+    <ol>
+      <li><b>A backup is a file, and the screen says where it lives.</b> One .zip, named by its date in mono, kept in a folder named by config. The intro says plainly that it is on this server and holds password hashes.</li>
+      <li><b>Ten parts in three groups, each with its count and size.</b> Content (entries, types, fields, relationships), Site (settings, redirects, jobs) and People (accounts, roles, sessions). Media is left out: it is plain files, copied like any others. The Holds column reads <i>Everything</i>, <i>Everything but Sessions</i>, or the first three with a count.</li>
+      <li><b>Yours stay; the schedule’s rotate.</b> Keep counts scheduled backups only. A backup someone made on purpose, with a note, is never removed by the schedule.</li>
+      <li><b>Running is a row, not a toast or a spinner.</b> Back Up Now puts a row at the top with a progress bar that names the step and the count. The row shows its own result, so finishing does not toast (§7).</li>
+      <li><b>Failure says what happened to the site’s safety.</b> A failed row names the cause and that nothing was kept, and Last Backup becomes the one attention tile, naming the newest good copy and whether an email went out.</li>
+      <li><b>Restore makes a backup first, and that is what makes Undo honest.</b> People parts start unticked. Accounts and Sessions each get their own warning, because restoring them changes who can sign in.</li>
+      <li><b>Restore and Delete are apart.</b> Download, Restore and Edit Note sit above a divider; Delete sits alone below it. Delete has Undo, because the file is only removed when the toast ends.</li>
+      <li><b>Schedule is a form, not a set of switches.</b> Its controls, the email ones included, are values saved together with Save Schedule; the panel reports Saved in place.</li>
+      <li><b>None Yet hides the tiles.</b> There is nothing to summarize, so the empty state takes the room and offers both ways forward.</li>
+      <li><b>Email is a notice, never the backup.</b> It goes to the site’s email unless another address is given, and it says what happened and links to this screen, which needs a sign-in. No attachment and no download link: a backup holds password hashes and sessions, and a link in an inbox works for whoever holds the inbox. The default is <i>Only When a Backup Fails</i>, plus one email when they work again, because a daily success email trains people to filter the one that matters. <i>After Every Backup</i> is one choice away. Only scheduled backups email; a backup someone starts by hand finishes on this screen.</li>
+    </ol>
+    <h3>Open</h3>
+    <ul>
+      <li><b>Default for email.</b> The sketch defaults to failures only. The owner’s instinct was a notice either way; <i>After Every Backup</i> is drawn and costs one change of default.</li>
+      <li><b>When the site cannot send mail.</b> The test button is the only way to find out today. Forms and the signed-out screens already ask where mail settings live and what happens when mail fails.</li>
+      <li><b>Encrypting the file.</b> A passphrase set here would make a downloaded backup safe to store anywhere, at the cost of a passphrase someone must not lose.</li>
+      <li><b>Are sessions worth backing up?</b> They matter only when moving to a new server; restoring them otherwise revives ended sign-ins. The sketch backs them up and restores them only when asked.</li>
+      <li><b>Tab or screen?</b> Drawn as a fourth Tools tab. If restores grow a detail screen, Backups may earn its own panel item under Home.</li>
+      <li><b>Off-site copies.</b> Sending each backup somewhere else is the obvious plugin hook. Not drawn.</li>
+      <li><b>Who may restore.</b> Restoring accounts changes every person’s password. It probably needs its own capability.</li>
+    </ul>
+  </div>
+</dialog>
+
+<script>
+(function(){
+"use strict";
+var NOW=new Date(2026,9,9,17,24);
+var PARTS={
+  content:{label:"Content",desc:"Entries, pages and terms",n:1204,noun:"entries",size:18.2e6},
+  types:{label:"Types",desc:"Content type definitions",n:14,noun:"types",size:22e3},
+  fields:{label:"Fields",desc:"The fields each type’s entries carry",n:63,noun:"fields",size:18e3},
+  relationships:{label:"Relationships",desc:"How types and entries connect",n:9,noun:"relationships",size:6e3},
+  settings:{label:"Settings",desc:"Site, plugin and theme settings",n:6,noun:"sets: the site, 3 plugins, 2 themes",size:41e3},
+  redirects:{label:"Redirects",desc:"Stored redirects",n:4212,noun:"redirects",size:310e3},
+  jobs:{label:"Jobs",desc:"Scheduled jobs and their run history",n:1880,noun:"runs of 8 jobs",size:1.1e6},
+  accounts:{label:"Accounts",desc:"People who can sign in, with password hashes",n:6,noun:"accounts",size:12e3},
+  roles:{label:"Roles",desc:"Roles and the capabilities they grant",n:4,noun:"roles",size:3e3},
+  sessions:{label:"Sessions",desc:"Who is signed in, and on which devices",n:11,noun:"sessions",size:4e3}
+};
+var GROUPS=[["Content",["content","types","fields","relationships"]],["Site",["settings","redirects","jobs"]],["People",["accounts","roles","sessions"]]];
+var ORDER=GROUPS.reduce(function(a,g){return a.concat(g[1])},[]);
+var ME="Justin Tadlock",SITE_EMAIL="justin@justintadlock.com";
+var sched={freq:"daily",day:"Sunday",time:3,keep:14,parts:ORDER.slice(),notify:"fail",to:""};
+var savedSched=JSON.parse(JSON.stringify(sched));
+var state="normal",backups=[],seq=100,running=null,restoring=null;
+
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function ic(n,c){return '<svg class="ic'+(c?" "+c:"")+'"><use href="#i-'+n+'"/></svg>'}
+function size(b){if(b>=1e9)return (b/1e9).toFixed(2)+" GB";if(b>=1e6)return (b/1e6).toFixed(1)+" MB";return Math.max(1,Math.round(b/1e3))+" KB"}
+function sumParts(p){return p.reduce(function(a,k){return a+PARTS[k].size},0)}
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var MONL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var DAY=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function hm(d){var h=d.getHours(),m=d.getMinutes();return (h%12||12)+":"+(m<10?"0":"")+m+" "+(h<12?"a.m.":"p.m.")}
+function dname(d){return DAY[d.getDay()]+", "+MON[d.getMonth()]+" "+d.getDate()+", "+hm(d)}
+function longd(d){return MONL[d.getMonth()]+" "+d.getDate()}
+function pad(n){return (n<10?"0":"")+n}
+function fname(d){return "blush-"+d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes())+".zip"}
+function ago(d){var m=Math.round((NOW-d)/6e4);if(m<1)return "Just now";if(m<60)return m+" minute"+(m>1?"s":"")+" ago";var h=Math.round(m/60);if(h<24)return h+" hour"+(h>1?"s":"")+" ago";var dd=Math.round(h/24);return dd+" day"+(dd>1?"s":"")+" ago"}
+function hour12(h){return (h%12||12)+":00 "+(h<12?"a.m.":"p.m.")}
+
+function seed(){
+  backups=[];
+  var all=ORDER.slice();
+  for(var i=0;i<13;i++){
+    var d=new Date(2026,9,9-i,3,0);
+    backups.push({id:++seq,date:d,parts:all,size:(sumParts(all)-i*92e3)*0.31,by:"Schedule",status:"done"});
+  }
+  backups.splice(2,0,{id:++seq,date:new Date(2026,9,7,14,12),parts:["settings"],size:14e3,by:ME,status:"done",note:"Before switching to Woad"});
+  var noSess=ORDER.filter(function(k){return k!=="sessions"});
+  backups.splice(9,0,{id:++seq,date:new Date(2026,9,2,9,41),parts:noSess,size:sumParts(noSess)*0.3,by:ME,status:"done",note:"Before importing the old blog"});
+  if(state==="failed"){
+    backups[0].status="failed";backups[0].size=0;
+    backups[0].reason="Stopped while copying redirects: storage/backups/ is not writable. Nothing was kept.";
+    backups[0].mailed=true;
+  }
+}
+
+/* ---------- stats ---------- */
+function newestGood(){for(var i=0;i<backups.length;i++)if(backups[i].status==="done")return backups[i];return null}
+function nextRun(){
+  if(sched.freq==="off")return null;
+  var d=new Date(NOW);d.setHours(sched.time,0,0,0);
+  if(sched.freq==="daily"){if(d<=NOW)d.setDate(d.getDate()+1);return d}
+  var target=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(savedSched.day);
+  while(d.getDay()!==target||d<=NOW)d.setDate(d.getDate()+1);return d;
+}
+function renderStats(){
+  var el=$("#stats");
+  if(state==="empty"){el.hidden=true;return}
+  el.hidden=false;
+  if(state==="loading"){
+    el.innerHTML=[0,1,2].map(function(){return '<div class="stat"><span class="sk" style="width:40%"></span><span class="sk" style="height:22px;width:55%;margin-block:6px"></span><span class="sk" style="width:70%"></span></div>'}).join("");return;
+  }
+  var last=backups.filter(function(b){return b.status!=="running"})[0],good=newestGood();
+  var t1;
+  if(last&&last.status==="failed"){
+    t1='<div class="stat attn"><span class="lbl">'+ic("alert")+'Last Backup Failed</span><span class="v">'+ago(last.date)+'</span><span class="ctx">Newest good copy: '+(good?dname(good.date):"none")+'<br>'+(savedSched.notify==="off"?"No email was sent.":"Emailed to "+esc(savedSched.to||SITE_EMAIL)+" at 3:02 a.m.")+'</span></div>';
+  }else{
+    t1='<div class="stat"><span class="lbl">'+ic("check")+'Last Backup</span><span class="v">'+(last?ago(last.date):"Never")+'</span><span class="ctx">'+(last?dname(last.date)+" · "+size(last.size):"")+'</span></div>';
+  }
+  var n=nextRun(),ss=savedSched;
+  var t2='<div class="stat"><span class="lbl">'+ic("clock")+'Next Backup</span><span class="v">'+(n?(n.getDate()===NOW.getDate()+1?"Tonight":DAY[n.getDay()])+", "+hm(n):"Off")+'</span><span class="ctx">'+(n?(ss.freq==="daily"?"Daily":"Weekly on "+ss.day+"s")+", keeping "+ss.keep:"Nothing is scheduled. Turn it on below.")+'</span></div>';
+  var used=backups.reduce(function(a,b){return a+(b.status==="done"?b.size:0)},0),free=52.1e9;
+  var pct=Math.min(100,used/(used+free)*100);
+  var t3='<div class="stat"><span class="lbl">'+ic("disk")+'Space Used</span><span class="v">'+size(used)+'</span><div class="meter" aria-hidden="true"><i style="width:'+pct.toFixed(1)+'%"></i></div><span class="ctx">'+size(free)+" free on the disk"+'</span></div>';
+  el.innerHTML=t1+t2+t3;
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  var el=$("#list"),hint=$("#list-hint");
+  $("#now-btn").disabled=!!running||!!restoring;
+  if(state==="loading"){
+    hint.textContent="";
+    var r="";for(var i=0;i<6;i++)r+='<tr><td><span class="sk" style="width:'+(50+i%3*12)+'%"></span><span class="sk" style="width:38%;height:8px;margin-top:8px"></span></td><td><span class="sk" style="width:70%"></span></td><td class="r"><span class="sk" style="width:60%;margin-left:auto"></span></td><td><span class="sk" style="width:65%"></span></td><td><span class="sk" style="width:60%"></span></td><td></td></tr>';
+    el.innerHTML='<div class="tbl-scroll"><table>'+cols()+head()+'<tbody>'+r+'</tbody></table></div>';return;
+  }
+  if(!backups.length){
+    hint.textContent="";
+    el.innerHTML='<div class="empty"><div class="badge">'+ic("backup","ic-lg")+'</div><h3>No Backups Yet</h3><p>Nothing has been backed up on this site. Make one now, or turn on the schedule below so one is made every night without anyone remembering to.</p><div class="acts"><button class="btn primary" type="button" data-act="now">'+ic("backup")+'Back Up Now</button><button class="btn" type="button" data-act="sched">Set a Schedule</button></div></div>';
+    return;
+  }
+  var mine=backups.filter(function(b){return b.by!=="Schedule"}).length;
+  hint.textContent=backups.length+" kept · "+mine+" made by hand";
+  var rows=backups.map(row).join("");
+  el.innerHTML='<div class="tbl-scroll"><table>'+cols()+head()+'<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="tbl-foot"><span>Newest first. The schedule keeps its '+savedSched.keep+' newest; the ones you make stay until you delete them.</span></div>';
+}
+function holds(parts){
+  var miss=ORDER.filter(function(k){return parts.indexOf(k)<0});
+  if(!miss.length)return '<span class="chip">Everything</span>';
+  if(miss.length<=2)return '<span class="chip" title="'+esc(parts.map(function(k){return PARTS[k].label}).join(", "))+'">Everything but '+listWords(miss.map(function(k){return PARTS[k].label}))+'</span>';
+  var shown=parts.slice(0,3).map(function(k){return '<span class="chip">'+PARTS[k].label+'</span>'}).join("");
+  return shown+(parts.length>3?'<span class="chip" title="'+esc(parts.slice(3).map(function(k){return PARTS[k].label}).join(", "))+'">+'+(parts.length-3)+'</span>':"");
+}
+function cols(){return '<colgroup><col style="width:34%"><col style="width:24%"><col style="width:10%"><col style="width:15%"><col style="width:12%"><col style="width:64px"></colgroup>'}
+function head(){return '<thead><tr><th>Backup</th><th>Holds</th><th class="r">Size</th><th>Made By</th><th>Status</th><th><span class="vh">Actions</span></th></tr></thead>'}
+function row(b){
+  var chips='<div class="chips">'+holds(b.parts)+'</div>';
+  var who=b.by==="Schedule"?'<span class="who">'+ic("clock")+'Schedule</span>':'<span class="who">'+ic("user")+esc(b.by)+'</span>';
+  var title='<div class="t">'+esc(dname(b.date))+(b.note?'<span class="note">'+esc(b.note)+'</span>':"")+'</div>';
+  if(b.status==="running"){
+    return '<tr class="is-run" data-id="'+b.id+'"><td>'+title+'<div class="sub">'+fname(b.date)+'</div></td><td>'+chips+'</td><td colspan="2"><div class="prog"><div class="bar" role="progressbar" aria-label="Backup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(b.progress)+'"><i style="width:'+b.progress+'%"></i></div><span class="what">'+esc(b.step)+'</span></div></td><td><span class="pill run">Running</span></td><td><div class="row-acts"><button class="btn sm ghost" type="button" data-act="cancel" style="opacity:1">Cancel</button></div></td></tr>';
+  }
+  var sub=b.status==="failed"?'<div class="sub bad">'+esc(b.reason)+'</div>':'<div class="sub">'+fname(b.date)+'</div>';
+  var pill=b.status==="failed"?'<span class="pill danger">Failed</span>':'<span class="pill good">Complete</span>';
+  return '<tr data-id="'+b.id+'"'+(b.fresh?' class="is-new"':"")+'><td>'+title+sub+'</td><td>'+chips+'</td><td class="r mono" style="font-size:12px">'+(b.status==="failed"?"—":size(b.size))+'</td><td>'+who+'</td><td>'+pill+'</td><td><div class="row-acts"><button class="icon-btn" type="button" data-act="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for '+esc(dname(b.date))+'">'+ic("more")+'</button></div></td></tr>';
+}
+
+/* ---------- menus ---------- */
+var openMenu=null;
+function closeMenu(focus){if(!openMenu)return;openMenu.el.remove();openMenu.btn.setAttribute("aria-expanded","false");if(focus)openMenu.btn.focus();openMenu=null}
+function showMenu(btn,items){
+  closeMenu();
+  var m=document.createElement("div");m.className="menu";m.setAttribute("role","menu");
+  m.innerHTML=items.map(function(it){if(it==="-")return "<hr>";return '<button type="button" role="menuitem"'+(it.cls?' class="'+it.cls+'"':"")+' data-k="'+it.k+'">'+(it.icon?ic(it.icon):"")+'<span>'+esc(it.label)+'</span>'+(it.tick!==undefined?ic("check","tick"):"")+'</button>'}).join("");
+  document.body.appendChild(m);
+  var r=btn.getBoundingClientRect(),w=Math.max(m.offsetWidth,r.width),h=m.offsetHeight;
+  var left=Math.min(Math.max(8,r.right-w),innerWidth-w-8),top=r.bottom+4;
+  if(top+h>innerHeight-8)top=r.top-h-4;
+  m.style.left=left+"px";m.style.top=top+"px";m.style.minWidth=w+"px";
+  btn.setAttribute("aria-expanded","true");
+  openMenu={el:m,btn:btn,items:items};
+  var first=m.querySelector("button");if(first)first.focus();
+  return m;
+}
+document.addEventListener("click",function(e){
+  if(openMenu&&!openMenu.el.contains(e.target)&&!openMenu.btn.contains(e.target))closeMenu();
+});
+document.addEventListener("keydown",function(e){
+  if(!openMenu)return;
+  var bs=[].slice.call(openMenu.el.querySelectorAll("button")),i=bs.indexOf(document.activeElement);
+  if(e.key==="Escape"){e.preventDefault();closeMenu(true)}
+  else if(e.key==="ArrowDown"){e.preventDefault();bs[(i+1)%bs.length].focus()}
+  else if(e.key==="ArrowUp"){e.preventDefault();bs[(i-1+bs.length)%bs.length].focus()}
+  else if(e.key==="Tab")closeMenu();
+});
+function rowMenu(btn,b){
+  var items=b.status==="failed"?
+    [{k:"log",label:"Show in Logs",icon:"log"},"-",{k:"delete",label:"Delete",icon:"trash",cls:"danger"}]:
+    [{k:"download",label:"Download "+size(b.size),icon:"download"},{k:"restore",label:"Restore…",icon:"restore"},{k:"note",label:b.note?"Edit Note":"Add a Note",icon:"pencil"},"-",{k:"delete",label:"Delete",icon:"trash",cls:"danger"}];
+  var m=showMenu(btn,items);
+  m.addEventListener("click",function(e){
+    var t=e.target.closest("button");if(!t)return;var k=t.dataset.k;closeMenu(true);
+    if(k==="download")toast("info","Downloading "+fname(b.date)+" is not wired up in this sketch.");
+    if(k==="log")toast("info","The Logs tab is not drawn in this sketch.");
+    if(k==="restore")openRestore(b);
+    if(k==="note")openNote(b);
+    if(k==="delete")openDelete(b);
+  });
+}
+
+/* ---------- custom select (drawn list, value kept in state) ---------- */
+var XS={
+  time:{get:function(){return sched.time},set:function(v){sched.time=+v},opts:Array.from({length:24},function(_,h){return [h,hour12(h)]})},
+  keep:{get:function(){return sched.keep},set:function(v){sched.keep=+v},opts:[[7,"The 7 newest"],[14,"The 14 newest"],[30,"The 30 newest"],[60,"The 60 newest"]]},
+  day:{get:function(){return sched.day},set:function(v){sched.day=v},opts:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map(function(d){return [d,d]})},
+  notify:{get:function(){return sched.notify},set:function(v){sched.notify=v;renderTo()},opts:[["fail","Only When a Backup Fails"],["every","After Every Backup"],["off","Never"]]}
+};
+function renderXs(){
+  document.querySelectorAll(".xs").forEach(function(w){
+    var x=XS[w.dataset.xs],cur=x.get(),lab=x.opts.filter(function(o){return o[0]==cur})[0][1];
+    w.innerHTML='<button type="button" class="xs-btn" aria-haspopup="menu" aria-expanded="false"><span>'+esc(lab)+'</span>'+ic("chev")+'</button>';
+    w.firstChild.onclick=function(){
+      var btn=this;if(openMenu&&openMenu.btn===btn){closeMenu();return}
+      var m=showMenu(btn,x.opts.map(function(o){return {k:o[0],label:o[1],tick:o[0]==cur,cls:o[0]==cur?"on":""}}));
+      m.style.maxHeight="260px";m.style.overflow="auto";
+      var on=m.querySelector(".on");if(on){on.focus();on.scrollIntoView({block:"nearest"})}
+      m.addEventListener("click",function(e){var t=e.target.closest("button");if(!t)return;x.set(t.dataset.k);closeMenu(true);renderXs();schedDirty();w.firstChild.focus()});
+    };
+  });
+}
+
+/* ---------- checkboxes ---------- */
+/* Ten parts in three named groups: a list of ten checkboxes is a wall, three groups of three or four is a glance. */
+function checks(el,name,selected,opts){
+  opts=opts||{};
+  el.innerHTML=GROUPS.map(function(g){
+    return '<div class="chk-grp"><span class="grp-lbl">'+g[0]+'</span>'+g[1].map(function(k){
+      var p=PARTS[k],id=name+"-"+k,has=!opts.only||opts.only.indexOf(k)>-1;
+      var detail=has?(opts.counts===false?p.desc:p.desc+" · "+p.n.toLocaleString()+" "+p.noun):"Not in this backup, so it stays as it is";
+      return '<label class="chk" for="'+id+'"><input type="checkbox" id="'+id+'" value="'+k+'"'+(has&&selected.indexOf(k)>-1?" checked":"")+(has?"":" disabled")+'><span class="box">'+ic("check")+'</span><span class="txt"><b>'+p.label+'</b><small>'+detail+'</small></span>'+(opts.sizes===false?"":'<span class="size">'+size(p.size)+'</span>')+'</label>';
+    }).join("")+'</div>';
+  }).join("");
+}
+function picked(el){return [].slice.call(el.querySelectorAll("input:checked")).map(function(i){return i.value})}
+
+/* ---------- schedule ---------- */
+function renderFreq(){
+  document.querySelectorAll("#freq button").forEach(function(b){b.setAttribute("aria-checked",String(b.dataset.v===sched.freq))});
+  $("#day-f").hidden=sched.freq!=="weekly";
+  var off=sched.freq==="off";
+  $("#when-row").style.opacity=off?.45:1;
+  $("#when-row").querySelectorAll("button").forEach(function(b){b.disabled=off});
+  $("#sched-parts").querySelectorAll("input").forEach(function(i){i.disabled=off});
+  $("#email-sec").style.opacity=off?.45:1;
+  $("#email-sec").querySelectorAll("button,input").forEach(function(b){b.disabled=off});
+}
+$("#freq").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;sched.freq=b.dataset.v;renderFreq();schedDirty()});
+$("#freq").addEventListener("keydown",function(e){
+  var bs=[].slice.call(this.querySelectorAll("button")),i=bs.indexOf(document.activeElement);
+  if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();var n=bs[(i+(e.key==="ArrowRight"?1:-1)+bs.length)%bs.length];n.focus();n.click()}
+});
+$("#sched-parts").addEventListener("change",function(){sched.parts=picked(this);schedDirty()});
+/* ---------- email ---------- */
+var EMAIL_RE={test:function(s){return String(s).split(",").every(function(x){return /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(x.trim())})}};
+function renderTo(){
+  var off=sched.notify==="off",custom=!!sched.to||$("#to-f").dataset.open==="1";
+  $("#to-f").hidden=off;$("#test-btn").hidden=off;
+  $("#to-site").hidden=custom;$("#to-custom").hidden=!custom;
+  $("#to-site-addr").textContent=SITE_EMAIL;
+  if(custom&&$("#to-inp").value!==sched.to)$("#to-inp").value=sched.to;
+  var bad=custom&&sched.to&&!EMAIL_RE.test(sched.to);
+  $("#to-err").hidden=!bad;$("#to-inp").classList.toggle("bad",!!bad);
+  $("#notify-hint").textContent=sched.notify==="every"?"One email after each scheduled backup, saying whether it worked. Daily backups mean an email every day.":sched.notify==="fail"?"Quiet while backups work. An email the morning one fails, and another when they work again.":"Nobody hears about a failed backup until they look at this screen.";
+}
+$("#to-change").onclick=function(){$("#to-f").dataset.open="1";renderTo();$("#to-inp").focus()};
+$("#to-reset").onclick=function(){$("#to-f").dataset.open="";sched.to="";renderTo();schedDirty();$("#to-change").focus()};
+$("#to-inp").addEventListener("input",function(){sched.to=this.value.trim();renderTo();schedDirty()});
+$("#test-btn").onclick=function(){
+  var to=sched.to||SITE_EMAIL;
+  if(!EMAIL_RE.test(to)){$("#to-inp").focus();return}
+  var btn=this;btn.disabled=true;btn.textContent="Sending…";
+  setTimeout(function(){btn.disabled=false;btn.textContent="Send a Test Email";toast("good","Sent a test email to "+to+". If it hasn’t arrived in a few minutes, check the site’s mail settings.")},900);
+};
+$("#preview-btn").onclick=function(){document.querySelectorAll(".mail-to").forEach(function(d){d.textContent=sched.to||SITE_EMAIL});$("#dlg-mail").showModal()};
+document.querySelectorAll("#mail-tabs button").forEach(function(b){b.onclick=function(){
+  document.querySelectorAll("#mail-tabs button").forEach(function(x){x.setAttribute("aria-checked",String(x===b))});
+  $("#mail-ok").hidden=b.dataset.v!=="ok";$("#mail-bad").hidden=b.dataset.v!=="bad";
+}});
+
+function schedDirty(){
+  var d=JSON.stringify(sched)!==JSON.stringify(savedSched);
+  var noParts=sched.freq!=="off"&&!sched.parts.length,badTo=sched.notify!=="off"&&sched.to&&!EMAIL_RE.test(sched.to);
+  $("#sched-save").disabled=!d||noParts||badTo;
+  var s=$("#sched-state");s.className="dirty";
+  s.textContent=noParts?"Pick at least one thing to back up.":badTo?"Fix the email address to save.":d?"Unsaved changes":"";
+}
+$("#sched-save").onclick=function(){
+  savedSched=JSON.parse(JSON.stringify(sched));this.disabled=true;
+  var s=$("#sched-state");s.className="saved";s.innerHTML=ic("check")+"Saved";
+  renderStats();renderList();
+};
+
+/* ---------- back up now ---------- */
+function updateNowBtn(){var p=picked($("#now-parts"));$("#now-go").disabled=!p.length;$("#now-go").textContent=p.length?"Back Up "+size(sumParts(p)):"Pick Something to Back Up"}
+function openNow(){
+  if(running||restoring)return;
+  checks($("#now-parts"),"now",ORDER.slice());$("#now-note").value="";updateNowBtn();
+  $("#dlg-now").showModal();
+}
+$("#now-parts").addEventListener("change",updateNowBtn);
+$("#dlg-now").addEventListener("close",function(){
+  if(this.returnValue!=="go")return;
+  var parts=picked($("#now-parts"));if(!parts.length)return;
+  startBackup(parts,$("#now-note").value.trim(),ME);
+});
+function startBackup(parts,note,by,done){
+  NOW=new Date(NOW.getTime()+60000);
+  var b={id:++seq,date:new Date(NOW),parts:parts,size:sumParts(parts),by:by,status:"running",note:note||"",progress:0,step:"Starting"};
+  backups.unshift(b);running=b;renderAll();
+  var plan=[];parts.forEach(function(k){plan.push([k,PARTS[k].n,PARTS[k].size])});
+  var total=plan.reduce(function(a,p){return a+p[2]},0)+1,doneBytes=0,pi=0,fi=0,ticks=0;
+  b.timer=setInterval(function(){
+    ticks++;
+    if(pi<plan.length){
+      var p=plan[pi],stepFiles=Math.max(1,Math.ceil(p[1]/6));
+      fi=Math.min(p[1],fi+stepFiles);
+      b.step="Copying "+PARTS[p[0]].label.toLowerCase()+": "+fi.toLocaleString()+" of "+p[1].toLocaleString();
+      b.progress=Math.min(92,(pi+fi/p[1])/plan.length*92);
+      if(fi>=p[1]){doneBytes+=p[2];pi++;fi=0}
+    }else{
+      b.step="Compressing and checking the file";b.progress=Math.min(100,b.progress+4);
+      if(b.progress>=100){
+        clearInterval(b.timer);b.status="done";b.fresh=true;running=null;
+        b.size=b.size*0.31;
+        renderAll();setTimeout(function(){b.fresh=false},1700);
+        if(done)done(b);return;
+      }
+    }
+    var tr=document.querySelector('tr[data-id="'+b.id+'"]');
+    if(tr){tr.querySelector(".bar i").style.width=b.progress+"%";tr.querySelector(".bar").setAttribute("aria-valuenow",Math.round(b.progress));tr.querySelector(".what").textContent=b.step}
+  },380);
+}
+function cancelRun(){
+  if(!running)return;clearInterval(running.timer);
+  backups.splice(backups.indexOf(running),1);running=null;renderAll();
+  toast("info","Canceled the backup. Nothing was kept.");
+}
+
+/* ---------- restore ---------- */
+var rsTarget=null;
+function openRestore(b){
+  if(running||restoring){toast("warn","Wait for the backup that is running to finish first.");return}
+  rsTarget=b;
+  $("#rs-h").textContent="Restore the "+longd(b.date)+" Backup?";
+  $("#rs-lead").innerHTML="The parts you pick go back to how they were at <b style='color:var(--fg)'>"+esc(dname(b.date))+"</b>, replacing anything changed in them since. Parts you leave out stay as they are now.";
+  /* People parts start unticked: restoring them changes who can sign in, which is rarely what a restore is for. */
+  checks($("#rs-parts"),"rs",b.parts.filter(function(k){return ["accounts","roles","sessions"].indexOf(k)<0}),{only:b.parts,counts:false,sizes:false});
+  updateRs();$("#dlg-restore").showModal();
+}
+function updateRs(){
+  var p=picked($("#rs-parts"));
+  $("#rs-acct").hidden=p.indexOf("accounts")<0;
+  $("#rs-sess").hidden=p.indexOf("sessions")<0;
+  var go=$("#rs-go");go.disabled=!p.length;
+  go.textContent=p.length?"Restore "+listWords(p.map(function(k){return PARTS[k].label})):"Pick Something to Restore";
+}
+function listWords(a){return a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
+$("#rs-parts").addEventListener("change",updateRs);
+$("#dlg-restore").addEventListener("close",function(){
+  if(this.returnValue!=="go"||!rsTarget)return;
+  var parts=picked($("#rs-parts")),src=rsTarget;
+  restoring={src:src,parts:parts};renderAll();
+  var bar=$("#restore-bar");bar.hidden=false;
+  bar.innerHTML='<div class="notice run"><svg class="ic"><use href="#i-restore"/></svg><div class="body"><span><strong>Restoring the '+longd(src.date)+' backup.</strong> First, a backup of the site as it is now. Visitors see a short maintenance page until this finishes.</span><div class="bar"><i id="rs-prog" style="width:4%"></i></div><span class="what" id="rs-step" style="font-size:12px;color:var(--fg-2)">Backing up the site as it is now</span></div></div>';
+  startBackup(ORDER.slice(),"Before restoring "+longd(src.date),ME,function(pre){
+    var p=0;var t=setInterval(function(){
+      p+=12;$("#rs-prog").style.width=Math.min(100,p)+"%";
+      $("#rs-step").textContent=p<50?"Replacing "+listWords(parts.map(function(k){return PARTS[k].label.toLowerCase()})):p<88?"Reindexing content":"Clearing the caches";
+      if(p>=100){clearInterval(t);restoring=null;bar.hidden=true;renderAll();
+        toast("good","Restored "+listWords(parts.map(function(k){return PARTS[k].label.toLowerCase()}))+" from the "+longd(src.date)+" backup.",{undo:function(){toast("good","Put the site back as it was just before the restore.")},life:7000});
+        if(parts.indexOf("accounts")>-1)toast("info","Accounts were restored. A real build would sign you out here.");
+      }
+    },420);
+  });
+});
+
+/* ---------- delete, note ---------- */
+var delTarget=null;
+function openDelete(b){
+  delTarget=b;
+  $("#del-lead").innerHTML=b.status==="failed"?"This removes the failed entry from the list. There is no file to delete.":"This deletes <span class='mono' style='color:var(--fg)'>"+fname(b.date)+"</span> ("+size(b.size)+") from the server. If you have not downloaded it, there is no other copy.";
+  $("#dlg-delete").showModal();
+}
+$("#dlg-delete").addEventListener("close",function(){
+  if(this.returnValue!=="go"||!delTarget)return;
+  var b=delTarget,i=backups.indexOf(b);backups.splice(i,1);renderAll();
+  toast("good","Deleted the "+longd(b.date)+" backup.",{undo:function(){backups.splice(i,0,b);renderAll()},life:7000});
+});
+var noteTarget=null;
+function openNote(b){noteTarget=b;$("#note-h").textContent=b.note?"Edit Note":"Add a Note";$("#note-inp").value=b.note||"";$("#dlg-note").showModal()}
+$("#dlg-note").addEventListener("close",function(){if(this.returnValue==="go"&&noteTarget){noteTarget.note=$("#note-inp").value.trim();renderList()}});
+
+/* ---------- toasts ---------- */
+function toast(kind,msg,o){
+  o=o||{};var life=o.life||(o.undo?7000:2600);
+  var box=$("#toasts");
+  if(!o.undo){box.querySelectorAll(".toast:not(.has-undo)").forEach(function(t){t.remove()})}
+  while(box.children.length>=3)box.firstChild.remove();
+  var t=document.createElement("div");t.className="toast "+kind+(o.undo?" has-undo":"");
+  var glyph=kind==="good"?"check":kind==="info"?"info":"alert";
+  t.innerHTML='<svg class="ring" aria-hidden="true"><rect class="trk" x=".5" y=".5" pathLength="100"/><rect class="run" x=".5" y=".5" pathLength="100" style="animation-duration:'+life+'ms"/></svg><span class="k">'+ic(glyph)+'</span><span class="msg">'+esc(msg)+'</span>'+(o.undo?'<button class="btn sm" type="button">Undo</button>':"")+'<button class="icon-btn" type="button" aria-label="Dismiss" style="width:26px;height:26px">'+ic("x")+'</button>';
+  box.appendChild(t);$("#announce").textContent=msg;
+  var holds=0,remain=life,start=Date.now(),timer;
+  function go(){start=Date.now();timer=setTimeout(function(){t.remove()},remain)}
+  function hold(){if(holds++===0){clearTimeout(timer);remain-=Date.now()-start}}
+  function release(){if(--holds===0)go()}
+  t.addEventListener("pointerenter",hold);t.addEventListener("pointerleave",release);
+  t.addEventListener("focusin",hold);t.addEventListener("focusout",release);
+  t.addEventListener("keydown",function(e){if(e.key==="Escape")t.remove()});
+  var bs=t.querySelectorAll("button");
+  if(o.undo)bs[0].onclick=function(){t.remove();o.undo()};
+  bs[bs.length-1].onclick=function(){t.remove()};
+  go();
+}
+
+/* ---------- wiring ---------- */
+$("#list").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  var act=b.dataset.act,tr=b.closest("tr"),bk=tr&&backups.filter(function(x){return x.id==tr.dataset.id})[0];
+  if(act==="menu"){if(openMenu&&openMenu.btn===b){closeMenu();return}rowMenu(b,bk)}
+  if(act==="cancel")cancelRun();
+  if(act==="now")openNow();
+  if(act==="sched"){var s=$("#sched-panel"),w=$("#work");w.scrollTo({top:s.getBoundingClientRect().top-w.getBoundingClientRect().top+w.scrollTop-24,behavior:"smooth"});setTimeout(function(){$('#freq [data-v="daily"]').focus()},300)}
+});
+$("#now-btn").onclick=openNow;
+$("#upload-btn").onclick=function(){$("#dlg-upload").showModal()};
+$("#up-choose").onclick=function(){toast("info","Uploading is not wired up in this sketch.")};
+document.querySelectorAll(".tabs button").forEach(function(t){t.onclick=function(){if(t.getAttribute("aria-selected")!=="true")toast("info",t.textContent+" is not drawn in this sketch. Only Backups is.")}});
+$("#menu-btn").onclick=function(){$("#app").classList.toggle("open")};
+$("#app").addEventListener("click",function(e){if(e.target===this)this.classList.remove("open")});
+document.querySelectorAll(".rail a,.side a,.view-site").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault()})});
+$("#lab-notes").onclick=function(){$("#dlg-notes").showModal()};
+
+document.querySelectorAll(".lab-seg").forEach(function(g){
+  g.addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    g.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});
+    var v=b.dataset.v,root=document.documentElement;
+    if(g.dataset.lab==="theme"){if(v==="neutral")root.removeAttribute("data-admin-theme");else root.setAttribute("data-admin-theme",v)}
+    if(g.dataset.lab==="scheme"){if(v==="system")root.removeAttribute("data-theme");else root.setAttribute("data-theme",v)}
+    if(g.dataset.lab==="state"){
+      if(running){clearInterval(running.timer);running=null}
+      state=v;NOW=new Date(2026,9,9,17,24);
+      if(v==="empty")backups=[];else seed();
+      renderAll();
+    }
+    try{localStorage.setItem("bk-lab-"+g.dataset.lab,v)}catch(_){}
+  });
+});
+
+function renderAll(){renderStats();renderList()}
+checks($("#sched-parts"),"sp",sched.parts);
+renderXs();renderFreq();renderTo();seed();renderAll();
+try{["theme","scheme"].forEach(function(k){var v=localStorage.getItem("bk-lab-"+k);if(v){var b=document.querySelector('.lab-seg[data-lab="'+k+'"] [data-v="'+v+'"]');if(b)b.click()}})}catch(_){}
+})();
+</script>
+
+</body></html>

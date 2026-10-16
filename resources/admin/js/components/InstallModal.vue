@@ -21,6 +21,8 @@ import { computed, ref, useTemplateRef, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
 import MessageText from './MessageText.vue';
+import UploadDrop from './UploadDrop.vue';
+import UploadSlab from './UploadSlab.vue';
 import { ApiError, errorMessage, uploadWithProgress, type ExtensionUpload, type InstallAnswer, type InstallClash } from '../api';
 import { useFileDrop } from '../drop';
 import type { ExtensionKind } from '../extensions';
@@ -178,23 +180,19 @@ const replaceLabel = computed(() => {
 
 		<template v-if="phase === 'idle'">
 			<p v-if="problem" class="notice notice--warn"><span>{{ t('install_modal.problem', '{problem} Nothing can be installed here until that\'s fixed.', { problem }) }}</span></p>
-			<div class="drop" :class="{ 'is-over': dragging }">
-				<AdminIcon name="upload" />
-				<p class="drop__heading">{{ k.drag }}</p>
-				<p class="drop__text"><MessageText :text="t('install_modal.drop_text', 'A .zip of the {noun} folder. It\'s unpacked into {folder} at the name in its manifest, {after}.', { noun: k.noun, after: k.after })"><template #folder><code>extensions/</code></template></MessageText></p>
-				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">{{ t('install_modal.choose_file', 'Choose File') }}</button>
-				<p v-if="limit > 0" class="drop__hint">{{ t('install_modal.limit', 'Up to {size} · ZIP', { size: size(limit) }) }}</p>
-			</div>
+			<UploadDrop :heading="k.drag" :hint="limit > 0 ? t('install_modal.limit', 'Up to {size} · ZIP', { size: size(limit) }) : null" :over="dragging">
+				<MessageText :text="t('install_modal.drop_text', 'A .zip of the {noun} folder. It\'s unpacked into {folder} at the name in its manifest, {after}.', { noun: k.noun, after: k.after })"><template #folder><code>extensions/</code></template></MessageText>
+				<template #button><button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">{{ t('install_modal.choose_file', 'Choose File') }}</button></template>
+			</UploadDrop>
 		</template>
 
-		<div v-else-if="phase === 'working' && file" class="slab" role="status">
-			<p class="slab__head"><span class="spin" aria-hidden="true" />{{ sent < 1 ? t('install_modal.uploading', 'Uploading {name}…', { name: file.name }) : t('install_modal.unpacking', 'Unpacking and checking it…') }}</p>
-			<div class="bar"><i :style="{ width: `${Math.round(sent * 100)}%` }" /></div>
+		<UploadSlab v-else-if="phase === 'working' && file" role="status" :progress="sent">
+			<template #head><span class="spin" aria-hidden="true" />{{ sent < 1 ? t('install_modal.uploading', 'Uploading {name}…', { name: file.name }) : t('install_modal.unpacking', 'Unpacking and checking it…') }}</template>
 			<p><b>{{ file.name }}</b> · {{ size(file.size) }}</p>
-		</div>
+		</UploadSlab>
 
-		<div v-else-if="phase === 'done' && answer && file" class="slab slab--good" role="status">
-			<p class="slab__head"><AdminIcon name="circle-check" />{{ answer.replaced === null ? t('install_modal.installed_named', 'Installed {label} {version}', { label: answer.installed.label, version: answer.installed.version }) : t('install_modal.updated_named', 'Updated {label} {version}', { label: answer.installed.label, version: answer.installed.version }) }}</p>
+		<UploadSlab v-else-if="phase === 'done' && answer && file" kind="good" role="status">
+			<template #head><AdminIcon name="circle-check" />{{ answer.replaced === null ? t('install_modal.installed_named', 'Installed {label} {version}', { label: answer.installed.label, version: answer.installed.version }) : t('install_modal.updated_named', 'Updated {label} {version}', { label: answer.installed.label, version: answer.installed.version }) }}</template>
 			<p v-if="answer.replaced === null">{{ t('install_modal.in_list', 'It\'s in the list, {words}, until you say otherwise.', { words: done?.words }) }}</p>
 			<p v-else>{{ t('install_modal.replaced', 'The folder was replaced. Nothing else changed: it\'s still {words}.', { words: done?.words }) }}</p>
 			<dl>
@@ -203,10 +201,10 @@ const replaceLabel = computed(() => {
 				<dt>{{ t('install_modal.from', 'From') }}</dt>
 				<dd>{{ file.name }} · {{ size(file.size) }}</dd>
 			</dl>
-		</div>
+		</UploadSlab>
 
-		<div v-else-if="phase === 'clash' && clash" class="slab slab--warn">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.already_installed', '{label} is already installed', { label: clash.installed.label }) }}</p>
+		<UploadSlab v-else-if="phase === 'clash' && clash" kind="warn">
+			<template #head><AdminIcon name="triangle-alert" />{{ t('install_modal.already_installed', '{label} is already installed', { label: clash.installed.label }) }}</template>
 			<p><MessageText :text="t('install_modal.overwrites', '{keeps, select, theme {Replacing overwrites {folder}. Nothing else changes: it stays the active theme, and the site serves the new files at once.} other {Replacing overwrites {folder}. Nothing else changes, and it stays turned on, so the new version runs at once.} none {Replacing overwrites {folder}. Nothing else changes.} }', { keeps })"><template #folder><span class="mono">{{ clash.installed.folder }}</span></template></MessageText></p>
 			<dl>
 				<dt>{{ t('install_modal.installed', 'Installed') }}</dt>
@@ -214,23 +212,23 @@ const replaceLabel = computed(() => {
 				<dt>{{ t('install_modal.this_file', 'This file') }}</dt>
 				<dd class="mono">{{ clash.incoming.version || t('install_modal.no_version', 'No version') }}</dd>
 			</dl>
-		</div>
+		</UploadSlab>
 
-		<div v-else-if="phase === 'error' && failure" class="slab slab--bad" role="alert">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.nothing_installed', 'Nothing was installed') }}</p>
+		<UploadSlab v-else-if="phase === 'error' && failure" kind="bad" role="alert">
+			<template #head><AdminIcon name="triangle-alert" />{{ t('install_modal.nothing_installed', 'Nothing was installed') }}</template>
 			<p>{{ failure.message }}</p>
 			<p v-if="failure.kind">{{ t('install_modal.other_screen', 'Install it on the {plural} screen instead.', { plural: KINDS[failure.kind].plural }) }}</p>
-		</div>
+		</UploadSlab>
 
 		<!-- Abandoned only warns, as in Composer (D-433). -->
-		<div v-if="phase === 'done' && answer && answer.installed.abandoned !== false" class="slab slab--warn">
-			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ t('install_modal.abandoned', '{label} is abandoned', { label: answer.installed.label }) }}</p>
+		<UploadSlab v-if="phase === 'done' && answer && answer.installed.abandoned !== false" kind="warn">
+			<template #head><AdminIcon name="triangle-alert" />{{ t('install_modal.abandoned', '{label} is abandoned', { label: answer.installed.label }) }}</template>
 			<p>{{ t('install_modal.abandoned_text', 'Its author no longer maintains it. It works, but won\'t get fixes or updates.') }}<template v-if="typeof answer.installed.abandoned === 'string'">{{ ' ' }}<MessageText :text="t('install_modal.abandoned_suggests', 'Its author suggests {name} instead.')"><template #name><span class="mono">{{ answer.installed.abandoned }}</span></template></MessageText></template></p>
-		</div>
+		</UploadSlab>
 
 		<!-- Suggestions are only shown, as Composer prints them after installing (D-434). -->
-		<div v-if="phase === 'done' && answer && answer.installed.suggests.length" class="slab">
-			<p class="slab__head"><AdminIcon name="lightbulb" />{{ t('install_modal.suggests', '{label} suggests', { label: answer.installed.label }) }}</p>
+		<UploadSlab v-if="phase === 'done' && answer && answer.installed.suggests.length">
+			<template #head><AdminIcon name="lightbulb" />{{ t('install_modal.suggests', '{label} suggests', { label: answer.installed.label }) }}</template>
 			<p>{{ t('install_modal.suggests_text', 'It works without these; each may add to it.') }}</p>
 			<dl>
 				<template v-for="suggestion in answer.installed.suggests" :key="suggestion.name">
@@ -238,7 +236,7 @@ const replaceLabel = computed(() => {
 					<dd>{{ suggestion.reason || '—' }}</dd>
 				</template>
 			</dl>
-		</div>
+		</UploadSlab>
 
 		<input ref="input" type="file" accept=".zip,application/zip" hidden @change="picked">
 
@@ -274,146 +272,6 @@ const replaceLabel = computed(() => {
 </template>
 
 <style scoped>
-/* The drop zone, then the button, with the limits stated before anyone
-   tries. The button has no icon: the large one above already says it. */
-.drop {
-	display: grid;
-	justify-items: center;
-	gap: var(--s-2);
-	margin-top: var(--s-4);
-	padding: var(--s-6) var(--s-5);
-	border: 1px dashed var(--border-color-strong);
-	border-radius: var(--border-radius-medium);
-	background: var(--color-surface-subtle);
-	text-align: center;
-	transition: border-color .14s ease-out, background .14s ease-out;
-}
-
-.drop.is-over {
-	border-color: var(--color-accent);
-	background: var(--color-accent-subtle);
-}
-
-.drop > :deep(svg) {
-	width: 24px;
-	height: 24px;
-	margin-bottom: var(--s-1);
-	color: var(--color-text-muted);
-}
-
-.drop__heading {
-	margin: 0;
-	font-family: var(--font-family-display);
-	font-weight: var(--font-weight-display);
-}
-
-.drop__text {
-	max-width: 40ch;
-	margin: 0 0 var(--s-2);
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-small);
-}
-
-.drop__hint {
-	margin: var(--s-1) 0 0;
-	color: var(--color-text-muted);
-	font-size: var(--font-size-xsmall);
-}
-
-/* Working, done, and failed each take the zone's place. */
-.slab {
-	margin-top: var(--s-4);
-	padding: var(--s-5);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-medium);
-	background: var(--color-surface-subtle);
-}
-
-.slab--good {
-	border-color: var(--color-success-indicator);
-	background: var(--color-success-subtle);
-}
-
-.slab--warn {
-	border-color: var(--color-warning-indicator);
-	background: var(--color-warning-subtle);
-}
-
-.slab--bad {
-	border-color: var(--color-danger-indicator);
-	background: var(--color-danger-subtle);
-}
-
-.slab p {
-	margin: 0 0 var(--s-2);
-	color: var(--color-text-secondary);
-	font-size: var(--font-size-small);
-}
-
-.slab p:last-child {
-	margin-bottom: 0;
-}
-
-.slab .slab__head {
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	color: var(--color-text);
-	font-size: var(--font-size-base);
-	font-weight: 600;
-}
-
-.slab--good .slab__head {
-	color: var(--color-success);
-}
-
-.slab--warn .slab__head {
-	color: var(--color-warning);
-}
-
-.slab--bad .slab__head {
-	color: var(--color-danger);
-}
-
-.slab__head :deep(svg) {
-	flex: none;
-	width: 15px;
-	height: 15px;
-}
-
-.slab dl {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: var(--s-1) var(--s-4);
-	margin: var(--s-3) 0 0;
-	font-size: var(--font-size-small);
-}
-
-.slab dt {
-	color: var(--color-text-muted);
-}
-
-.slab dd {
-	margin: 0;
-	color: var(--color-text);
-}
-
-.bar {
-	height: 5px;
-	margin: var(--s-3) 0 var(--s-2);
-	overflow: hidden;
-	border-radius: 999px;
-	background: var(--color-surface-strong);
-}
-
-.bar i {
-	display: block;
-	height: 100%;
-	border-radius: 999px;
-	background: var(--color-accent);
-	transition: width .3s ease-out;
-}
-
 .install-status {
 	min-width: 0;
 	margin-right: auto;

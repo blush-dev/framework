@@ -137,6 +137,10 @@ Implemented in M2 (D-065, D-069).
 | `jobs:list [--status]` | Jobs, newest first: id, label, status, queued, by whom, last message or error (D-622) |
 | `jobs:retry [id] [--all]` | Queue a failed job, or every failed job, again (D-622) |
 | `jobs:prune` | Remove finished jobs past `keepDone` and `keepFailed` (D-622) |
+| `backup:make [--parts=<a,b>] [--note]` | Back up every part, or the ones named, start to end through `BackupMaker::make()` (not a job), with progress steps; refuses while one is being made (D-886) |
+| `backup:list [--parts]` | Backups, newest first: name, made, kind, holds (`everything` or the parts), size or state, note or failure; `--parts` lists the parts with their counts and sizes now (D-885) |
+| `backup:delete <name>` | Delete a backup (moved to `.deleted/` for a day), or cancel the one being made (D-886) |
+| `backup:restore <name> [--parts] [--yes]` | `BackupRestorer::check()` then `restore()`: problems as errors, warnings, a confirm, progress steps, and the backup to restore to undo it; every held part but the Users group's by default (D-890) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
 | `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal, D-876), add an `APP_SECRET` and a `SECRETS_KEY` (D-715) when missing, add a `PUBLISH_SECRET` with `--webhook` (never asked), create the storage folders, report unwritable ones, offer the owner account (email, name, username from the email), and end with what was set; idempotent (D-218) |
 | `secrets:list` | Declared secrets (and stored ones nothing declares): status, environment variable, when stored; never a value (D-715) |

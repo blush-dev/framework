@@ -27987,3 +27987,425 @@ decision, add a new entry that supersedes it and mark the old one
   more, as Linked From was with nothing linking and Activity with no
   app's change: every name is the same weight.
 - **Status:** Built.
+
+### D-881: Site backups are `Blush\Backup`, apart from Transfer
+
+- **Date:** 2026-10-16
+- **Settles:** the **Site backups from the admin, for every driver**
+  entry in `open-questions.md` (2026-10-09), from the backups sketch
+  (`.claude/docs/admin-design/backups-sketch.html`).
+- **Decision:** A backup is an exact copy of this site's stored data,
+  accounts and their password hashes included, made to be restored to
+  this site (or the same site on a new server). It's its own system,
+  `Blush\Backup`, not part of `Blush\Transfer` (D-685): Transfer moves
+  portable content between systems, maps ids, and never carries
+  password hashes, while a backup is lossless, keeps every id, and is
+  only ever read back by Blush. They share what's generic (checking a
+  zip's paths, running as a job), never the format.
+- **Why:** the author asked whether backups belong to the export
+  system; merging them would make exports carry secrets or backups
+  lose them.
+- **Status:** Stage 1 of four built (making and keeping); stages in `roadmap.md` (**Backups (D-881)**).
+
+### D-882: Each storage driver backs up and restores its own tables
+
+- **Date:** 2026-10-16
+- **Decision:** A backup's data takes the form of the driver that keeps
+  it (the author's call over a portable format through the record
+  layer): each `Storage` binds a `Blush\Backup\TableBackup` that writes
+  the tables it keeps into the archive and reads them back.
+  - **Files:** each table's files as `FileLayouts` places them (a
+    folder or one file), at their site-relative paths under
+    `filesystem/` in the zip; content is `user/content` whole (its
+    relations are in front matter), and jobs `storage/jobs`.
+  - **SQLite:** `VACUUM INTO` a copy of the database, then the tables
+    left out dropped from the copy, at `sqlite/site.sqlite`. Restoring
+    `ATTACH`es it and replaces each picked table's rows in one
+    transaction. No `exec()`.
+  - **MySQL/MariaDB and PostgreSQL** (D-640), when built: SQL written
+    through PDO by their own `TableBackup`, never `mysqldump` or
+    `pg_dump`.
+  - A site whose areas use different drivers gets each area's tables
+    from its own driver, in one archive.
+- **The archive:** one `.zip`, `blush-{Y-m-d-Hi}.zip`, with
+  `backup.json` (format version, Blush version, when, by whom, by hand
+  or by the schedule, its note, each area's driver, and each part with
+  its tables, count, and size) beside the drivers' folders.
+- **Restoring goes back to the same driver.** A backup whose area was
+  kept by another driver is refused for that area; moving between
+  drivers stays `storage:copy` (D-662). A backup from a newer Blush, or
+  a newer format, is refused; an older format restores through the
+  migrations its format needs (none yet).
+- **Status:** Built for writing (files and SQLite); reading back is stage 2.
+
+### D-883: A backup's parts
+
+- **Date:** 2026-10-16
+- **Decision:** A backup holds parts, each a named set of tables, in the
+  sketch's three groups, and is made and restored by part:
+  - **Content:** Content (entries and their relations), Types,
+    Fields (the field library), Relationships (relation definitions),
+    Media (media details, not the originals).
+  - **Site:** Settings, Redirects, Menus, Workflows (statuses and
+    workflows), Jobs (the scheduler's state and finished runs, never a
+    queued or running job), Activity (the activity log).
+  - **Users:** Accounts, Roles, Access (API tokens, OAuth clients and
+    grants).
+  - **A plugin's tables** are a part of its own, named by the plugin
+    (`BackupParts`, where plugins register theirs); a registered table
+    no part claims is in **Other**.
+  - **Left out:** sessions (as `storage:copy` leaves them, so a restore
+    never revives ended sign-ins), secrets (ciphertext only the site's
+    key reads, and one more place keys could leak; entered again after
+    moving servers), media originals (plain files in `user/media`,
+    copied like any others), caches, the index, logs, extensions, and
+    config.
+- **Status:** Built.
+
+### D-884: Who backs up and restores
+
+- **Date:** 2026-10-16
+- **Decision:** Two capabilities in the Site group: `site.backups`
+  (seeing, making, downloading, noting, deleting, uploading, and the
+  schedule) and `site.backups.restore` (restoring, which also needs
+  `site.backups`). Both are the owner's by default: the
+  administrator's list leaves them out, as it does Site Health
+  (D-544), and an owner can give either to a role.
+- **Status:** Built (`Capability::SiteBackups`, `SiteRestore`); restoring isn't yet.
+
+### D-885: Backups are kept as files in `storage/backups/site`
+
+- **Date:** 2026-10-16
+- **Decision:** Site backups are kept in `storage/backups/site/` (never
+  served), beside the versions extension replacements keep in
+  `storage/backups/{vendor}/{name}` (D-393), with `backups.path` in
+  config to move them. The folder is the list: each `.zip` holds its
+  own `backup.json`, and a `{name}.json` beside it holds what changes
+  later (its note) and a failed backup's reason, so a `.zip` copied in
+  by hand is listed too. Backups aren't records in a table.
+- **Why:** a backup must be listable and restorable when the storage it
+  backs up is what's broken, and a restore must never replace the list
+  of backups.
+- **Status:** Built.
+
+### D-886: Making, keeping, and restoring
+
+- **Date:** 2026-10-16
+- **Decision:**
+  - **Making is a job** (D-621), part by part with progress, so the
+    Backups tab shows it as a row with a bar naming the step, and its
+    result in place (no toast). One backup or restore runs at a time.
+    `backup:make` runs it on the CLI.
+  - **Downloading is streamed**, and needs `site.backups`.
+  - **Notes:** up to 60 characters, on Back Up Now and later.
+  - **Deleting has Undo:** the file goes when the toast ends.
+  - **Keeping:** the schedule removes only its own oldest backups once
+    it has more than its Keep; backups made by hand, before a restore,
+    or uploaded stay until deleted.
+  - **Restoring** (`site.backups.restore`) picks parts from those the
+    backup holds, the Users parts unticked, with a warning for
+    Accounts (everyone is signed out; passwords go back). It first
+    backs up the picked parts as they are now (kept, noted "Before
+    restoring the {date} backup"), so Undo restores that one. Then it
+    replaces each picked part's tables, reindexes content, clears
+    caches, and refreshes; restoring Accounts ends every session.
+    Restoring a part whose links would point at missing records (Content
+    without its Types or Relationships) warns first.
+  - **Uploading** a backup checks its zip paths and `backup.json` and
+    adds it to the list; nothing changes until it's restored.
+- **Status:** Making, downloading, notes, deleting with Undo, and canceling built (stage 1); restoring and uploading are stages 2 and 4.
+
+### D-887: Scheduled backups, and email that never carries one
+
+- **Date:** 2026-10-16
+- **Decision:** The schedule (Off, Daily, or Weekly on a day, at an
+  hour in the site's time zone; Keep 7, 14, 30, or 60; the parts each
+  holds) is a settings group saved from the Backups tab's Schedule
+  form, run by the scheduler (D-622). Email, through notifications,
+  is **Only When a Backup Fails** by default (one email the day one
+  fails and one when they work again), with **After Every Backup** and
+  **Never**; it goes to the site's email unless other addresses are
+  given, and only scheduled backups email. An email says what happened,
+  when, the size and parts, and links to the Backups tab; it never
+  attaches a backup or links to a download. Send a Test Email and
+  Preview the Email are on the form.
+- **Open:** encrypting a backup with a passphrase; off-site copies (an
+  event after a backup is made, for plugins); Backups as its own
+  screen if restores grow a detail screen.
+- **Status:** Planned.
+
+### D-888: Deleting a backup moves it aside for a day
+
+- **Date:** 2026-10-16
+- **Supersedes:** D-886's "the file goes when the toast ends".
+- **Decision:** Deleting a backup moves its `.zip` and the file beside
+  it into `.deleted/` in the backups folder, and Undo puts them back
+  (`POST backups/{name}/undelete`); what's there is removed for good a
+  day after it was made, when the next backup is deleted. Deleting the
+  backup being made cancels it: its job stops at its next chunk and
+  keeps nothing.
+- **Why:** a delete held in the browser until the toast ends is lost
+  when the tab closes, and Undo elsewhere in the admin puts back what
+  the server already changed (menus, entries). Moving the file aside is
+  the exact reverse, on the server, from the admin and `backup:delete`
+  alike.
+- **Status:** Built.
+
+### D-889: A backup's `backup.json` says `formatVersion` and `blushVersion`
+
+- **Date:** 2026-10-16
+- **Amends:** D-882's `backup.json` (its format version and Blush
+  version, written `format` and `blush`).
+- **Decision:** The archive's layout version is `formatVersion`
+  (`Backup::FORMAT_VERSION`, 1), and the Blush that made it is
+  `blushVersion`. Plain `version` was refused: beside the Blush version
+  it's ambiguous, and extension manifests already use `version` for the
+  extension's own. `backupVersion` was refused as redundant in
+  `backup.json` and as a name no other file could share.
+- **Why:** the author means to version every JSON file Blush writes
+  (not settled; for another day), and one key, `formatVersion`, can
+  mean the same thing in each.
+- **Status:** Built.
+
+### D-890: Restoring a backup, and the Users group
+
+- **Date:** 2026-10-16
+- **Builds:** D-886's restoring (stage 2 of `roadmap.md`, **Backups
+  (D-881)**).
+- **Decision:**
+  - **The group is Users**, not the sketch's People (the author's call,
+    D-883 amended): `BackupGroup::Users` holds Accounts, Roles, and
+    Access.
+  - **`BackupRestorer`** checks, then runs as `core/restore` (unique, one
+    at a time, `RestoreJob`, one attempt), or start to end on the
+    command line (`backup:restore`). While it runs, no backup is made
+    but its own.
+  - **Steps:** back up the picked parts as they are now
+    (`BackupMaker::prepare()`, `before-restore`, noted "Before restoring
+    {name}"); unzip into `.restore/{name}`, refusing any path but
+    `backup.json` and ones under `filesystem/` or `sqlite/` with no `..`,
+    absolute path, backslash, or empty part; replace each table through
+    its driver (`TableBackup::restore()`: on files a table's files are
+    removed and the backup's copied in, `BATCH` at a time; on SQLite
+    `replaceFrom()` deletes and inserts the copy's rows in one
+    transaction with it attached; jobs only finished ones either way);
+    then clear the compiled types and routes, reindex content and media
+    (full), clear caches, bump the content version, and, for Accounts,
+    prune every session.
+  - **Refused:** a backup not done; `formatVersion` under 1 or over
+    `FORMAT_VERSION`; a newer `blushVersion`; a part the backup doesn't
+    hold; a part whose area was kept by another driver (moving is
+    `storage:copy`); a backup or restore running.
+  - **Warned:** Accounts (everyone is signed out, passwords go back, newer
+    accounts go); Content without Types or Relationships.
+  - **Picked by default:** every part the backup holds but the Users
+    group's, in the admin and on the command line.
+  - **Undo** is the toast's: it restores the backup made first with the
+    same parts. A restore that fails partway keeps what it did, and its
+    failure names that backup.
+  - **Signing out:** the admin's own session is written back as the
+    request that pruned it ends, so the tab signs out when a restore of
+    Accounts is done.
+  - **A backup with no job of its own** (the command line's, or a
+    restore's) is listed as being made for a day (`Backups::STALE`), then
+    as failed.
+- **Status:** Built.
+
+### D-891: Picking a backup's parts all at once, or a group at a time
+
+- **Date:** 2026-10-16
+- **Decision:** The part checkboxes Back Up Now and Restore share
+  (`BackupPartChecks`) have **All parts** above the groups, and each
+  group's heading (Content, Site, Users, Plugins) is a checkbox for its
+  parts. Either is ticked when all its parts are, clear when none are,
+  and shows the dash (`indeterminate`) when some are, as a table's
+  header checkbox does. On Restore, they cover only the parts the backup
+  holds. **All parts** shows only when there's more than one group.
+- **Why:** the author asked for an easier way to pick everything or a
+  group; the usual changes from where the dialogs start (clearing all to
+  back up Settings alone, ticking the Users group back on for a restore)
+  took a click a part. Checkboxes over "Select all" and "None" links,
+  which say the same in more room.
+- **Status:** Built.
+
+### D-892: A backup's parts are picked from a table
+
+- **Date:** 2026-10-16
+- **Supersedes:** D-891's checkbox list with All parts and group
+  headings as checkboxes (the author: "busy and hard to read").
+- **Decision:** `BackupPartChecks` is a `.table` running to the modal's
+  edges, with the list tables' drawn boxes (`.check`, `aria-checked`
+  with `mixed`, D-301): the header's box picks or clears every part, a
+  `.table__group` heading row for each group has a box for its parts,
+  and each part is a row of its name and, on Back Up Now, its Records
+  and Size (`.table__count`). Picked rows take `is-selected`'s tint.
+  The parts' descriptions aren't shown (the CLI's `backup:list --parts`
+  and the docs keep them); Access is labeled **API Access** so no part
+  needs one. Back Up Now's modal is `wide`; Restore's has no number
+  columns and stays narrow.
+- **Status:** Built.
+
+### D-893: A table for each group of parts, with no box for every part
+
+- **Date:** 2026-10-16
+- **Supersedes:** D-892's one table with a header box for every part and
+  a heading row a group (the author: "better but not quite there").
+- **Decision:** `BackupPartChecks` is a table for each group (Content,
+  Site, Users, Plugins), each running to the modal's edges with a gap
+  between them. A table's header row is its group's box (picking or
+  clearing the group, with the dash when some are picked), the group's
+  name as the first column's heading, and Records and Size on Back Up
+  Now. Nothing picks every part at once. The rest of D-892 stands.
+- **Status:** Built.
+
+### D-894: No striped tables, and the parts tables in panels
+
+- **Date:** 2026-10-16
+- **Supersedes:** D-878's `color.surface.stripe` (stage 2's row
+  stripe), and D-893's tables running to the modal's edges.
+- **Decision:**
+  - **No admin table is striped.** The `color.surface.stripe` token is
+    gone: its `--color-surface-stripe` default, the `:nth-child(even)`
+    rule on `.table`, its contrast pairs, the `tokens.json` schema's
+    key, and the docs. A `tokens.json` that still sets it gets the
+    unknown-token handling any other key does (`admin-theme:check`
+    warns). Core's bundled admin themes (Neutral, Library, Cyanotype,
+    Dune, Observatory, Ridgeline) no longer set it. The trial's Workbench
+    and Walnut no longer set it (nor Bound, Sumi, and Brutalist their
+    `transparent`), and their descriptions don't mention it.
+  - **Each group's table in the parts picker is in a `.panel`** inside
+    the modal's padding, with a gap between them, rather than running to
+    the modal's edges.
+- **Why:** the author: striped rows on top of picked rows' tint made the
+  parts picker busy and hard to read, and "we shouldn't have striped
+  tables"; edge-to-edge tables blurred into the modal's own edges.
+- **Status:** Built.
+
+### D-895: A backup's note under its date, and deleting backups in bulk
+
+- **Date:** 2026-10-16
+- **Decision:**
+  - **A note is a light line under the backup's date and file name**
+    (secondary text, small, wrapping; the author's call), not a `.tag` beside the date:
+    notes run to 60 characters.
+  - **Backups can be picked and deleted together:** the list has the
+    list tables' checkbox column (`.check`, `useSelectAll`), the header's
+    box picking every backup but one being made, and the shared
+    `BulkBar` with Delete. It asks once, deletes each, and toasts with
+    Undo, which puts back every one deleted (each from `.deleted/`,
+    D-888). No new endpoint: each is the one `DELETE backups/{name}`.
+- **Why:** the author: a long note doesn't fit a chip, and backups
+  should be selectable to delete at once.
+- **Status:** Built.
+
+### D-896: A table's row menu sits at the top of its row
+
+- **Date:** 2026-10-16
+- **Amends:** D-254's row menu column.
+- **Decision:** `.table__actions` is `vertical-align: top` in every
+  table, so a row's ellipsis lines up with the first line of a cell that
+  runs to more (a backup's date over its note and file, an account's
+  name over its username), as the row's other cells do, rather than
+  floating in the middle of a tall row.
+- **The checkbox column too** (`.table__check`, D-301), in the body's
+  rows: at the top, its padding the row's plus half of what a line of
+  text (`1lh`) stands above the 16px box, so the box is centered on the
+  first line. The header's box stays centered in its row.
+- **Why:** the author: "it should be like this for any table".
+- **Status:** Built.
+
+### D-897: The backup schedule and its email, built
+
+- **Date:** 2026-10-16
+- **Builds:** D-887 (stage 3 of `roadmap.md`, **Backups (D-881)**).
+- **Decision:**
+  - **The schedule is a setting**, `backups.schedule` (`Setting::Backups`,
+    on no Settings screen), laid over `BackupConfig::$schedule`
+    (`BackupSchedule`: `frequency`, `day`, `hour`, `keep`, `parts` or
+    `null` for every part, `notice`, `to`), saved by `PUT
+    backups/schedule` with `site.backups`.
+  - **On the scheduler** through `BackupServiceProvider`'s
+    `resolving(Schedule)`: `core/scheduled-backup` at
+    `BackupSchedule::when()` (daily or weekly at the hour, in the site's
+    time zone, as the scheduler reads it). `ScheduledBackupJob` prepares
+    a `scheduled` backup on its first run, makes it a chunk a run, and at
+    the end emails, then prunes (`Backups::prune()`: the schedule's own
+    past `keep`, and its failures older than its newest that worked,
+    each moved aside as a delete is). Busy is a skip, not a failure.
+  - **Email** is the `core/backup` notification (`BackupNotification`),
+    by stage: `done`, `failed` (with the reason and the newest good
+    backup), `recovered` (the first that worked after a failure, under
+    Only When a Backup Fails), and `test`. `BackupNotices` decides: the
+    schedule's `to`, else the site's email, else every account with
+    `site.backups`. It links to `{admin}/tools?tab=backups`, never a
+    download, and never attaches a backup.
+  - **One address, not a list:** the sketch's comma-separated To is one
+    other address (or the site's), since a list of addresses would be a
+    repeater (D-776, D-777), and one is what a notice needs.
+  - **The Schedule panel** (`BackupSchedule.vue`): a form saved together
+    with Save Schedule, Saved in the footer; How Often as `.segmented`;
+    Day, Time, Keep, and Send an Email as `AdminSelect`s; What Each Holds
+    as the shared parts tables; To as the site's address with Use Another
+    Address; the never-attached notice; Send a Test Email and Preview the
+    Email (a modal with From, To, Subject, and the text part). Where
+    backups are kept moved from the figures into the panel.
+  - **Next Backup** replaces Backups Kept among the figures: when it
+    runs next, or Off, and the schedule in a line.
+- **Status:** Built.
+
+### D-898: Uploading a backup
+
+- **Date:** 2026-10-16
+- **Builds:** D-886's uploading (stage 4, the last, of `roadmap.md`,
+  **Backups (D-881)**).
+- **Decision:**
+  - **`POST backups/upload`** (`site.backups`) moves the multipart
+    `file` into the backups folder under a dotted name, and
+    `Backups::upload()` checks it: it opens as a zip, every path in it
+    is one a backup holds (`Backup::isSafePath()`, now shared with
+    restoring), and its `backup.json` names a backup. It's kept at that
+    name, its `kind` `uploaded` in the file beside it (the archive's own
+    `backup.json` is untouched), so the schedule never removes it. A
+    kept backup's name is a `409` (`BackupTaken`); anything else a
+    `422`, with nothing kept.
+  - **The largest upload is PHP's** (`upload_max_filesize` and
+    `post_max_size`, as media's are, `MediaUploadController::limit()`),
+    with no lower limit of Blush's: backups don't hold media, and an
+    archive the server takes is one Blush can check.
+  - **Upload a Backup** (`BackupUpload.vue`) is the extension uploader's
+    anatomy: the shared `.drop` zone with the limit, a file dropped
+    anywhere on the modal, `.slab`s for sending, added, and nothing
+    added, with Choose Another File. It's beside Back Up Now in the
+    list's header, and in the empty state.
+    The drop zone and its result boxes are shared components with
+    scoped styles, `UploadDrop` and `UploadSlab` (its progress bar
+    inside), taken from `InstallModal`, which uses them too; global
+    classes were tried and refused, since `.bar` is the admin's top bar.
+    The media picker's larger drop zone (`.picker__drop`, a whole tab's)
+    stays its own.
+  - **No command:** a `.zip` copied into the folder is listed already
+    (D-885).
+- **Status:** Built.
+
+### D-899: Off-site copies are a plugin's, through `BackupMade`; Site Health checks backup email
+
+- **Date:** 2026-10-16
+- **Settles:** D-887's open off-site copies; adds a Site Health check.
+- **Decision:**
+  - **`Blush\Backup\Events\BackupMade`** (`backup`, `file`) is
+    dispatched by `BackupMaker` once a backup is kept, however it was
+    made (manual, scheduled, command line, before a restore), never for
+    an uploaded one. Copying it elsewhere (S3, SFTP) is a plugin's, as a
+    listener, queuing a job of its own for a slow copy. Core has no
+    destinations interface yet: the author chose the event alone for
+    now, to add one when a first plugin shows what it needs (such as
+    "copied to S3" on a backup's row).
+  - **Site Health's `backups` check** (system area, `SiteChecks`): with
+    backups scheduled to email (not Off, not Never), a warning when the
+    site can't send mail, since a failed backup would go unnoticed;
+    a pass naming when it emails otherwise; nothing when backups aren't
+    scheduled or never email.
+- **Still open:** encrypting a backup with a passphrase (kept for
+  later, the author's call); Tools as a rail section of its own, or
+  Backups as a screen (to discuss next).
+- **Status:** Built.

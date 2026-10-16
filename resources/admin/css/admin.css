@@ -702,11 +702,6 @@
 	font-weight: 400;
 }
 
-/* A theme's stripe (D-878), under everything else a row can be. */
-:where(.table tbody:not(.table__pinned) tr:nth-child(even)) {
-	background: var(--color-surface-stripe);
-}
-
 .table tbody tr:hover {
 	background: var(--color-surface-subtle);
 }
@@ -720,13 +715,15 @@
 /*
  * Each row's menu (D-254): a narrow last column whose button shows on
  * the row's hover or focus where there's a pointer to hover with, and
- * always where there isn't.
+ * always where there isn't. It sits at the top of its row, beside the
+ * first line of a cell that runs to two or more (D-896); its padding is
+ * the row's less what the button stands above a line of text.
  */
 .table .table__actions {
 	width: 54px;
 	padding-block: calc(var(--padding-row) - 6px);
 	text-align: right;
-	vertical-align: middle;
+	vertical-align: top;
 }
 
 /* A row's text buttons (Edit, Revert): on one line at the right, at the
@@ -852,6 +849,13 @@
 	width: 44px;
 	padding-right: 0;
 	vertical-align: middle;
+}
+
+/* A row's box sits at the top of its row, as the row menu does (D-896),
+   centered on the first line of text beside it. */
+.table tbody .table__check {
+	padding-top: calc(var(--padding-row) + (1lh - 16px) / 2);
+	vertical-align: top;
 }
 
 .check {

@@ -320,6 +320,20 @@
       "css/ToggleSwitch.css"
     ]
   },
+  "_UploadSlab.css": {
+    "file": "css/UploadSlab.css",
+    "src": "_UploadSlab.css"
+  },
+  "_UploadSlab.js": {
+    "file": "js/UploadSlab.js",
+    "name": "UploadSlab",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/UploadSlab.css"
+    ]
+  },
   "_admin-themes.js": {
     "file": "js/admin-themes.js",
     "name": "admin-themes",
@@ -384,6 +398,7 @@
       "_AdminSelect.js",
       "_extensions.js",
       "_density.js",
+      "_UploadSlab.js",
       "_drop.js"
     ],
     "css": [
@@ -447,6 +462,13 @@
     "imports": [
       "js/admin.ts",
       "_density.js"
+    ]
+  },
+  "_select.js": {
+    "file": "js/select.js",
+    "name": "select",
+    "imports": [
+      "js/admin.ts"
     ]
   },
   "_themes.css": {
@@ -685,8 +707,9 @@
       "_density.js",
       "_referrers.js",
       "_homepage.js",
-      "_ListPager.js",
-      "_search-key.js"
+      "_select.js",
+      "_search-key.js",
+      "_ListPager.js"
     ],
     "css": [
       "css/EntriesView.css"
@@ -930,8 +953,9 @@
       "_SkeletonTable.js",
       "_query.js",
       "_density.js",
-      "_ListPager.js",
+      "_select.js",
       "_search-key.js",
+      "_ListPager.js",
       "_LinkPicker.js"
     ],
     "css": [
@@ -1082,8 +1106,11 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
+      "_UploadSlab.js",
+      "_drop.js",
       "_jobs.js",
-      "_ActivityRows.js"
+      "_ActivityRows.js",
+      "_select.js"
     ],
     "css": [
       "css/ToolsView.css"

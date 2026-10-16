@@ -55,6 +55,10 @@ use Blush\Console\Commands\PreviewContent;
 use Blush\Console\Commands\PruneJobs;
 use Blush\Console\Commands\SyncStorage;
 use Blush\Console\Commands\CopyStorage;
+use Blush\Console\Commands\DeleteBackup;
+use Blush\Console\Commands\ListBackups;
+use Blush\Console\Commands\MakeBackup;
+use Blush\Console\Commands\RestoreBackup;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\RecordMediaSizes;
@@ -137,6 +141,10 @@ enum BuiltInCommand: string
 	case JobsPrune     = 'jobs:prune';
 	case StorageSync   = 'storage:sync';
 	case StorageCopy   = 'storage:copy';
+	case BackupMake    = 'backup:make';
+	case BackupList    = 'backup:list';
+	case BackupDelete  = 'backup:delete';
+	case BackupRestore = 'backup:restore';
 	case SecretsList   = 'secrets:list';
 	case SecretsSet    = 'secrets:set';
 	case SecretsRemove = 'secrets:remove';
@@ -213,6 +221,10 @@ enum BuiltInCommand: string
 			self::JobsPrune     => PruneJobs::class,
 			self::StorageSync   => SyncStorage::class,
 			self::StorageCopy   => CopyStorage::class,
+			self::BackupMake    => MakeBackup::class,
+			self::BackupList    => ListBackups::class,
+			self::BackupDelete  => DeleteBackup::class,
+			self::BackupRestore => RestoreBackup::class,
 			self::SecretsList   => ListSecrets::class,
 			self::SecretsSet    => SetSecret::class,
 			self::SecretsRemove => RemoveSecret::class,

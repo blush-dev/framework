@@ -2196,6 +2196,82 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
   generated jtcom-sized site. Baselines are recorded in `roadmap.md` (M4c,
   D-101); gating CI on regressions is an open question.
 
+## Backups (D-881)
+
+`Blush\Backup`: exact copies of the site's stored data, made to be
+restored to this site (or the same site on a new server). Not
+`Blush\Transfer` (D-685): a backup keeps ids and password hashes and is
+only read back by Blush.
+
+- **Parts** (D-883): `BackupPart` is a name, a `BackupGroup`, a label
+  and description, and table names. `CorePart` lists core's; plugins
+  register theirs with `BackupParts` (`resolving()`); registered tables
+  no part claims are **Other**. `BackupParts::LEFT_OUT` (sessions,
+  secrets) are in none. Only registered tables count, and a part with
+  none is dropped.
+- **Each driver backs up its own tables** (D-882): `TableBackup`, bound
+  in each `Storage`'s bindings and resolved per table's area through
+  `StorageResolver`, so mixed-driver sites work. `copy(table, work,
+  cursor)` copies a chunk into the work folder and returns the next
+  cursor; `finish(tables, work)` tidies; `bytes(table)` measures.
+  - `restore(table, work, cursor)` is the reverse, from the unzipped
+    backup.
+  - `FilesystemTableBackup`: each table's files under
+    `filesystem/{path from the root}`, from `FileLayouts`, except
+    entries (`user/content` whole; refs are front matter), media details
+    (`user/data/media`), and jobs (`storage/jobs`, without `queued/`
+    and `running/`; `job_state` is in the same folder). `BATCH` files a
+    chunk.
+  - `SqliteTableBackup`: `VACUUM INTO` the whole database on the first
+    table (`SqliteRecordStore::copyInto()`), then on finish deletes
+    unfinished jobs from the copy and `keepOnly()`s the picked tables,
+    leaving `sqlite/site.sqlite`.
+- **`Backups`** is the folder (`BackupConfig::folder()`, D-885) as the
+  list: `{name}.zip` with its `backup.json` (`Backup::manifest()`), and
+  `{name}.json` beside it (`Backup::toArray()`: status, size, note,
+  reason, job, canceled). A `.zip` without one is read from its
+  manifest and gets one. A running backup whose job is gone or failed
+  is listed failed. Deleting moves both files to `.deleted/`
+  (`restoreDeleted()` for Undo; pruned after `KEEP_DELETED`); deleting a
+  running one sets `canceled`. Memoized under `backup.backups`, dropped
+  on writes.
+- **`BackupMaker`**: `measure()` (each part's count, through
+  `RecordStores`, and bytes, memoized), `start()` (checks parts, one at a
+  time with `BackupBusy`, writes the running backup, queues
+  `core/backup` with the backup's name), `make()` (the CLI, every step
+  in turn), and `step(name, state)`: one table chunk, or the end
+  (drivers' `finish()`, `backup.json`, zip the work folder to
+  `.zip.partial`, rename, done). A failure marks the backup failed with
+  its reason and removes its work. `BackupJob` runs one step a run,
+  with one attempt.
+- **Admin:** `BackupsController` (`site.backups`, D-884) and Tools →
+  Backups (`BackupsTab`, `BackupPartChecks`, `backups.ts`). The tab
+  follows a running backup's job, as the admin runs any job it waits
+  on.
+- **`BackupRestorer`** (D-890): `check()` gives a `RestoreCheck`
+  (`problems` refuse, `warnings` inform); `start()` queues `core/restore`
+  (unique); `restore()` is the CLI's; `step(data)` runs phases `safety`
+  (its backup through `BackupMaker::prepare()` and `step()`), `unzip`
+  (into `Backups::RESTORE`, paths checked by `isSafe()`), `tables` (each
+  driver's `restore()`), and `finish` (compiled types and routes cleared,
+  full reindexes, caches, version bump, sessions pruned for accounts),
+  ending with `result` `{backup, parts, safety, signedOut}`. The tab
+  follows the job from `GET backups`' `restoring`.
+- **Schedule** (D-897): `BackupSchedule` on `BackupConfig`, saved as
+  the `backups.schedule` setting; the provider adds
+  `core/scheduled-backup` to `Schedule` when it's on;
+  `ScheduledBackupJob` prepares, steps, emails (`BackupNotices`), and
+  prunes (`Backups::prune()`). `BackupNotification` (`core/backup`) is
+  the email, by stage; `BackupNotices::preview()` renders one for the
+  admin through `MailLayout::text()`.
+- **`BackupMade`** (D-899): dispatched by `BackupMaker::finish()` once
+  a backup is kept, for plugins' off-site copies. Site Health's
+  `backups` check (`SiteChecks::backups()`) warns when scheduled backups
+  would email a site that can't send mail.
+- **Uploading** (D-898): `Backups::upload()` checks a `.zip`'s paths
+  (`Backup::isSafePath()`) and `backup.json`, and keeps it at its name
+  as `uploaded`; `BackupTaken` for a name already kept.
+
 ## Secrets (D-715)
 
 `Blush\Secret`: credentials Blush and plugins use to reach other

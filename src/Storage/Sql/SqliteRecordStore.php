@@ -125,6 +125,94 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 	}
 
 	/**
+	 * Writes a copy of the whole database to a new file, as one consistent
+	 * snapshot (`VACUUM INTO`), for a backup (D-882).
+	 *
+	 * @throws RecordStoreFailure When the copy can't be written.
+	 */
+	public function copyInto(string $file): void
+	{
+		$this->run('VACUUM INTO ?', [$file]);
+	}
+
+	/**
+	 * Returns the bytes a table's records hold (their fields and content),
+	 * or 0 for a table that isn't there yet.
+	 *
+	 * @throws RecordStoreFailure
+	 */
+	public function bytes(Table $table): int
+	{
+		$name   = $this->dialect->table($table);
+		$exists = $this->run("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", ["{$table->area->value}:{$table->name}"])->fetchColumn();
+
+		if ($exists === false) {
+			return 0;
+		}
+
+		return (int) $this->run("SELECT COALESCE(SUM(LENGTH(fields) + COALESCE(LENGTH(content), 0)), 0) FROM {$name}")->fetchColumn();
+	}
+
+	/**
+	 * Drops every table but the ones given, then compacts the file: what
+	 * a backup's copy of the database does to hold only its parts.
+	 *
+	 * @param  list<Table> $tables
+	 * @throws RecordStoreFailure
+	 */
+	public function keepOnly(array $tables): void
+	{
+		$keep  = array_map(static fn (Table $table): string => "{$table->area->value}:{$table->name}", $tables);
+		$names = $this->run("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")->fetchAll(PDO::FETCH_COLUMN);
+
+		foreach ($names as $name) {
+			if (is_string($name) && ! in_array($name, $keep, true)) {
+				$this->run("DROP TABLE {$this->dialect->quote($name)}");
+			}
+		}
+
+		$this->tables = [];
+		$this->run('VACUUM');
+	}
+
+	/**
+	 * Replaces a table's records with a backup's copy of them (D-882): the
+	 * same table in another database file, as `copyInto()` wrote it. With
+	 * a field and values, only records whose field holds one of them are
+	 * replaced (a table's finished jobs, leaving the rest). A backup
+	 * without the table leaves it empty. It's one transaction.
+	 *
+	 * @param  list<string> $values
+	 * @throws RecordStoreFailure
+	 */
+	public function replaceFrom(string $file, Table $table, ?string $field = null, array $values = []): void
+	{
+		if ($field !== null && preg_match('/\A[A-Za-z_][A-Za-z0-9_]*\z/', $field) !== 1) {
+			throw new RecordStoreFailure(sprintf('"%s" can\'t pick which records to replace.', $field));
+		}
+
+		$name   = $this->table($table);
+		$where  = $field === null ? '' : " WHERE json_extract(fields, '$.{$field}') IN (" . implode(', ', array_fill(0, count($values), '?')) . ')';
+		$params = $field === null ? [] : $values;
+
+		$this->run('ATTACH DATABASE ? AS backup', [$file]);
+
+		try {
+			$held = $this->run("SELECT 1 FROM backup.sqlite_master WHERE type = 'table' AND name = ?", ["{$table->area->value}:{$table->name}"])->fetchColumn() !== false;
+
+			$this->transaction(function () use ($name, $where, $params, $held): void {
+				$this->run("DELETE FROM {$name}{$where}", $params);
+
+				if ($held) {
+					$this->run("INSERT INTO {$name} (id, fields, content, version, dotted) SELECT id, fields, content, version, dotted FROM backup.{$name}{$where}", $params);
+				}
+			});
+		} finally {
+			$this->run('DETACH DATABASE backup');
+		}
+	}
+
+	/**
 	 * Keeps the statistics queries plan by up to date as the connection
 	 * closes, as SQLite advises for short-lived connections: it gathers
 	 * them only for tables that changed enough to need it (D-667).

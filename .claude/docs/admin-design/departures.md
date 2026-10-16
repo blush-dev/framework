@@ -1433,3 +1433,54 @@ Built from the admin's own pieces:
   Sentence, New Button, Editor Title, Search Box), not by their keys.
 - **Listing has no Other Query Arguments**, as the sketch's last version
   has it.
+
+## Tools → Backups (`backups-sketch.html`, D-881 to D-899)
+
+Built in four stages (making, restoring, the schedule and email, and
+uploading) from the admin's own pieces:
+
+- **A fifth Tools tab, Backups**, after Activity; the sketch's first tab,
+  Actions, is the admin's Tools tab (D-761). Its intro is the tab's
+  notice, as every Tools tab has one, rather than a two-part notice.
+- **Figures are `.stats--three`:** Last Backup (or Last Backup Failed,
+  `.stat--danger`, with the newest good copy), **Backups Kept** with the
+  folder they're in, and Space Used with what's free. Next Backup takes
+  Backups Kept's place when the schedule is built (stage 3); Kept says
+  where backups live, the sketch's first rule. No meter under Space
+  Used: no other figure has one.
+- **The list is `.table`** with a `MenuButton` row menu, as Accounts
+  and Redirects have. Holds is plain text (Everything, Everything but
+  …, or the parts), not chips, and Status is the shared pills. The note
+  is a light line under the date and file name (D-895), and the list has the list
+  tables' checkbox column and bulk bar, with Delete. The running row's bar is the shared
+  `.progress`, with what the job last said ("Copying Content"), not a
+  count of files; its Cancel is a ghost button in the actions column.
+- **Delete asks with `confirmAction`** (Keep It, Delete Backup), then
+  toasts with Undo, which puts the backup back from `.deleted/`
+  (D-888) rather than holding the delete until the toast ends.
+- **The third group is Users**, not the sketch's People (D-890).
+- **Parts are picked from a table a group** (D-893), each in a `.panel`
+  inside the modal's padding (D-894), not the sketch's checkbox list:
+  the list tables' boxes, the group's box and name in each table's
+  header, no box for every part, and Records and Size
+  columns on Back Up Now; no descriptions, with Access named API Access.
+- **Restore is an `AdminModal`** with the shared parts table (only the
+  parts the backup holds, the Users group's unticked), the sketch's
+  "backed up first" line as a small success notice, and the server's
+  warnings and problems as small notices under it; its button is
+  `button--danger`, says only Restore (the author's call: naming the
+  parts ran it out of the modal), and sits beside Cancel, off until a
+  part is picked and nothing refuses it. The running restore is a notice
+  with the shared `.progress` above the figures, not the sketch's bar;
+  it ends in a toast with Undo, or an error notice naming the backup to
+  restore.
+- **The Schedule panel** (D-897) is the admin's own fields over the
+  sketch's: `.segmented` for How Often, `AdminSelect`s for Day, Time,
+  Keep, and Send an Email (sentence-case options), the shared parts
+  tables for What Each Holds, and Save Schedule in the panel's foot. To
+  is one other address, not a comma-separated list. The never-attached
+  line is a small notice. Where backups are kept is a line in the
+  panel, and Next Backup takes Backups Kept's place among the figures.
+- **Upload a Backup** (D-898) is the extension uploader's anatomy
+  (`.drop`, `.slab`s), not the sketch's own drop box, and its limit is
+  the server's, not a fixed 200 MB.

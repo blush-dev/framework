@@ -38,10 +38,6 @@
 								"strong": {
 									"type": "string",
 									"description": "--color-surface-strong: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
-								},
-								"stripe": {
-									"type": "string",
-									"description": "--color-surface-stripe: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
 								}
 							}
 						}

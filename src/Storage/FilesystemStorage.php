@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Storage;
 
 use Override;
+use Blush\Backup\FilesystemTableBackup;
+use Blush\Backup\TableBackup;
 use Blush\Console\Commands\CreateMissingParents;
 use Blush\Console\Commands\CreateMissingTerms;
 use Blush\Console\Commands\FileRefs;
@@ -59,7 +61,8 @@ final readonly class FilesystemStorage implements Storage
 			MediaFiles::class     => MediaFiles::class,
 			RecordStore::class    => FileRecordStore::class,
 			SessionStore::class   => FileSessionStore::class,
-			JobStore::class       => FileJobStore::class
+			JobStore::class       => FileJobStore::class,
+			TableBackup::class    => FilesystemTableBackup::class
 		];
 	}
 

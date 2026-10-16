@@ -20,6 +20,7 @@ use Blush\Admin\AdminServiceProvider;
 use Blush\Api\ApiServiceProvider;
 use Blush\Asset\AssetServiceProvider;
 use Blush\Auth\AuthServiceProvider;
+use Blush\Backup\BackupServiceProvider;
 use Blush\Cache\CacheServiceProvider;
 use Blush\Clock\ClockServiceProvider;
 use Blush\Console\ConsoleServiceProvider;
@@ -116,6 +117,7 @@ class Application implements Bootable
 		SetupServiceProvider::class,
 		AuthServiceProvider::class,
 		ActivityServiceProvider::class,
+		BackupServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
 		ApiServiceProvider::class,

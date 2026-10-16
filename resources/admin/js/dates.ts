@@ -277,3 +277,17 @@ export function siteDateTime(value: string | number | Date): string {
 export function siteDate(value: string | number | Date): string {
 	return formatted(toDate(value), config.dates.date, null);
 }
+
+/**
+ * A time of day in the site's time format: "3:00 PM".
+ */
+export function siteTime(value: string | number | Date): string {
+	return formatted(toDate(value), null, config.dates.time);
+}
+
+/**
+ * A day of the week's name, from 0 for Sunday: "Sunday".
+ */
+export function weekdayName(day: number): string {
+	return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(2026, 0, 4 + day));
+}

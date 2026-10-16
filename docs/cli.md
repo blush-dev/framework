@@ -136,6 +136,17 @@ SQLite database (`storage/database/site.sqlite`); see [Large sites](going-live.m
 | `storage:copy` | Copy the site's content (with the links between entries), data, accounts, roles, secrets (still encrypted), and jobs from files into SQLite, ids kept, each entry's front matter as written. Sessions aren't copied, so everyone signs in again. Content files without an id aren't copied (run `content:ids --write` first). It refuses a database that already holds records; `--replace` replaces them. `--from=` and `--to=` name the drivers (`filesystem` and `sqlite`, the only way for now). The site keeps using files until `STORAGE_DRIVER=sqlite` is set. A large site may need more memory: `php -d memory_limit=1G bin/blush storage:copy`. |
 | `storage:sync` | Make or update the tables the database keeps, with their columns and indexes, and refresh what queries plan by. Tables are made when first used, so this is for deploys. On files it does nothing. |
 
+## Backups
+
+See [Backups](backups.md).
+
+| Command | What it does |
+|---|---|
+| `backup:make` | Back up the site's stored data to `storage/backups/site/`: every part, or the ones `--parts=` names, separated by commas (`backup:list --parts` lists them). `--note=` keeps a note with it, up to 60 characters. It runs start to end here, not as a job, and refuses while another backup is being made. |
+| `backup:list` | List the backups, newest first: each one's name, when it was made, how (`manual`, `scheduled`, `before-restore`, or `uploaded`), what it holds, its size, and its note, or why it failed. `--parts` lists the parts a backup can hold instead, with how many records and bytes each holds now. |
+| `backup:delete <name>` | Delete a backup by its name, or cancel the one being made. It waits a day in `storage/backups/site/.deleted/` before it's removed for good. |
+| `backup:restore <name>` | Restore parts of a backup: every part it holds but `accounts`, `roles`, and `access`, or the ones `--parts=` names. It says what refuses it (a newer Blush, a part kept by another storage driver now, a backup or restore running) and what it will do (restoring `accounts` signs everyone out), and asks first unless `--yes`. The site's parts are backed up first, and it names that backup, to restore to undo it. Content and media are reindexed and caches cleared after. |
+
 ## Secrets
 
 [Secrets](extending.md#secrets) are credentials Blush and plugins use to

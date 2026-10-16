@@ -1243,7 +1243,9 @@ Move each item to `decisions.md` once it's answered.
     plugins' actions, grouped by who registered them), Status (the site
     check), and Logs; Backups once they exist (see below).
 - **Site backups from the admin, for every driver** (discussed
-  2026-10-09; nothing settled). Backing up a site's stored data, not
+  2026-10-09; **settled by D-881 to D-887**, from the backups sketch:
+  each driver's own format, parts, `storage/backups/site`; what's left
+  open is in D-887). Backing up a site's stored data, not
   only `user/` on files, from the admin, on SQLite, MySQL/MariaDB, and
   PostgreSQL (D-640) alike.
   - **Two ways:**
@@ -2611,3 +2613,22 @@ Move each item to `decisions.md` once it's answered.
     `{id: "x", to: "y"}` would be read as one.
   - A location's label is both the admin's name for it and the
     `<nav>`'s accessible name; they may need to be separate.
+
+- **Versioning every JSON file Blush writes** (the author, 2026-10-16,
+  "for a different day"): a `formatVersion` key, as `backup.json` has
+  (D-889), in data files, settings, sidecars, and the rest, so a reader
+  knows the layout it's reading and migrations know where to start.
+  Open: which files, whether front matter and extension manifests take
+  part, and what reads an older or newer one.
+
+- **Encrypting backups** (D-887, kept for later by the author, 2026-10-16):
+  an optional passphrase, per backup and on the schedule, never on by
+  default, encrypting the archive's contents (sodium) with `backup.json`
+  left readable so the list can describe it; Restore and Upload ask for
+  it. A lost passphrase is a lost backup. It matters most once copies
+  leave the server (`BackupMade`, D-899).
+- **Tools as its own rail section, or Backups as its own screen**
+  (the author, 2026-10-16, to discuss next): Tools → Backups now has a
+  list, four dialogs, and the Schedule panel. Whether Tools leaves Home
+  for a rail section of its own, or Backups becomes a screen of its own
+  (Home → Backups), perhaps with a detail screen per backup.

@@ -1449,10 +1449,31 @@ Each stage ends with `composer check`, `npm run admin:build`, the
    `tokens.css`, the rail, section panel, and top bar and their
    controls reading them, the contrast pairs, and the previews and
    Admin Theme Details.
-2. **Stripe and texture** (built): `color.surface.stripe` on `.table`;
+2. **Stripe and texture** (built; the stripe retired by D-894): `color.surface.stripe` on `.table`;
    `backgroundImage` and `backgroundSize` under the work area, with
    the gradient allowlist as a token type.
 3. **The themes** (built): Workbench, Bound, and Walnut on the jtcom trial.
+
+### Backups (D-881): done
+
+From the backups sketch (`backups-sketch.html`), D-881 to D-887. Each
+stage ends with `composer check`, `npm run admin:build` where the admin
+changed, and `docs/`.
+
+1. **Making and keeping** (built): `Blush\Backup` (parts, `BackupParts`, the
+   archive and its `backup.json`, the folder as the list), each
+   driver's `TableBackup` for writing, the backup job, `backup:make`,
+   `backup:list`, and `backup:delete`, the capabilities, and Tools →
+   Backups: the list with a running row, Back Up Now with parts and a
+   note, download, notes, and delete with Undo.
+2. **Restoring** (built, D-890): each driver's `TableBackup` for reading, the backup
+   before, the checks (driver, format, Blush version, links left
+   dangling), sessions ended for Accounts, reindex and refresh,
+   `backup:restore`, and the restore dialog with Undo.
+3. **The schedule and email** (built, D-897): the settings group, the scheduled task,
+   keeping, the notifications, the Schedule form, the test email, and
+   the preview.
+4. **Uploading** (built, D-898): checking an uploaded `.zip` and adding it to the list.
 
 ---
 

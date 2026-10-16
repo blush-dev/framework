@@ -16,6 +16,9 @@ namespace Blush\Setup;
 use Psr\Clock\ClockInterface;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
+use Blush\Backup\BackupConfig;
+use Blush\Backup\BackupFrequency;
+use Blush\Backup\BackupNotice;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
@@ -48,7 +51,8 @@ use Blush\Workflow\Workflows;
  *   storage; in production, whether the site's address serves `.env`,
  *   `config/`, or `storage/` (`exposure`, D-716); whether cron or a worker
  *   runs background jobs (`jobs`,
- *   D-621); how email is sent (`mail`, D-848); and the secrets (D-715): the key that encrypts them, required
+ *   D-621); how email is sent (`mail`, D-848); whether the backup
+ *   schedule's email can be sent (`backups`, D-899); and the secrets (D-715): the key that encrypts them, required
  *   ones that aren't set, stored ones that won't decrypt, and stored ones
  *   nothing declares any more.
  * - `extensions`: extensions that are on but can't run (D-431): an active
@@ -85,6 +89,7 @@ final readonly class SiteChecks
 		private ExposureCheck $exposure,
 		private FieldTargets $targets,
 		private MailTransport $mail,
+		private BackupConfig $backups,
 		private Messages $messages,
 		private Statuses $statuses,
 		private Workflows $workflows
@@ -98,7 +103,7 @@ final readonly class SiteChecks
 	public function byArea(): array
 	{
 		return [
-			'system'     => [...$this->setup->all($this->app), ...$this->exposure(), ...$this->jobs(), ...$this->mail(), ...$this->secrets()],
+			'system'     => [...$this->setup->all($this->app), ...$this->exposure(), ...$this->jobs(), ...$this->mail(), ...$this->backups(), ...$this->secrets()],
 			'extensions' => $this->extensions(),
 			'accounts'   => $this->owner()
 		];
@@ -171,6 +176,35 @@ final readonly class SiteChecks
 			$live && in_array($this->mail->scheme(), ['log', 'null'], true) => CheckResult::warning($label, $this->messages->t('setup.site_checks.mail_undelivered', 'Email isn\'t delivered: the transport is {transport}.', transport: (string) $this->mail->describe()), $hint),
 			default                             => CheckResult::pass($label, $this->messages->t('setup.site_checks.mail_set', 'Sent through {transport}.', transport: (string) $this->mail->describe()))
 		}];
+	}
+
+	/**
+	 * Checks that the backup schedule's email can go out (D-899): with
+	 * backups scheduled to email, it warns when the site can't send mail,
+	 * since a failed backup would then go unnoticed. Nothing when backups
+	 * aren't scheduled or never email.
+	 *
+	 * @return array<string, CheckResult>
+	 */
+	public function backups(): array
+	{
+		$schedule = $this->backups->schedule;
+
+		if ($schedule->frequency === BackupFrequency::Off || $schedule->notice === BackupNotice::Never) {
+			return [];
+		}
+
+		$label = $this->messages->t('setup.site_checks.backups', 'Backup email');
+
+		return ['backups' => $this->mail->isSetUp()
+			? CheckResult::pass($label, $schedule->notice === BackupNotice::Always
+				? $this->messages->t('setup.site_checks.backups_always', 'Scheduled backups email after each one.')
+				: $this->messages->t('setup.site_checks.backups_failures', 'Scheduled backups email when one fails.'))
+			: CheckResult::warning(
+				$label,
+				$this->messages->t('setup.site_checks.backups_no_mail', 'Backups are scheduled to email, but the site can\'t send email, so a failed backup would go unnoticed.'),
+				$this->messages->t('setup.site_checks.backups_no_mail_hint', 'Set up how the site sends mail (MAIL_DSN in .env), or turn the email off on Tools → Backups.')
+			)];
 	}
 
 	/**
