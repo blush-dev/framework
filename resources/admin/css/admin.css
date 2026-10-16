@@ -3090,6 +3090,12 @@ button.lnk {
 	gap: var(--s-4);
 }
 
+/* Narrower cards, for a list whose cards say little, such as admin
+   themes, so more fit across. */
+.extension-cards--narrow {
+	grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+}
+
 .extension-card {
 	display: flex;
 	flex-direction: column;

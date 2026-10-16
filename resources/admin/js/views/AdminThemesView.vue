@@ -140,7 +140,7 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 			</EmptyState>
 		</div>
 
-		<component :is="list ? 'ul' : 'div'" v-else :class="list ? 'extension-rows' : 'extension-cards'">
+		<component :is="list ? 'ul' : 'div'" v-else :class="list ? 'extension-rows' : 'extension-cards extension-cards--narrow'">
 			<component :is="list ? ExtensionRow : ExtensionCard" v-for="theme in shownThemes" :key="theme.name" :class="{ 'is-off': !theme.running, 'is-on': theme.running, 'is-busy': busy === theme.name }" :label="theme.label" :to="extensionRoute('admin-theme', theme.name)" :version="theme.version" :description="list ? undefined : theme.description">
 				<template v-if="list" #mark><AdminIcon name="swatch-book" /></template>
 				<template v-else #media><AdminThemeSketch class="theme-sketch" :preview="theme.preview" /></template>
@@ -193,7 +193,7 @@ async function remove(label: string, folder: string, theme: AdminThemeSummary | 
 		</li>
 	</ul>
 
-	<div v-else-if="!error" class="extension-cards" aria-hidden="true">
+	<div v-else-if="!error" class="extension-cards extension-cards--narrow" aria-hidden="true">
 		<div v-for="card in 3" :key="card" class="extension-card">
 			<AdminThemeSketch class="theme-sketch" :preview="null" />
 			<div class="extension-card__body">

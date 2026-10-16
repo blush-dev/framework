@@ -1343,6 +1343,7 @@ async function leave(): Promise<void> {
 	place-items: center;
 	width: 29px;
 	height: 29px;
+	padding: 0;
 	border: 0;
 	border-radius: 50%;
 	background: var(--color-chrome-strong);
