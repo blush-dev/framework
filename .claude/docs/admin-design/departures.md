@@ -882,7 +882,7 @@ Each is recorded in `.claude/docs/decisions.md`.
 From §13, now `50-open-questions.md`:
 
 - API conventions: a session cookie and CSRF header, `page`/`per` paging
-  with `total` and `pages`, errors as `{"error"}` (`docs/admin.md`);
+  with `total` and `pages`, errors as `{"error"}` (`docs/admin/README.md`);
   content type discovery is `GET types`, with `labels` (D-234, D-278).
 - The editor: the Markdown surface is a text area over a highlighted copy
   (D-241); the component inserter is `GET components` (D-243, D-247); the

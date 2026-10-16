@@ -1,0 +1,215 @@
+# Coming from Blush 1.x
+
+Blush 2 is a rewrite, but **your content doesn't change**. Every file
+and front matter convention 1.x understood still works (terms and
+authors need files, which one command writes, each type's files move
+into a folder named for it, and taxonomy types are written a new way;
+see below), and your URLs stay the same. What changes is the code around it: config, themes,
+and the command line.
+
+## Your content
+
+Copy your `user/` folder across as it is. In particular:
+
+- File names like `01.intro.md` and `2003-04-15.welcome.md` still drop
+  the prefix from the URL in collections (such as your posts and your
+  tags), but they no longer set the order: collections list newest
+  published first, and terms and pages by `position`, then title. Give
+  terms a `position` to keep an order such as `01.` to `07.`.
+  `orderby: filename` is read as `date`. Pages still work with a
+  prefix, but `content:lint` reports it: rename `01.about.md` to
+  `about.md`.
+- `index.md` landing pages work as before. A `_` at the start of a
+  file or folder name no longer hides an entry, and a `_drafts/` folder
+  no longer makes its entries drafts: say `visibility: hidden` or
+  `status: draft` in the front matter, and rename the file.
+  `content:lint` warns of each name that still starts with `_`.
+- `date` is still the entry's date. The other 1.x front matter names
+  still work: `author` (now `authors`), `excerpt` (now `summary`), and `view` (now
+  `template`). You don't need to rename anything. Authors are credited
+  through the `authors` [credit relation](../concepts/credits-and-profiles.md)
+  (the skeleton's `user/data/relations/authors.json`); add each type
+  whose entries name authors to its `from`.
+- `_error/404.md` still works as your error page (2.x also reads
+  `_errors/`), once the folder has a page of its own: run
+  `bin/blush content:parents --write`.
+- Every file needs an id; one without isn't shown. Run
+  `bin/blush content:ids --write` once.
+- Media links to `/user/media/...` still resolve.
+- 1.x showed a term or author your entries named even without a file.
+  2.x needs the file, and leaves one without it out of the site,
+  entries' term lists and bylines included. Run
+  `bin/blush content:terms --write` once to write them all (or choose
+  **Write Files** under **Terms and Profiles** in Site Health), titled
+  as your entries wrote them.
+
+Run `bin/blush content:lint --strict` to see which old names your content
+uses. They're reported as notices, not problems.
+
+## Config
+
+1.x config files returned arrays. In 2.x they return objects, but the 1.x
+arrays can be passed straight in.
+
+**Content types** move out of config. Put each 1.x type in a data file
+in `user/data/types/`, named after it, with the same keys (or define it
+in a [plugin](../features/content-types.md)). Your 1.x type
+carries over, `date_archives`, `routing`, `feed`, and the rest
+(taxonomies change; see below), as `user/data/types/post.json`:
+
+```json
+{
+	"path": "_posts",
+	"collection": { "order": "desc" },
+	"date_archives": true
+}
+```
+
+One thing moves: every 2.x type is kept in `_` and its name (`_post/`
+for `post`), and never names its own folder. A type in
+`user/data/types/` that still has `path` is read there, so its entries
+aren't found until they move. Run `bin/blush content:type-folders` to
+list them, then `bin/blush content:type-folders --write` (or **Move
+Types** under **Type Folders** in Site Health): each type's files move
+from `_posts/` to `_post/`, and its file is written without `path`,
+with `"urls": {"prefix": "posts"}` where its URLs came from the folder,
+so they stay the same (see
+[Moving a type into its folder](../concepts/content-types.md)).
+A type in a plugin with `path` stops Blush from loading, saying what to
+change.
+
+Move `home_alias` from `config/app.php` into `config/content.php` as
+`home`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Blush\Content\ContentConfig;
+
+return new ContentConfig(home: 'post');
+```
+
+A 1.x type that left `path` out kept its files in a folder named after
+it (`recipe/`); move them to `_recipe/` by hand. Its URLs don't change.
+
+### Taxonomies
+
+2.x has no taxonomy kind. A type of terms, such as tags or categories,
+is a plain collection, and what files entries under its terms is a
+**relation** defined on its own (see
+[Terms and relationships](../concepts/relationships.md)).
+So a 1.x type with `taxonomy: true` needs moving:
+
+- **In `user/data/types/`**, it keeps working as it is until you
+  migrate it. Run `bin/blush content:taxonomies` to list them, then
+  `bin/blush content:taxonomies --write` (or **Migrate Types** under
+  **Taxonomies** in Site Health) to rewrite each: the type's file is
+  edited in place, and its relation is written to
+  `user/data/relations/{name}.json`.
+- **In a plugin**, it stops Blush from loading, with a message saying
+  what to change. Rewrite it by hand.
+
+For example, a 1.x category taxonomy for posts, in
+`user/data/types/category.json`:
+
+```json
+{
+	"taxonomy": true,
+	"path": "_posts/categories",
+	"term_collect": "post",
+	"hierarchical": true
+}
+```
+
+becomes a collection ordered by `position`, out of
+`llms.txt`, and a classify relation named after it:
+
+```json
+{
+	"path": "_posts/categories",
+	"hierarchical": true,
+	"order": "position",
+	"llms": false
+}
+```
+
+Its `path` then moves with the other types' (above). And in
+`user/data/relations/category.json`:
+
+```json
+{"kind": "classify", "from": ["post"], "to": ["category"], "create": true}
+```
+
+A taxonomy's `field` and `field_aliases` become the relation's `field`
+and `aliases`, and its `term_collection` the relation's
+`inverse.listing` (as `"inverse": {"listing": {...}}`). Entries' front matter (`category: news`) doesn't
+change, and neither do the terms' URLs.
+
+### New option names
+
+In 2.x, each kind of type is its own class, and some options have new
+names. When you're ready, you can move to them (see
+[Content types](../concepts/content-types.md)):
+
+| 1.x | 2.x |
+|---|---|
+| `taxonomy: true` | A collection and a classify relation ([above](#taxonomies)) |
+| `path` | None: a type is kept in `_` and its name, and `urls` `prefix` keeps its URLs ([above](#config)) |
+| `routing` (`prefix`, `paths`) | `urls` (`prefix`, `single`, `collection`, `paths`) |
+| `collection` and `collect` | `listing` (`type`, `orderBy`, `order`, `perPage`, `query`) |
+| `term_collect` | The relation's `from` (a list) |
+| `term_collection` | The relation's `inverse.listing` |
+| A taxonomy's `field_aliases` | The relation's `aliases` |
+| `date_archives`, `time_archives` | `dateArchives` (`day`, `second`, and others) |
+| `feed` `taxonomy` and `collection` | `feed` `categories` (a term type) and `listing` |
+
+**Markdown** (`config/markdown.php`) is rewritten: 2.x doesn't take
+CommonMark's options or extension classes. Its Markdown already has
+attributes (`{.alignwide}`), definition lists, footnotes, smart
+punctuation, heading anchors, and line breaks as `<br>`, and
+`MarkdownConfig` takes the rest by name: `html: RawHtml::Filter` for
+disallowed raw HTML, and `anchors` and `footnotes` for their classes
+(see [Markdown configuration](../reference/configuration/markdown.md)). A table of contents
+placeholder becomes the `::toc` [block](../concepts/blocks/README.md).
+
+**Media URLs:** 2.x serves media from `/media`. To keep 1.x's
+`/user/media/...` URLs working, add `config/media.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Blush\Media\MediaConfig;
+
+return new MediaConfig(url: '/user/media');
+```
+
+The rest of `config/app.php` moves to `.env` and the new
+`AppConfig`; see [Configuration](../concepts/configuration.md).
+
+## Themes
+
+Themes are new in 2.x, so a 1.x theme needs rebuilding. Start from the
+default theme (`bin/blush theme:new mytheme`) and bring your styles
+across. See [Themes](../themes/README.md). Your entries' `view` front matter still
+picks a template, but by the 2.x template's name.
+
+1.x's `$pagination->display([...])` becomes `$page->pageLinks()`, which
+gives the same numbered links (first and last pages, the pages around
+the current one, and dots) for your template to mark up; see
+[Pagination](../themes/pagination.md). Later pages of a listing still get
+"Page 2" in their title.
+
+## Small behavior changes
+
+- Only an image **on its own line** becomes a `<figure>`. Images inside a
+  paragraph stay plain images (1.x wrapped every image).
+- A collection no longer needs an `index.md` to have a listing page, and
+  an empty collection shows an empty listing instead of a 404.
+- An entry in a type with its own URLs is served only at those URLs, not
+  also at its folder path.
+- Feed and sitemap XSL stylesheets aren't supported.
+- Blush 2 needs PHP 8.5.

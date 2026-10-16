@@ -1,0 +1,8 @@
+# Setting up
+
+Commands for setting up a site and checking that it can run.
+
+| Command | What it does |
+|---|---|
+| `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET` and a `SECRETS_KEY`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account, whose email address becomes the site's (`APP_EMAIL`) when `.env` has none. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets and `APP_EMAIL`. |
+| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, writable storage, and [secrets](../../features/secrets.md). In production it also asks the site's own address for `.env`, `config/app.php`, and a file it writes in `storage/`, and fails when any of them is served, which happens when the web server points at the site's folder instead of `public/`. Fails when something needs fixing. It also warns when cron hasn't run [background jobs](../../running/cron-and-jobs.md) in the last ten minutes. It also says how [email](../configuration/mail.md) is sent, and warns when the site can't send any, or, on a live site, when it falls back to PHP's own mail or uses `log` or `null`. It also warns of extensions that are on but can't run: an active theme whose [requirements](../../plugins/requirements.md) aren't met (so the default theme shows), and plugins, icon packs, and admin themes that are on but don't run, and a site with accounts but no [owner](../../concepts/accounts/owners.md). |

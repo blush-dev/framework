@@ -28774,3 +28774,37 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author, 2026-10-16: "go ahead and build the paging
   fix", after D-911 split the files but still built every entry for
   each page and for the index.
+
+### D-913: User docs in sections, one page per feature
+- **Date:** 2026-10-16
+- **Decision:** `docs/` (D-141) is split from twenty long pages (the
+  admin's alone 2,876 lines) into sections, each a folder with a
+  `README.md` index, and **one page per feature**:
+  - `getting-started/` (installation, site layout, your first page,
+    hosting, before you launch, coming from 1.x)
+  - `concepts/` (content files, front matter, status and visibility,
+    types, trees, relationships, fields, file names, media, blocks,
+    menus, accounts, extensions, configuration)
+  - `admin/` (a page per screen, with `editor/`, `settings/`,
+    `users/`, and `site-health/`)
+  - `running/` (publishing, caching, SQLite, cron and jobs, backups)
+  - `plugins/`, `themes/`, `icon-packs/`, `admin-themes/`
+  - `features/` (APIs for developers: routes, commands, finding and
+    changing entries, blocks, components, fields, jobs, events, the
+    API, MCP, the admin's API, and the rest)
+  - `reference/` (a page per `config/` file and per command group)
+- **Build from an extension:** code examples are a plugin's
+  (`extensions/acme/hello/`, `Acme\Hello\`, its provider named in
+  `plugin.json`); a site's `src/` and `config/app.php` providers are
+  one page, `plugins/site-code.md`, for agencies and freelancers
+  setting up a client's build, or DIY. Routes from a plugin are
+  controllers tagged `ControllerRoutes::TAG`.
+- The old pages are removed, not kept as stubs (no 2.x sites to
+  break). Older decisions keep their links to them as written.
+- **Keep it this way:** a new feature gets a new page in its section
+  and a line in that section's `README.md`, never a section on a long
+  page.
+- **Why:** the author, 2026-10-16: the pages were "massive documents
+  that would be impossible for most people to read"; "one doc per
+  feature"; "lean into building from an extension rather than from
+  the site's src/."

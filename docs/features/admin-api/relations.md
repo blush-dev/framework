@@ -1,0 +1,11 @@
+# Relationships
+
+Listing, creating, checking, changing, and deleting [relationships](../../concepts/relationships.md). Every request here is under `/admin/api`, as the [admin's API](README.md) describes.
+
+| Request | What it does |
+|---|---|
+| `GET relations` | The site's [relations](../../concepts/relationships.md): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
+| `POST relations` | Create a relation in `user/data/relations/{name}.json`: its whole definition, with `name` (the keys a data file takes); answers `201` with it, as `GET relations` describes it. A definition that doesn't fit, or a name defined in code, is a `422` with the reason. Needs `site.settings` |
+| `PATCH relations/{name}` | Replace a `user/data/relations` relation with the whole definition sent; answers with it. Needs `site.settings` |
+| `POST relations/{name}/check` | What replacing a relation with the definition sent would do, without saving it: `{"refusal", "refused", "inWay", "inWayCount", "warnings", "uses", "moved", "unfiled", "stripped", "over", "overCount", "fewer", "inverseOver"}`. `refused` is `type` (it points at another type while entries have values) or `one` (it takes one where entries have several), or `null`; `inWay` and `over` name up to 8 entries (`{"id", "type", "title", "count"}`, most values first) in the way of a refusal and over a new `max`; `fewer` counts published entries under a new `min`, and `inverseOver` targets over a new inverse `max`. Needs `site.settings` |
+| `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |

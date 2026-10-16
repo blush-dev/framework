@@ -483,7 +483,7 @@ narrow stores (D-645).
   types, relations, field sets, menus, regions, redirects, theme data,
   ignored problems, and media metadata (which has ids, D-487, but is
   found by path).
-- `docs/extending.md` already points plugins at tables; `DataStore`
+- `docs/plugins/README.md` already points plugins at tables; `DataStore`
   isn't public.
 
 **6a. Accounts on records, linked by id** (built, D-669; a slug with no profile makes a draft, and a linked profile can be renamed):
@@ -640,7 +640,7 @@ The current focus: the experience of setting up a Blush site.
   in `component:list`, and `theme:check` checks. The trial's components
   are `jtcom/post-archives` and `jtcom/entry-terms`; it builds the same
   421 pages.
-- **Component docs and classes:** `docs/components.md` (D-170);
+- **Component docs and classes:** `docs/features/components/README.md` (D-170);
   component classes are `component-{name}` BEM blocks (D-182); checking
   a theme leaves out other themes' components (D-178).
 - **The core component set (D-175):** definition lists and highlighting
@@ -671,13 +671,13 @@ The current focus: the experience of setting up a Blush site.
   `menu:list`, `menu:show`, and `theme:check` reports. The default theme
   shows a `primary` menu and a `footer` region; the jtcom trial's
   primary and social menus are data now, and it builds the same 421
-  pages. User guide: `docs/menus.md`. More design work on how menus and
+  pages. User guide: `docs/concepts/menus.md`. More design work on how menus and
   regions relate is still to come (see `open-questions.md`).
 
 - **First-run setup (D-218):** `init` (creates `.env`, asking for the
   basics; an opt-in webhook secret; the storage folders), `doctor` (every
   setup check, with hints), and a plain setup page instead of a stack
-  trace while storage isn't writable. Docs: `docs/installation.md`.
+  trace while storage isn't writable. Docs: `docs/getting-started/installation.md`.
   Still to do on the skeleton's `2.x`: run `init` from
   `post-create-project-cmd`.
 
@@ -686,7 +686,7 @@ The current focus: the experience of setting up a Blush site.
   offering the first), roles and capabilities (`config/auth.php`),
   permissions with ownership through the author link, throttled sign-in,
   and the admin's JSON sign-in API (`AdminConfig`, off by default). Docs:
-  `docs/accounts.md`. The jtcom trial has the admin on with one account.
+  `docs/concepts/accounts/README.md`. The jtcom trial has the admin on with one account.
 
 ### The admin (M9, D-215, D-220 to D-223): in progress
 
@@ -697,7 +697,7 @@ D-236), the trash (a tab too, with restore as a draft, D-237), and content healt
 (D-225); signed preview links (D-226); the paged, filterable entry
 list API (D-230); design tokens and the rail-and-top-bar shell from
 the admin design direction (D-231), with each account's light/dark
-preference on Your profile (D-232, D-235). Docs: `docs/admin.md`.
+preference on Your profile (D-232, D-235). Docs: `docs/admin/README.md`.
 
 M10 has started: writing content back to files (`ContentWriter`,
 D-228), the editing API (D-229), and the first editor screens (D-233):
@@ -1266,11 +1266,11 @@ admin changed, and `docs/`.
   read-only, opt-in API at `/api/v1` beside the admin's (D-479), broadened
   to the site in `Blush\Api` (D-736: site, types, entries, relations,
   media, menus); its shape settled (D-737 to D-741) and its first,
-  read-only version built (D-742, `docs/api.md`). API tokens built
+  read-only version built (D-742, `docs/features/api/README.md`). API tokens built
   (D-744 to D-750): tokens of an account, narrowed if asked, token-only
   accounts for agents, `?status=` for what a token may edit, a private
   API (`api.access`), Your Account's API Tokens panel, and `token:add`.
-  MCP built (D-751 to D-759, `docs/mcp.md`): `Blush\Mcp` at
+  MCP built (D-751 to D-759, `docs/features/mcp/README.md`): `Blush\Mcp` at
   `{path}/mcp` and `blush mcp`, OAuth 2.1 with `api.connect` and the
   Connect an App screen, its own protocol code with tools only, on
   Settings → AI, read and write tools over one write path
@@ -1407,7 +1407,7 @@ Other starting points the author may pick up (none decided):
 - **A global installer (D-165):** a separately installed `blush` command
   (via `composer global require`) that creates
   sites (`blush new mysite`) and, inside a site, runs that site's
-  `bin/blush`. Until then, `docs/installation.md` shows the small
+  `bin/blush`. Until then, `docs/getting-started/installation.md` shows the small
   launcher script that finds the nearest `bin/blush` (D-421). Its shape
   (`blush-dev/cli`) and open points are in `open-questions.md`.
 - Setup notices beyond storage (D-218): whether a web server rewrite
@@ -1417,7 +1417,7 @@ Other starting points the author may pick up (none decided):
   `blog/` isn't a content type, so the sample post is a plain page), and
   the default theme.
 - Local development: `serve`, DDEV, and theme builds (Vite, D-155).
-- The docs' installation guide (`docs/installation.md`) as the script
+- The docs' installation guide (`docs/getting-started/installation.md`) as the script
   for all of it.
 
 ### Admin themes (D-827): planned
@@ -1443,7 +1443,7 @@ admin changed, and `docs/`.
 ### Admin theme chrome (D-878): done
 
 Each stage ends with `composer check`, `npm run admin:build`, the
-`tokens.json` schema, and `docs/admin-themes.md`.
+`tokens.json` schema, and `docs/admin-themes/README.md`.
 
 1. **Chrome** (built): the nine `color.chrome` tokens, defaults by reference in
    `tokens.css`, the rail, section panel, and top bar and their

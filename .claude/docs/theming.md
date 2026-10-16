@@ -571,7 +571,7 @@ doesn't offer, shows as "Not in this theme" and is kept until changed.
 
 ## Navigation
 
-D-199 to D-204 and D-676; the user guide is `docs/menus.md`.
+D-199 to D-204 and D-676; the user guide is `docs/concepts/menus.md`.
 
 - **Locations:** `theme.json` `menus` declares locations, each a label
   string or an object with `depth`, extra per-item `fields` (content

@@ -1,0 +1,69 @@
+# Publishing
+
+In development, Blush notices changed files by itself. **In production it
+doesn't**, because checking every file on every request would slow the
+site down. Instead, after you upload new or changed content, publish it:
+
+```sh
+bin/blush publish
+```
+
+That finds what changed, updates the content index, refreshes redirects
+and content types, and clears the caches, so visitors see the new content
+right away.
+
+> **A note on PHP's opcache.** Blush stores its index as PHP files, which
+> PHP keeps in memory. After `bin/blush publish`, the web server can take
+> a couple of seconds to notice the new files. If your host sets
+> `opcache.validate_timestamps=0`, it won't notice until PHP restarts; use
+> the [webhook](#publishing-without-a-shell) there instead, which publishes
+> from inside the web server.
+
+## Publishing with git
+
+If `user/` is its own git repository, Blush can pull the latest content
+first:
+
+```sh
+bin/blush publish --pull
+```
+
+To always pull, set `PUBLISH_GIT=true` in `.env` (and `PUBLISH_REMOTE` and
+`PUBLISH_BRANCH` if you need them). Then `--no-pull` skips it once.
+
+The pull updates only the `user/` repository. Themes, plugins, and icon
+packs live in `extensions/`, outside it, so publishing content never
+deploys code. Update those the way you deploy the rest of your site.
+
+## Publishing without a shell
+
+Many shared hosts don't offer SSH. Blush has a publish **webhook** for
+that: a URL you call after uploading, which runs the same steps as
+`bin/blush publish`.
+
+1. Turn it on with `bin/blush init --webhook`, which adds a random
+   secret to `.env`. Or set one of at least 32 random characters
+   yourself:
+
+   ```ini
+   PUBLISH_SECRET="paste-a-long-random-string-here-000000"
+   ```
+
+2. Send a signed `POST` to `https://example.com/_blush/publish`. The
+   signature proves the request came from you:
+
+   ```sh
+   ts=$(date +%s); body='{}'
+   sig=$(printf '%s.%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$PUBLISH_SECRET" -r | cut -d' ' -f1)
+   curl -X POST \
+   	-H "X-Publish-Timestamp: $ts" \
+   	-H "X-Publish-Signature: sha256=$sig" \
+   	-d "$body" https://example.com/_blush/publish
+   ```
+
+Git hosts such as GitHub can call it for you when you push, from a CI
+job. The webhook doesn't exist at all until you set a secret, and each
+signed request works only once, within five minutes. After 10 badly
+signed requests from one address, that address gets `429 Too Many
+Requests` for 15 minutes, even with a good signature (`maxAttempts` and
+`lockout` in [`config/publish.php`](../reference/configuration/publish.md)).

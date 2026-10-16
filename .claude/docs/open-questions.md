@@ -527,7 +527,7 @@ Move each item to `decisions.md` once it's answered.
     entries). `summary()` is Markdown or `null` and `excerpt()` HTML,
     which the names don't say. `isLive()`, `isLinkable()`,
     `isListed()` (D-855): explained in their doc comments and
-    `docs/extending.md` (D-560).
+    `docs/plugins/README.md` (D-560).
     `field()` returns `mixed` (typed access waits on the Fields API,
     D-348). `->get()->all()` for an array (`query()->type()` takes the
     type object now, D-557). `Paginator` mixes `->page` with
@@ -1020,7 +1020,7 @@ Move each item to `decisions.md` once it's answered.
       Slots fits the component fold (a place in the theme's layout the
       user fills, as a caller fills a component's named slot), but the
       word already has two meanings: components' named slots (public,
-      `docs/components.md`) and field set slots (D-347, in the admin
+      `docs/features/components/README.md`) and field set slots (D-347, in the admin
       API, paused with the Fields API), which would need renaming.
       Areas collides only in config and code.
     - **Attaching:** how an entry names its location: its slug, or a
@@ -1194,7 +1194,7 @@ Move each item to `decisions.md` once it's answered.
     written (their URL props get full URLs, D-396), which needs each
     component's plain form, with today's as the fallback.
   - **An MCP server:** settled 2026-10-11 in D-751 to D-758, built in
-    D-759 (`docs/mcp.md`): `Blush\Mcp` at `{path}/mcp` and `blush mcp` (D-751),
+    D-759 (`docs/features/mcp/README.md`): `Blush\Mcp` at `{path}/mcp` and `blush mcp` (D-751),
     OAuth 2.1 with `api.connect` (D-752), its own protocol code with
     tools only (D-753), on Settings → AI with no anonymous access
     (D-754), read tools (D-755), write tools over one write path shared
@@ -1262,7 +1262,7 @@ Move each item to `decisions.md` once it's answered.
   The dashboard's Actions panel (D-223) draws each
   `AdminAction` the account may run as a button, so a task the CLI can
   do can also run from the admin without a shell (shared hosting), and
-  plugins can add their own (`docs/extending.md`). The built-ins are
+  plugins can add their own (`docs/plugins/README.md`). The built-ins are
   Publish (`site.publish`), Reindex content (`site.publish`), and Clear
   caches (`cache.clear`).
   - **Publish is part of writing, not maintenance.** If actions move,

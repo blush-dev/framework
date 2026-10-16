@@ -9,63 +9,36 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 
 ## Start here
 
-1. **[Installation](installation.md):** get a site running on your computer
-   or your host.
-2. **[Writing content](content.md):** add pages and posts, and learn how
-   files become URLs.
-3. **[Going live](going-live.md):** publish changes and turn on caching.
+1. **[Installation](getting-started/installation.md):** get a site running
+   on your computer or your host.
+2. **[Your first page](getting-started/your-first-page.md):** write a page
+   and see it on your site.
+3. **[Before you launch](getting-started/before-you-launch.md):** what to
+   check before the site goes live.
 
-## Guides
+## Sections
 
-| Guide | What it covers |
+| Section | What it covers |
 |---|---|
-| [Installation](installation.md) | Requirements, installing, and serving your site |
-| [Writing content](content.md) | Files and folders, front matter, drafts, scheduling, and Markdown extras |
-| [Media](media.md) | Images, audio, and video |
-| [Content types](content-types.md) | Blogs, categories and tags, relationships, custom fields, feeds, and archives |
-| [Blocks](blocks.md) | Callouts, galleries, buttons, and your own blocks, in your content |
-| [Components](components.md) | Reusable pieces of a theme's templates |
-| [Themes](themes.md) | Choosing, customizing, and building themes |
-| [Menus](menus.md) | Navigation menus, and assigning them to your theme's locations |
-| [The API](api.md) | Your site as JSON, for other front ends, apps, and AI tools |
-| [AI apps and MCP](mcp.md) | Connecting Claude, ChatGPT, and other AI apps to work on your site, and undoing what they change |
-| [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
-| [Admin themes](admin-themes.md) | Choosing how the admin looks, and making a theme for it |
-| [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
-| [Configuration](configuration.md) | `.env` and every `config/` option |
-| [Going live](going-live.md) | Caching, publishing, and webhooks |
-| [Backups](backups.md) | Backing up your site's content, settings, and accounts |
-| [Command line](cli.md) | Every `bin/blush` command |
-| [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins, icon packs, and admin themes |
-| [Coming from Blush 1.x](coming-from-1x.md) | What carries over and what changed |
+| [Getting started](getting-started/README.md) | Installing, hosting, how a site is laid out, and coming from Blush 1.x |
+| [Core concepts](concepts/README.md) | Content files, types, relationships, media, blocks, menus, accounts, extensions, and configuration |
+| [Using the admin](admin/README.md) | Every screen of the admin, and the editor |
+| [Running a site](running/README.md) | Publishing, caching, SQLite, cron and jobs, and backups |
+| [Plugins](plugins/README.md) | Making a plugin: where a site's code belongs |
+| [Themes](themes/README.md) | Choosing, customizing, and building themes |
+| [Icon packs](icon-packs/README.md) | Adding icons to a site |
+| [Admin themes](admin-themes/README.md) | Choosing how the admin looks, and making a theme for it |
+| [APIs and features](features/README.md) | What your code can do: routes, commands, blocks, fields, jobs, events, the API, MCP, and more |
+| [Reference](reference/README.md) | Every `config/` option and every `bin/blush` command |
 
-## How a Blush site is laid out
+## Where code goes
 
-```
-my-site/
-  .env            Settings that differ per machine (URL, environment, secrets)
-  config/         Site settings, as PHP files
-  user/
-    content/      Your pages and posts, as Markdown files
-    media/        Images, audio, and video
-    data/         Editable data: menus, redirects, settings, content types
-  extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)
-  public/         The web root: index.php and published files only
-  storage/        Caches, the content index, logs, sessions, admin accounts, and deleted entries (never commit)
-  src/            Optional PHP classes of your own (the App\ namespace); reusable code belongs in a plugin
-  bin/blush       The command-line tool
-```
+Most sites are built from **extensions**: themes for how the site looks,
+and [plugins](plugins/README.md) for everything else a site's code does.
+An extension can be turned on and off, versioned, and reused on other
+sites, so that's where to start. A site's own `src/` folder is there for
+code that's only ever one site's, such as a client's custom build: see
+[Site code in `src/`](plugins/site-code.md).
 
-The short version: **you write in `user/`, you add extensions in
-`extensions/`, and you configure in `config/` and `.env`.** Everything in `storage/` is generated and safe to delete,
-except `storage/accounts/`, which holds the admin's accounts.
-
-`user/` holds what you write: content, media, and data. Publishing (and
-its `git pull`) only ever touches `user/`, so publishing content never
-deploys code. The [extensions](extending.md#extensions) you add, themes,
-plugins, and icon packs, live in `extensions/`, each in a folder at its
-name (`extensions/acme/notebook/`), the way Composer keeps packages in
-`vendor/`. Each can be its own git repository. The site itself has no
-templates, icons, or code conventions of its own: templates come from
-themes (to change one, make a [child theme](themes.md#child-themes)),
-icons from icon packs, plugins, and themes, and code from plugins.
+How a site's folders fit together is in
+[Site layout](getting-started/site-layout.md).

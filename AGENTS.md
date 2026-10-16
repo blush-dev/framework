@@ -241,13 +241,13 @@ never part of a key or address (D-629), with profiles and new terms
 kept by initial by default (D-630); and data files JSON only, with
 YAML for front matter alone (D-631); and a read-only API of what the
 site shows, `Blush\Api` at `/api/v1`, off until turned on in Reading
-(D-736 to D-742; `docs/api.md`), with API tokens of an account,
+(D-736 to D-742; `docs/features/api/README.md`), with API tokens of an account,
 token-only accounts for agents, and `?status=` for what a token may
 edit (D-744 to D-750); and an MCP server for AI apps (`Blush\Mcp`,
 `{path}/mcp` and `blush mcp`), with OAuth 2.1 and a Connect an App
 screen, tools over one write path for entries and media
 (`EntryEditor`, `MediaEditor`), and an activity log with Undo on Tools
-(D-751 to D-759; `docs/mcp.md`); and tools, written once and
+(D-751 to D-759; `docs/features/mcp/README.md`); and tools, written once and
 offered to AI apps, as Tools-screen buttons, and by `blush tool`
 (`Blush\Tool`, D-761); and writes in the API, what MCP can change,
 with `If-Match` revisions (D-762, D-763); and, from the backups sketch
@@ -327,7 +327,14 @@ When the user makes a decision in conversation, record it in `decisions.md`
 ## User documentation lives in `docs/`
 
 `docs/` is the documentation for people installing and using Blush (D-141).
-Keep it plain and task-first, and document only what's implemented. When
+Keep it plain and task-first, and document only what's implemented.
+It's in sections (`getting-started/`, `concepts/`, `admin/`, `running/`,
+`plugins/`, `themes/`, `icon-packs/`, `admin-themes/`, `features/`,
+`reference/`), **one page per feature**, each section with a
+`README.md` index (D-913). A new feature gets its own page, never a
+section on a long one. Code examples are written for a plugin
+(`extensions/acme/hello/`, `Acme\Hello\`); `src/` is mentioned only on
+`plugins/site-code.md`. When
 you change user-facing behavior (config options, front matter, content
 conventions, CLI commands, the theming API), update `docs/` in the same
 session.
