@@ -112,7 +112,7 @@ function clear(): void {
 const hasName = (account: AccountInfo): boolean => account.displayName !== account.username;
 
 async function copyEmail(email: string): Promise<void> {
-	await copyText(email, t('accounts_view.the_email_address', 'the email address'), email);
+	await copyText(email, t('accounts_view.copied_email', 'Copied {email}', { email }));
 }
 const mine    = (account: AccountInfo): boolean => account.username === session.account?.username;
 

@@ -124,7 +124,7 @@ function done(): void {
 				<span class="field__label">{{ t('menu_settings.in_entry', 'In an Entry') }}</span>
 				<div class="menu-settings__snippet">
 					<code class="mono">{{ snippet }}</code>
-					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, t('menu_settings.the_block', 'the block'))"><AdminIcon name="copy" />{{ t('menu_settings.copy', 'Copy') }}</button>
+					<button type="button" class="button button--small" :disabled="name === ''" @click="copyText(snippet, t('menu_settings.copied_block', 'Copied the block'))"><AdminIcon name="copy" />{{ t('menu_settings.copy', 'Copy') }}</button>
 				</div>
 			</div>
 

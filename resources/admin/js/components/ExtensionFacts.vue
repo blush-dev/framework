@@ -59,7 +59,7 @@ defineProps<{
 				<dd>
 					<template v-if="folder">
 						<span class="mono">{{ folder }}</span>
-						<button type="button" class="button button--ghost button--small button--icon facts__copy" :aria-label="t('extension_facts.copy', 'Copy {folder}', { folder })" @click="copyText(folder, t('extension_facts.folder_path', 'the folder path'))"><AdminIcon name="copy" /></button>
+						<button type="button" class="button button--ghost button--small button--icon facts__copy" :aria-label="t('extension_facts.copy', 'Copy {folder}', { folder })" @click="copyText(folder, t('extension_facts.copied_folder', 'Copied the folder path'))"><AdminIcon name="copy" /></button>
 					</template>
 					<template v-else>{{ t('extension_facts.ships_with', 'Ships with Blush') }}</template>
 				</dd>

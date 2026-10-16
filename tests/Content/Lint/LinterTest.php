@@ -70,7 +70,7 @@ final class LinterTest extends TestCase
 		$errors = self::messages($report, Severity::Warning);
 
 		$this->assertSame(['_post/hello/index.md', 'about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
-		$this->assertSame(['warning file: is the same entry as about/index.md, which wins.'], $errors['about.md']);
+		$this->assertSame(['warning file: The file is the same entry as about/index.md, which wins.'], $errors['about.md']);
 		$this->assertStringStartsWith('error date: must be a date', $errors['bad-date.md'][0]);
 		$this->assertSame('error collection: Query argument "number" must be a whole number.', $errors['bad-date.md'][1]);
 		$this->assertStringStartsWith('error file: Invalid front matter', $errors['broken.md'][0]);
@@ -153,7 +153,7 @@ final class LinterTest extends TestCase
 		$linter = $this->site()->container()->make(Linter::class);
 		$errors = self::messages($linter->lint(), Severity::Error);
 
-		$this->assertSame(['error file: has an order prefix, which only collections use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
+		$this->assertSame(['error file: The file has an order prefix, which only collections use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
 		$this->assertStringEndsWith('Rename it work/index.md.', $errors['02.work/index.md'][0] ?? '');
 		$this->assertStringEndsWith('Rename it work/design.md.', $errors['02.work/03.design.md'][0] ?? '', 'Its folder too (D-409).');
 		$this->assertStringContainsString('profiles don\'t. Rename it _profile/sam.md.', $errors['_profile/01.sam.md'][0] ?? '');
@@ -161,7 +161,7 @@ final class LinterTest extends TestCase
 		$this->assertArrayNotHasKey('_post/2003-04-15.welcome.md', $errors, 'So may a collection.');
 		$this->assertArrayNotHasKey('__drafts/2023-08-01.the-last-one.md', $errors, 'A hidden folder isn\'t checked.');
 		$this->assertArrayNotHasKey('_05.secret.md', $errors, 'Nor a hidden file.');
-		$this->assertStringStartsWith('has an order prefix', (string) ($linter->lintFile('01.services.md')[0]->message ?? ''));
+		$this->assertStringStartsWith('The file has an order prefix', (string) ($linter->lintFile('01.services.md')[0]->message ?? ''));
 	}
 
 	public function testWarnsOfPagesAnotherRouteAnswers(): void
@@ -176,7 +176,7 @@ final class LinterTest extends TestCase
 		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
 
 		$this->assertSame(['movie/2024.md', 'movie/about/index.md'], array_keys($messages));
-		$this->assertSame(['warning file: is at /movie/2024, but the movie.collection.year route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.'], $messages['movie/2024.md'] ?? null);
+		$this->assertSame(['warning file: The file is at /movie/2024, but the movie.collection.year route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.'], $messages['movie/2024.md'] ?? null);
 		$this->assertStringContainsString('the movie.single route answers there', $messages['movie/about/index.md'][0] ?? '');
 	}
 
@@ -261,9 +261,9 @@ final class LinterTest extends TestCase
 
 		$this->assertSame(1, $report->checked, 'They aren\'t read.');
 		$this->assertSame([
-			'about.html'        => ['error file: isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'],
-			'data.yaml'         => ['error file: isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'],
-			'notes/old.markdown' => ['error file: isn\'t read: entries are .md files. Rename it to .md.']
+			'about.html'        => ['error file: The file isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'],
+			'data.yaml'         => ['error file: The file isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'],
+			'notes/old.markdown' => ['error file: The file isn\'t read: entries are .md files. Rename it to .md.']
 		], self::messages($report, Severity::Notice));
 	}
 

@@ -15,9 +15,9 @@
 
 import { computed, ref } from 'vue';
 import { CAP, marked } from '../references';
-import { initials } from '../people';
 import { t } from '../messages';
 import { usePicker, type PickerProps } from '../picker';
+import AdminAvatar from './AdminAvatar.vue';
 import AdminIcon from './AdminIcon.vue';
 import ReferenceInherited from './ReferenceInherited.vue';
 import ReferenceMissing from './ReferenceMissing.vue';
@@ -52,7 +52,8 @@ const short = computed(() => Math.max(0, minimum.value - values.value.length));
 				:tabindex="kept && persons.length > 1 ? 0 : undefined"
 			>
 				<span v-if="kept && persons.length > 1" class="reference__grip" :title="t('reference_people.grip', 'Drag, or move with ⌥↑ and ⌥↓')"><AdminIcon name="grip-vertical" /></span>
-				<span class="avatar reference__avatar" :class="{ 'is-missing': isMissing(value) }" aria-hidden="true">{{ isMissing(value) ? '?' : initials(item.title) }}</span>
+				<span v-if="isMissing(value)" class="avatar reference__avatar is-missing" aria-hidden="true">?</span>
+				<AdminAvatar v-else class="reference__avatar" :name="item.title" :image="item.avatar" />
 				<span class="reference__who">
 					<span class="reference__name">
 						<span>{{ isMissing(value) ? value : item.title }}</span>
@@ -94,7 +95,7 @@ const short = computed(() => Math.max(0, minimum.value - values.value.length));
 			@choose="picker.choose"
 		>
 			<template #item="{ item }">
-				<span class="avatar reference__avatar reference__avatar--small" aria-hidden="true">{{ initials(item.title) }}</span>
+				<AdminAvatar class="reference__avatar reference__avatar--small" :name="item.title" :image="item.avatar" />
 				<span class="reference__option-name">{{ marked(item.title, query)[0] }}<b>{{ marked(item.title, query)[1] }}</b>{{ marked(item.title, query)[2] }}</span>
 				<span class="reference__count mono">{{ item.slug }}</span>
 			</template>
@@ -103,7 +104,7 @@ const short = computed(() => Math.max(0, minimum.value - values.value.length));
 		<ReferenceInherited v-if="inheritedShown.length && inherited" :inherited="inherited">
 			<ul class="reference__rows">
 				<li v-for="value in inheritedShown" :key="`inherited-${value}`" class="reference__row is-inherited">
-					<span class="avatar reference__avatar" aria-hidden="true">{{ initials(itemOf(value).title) }}</span>
+					<AdminAvatar class="reference__avatar" :name="itemOf(value).title" :image="itemOf(value).avatar" />
 					<span class="reference__who">
 						<span class="reference__name">{{ itemOf(value).title }}</span>
 						<span class="reference__meta mono">{{ itemOf(value).slug }}</span>

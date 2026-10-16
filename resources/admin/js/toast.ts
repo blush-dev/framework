@@ -150,19 +150,19 @@ export function undoToast(id: number): void {
 }
 
 /**
- * Copies text to the clipboard, saying so in a toast (D-505): `what` is
- * what it is, with its article ("the link"), and `shown` what the toast
- * names on success, when that's the text itself ("Copied jane@…").
- * Resolves whether it was copied.
+ * Copies text to the clipboard, saying so in a toast (D-505): `copied`
+ * is the caller's whole sentence for it ("Copied the link"), since only
+ * the caller knows what it copied (D-873). Resolves whether it was
+ * copied.
  */
-export async function copyText(text: string, what: string, shown = what): Promise<boolean> {
+export async function copyText(text: string, copied: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
-		toast(t('toast.copied', 'Copied {shown}', { shown }));
+		toast(copied);
 
 		return true;
 	} catch {
-		toast(t('toast.copy_failed', '{what} couldn\'t be copied', { what: `${what.charAt(0).toUpperCase()}${what.slice(1)}` }), { kind: 'warn' });
+		toast(t('toast.copy_failed', 'Couldn\'t copy to the clipboard'), { kind: 'warn' });
 
 		return false;
 	}

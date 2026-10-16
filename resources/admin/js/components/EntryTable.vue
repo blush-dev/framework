@@ -56,10 +56,10 @@ import { entryRoute, type EntrySort, type EntrySummary } from '../api';
 import { listRoute } from '../types';
 import { config } from '../config';
 import { formatDate, formatNumber } from '../format';
-import { initials } from '../people';
 import { can } from '../session';
 import { copyText } from '../toast';
 import { useSelectAll } from '../select';
+import AdminAvatar from './AdminAvatar.vue';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
@@ -212,7 +212,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		return;
 	}
 
-	await copyText(url, t('entry_table.the_link', 'the link'));
+	await copyText(url, t('entry_table.copied_link', 'Copied the link'));
 }
 </script>
 
@@ -243,7 +243,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
 						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="collapsed.has(entry.path) ? t('entry_table.expand', 'Expand {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') }) : t('entry_table.collapse', 'Collapse {title}', { title: entry.title || t('entry_table.untitled', 'Untitled') })" @click="toggleBranch(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
-						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
+						<AdminAvatar v-if="profiles" :class="{ 'avatar--guest': !entry.linked }" :name="entry.title || '?'" :image="entry.avatar" />
 						<span class="entry-title">
 							<span class="entry-title__text">
 								<span v-if="isPinned(entry) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /></span>

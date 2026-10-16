@@ -68,9 +68,9 @@ final readonly class FormatCheck
 	private function message(string $extension): ?Text
 	{
 		return match ($extension) {
-			'markdown'            => $this->messages->t('content.format_check.markdown', 'isn\'t read: entries are .md files. Rename it to .md.'),
-			'html'                => $this->messages->t('content.format_check.html', 'isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'),
-			'json', 'yaml', 'yml' => $this->messages->t('content.format_check.data', 'isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'),
+			'markdown'            => $this->messages->t('content.format_check.markdown', 'The file isn\'t read: entries are .md files. Rename it to .md.'),
+			'html'                => $this->messages->t('content.format_check.html', 'The file isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'),
+			'json', 'yaml', 'yml' => $this->messages->t('content.format_check.data', 'The file isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'),
 			default               => null
 		};
 	}

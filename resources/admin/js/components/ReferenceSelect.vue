@@ -16,7 +16,6 @@
 
 import { computed } from 'vue';
 import { t } from '../messages';
-import { initials } from '../people';
 import { CAP, moreLine, slugOf, type ReferenceItem } from '../references';
 import { usePicker, type PickerProps } from '../picker';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
@@ -63,7 +62,7 @@ function option(item: ReferenceItem, group: string | null = null, depth = 0): Se
 		depth,
 		hint: hint === '' ? null : hint,
 		group,
-		...(props.people === true ? { mark: initials(item.title) } : {})
+		...(props.people === true ? { mark: { name: item.title, image: item.avatar ?? null } } : {})
 	};
 }
 

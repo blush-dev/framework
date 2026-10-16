@@ -168,18 +168,18 @@ const SEVERITIES: Severity[] = ['error', 'warning', 'notice'];
 const basename = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 
 /**
- * What a lint problem found, as a sentence: "`title` is required.", or
- * "The file has an order prefix…", or a message of its own (a parser's)
- * as it is.
+ * What a lint problem found, as a sentence: "`title` is required." A
+ * problem with the file is a whole sentence from the server ("The file
+ * has an order prefix…"), as is a message of its own (a parser's).
  */
 function found(violation: Violation): { field?: string; found: string } {
 	const first = violation.message.charAt(0);
 
-	if (first !== first.toLowerCase()) {
+	if (violation.field === 'file' || first !== first.toLowerCase()) {
 		return { found: violation.message };
 	}
 
-	return violation.field === 'file' ? { found: t('health.found_file', 'The file {message}', { message: violation.message }) } : { field: violation.field, found: violation.message };
+	return { field: violation.field, found: violation.message };
 }
 
 /**

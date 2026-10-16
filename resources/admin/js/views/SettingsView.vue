@@ -659,7 +659,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 						<template v-else-if="compact(group)">
 							<div class="setting__label">
 								<span>{{ item.label }}</span>
-								<p v-if="item.copy" class="setting__address"><code>{{ item.value }}</code><button type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.the_address', 'the address'), t('settings_view.the_address', 'the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button></p>
+								<p v-if="item.copy" class="setting__address"><code>{{ item.value }}</code><button type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.copied_address', 'Copied the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button></p>
 								<p v-else-if="line(item) !== ''" class="setting__line" :class="{ 'setting__none': line(item) === t('settings_view.none', 'None'), mono: item.kind === 'mono' }">{{ line(item) }}</p>
 							</div>
 							<div v-if="item.aside || item.link || item.links?.length" class="setting__control">
@@ -682,7 +682,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === t('settings_view.none', 'None') }">{{ shown(item) }}</span>
 									<span v-if="item.default === true" class="tag">{{ t('settings_view.default', 'Default') }}</span>
 									<button v-if="item.kind === 'test'" type="button" class="button button--small" :disabled="testing || item.value === ''" @click="sendTest"><AdminIcon name="mail" />{{ testing ? t('settings_view.sending', 'Sending…') : t('settings_view.send_test', 'Send a Test') }}</button>
-									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.the_address', 'the address'), t('settings_view.the_address', 'the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button>
+									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), t('settings_view.copied_address', 'Copied the address'))"><AdminIcon name="copy" />{{ t('settings_view.copy', 'Copy') }}</button>
 								</p>
 								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
 								<p v-if="item.kind === 'test' && testError" class="setting__warning" role="alert"><AdminIcon name="triangle-alert" />{{ testError }}</p>

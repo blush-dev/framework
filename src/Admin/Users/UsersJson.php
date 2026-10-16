@@ -29,6 +29,7 @@ use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
 use Blush\Cache\CacheException;
 use Blush\Content\Entries;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -192,6 +193,17 @@ final readonly class UsersJson
 	public function avatar(Account $account): ?string
 	{
 		$image = $this->avatars->account($account)->image;
+
+		return $image === '' ? null : $image;
+	}
+
+	/**
+	 * Returns the URL of a profile's portrait (`Avatars`, D-810), or
+	 * `null` for its initials, which the admin draws.
+	 */
+	public function profileAvatar(Entry $profile): ?string
+	{
+		$image = $this->avatars->profile($profile)->image;
 
 		return $image === '' ? null : $image;
 	}

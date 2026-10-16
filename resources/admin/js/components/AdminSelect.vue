@@ -40,12 +40,13 @@
  * a relation's picker over 50 candidates asks the server): typing emits
  * `search`, and the list shows the options as given. A `note` is a
  * quiet line at the list's foot (how many more there are, or what's
- * left out and why), and an option's `mark` is a person's initials,
- * drawn as an avatar before its label, in the list and on the button.
+ * left out and why), and an option's `mark` is a person, drawn as an
+ * avatar before its label, in the list and on the button.
  */
 
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { usePopover } from '../popover';
+import AdminAvatar from './AdminAvatar.vue';
 import AdminIcon from './AdminIcon.vue';
 
 export interface SelectOption {
@@ -62,8 +63,9 @@ export interface SelectOption {
 	// The heading it's listed under (D-444: a time zone's region); one
 	// heading starts each run of options that share it.
 	group?: string | null;
-	// A person's initials, drawn as an avatar (D-607).
-	mark?: string;
+	// A person, drawn as an avatar (D-607): their name, and their
+	// picture's URL or `null` for initials.
+	mark?: { name: string; image: string | null };
 }
 
 const props = defineProps<{
@@ -316,7 +318,7 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 			@click="open ? close() : show()"
 			@keydown="buttonKey"
 		>
-			<span v-if="current?.mark" class="avatar select__mark" aria-hidden="true">{{ current.mark }}</span>
+			<AdminAvatar v-if="current?.mark" class="select__mark" :name="current.mark.name" :image="current.mark.image" />
 			<span class="select__label">
 				<span :lang="current?.lang" dir="auto">{{ current?.label ?? '' }}</span>
 				<span v-if="current?.hint" class="select__hint">{{ current.hint }}</span>
@@ -355,7 +357,7 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 							:data-hint="option.hint ?? undefined"
 							@click="choose(option)"
 						>
-							<span v-if="option.mark" class="avatar select__mark" aria-hidden="true">{{ option.mark }}</span>
+							<AdminAvatar v-if="option.mark" class="select__mark" :name="option.mark.name" :image="option.mark.image" />
 							<span class="select-list__label" :lang="option.lang" dir="auto">{{ option.label }}</span>
 							<span v-if="option.hint" class="select-list__hint">{{ option.hint }}</span>
 							<AdminIcon v-if="option.value === model" name="check" class="select-list__tick" />

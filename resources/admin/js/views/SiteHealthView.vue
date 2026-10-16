@@ -157,7 +157,7 @@ function copyReport(): void {
 		...health.value.requirements.map((row) => `  [${row.status === 'pass' ? 'ok' : (row.status === 'optional' ? '--' : '!!')}] ${row.name}: needs ${row.needs.toLowerCase()}, has ${row.installed.toLowerCase()}`)
 	];
 
-	void copyText(lines.join('\n'), t('site_health_view.the_report', 'the report'));
+	void copyText(lines.join('\n'), t('site_health_view.copied_report', 'Copied the report'));
 }
 
 const toolsShown = computed(() => (navCounts.value?.tools ?? 0) > 0 || can('site.logs'));

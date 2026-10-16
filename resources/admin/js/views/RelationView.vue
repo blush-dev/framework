@@ -47,7 +47,7 @@ import { useAction } from '../action';
 import { guardLeave } from '../confirm';
 import type { FormValue } from '../fields';
 import { t } from '../messages';
-import { article, confirmRelationChange, limitsSay, purposeOf, relationLabel, removeRelation, sayRelation, sourceOf, type RelationPurpose } from '../relations';
+import { confirmRelationChange, limitsSay, purposeOf, relationLabel, removeRelation, sayRelation, sourceOf, type RelationPurpose } from '../relations';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
 import { keyOf } from '../type-form';
@@ -532,7 +532,7 @@ async function remove(): Promise<void> {
 						<div class="setting">
 							<div class="setting__label"><label for="relation-singular">{{ t('relation_view.singular', 'One Is Called') }}</label></div>
 							<div class="field setting__control"><input id="relation-singular" v-model="singular" :placeholder="oneCalled" autocomplete="off" aria-describedby="relation-singular-help"></div>
-							<div id="relation-singular-help" class="setting__help"><p>{{ t('relation_view.singular_help', '“Add {article} {one}” in the picker, and “{name}: Sam” on the site.', { article: article(oneCalled), one: oneCalled.toLowerCase() || '…', name: oneCalled || '…' }) }}</p></div>
+							<div id="relation-singular-help" class="setting__help"><p>{{ t('relation_view.singular_help', '“Add {one}…” in the picker, and “{name}: Sam” on the site.', { one: oneCalled.toLowerCase() || '…', name: oneCalled || '…' }) }}</p></div>
 						</div>
 					</div>
 				</section>

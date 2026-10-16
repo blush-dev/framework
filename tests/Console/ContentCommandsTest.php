@@ -108,7 +108,7 @@ final class ContentCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Failure, $failed->exitCode);
 		$this->assertMatchesRegularExpression('#about\.md\n  error\s+date\s+must be a date#', $failed->output);
-		$this->assertMatchesRegularExpression('#  warning\s+file\s+is the same entry as about/index\.md, which wins\.#', $failed->output);
+		$this->assertMatchesRegularExpression('#  warning\s+file\s+The file is the same entry as about/index\.md, which wins\.#', $failed->output);
 		$this->assertStringContainsString('Checked 20 files, 1 error, 1 warning', $failed->errors);
 	}
 

@@ -460,18 +460,18 @@ const snippet = computed(() => {
 	const item = file.value;
 
 	if (item === null) {
-		return { text: '', label: '', note: '', what: '' };
+		return { text: '', label: '', note: '', copy: '', copied: '' };
 	}
 
 	if (item.kind === 'image') {
-		return { text: imageText(item.reference, item.alt, item.caption).text, label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_alt', 'the alt text is filled in for you'), what: t('media_file_view.what_markdown', 'the Markdown') };
+		return { text: imageText(item.reference, item.alt, item.caption).text, label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_alt', 'the alt text is filled in for you'), copy: t('media_file_view.copy_markdown', 'Copy the Markdown'), copied: t('media_file_view.copied_markdown', 'Copied the Markdown') };
 	}
 
 	if (item.kind === 'video' || item.kind === 'audio') {
-		return { text: `::${CORE}/${item.kind}{${attributeText('src', item.reference)}}`, label: t('media_file_view.in_editor', 'In the editor'), note: t('media_file_view.note_block', 'inserted by the media button'), what: t('media_file_view.what_block', 'the block') };
+		return { text: `::${CORE}/${item.kind}{${attributeText('src', item.reference)}}`, label: t('media_file_view.in_editor', 'In the editor'), note: t('media_file_view.note_block', 'inserted by the media button'), copy: t('media_file_view.copy_block', 'Copy the block'), copied: t('media_file_view.copied_block', 'Copied the block') };
 	}
 
-	return { text: linkText(mediaName(item), item.reference), label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_link', 'the link text is the title'), what: t('media_file_view.what_markdown', 'the Markdown') };
+	return { text: linkText(mediaName(item), item.reference), label: t('media_file_view.in_markdown', 'In Markdown'), note: t('media_file_view.note_link', 'the link text is the title'), copy: t('media_file_view.copy_markdown', 'Copy the Markdown'), copied: t('media_file_view.copied_markdown', 'Copied the Markdown') };
 });
 </script>
 
@@ -556,14 +556,14 @@ const snippet = computed(() => {
 						<p class="usage__label"><span>{{ t('media_file_view.address', 'Address') }}</span> {{ t('media_file_view.address_note', 'the file itself') }}</p>
 						<div class="usage__row">
 							<code>{{ file.reference }}</code>
-							<button type="button" class="button button--icon" :aria-label="t('media_file_view.copy_address', 'Copy the address')" :title="t('media_file_view.copy', 'Copy')" @click="copyText(file.reference, t('media_file_view.the_address', 'the address'))"><AdminIcon name="copy" /></button>
+							<button type="button" class="button button--icon" :aria-label="t('media_file_view.copy_address', 'Copy the address')" :title="t('media_file_view.copy', 'Copy')" @click="copyText(file.reference, t('media_file_view.copied_address', 'Copied the address'))"><AdminIcon name="copy" /></button>
 						</div>
 					</div>
 					<div class="usage__copy">
 						<p class="usage__label"><span>{{ snippet.label }}</span> {{ snippet.note }}</p>
 						<div class="usage__row">
 							<code>{{ snippet.text }}</code>
-							<button type="button" class="button button--icon" :aria-label="t('media_file_view.copy_what', 'Copy {what}', { what: snippet.what })" :title="t('media_file_view.copy', 'Copy')" @click="copyText(snippet.text, snippet.what)"><AdminIcon name="copy" /></button>
+							<button type="button" class="button button--icon" :aria-label="snippet.copy" :title="t('media_file_view.copy', 'Copy')" @click="copyText(snippet.text, snippet.copied)"><AdminIcon name="copy" /></button>
 						</div>
 					</div>
 				</div>

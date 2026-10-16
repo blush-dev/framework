@@ -19,6 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Admin\EntryHandles;
 use Blush\Admin\Homepage;
+use Blush\Admin\Users\UsersJson;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
@@ -161,7 +162,8 @@ final readonly class EntriesController
 		private Relations $relations,
 		private RelationChanges $changes,
 		private Messages $messages,
-		private Statuses $statuses
+		private Statuses $statuses,
+		private UsersJson $json
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -668,7 +670,7 @@ final readonly class EntriesController
 			'depth'       => $tree === null ? null : ($tree['depths'][$entry->id ?? $entry->path] ?? 0),
 			'children'    => $tree === null ? null : ($tree['children'][$entry->id ?? $entry->path] ?? 0),
 			'continued'   => $continued,
-			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false] : [])
+			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false, 'avatar' => $this->json->profileAvatar($entry)] : [])
 		];
 	}
 

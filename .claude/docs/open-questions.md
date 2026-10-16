@@ -1349,8 +1349,7 @@ Move each item to `decisions.md` once it's answered.
      all, and if so in the token's account's language or the request's
      `Accept-Language` (D-831's open item).
   5. **Messages that take an English article** (found by Japanese,
-     D-840): `relation_view.singular_help` and `pick_modal.title` take
-     `{article}` ("a"/"an"); rewrite them so no grammar is passed in.
+     D-840): done (D-873).
   6. **Multilingual sites and catalog tooling:** below (**Multilingual,
      what's left**, paused by the author 2026-10-04) and in
      **Translations written inline** (`--prune`, rechecking changed

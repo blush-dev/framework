@@ -571,7 +571,7 @@ const siteHost = computed(() => {
 											</template>
 											<button type="button" class="menu-item" @click="editing = { row }"><AdminIcon name="pen-line" />{{ t('common.edit', 'Edit') }}</button>
 											<button type="button" class="menu-item" @click="test(row)"><AdminIcon name="corner-down-right" />{{ t('redirects_view.test', 'Test this address') }}</button>
-											<button type="button" class="menu-item" @click="copyText(row.from, t('redirects_view.copy_what', 'the old address'), row.from)"><AdminIcon name="copy" />{{ t('redirects_view.copy', 'Copy old address') }}</button>
+											<button type="button" class="menu-item" @click="copyText(row.from, t('redirects_view.copied', 'Copied {address}', { address: row.from }))"><AdminIcon name="copy" />{{ t('redirects_view.copy', 'Copy old address') }}</button>
 											<div class="menu-divider" />
 											<button v-if="isPermanent(row.status)" type="button" class="menu-item" @click="retype([row.from], 302)"><AdminIcon name="clock" />{{ t('redirects_view.make_temporary_item', 'Make temporary') }}</button>
 											<button v-else type="button" class="menu-item" @click="retype([row.from], 301)"><AdminIcon name="check" />{{ t('redirects_view.make_permanent_item', 'Make permanent') }}</button>

@@ -168,8 +168,8 @@ final readonly class Linter
 				}
 
 				$violations[$path][] = ($snapshot->records[$path]['original'] ?? null) === $winner
-					? new Violation(self::FILE, $this->messages->t('content.linter.default_suffix', 'has the default language\'s suffix beside {winner}, which wins; the default language needs none, so remove one.', winner: $winner), Severity::Warning, ViolationKind::Duplicate)
-					: new Violation(self::FILE, $this->messages->t('content.linter.duplicate', 'is the same entry as {winner}, which wins.', winner: $winner), Severity::Warning, ViolationKind::Duplicate);
+					? new Violation(self::FILE, $this->messages->t('content.linter.default_suffix', 'The file has the default language\'s suffix beside {winner}, which wins; the default language needs none, so remove one.', winner: $winner), Severity::Warning, ViolationKind::Duplicate)
+					: new Violation(self::FILE, $this->messages->t('content.linter.duplicate', 'The file is the same entry as {winner}, which wins.', winner: $winner), Severity::Warning, ViolationKind::Duplicate);
 			}
 		}
 
@@ -279,7 +279,7 @@ final readonly class Linter
 		$file = $this->contentFiles->source()->stat($path);
 
 		if ($file === null) {
-			return [new Violation(self::FILE, $this->messages->t('content.linter.missing', 'doesn\'t exist.'), kind: ViolationKind::Unreadable)];
+			return [new Violation(self::FILE, $this->messages->t('content.linter.missing', 'The file doesn\'t exist.'), kind: ViolationKind::Unreadable)];
 		}
 
 		try {
@@ -443,7 +443,7 @@ final readonly class Linter
 			return [];
 		}
 
-		return [new Violation(self::FILE, $this->messages->t('content.linter.underscore', 'has a name starting with "_", which no longer hides an entry or makes it a draft, and leaves it without an address. Rename it, and say "visibility: hidden" or "status: draft" in its front matter.'), Severity::Warning, ViolationKind::Prefix)];
+		return [new Violation(self::FILE, $this->messages->t('content.linter.underscore', 'The file has a name starting with "_", which no longer hides an entry or makes it a draft, and leaves it without an address. Rename it, and say "visibility: hidden" or "status: draft" in its front matter.'), Severity::Warning, ViolationKind::Prefix)];
 	}
 
 	/**
@@ -499,8 +499,8 @@ final readonly class Linter
 		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
 		$message = $type->filename === null
-			? $this->messages->t('content.linter.prefix', 'has an order prefix, which only collections use; {items} don\'t. Rename it {path}.', items: $type->labels->items, path: $suggested)
-			: $this->messages->t('content.linter.prefix_beyond_pattern', 'has an order prefix, which only collections use; {items} don\'t, beyond their file name pattern ({pattern}) on files. Rename it {path}.', items: $type->labels->items, pattern: $type->filename->pattern, path: $suggested);
+			? $this->messages->t('content.linter.prefix', 'The file has an order prefix, which only collections use; {items} don\'t. Rename it {path}.', items: $type->labels->items, path: $suggested)
+			: $this->messages->t('content.linter.prefix_beyond_pattern', 'The file has an order prefix, which only collections use; {items} don\'t, beyond their file name pattern ({pattern}) on files. Rename it {path}.', items: $type->labels->items, pattern: $type->filename->pattern, path: $suggested);
 
 		return [new Violation(self::FILE, $message, kind: ViolationKind::Prefix)];
 	}
@@ -623,7 +623,7 @@ final readonly class Linter
 		$route  = $this->routes->find('GET', "{$prefix}/{$record->key}")?->route;
 
 		return $route !== null && $route->name !== $single
-			? [new Violation(self::FILE, $this->messages->t('content.linter.route_answers', 'is at {address}, but the {route} route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', address: "{$prefix}/{$record->key}", route: $route->name ?? $route->handlerName()), Severity::Warning, ViolationKind::Route)]
+			? [new Violation(self::FILE, $this->messages->t('content.linter.route_answers', 'The file is at {address}, but the {route} route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', address: "{$prefix}/{$record->key}", route: $route->name ?? $route->handlerName()), Severity::Warning, ViolationKind::Route)]
 			: [];
 	}
 

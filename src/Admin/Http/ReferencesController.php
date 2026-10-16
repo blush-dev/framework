@@ -15,6 +15,7 @@ namespace Blush\Admin\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Admin\Users\UsersJson;
 use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
@@ -27,6 +28,7 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
@@ -44,7 +46,8 @@ use Blush\Workflow\Status;
  * `slug` a reference stores, its `title`, its `status`, its `parent`'s
  * slug (or `null`), for terms how many published entries use it
  * (`uses`; else `null`), and its `image` and publish `date` (`Y-m-d`)
- * or `null`, for the picker's cards (D-599). A type a classify relation files entries
+ * or `null`, for the picker's cards (D-599); a profile also has its
+ * `avatar` (its picture's URL, or `null` for initials). A type a classify relation files entries
  * under answers `create` as the relation says, since the picker writes
  * a new term's file as it's typed (D-584, D-593); other types'
  * references must name an entry.
@@ -127,6 +130,7 @@ final readonly class ReferencesController
 		private Relations $relations,
 		private RelationLimits $limits,
 		private MediaValues $media,
+		private UsersJson $json,
 		private Messages $messages
 	) {}
 
@@ -472,7 +476,8 @@ final readonly class ReferencesController
 			'date'    => $entry->date?->format('Y-m-d'),
 			'depth'   => null,
 			'taken'   => $taken === null ? null : $taken[(string) $entry->id] ?? 0,
-			'missing' => false
+			'missing' => false,
+			...($entry->type instanceof Profiles ? ['avatar' => $this->json->profileAvatar($entry)] : [])
 		];
 	}
 

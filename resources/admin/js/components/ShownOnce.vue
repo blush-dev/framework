@@ -16,8 +16,10 @@ const props = defineProps<{
 	value: string;
 	// The field's name, for screen readers: "Password link".
 	label: string;
-	// What's copied, in a sentence: "the link".
-	noun: string;
+	// What's said once it's copied, and when it can't be: "Copied the
+	// link.", "Copying failed; select the link and copy it instead."
+	copied: string;
+	failed: string;
 	// The button's label: "Copy Link".
 	copy: string;
 	icon?: IconName;
@@ -26,7 +28,7 @@ const props = defineProps<{
 const copied = ref('');
 
 async function copyValue(): Promise<void> {
-	copied.value = await copyText(props.value, props.noun) ? t('shown_once.copied', 'Copied {noun}.', { noun: props.noun }) : t('shown_once.copy_failed', 'Copying failed; select {noun} and copy it instead.', { noun: props.noun });
+	copied.value = await copyText(props.value, props.copied) ? props.copied : props.failed;
 }
 
 function selectAll(event: Event): void {

@@ -168,7 +168,7 @@ async function remove(): Promise<void> {
 					<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? t('icon_pack_view.count', '{count} icons', { count: shown.count }) : t('icon_pack_view.count_filtered', '{shown} of {count}', { shown: icons.length, count: shown.count }) }}</span>
 				</div>
 				<div v-if="icons.length" class="browse">
-					<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, t('icon_pack_view.copy_what', 'the icon\'s name'), icon.name)">
+					<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, t('icon_pack_view.copied', 'Copied {name}', { name: icon.name }))">
 						<span v-if="icon.svg" class="browse__glyph" :style="{ maskImage: packIconMask(icon) }" aria-hidden="true" />
 						<AdminIcon v-else name="image-off" />
 						<code>{{ icon.name }}</code>

@@ -170,7 +170,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 						<template #lead>
 							<a v-if="answer.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />{{ t('themes_view.preview', 'Preview on the site') }}</a>
 						</template>
-						<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copyText(`bin/blush theme:activate ${theme.name}`, t('themes_view.copy_what', 'the command'))"><AdminIcon name="terminal" />{{ t('themes_view.copy_command', 'Copy activate command') }}</button>
+						<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copyText(`bin/blush theme:activate ${theme.name}`, t('themes_view.copied_command', 'Copied the command'))"><AdminIcon name="terminal" />{{ t('themes_view.copy_command', 'Copy activate command') }}</button>
 					</ExtensionMenu>
 				</template>
 			</component>

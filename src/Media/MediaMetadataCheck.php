@@ -217,7 +217,7 @@ final readonly class MediaMetadataCheck
 
 		foreach ($records as $key => $record) {
 			if ($record->original !== null && isset($files[$key])) {
-				$violations[$files[$key]['location']][] = new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.size_details', 'describes {file}, a size of {original}, whose details are read instead; move these there, or give this file an id of its own to keep it apart.', file: $media((string) $key), original: $media($record->original)), Severity::Warning, ViolationKind::Details);
+				$violations[$files[$key]['location']][] = new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.size_details', 'The file describes {file}, a size of {original}, whose details are read instead; move these there, or give this file an id of its own to keep it apart.', file: $media((string) $key), original: $media($record->original)), Severity::Warning, ViolationKind::Details);
 			}
 		}
 
@@ -238,11 +238,11 @@ final readonly class MediaMetadataCheck
 			$message = $error->getMessage();
 			$message = str_starts_with($message, "{$location}: ") ? substr($message, strlen($location) + 2) : $message;
 
-			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.unreadable', 'can\'t be read, so the file has no details: {error}', error: $message), kind: ViolationKind::Unreadable)];
+			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.unreadable', 'The file can\'t be read, so its media file has no details: {error}', error: $message), kind: ViolationKind::Unreadable)];
 		}
 
 		if ($data !== [] && array_is_list($data)) {
-			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.not_a_map', 'isn\'t a map of fields, so the file has no details.'), kind: ViolationKind::Unreadable)];
+			return [new Violation(Linter::FILE, $this->messages->t('media.media_metadata_check.not_a_map', 'The file isn\'t a map of fields, so its media file has no details.'), kind: ViolationKind::Unreadable)];
 		}
 
 		$media = $this->resolver->fromKey($key);
@@ -291,7 +291,7 @@ final readonly class MediaMetadataCheck
 		$shown = $this->paths->relative($media);
 
 		return new Violation(Linter::FILE, is_file($media)
-			? $this->messages->t('media.media_metadata_check.orphan_refused', 'describes {file}, which isn\'t a type of media the site allows.', file: $shown)
-			: $this->messages->t('media.media_metadata_check.orphan_missing', 'describes {file}, which isn\'t there; move this file with its media file, or delete it.', file: $shown), Severity::Warning, ViolationKind::Details);
+			? $this->messages->t('media.media_metadata_check.orphan_refused', 'The file describes {file}, which isn\'t a type of media the site allows.', file: $shown)
+			: $this->messages->t('media.media_metadata_check.orphan_missing', 'The file describes {file}, which isn\'t there; move this file with its media file, or delete it.', file: $shown), Severity::Warning, ViolationKind::Details);
 	}
 }

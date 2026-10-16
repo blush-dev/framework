@@ -113,11 +113,11 @@ final class MediaMetadataCheckTest extends TestCase
 			'user/data/media/fake.png.json'
 		], array_keys($messages), 'Well-formed files that describe a file there pass.');
 
-		$this->assertSame(['warning file: describes user/media/2019/gone.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/2019/gone.png.json']);
-		$this->assertSame(['warning file: describes user/media/_content/trip/beach.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/_content/trip/beach.png.json'], 'Details for a file beside an entry, which isn\'t media (D-294).');
-		$this->assertSame(['warning file: describes user/media/fake.png, which isn\'t a type of media the site allows.'], $messages['user/data/media/fake.png.json']);
-		$this->assertStringStartsWith('error file: can\'t be read, so the file has no details: user/data/media/2026/broken.png.json isn\'t valid JSON', $messages['user/data/media/2026/broken.png.json'][0]);
-		$this->assertSame(['error file: isn\'t a map of fields, so the file has no details.'], $messages['user/data/media/2026/listed.png.json']);
+		$this->assertSame(['warning file: The file describes user/media/2019/gone.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/2019/gone.png.json']);
+		$this->assertSame(['warning file: The file describes user/media/_content/trip/beach.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/_content/trip/beach.png.json'], 'Details for a file beside an entry, which isn\'t media (D-294).');
+		$this->assertSame(['warning file: The file describes user/media/fake.png, which isn\'t a type of media the site allows.'], $messages['user/data/media/fake.png.json']);
+		$this->assertStringStartsWith('error file: The file can\'t be read, so its media file has no details: user/data/media/2026/broken.png.json isn\'t valid JSON', $messages['user/data/media/2026/broken.png.json'][0]);
+		$this->assertSame(['error file: The file isn\'t a map of fields, so its media file has no details.'], $messages['user/data/media/2026/listed.png.json']);
 
 		$odd = $messages['user/data/media/2026/odd.png.json'];
 

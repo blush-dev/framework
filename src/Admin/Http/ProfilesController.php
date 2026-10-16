@@ -46,7 +46,8 @@ use Blush\Translation\Messages;
  *
  * - `GET profiles`: every profile, by name: `{"profiles": [{"slug",
  *   "title", "status", "account"` (the account linked to it, `{"username", "displayName"}`,
- *   or `null`), `"linkable"` (`false` when it's locked, D-605)`}]}`. A
+ *   or `null`), `"linkable"` (`false` when it's locked, D-605), and
+ *   `"avatar"` (its picture's URL, or `null` for initials)`}]}`. A
  *   profile belongs to one account, so a picker offers only the
  *   unlocked ones without.
  *
@@ -119,7 +120,7 @@ final readonly class ProfilesController
 		$listed = [];
 
 		foreach ($this->content->query()->any()->type($profiles->name)->limit(null)->get() as $entry) {
-			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->name, 'account' => $entry->id === null ? null : $linked[$entry->id] ?? null, 'linkable' => $entry->field('linkable') !== false];
+			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->name, 'account' => $entry->id === null ? null : $linked[$entry->id] ?? null, 'linkable' => $entry->field('linkable') !== false, 'avatar' => $this->json->profileAvatar($entry)];
 		}
 
 		$listed = array_values($listed);

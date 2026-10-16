@@ -700,7 +700,7 @@ final class MultilingualTest extends TestCase
 		$report = $this->site()->container()->make(Linter::class)->lint();
 		$found  = array_map(static fn ($violation): string => (string) $violation->message, $report->files['about/index.en.md'] ?? []);
 
-		$this->assertSame(['has the default language\'s suffix beside about/index.md, which wins; the default language needs none, so remove one.'], $found);
+		$this->assertSame(['The file has the default language\'s suffix beside about/index.md, which wins; the default language needs none, so remove one.'], $found);
 		$this->assertSame([], $report->files['_post/2008-04-05.spring.fr.md'] ?? []);
 	}
 

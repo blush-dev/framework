@@ -2728,7 +2728,7 @@ async function copyLink(): Promise<void> {
 		return;
 	}
 
-	await copyText(new URL(url, config.site.url).href, t('editor_view.the_link', 'the link'));
+	await copyText(new URL(url, config.site.url).href, t('editor_view.copied_link', 'Copied the link'));
 }
 
 /**

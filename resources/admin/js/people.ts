@@ -277,6 +277,8 @@ export interface LinkableProfile {
 	account: { username: string; displayName: string } | null;
 	// `false` when it's locked against linking (D-605).
 	linkable: boolean;
+	// Its picture's URL (`Avatars`, D-810), or `null` for initials.
+	avatar: string | null;
 }
 
 export async function loadLinkable(): Promise<LinkableProfile[]> {

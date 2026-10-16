@@ -133,8 +133,7 @@
 	},
 	"toast": {
 		"undo_available": "{message}。元に戻すことができます",
-		"copied": "{shown}をコピーしました",
-		"copy_failed": "{what}をコピーできませんでした"
+		"copy_failed": "クリップボードにコピーできませんでした"
 	},
 	"reorder": {
 		"movable_item": "移動できる項目"
@@ -624,7 +623,6 @@
 		"pin_index": "固定：このタイプのインデックスページ",
 		"pin_archive": "固定：このタイプの{label}を紹介するページ",
 		"people_lower": "人物",
-		"the_link": "リンク",
 		"select_all": "このページのすべての行を選択",
 		"col_actions": "操作",
 		"pinned": "固定",
@@ -659,7 +657,8 @@
 		"new_tab": "（新しいタブ）",
 		"copy_link": "リンクをコピー",
 		"duplicate": "複製",
-		"move_to_trash": "ゴミ箱へ移動"
+		"move_to_trash": "ゴミ箱へ移動",
+		"copied_link": "リンクをコピーしました"
 	},
 	"activity_rows": {
 		"undid": "元に戻しました：{summary}",
@@ -670,9 +669,9 @@
 		"undoing": "元に戻しています…"
 	},
 	"extension_menu": {
-		"copy_what": "フォルダーのパス",
 		"copy_label": "フォルダーのパスをコピー",
-		"more_actions": "{label}のその他の操作"
+		"more_actions": "{label}のその他の操作",
+		"copied": "フォルダーのパスをコピーしました"
 	},
 	"reference_tokens": {
 		"full": "これ以上追加できません",
@@ -780,10 +779,6 @@
 		"from_every_type": "すべてのタイプ",
 		"kinds_taxonomies": "タクソノミー"
 	},
-	"shown_once": {
-		"copied": "{noun}をコピーしました。",
-		"copy_failed": "コピーできませんでした。{noun}を選択してコピーしてください。"
-	},
 	"markdown_block_options": {
 		"heading_level": "見出し{level}",
 		"level": "レベル",
@@ -888,8 +883,8 @@
 		"installed_by": "インストール元",
 		"folder": "フォルダー",
 		"copy": "{folder}をコピー",
-		"folder_path": "フォルダーのパス",
-		"ships_with": "Blush に同梱"
+		"ships_with": "Blush に同梱",
+		"copied_folder": "フォルダーのパスをコピーしました"
 	},
 	"reference_tree": {
 		"top_level": "なし（最上位）",
@@ -1286,11 +1281,11 @@
 		"renaming": "名前を変えると、エントリーがこのメニューを探す方法が変わります。",
 		"renaming_help": "位置は自動的に新しい名前に追従しますが、{snippet}で表示しているエントリーは、それを変更するまでそこに何も表示しません。",
 		"in_entry": "エントリー内",
-		"the_block": "ブロック",
 		"copy": "コピー",
 		"locations": "位置",
 		"no_locations": "有効なテーマにはメニューの位置がありません。",
-		"location_help": "{depth}。{state}"
+		"location_help": "{depth}。{state}",
+		"copied_block": "ブロックをコピーしました"
 	},
 	"mention_form": {
 		"errors": {
@@ -1350,7 +1345,6 @@
 		"hint": "API を使うアプリ、スクリプト、エージェント向け",
 		"new_token": "新しいトークン",
 		"shown_label": "API トークン",
-		"shown_noun": "トークン",
 		"copy_token": "トークンをコピー",
 		"shown_once_until": "{copy}表示されるのは一度だけで、{date}まで有効です。{header}とトークンを付けて送信してください。",
 		"shown_once_revoked": "{copy}表示されるのは一度だけで、取り消すまで有効です。{header}とトークンを付けて送信してください。",
@@ -1377,7 +1371,9 @@
 		"choose_you": "あなた",
 		"choose_account": "アカウント",
 		"making": "作成中…",
-		"make": "トークンを作成"
+		"make": "トークンを作成",
+		"copied": "トークンをコピーしました。",
+		"copy_failed": "コピーできませんでした。トークンを選択してコピーしてください。"
 	},
 	"profile_picker": {
 		"status": "（{status}）",
@@ -1521,12 +1517,7 @@
 		"off": "無効"
 	},
 	"pick_modal": {
-		"title_none": "リンクできる{noun}はありません",
-		"title": "{article, select, an {{noun}をリンク } other {{noun}をリンク } }",
-		"loading": "{noun}を読み込み中…",
-		"list": "{noun}",
-		"linking": "リンク中…",
-		"link_the": "{noun}をリンク"
+		"linking": "リンク中…"
 	},
 	"density_toggle": {
 		"rows": "行",
@@ -1545,14 +1536,14 @@
 		"open_in_editor": "エディターで開く",
 		"more_for": "{name}のその他の操作",
 		"open_media_file": "メディアファイルを開く",
-		"the_file_path": "ファイルパス",
 		"copy_file_path": "ファイルパスをコピー",
 		"ignore_this": "これを無視",
 		"hide_files": "ファイルを隠す",
 		"choose_file": "どのファイルに残すかを選択",
 		"which_keeps_it": "残すファイル",
 		"keeps_id": "ID を維持",
-		"gets_new_id": "新しい ID を付与"
+		"gets_new_id": "新しい ID を付与",
+		"copied_file_path": "ファイルのパスをコピーしました"
 	},
 	"admin_select": {
 		"search_placeholder": "検索…",
@@ -1918,7 +1909,6 @@
 		"kind_alias_says": "それぞれ現在の名前のフィールドとして読み込まれます。サイトは何も変わりません。",
 		"other_name": "その他の問題",
 		"other_says": "チェックが読み取ったとおりです。",
-		"found_file": "ファイル: {message}",
 		"media_bulk_label": "{count}件のパスを書き換え",
 		"media_bulk_title": "{count, plural, one {#件のパス} other {#件のパス}}を ID に書き換えますか？",
 		"media_bulk_say": "パスで記述された各メディアフィールドを、そのファイルの ID に書き換えます。画像のサイズへのパスは、その画像の ID になります。",
@@ -2256,7 +2246,7 @@
 		"called": "名称",
 		"called_help": "エディターでの見出しで、管理画面のあらゆる場所での名前になります。",
 		"singular": "単数での名称",
-		"singular_help": "ピッカーでは「{one}を追加」、サイトでは「{name}: Sam」となります。",
+		"singular_help": "ピッカーでは「{one}を追加…」、サイトでは「{name}: Sam」となります。",
 		"options": "オプション",
 		"options_hint": "件数と順序",
 		"takes": "各{name}の件数",
@@ -2378,14 +2368,14 @@
 		"details": "テーマの詳細",
 		"delete": "テーマを削除",
 		"preview": "サイトでプレビュー",
-		"copy_what": "コマンド",
 		"copy_command": "有効化コマンドをコピー",
 		"broken": "{reason}問題が解決するまで有効化できません。",
 		"note_saved": "有効なテーマはここで設定され、{config} より優先して {settings} に保存されています。",
 		"use_config": "{config} のテーマを使用",
 		"note_config_missing": "有効なテーマは {config} で設定されます（存在しない場合はデフォルトのテーマ）。ここで有効化すると、そのファイルより優先して {settings} に保存されます。",
 		"note_config": "有効なテーマは {config} で設定されます。ここで有効化すると、そのファイルより優先して {settings} に保存されます。",
-		"note_deploy": "デプロイでは通常、代わりにコマンドラインからテーマを有効化します: {command}。"
+		"note_deploy": "デプロイでは通常、代わりにコマンドラインからテーマを有効化します: {command}。",
+		"copied_command": "コマンドをコピーしました"
 	},
 	"site_health_view": {
 		"tab_checks": "チェック",
@@ -2397,7 +2387,6 @@
 		"pill_check": "要確認",
 		"pill_pass": "合格",
 		"pill_not_loaded": "未読み込み",
-		"the_report": "レポート",
 		"title": "サイトヘルス",
 		"last_checked": "最終チェック: {when}",
 		"checking": "チェック中…",
@@ -2432,7 +2421,8 @@
 		"this_site": "このサイト",
 		"this_site_hint": "Blush が報告する内容",
 		"the_server": "サーバー",
-		"the_server_hint": "ここから PHP が見ている内容"
+		"the_server_hint": "ここから PHP が見ている内容",
+		"copied_report": "レポートをコピーしました"
 	},
 	"redirects_view": {
 		"tabs": {
@@ -2505,7 +2495,6 @@
 		"another_site_hidden": "（別のサイト）",
 		"actions_for": "{from} の操作",
 		"test": "この URL をテスト",
-		"copy_what": "古い URL",
 		"copy": "古い URL をコピー",
 		"make_temporary_item": "一時的にする",
 		"make_permanent_item": "恒久的にする",
@@ -2518,7 +2507,8 @@
 		"selected": "選択したリダイレクト",
 		"make_permanent": "恒久的にする",
 		"make_temporary": "一時的にする",
-		"counted": "{count, plural, one {#件のリダイレクト} other {#件のリダイレクト}}"
+		"counted": "{count, plural, one {#件のリダイレクト} other {#件のリダイレクト}}",
+		"copied": "{address}をコピーしました"
 	},
 	"relations_view": {
 		"errors": {
@@ -2571,7 +2561,6 @@
 		"report_profile": "プロフィールがある",
 		"report_no_profile": "プロフィールがない",
 		"report": "{filters}アカウントを表示しています。",
-		"the_email_address": "メールアドレス",
 		"new_link_title": "{name}の新しいリンクを作成しますか？",
 		"new_link_body": "現在のリンクは使えなくなります。",
 		"new_link_confirm": "新しいリンクを作成",
@@ -2610,7 +2599,8 @@
 		"copy_email": "メールアドレスをコピー",
 		"make_new_link": "新しいパスワードリンクを作成",
 		"make_link": "パスワードリンクを作成",
-		"display_name_note": "アカウントの表示名は管理画面での呼び名です。ない場合はプロフィールのタイトル、次にユーザー名が使われます。"
+		"display_name_note": "アカウントの表示名は管理画面での呼び名です。ない場合はプロフィールのタイトル、次にユーザー名が使われます。",
+		"copied_email": "{email}をコピーしました"
 	},
 	"icon_pack_view": {
 		"load_failed": "アイコンパックを読み込めませんでした。",
@@ -2631,7 +2621,6 @@
 		"filter": "アイコンを絞り込み",
 		"count": "{count}個のアイコン",
 		"count_filtered": "{count}個中{shown}個",
-		"copy_what": "アイコンの名前",
 		"no_match_set": "このセットに「{query}」に一致するアイコンはありません。",
 		"no_match_pack": "このパックに「{query}」に一致するアイコンはありません。",
 		"installed_folder": "extensions/ 内のフォルダー",
@@ -2647,7 +2636,8 @@
 		"composer": "このアイコンパックは Composer で管理されているため、ここでは削除できません。{command} でプロジェクトから削除すると、この一覧から消えます。",
 		"delete_body": "削除するとサーバーからフォルダーが取り除かれ、使われている場所すべてでアイコンが機能しなくなります。",
 		"delete": "アイコンパックを削除",
-		"missing": "{name} という名前のアイコンパックはインストールされていません。"
+		"missing": "{name} という名前のアイコンパックはインストールされていません。",
+		"copied": "{name}をコピーしました"
 	},
 	"sign_in_view": {
 		"errors": {
@@ -2706,14 +2696,14 @@
 		"uses_value": "保存すると {file} の値を使います。{action}",
 		"keep_saved_one": "保存済みのものを維持",
 		"use_value": "{file} の値を使用",
-		"the_address": "アドレス",
 		"copy": "コピー",
 		"set_in": "{file} で設定されています。",
 		"default": "デフォルト",
 		"uses_file": "保存すると {file} のものを使います。{action}",
 		"use_file": "{file} のものを使用",
 		"ai": "AI 設定",
-		"api": "API 設定"
+		"api": "API 設定",
+		"copied_address": "アドレスをコピーしました"
 	},
 	"profile_detail_view": {
 		"errors": {
@@ -2807,7 +2797,11 @@
 		"write_one": "作成",
 		"type_settings": "タイプ設定",
 		"inherited_note": "{inherited}は、アーカイブにこのプロフィール自身の本文が表示されることを意味します。作成すると、そのアーカイブ用のページができます。独自のステータスを持つ通常のエントリーで、複製はできません。塗りつぶした点は独自のコンテンツ、輪は借用したコンテンツを表すため、どちらもステータスとは見なされません。",
-		"pick_noun": "アカウント",
+		"pick_title": "アカウントをリンク",
+		"pick_title_none": "リンクできるアカウントはありません",
+		"pick_loading": "アカウントを読み込み中…",
+		"pick_list": "アカウント",
+		"pick_confirm": "アカウントをリンク",
 		"pick_none": "すべてのアカウントにすでにプロフィールがあります。1つのアカウントが持てるプロフィールは最大1つです。",
 		"pick_text": "プロフィールのないアカウントのみ表示されます。リンクすると、{name} がその人の公開プロフィールになり、それをクレジットしているエントリーもその人のものになります。"
 	},
@@ -2836,7 +2830,6 @@
 		"broken_on": "{reason}有効化されていますが、修正されるまで動作しません。",
 		"broken_off": "{reason}修正されるまで有効化できません。",
 		"manifest_unreadable": "マニフェストを読み込めません。",
-		"package_name": "パッケージ名",
 		"copy_package_name": "パッケージ名をコピー",
 		"note": {
 			"where": "プラグインは {folder} に置くか、Composer から導入します。",
@@ -2845,7 +2838,8 @@
 			"default": "{folder} 内のプラグインは、{config} の {enabled} で指定されるまでオフです{no_file}。Composer のものはオンです。ここで有効化・無効化すると、オンになっているすべてのプラグインの一覧がそのファイルより優先して {settings} に保存されます。以降は、一覧にないプラグインはオフになります。後から Composer でインストールしたものも同様です。",
 			"no_file": "（そのファイルはまだありません）",
 			"screens": "プラグインが追加するものは、ここではなく、それぞれの画面に表示されます。"
-		}
+		},
+		"copied_package_name": "パッケージ名をコピーしました"
 	},
 	"media_file_view": {
 		"embedded": {
@@ -2900,10 +2894,8 @@
 		"delete_failed": "ファイルを削除できませんでした。",
 		"in_markdown": "Markdown で",
 		"note_alt": "代替テキストは自動で入力されます",
-		"what_markdown": "Markdown",
 		"in_editor": "エディターで",
 		"note_block": "メディアボタンで挿入されます",
-		"what_block": "ブロック",
 		"note_link": "リンクテキストはタイトルになります",
 		"all_media": "すべてのメディア",
 		"open": "開く",
@@ -2931,8 +2923,6 @@
 		"address_note": "ファイル自体",
 		"copy_address": "アドレスをコピー",
 		"copy": "コピー",
-		"the_address": "アドレス",
-		"copy_what": "{what}をコピー",
 		"not_used": "まだ使われていません",
 		"used_in": "{count, plural, one {# 件のエントリー} other {# 件のエントリー} }で使用",
 		"unused_help": "どのアドレスでも、このファイルを使っているエントリーはありません。",
@@ -2976,7 +2966,12 @@
 		"nothing_more": "上記の詳細以外にはありません。",
 		"none_in_file": "このファイルにはありません。",
 		"choose_artwork": "アートワークを選択",
-		"use_as_artwork": "アートワークとして使用"
+		"use_as_artwork": "アートワークとして使用",
+		"copy_block": "ブロックをコピー",
+		"copied_block": "ブロックをコピーしました",
+		"copy_markdown": "Markdownをコピー",
+		"copied_markdown": "Markdownをコピーしました",
+		"copied_address": "アドレスをコピーしました"
 	},
 	"set_password_view": {
 		"errors": {
@@ -3183,7 +3178,6 @@
 			"full": "全幅",
 			"full_text": "本文の幅に関係なく、端から端まで広がります。"
 		},
-		"the_link": "リンク",
 		"reload": {
 			"title": "保存せずに再読み込みしますか？",
 			"body": "この{noun}への未保存の変更はこのブラウザにのみ残り、次にエディターを開いたときに復元を提案します。",
@@ -3320,7 +3314,8 @@
 		"none": {
 			"heading": "何も選択されていません",
 			"text": "カーソルがテキスト内にありません。テキスト内のどこかをクリックすると、このパネルにカーソル位置の要素が表示されます。"
-		}
+		},
+		"copied_link": "リンクをコピーしました"
 	},
 	"tools_view": {
 		"tabs": {
@@ -3942,7 +3937,6 @@
 		"draft": "下書き",
 		"scheduled": "予約済み",
 		"profiles_load_failed": "プロフィールを読み込めませんでした。",
-		"the_email_address": "メールアドレス",
 		"link_failed": "プロフィールをリンクできませんでした。",
 		"linked": "{title}をリンクしました",
 		"unlink_title": "{title}のリンクを解除しますか？",
@@ -4010,7 +4004,6 @@
 		"no_email_text_other": "すべてのアカウントに必要です。このアカウントは、入力が求められるようになる前に作成されました。",
 		"add_email": "メールアドレスを追加",
 		"password_link": "パスワードリンク",
-		"the_link": "リンク",
 		"copy_link": "リンクをコピー",
 		"send_link": "{send}パスワードを設定してもらえます。リンクは一度だけ表示され、一度だけ使え、{date}まで有効です。",
 		"send_link_lead": "このリンクを任意の方法で{name}に送ると、",
@@ -4072,7 +4065,11 @@
 		"unlink_note": "リンクを解除しても、プロフィールとその{bylines}はゲストプロフィールとしてそのまま残ります。",
 		"create_note": "{create}と、入力した名前で下書きのプロフィールが作成され、このアカウントにリンクされて開きます。これが一般的な使い方で、アカウントとプロフィールが別々であってもほとんど手間がかからない理由です。",
 		"create_note_lead": "新しく作成する",
-		"profile_noun": "プロフィール",
+		"pick_title": "プロフィールをリンク",
+		"pick_title_none": "リンクできるプロフィールはありません",
+		"pick_loading": "プロフィールを読み込み中…",
+		"pick_list": "プロフィール",
+		"pick_confirm": "プロフィールをリンク",
 		"pick_none": "すべてのプロフィールがすでにいずれかのアカウントに属しています。代わりに新しく作成すると、作成時にリンクされます。",
 		"pick_text_mine": "アカウントのないプロフィールだけが表示されます。1つのプロフィールが属せるアカウントは1つまでです。そのプロフィールをクレジットしているエントリーはあなたのものになります。",
 		"pick_text_other": "アカウントのないプロフィールだけが表示されます。1つのプロフィールが属せるアカウントは1つまでです。そのプロフィールをクレジットしているエントリーはこの人のものになります。",
@@ -4085,7 +4082,10 @@
 		"slug": "スラッグ",
 		"slug_help": "この人のすべてのアーカイブのアドレスに使われます。空欄の場合は名前から作られます。",
 		"creating": "作成中…",
-		"create_the_profile": "プロフィールを作成"
+		"create_the_profile": "プロフィールを作成",
+		"copied_link": "リンクをコピーしました。",
+		"copy_link_failed": "コピーできませんでした。リンクを選択してコピーしてください。",
+		"copied_email": "{email}をコピーしました"
 	},
 	"media": {
 		"dimensions": "{width} × {height}",

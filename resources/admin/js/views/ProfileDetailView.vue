@@ -459,7 +459,7 @@ async function link(): Promise<void> {
 			<p class="panel__note"><MessageText :text="t('profile_detail_view.inherited_note', '{inherited} means the archive shows this profile\'s own body. Writing one creates a page for that archive: an ordinary entry, with its own status, that can\'t be duplicated. A filled dot is its own content and a ring is borrowed, so neither reads as a status.')"><template #inherited><strong>{{ t('profile_detail_view.inherited', 'Inherited') }}</strong></template></MessageText></p>
 		</section>
 
-		<PickModal v-model:pick="pick" :open="linking" :noun="t('profile_detail_view.pick_noun', 'Account')" :items="linkItems" :none="t('profile_detail_view.pick_none', 'Every account already has a profile. An account holds at most one.')" :busy="busy === 'link'" @close="linking = false" @confirm="link">
+		<PickModal v-model:pick="pick" :open="linking" :words="{ title: t('profile_detail_view.pick_title', 'Link an Account'), titleNone: t('profile_detail_view.pick_title_none', 'No Account to Link'), loading: t('profile_detail_view.pick_loading', 'Loading the accounts…'), list: t('profile_detail_view.pick_list', 'Accounts'), confirm: t('profile_detail_view.pick_confirm', 'Link the account') }" :items="linkItems" :none="t('profile_detail_view.pick_none', 'Every account already has a profile. An account holds at most one.')" :busy="busy === 'link'" @close="linking = false" @confirm="link">
 			<MessageText :text="t('profile_detail_view.pick_text', 'Only accounts with no profile are listed. Linking makes {name} that person\'s public profile, and the entries crediting it theirs.')"><template #name><strong>{{ name }}</strong></template></MessageText>
 		</PickModal>
 	</div>

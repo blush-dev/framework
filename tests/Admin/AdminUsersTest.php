@@ -243,8 +243,8 @@ final class AdminUsersTest extends TestCase
 		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
 
 		$this->assertSame([
-			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null, 'linkable' => true],
-			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author'], 'linkable' => true]
+			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null, 'linkable' => true, 'avatar' => null],
+			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author'], 'linkable' => true, 'avatar' => null]
 		], $profiles, 'Every profile by name, with the account linked to it (D-356).');
 
 		$taken = $this->write('PATCH', '/accounts/sam', ['author' => 'jane']);

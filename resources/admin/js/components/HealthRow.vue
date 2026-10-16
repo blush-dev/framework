@@ -104,7 +104,7 @@ const mediaRoute = (key: string): object => ({ name: 'media-file', params: { pat
 					<template #default="{ close }">
 						<RouterLink v-if="row.entry && row.fix" class="menu-item" :to="entryRoute(row.entry)"><AdminIcon name="file-pen-line" />{{ t('health_row.open_in_editor', 'Open in Editor') }}</RouterLink>
 						<RouterLink v-if="row.media" class="menu-item" :to="mediaRoute(row.media)"><AdminIcon name="image" />{{ t('health_row.open_media_file', 'Open Media File') }}</RouterLink>
-						<button v-if="copyable" type="button" class="menu-item" @click="close(); copyText(row.path, t('health_row.the_file_path', 'the file path'))"><AdminIcon name="copy" />{{ t('health_row.copy_file_path', 'Copy File Path') }}</button>
+						<button v-if="copyable" type="button" class="menu-item" @click="close(); copyText(row.path, t('health_row.copied_file_path', 'Copied the file path'))"><AdminIcon name="copy" />{{ t('health_row.copy_file_path', 'Copy File Path') }}</button>
 						<template v-if="ignorable">
 							<hr v-if="row.entry && row.fix || row.media || copyable" class="menu-rule">
 							<button type="button" class="menu-item" :disabled="busy" @click="close(); emit('ignore')"><AdminIcon name="eye-off" />{{ t('health_row.ignore_this', 'Ignore This') }}</button>

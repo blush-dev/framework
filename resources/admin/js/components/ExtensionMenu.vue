@@ -16,13 +16,13 @@ withDefaults(defineProps<{
 	label: string;
 	details?: RouteLocationRaw;
 	detailsLabel?: string;
-	// What Copy copies, and what it's called.
+	// What Copy copies, its label, and what it says once copied.
 	copy?: string;
-	copyWhat?: string;
 	copyLabel?: string;
+	copied?: string;
 	// Delete's words, when it's offered.
 	deleteLabel?: string;
-}>(), { copyWhat: t('extension_menu.copy_what', 'the folder path'), copyLabel: t('extension_menu.copy_label', 'Copy folder path') });
+}>(), { copyLabel: t('extension_menu.copy_label', 'Copy folder path'), copied: t('extension_menu.copied', 'Copied the folder path') });
 
 const emit = defineEmits<{ delete: [] }>();
 </script>
@@ -34,7 +34,7 @@ const emit = defineEmits<{ delete: [] }>();
 		</template>
 		<RouterLink v-if="details" class="menu-item" :to="details"><AdminIcon name="info" />{{ detailsLabel }}</RouterLink>
 		<slot name="lead" />
-		<button v-if="copy" type="button" class="menu-item" @click="copyText(copy, copyWhat)"><AdminIcon name="copy" />{{ copyLabel }}</button>
+		<button v-if="copy" type="button" class="menu-item" @click="copyText(copy, copied)"><AdminIcon name="copy" />{{ copyLabel }}</button>
 		<slot />
 		<template v-if="deleteLabel">
 			<hr class="menu-rule">

@@ -140,8 +140,7 @@
 	},
 	"toast": {
 		"undo_available": "{message}. Undo is available",
-		"copied": "Copied {shown}",
-		"copy_failed": "{what} couldn't be copied"
+		"copy_failed": "Couldn't copy to the clipboard"
 	},
 	"reorder": {
 		"movable_item": "movable item"
@@ -664,7 +663,6 @@
 		"pin_index": "Pinned: the index page for this type",
 		"pin_archive": "Pinned: the page introducing this type's {label}",
 		"people_lower": "people",
-		"the_link": "the link",
 		"select_all": "Select every row on this page",
 		"col_actions": "Actions",
 		"pinned": "Pinned",
@@ -699,7 +697,8 @@
 		"new_tab": " (new tab)",
 		"copy_link": "Copy link",
 		"duplicate": "Duplicate",
-		"move_to_trash": "Move to trash"
+		"move_to_trash": "Move to trash",
+		"copied_link": "Copied the link"
 	},
 	"activity_rows": {
 		"undid": "Undid: {summary}",
@@ -710,9 +709,9 @@
 		"undoing": "Undoing…"
 	},
 	"extension_menu": {
-		"copy_what": "the folder path",
 		"copy_label": "Copy folder path",
-		"more_actions": "More actions for {label}"
+		"more_actions": "More actions for {label}",
+		"copied": "Copied the folder path"
 	},
 	"reference_tokens": {
 		"full": "That's the most it takes",
@@ -821,10 +820,6 @@
 		"transitions": "Can use {list}.",
 		"kinds_taxonomies": "Taxonomies"
 	},
-	"shown_once": {
-		"copied": "Copied {noun}.",
-		"copy_failed": "Copying failed; select {noun} and copy it instead."
-	},
 	"markdown_block_options": {
 		"heading_level": "Heading {level}",
 		"level": "Level",
@@ -929,8 +924,8 @@
 		"installed_by": "Installed by",
 		"folder": "Folder",
 		"copy": "Copy {folder}",
-		"folder_path": "the folder path",
-		"ships_with": "Ships with Blush"
+		"ships_with": "Ships with Blush",
+		"copied_folder": "Copied the folder path"
 	},
 	"reference_tree": {
 		"top_level": "None, at the top level",
@@ -1329,11 +1324,11 @@
 		"renaming": "Renaming changes how entries find this menu.",
 		"renaming_help": "Its locations follow the new name on their own, but an entry that shows it with {snippet} shows nothing there until it's changed.",
 		"in_entry": "In an Entry",
-		"the_block": "the block",
 		"copy": "Copy",
 		"locations": "Locations",
 		"no_locations": "The active theme has no menu locations.",
-		"location_help": "{depth}. {state}"
+		"location_help": "{depth}. {state}",
+		"copied_block": "Copied the block"
 	},
 	"mention_form": {
 		"errors": {
@@ -1393,7 +1388,6 @@
 		"hint": "For apps, scripts, and agents that use the API",
 		"new_token": "New Token",
 		"shown_label": "API token",
-		"shown_noun": "the token",
 		"copy_token": "Copy Token",
 		"shown_once_until": "{copy} It's shown once, and works until {date}. Send it as {header} and the token.",
 		"shown_once_revoked": "{copy} It's shown once, and works until it's revoked. Send it as {header} and the token.",
@@ -1420,7 +1414,9 @@
 		"choose_you": "you",
 		"choose_account": "the account",
 		"making": "Making…",
-		"make": "Make the Token"
+		"make": "Make the Token",
+		"copied": "Copied the token.",
+		"copy_failed": "Copying failed; select the token and copy it instead."
 	},
 	"profile_picker": {
 		"status": " ({status})",
@@ -1568,12 +1564,7 @@
 		"off": "Off"
 	},
 	"pick_modal": {
-		"title_none": "No {noun} to Link",
-		"title": "{article, select, an {Link an {noun} } other {Link a {noun} } }",
-		"loading": "Loading the {noun}s…",
-		"list": "{noun}s",
-		"linking": "Linking…",
-		"link_the": "Link the {noun}"
+		"linking": "Linking…"
 	},
 	"density_toggle": {
 		"rows": "Rows",
@@ -1592,14 +1583,14 @@
 		"open_in_editor": "Open in Editor",
 		"more_for": "More for {name}",
 		"open_media_file": "Open Media File",
-		"the_file_path": "the file path",
 		"copy_file_path": "Copy File Path",
 		"ignore_this": "Ignore This",
 		"hide_files": "Hide the files",
 		"choose_file": "Choose which file keeps it",
 		"which_keeps_it": "Which Keeps It",
 		"keeps_id": "Keeps the id",
-		"gets_new_id": "Gets a new id"
+		"gets_new_id": "Gets a new id",
+		"copied_file_path": "Copied the file path"
 	},
 	"admin_select": {
 		"search_placeholder": "Search…",
@@ -1965,7 +1956,6 @@
 		"kind_alias_says": "Each is read as the field it names now. Nothing on the site changes.",
 		"other_name": "Other Problems",
 		"other_says": "As the check reads them.",
-		"found_file": "The file {message}",
 		"media_bulk_label": "Rewrite {count} Paths",
 		"media_bulk_title": "Rewrite {count, plural, one {# Path} other {# Paths}} as IDs?",
 		"media_bulk_say": "Each media field written as a path is rewritten to its file's id. A path to an image's size becomes the image's id.",
@@ -2316,7 +2306,7 @@
 		"called": "Called",
 		"called_help": "The heading in the editor, and its name everywhere in the admin.",
 		"singular": "One Is Called",
-		"singular_help": "“Add {article} {one}” in the picker, and “{name}: Sam” on the site.",
+		"singular_help": "“Add {one}…” in the picker, and “{name}: Sam” on the site.",
 		"options": "Options",
 		"options_hint": "How many, and in what order",
 		"takes": "Each {name} Takes",
@@ -2438,14 +2428,14 @@
 		"details": "Theme details",
 		"delete": "Delete theme",
 		"preview": "Preview on the site",
-		"copy_what": "the command",
 		"copy_command": "Copy activate command",
 		"broken": "{reason} It can't be activated until that's fixed.",
 		"note_saved": "The active theme was set here, and is saved in {settings} over {config}.",
 		"use_config": "Use {config}'s theme",
 		"note_config_missing": "The active theme is set in {config} (the default theme until it exists); activating one here saves it in {settings}, over that file.",
 		"note_config": "The active theme is set in {config}; activating one here saves it in {settings}, over that file.",
-		"note_deploy": "A deploy usually activates a theme from the command line instead: {command}."
+		"note_deploy": "A deploy usually activates a theme from the command line instead: {command}.",
+		"copied_command": "Copied the command"
 	},
 	"site_health_view": {
 		"tab_checks": "Checks",
@@ -2457,7 +2447,6 @@
 		"pill_check": "Check",
 		"pill_pass": "Pass",
 		"pill_not_loaded": "Not loaded",
-		"the_report": "the report",
 		"title": "Site Health",
 		"last_checked": "Last checked {when}",
 		"checking": "Checking…",
@@ -2492,7 +2481,8 @@
 		"this_site": "This Site",
 		"this_site_hint": "As Blush reports it",
 		"the_server": "The Server",
-		"the_server_hint": "What PHP sees from here"
+		"the_server_hint": "What PHP sees from here",
+		"copied_report": "Copied the report"
 	},
 	"redirects_view": {
 		"tabs": {
@@ -2565,7 +2555,6 @@
 		"another_site_hidden": " (another site)",
 		"actions_for": "Actions for {from}",
 		"test": "Test this address",
-		"copy_what": "the old address",
 		"copy": "Copy old address",
 		"make_temporary_item": "Make temporary",
 		"make_permanent_item": "Make permanent",
@@ -2578,7 +2567,8 @@
 		"selected": "Selected redirects",
 		"make_permanent": "Make Permanent",
 		"make_temporary": "Make Temporary",
-		"counted": "{count, plural, one {# redirect} other {# redirects}}"
+		"counted": "{count, plural, one {# redirect} other {# redirects}}",
+		"copied": "Copied {address}"
 	},
 	"relations_view": {
 		"errors": {
@@ -2631,7 +2621,6 @@
 		"report_profile": "that have a profile",
 		"report_no_profile": "with no profile",
 		"report": "Showing accounts {filters}.",
-		"the_email_address": "the email address",
 		"new_link_title": "Make a New Link for {name}?",
 		"new_link_body": "The one they have stops working.",
 		"new_link_confirm": "Make a New Link",
@@ -2670,7 +2659,8 @@
 		"copy_email": "Copy email address",
 		"make_new_link": "Make a new password link",
 		"make_link": "Make a password link",
-		"display_name_note": "An account's display name is what the admin calls it; without one, it's the profile's title, then the username."
+		"display_name_note": "An account's display name is what the admin calls it; without one, it's the profile's title, then the username.",
+		"copied_email": "Copied {email}"
 	},
 	"icon_pack_view": {
 		"load_failed": "The icon pack couldn't be loaded.",
@@ -2691,7 +2681,6 @@
 		"filter": "Filter icons",
 		"count": "{count} icons",
 		"count_filtered": "{shown} of {count}",
-		"copy_what": "the icon's name",
 		"no_match_set": "No icon in this set matches “{query}”.",
 		"no_match_pack": "No icon in this pack matches “{query}”.",
 		"installed_folder": "A folder in extensions/",
@@ -2707,7 +2696,8 @@
 		"composer": "Composer manages this icon pack, so it can't be deleted here. Remove it from the project with {command}, and it leaves this list.",
 		"delete_body": "Deleting removes the folder from the server, and its icons stop working wherever they're used.",
 		"delete": "Delete Icon Pack",
-		"missing": "No icon pack named {name} is installed."
+		"missing": "No icon pack named {name} is installed.",
+		"copied": "Copied {name}"
 	},
 	"sign_in_view": {
 		"errors": {
@@ -2767,7 +2757,6 @@
 		"uses_value": "Uses {file}'s value once saved. {action}",
 		"keep_saved_one": "Keep the saved one",
 		"use_value": "Use {file}'s value",
-		"the_address": "the address",
 		"copy": "Copy",
 		"set_in": "Set in {file}.",
 		"default": "Default",
@@ -2785,7 +2774,8 @@
 		"email_change_cancelled": "Cancelled the change of email address",
 		"email_change_sent": "Check {email} for a link to confirm it as the site's email address",
 		"email_change_waiting": "Changes to {email} once the link sent there is used, by {date}. {action}",
-		"cancel_change": "Cancel the change"
+		"cancel_change": "Cancel the change",
+		"copied_address": "Copied the address"
 	},
 	"profile_detail_view": {
 		"errors": {
@@ -2879,7 +2869,11 @@
 		"write_one": "Write One",
 		"type_settings": "Type Settings",
 		"inherited_note": "{inherited} means the archive shows this profile's own body. Writing one creates a page for that archive: an ordinary entry, with its own status, that can't be duplicated. A filled dot is its own content and a ring is borrowed, so neither reads as a status.",
-		"pick_noun": "Account",
+		"pick_title": "Link an Account",
+		"pick_title_none": "No Account to Link",
+		"pick_loading": "Loading the accounts…",
+		"pick_list": "Accounts",
+		"pick_confirm": "Link the account",
 		"pick_none": "Every account already has a profile. An account holds at most one.",
 		"pick_text": "Only accounts with no profile are listed. Linking makes {name} that person's public profile, and the entries crediting it theirs."
 	},
@@ -2908,7 +2902,6 @@
 		"broken_on": "{reason} It's turned on, but can't run until that's fixed.",
 		"broken_off": "{reason} It can't be turned on until that's fixed.",
 		"manifest_unreadable": "Its manifest can't be read.",
-		"package_name": "the package name",
 		"copy_package_name": "Copy package name",
 		"note": {
 			"where": "Plugins live in {folder} or come from Composer.",
@@ -2917,7 +2910,8 @@
 			"default": "A plugin in {folder} is off until {config} names it in {enabled}{no_file}; Composer's are on. Turning one on or off here saves the list of every plugin that's on in {settings}, over that file; from then on, a plugin it doesn't name is off, even one Composer installs later.",
 			"no_file": "(there's no such file yet)",
 			"screens": "What a plugin adds shows on the screens it belongs to, not here."
-		}
+		},
+		"copied_package_name": "Copied the package name"
 	},
 	"media_file_view": {
 		"embedded": {
@@ -2972,10 +2966,8 @@
 		"delete_failed": "The file couldn't be deleted.",
 		"in_markdown": "In Markdown",
 		"note_alt": "the alt text is filled in for you",
-		"what_markdown": "the Markdown",
 		"in_editor": "In the editor",
 		"note_block": "inserted by the media button",
-		"what_block": "the block",
 		"note_link": "the link text is the title",
 		"all_media": "All media",
 		"open": "Open",
@@ -3003,8 +2995,6 @@
 		"address_note": "the file itself",
 		"copy_address": "Copy the address",
 		"copy": "Copy",
-		"the_address": "the address",
-		"copy_what": "Copy {what}",
 		"not_used": "Not used yet",
 		"used_in": "Used in {count, plural, one {# entry} other {# entries} }",
 		"unused_help": "No entry uses it, by any of its addresses.",
@@ -3048,7 +3038,12 @@
 		"nothing_more": "Nothing more than the details above.",
 		"none_in_file": "None in this file.",
 		"choose_artwork": "Choose Artwork",
-		"use_as_artwork": "Use as Artwork"
+		"use_as_artwork": "Use as Artwork",
+		"copy_block": "Copy the block",
+		"copied_block": "Copied the block",
+		"copy_markdown": "Copy the Markdown",
+		"copied_markdown": "Copied the Markdown",
+		"copied_address": "Copied the address"
 	},
 	"set_password_view": {
 		"errors": {
@@ -3257,7 +3252,6 @@
 			"full": "Full",
 			"full_text": "Edge to edge, ignoring the text's width."
 		},
-		"the_link": "the link",
 		"reload": {
 			"title": "Reload Without Saving?",
 			"body": "Your unsaved changes to this {noun} stay in this browser only, and are offered back when the editor opens again.",
@@ -3399,7 +3393,8 @@
 		"sections": {
 			"required_left": "{count, plural, one {required field left empty} other {required fields left empty} }",
 			"fields": "{count, plural, one {field} other {fields} }"
-		}
+		},
+		"copied_link": "Copied the link"
 	},
 	"tools_view": {
 		"tabs": {
@@ -4022,7 +4017,6 @@
 		"draft": "Draft",
 		"scheduled": "Scheduled",
 		"profiles_load_failed": "The profiles couldn't be loaded.",
-		"the_email_address": "the email address",
 		"link_failed": "The profile couldn't be linked.",
 		"linked": "Linked {title}",
 		"unlink_title": "Unlink {title}?",
@@ -4090,7 +4084,6 @@
 		"no_email_text_other": "Every account needs one; this one was made before they were asked for.",
 		"add_email": "Add an Email Address",
 		"password_link": "Password link",
-		"the_link": "the link",
 		"copy_link": "Copy Link",
 		"send_link": "{send} however you like, so they can choose a password. It's shown once, works once, and lasts until {date}.",
 		"send_link_lead": "Send this link to {name}",
@@ -4152,7 +4145,11 @@
 		"unlink_note": "Unlinking leaves the profile and its {bylines} in place, as a guest profile.",
 		"create_note": "{create} makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.",
 		"create_note_lead": "Create one",
-		"profile_noun": "Profile",
+		"pick_title": "Link a Profile",
+		"pick_title_none": "No Profile to Link",
+		"pick_loading": "Loading the profiles…",
+		"pick_list": "Profiles",
+		"pick_confirm": "Link the profile",
 		"pick_none": "Every profile already belongs to an account. Create a new one instead, and it's linked as it's made.",
 		"pick_text_mine": "Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become yours.",
 		"pick_text_other": "Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become theirs.",
@@ -4180,7 +4177,10 @@
 		"cancel_change": "Cancel Change",
 		"email_help_no_mail": "The site can't send email, so it's for the people who manage accounts.",
 		"email_help_mine": "A new one is used once you confirm it, from a link sent there.",
-		"email_help_other": "A new one is used at once, and the old one is told."
+		"email_help_other": "A new one is used at once, and the old one is told.",
+		"copied_link": "Copied the link.",
+		"copy_link_failed": "Copying failed; select the link and copy it instead.",
+		"copied_email": "Copied {email}"
 	},
 	"media": {
 		"dimensions": "{width} × {height}",

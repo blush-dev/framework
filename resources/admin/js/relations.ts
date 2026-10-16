@@ -156,13 +156,6 @@ export function limitsSay(options: { item: string; singular: string; plural: str
 	return t('relations.limits', 'Each {item} {takes}. One {target} can be named by {side}.', { item, takes, target, side });
 }
 
-/**
- * "a" or "an", by how a word starts.
- */
-export function article(word: string): string {
-	return /^[aeiou]/i.test(word) ? 'an' : 'a';
-}
-
 // The entries a check names, for a confirmation's list.
 function listed(items: RelationCheckItem[], one: string, many: string, mixed: boolean): ConfirmItem[] {
 	return items.map((item) => ({ title: item.title, meta: mixed ? labelsOf(item.type).singular : undefined, count: t('relations.listed_count', '{count, plural, one {# {singular}} other {# {plural}}}', { count: item.count, singular: one, plural: many }) }));

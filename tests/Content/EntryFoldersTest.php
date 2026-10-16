@@ -86,8 +86,8 @@ final class EntryFoldersTest extends TestCase
 	{
 		$errors = $this->lint($this->site(), Severity::Error);
 
-		$this->assertContains('is a folder entry; its type\'s entries are files. Move it with content:folders, or on Site Health in the admin.', $errors['_post/hello/index.md'] ?? []);
-		$this->assertContains('is in a folder below its type\'s, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.', $errors['_post/2024/old.md'] ?? []);
+		$this->assertContains('The file is a folder entry; its type\'s entries are files. Move it with content:folders, or on Site Health in the admin.', $errors['_post/hello/index.md'] ?? []);
+		$this->assertContains('The file is in a folder below its type\'s, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.', $errors['_post/2024/old.md'] ?? []);
 		$this->assertArrayNotHasKey('_post/_drafts/idea.md', $errors);
 		$this->assertArrayNotHasKey('about/biography.md', $errors, 'Trees nest by folder.');
 	}
@@ -136,8 +136,8 @@ final class EntryFoldersTest extends TestCase
 		$warnings = $this->lint($app, Severity::Warning);
 		$errors   = $this->lint($app, Severity::Error);
 
-		$this->assertContains('is in a folder its type\'s folder pattern ({year}/{month}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', $warnings['_post/2024/old.md'] ?? []);
-		$this->assertContains('is in a folder its type\'s folder pattern ({year}/{month}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', $warnings['_post/2008-04-05.spring.md'] ?? [], 'Older files keep working, so it\'s a warning.');
+		$this->assertContains('The file is in a folder its type\'s folder pattern ({year}/{month}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', $warnings['_post/2024/old.md'] ?? []);
+		$this->assertContains('The file is in a folder its type\'s folder pattern ({year}/{month}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', $warnings['_post/2008-04-05.spring.md'] ?? [], 'Older files keep working, so it\'s a warning.');
 		$this->assertArrayNotHasKey('_post/2008-04-05.spring.md', $errors);
 	}
 

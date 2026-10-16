@@ -20,6 +20,8 @@ export interface ReferenceItem {
 	missing: boolean;
 	// Its image and publish date (`Y-m-d`), for cards (D-599).
 	image?: string | null;
+	// A profile's picture (`Avatars`, D-810), or `null` for initials.
+	avatar?: string | null;
 	date?: string | null;
 	// Its ancestors' titles (`Mains › Pasta`), for a nesting type (D-607).
 	path?: string | null;

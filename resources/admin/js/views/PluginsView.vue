@@ -166,7 +166,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 					</p>
 					<template #end>
 						<ToggleSwitch :checked="false" :label="plugin.where" locked :reason="t('plugins_view.manifest_unreadable', 'Its manifest can\'t be read.')" />
-						<ExtensionMenu :label="plugin.where" :copy="plugin.where" v-bind="plugin.where.startsWith('extensions/') ? {} : { copyWhat: t('plugins_view.package_name', 'the package name'), copyLabel: t('plugins_view.copy_package_name', 'Copy package name') }" :delete-label="canDelete && plugin.deletable ? t('plugins_view.delete', 'Delete plugin') : undefined" @delete="removeBroken(plugin)" />
+						<ExtensionMenu :label="plugin.where" :copy="plugin.where" v-bind="plugin.where.startsWith('extensions/') ? {} : { copyLabel: t('plugins_view.copy_package_name', 'Copy package name'), copied: t('plugins_view.copied_package_name', 'Copied the package name') }" :delete-label="canDelete && plugin.deletable ? t('plugins_view.delete', 'Delete plugin') : undefined" @delete="removeBroken(plugin)" />
 					</template>
 				</ExtensionRow>
 			</ul>

@@ -27722,3 +27722,50 @@ decision, add a new entry that supersedes it and mark the old one
   Feed (Atom), Authors archive, later pages), as before D-871, in place
   of the sketch's route keys: the author asked for readable labels.
 - **Status:** Built.
+
+### D-873: No grammar passed into text
+
+- **Date:** 2026-10-15
+- **Refines:** D-816, D-838, D-840.
+- **Decision:** The author's rule: text never takes an article ("a" or
+  "an") or any other grammar worked out in code. A message is a whole
+  sentence; when the noun changes, each caller passes its own whole
+  sentences. `PickModal` takes `words` (title, title with none free,
+  loading, the list's label, and Confirm) from each screen in place of
+  a `noun` it fit into `pick_modal.*`, and `pick_modal.title`'s
+  `{article}` select is gone. A relationship's "One Is Called" help
+  quotes the picker as it reads ("Add {one}…"), and `relations.ts`'s
+  `article()` is removed.
+- **Status:** Built.
+
+### D-874: Every sentence whole: copying and the file's problems
+
+- **Date:** 2026-10-15
+- **Refines:** D-873.
+- **Decision:** The author's call, D-873's rule carried to the two
+  other places that fit a phrase into a sentence:
+  - `copyText(text, copied)` takes the caller's whole sentence for the
+    toast ("Copied the link", "Copied {email}") in place of a phrase
+    with its article and the text it fit it into, and a failed copy
+    says "Couldn't copy to the clipboard" without naming what.
+    `ShownOnce` takes `copied` and `failed` sentences, `ExtensionMenu`
+    `copied`, and the media screen's snippet its own Copy label and
+    sentence.
+  - A lint problem with the file itself (`Linter::FILE`) is a whole
+    sentence from the server ("The file has an order prefix…"), not a
+    predicate the admin put "The file" before; `health.found_file` is
+    gone. The CLI shows it as it is under the `file` label.
+- **Status:** Built.
+
+### D-875: Profiles' avatars in entry lists and pickers
+
+- **Date:** 2026-10-15
+- **Refines:** D-812.
+- **Decision:** D-812's last step: profiles carry `avatar` (their
+  picture's URL from `Avatars::profile()`, or `null` for initials,
+  through `UsersJson::profileAvatar()`) in `GET entries`, `GET
+  references/{type}`, and `GET profiles`, and the entry list, the
+  relation pickers (`ReferencePeople`, and `ReferenceSelect` through
+  `AdminSelect`'s `mark`, now a name and an image), and an account's
+  profile link picker draw them with `AdminAvatar`.
+- **Status:** Built.

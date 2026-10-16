@@ -182,7 +182,7 @@ final class MediaIdsTest extends TestCase
 		$this->assertSame(['error id: has no id; add one with media:ids --write, or on Site Health in the admin.'], $messages['user/media/2019/kept.png'] ?? null, 'By the media file, which has no metadata file.');
 		$this->assertSame(['error id: isn\'t a UUID; give the file a new one with media:ids --write, or on Site Health in the admin.'], $messages['user/data/media/2019/photo.png.json'] ?? null);
 		$this->assertSame(['error id: is also the id of user/data/media/2026/lake.png.json; keep it on one file and give the others new ones with media:ids --keep, or on Site Health in the admin.'], $messages['user/data/media/2026/copy.png.json'] ?? null);
-		$this->assertSame(['warning file: describes user/media/2019/photo-15x10.png, a size of user/media/2019/photo.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2019/photo-15x10.png.json'] ?? null);
+		$this->assertSame(['warning file: The file describes user/media/2019/photo-15x10.png, a size of user/media/2019/photo.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2019/photo-15x10.png.json'] ?? null);
 		$this->assertArrayNotHasKey('user/media/2019/photo-30x20.png', $messages, 'Sizes need no id.');
 	}
 

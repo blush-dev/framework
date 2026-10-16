@@ -187,7 +187,7 @@ async function revokeAll(): Promise<void> {
 		</header>
 
 		<div v-if="fresh" class="panel__body">
-			<ShownOnce :value="fresh.secret" :label="t('account_tokens.shown_label', 'API token')" :noun="t('account_tokens.shown_noun', 'the token')" :copy="t('account_tokens.copy_token', 'Copy Token')">
+			<ShownOnce :value="fresh.secret" :label="t('account_tokens.shown_label', 'API token')" :copied="t('account_tokens.copied', 'Copied the token.')" :failed="t('account_tokens.copy_failed', 'Copying failed; select the token and copy it instead.')" :copy="t('account_tokens.copy_token', 'Copy Token')">
 				<MessageText :text="fresh.token.expires ? t('account_tokens.shown_once_until', '{copy} It\'s shown once, and works until {date}. Send it as {header} and the token.', { date: when(fresh.token.expires) }) : t('account_tokens.shown_once_revoked', '{copy} It\'s shown once, and works until it\'s revoked. Send it as {header} and the token.')">
 					<template #copy><strong>{{ t('account_tokens.copy_now', 'Copy {name} now.', { name: fresh.token.name }) }}</strong></template>
 					<template #header><code>Authorization: Bearer</code></template>

@@ -82,7 +82,7 @@ final readonly class EntryFolders
 		$file     = (string) array_pop($segments);
 
 		if ($segments !== [] && str_starts_with($file, 'index.')) {
-			return $messages->t('content.entry_folders.folder_entry', 'is a folder entry; its type\'s entries are files. Move it with content:folders, or on Site Health in the admin.');
+			return $messages->t('content.entry_folders.folder_entry', 'The file is a folder entry; its type\'s entries are files. Move it with content:folders, or on Site Health in the admin.');
 		}
 
 		// A hidden file stays where it is (D-629).
@@ -93,8 +93,8 @@ final readonly class EntryFolders
 		$kept = $segments;
 
 		return match (true) {
-			$type->folders === null && $kept !== []                      => $messages->t('content.entry_folders.below', 'is in a folder below its type\'s, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.'),
-			$type->folders !== null && ! $type->folders->explains($kept) => $messages->t('content.entry_folders.outside_pattern', 'is in a folder its type\'s folder pattern ({pattern}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', pattern: $type->folders->pattern),
+			$type->folders === null && $kept !== []                      => $messages->t('content.entry_folders.below', 'The file is in a folder below its type\'s, which keeps its files directly in its folder. Move it with content:folders, or on Site Health in the admin.'),
+			$type->folders !== null && ! $type->folders->explains($kept) => $messages->t('content.entry_folders.outside_pattern', 'The file is in a folder its type\'s folder pattern ({pattern}) doesn\'t give. Move it with content:folders, or on Site Health in the admin.', pattern: $type->folders->pattern),
 			default                                                      => null
 		};
 	}

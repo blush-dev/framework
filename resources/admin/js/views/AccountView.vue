@@ -224,6 +224,7 @@ const free         = computed(() => (linkable.value ?? []).filter((item) => item
 const linkItems    = computed<PickItem[] | null>(() => linkable.value === null ? null : free.value.map((item) => ({
 	key: item.slug,
 	name: item.title,
+	image: item.avatar,
 	meta: item.slug,
 	aside: item.status === 'published' ? undefined : (item.status === 'draft' ? t('account_view.draft', 'Draft') : t('account_view.scheduled', 'Scheduled'))
 })));
@@ -262,7 +263,7 @@ async function startLink(): Promise<void> {
 }
 
 async function copyEmail(email: string): Promise<void> {
-	await copyText(email, t('account_view.the_email_address', 'the email address'), email);
+	await copyText(email, t('account_view.copied_email', 'Copied {email}', { email }));
 }
 
 async function changeLink(author: string | null, done: string): Promise<void> {
@@ -638,7 +639,7 @@ async function changePassword(): Promise<void> {
 			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="cancelBusy" @click="cancelChange">{{ t('account_view.cancel_change', 'Cancel Change') }}</button></span>
 		</div>
 
-		<ShownOnce v-if="account && link" :value="link.url" :label="t('account_view.password_link', 'Password link')" :noun="t('account_view.the_link', 'the link')" :copy="t('account_view.copy_link', 'Copy Link')">
+		<ShownOnce v-if="account && link" :value="link.url" :label="t('account_view.password_link', 'Password link')" :copied="t('account_view.copied_link', 'Copied the link.')" :failed="t('account_view.copy_link_failed', 'Copying failed; select the link and copy it instead.')" :copy="t('account_view.copy_link', 'Copy Link')">
 			<MessageText :text="t('account_view.send_link', '{send} however you like, so they can choose a password. It\'s shown once, works once, and lasts until {date}.', { date: when(link.expires) })"><template #send><strong>{{ t('account_view.send_link_lead', 'Send this link to {name}', { name: account.displayName }) }}</strong></template></MessageText>
 		</ShownOnce>
 		<div v-else-if="account && account.status === 'invited' && account.link" class="notice">
@@ -773,7 +774,7 @@ async function changePassword(): Promise<void> {
 
 		<AccountLanguage v-if="account && mine" />
 
-		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" :noun="t('account_view.profile_noun', 'Profile')" :items="linkItems" :none="t('account_view.pick_none', 'Every profile already belongs to an account. Create a new one instead, and it\'s linked as it\'s made.')" :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
+		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" :words="{ title: t('account_view.pick_title', 'Link a Profile'), titleNone: t('account_view.pick_title_none', 'No Profile to Link'), loading: t('account_view.pick_loading', 'Loading the profiles…'), list: t('account_view.pick_list', 'Profiles'), confirm: t('account_view.pick_confirm', 'Link the profile') }" :items="linkItems" :none="t('account_view.pick_none', 'Every profile already belongs to an account. Create a new one instead, and it\'s linked as it\'s made.')" :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
 			{{ mine ? t('account_view.pick_text_mine', 'Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become yours.') : t('account_view.pick_text_other', 'Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become theirs.') }}
 			<template v-if="profileType !== null && canType(profileType, 'create')" #empty>
 				<button type="button" class="button button--primary" @click="startCreate">{{ t('account_view.create_a_profile', 'Create a Profile') }}</button>
