@@ -1443,8 +1443,8 @@ async function leave(): Promise<void> {
 }
 
 /* A page's header stands further from what follows than sections do
-   from each other. */
-.wrap > :deep(.page-header) {
+   from each other, also under a screen's root that adds no box (D-879). */
+.wrap :deep(.page-header) {
 	margin-bottom: calc(var(--s-6) - var(--s-4));
 }
 
@@ -1454,7 +1454,7 @@ async function leave(): Promise<void> {
 		padding: var(--s-5) var(--s-4) 80px;
 	}
 
-	.wrap > :deep(.page-header) {
+	.wrap :deep(.page-header) {
 		margin-bottom: calc(var(--s-5) - var(--s-3));
 	}
 

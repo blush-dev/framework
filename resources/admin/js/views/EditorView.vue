@@ -132,7 +132,7 @@ import { drawerOpen, keepDrawer } from '../drawer';
 import { OPEN_LEVEL, type FieldLevel } from '../field-levels';
 import { childrenOf as fieldsInside, fromForm, humanize, inSentence, label, splitDate, stateAt, toForm, withStateAt, type FieldStep, type FormValue } from '../fields';
 import { siteDateTime } from '../dates';
-import { formatDay, formatWhen, formatWhenInline, series, titleCase } from '../format';
+import { formatDay, titleCase } from '../format';
 import { loadActivity, type ActivityChange } from '../activity';
 import ActivityRows from '../components/ActivityRows.vue';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
@@ -2131,14 +2131,6 @@ async function changedHere(): Promise<void> {
 	}
 }
 
-// What the Activity row says: who made the latest change, when an app
-// did, so it's known an app was there.
-const activityLine = computed(() => {
-	const by = entry.value?.changedBy;
-
-	return by ? t('editor_view.activity.changed_by', 'Changed by {client} ({account}) {when}', { client: by.client, account: by.account, when: formatWhenInline(by.time) }) : t('editor_view.activity.line', 'Who changed it, and Undo');
-});
-
 async function openDrill(which: Drill): Promise<void> {
 	if (which === 'activity') {
 		changes.value = null;
@@ -2191,17 +2183,6 @@ const listedCount = computed(() => {
 const linkedGroups = computed(() => entry.value?.linkedFrom ?? []);
 const linkedTotal  = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.count, 0));
 const linkedDrafts = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.drafts, 0));
-const linkedLine   = computed(() => {
-	if (linkedTotal.value === 0) {
-		return t('editor_view.linked.nothing', 'Nothing links here.');
-	}
-
-	const titles = [...new Set(linkedGroups.value.flatMap((group) => group.entries.map((item) => item.title || t('editor_view.untitled', 'Untitled'))))];
-
-	return linkedTotal.value <= 3 && titles.length <= 3
-		? series(titles)
-		: linkedGroups.value.map((group) => t('editor_view.linked.group_count', '{relation} {count}', { relation: titleCase(group.relation), count: group.count })).join(' · ');
-});
 
 // A Linked From group past 8 shows the rest in place up to 50 (D-608);
 // past that, it links to the linking type's list, filtered to this entry.
@@ -2218,17 +2199,6 @@ function typeNamed(name: string): ContentTypeSummary | undefined {
 
 watch(() => entry.value?.id, () => {
 	expanded.value = new Set();
-});
-
-// The archive an index page or a relation archive's page introduces.
-const archiveLine = computed(() => {
-	const page = entry.value?.archive;
-
-	if (page === null || page === undefined) {
-		return labels.value.plural;
-	}
-
-	return page.target === null ? titleCase(page.label) : `${titleCase(page.label)} › ${page.targetTitle ?? page.target}`;
 });
 
 // What the page is, and what it can't be, at the top of its level down.
@@ -3413,12 +3383,12 @@ function fieldKey(field: FieldDescription): string {
 						<div class="editor__pinned">
 							<button v-if="entry.introduces" id="editor-row-archive" type="button" class="level-link" @click="openDrill('archive')">
 								<AdminIcon name="layers" />
-								<span class="level-link__text"><strong>{{ t('editor_view.drill.archive', 'Archive Page') }}</strong><span>{{ archiveLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.archive', 'Archive Page') }}</strong></span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
-							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="level-link" :class="{ 'is-quiet': linkedTotal === 0 }" @click="openDrill('linked')">
+							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="level-link" @click="openDrill('linked')">
 								<AdminIcon name="link" />
-								<span class="level-link__text"><strong>{{ t('editor_view.drill.linked', 'Linked From') }}</strong><span>{{ linkedLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.linked', 'Linked From') }}</strong></span>
 								<span class="level-link__count mono">{{ linkedTotal }}</span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
@@ -3428,9 +3398,9 @@ function fieldKey(field: FieldDescription): string {
 								<span class="level-link__count mono">{{ items.length }}</span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
-							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="level-link" :class="{ 'is-quiet': !entry.changedBy }" @click="openDrill('activity')">
+							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="level-link" @click="openDrill('activity')">
 								<AdminIcon :name="entry.changedBy ? 'bot' : 'clock'" />
-								<span class="level-link__text"><strong>{{ t('editor_view.drill.activity', 'Activity') }}</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
+								<span class="level-link__text"><strong>{{ t('editor_view.drill.activity', 'Activity') }}</strong></span>
 								<AdminIcon name="chevron-right" class="level-link__go" />
 							</button>
 						</div>

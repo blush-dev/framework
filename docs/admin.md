@@ -760,29 +760,24 @@ last, after every field, in this order: **Archive Page** (only on a page
 that introduces an archive), **Linked From**, **Outline**, and
 **Activity**. On a
 short tab they sit at the drawer's bottom edge; on a long one they
-follow the last field. Each answers the quick question in one line, and
-opens a level down, in place of the fields, for the rest. The path at
-the top goes back, and so does Escape.
+follow the last field. Each is its name, with a count on Linked From
+and Outline, and opens a level down, in place of the fields. The path
+at the top goes back, and so does Escape.
 
-- **Linked From** names up to three entries that link to this one, or
-  counts them by relationship ("Cooks 208 · Tested By 6"), or says
-  nothing links here. Opened, it lists them by relationship and the
-  type that stores the link, live entries and drafts (marked; they link
-  here once published), never the trash. Each opens its entry, since
-  that's where the link is changed. A group shows 8; up to 50, **Show
-  More** shows the rest in place, and past that **View All** opens that
-  type's list filtered to the entries linking here. The list says so,
-  with **Show All** to clear it.
-- **Archive Page** names the archive the page introduces (**Recipes**,
-  or **Cooks › Jane Doe**). Opened, it says which archive, which entry
+- **Linked From** lists the entries that link to this one, by
+  relationship and the type that stores the link, live entries and
+  drafts (marked; they link here once published), never the trash.
+  Each opens its entry, since that's where the link is changed. A group
+  shows 8; up to 50, **Show More** shows the rest in place, and past
+  that **View All** opens that type's list filtered to the entries
+  linking here. The list says so, with **Show All** to clear it.
+- **Archive Page** says which archive the page introduces, which entry
   it's for, its address, how many entries it lists (and how many drafts
   it leaves out), and what the archive shows without the page.
 - **Outline** lists every element in the text; see [the
   outline](#the-outline-and-the-breadcrumb).
-- **Activity** says when a connected app made the latest change
-  ("Changed by Claude (Jane) 3 minutes ago"). Opened, it lists the
-  entry's changes, newest first, with **Undo**; see
-  [Activity and Undo](mcp.md#activity-and-undo).
+- **Activity** lists the entry's changes, newest first, with **Undo**;
+  see [Activity and Undo](mcp.md#activity-and-undo).
 
 ### Changing the slug
 

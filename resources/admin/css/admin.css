@@ -1057,8 +1057,12 @@
 
 /* Forms */
 
+/* One column that can shrink, as a panel's is, so a control that
+   doesn't wrap (a long file name, cut short) stays inside the field
+   rather than widening it past its panel. */
 .field {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 7px;
 }
 
@@ -2033,25 +2037,15 @@
 
 /* The Users screens (Accounts, an account and Your Account, New Account,
    Profiles, a profile), drawn as the profiles sketch has them (D-369,
-   D-370): a `.people` root spaces its sections further apart, and its
-   pills, tags, facts, and role rows are the sketch's (its notices are
-   every screen's, D-506; its tabs are every screen's, D-507; its card
-   heads are every card's, D-566, D-603). Other screens keep the
-   direction's. */
+   D-370): under a `.people` root, pills, tags, facts, and role rows are
+   the sketch's (its notices are every screen's, D-506; its tabs are
+   every screen's, D-507; its card heads are every card's, D-566, D-603).
+   Other screens keep the direction's. Its sections are spaced as every
+   screen's are (D-879): the root adds no box, so they're the work
+   area's. */
 
 .people {
-	display: flex;
-	flex-direction: column;
-	gap: var(--s-6);
-	min-width: 0;
-}
-
-.people > * {
-	margin: 0;
-}
-
-.people .page-header {
-	margin: 0;
+	display: contents;
 }
 
 .people .page-header__hint {
@@ -2175,7 +2169,7 @@ button.lnk {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
 	align-items: start;
-	gap: var(--s-6);
+	gap: var(--s-4);
 }
 
 /* Facts in a grid, each labeled in caps above its value. */

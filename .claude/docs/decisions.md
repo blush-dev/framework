@@ -27950,3 +27950,40 @@ decision, add a new entry that supersedes it and mark the old one
     - Sumi and Brutalist on the trial set the stage 2 tokens to
       Neutral's (D-843). All eleven pass `admin-theme:check`.
 - **Status:** Built (2026-10-15), all three stages.
+
+### D-879: The Users screens spaced as every screen is
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-370's wider spacing under a `.people` root.
+- **Decision:** The Users screens (Accounts, an account and Your
+  Account, New Account, Profiles, a profile, Roles, a role, New Role)
+  space their panels and sections as the rest of the admin does: the
+  work area's (`.wrap`) gap between them, `--s-4` (`--s-3` on a
+  phone), and the page header `--s-6` from what follows.
+  - `.people` adds no box (`display: contents`), as `.entries-root` and
+    `.redirects` already do, so its children are the work area's; its
+    pills, tags, facts, and role rows stay the sketch's. Two panels side
+    by side (`.people .pair`) are `--s-4` apart, as a media file's
+    columns are.
+  - A role's form adds no box either, so its header stands off as every
+    header does; its extra room for the save bar goes, as the Settings
+    screens have none (the work area's foot is room enough).
+  - The page header's rule reaches a header under such a root, so
+    Content lists and Redirects, whose roots add no box, get the
+    header's space too.
+- **Status:** Built.
+
+### D-880: The Document tab's pinned rows are an icon and a name
+
+- **Date:** 2026-10-15
+- **Supersedes:** D-608's one-line answer under each pinned row (and the
+  Activity row's line from D-758).
+- **Decision:** The rows pinned to the end of the Document tab (Archive
+  Page, Linked From, Outline, Activity) are each an icon, a name, and
+  the chevron, so every row is one height. Linked From and Outline keep
+  their counts. The line under each (who links here, the archive's
+  name, who made the latest change) is gone as clutter; what it said is
+  a level down, where each row opens. No row is quiet (lighter) any
+  more, as Linked From was with nothing linking and Activity with no
+  app's change: every name is the same weight.
+- **Status:** Built.

@@ -209,7 +209,7 @@ guardLeave(() => changed.value);
 </script>
 
 <template>
-	<form v-if="role" class="role form-stack" @submit.prevent="save">
+	<form v-if="role" class="role" @submit.prevent="save">
 		<header class="page-header">
 			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />{{ t('role_view.all_roles', 'All roles') }}</RouterLink>
 			<div class="page-header__text role__head">
@@ -326,9 +326,9 @@ guardLeave(() => changed.value);
 </template>
 
 <style scoped>
+/* Its sections are the work area's, spaced as every screen's (D-879). */
 .role {
-	/* Room under the last section for the save bar. */
-	padding-bottom: var(--s-7);
+	display: contents;
 }
 
 .role__head {

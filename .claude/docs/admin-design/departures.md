@@ -168,7 +168,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   (D-371, and Media and Themes, D-372; the direction's panel has
   none). The screens themselves are drawn as the
   sketch is, under a `.people` root (D-370), so other screens keep the
-  direction's spacing and pills; tabs are the direction's on every
+  direction's pills; their spacing is every screen's (D-879); tabs are the direction's on every
   screen, these too, with less padding (D-507), and so are card heads,
   with their rule (D-566, D-603). "You" marks your own account and profile in those two
   lists; entry lists keep "Yours" for entries crediting you.
@@ -1011,7 +1011,11 @@ D-541). Where the admin differs from the sketch:
   (all of a group up to 50, else 8), so it opens at once and the
   sketch's Opening, Before It Answers board doesn't happen.
 - **Linked From's row is on every saved entry**, not only terms and
-  profiles, quiet when nothing links; a new entry has none.
+  profiles; a new entry has none. It isn't quiet when nothing links
+  (D-880).
+- **The pinned rows have no line under their names** (D-880): each is
+  an icon, a name, and a count where there is one, so the rows are one
+  height; what the sketch's lines said is a level down.
 - **The Archive Page row's icon** is Lucide's `layers`.
 - **Delete Permanently's button** stays "Delete Permanently" rather than
   naming the entry, since titles run long; the checkbox reads in

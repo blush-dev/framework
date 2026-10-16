@@ -3151,14 +3151,6 @@
 			"inline": "文中に置くもので、「:{name}[…]」と書きます",
 			"note": "{block}は{how}。そのため、ここでの書き方ではサイトに表示されません。"
 		},
-		"activity": {
-			"changed_by": "{when}に {client}（{account}）が変更",
-			"line": "変更した人と、元に戻す"
-		},
-		"linked": {
-			"nothing": "ここにリンクしているものはありません。",
-			"group_count": "{relation} {count}"
-		},
 		"archive": {
 			"introduces_homepage": "このページは、すべての{item}のアーカイブの導入部です。サイトのトップページ（/）でもあります。",
 			"introduces": "このページは、すべての{item}のアーカイブの導入部です。",

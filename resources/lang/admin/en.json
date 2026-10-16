@@ -3225,14 +3225,6 @@
 			"inline": "goes inside a sentence, written “:{name}[…]”",
 			"note": "{block} {how}, so the site doesn't show it as it's written here."
 		},
-		"activity": {
-			"changed_by": "Changed by {client} ({account}) {when}",
-			"line": "Who changed it, and Undo"
-		},
-		"linked": {
-			"nothing": "Nothing links here.",
-			"group_count": "{relation} {count}"
-		},
 		"archive": {
 			"introduces_homepage": "This page introduces the archive of every {item}. It's also the site's homepage, at /.",
 			"introduces": "This page introduces the archive of every {item}.",
