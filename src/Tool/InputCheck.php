@@ -13,41 +13,85 @@ declare(strict_types=1);
 
 namespace Blush\Tool;
 
+use Blush\Translation\Messages;
+use Blush\Translation\Text;
+
 /**
  * Checks a tool's input against its JSON Schema (D-757) before the tool
  * runs, for the parts of JSON Schema tools use: `type` (one or a list),
  * `properties`, `required`, `additionalProperties: false`, `enum`,
  * `items`, `minLength`, `maxLength`, `minimum`, `maximum`, `minItems`,
  * and `maxItems`. What it doesn't know it lets by.
+ *
+ * Each problem is a whole sentence (D-873, D-877), translated: one for
+ * each type, and for each type a value may also be left empty (`null`);
+ * other lists of types are named by their JSON names.
  */
-final class InputCheck
+final readonly class InputCheck
 {
+	public function __construct(
+		private Messages $messages
+	) {}
+
 	/**
 	 * Returns what's wrong with a value under a schema, in words, or
 	 * `null` when nothing is.
 	 *
 	 * @param array<string, mixed> $schema
 	 */
-	public static function problem(mixed $value, array $schema, string $at = 'input'): ?string
+	public function problem(mixed $value, array $schema, string $at = 'input'): ?Text
 	{
 		$types = $schema['type'] ?? null;
-		$types = is_string($types) ? [$types] : (is_array($types) ? $types : []);
+		$types = is_string($types) ? [$types] : (is_array($types) ? array_values(array_filter($types, is_string(...))) : []);
 
-		if ($types !== [] && ! array_any($types, static fn (mixed $type): bool => is_string($type) && self::is($value, $type))) {
-			return sprintf('%s must be %s.', $at, implode(' or ', array_map(self::named(...), array_filter($types, is_string(...)))));
+		if ($types !== [] && ! array_any($types, static fn (string $type): bool => self::is($value, $type))) {
+			return $this->wrongType($types, $at);
 		}
 
 		if (is_array($schema['enum'] ?? null) && ! in_array($value, $schema['enum'], true)) {
-			return sprintf('%s must be one of: %s.', $at, implode(', ', array_map(static fn (mixed $option): string => json_encode($option) ?: '', $schema['enum'])));
+			return $this->messages->t('tool.input_check.enum', '{field} must be one of: {options}.', field: $at, options: implode(', ', array_map(static fn (mixed $option): string => json_encode($option) ?: '', $schema['enum'])));
 		}
 
 		return match (true) {
-			is_string($value)                         => self::text($value, $schema, $at),
-			is_int($value) || is_float($value)        => self::number($value, $schema, $at),
-			is_array($value) && array_is_list($value) && ! self::isObjectSchema($schema) => self::list($value, $schema, $at),
-			is_array($value)                          => self::object($value, $schema, $at),
+			is_string($value)                         => $this->text($value, $schema, $at),
+			is_int($value) || is_float($value)        => $this->number($value, $schema, $at),
+			is_array($value) && array_is_list($value) && ! self::isObjectSchema($schema) => $this->list($value, $schema, $at),
+			is_array($value)                          => $this->object($value, $schema, $at),
 			default                                   => null
 		};
+	}
+
+	/**
+	 * Says what type a value must be: a sentence for each type, and for
+	 * each with `null` beside it; else the types' JSON names.
+	 *
+	 * @param non-empty-list<string> $types
+	 */
+	private function wrongType(array $types, string $at): Text
+	{
+		$alone   = count($types) === 1 ? $types[0] : null;
+		$orEmpty = count($types) === 2 && in_array('null', $types, true) ? array_first(array_diff($types, ['null'])) : null;
+
+		$problem = match ($alone) {
+			'string'  => $this->messages->t('tool.input_check.string', '{field} must be text.', field: $at),
+			'integer' => $this->messages->t('tool.input_check.integer', '{field} must be a whole number.', field: $at),
+			'number'  => $this->messages->t('tool.input_check.number', '{field} must be a number.', field: $at),
+			'boolean' => $this->messages->t('tool.input_check.boolean', '{field} must be true or false.', field: $at),
+			'array'   => $this->messages->t('tool.input_check.array', '{field} must be a list.', field: $at),
+			'object'  => $this->messages->t('tool.input_check.object', '{field} must be an object.', field: $at),
+			'null'    => $this->messages->t('tool.input_check.null', '{field} must be left empty.', field: $at),
+			default   => match ($orEmpty) {
+				'string'  => $this->messages->t('tool.input_check.string_or_empty', '{field} must be text, or left empty.', field: $at),
+				'integer' => $this->messages->t('tool.input_check.integer_or_empty', '{field} must be a whole number, or left empty.', field: $at),
+				'number'  => $this->messages->t('tool.input_check.number_or_empty', '{field} must be a number, or left empty.', field: $at),
+				'boolean' => $this->messages->t('tool.input_check.boolean_or_empty', '{field} must be true or false, or left empty.', field: $at),
+				'array'   => $this->messages->t('tool.input_check.array_or_empty', '{field} must be a list, or left empty.', field: $at),
+				'object'  => $this->messages->t('tool.input_check.object_or_empty', '{field} must be an object, or left empty.', field: $at),
+				default   => null
+			}
+		};
+
+		return $problem ?? $this->messages->t('tool.input_check.types', '{field} must be one of these JSON types: {types}.', field: $at, types: implode(', ', $types));
 	}
 
 	/**
@@ -82,13 +126,13 @@ final class InputCheck
 	/**
 	 * @param array<string, mixed> $schema
 	 */
-	private static function text(string $value, array $schema, string $at): ?string
+	private function text(string $value, array $schema, string $at): ?Text
 	{
 		$length = mb_strlen($value);
 
 		return match (true) {
-			is_int($schema['minLength'] ?? null) && $length < $schema['minLength'] => sprintf('%s must be at least %d characters.', $at, $schema['minLength']),
-			is_int($schema['maxLength'] ?? null) && $length > $schema['maxLength'] => sprintf('%s must be at most %d characters.', $at, $schema['maxLength']),
+			is_int($schema['minLength'] ?? null) && $length < $schema['minLength'] => $this->messages->t('tool.input_check.min_length', '{field} must be at least {min, plural, one {# character} other {# characters}}.', field: $at, min: $schema['minLength']),
+			is_int($schema['maxLength'] ?? null) && $length > $schema['maxLength'] => $this->messages->t('tool.input_check.max_length', '{field} must be at most {max, plural, one {# character} other {# characters}}.', field: $at, max: $schema['maxLength']),
 			default                                                                => null
 		};
 	}
@@ -96,11 +140,11 @@ final class InputCheck
 	/**
 	 * @param array<string, mixed> $schema
 	 */
-	private static function number(int|float $value, array $schema, string $at): ?string
+	private function number(int|float $value, array $schema, string $at): ?Text
 	{
 		return match (true) {
-			is_numeric($schema['minimum'] ?? null) && $value < $schema['minimum'] => sprintf('%s must be at least %s.', $at, $schema['minimum']),
-			is_numeric($schema['maximum'] ?? null) && $value > $schema['maximum'] => sprintf('%s must be at most %s.', $at, $schema['maximum']),
+			is_numeric($schema['minimum'] ?? null) && $value < $schema['minimum'] => $this->messages->t('tool.input_check.minimum', '{field} must be at least {min}.', field: $at, min: $schema['minimum']),
+			is_numeric($schema['maximum'] ?? null) && $value > $schema['maximum'] => $this->messages->t('tool.input_check.maximum', '{field} must be at most {max}.', field: $at, max: $schema['maximum']),
 			default                                                              => null
 		};
 	}
@@ -109,14 +153,14 @@ final class InputCheck
 	 * @param list<mixed>          $value
 	 * @param array<string, mixed> $schema
 	 */
-	private static function list(array $value, array $schema, string $at): ?string
+	private function list(array $value, array $schema, string $at): ?Text
 	{
 		if (is_int($schema['minItems'] ?? null) && count($value) < $schema['minItems']) {
-			return sprintf('%s must have at least %d items.', $at, $schema['minItems']);
+			return $this->messages->t('tool.input_check.min_items', '{field} must have at least {min, plural, one {# item} other {# items}}.', field: $at, min: $schema['minItems']);
 		}
 
 		if (is_int($schema['maxItems'] ?? null) && count($value) > $schema['maxItems']) {
-			return sprintf('%s must have at most %d items.', $at, $schema['maxItems']);
+			return $this->messages->t('tool.input_check.max_items', '{field} must have at most {max, plural, one {# item} other {# items}}.', field: $at, max: $schema['maxItems']);
 		}
 
 		$items = $schema['items'] ?? null;
@@ -126,7 +170,7 @@ final class InputCheck
 		}
 
 		foreach ($value as $index => $item) {
-			$problem = self::problem($item, self::schema($items), "{$at}[{$index}]");
+			$problem = $this->problem($item, self::schema($items), "{$at}[{$index}]");
 
 			if ($problem !== null) {
 				return $problem;
@@ -140,13 +184,13 @@ final class InputCheck
 	 * @param array<mixed>         $value
 	 * @param array<string, mixed> $schema
 	 */
-	private static function object(array $value, array $schema, string $at): ?string
+	private function object(array $value, array $schema, string $at): ?Text
 	{
 		$properties = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
 
 		foreach (is_array($schema['required'] ?? null) ? $schema['required'] : [] as $name) {
 			if (is_string($name) && ! array_key_exists($name, $value)) {
-				return sprintf('%s needs "%s".', $at, $name);
+				return $this->messages->t('tool.input_check.required', '{field} needs "{name}".', field: $at, name: $name);
 			}
 		}
 
@@ -156,13 +200,15 @@ final class InputCheck
 
 			if (! is_array($property)) {
 				if (($schema['additionalProperties'] ?? true) === false) {
-					return sprintf('%s has no "%s"; it takes %s.', $at, $name, $properties === [] ? 'nothing' : implode(', ', array_map(static fn (int|string $key): string => '"' . $key . '"', array_keys($properties))));
+					return $properties === []
+						? $this->messages->t('tool.input_check.takes_nothing', '{field} has no "{name}"; it takes nothing.', field: $at, name: (string) $name)
+						: $this->messages->t('tool.input_check.unknown', '{field} has no "{name}"; it takes {names}.', field: $at, name: (string) $name, names: implode(', ', array_map(static fn (int|string $key): string => '"' . $key . '"', array_keys($properties))));
 				}
 
 				continue;
 			}
 
-			$problem = self::problem($item, self::schema($property), $path);
+			$problem = $this->problem($item, self::schema($property), $path);
 
 			if ($problem !== null) {
 				return $problem;
@@ -189,22 +235,5 @@ final class InputCheck
 		}
 
 		return $keywords;
-	}
-
-	/**
-	 * Names a JSON type as a sentence does.
-	 */
-	private static function named(string $type): string
-	{
-		return match ($type) {
-			'string'  => 'text',
-			'integer' => 'a whole number',
-			'number'  => 'a number',
-			'boolean' => 'true or false',
-			'null'    => 'null',
-			'array'   => 'a list',
-			'object'  => 'an object',
-			default   => $type
-		};
 	}
 }

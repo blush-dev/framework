@@ -28,14 +28,16 @@ final readonly class HeadingAnchorOptions
 	/**
 	 * @param string $class  The link's class.
 	 * @param string $symbol What the link shows.
-	 * @param string $title  The link's title, or `''` for none.
+	 * @param ?string $title The link's title, `''` for none, or `null`
+	 *                       for "Link to this section" in the language
+	 *                       each entry is written in (D-877).
 	 * @param string $prefix Goes before every heading's slug, in its id.
 	 * @param bool   $before Whether the link goes before the text.
 	 */
 	public function __construct(
 		public string $class = 'heading-anchor',
 		public string $symbol = '#',
-		public string $title = 'Link to this section',
+		public ?string $title = null,
 		public string $prefix = '',
 		public bool $before = false
 	) {}
@@ -52,14 +54,14 @@ final readonly class HeadingAnchorOptions
 		return new self(
 			class: $values->string('class', 'heading-anchor'),
 			symbol: $values->string('symbol', '#'),
-			title: $values->string('title', 'Link to this section'),
+			title: $values->nullableString('title'),
 			prefix: $values->string('prefix', ''),
 			before: $values->bool('before', false)
 		);
 	}
 
 	/**
-	 * @return array{class: string, symbol: string, title: string, prefix: string, before: bool}
+	 * @return array{class: string, symbol: string, title: ?string, prefix: string, before: bool}
 	 */
 	public function toArray(): array
 	{

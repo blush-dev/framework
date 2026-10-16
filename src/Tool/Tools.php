@@ -122,10 +122,10 @@ final readonly class Tools
 			throw new ToolError((string) $this->messages->t('tool.tools.not_found', 'There\'s no tool "{tool}" for you.', tool: $key));
 		}
 
-		$problem = InputCheck::problem($input, $tool->input());
+		$problem = new InputCheck($this->messages)->problem($input, $tool->input());
 
 		if ($problem !== null) {
-			throw new ToolError($problem);
+			throw new ToolError((string) $problem);
 		}
 
 		if (! $tool->queued() || $wait || $context->actor->token !== null || $context->actor->account->id === '') {

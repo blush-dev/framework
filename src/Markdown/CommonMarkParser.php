@@ -62,6 +62,8 @@ use Blush\Markdown\Html\HtmlRules;
 use Blush\Markdown\Html\MarkupFinder;
 use Blush\Markdown\Html\RawMarkup;
 use Blush\Media\MediaResolver;
+use Blush\Translation\CurrentLocale;
+use Blush\Translation\Messages;
 
 /**
  * The temporary `MarkdownParser` adapter over league/commonmark (D-045,
@@ -87,7 +89,9 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 		private readonly ?MediaResolver $media = null,
 		private readonly ?AppConfig $app = null,
 		private readonly ?BlockRenderer $blocks = null,
-		private readonly ?MentionResolver $mentions = null
+		private readonly ?MentionResolver $mentions = null,
+		private readonly ?Messages $messages = null,
+		private readonly ?CurrentLocale $locale = null
 	) {}
 
 	/**
@@ -155,6 +159,21 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 	 *
 	 * @throws MarkdownException
 	 */
+	/**
+	 * Returns a heading anchor's title in a language (`''` for the
+	 * site's), when the site sets none (D-877).
+	 */
+	private function anchorTitle(string $language): string
+	{
+		$title = fn (): string => $this->messages === null ? 'Link to this section' : (string) $this->messages->t('markdown.common_mark_parser.anchor_title', 'Link to this section');
+
+		if ($this->locale === null || $language === '') {
+			return $title();
+		}
+
+		return $this->locale->in($this->app?->languages->find($language)->locale ?? $language, $title);
+	}
+
 	private function converter(): MarkdownConverter
 	{
 		if ($this->converter !== null) {
@@ -189,7 +208,7 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 
 			if ($config->headingAnchors) {
 				$environment->addExtension(new HeadingPermalinkExtension());
-				$environment->addRenderer(HeadingPermalink::class, new HeadingAnchorRenderer(), 10);
+				$environment->addRenderer(HeadingPermalink::class, new HeadingAnchorRenderer($config->anchors->title === null ? $this->anchorTitle(...) : null), 10);
 			}
 
 			if ($config->mentions && $this->mentions !== null) {
@@ -258,7 +277,7 @@ final class CommonMarkParser implements MarkdownParser, MarkupFinder
 			'heading_permalink'  => [
 				'html_class'      => $anchors->class,
 				'symbol'          => $anchors->symbol,
-				'title'           => $anchors->title,
+				'title'           => $anchors->title ?? '',
 				'id_prefix'       => $anchors->prefix,
 				'fragment_prefix' => $anchors->prefix,
 				'insert'          => $anchors->before ? HeadingPermalinkProcessor::INSERT_BEFORE : HeadingPermalinkProcessor::INSERT_AFTER

@@ -2496,6 +2496,9 @@
 				"description": "HTML は入力したとおりのテキストとして表示されます。",
 				"label": "テキストとして表示"
 			}
+		},
+		"common_mark_parser": {
+			"anchor_title": "このセクションへのリンク"
 		}
 	},
 	"setup": {
@@ -3723,6 +3726,32 @@
 			"no_entry": "この接続で見られる ID「{id}」のエントリーはありません。",
 			"no_published": "「{url}」に公開済みのエントリーはありません。下書きは search_entries で検索できます。",
 			"unreadable": "「{title}」を読み込めません：{problem}"
+		},
+		"input_check": {
+			"string": "{field}はテキストでなければなりません。",
+			"integer": "{field}は整数でなければなりません。",
+			"number": "{field}は数値でなければなりません。",
+			"boolean": "{field}は true か false でなければなりません。",
+			"array": "{field}はリストでなければなりません。",
+			"object": "{field}はオブジェクトでなければなりません。",
+			"null": "{field}は空のままにしてください。",
+			"string_or_empty": "{field}はテキストにするか、空のままにしてください。",
+			"integer_or_empty": "{field}は整数にするか、空のままにしてください。",
+			"number_or_empty": "{field}は数値にするか、空のままにしてください。",
+			"boolean_or_empty": "{field}は true か false にするか、空のままにしてください。",
+			"array_or_empty": "{field}はリストにするか、空のままにしてください。",
+			"object_or_empty": "{field}はオブジェクトにするか、空のままにしてください。",
+			"types": "{field}は次のJSON型のいずれかでなければなりません：{types}。",
+			"enum": "{field}は次のいずれかでなければなりません：{options}。",
+			"min_length": "{field}は{min}文字以上でなければなりません。",
+			"max_length": "{field}は{max}文字以下でなければなりません。",
+			"minimum": "{field}は{min}以上でなければなりません。",
+			"maximum": "{field}は{max}以下でなければなりません。",
+			"min_items": "{field}には{min}個以上の項目が必要です。",
+			"max_items": "{field}の項目は{max}個以下でなければなりません。",
+			"required": "{field}には「{name}」が必要です。",
+			"takes_nothing": "{field}に「{name}」はありません。何も受け付けません。",
+			"unknown": "{field}に「{name}」はありません。受け付けるのは{names}です。"
 		}
 	}
 }

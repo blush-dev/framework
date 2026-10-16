@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Markdown\CommonMark;
 
 use Override;
+use Closure;
 use Stringable;
 use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalink;
@@ -23,17 +24,27 @@ use League\CommonMark\Renderer\NodeRendererInterface;
 use League\CommonMark\Util\HtmlElement;
 use League\Config\ConfigurationAwareInterface;
 use League\Config\ConfigurationInterface;
+use Blush\Markdown\CommonMark\Block\BlockNodeRenderer;
 
 /**
  * Renders a heading's anchor (D-494): a link to the heading, hidden from
  * assistive technology and the tab order, as league/commonmark's does,
  * except that a heading with an id of its own (`## Title {#top}`) is
  * linked by that id, and the anchor takes none, so an author's id is the
- * one that works. An empty title is left out.
+ * one that works. An empty title is left out. Without a title of the
+ * site's, `$title` gives it in the language the document is written in
+ * (D-877).
  */
 final class HeadingAnchorRenderer implements NodeRendererInterface, ConfigurationAwareInterface
 {
 	private ConfigurationInterface $config;
+
+	/**
+	 * @param ?Closure(string): string $title The title in a language (`''` for the site's).
+	 */
+	public function __construct(
+		private readonly ?Closure $title = null
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -68,7 +79,7 @@ final class HeadingAnchorRenderer implements NodeRendererInterface, Configuratio
 		$attrs['aria-hidden'] = 'true';
 		$attrs['tabindex']    = '-1';
 
-		$title = (string) $this->setting('title');
+		$title = $this->title === null ? (string) $this->setting('title') : ($this->title)(BlockNodeRenderer::language($node));
 
 		if ($title !== '') {
 			$attrs['title'] = $title;

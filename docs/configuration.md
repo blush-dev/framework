@@ -314,8 +314,8 @@ change how it renders, not what it means. The first five are on the
 | `footnotes` | see below | How footnotes look: a `Blush\Markdown\FootnoteOptions` |
 
 `HeadingAnchorOptions` takes the anchor's `class` (`heading-anchor`),
-the `symbol` it shows (`#`), its `title` (`Link to this section`; `''`
-for none), a `prefix` for its id (`''`), and whether it goes `before`
+the `symbol` it shows (`#`), its `title` (by default "Link to this section" in the
+language each entry is written in; `''` for none), a `prefix` for its id (`''`), and whether it goes `before`
 the heading's text (`false`, after). A heading with an id of its own
 (`## Install {#setup}`) is linked by that id. The anchor is hidden from
 screen readers and the tab order, and left out of excerpts. For

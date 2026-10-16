@@ -41,7 +41,8 @@ use Blush\Support\FilesystemException;
  * Sets up a site after it's installed (D-218), and is safe to run again:
  *
  * 1. Creates `.env` from `.env.example` when there's none. In a terminal,
- *    it asks for the site's name, URL (DDEV's when it runs there), timezone
+ *    it asks for the site's name, URL (DDEV's when it runs there, else
+ *    `serve`'s), timezone
  *    (this computer's to start), and environment first (D-876). An
  *    existing `.env` is never changed, except to add secrets it lacks.
  * 2. Adds a random `APP_SECRET` when there's none, which signs preview
@@ -64,7 +65,7 @@ final readonly class SetUpSite
 	/**
 	 * `.env`'s contents when the site has no `.env.example`.
 	 */
-	private const string DEFAULT_ENV = "APP_ENV=production\nAPP_DEBUG=false\nAPP_NAME=\"Blush\"\nAPP_URL=\"http://localhost\"\nAPP_TIMEZONE=\"UTC\"\nAPP_LOCALE=\"en_US\"\n";
+	private const string DEFAULT_ENV = "APP_ENV=production\nAPP_DEBUG=false\nAPP_NAME=\"Blush\"\nAPP_URL=\"" . Serve::ADDRESS . "\"\nAPP_TIMEZONE=\"UTC\"\nAPP_LOCALE=\"en_US\"\n";
 
 	public function __construct(
 		private Paths $paths,
@@ -267,7 +268,7 @@ final readonly class SetUpSite
 	{
 		$name = $prompt->ask('Site name', $file->get('APP_NAME') ?: 'Blush');
 
-		$url = $prompt->ask('Site URL', $this->env->get('DDEV_PRIMARY_URL') ?: ($file->get('APP_URL') ?: 'http://localhost'), static function (string $url): ?string {
+		$url = $prompt->ask('Site URL', $this->env->get('DDEV_PRIMARY_URL') ?: Serve::ADDRESS, static function (string $url): ?string {
 			return Uri::parse($url) !== null && preg_match('#^https?://#i', $url) === 1
 				? null
 				: 'Enter a full http:// or https:// address.';

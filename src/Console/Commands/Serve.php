@@ -30,6 +30,19 @@ use Blush\Core\Paths;
 #[Command('serve', 'Serve the site with PHP\'s built-in development server.')]
 final readonly class Serve
 {
+	/**
+	 * Where it listens unless told otherwise.
+	 */
+	public const string HOST = '127.0.0.1';
+
+	public const int PORT = 8000;
+
+	/**
+	 * The site's address while it serves on the defaults, which `init`
+	 * offers outside DDEV (D-876).
+	 */
+	public const string ADDRESS = 'http://' . self::HOST . ':' . self::PORT;
+
 	public function __construct(
 		private Paths $paths,
 		private ProcessRunner $process
@@ -40,8 +53,8 @@ final readonly class Serve
 	 */
 	public function __invoke(
 		Output $output,
-		#[Option('The host to listen on.')] string $host = '127.0.0.1',
-		#[Option('The port to listen on.', short: 'p')] int $port = 8000
+		#[Option('The host to listen on.')] string $host = self::HOST,
+		#[Option('The port to listen on.', short: 'p')] int $port = self::PORT
 	): ExitCode {
 		if ($port < 1 || $port > 65535) {
 			throw new InvalidInput(sprintf('The "--port" option must be between 1 and 65535; %d given.', $port));

@@ -17,6 +17,7 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
+use Blush\Data\DataLoader;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
@@ -29,6 +30,9 @@ use Blush\Markdown\MarkdownConfig;
 use Blush\Markdown\MarkdownException;
 use Blush\Markdown\MentionResolver;
 use Blush\Markdown\RawHtml;
+use Blush\Translation\CurrentLocale;
+use Blush\Translation\Messages;
+use Blush\Translation\Translator;
 
 #[CoversClass(CommonMarkParser::class)]
 #[CoversClass(BracketedSpanParser::class)]
@@ -191,5 +195,16 @@ final class CommonMarkParserTest extends TestCase
 		$this->expectExceptionMessage('unknown key(s): options, extensions');
 
 		MarkdownConfig::fromArray(['options' => [], 'extensions' => []]);
+	}
+
+	public function testAnchorTitlesFollowTheEntrysLanguage(): void
+	{
+		$locale = new CurrentLocale('en_US');
+		$parser = new CommonMarkParser(new MarkdownConfig(), messages: new Messages(translator: new Translator(new DataLoader(), 'en_US', [Translator::CORE => [dirname(__DIR__, 2) . '/resources/lang']]), locale: $locale), locale: $locale);
+
+		$this->assertStringContainsString('title="Link to this section"', $parser->toHtml('## Start'));
+		$this->assertStringContainsString('title="このセクションへのリンク"', $parser->toHtml('## Start', 'ja'), 'In the language the entry is written in (D-877).');
+		$this->assertStringContainsString('title="Mine"', new CommonMarkParser(new MarkdownConfig(anchors: new HeadingAnchorOptions(title: 'Mine')), locale: $locale)->toHtml('## Start', 'ja'), 'A title the site sets wins.');
+		$this->assertStringNotContainsString('title=', new CommonMarkParser(new MarkdownConfig(anchors: new HeadingAnchorOptions(title: '')), locale: $locale)->toHtml('## Start', 'ja'), 'And an empty one leaves it out.');
 	}
 }

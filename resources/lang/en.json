@@ -2600,6 +2600,9 @@
 				"description": "HTML shows as text, as it was typed.",
 				"label": "Shown as Text"
 			}
+		},
+		"common_mark_parser": {
+			"anchor_title": "Link to this section"
 		}
 	},
 	"setup": {
@@ -3898,6 +3901,32 @@
 			"no_entry": "There's no entry with the id \"{id}\" that this connection may see.",
 			"no_published": "There's no published entry at \"{url}\"; search_entries finds drafts.",
 			"unreadable": "“{title}” can't be read: {problem}"
+		},
+		"input_check": {
+			"string": "{field} must be text.",
+			"integer": "{field} must be a whole number.",
+			"number": "{field} must be a number.",
+			"boolean": "{field} must be true or false.",
+			"array": "{field} must be a list.",
+			"object": "{field} must be an object.",
+			"null": "{field} must be left empty.",
+			"string_or_empty": "{field} must be text, or left empty.",
+			"integer_or_empty": "{field} must be a whole number, or left empty.",
+			"number_or_empty": "{field} must be a number, or left empty.",
+			"boolean_or_empty": "{field} must be true or false, or left empty.",
+			"array_or_empty": "{field} must be a list, or left empty.",
+			"object_or_empty": "{field} must be an object, or left empty.",
+			"types": "{field} must be one of these JSON types: {types}.",
+			"enum": "{field} must be one of: {options}.",
+			"min_length": "{field} must be at least {min, plural, one {# character} other {# characters}}.",
+			"max_length": "{field} must be at most {max, plural, one {# character} other {# characters}}.",
+			"minimum": "{field} must be at least {min}.",
+			"maximum": "{field} must be at most {max}.",
+			"min_items": "{field} must have at least {min, plural, one {# item} other {# items}}.",
+			"max_items": "{field} must have at most {max, plural, one {# item} other {# items}}.",
+			"required": "{field} needs \"{name}\".",
+			"takes_nothing": "{field} has no \"{name}\"; it takes nothing.",
+			"unknown": "{field} has no \"{name}\"; it takes {names}."
 		}
 	},
 	"notification": {

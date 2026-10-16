@@ -1337,11 +1337,8 @@ Move each item to `decisions.md` once it's answered.
      extension reasons, `Redirect`'s route errors, upload settings
      errors, `Progress` step labels, `InvalidSchema` for hand-edited
      data files, and `health.ts`'s "The file" prefix).
-  2. **Decisions first:** heading anchors' "Link to this section" (set
-     once for the Markdown parser, so it can't follow an entry's
-     language); labels stored as data (below); `Tool\InputCheck`'s
-     sentences built from JSON Schema type names, read mostly by AI
-     apps (rewrite, or leave English).
+  2. **Decisions first:** labels stored as data (below). Heading
+     anchors' title and `Tool\InputCheck`'s sentences are done (D-877).
   3. **The CLI's own prose:** output, prompts, and tables in
      `src/Console`, a mechanical sweep like D-834's. `StatusLine`
      already takes a message.

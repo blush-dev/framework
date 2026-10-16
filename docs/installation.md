@@ -25,9 +25,9 @@ composer install
 bin/blush init
 ```
 
-`init` sets up the site. It asks for the site's name, address (use
-`http://127.0.0.1:8000` for now; under DDEV, its address is offered),
-timezone (your computer's is offered; type to search the list), and
+`init` sets up the site. It asks for the site's name, address
+(`http://127.0.0.1:8000`, where `bin/blush serve` runs it, is offered;
+under DDEV, DDEV's address is), timezone (your computer's is offered; type to search the list), and
 environment, and writes them to a new `.env` file, with a secret for
 signing [preview links](admin.md#previewing-drafts). It creates the
 `storage/` folders Blush writes to, and offers to create the site's

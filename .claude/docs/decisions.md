@@ -27784,7 +27784,9 @@ decision, add a new entry that supersedes it and mark the old one
   - The environments are labeled with what they're for ("Development:
     shows errors, for working on this computer", "Production: a live
     site"), Development first.
-  - The URL offered is DDEV's (`DDEV_PRIMARY_URL`) when it runs there.
+  - The URL offered is DDEV's (`DDEV_PRIMARY_URL`) when it runs there,
+    else `serve`'s (`Serve::ADDRESS`, `http://127.0.0.1:8000`), which is
+    also a new `.env`'s without `.env.example` (the author, after trying it).
   - The owner account asks for the email address first, then a name
     (optional), then a username suggested from the email's name, never
     `admin`.
@@ -27797,4 +27799,22 @@ decision, add a new entry that supersedes it and mark the old one
     a word longer than its column broken; when even that can't fit,
     each row is written as `header  value` lines, a blank line between.
     Piped output keeps full rows.
+- **Status:** Built.
+
+### D-877: Heading anchors' title and tool input problems, translated
+
+- **Date:** 2026-10-15
+- **Refines:** D-494, D-757, D-873.
+- **Decision:** The author's calls on two items from "Translation,
+  what's left":
+  - A heading anchor's title is "Link to this section" translated into
+    the language each entry is written in, read from the document as
+    blocks read it (D-459). `HeadingAnchorOptions::$title` is `null` for
+    that; a title the site sets is its own text and always wins, and
+    `''` still leaves it out.
+  - `Tool\InputCheck` is translated, each problem a whole sentence: one
+    for each JSON type, one for each type that may also be left empty
+    (`["string", "null"]`), and any other list named by its JSON type
+    names; limits as plural messages. It's an instance given
+    `Messages`, and `problem()` returns `Text`.
 - **Status:** Built.

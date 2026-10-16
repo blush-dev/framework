@@ -108,7 +108,7 @@ final readonly class BlockNodeRenderer implements NodeRendererInterface
 	/**
 	 * Returns the language the node's document is written in, or `''`.
 	 */
-	private static function language(Node $node): string
+	public static function language(Node $node): string
 	{
 		$root = $node;
 
