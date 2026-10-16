@@ -1960,7 +1960,9 @@
 			"expected_font_weight": "its \"{token}\" must be a weight from {low} to {high}.",
 			"expected_length": "its \"{token}\" must be from {low}px to {high}px, such as \"{low}px\".",
 			"expected_letter_spacing": "its \"{token}\" must be from {low}em to {high}em, such as \"-.01em\".",
-			"expected_keyword": "its \"{token}\" must be one of {keywords}."
+			"expected_keyword": "its \"{token}\" must be one of {keywords}.",
+			"expected_image": "its \"{token}\" must be \"none\" or gradients, written with colors, numbers, and the gradients' keywords only.",
+			"expected_size": "its \"{token}\" must be \"auto\", or one or two sizes in pixels or a percent, such as \"20px 20px\"."
 		},
 		"admin_theme": {
 			"not_string": "The admin theme in {path} has a \"{field}\" that isn't a string.",

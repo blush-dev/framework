@@ -151,11 +151,14 @@ final readonly class AdminTokens
 
 	/**
 	 * Returns the value a token is set to, as CSS writes it, or `null`
-	 * when it isn't set.
+	 * when it isn't set. A token left out that takes another's
+	 * (`AdminToken::fallback()`) is that one's, as the stylesheet has it.
 	 */
 	public function get(AdminToken $token): ?string
 	{
-		return $this->values[$token->value] ?? null;
+		$fallback = $token->fallback();
+
+		return $this->values[$token->value] ?? ($fallback === null ? null : $this->get($fallback));
 	}
 
 	/**
@@ -253,7 +256,9 @@ final readonly class AdminTokens
 			TokenType::FontWeight    => self::weight($token, $value),
 			TokenType::Length        => self::measure($token, $value, 'px'),
 			TokenType::LetterSpacing => self::measure($token, $value, 'em'),
-			TokenType::Keyword       => is_string($value) && in_array($value, $token->keywords() ?? [], true) ? $value : null
+			TokenType::Keyword       => is_string($value) && in_array($value, $token->keywords() ?? [], true) ? $value : null,
+			TokenType::Image         => BackgroundImage::parse($value),
+			TokenType::Size          => BackgroundImage::size($value)
 		};
 	}
 
@@ -304,7 +309,9 @@ final readonly class AdminTokens
 			TokenType::FontWeight    => $messages->t('admin.admin_tokens.expected_font_weight', 'its "{token}" must be a weight from {low} to {high}.', token: $key, low: sprintf('%d', $low), high: sprintf('%d', $high)),
 			TokenType::Length        => $messages->t('admin.admin_tokens.expected_length', 'its "{token}" must be from {low}px to {high}px, such as "{low}px".', token: $key, low: (string) $low, high: (string) $high),
 			TokenType::LetterSpacing => $messages->t('admin.admin_tokens.expected_letter_spacing', 'its "{token}" must be from {low}em to {high}em, such as "-.01em".', token: $key, low: (string) $low, high: (string) $high),
-			TokenType::Keyword       => $messages->t('admin.admin_tokens.expected_keyword', 'its "{token}" must be one of {keywords}.', token: $key, keywords: '"' . implode('", "', $token->keywords() ?? []) . '"')
+			TokenType::Keyword       => $messages->t('admin.admin_tokens.expected_keyword', 'its "{token}" must be one of {keywords}.', token: $key, keywords: '"' . implode('", "', $token->keywords() ?? []) . '"'),
+			TokenType::Image         => $messages->t('admin.admin_tokens.expected_image', 'its "{token}" must be "none" or gradients, written with colors, numbers, and the gradients\' keywords only.', token: $key),
+			TokenType::Size          => $messages->t('admin.admin_tokens.expected_size', 'its "{token}" must be "auto", or one or two sizes in pixels or a percent, such as "20px 20px".', token: $key)
 		};
 	}
 }

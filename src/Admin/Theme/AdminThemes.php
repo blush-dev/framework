@@ -182,10 +182,10 @@ final readonly class AdminThemes
 
 	/**
 	 * Returns a theme's colors for a preview of it (a swatch): its
-	 * background, surface, accent, and text, each as CSS writes it, what
-	 * it leaves out being Neutral's.
+	 * background, surface, chrome (D-878), accent, and text, each as CSS
+	 * writes it, what it leaves out being Neutral's.
 	 *
-	 * @return array{background: string, surface: string, accent: string, text: string}
+	 * @return array{background: string, surface: string, chrome: string, accent: string, text: string}
 	 */
 	public function preview(AdminTheme $theme): array
 	{
@@ -194,6 +194,7 @@ final readonly class AdminThemes
 		return [
 			'background' => $tokens->get(AdminToken::Background) ?? '',
 			'surface'    => $tokens->get(AdminToken::Surface) ?? '',
+			'chrome'     => $tokens->get(AdminToken::Chrome) ?? '',
 			'accent'     => $tokens->get(AdminToken::Accent) ?? '',
 			'text'       => $tokens->get(AdminToken::Text) ?? ''
 		];
@@ -201,8 +202,9 @@ final readonly class AdminThemes
 
 	/**
 	 * Returns a theme's palette, the six roles a site theme's preview
-	 * declares (D-381), each its light and its dark color as CSS writes
-	 * it, what it leaves out being Neutral's.
+	 * declares (D-381), and the chrome and its accent when the theme sets
+	 * them (D-878), each its light and its dark color as CSS writes it,
+	 * what it leaves out being Neutral's.
 	 *
 	 * @return array<string, array{string, string}>
 	 */
@@ -217,6 +219,12 @@ final readonly class AdminThemes
 			'accent'     => AdminToken::Accent,
 			'border'     => AdminToken::BorderColor
 		];
+
+		foreach (['chrome' => AdminToken::Chrome, 'chromeAccent' => AdminToken::ChromeAccent] as $role => $token) {
+			if ($theme->tokens->has($token)) {
+				$roles[$role] = $token;
+			}
+		}
 
 		return array_map(static function (AdminToken $token) use ($tokens): array {
 			$color = $tokens->color($token);

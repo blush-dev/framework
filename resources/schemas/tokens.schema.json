@@ -38,6 +38,10 @@
 								"strong": {
 									"type": "string",
 									"description": "--color-surface-strong: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
+								},
+								"stripe": {
+									"type": "string",
+									"description": "--color-surface-stripe: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."
 								}
 							}
 						}
@@ -180,6 +184,56 @@
 							}
 						}
 					]
+				},
+				"chrome": {
+					"oneOf": [
+						{
+							"type": "string",
+							"description": "--color-chrome: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-surface."
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"default": {
+									"type": "string",
+									"description": "--color-chrome: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-surface."
+								},
+								"subtle": {
+									"type": "string",
+									"description": "--color-chrome-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-surface-subtle."
+								},
+								"strong": {
+									"type": "string",
+									"description": "--color-chrome-strong: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-surface-strong."
+								},
+								"text": {
+									"type": "string",
+									"description": "--color-chrome-text: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-text."
+								},
+								"textSecondary": {
+									"type": "string",
+									"description": "--color-chrome-text-secondary: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-text-secondary."
+								},
+								"textMuted": {
+									"type": "string",
+									"description": "--color-chrome-text-muted: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-text-muted."
+								},
+								"border": {
+									"type": "string",
+									"description": "--color-chrome-border: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --border-color."
+								},
+								"accent": {
+									"type": "string",
+									"description": "--color-chrome-accent: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-accent."
+								},
+								"accentSubtle": {
+									"type": "string",
+									"description": "--color-chrome-accent-subtle: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark). Left out, it's --color-accent-subtle."
+								}
+							}
+						}
+					]
 				}
 			}
 		},
@@ -249,6 +303,16 @@
 					"description": "--box-shadow-style: one of soft, hard."
 				}
 			}
+		},
+		"backgroundImage": {
+			"type": "string",
+			"maxLength": 2000,
+			"description": "--background-image: none, or gradients (linear-gradient(), radial-gradient(), conic-gradient(), and their repeating- forms) written with colors, numbers, and the gradients' keywords; light-dark() inside for each scheme's colors."
+		},
+		"backgroundSize": {
+			"type": "string",
+			"pattern": "^(auto|0|(\\d+(\\.\\d+)?|\\.\\d+)(px|%))( (auto|0|(\\d+(\\.\\d+)?|\\.\\d+)(px|%)))?$",
+			"description": "--background-size: auto, or one or two sizes in pixels or a percent, such as \"20px 20px\"."
 		},
 		"typography": {
 			"type": "object",

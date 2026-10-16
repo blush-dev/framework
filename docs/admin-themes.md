@@ -136,7 +136,8 @@ Anything a theme leaves out stays as Neutral has it, and Neutral's values
 can change in a later version, so a theme that leaves tokens out changes
 with them. Neutral's own
 [`tokens.json`](../resources/admin-themes/neutral/tokens.json) sets every
-token but the font families, so it's a good place to start from. For the
+token but the font families and the chrome's colors (below), so it's a
+good place to start from. For the
 platform's own UI font, list its stack:
 
 ```json
@@ -220,9 +221,10 @@ or tighten the admin without breaking it.
 | Token | CSS custom property | Value |
 |---|---|---|
 | `color.background` | `--color-background` | color: the app's ground, behind panels |
-| `color.surface.default` | `--color-surface` | color: panels, tables, the rail, the top bar |
+| `color.surface.default` | `--color-surface` | color: panels, tables, and the like |
 | `color.surface.subtle` | `--color-surface-subtle` | color: row hover, chips, inset fills |
 | `color.surface.strong` | `--color-surface-strong` | color: pressed, avatar ground |
+| `color.surface.stripe` | `--color-surface-stripe` | color: every other table row; `transparent` for none |
 | `color.text.default` | `--color-text` | color: primary text |
 | `color.text.secondary` | `--color-text-secondary` | color: secondary text, icons, labels |
 | `color.text.muted` | `--color-text-muted` | color: slugs, timestamps, placeholders |
@@ -240,6 +242,15 @@ or tighten the admin without breaking it.
 | `color.danger.default` | `--color-danger` | color |
 | `color.danger.subtle` | `--color-danger-subtle` | color |
 | `color.danger.indicator` | `--color-danger-indicator` | color |
+| `color.chrome.default` | `--color-chrome` | color: the chrome's ground; left out, `color.surface` |
+| `color.chrome.subtle` | `--color-chrome-subtle` | color: hover in the chrome, the search field; left out, `color.surface.subtle` |
+| `color.chrome.strong` | `--color-chrome-strong` | color: pressed in the chrome, the avatar's ground; left out, `color.surface.strong` |
+| `color.chrome.text` | `--color-chrome-text` | color: text on the chrome; left out, `color.text` |
+| `color.chrome.textSecondary` | `--color-chrome-text-secondary` | color: links and icons on the chrome; left out, `color.text.secondary` |
+| `color.chrome.textMuted` | `--color-chrome-text-muted` | color: labels and counts on the chrome; left out, `color.text.muted` |
+| `color.chrome.border` | `--color-chrome-border` | color: lines in and around the chrome; left out, `border.color` |
+| `color.chrome.accent` | `--color-chrome-accent` | color: the current section and link, focus in the chrome; left out, `color.accent` |
+| `color.chrome.accentSubtle` | `--color-chrome-accent-subtle` | color: the current section and link's fill; left out, `color.accent.subtle` |
 | `border.color.default` | `--border-color` | color: the default hairline |
 | `border.color.strong` | `--border-color-strong` | color: checkboxes, hover borders, floating edges |
 | `border.radius.small` | `--border-radius-small` | 0–24px: buttons, inputs, chips |
@@ -247,6 +258,8 @@ or tighten the admin without breaking it.
 | `border.radius.large` | `--border-radius-large` | 0–24px: panels, the table's shell |
 | `boxShadow.color` | `--box-shadow-color` | color: shadows, at their strongest |
 | `boxShadow.style` | `--box-shadow-style` | `soft` or `hard`: see below |
+| `backgroundImage` | `--background-image` | `none` or gradients: the ground's texture, see below |
+| `backgroundSize` | `--background-size` | `auto`, or one or two sizes in pixels or a percent (`"20px 20px"`) |
 | `typography.fontFamily.ui` | `--font-family-ui` | font families: everything but titles |
 | `typography.fontFamily.display` | `--font-family-display` | font families: page and panel headings |
 | `typography.fontFamily.title` | `--font-family-title` | font families: entry titles |
@@ -267,6 +280,33 @@ or tighten the admin without breaking it.
 | `padding.row` | `--padding-row` | 10–20px: table cells and list rows, top and bottom |
 | `padding.panel` | `--padding-panel` | 12–24px: panel headers, top and bottom |
 | `padding.inline` | `--padding-inline` | 16–32px: panels, cells, and rows, left and right |
+
+The **chrome** is the section rail, the section panel beside it, and the
+top bar: the frame around the work. Its colors are the page's until a
+theme sets them, so it can draw a dark frame around a light page, or a
+frame in its own colors, without changing anything else. Leave them out
+and the chrome follows the theme's surface, text, border, and accent.
+The chrome usually needs an accent of its own, since one accent rarely
+reads well on both a light page and a dark frame. Menus opened from the
+chrome keep the page's colors.
+
+`backgroundImage` lays a texture over `color.background`, under the
+work: a dot grid, a hatch, a grain. It's `none`, or one or more
+gradients (`linear-gradient()`, `radial-gradient()`, `conic-gradient()`,
+and their `repeating-` forms), written with colors, numbers, and the
+gradients' own words (`circle`, `at`, `to`, `center`, and the like).
+Nothing else is accepted, so a texture can't load a file. Give each
+scheme its colors with `light-dark()` inside the gradient, and repeat a
+pattern with `backgroundSize`:
+
+```json
+{
+	"backgroundImage": "radial-gradient(circle, light-dark(rgb(20 24 29 / 16%), rgb(255 255 255 / 7%)) 1px, transparent 1.4px)",
+	"backgroundSize": "20px 20px"
+}
+```
+
+Keep a texture faint: it sits behind everything on the page.
 
 `boxShadow.style` picks how things stand off the page, everywhere in
 the admin at once:
@@ -291,8 +331,9 @@ bin/blush admin-theme:check acme/harbor
 This reads every admin theme (or one) and reports anything wrong with
 its manifest or `tokens.json`, [requirements](extending.md#requirements)
 that aren't met, and colors that are hard to read: text on the
-background and surfaces, accent text on the accent, and each status
-color on its own soft fill, in both color schemes. Low contrast is a
+background and surfaces, accent text on the accent, each status
+color on its own soft fill, text on the table's stripe, and the
+chrome's text and accent on the chrome, in both color schemes. Low contrast is a
 warning, not an error, so a theme with it still works.
 
 ## Autocomplete in your editor

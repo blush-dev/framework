@@ -1895,7 +1895,9 @@
 			"expected_font_weight": "「{token}」は{low}〜{high}のウェイトである必要があります。",
 			"expected_length": "「{token}」は{low}px〜{high}pxである必要があります（例: \"{low}px\"）。",
 			"expected_letter_spacing": "「{token}」は{low}em〜{high}emである必要があります（例: \"-.01em\"）。",
-			"expected_keyword": "「{token}」は {keywords} のいずれかである必要があります。"
+			"expected_keyword": "「{token}」は {keywords} のいずれかである必要があります。",
+			"expected_image": "「{token}」は \"none\" か、色と数値とグラデーションのキーワードだけで書いたグラデーションである必要があります。",
+			"expected_size": "「{token}」は \"auto\" か、ピクセルまたはパーセントで 1 つか 2 つのサイズ（\"20px 20px\" など）である必要があります。"
 		},
 		"admin_theme": {
 			"not_string": "{path}の管理画面テーマの \"{field}\" が文字列ではありません。",

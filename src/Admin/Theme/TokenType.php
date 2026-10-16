@@ -36,4 +36,10 @@ enum TokenType: string
 
 	/** One of the token's keywords (`"hard"`). */
 	case Keyword = 'keyword';
+
+	/** `none` or gradients, by `BackgroundImage`'s allowlist (D-878). */
+	case Image = 'image';
+
+	/** A background size: `auto`, or one or two of pixels or a percent. */
+	case Size = 'size';
 }

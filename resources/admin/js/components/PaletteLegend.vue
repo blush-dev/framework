@@ -1,30 +1,37 @@
 <script setup lang="ts">
 /**
  * A palette as a legend under its preview (D-381, D-827): each of the six
- * roles' colors in one color scheme as a chip, framed so white still has
+ * roles' colors in one color scheme as a chip (and an admin theme's
+ * chrome, when it sets it; D-878), framed so white still has
  * an edge, with its name and value in the admin's own ink. Theme Details
  * and Admin Theme Details list each half of a palette with it.
  */
 
-import { PALETTE_ROLES, type PaletteRole } from '../api';
+import { CHROME_ROLES, PALETTE_ROLES, type ChromeRole, type PaletteRole } from '../api';
 import { t } from '../messages';
 
 const props = defineProps<{
-	palette: Record<PaletteRole, [string, string]>;
+	palette: Record<PaletteRole, [string, string]> & Partial<Record<ChromeRole, [string, string]>>;
 	// 0 for the light half, 1 for the dark.
 	half: 0 | 1;
 }>();
 
-const LABELS: Record<PaletteRole, string> = {
+const LABELS: Record<PaletteRole | ChromeRole, string> = {
 	background: t('palette_legend.background', 'Background'),
 	surface: t('palette_legend.surface', 'Surface'),
 	text: t('palette_legend.text', 'Text'),
 	muted: t('palette_legend.muted', 'Muted'),
 	accent: t('palette_legend.accent', 'Accent'),
-	border: t('palette_legend.border', 'Border')
+	border: t('palette_legend.border', 'Border'),
+	chrome: t('palette_legend.chrome', 'Chrome'),
+	chromeAccent: t('palette_legend.chrome_accent', 'Chrome accent')
 };
 
-const swatches = () => PALETTE_ROLES.map((role) => ({ role, fill: props.palette[role][props.half] }));
+const swatches = () => [...PALETTE_ROLES, ...CHROME_ROLES].flatMap((role) => {
+	const colors = props.palette[role];
+
+	return colors === undefined ? [] : [{ role, fill: colors[props.half] }];
+});
 </script>
 
 <template>

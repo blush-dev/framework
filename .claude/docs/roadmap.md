@@ -1440,6 +1440,20 @@ admin changed, and `docs/`.
    from a `.zip`, delete, and the capabilities; Your profile's picker
    from the themes that are on, with previews from each theme's colors.
 
+### Admin theme chrome (D-878): done
+
+Each stage ends with `composer check`, `npm run admin:build`, the
+`tokens.json` schema, and `docs/admin-themes.md`.
+
+1. **Chrome** (built): the nine `color.chrome` tokens, defaults by reference in
+   `tokens.css`, the rail, section panel, and top bar and their
+   controls reading them, the contrast pairs, and the previews and
+   Admin Theme Details.
+2. **Stripe and texture** (built): `color.surface.stripe` on `.table`;
+   `backgroundImage` and `backgroundSize` under the work area, with
+   the gradient allowlist as a token type.
+3. **The themes** (built): Workbench, Bound, and Walnut on the jtcom trial.
+
 ---
 
 ### Backlog

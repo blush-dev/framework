@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * An admin theme in miniature (D-827): its rail, a panel, an accent, and
+ * An admin theme in miniature (D-827): its rail (in its chrome, D-878), a panel, an accent, and
  * two lines of ink, in the theme's own colors (`preview`, each a
  * `light-dark()` value, so it follows the admin's color scheme), on its
  * background. Drawn in shares of its box, so it's the same picture as a
@@ -20,6 +20,7 @@ const props = defineProps<{
 const colors = computed(() => props.preview === null ? undefined : {
 	'--sw-bg': props.preview.background,
 	'--sw-surface': props.preview.surface,
+	'--sw-chrome': props.preview.chrome,
 	'--sw-accent': props.preview.accent,
 	'--sw-fg': props.preview.text
 });
@@ -70,7 +71,7 @@ const colors = computed(() => props.preview === null ? undefined : {
 	left: 0;
 	width: 24%;
 	border-right: max(1px, calc(var(--u) / 2)) solid color-mix(in srgb, var(--sw-fg) 14%, transparent);
-	background: var(--sw-surface);
+	background: var(--sw-chrome);
 }
 
 .admin-sketch__panel {

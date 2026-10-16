@@ -33,6 +33,7 @@ enum AdminToken: string
 	case Surface                 = 'color.surface.default';
 	case SurfaceSubtle           = 'color.surface.subtle';
 	case SurfaceStrong           = 'color.surface.strong';
+	case SurfaceStripe           = 'color.surface.stripe';
 	case Text                    = 'color.text.default';
 	case TextSecondary           = 'color.text.secondary';
 	case TextMuted               = 'color.text.muted';
@@ -50,6 +51,15 @@ enum AdminToken: string
 	case Danger                  = 'color.danger.default';
 	case DangerSubtle            = 'color.danger.subtle';
 	case DangerIndicator         = 'color.danger.indicator';
+	case Chrome                  = 'color.chrome.default';
+	case ChromeSubtle            = 'color.chrome.subtle';
+	case ChromeStrong            = 'color.chrome.strong';
+	case ChromeText              = 'color.chrome.text';
+	case ChromeTextSecondary     = 'color.chrome.textSecondary';
+	case ChromeTextMuted         = 'color.chrome.textMuted';
+	case ChromeBorder            = 'color.chrome.border';
+	case ChromeAccent            = 'color.chrome.accent';
+	case ChromeAccentSubtle      = 'color.chrome.accentSubtle';
 	case BorderColor             = 'border.color.default';
 	case BorderColorStrong       = 'border.color.strong';
 	case BorderRadiusSmall       = 'border.radius.small';
@@ -57,6 +67,8 @@ enum AdminToken: string
 	case BorderRadiusLarge       = 'border.radius.large';
 	case BoxShadowColor          = 'boxShadow.color';
 	case BoxShadowStyle          = 'boxShadow.style';
+	case BackgroundImage         = 'backgroundImage';
+	case BackgroundSize          = 'backgroundSize';
 	case FontFamilyUi            = 'typography.fontFamily.ui';
 	case FontFamilyDisplay       = 'typography.fontFamily.display';
 	case FontFamilyTitle         = 'typography.fontFamily.title';
@@ -85,6 +97,8 @@ enum AdminToken: string
 	{
 		return match (true) {
 			$this === self::BoxShadowStyle                             => TokenType::Keyword,
+			$this === self::BackgroundImage                            => TokenType::Image,
+			$this === self::BackgroundSize                             => TokenType::Size,
 			str_starts_with($this->value, 'color.'), $this === self::BorderColor, $this === self::BorderColorStrong, $this === self::BoxShadowColor => TokenType::Color,
 			str_starts_with($this->value, 'typography.fontFamily.')    => TokenType::FontFamily,
 			str_starts_with($this->value, 'typography.fontWeight.')    => TokenType::FontWeight,
@@ -131,6 +145,28 @@ enum AdminToken: string
 			self::PaddingPanel                                    => [12, 24],
 			self::PaddingInline                                   => [16, 32],
 			default                                               => null
+		};
+	}
+
+	/**
+	 * Returns the token whose value it takes when a theme leaves it out,
+	 * or `null` for a token whose value is Neutral's (D-878). The
+	 * chrome's colors are the page's until a theme sets them, so a theme
+	 * without them looks as it did.
+	 */
+	public function fallback(): ?self
+	{
+		return match ($this) {
+			self::Chrome              => self::Surface,
+			self::ChromeSubtle        => self::SurfaceSubtle,
+			self::ChromeStrong        => self::SurfaceStrong,
+			self::ChromeText          => self::Text,
+			self::ChromeTextSecondary => self::TextSecondary,
+			self::ChromeTextMuted     => self::TextMuted,
+			self::ChromeBorder        => self::BorderColor,
+			self::ChromeAccent        => self::Accent,
+			self::ChromeAccentSubtle  => self::AccentSubtle,
+			default                   => null
 		};
 	}
 

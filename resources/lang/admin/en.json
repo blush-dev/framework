@@ -556,7 +556,9 @@
 		"text": "Text",
 		"muted": "Muted",
 		"accent": "Accent",
-		"border": "Border"
+		"border": "Border",
+		"chrome": "Chrome",
+		"chrome_accent": "Chrome accent"
 	},
 	"field_node_tree": {
 		"untitled": "Untitled field",

@@ -116,6 +116,7 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame([
 			'background' => 'light-dark(#f5f6f9, #0b0d12)',
 			'surface'    => 'light-dark(#ffffff, #13161d)',
+			'chrome'     => 'light-dark(#ffffff, #13161d)',
 			'accent'     => 'light-dark(#1d4e89, #8fb8e8)',
 			'text'       => 'light-dark(#11141b, #e9ebf0)'
 		], $themes->preview($harbor));
@@ -214,5 +215,23 @@ final class AdminThemesTest extends TestCase
 		$this->assertCount(2, $warnings, 'On the background and the surface, in light only.');
 		$this->assertStringStartsWith('In the light scheme, color.text.default on color.background is 1.', (string) $warnings[0]);
 		$this->assertStringEndsWith('under the 4.5:1 it needs.', (string) $warnings[0]);
+	}
+
+	public function testChecksTheChromeOnceAThemeSetsIt(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/frame/admin-theme.json', '{"name": "acme/frame"}');
+		$this->writeTemporaryFile('extensions/acme/frame/tokens.json', '{"color": {"chrome": {"default": "#1d2126", "text": "#eef0f2", "textSecondary": "#a9b0b8", "subtle": "#2b3037", "textMuted": "#8a929b", "accent": "#0b6a83", "accentSubtle": "#2b3037"}}}');
+
+		$themes = new AdminThemeDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover();
+		$frame  = $themes->find('acme/frame');
+
+		$this->assertNotNull($frame);
+
+		$warnings = array_map('strval', new AdminThemeContrast(new Messages())->check($themes->resolved($frame)));
+
+		$this->assertCount(4, $warnings, 'A page accent on a dark frame is hard to read, on the chrome and the current link\'s fill, in both schemes.');
+		$this->assertStringContainsString('color.chrome.accent on color.chrome.default', $warnings[0]);
+		$this->assertSame(['background', 'surface', 'text', 'muted', 'accent', 'border', 'chrome', 'chromeAccent'], array_keys($themes->palette($frame)), 'Its palette adds the chrome it sets.');
+		$this->assertSame(['#1d2126', '#1d2126'], $themes->palette($frame)['chrome']);
 	}
 }

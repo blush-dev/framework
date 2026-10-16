@@ -34,6 +34,7 @@
 	--color-surface: light-dark(#ffffff, #13161d);         /* panels, the table, the rail, the top bar */
 	--color-surface-subtle: light-dark(#f0f2f6, #1a1e27);  /* row hover, chips, inset fills */
 	--color-surface-strong: light-dark(#e7eaf0, #222733);  /* pressed, avatar ground */
+	--color-surface-stripe: transparent;                   /* every other table row */
 
 	/* Lines. */
 	--border-color: light-dark(#e2e5ec, #242936);          /* the default hairline */
@@ -62,6 +63,20 @@
 	--color-danger-subtle: light-dark(#fbeae9, #301917);
 	--color-danger-indicator: light-dark(#d6403a, #e0655c);
 
+	/* The chrome (D-878): the section rail, its panel, and the top bar,
+	   and every control in them. The page's colors until a theme sets
+	   its own, so a theme that leaves them out looks as it did. Menus
+	   opened from the chrome keep the page's. */
+	--color-chrome: var(--color-surface);
+	--color-chrome-subtle: var(--color-surface-subtle);        /* hover, the search field */
+	--color-chrome-strong: var(--color-surface-strong);        /* pressed, the avatar's ground */
+	--color-chrome-text: var(--color-text);
+	--color-chrome-text-secondary: var(--color-text-secondary);
+	--color-chrome-text-muted: var(--color-text-muted);
+	--color-chrome-border: var(--border-color);
+	--color-chrome-accent: var(--color-accent);                /* the current section and link, focus */
+	--color-chrome-accent-subtle: var(--color-accent-subtle);  /* the current section and link's fill */
+
 	/* Elevation. Flat by default: borders and surface steps separate
 	   things, and a shadow is spent only where something sits above the
 	   page. A theme sets the shadows' color, at its strongest (a modal's
@@ -71,6 +86,11 @@
 	   The geometry and each layer's share of the color are core's. */
 	--box-shadow-color: light-dark(rgb(17 20 27 / 9%), rgb(0 0 0 / 45%));
 	--box-shadow-style: soft;
+
+	/* The ground's texture under the work (D-878): gradients only, laid
+	   over --color-background. */
+	--background-image: none;
+	--background-size: auto;
 
 	--shadow-1: none; /* resting surfaces */
 	--shadow-2: /* menus, popovers, toasts */

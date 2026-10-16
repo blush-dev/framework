@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Blush\Admin\Theme\AdminToken;
 use Blush\Admin\Theme\AdminTokens;
+use Blush\Admin\Theme\BackgroundImage;
 use Blush\Admin\Theme\ColorValue;
 use Blush\Admin\Theme\CssColor;
 use Blush\Admin\Theme\FontFace;
@@ -27,6 +28,7 @@ use Blush\Extension\ExtensionException;
 use Blush\Tests\TemporaryDirectory;
 
 #[CoversClass(AdminTokens::class)]
+#[CoversClass(BackgroundImage::class)]
 #[CoversClass(AdminToken::class)]
 #[CoversClass(ColorValue::class)]
 #[CoversClass(CssColor::class)]
@@ -204,6 +206,73 @@ final class AdminTokensTest extends TestCase
 
 		$this->assertSame('#000', $both->get(AdminToken::Background));
 		$this->assertSame('#111', $both->get(AdminToken::Text));
+	}
+
+	public function testTheChromeIsThePagesUntilAThemeSetsIt(): void
+	{
+		$base  = AdminTokens::fromArray(['color' => ['surface' => '#fff', 'accent' => '#00f']], $this->temporaryDirectory());
+		$theme = AdminTokens::fromArray(['color' => ['surface' => '#eee', 'chrome' => ['accent' => '#ff0']]], $this->temporaryDirectory());
+		$both  = $base->with($theme);
+
+		$this->assertSame('color-chrome', AdminToken::Chrome->property());
+		$this->assertSame('color-chrome-text-secondary', AdminToken::ChromeTextSecondary->property());
+		$this->assertSame('#eee', $both->get(AdminToken::Chrome), 'Left out, it follows the theme\'s own surface.');
+		$this->assertFalse($both->has(AdminToken::Chrome));
+		$this->assertSame('#ff0', $both->get(AdminToken::ChromeAccent));
+		$this->assertStringNotContainsString('--color-chrome:', $theme->css(':root'), 'Its stylesheet leaves the reference to tokens.css.');
+	}
+
+	public function testReadsAGroundTexture(): void
+	{
+		$tokens = AdminTokens::fromArray([
+			'color'           => ['surface' => ['stripe' => 'light-dark(#f6f7f9, #20242a)']],
+			'backgroundImage' => "radial-gradient(circle,  light-dark(rgb(20 24 29 / 16%), rgb(255 255 255 / 7%)) 1px, transparent 1.4px)",
+			'backgroundSize'  => '20px 20px'
+		], $this->temporaryDirectory());
+
+		$this->assertSame('background-image', AdminToken::BackgroundImage->property());
+		$this->assertSame('color-surface-stripe', AdminToken::SurfaceStripe->property());
+		$this->assertStringContainsString("\t--background-image: radial-gradient(circle, light-dark(rgb(20 24 29 / 16%), rgb(255 255 255 / 7%)) 1px, transparent 1.4px);\n\t--background-size: 20px 20px;\n", $tokens->css(':root'), 'Its spaces collapse.');
+	}
+
+	/**
+	 * @return iterable<string, array{string, ?string}>
+	 */
+	public static function images(): iterable
+	{
+		yield 'none'               => ['none', 'none'];
+		yield 'two hatches'        => ['repeating-linear-gradient(45deg, rgba(61,52,46,.06) 0 1px, transparent 1px 6px), repeating-linear-gradient(-45deg, #3d342e0a 0 1px, transparent 1px 6px)', 'repeating-linear-gradient(45deg, rgba(61,52,46,.06) 0 1px, transparent 1px 6px), repeating-linear-gradient(-45deg, #3d342e0a 0 1px, transparent 1px 6px)'];
+		yield 'a position'         => ['radial-gradient(ellipse at top left in oklch, oklch(70% 0.1 200), transparent 60%)', 'radial-gradient(ellipse at top left in oklch, oklch(70% 0.1 200), transparent 60%)'];
+		yield 'a file'             => ['url(https://example.com/a.png)', null];
+		yield 'a file in a list'   => ['linear-gradient(#000, #fff), url(a.png)', null];
+		yield 'a file inside'      => ['linear-gradient(url(a.png), #fff)', null];
+		yield 'another token'      => ['linear-gradient(var(--color-accent), #fff)', null];
+		yield 'a way out'          => ['linear-gradient(#000, #fff); color: red', null];
+		yield 'a way out of rules' => ['linear-gradient(#000, #fff)} body {', null];
+		yield 'unclosed'           => ['linear-gradient(#000, #fff', null];
+		yield 'closed twice'       => ['linear-gradient(#000, #fff))', null];
+		yield 'a gradient inside'  => ['linear-gradient(linear-gradient(#000, #fff), #fff)', null];
+		yield 'a color name'       => ['linear-gradient(red, #fff)', null];
+		yield 'a bare color'       => ['#fff', null];
+		yield 'a string'           => ['linear-gradient("a", #fff)', null];
+		yield 'an escape'          => ['linear-gradient(\\75rl(a), #fff)', null];
+		yield 'empty'              => ['', null];
+	}
+
+	#[DataProvider('images')]
+	public function testReadsOnlyGradientsAsAnImage(string $value, ?string $css): void
+	{
+		$this->assertSame($css, BackgroundImage::parse($value));
+	}
+
+	public function testReadsABackgroundSize(): void
+	{
+		$this->assertSame('20px 20px', BackgroundImage::size(' 20px  20px '));
+		$this->assertSame('auto', BackgroundImage::size('auto'));
+		$this->assertSame('50% auto', BackgroundImage::size('50% auto'));
+		$this->assertNull(BackgroundImage::size('cover; color: red'));
+		$this->assertNull(BackgroundImage::size('20px 20px 20px'));
+		$this->assertNull(BackgroundImage::size('20em'));
 	}
 
 	public function testReadsBackWhatTheCacheKept(): void

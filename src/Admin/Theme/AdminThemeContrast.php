@@ -22,7 +22,9 @@ use Blush\Translation\Text;
  * in both color schemes: text on the background and surfaces (4.5:1, or
  * 3:1 for muted text, which only ever sits beside text that's readable),
  * accent text on the accent, a status color on its own soft fill, and the
- * accent against the surface it marks (3:1, as a control's edge needs).
+ * accent against the surface it marks (3:1, as a control's edge needs);
+ * and the same in the chrome (D-878): its text on it, and its accent on
+ * the chrome and on the current item's fill, once a theme sets them.
  * A low ratio is warned of, never refused: a theme may know better, and
  * the admin still works.
  */
@@ -39,11 +41,19 @@ final readonly class AdminThemeContrast
 		[AdminToken::Text, AdminToken::Surface, 4.5],
 		[AdminToken::TextSecondary, AdminToken::Surface, 4.5],
 		[AdminToken::TextMuted, AdminToken::Surface, 3.0],
+		[AdminToken::Text, AdminToken::SurfaceStripe, 4.5],
+		[AdminToken::TextMuted, AdminToken::SurfaceStripe, 3.0],
 		[AdminToken::AccentText, AdminToken::Accent, 4.5],
 		[AdminToken::Accent, AdminToken::Surface, 3.0],
 		[AdminToken::Success, AdminToken::SuccessSubtle, 4.5],
 		[AdminToken::Warning, AdminToken::WarningSubtle, 4.5],
-		[AdminToken::Danger, AdminToken::DangerSubtle, 4.5]
+		[AdminToken::Danger, AdminToken::DangerSubtle, 4.5],
+		[AdminToken::ChromeText, AdminToken::Chrome, 4.5],
+		[AdminToken::ChromeTextSecondary, AdminToken::Chrome, 4.5],
+		[AdminToken::ChromeTextSecondary, AdminToken::ChromeSubtle, 4.5],
+		[AdminToken::ChromeTextMuted, AdminToken::Chrome, 3.0],
+		[AdminToken::ChromeAccent, AdminToken::Chrome, 3.0],
+		[AdminToken::ChromeAccent, AdminToken::ChromeAccentSubtle, 4.5]
 	];
 
 	public function __construct(private Messages $messages)
@@ -63,6 +73,11 @@ final readonly class AdminThemeContrast
 		$warnings = [];
 
 		foreach (self::PAIRS as [$foreground, $background, $needed]) {
+			// A chrome pair the theme sets neither of is a page pair again.
+			if ($foreground->fallback() !== null && $background->fallback() !== null && ! $tokens->has($foreground) && ! $tokens->has($background)) {
+				continue;
+			}
+
 			$front = $tokens->color($foreground);
 			$back  = $tokens->color($background);
 

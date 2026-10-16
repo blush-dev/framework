@@ -15,6 +15,7 @@ namespace Blush\JsonSchema;
 
 use JsonException;
 use Blush\Admin\Theme\AdminToken;
+use Blush\Admin\Theme\BackgroundImage;
 use Blush\Admin\Theme\TokenType;
 use Blush\Asset\Asset;
 use Blush\Block\BlockName;
@@ -484,12 +485,14 @@ final readonly class JsonSchemas
 		$name  = "--{$token->property()}";
 
 		return match ($token->type()) {
-			TokenType::Color         => ['type' => 'string', 'description' => "{$name}: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)."],
+			TokenType::Color         => ['type' => 'string', 'description' => "{$name}: a color (hex, rgb(), hsl(), or oklch()), or light-dark(light, dark)." . ($token->fallback() === null ? '' : " Left out, it's --{$token->fallback()->property()}.")],
 			TokenType::FontFamily    => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string'], 'description' => "{$name}: font family names, first choice first, such as [\"Karla\", \"sans-serif\"]. Without a generic family at the end, the platform's own UI font is used."],
 			TokenType::FontWeight    => ['type' => 'integer', 'minimum' => $range[0], 'maximum' => $range[1], 'description' => "{$name}: a weight from {$range[0]} to {$range[1]}."],
 			TokenType::Length        => ['type' => 'string', 'pattern' => '^(0|\\d+(\\.\\d+)?px)$', 'description' => "{$name}: pixels, from {$range[0]}px to {$range[1]}px."],
 			TokenType::LetterSpacing => ['type' => 'string', 'pattern' => '^(0|-?(\\d+(\\.\\d+)?|\\.\\d+)em)$', 'description' => sprintf('%s: ems, from %sem to %sem.', $name, $range[0], $range[1])],
-			TokenType::Keyword       => ['type' => 'string', 'enum' => $token->keywords() ?? [], 'description' => sprintf('%s: one of %s.', $name, implode(', ', $token->keywords() ?? []))]
+			TokenType::Keyword       => ['type' => 'string', 'enum' => $token->keywords() ?? [], 'description' => sprintf('%s: one of %s.', $name, implode(', ', $token->keywords() ?? []))],
+			TokenType::Image         => ['type' => 'string', 'maxLength' => BackgroundImage::MAX_LENGTH, 'description' => "{$name}: none, or gradients (linear-gradient(), radial-gradient(), conic-gradient(), and their repeating- forms) written with colors, numbers, and the gradients' keywords; light-dark() inside for each scheme's colors."],
+			TokenType::Size          => ['type' => 'string', 'pattern' => '^(auto|0|(\\d+(\\.\\d+)?|\\.\\d+)(px|%))( (auto|0|(\\d+(\\.\\d+)?|\\.\\d+)(px|%)))?$', 'description' => "{$name}: auto, or one or two sizes in pixels or a percent, such as \"20px 20px\"."]
 		};
 	}
 

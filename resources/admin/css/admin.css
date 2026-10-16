@@ -702,6 +702,11 @@
 	font-weight: 400;
 }
 
+/* A theme's stripe (D-878), under everything else a row can be. */
+:where(.table tbody:not(.table__pinned) tr:nth-child(even)) {
+	background: var(--color-surface-stripe);
+}
+
 .table tbody tr:hover {
 	background: var(--color-surface-subtle);
 }

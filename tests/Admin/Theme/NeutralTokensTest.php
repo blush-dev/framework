@@ -73,6 +73,14 @@ final class NeutralTokensTest extends TestCase
 				continue;
 			}
 
+			// The chrome's are the page's until a theme sets them (D-878).
+			if ($token->fallback() !== null) {
+				$this->assertFalse($neutral->has($token), "Neutral leaves {$token->value} to the page's.");
+				$this->assertSame("var(--{$token->fallback()->property()})", $declared[$token->property()] ?? null, "{$token->value} is {$token->fallback()->value} in tokens.css.");
+
+				continue;
+			}
+
 			$this->assertSame($declared[$token->property()] ?? null, $neutral->get($token), "{$token->value} is the same in both.");
 		}
 	}

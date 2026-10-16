@@ -183,6 +183,8 @@ onBeforeUnmount(() => {
 	border-radius: var(--border-radius-medium);
 	background: var(--color-surface);
 	box-shadow: var(--shadow-2);
+	/* The page's ink, even opened from the chrome (D-878). */
+	color: var(--color-text);
 }
 
 .menu-button__list--end {

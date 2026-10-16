@@ -27818,3 +27818,135 @@ decision, add a new entry that supersedes it and mark the old one
     names; limits as plural messages. It's an instance given
     `Messages`, and `problem()` returns `Text`.
 - **Status:** Built.
+
+### D-878: Admin theme chrome, a row stripe, and a ground texture
+
+- **Date:** 2026-10-15
+- **Refines:** D-827, D-843. Built in three stages (`roadmap.md`,
+  "Admin theme chrome").
+- **Decision:** the author's calls, from the Workbench Family sketch
+  (`.claude/docs/admin-theme-design/workbench-family-admin-themes.html`:
+  Workbench, Bound, and Walnut), which proposes nine tokens today's
+  `tokens.json` can't say:
+  - **Chrome, as its own color group** (the author chose a `chrome`
+    group over chrome as a place in each role's group): the section
+    rail, the section panel, and the top bar (`.railbar`,
+    `.panel-nav`, `.bar` in `AdminLayout.vue`) drawn apart from the
+    work area.
+    - `color.chrome` (`default`, the ground), `subtle` (hover, the
+      current item, the search field's fill), `text`, `textSecondary`
+      (labels, counts, resting icons), `border`, and `accent` (the
+      current section and item, the rail's mark, the focus ring in the
+      chrome); `--color-chrome`, `--color-chrome-subtle`,
+      `--color-chrome-text`, `--color-chrome-text-secondary`,
+      `--color-chrome-border`, `--color-chrome-accent`.
+    - Within the group, `text` is text on the chrome, unlike
+      `color.accent.text` (text on a filled accent); and the chrome's
+      border color lives here, not under `border.color`. Both accepted
+      for keeping the chrome in one group.
+    - Every control the chrome holds (the crumbs, search, the account
+      button, the panel's add, edit, and tool buttons, the narrow
+      width's menu button) reads the chrome tokens by name; the
+      regular tokens aren't redefined over the chrome, so menus opened
+      from it (the account menu, the panel's add menu) keep the page's
+      colors.
+    - Contrast warnings gain the pairs: `text` on the chrome,
+      `textSecondary` on the chrome and `subtle`, and `accent` on the
+      chrome and `subtle` (4.5:1).
+    - The theme previews (`AdminThemes::preview()`,
+      `AdminThemeSketch`) draw the chrome, and Admin Theme Details
+      lists a Chrome group.
+  - **A row stripe:** `color.surface.stripe`
+    (`--color-surface-stripe`), every other row of the shared `.table`;
+    contrast warnings for text (4.5:1) and muted text (3:1) on it.
+  - **A ground texture:** `backgroundImage` and `backgroundSize`
+    (`--background-image`, `--background-size`), split as CSS splits
+    them, laid over `color.background` under the work area. The image
+    is `none` or gradients (`linear-`, `radial-`, `conic-gradient` and
+    their `repeating-` forms), each scheme's in `light-dark()` as
+    colors are; the size is lengths. The value is checked by an
+    allowlist (those functions, the color functions colors allow,
+    numbers, units, `#`, commas, slashes, and the gradients'
+    keywords), so a value can't make a request (`url()`) or break out
+    of its declaration; there's no faintness check (the author's call:
+    a theme may add its texture as it likes).
+  - **Defaults by reference:** each new token's default is another
+    token (`--color-chrome: var(--color-surface)`, the stripe
+    `transparent`, the image `none`) in `tokens.css`, so a theme that
+    leaves them out follows its own colors and looks as it does now.
+    Neutral's `tokens.json` leaves them out, as it does the families,
+    and D-843's "a theme sets every token" doesn't apply to them.
+    `tokens.json` values still can't be `var()`.
+  - **Border width is left out** for now (the sketch's `border-w`):
+    Workbench draws 1px lines.
+  - **Workbench, Bound, and Walnut** are built as local extensions on
+    the jtcom trial (`extensions/blush/{workbench, bound, walnut}`),
+    not shipped in core.
+  - **Settled while building stage 1** (Claude's calls, so Neutral
+    looks exactly as it did; the author may trim them):
+    - **Three more chrome tokens,** so the group mirrors the page's
+      surface, text, and accent: `strong` (pressed, the avatar's
+      ground), `textMuted` (the rail's labels, counts, the panel's
+      headings, the crumbs' slashes), and `accentSubtle` (the current
+      section and link's fill). Nine in all.
+    - **`AdminToken::fallback()`** names the token each takes when left
+      out, and `AdminTokens::get()` follows it, so previews and
+      contrast read the theme's own surface; `has()` and the stylesheet
+      see only what a theme sets.
+    - **Contrast:** a chrome pair is checked only when the theme sets
+      one of its two colors (otherwise it repeats a page pair): text
+      on the chrome and secondary text on it and on `subtle` (4.5:1),
+      muted text on it (3:1), the accent on the chrome (3:1, as the
+      page's accent on the surface) and on `accentSubtle` (4.5:1, the
+      current link's text).
+    - **The chrome's controls** read the chrome tokens by name in
+      `AdminLayout.vue`: the ghost buttons (menu, close), View Site,
+      the twists, the account button, search and its `kbd`; focus in
+      the chrome is `accent`'s outline. `MenuButton`'s list sets the
+      page's ink, so menus opened from the chrome keep page colors.
+    - **Small changes to Neutral:** the search field's fill is
+      `chrome.subtle` (was the background), its hover no longer
+      darkens its border, and View Site's border is `chrome.border`
+      (was `border.color.strong`); the rail's mark is the chrome's text
+      on the chrome (was text on the background).
+    - **Previews:** `preview` adds `chrome` (the sketch's rail); a
+      theme's palette adds `chrome` and `chromeAccent` when it sets
+      them, listed on Admin Theme Details by `PaletteLegend`.
+  - **Settled while building stage 2:**
+    - **The author kept the three extra chrome tokens.**
+    - **The stripe** is Neutral's `transparent` (a value, set in
+      Neutral's and the bundled themes' `tokens.json`, not a
+      reference), drawn at no specificity
+      (`:where(.table tbody:not(.table__pinned) tr:nth-child(even))`)
+      so hover, selection, pinned rows, and group rows all draw over
+      it. Its contrast pairs skip it while it's transparent.
+    - **The texture's types:** `TokenType::Image` and `TokenType::Size`,
+      read by `BackgroundImage`. `light-dark()` goes inside the
+      gradient, around each color (CSS's `light-dark()` takes colors
+      only), so the value is one gradient for both schemes. No color
+      names but `transparent`, as colors have it; no gradient inside
+      another; at most 2,000 characters. Sizes are `auto`, `0`, or
+      pixels or a percent, one or two.
+    - **Where it's drawn:** `.work` in `AdminLayout.vue` (the top bar
+      covers it with the chrome), as `background-color`,
+      `background-image`, and `background-size`. Neutral's are `none`
+      and `auto`, which the bundled themes set too (D-843).
+  - **Settled while building stage 3** (the themes, on the jtcom
+    trial, turned on in its saved list):
+    - Each is the sketch's light and dark blocks as `light-dark()`
+      values, on system fonts (D-568's stack), with Neutral's sizes and
+      padding but the sketch's page title (26px), entry-title weight
+      (Workbench and Walnut 550, Bound 600), page-title tracking, radii,
+      and a display weight of 650; shadows `soft`, their color the
+      sketch's wide layer.
+    - The sketch has no values for the three tokens added in stage 1,
+      so: `accentSubtle` is the sketch's `chrome-2` (its current item),
+      `textMuted` is its `chrome-fg-2` (it draws the rail's labels and
+      counts in that), and `strong` is `chrome-2` mixed 12% toward
+      `chrome-fg`.
+    - Workbench's dots and Walnut's hatch are the sketch's gradients
+      with each color in `light-dark()`; Workbench's 1.5px lines are
+      1px (border width left out).
+    - Sumi and Brutalist on the trial set the stage 2 tokens to
+      Neutral's (D-843). All eleven pass `admin-theme:check`.
+- **Status:** Built (2026-10-15), all three stages.

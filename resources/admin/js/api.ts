@@ -601,6 +601,14 @@ export const PALETTE_ROLES = ['background', 'surface', 'text', 'muted', 'accent'
 export type PaletteRole = typeof PALETTE_ROLES[number];
 
 /**
+ * The chrome's roles an admin theme's palette adds when the theme sets
+ * them (D-878), in order.
+ */
+export const CHROME_ROLES = ['chrome', 'chromeAccent'] as const;
+
+export type ChromeRole = typeof CHROME_ROLES[number];
+
+/**
  * What the admin sketches a theme's preview from (`theme.json`'s
  * `preview`, D-381): a layout, a line about its type, and its palette,
  * each color a light and a dark hex value.
@@ -1038,9 +1046,10 @@ export interface AdminThemeSummary extends Omit<IconPackSummary, 'namespace' | '
 	default: boolean;
 	// Its colors for a sketch, each as CSS writes it (`light-dark()`).
 	preview: AdminThemePreview;
-	// Its palette, in the six roles a site theme's declares (D-381), each
-	// a light and a dark color.
-	palette: Record<PaletteRole, [string, string]>;
+	// Its palette, in the six roles a site theme's declares (D-381), and
+	// the chrome's when it sets them (D-878), each a light and a dark
+	// color.
+	palette: Record<PaletteRole, [string, string]> & Partial<Record<ChromeRole, [string, string]>>;
 	// Where its colors are hard to read, in either scheme.
 	contrast: string[];
 }
@@ -1048,6 +1057,8 @@ export interface AdminThemeSummary extends Omit<IconPackSummary, 'namespace' | '
 export interface AdminThemePreview {
 	background: string;
 	surface: string;
+	// The rail's, the page's surface unless the theme sets it (D-878).
+	chrome: string;
 	accent: string;
 	text: string;
 }

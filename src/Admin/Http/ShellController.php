@@ -190,7 +190,7 @@ final readonly class ShellController
 	 * with its stylesheet's URL (none for Neutral, the admin's own) and
 	 * its colors for a swatch, and the site's default (D-827).
 	 *
-	 * @return array{default: ?string, offered: list<array{name: string, label: string, description: string, stylesheet: ?string, preview: array{background: string, surface: string, accent: string, text: string}}>}
+	 * @return array{default: ?string, offered: list<array{name: string, label: string, description: string, stylesheet: ?string, preview: array{background: string, surface: string, chrome: string, accent: string, text: string}}>}
 	 */
 	private function adminThemes(): array
 	{

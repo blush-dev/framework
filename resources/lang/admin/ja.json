@@ -517,7 +517,9 @@
 		"text": "テキスト",
 		"muted": "控えめ",
 		"accent": "アクセント",
-		"border": "枠線"
+		"border": "枠線",
+		"chrome": "クローム",
+		"chrome_accent": "クロームのアクセント"
 	},
 	"field_node_tree": {
 		"untitled": "無題のフィールド",
